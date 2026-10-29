@@ -1,0 +1,2 @@
+# Fichiers copiés tels quels sur le serveur Linux (scp) : jamais de CRLF.
+ci/** text eol=lf
