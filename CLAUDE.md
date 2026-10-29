@@ -76,6 +76,8 @@ seaglass/
 - Lancé par l'app avec `--no-config --include=<seaglass.conf>` pour **ne jamais** charger la config mpv vidéo personnelle de l'utilisateur.
 - Options de base : `--idle=yes --no-video --input-ipc-server=\\.\pipe\seaglass-mpv-<pid de l'app> --ao=wasapi --gapless-audio=weak --prefetch-playlist=yes`. Le pid dans le nom du pipe empêche de se connecter à un mpv orphelin d'un lancement précédent.
 - Tauri quitte sans exécuter les destructeurs : mpv est tué explicitement sur `RunEvent::Exit` (`mpv::process::ProcessGuard`). En cas de plantage il peut rester orphelin ; un Job Object Windows (`KILL_ON_JOB_CLOSE`) réglera ça avec le sidecar (phase 5).
+- `media-controls=no` et `input-media-keys=no` dans `seaglass.conf` : sinon mpv publie sa propre session SMTC « mpv », qui capte les touches média (cause des issues #6 et #27). Seule la session de Seaglass doit exister.
+- `audio-params` passe à `null` à chaque fin de fichier et n'est pas renvoyé si le titre suivant a le même format : un `null` est ignoré, la sortie n'est effacée que sur `idle-active` (#12, `PlayerState::set_output`).
 - Mode bit-perfect (réglage utilisateur) : `--audio-exclusive=yes`, volume mpv à 100, pas de `replaygain`, pas de `audio-samplerate` forcé, pas de filtres audio.
 - Propriétés observées : `playlist-pos`, `time-pos`, `duration`, `pause`, `paused-for-cache`, `audio-params`, `current-ao`, `idle-active`. Événement : `end-file`.
 - Un micro-blanc lors d'un changement de fréquence d'échantillonnage en mode exclusif est **normal** (réouverture du périphérique). Ce n'est pas un bug à corriger.
