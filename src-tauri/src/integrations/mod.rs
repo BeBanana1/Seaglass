@@ -1,6 +1,10 @@
 //! Intégrations système : elles reçoivent un résumé de l'état du lecteur (`NowPlaying`)
 //! et renvoient leurs actions (touches média…) sous forme de `Cmd` à l'acteur.
 
+// Hors Windows (CI Linux), aucune intégration ne consomme `NowPlaying` : sans cela,
+// clippy `-D warnings` échouerait sur du code mort.
+#![cfg_attr(not(windows), allow(dead_code))]
+
 #[cfg(windows)]
 pub mod smtc;
 

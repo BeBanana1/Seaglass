@@ -77,7 +77,7 @@ seaglass/
 
 - Lancé par l'app avec `--no-config --include=<seaglass.conf>` pour **ne jamais** charger la config mpv vidéo personnelle de l'utilisateur.
 - Options de base : `--idle=yes --no-video --input-ipc-server=\\.\pipe\seaglass-mpv-<pid de l'app> --ao=wasapi --gapless-audio=weak --prefetch-playlist=yes`. Le pid dans le nom du pipe empêche de se connecter à un mpv orphelin d'un lancement précédent.
-- Tauri quitte sans exécuter les destructeurs : mpv est tué explicitement sur `RunEvent::Exit` (`mpv::process::ProcessGuard`). En cas de plantage il peut rester orphelin ; un Job Object Windows (`KILL_ON_JOB_CLOSE`) réglera ça avec le sidecar (phase 5).
+- Tauri quitte sans exécuter les destructeurs : mpv est tué explicitement sur `RunEvent::Exit` (`mpv::process::ProcessGuard`). En cas de plantage, c'est le Job Object (voir plus bas) qui l'arrête.
 - `media-controls=no` et `input-media-keys=no` dans `seaglass.conf` : sinon mpv publie sa propre session SMTC « mpv », qui capte les touches média (cause des issues #6 et #27). Seule la session de Seaglass doit exister.
 - `audio-params` passe à `null` à chaque fin de fichier et n'est pas renvoyé si le titre suivant a le même format : un `null` est ignoré, la sortie n'est effacée que sur `idle-active` (#12, `PlayerState::set_output`).
 - Mode bit-perfect (réglage utilisateur) : `--audio-exclusive=yes`, volume mpv à 100, pas de `replaygain`, pas de `audio-samplerate` forcé, pas de filtres audio.
@@ -166,6 +166,13 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 - **Hébergement** (en service) : le Gitea exige une connexion partout, donc l'updater ne peut pas y lire de releases. Les mises à jour sont servies par le Caddy du serveur (Docker) : `updates.bebanana.ch` (CNAME vers `bebanana.internet-box.ch`) sert `/srv/updates` en lecture seule, `latest.json` en `Cache-Control: no-cache`. Le dossier est public, les installeurs étant signés.
 - **Publication** : utilisateur `seaglass-deploy` (sans mot de passe ni sudo, clé SSH avec `restrict`), alias `seaglass-updates` dans `~/.ssh/config` du PC (IP locale du serveur), `SEAGLASS_RELEASE_DEST=seaglass-updates:/srv/updates/seaglass` (variable utilisateur Windows). Après `scp`, le script remet les droits à 755 / 644 : sinon le dossier de version arrive en écriture pour tous.
 - **Release** : `pnpm release` (`scripts/release.ps1`) vérifie l'arbre git, `.env`, la clé et `VERSION`, embarque mpv, lance `pnpm tauri build --config src-tauri/tauri.release.conf.json`, puis écrit `release/latest.json` et `release/<version>/Seaglass_<version>_x64-setup.exe`. Avec `-Publish`, il copie vers `SEAGLASS_RELEASE_DEST` (dossier ou cible scp), le manifeste en dernier, puis pose et pousse le tag `v<version>`. Une release = un tag : pas de mise à jour à chaque push.
+
+## Implémentation (phase 5 : CI)
+
+- **Workflow** : `.gitea/workflows/ci.yml`, sur push vers `main` et sur chaque PR : `pnpm check`, `pnpm build`, `cargo fmt --check`, `clippy -D warnings`, `cargo test`. `pnpm build` passe avant Rust car `tauri::generate_context!` exige `dist/`. Ni `.env` ni `fixtures.json` ne sont nécessaires.
+- **Runner** : `act_runner` en Docker sur le serveur, enregistré **au niveau du dépôt** (pas de l'instance), label `ubuntu-latest:docker://docker.gitea.com/runner-images:ubuntu-latest`. Il monte le socket Docker, donc il équivaut à root sur le serveur : ne jamais l'ouvrir à d'autres dépôts.
+- **Limite** : sous Linux, le code `#[cfg(windows)]` (SMTC, Job Object, `CREATE_NO_WINDOW`) n'est ni compilé ni testé ; `pnpm release` le vérifie sous Windows. Du code partagé utilisé seulement par une intégration Windows doit tolérer le code mort hors Windows (`integrations/mod.rs`), sinon clippy échoue en CI.
+- **Pas de release en CI** : la clé minisign reste sur le PC, `pnpm release` reste manuel.
 
 ## Commandes
 
