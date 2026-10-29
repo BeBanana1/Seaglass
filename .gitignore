@@ -15,3 +15,8 @@ src-tauri/gen/schemas/
 
 # Données factices de prévisualisation (contiennent la bibliothèque du compte)
 src/lib/mock/fixtures.json
+
+# mpv embarqué par le script de release (119 Mo, jamais dans git)
+src-tauri/binaries/
+# Artefacts produits par scripts/release.ps1
+release/

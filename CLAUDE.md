@@ -24,6 +24,7 @@ Projet personnel, Windows en priorité.
 | Stockage | SQLite (`rusqlite`) pour la file, les réglages et le cache de métadonnées |
 | Secrets | `keyring` (Credential Manager sous Windows) |
 | Intégrations | SMTC Windows (`windows` crate), Discord RPC, Last.fm (plus tard) |
+| Mises à jour | `tauri-plugin-updater` (installeur NSIS signé, manifeste `latest.json`) |
 
 Demander avant d'ajouter une dépendance qui n'est pas dans cette liste.
 
@@ -82,7 +83,8 @@ seaglass/
 - Mode bit-perfect (réglage utilisateur) : `--audio-exclusive=yes`, volume mpv à 100, pas de `replaygain`, pas de `audio-samplerate` forcé, pas de filtres audio.
 - Propriétés observées : `playlist-pos`, `time-pos`, `duration`, `pause`, `paused-for-cache`, `audio-params`, `current-ao`, `idle-active`. Événement : `end-file`.
 - Un micro-blanc lors d'un changement de fréquence d'échantillonnage en mode exclusif est **normal** (réouverture du périphérique). Ce n'est pas un bug à corriger.
-- En dev : mpv dans le `PATH` ou chemin donné par `SEAGLASS_MPV_PATH`. En release : sidecar Tauri (`externalBin`).
+- Résolution de mpv (`mpv::process::executable`) : `SEAGLASS_MPV_PATH`, sinon `mpv.exe` à côté de `seaglass.exe` (installé par l'installeur), sinon celui du `PATH` (dev).
+- mpv est rattaché à un Job Object Windows `KILL_ON_JOB_CLOSE` (`mpv/job.rs`) : il meurt avec l'app, même sur un plantage.
 
 ## Feuille de route
 
@@ -91,7 +93,7 @@ seaglass/
 2. ~~**File d'attente**~~ ✅ : `queue.rs` (testé), gapless, retry sur erreur, repeat One via `loop-file`, persistance SQLite.
 3. ~~**Vues**~~ ✅ : accueil, recherche multi-types, album, artiste, playlist, bibliothèque (playlists, albums, artistes, titres).
 4. ~~**Intégrations + UI**~~ ✅ : SMTC ; thèmes Verre de mer / Studio / Atelier / Acidwave / Surréalisme, vue « En lecture », chaîne audio, raccourcis clavier. Discord RPC et Last.fm reportés (pas avant que l'utilisateur le demande).
-5. **(actuel)** Finitions : mode exclusif WASAPI (réglage), sidecar mpv + Job Object, mixes de l'accueil, installeur.
+5. **(actuel)** Finitions : ~~installeur NSIS, mpv embarqué + Job Object, mises à jour signées, script de release~~ ✅ ; restent le mode exclusif WASAPI (réglage), les mixes de l'accueil, l'hébergement des mises à jour et la CI.
 
 ## Résultats du spike (2026-10-29, tidalapi 0.8.11, abonnement HI_RES, pays CH)
 
@@ -155,6 +157,15 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 - **Prévisualisation sans Tauri** : `pnpm dev` puis `http://127.0.0.1:1420/?theme=studio&route=album&nowplaying=1` (paramètres : `theme`, `route`, `tab`, `nowplaying`, `queue`, `paused`, `loggedout`). Données de `src/lib/mock/fixtures.json`, généré par `cargo test dump_ui_fixtures -- --ignored` (gitignoré : contient la bibliothèque du compte). La branche factice est éliminée du build de production (`import.meta.env.DEV`).
 - **Piège Vite** : à deux reprises, après des éditions de fichiers par script, le CSS d'un composant est resté périmé alors que son JS était à jour (règles absentes du `?svelte&type=style`). Redémarrer `pnpm tauri dev` et vider `node_modules/.vite` règle le problème. Le panneau de navigateur intégré, quand il est masqué, gèle aussi les animations et le chargement différé des images : pour une capture, injecter `*{animation:none!important}`.
 
+## Implémentation (phase 5 : installeur et mises à jour)
+
+- **Installeur** : NSIS uniquement (`bundle.targets`), installation par utilisateur (`installMode: currentUser`, pas d'admin), dans `%LOCALAPPDATA%\Seaglass`. Icône : `src-tauri/icons/app-icon.svg`, déclinée avec `pnpm tauri icon src-tauri/icons/app-icon.svg` (supprimer ensuite `icons/android` et `icons/ios`). Licences livrées dans `licenses/` (GPL-3.0 de Seaglass, notice mpv).
+- **mpv embarqué** : seulement au build de release, via `src-tauri/tauri.release.conf.json` (`externalBin: binaries/mpv`). Le script copie le mpv du `PATH` en `src-tauri/binaries/mpv-x86_64-pc-windows-msvc.exe` (gitignoré, 119 Mo). Dans la config de base, `externalBin` ferait échouer tout `cargo build` sans ce fichier. Le build actuel de mpv (zhongfly, x86-64-v3) exige un processeur AVX2.
+- **Mises à jour** (`src-tauri/src/updater.rs`) : vérification 20 s après le démarrage puis toutes les 6 h ; téléchargement en arrière-plan, signature vérifiée par le plugin ; événement `update-ready` → `UpdatePrompt.svelte` (« Installer et redémarrer » = `install_update`, « Plus tard » = installation sur `RunEvent::Exit`, sans relance). `on_before_exit` arrête mpv avant que l'installeur ferme l'app. Rien n'est vérifié en debug sauf si `SEAGLASS_UPDATE_URL` est défini (aussi utile pour tester un autre manifeste).
+- **Signature** : clé minisign dans `%USERPROFILE%\.tauri\seaglass.key` (sans mot de passe, hors du dépôt), clé publique dans `tauri.conf.json` (`plugins.updater.pubkey`). **Perdre la clé privée** = plus aucune mise à jour acceptée par les versions installées (réinstallation manuelle) : elle doit être sauvegardée.
+- **Hébergement** : le dépôt Gitea est privé (tout redirige vers le login), donc l'updater ne peut pas y lire les releases. Endpoint prévu : `https://updates.bebanana.ch/seaglass/latest.json`, un dossier web statique ; il peut être public, les installeurs étant signés.
+- **Release** : `pnpm release` (`scripts/release.ps1`) vérifie l'arbre git, `.env`, la clé et `VERSION`, embarque mpv, lance `pnpm tauri build --config src-tauri/tauri.release.conf.json`, puis écrit `release/latest.json` et `release/<version>/Seaglass_<version>_x64-setup.exe`. Avec `-Publish`, il copie vers `SEAGLASS_RELEASE_DEST` (dossier ou cible scp), le manifeste en dernier, puis pose et pousse le tag `v<version>`. Une release = un tag : pas de mise à jour à chaque push.
+
 ## Commandes
 
 PowerShell sous Windows.
@@ -175,6 +186,7 @@ cd src-tauri; cargo fmt; cargo clippy --all-targets -- -D warnings; cargo test
 cargo test live_catalog -- --ignored --nocapture   # endpoints réels (session requise)
 cargo test dump_ui_fixtures -- --ignored          # données de prévisualisation de l'UI
 pnpm check
+pnpm release                                      # installeur signé dans release/ (voir phase 5)
 ```
 
 ## Conventions

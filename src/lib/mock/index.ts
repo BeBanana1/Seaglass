@@ -3,7 +3,7 @@
 // (gitignoré). Sans ce fichier, un jeu minimal synthétique est utilisé.
 //
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
-// library|search|home`, `?nowplaying=1`, `?paused=1`, `?loggedout=1`, `?queue=1`.
+// library|search|home`, `?nowplaying=1`, `?paused=1`, `?loggedout=1`, `?queue=1`, `?update=1`.
 
 import type {
   AlbumPage,
@@ -111,6 +111,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   player_state: () => state,
   queue_state: () => queueView(),
   ui_settings: () => ui,
+  // `?update=1` : simule une mise à jour prête.
+  update_status: () =>
+    params.has("update")
+      ? {
+          version: "0.5.0",
+          currentVersion: "0.4.4",
+          notes: ["- Installeur Windows", "- Mises à jour automatiques"].join("\n"),
+        }
+      : null,
+  install_update: () => null,
   set_ui_settings: ({ settings }) => {
     ui = settings as UiSettings;
   },

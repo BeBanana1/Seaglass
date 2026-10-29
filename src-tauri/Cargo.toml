@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.4.3"
+version = "0.4.4"
 description = "Seaglass, client de streaming non officiel"
 authors = ["bebanana"]
 edition = "2024"
@@ -25,6 +25,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.11.1"
 tauri = { version = "2", features = [] }
+tauri-plugin-updater = "2"
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util", "process"] }
 tracing = "0.1.44"
@@ -37,6 +38,8 @@ windows = { version = "0.62", features = [
     "Media",
     "Storage_Streams",
     "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_JobObjects",
     "Win32_System_WinRT",
 ] }
 

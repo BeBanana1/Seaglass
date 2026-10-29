@@ -20,7 +20,11 @@ Version actuelle : voir [`VERSION`](VERSION).
 - Cinq thèmes : **Verre de mer** (verre dépoli sur la pochette, couleurs accordées à l'album), **Studio** (console sombre et dense), **Atelier** (clair, éditorial), **Acidwave** (néons acides et chrome, qui pulse pendant la lecture) et **Surréalisme** (paysage vectoriel onirique teinté par l'album).
 - Vue « En lecture » plein écran ; raccourcis : Espace, Ctrl+K, Échap, Alt+←.
 
-## Prérequis
+## Installation
+
+Télécharger `Seaglass_<version>_x64-setup.exe` et le lancer : l'installation se fait pour l'utilisateur courant, sans droits administrateur, et mpv est inclus. Ensuite, l'app se met à jour toute seule : quand une nouvelle version est prête, elle propose « Installer et redémarrer » ou « Plus tard » (installation à la fermeture). Processeur compatible AVX2 requis par le build de mpv livré.
+
+## Prérequis (développement)
 
 - Windows 10 ou 11 (WebView2 installé)
 - [mpv](https://mpv.io/installation/) dans le `PATH`, ou son chemin dans la variable `SEAGLASS_MPV_PATH`
@@ -56,6 +60,14 @@ Aperçu de l'interface sans Tauri, sur des données factices : `pnpm dev`, puis 
 
 L'architecture, les conventions et la feuille de route sont décrites dans [`CLAUDE.md`](CLAUDE.md). Les bugs et demandes sont suivis dans les issues du dépôt Gitea ; chaque correction passe par une branche `issue-<n>-…` et une PR qui ferme l'issue. Le dossier `spike/` contient le script Python de la phase 0 qui a validé les formats de flux.
 
+## Publier une version
+
+1. Monter `VERSION` (et `src-tauri/Cargo.toml`), commiter.
+2. `pnpm release` : construit l'installeur signé et `release/latest.json`, sans rien publier.
+3. `pnpm release -Publish` avec `SEAGLASS_RELEASE_DEST` défini : publie dans le dossier des mises à jour et pose le tag `v<version>`.
+
+La clé privée de signature (`%USERPROFILE%\.tauri\seaglass.key`) doit être sauvegardée : sans elle, les versions installées refuseront toute mise à jour.
+
 ## Licence
 
-[GPL-3.0](LICENSE). mpv est lancé comme programme séparé et piloté par IPC, il n'est pas lié au code de Seaglass.
+[GPL-3.0](LICENSE). mpv est lancé comme programme séparé et piloté par IPC, il n'est pas lié au code de Seaglass ; sa notice de licence est livrée avec l'installeur (`src-tauri/licenses/mpv.txt`).

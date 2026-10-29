@@ -12,21 +12,35 @@ use super::{MpvError, Result};
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
+/// Nom de l'exécutable mpv livré par l'installeur, à côté de celui de l'app.
+#[cfg(windows)]
+const BUNDLED_MPV: &str = "mpv.exe";
+#[cfg(not(windows))]
+const BUNDLED_MPV: &str = "mpv";
+
 /// Pipe IPC propre à ce lancement : un mpv orphelin d'un lancement précédent ne peut
 /// jamais être pris pour le nôtre.
 pub fn pipe_name() -> String {
     format!(r"\\.\pipe\seaglass-mpv-{}", std::process::id())
 }
 
+/// `SEAGLASS_MPV_PATH`, sinon le mpv installé avec l'app, sinon celui du `PATH` (dev).
 fn executable() -> PathBuf {
-    std::env::var_os("SEAGLASS_MPV_PATH")
-        .map(PathBuf::from)
+    if let Some(path) = std::env::var_os("SEAGLASS_MPV_PATH") {
+        return PathBuf::from(path);
+    }
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join(BUNDLED_MPV)))
+        .filter(|bundled| bundled.is_file())
         .unwrap_or_else(|| PathBuf::from("mpv"))
 }
 
 /// Lance mpv en mode idle.
 pub fn spawn(conf: &Path) -> Result<Child> {
-    let mut cmd = Command::new(executable());
+    let exe = executable();
+    tracing::info!("mpv : {}", exe.display());
+    let mut cmd = Command::new(exe);
     cmd.arg("--no-config")
         .arg(format!("--include={}", conf.display()))
         .args([
@@ -44,13 +58,19 @@ pub fn spawn(conf: &Path) -> Result<Child> {
         .kill_on_drop(true);
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
-    cmd.spawn().map_err(MpvError::Spawn)
+    let child = cmd.spawn().map_err(MpvError::Spawn)?;
+    #[cfg(windows)]
+    if let Some(handle) = child.raw_handle() {
+        super::job::adopt(handle);
+    }
+    Ok(child)
 }
 
 /// Détient le processus mpv pour pouvoir l'arrêter à la fermeture de l'app.
 ///
 /// Tauri quitte le processus sans exécuter les destructeurs : `kill_on_drop` ne suffit
-/// pas, d'où l'appel explicite à `kill` sur `RunEvent::Exit`.
+/// pas, d'où l'appel explicite à `kill` sur `RunEvent::Exit` (et avant l'installation
+/// d'une mise à jour). Sur un plantage, c'est le Job Object (`job.rs`) qui arrête mpv.
 #[derive(Default)]
 pub struct ProcessGuard(Mutex<Option<Child>>);
 

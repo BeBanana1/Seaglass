@@ -25,8 +25,21 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
-    "resources": ["mpv/seaglass.conf"],
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "publisher": "bebanana",
+    "copyright": "GPL-3.0. Client non officiel, non affilié à TIDAL.",
+    "shortDescription": "Client de streaming musical lossless",
+    "resources": {
+      "mpv/seaglass.conf": "mpv/seaglass.conf",
+      "../LICENSE": "licenses/Seaglass-GPL-3.0.txt",
+      "licenses/mpv.txt": "licenses/mpv.txt"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -34,5 +47,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZERkVBRjAzNjJGRkNBQzUKUldURnl2OWlBNi8rL1JkY2YzRzNUNHdjQWhwc2k0eUVhYlZoaWVkdXVpemNMRDk2MmQ3VHhuc3YK",
+      "endpoints": ["https://updates.bebanana.ch/seaglass/latest.json"],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

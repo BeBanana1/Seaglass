@@ -21,6 +21,7 @@
   import Toasts from "./components/Toasts.svelte";
   import About from "./components/About.svelte";
   import Appearance from "./components/Appearance.svelte";
+  import UpdatePrompt from "./components/UpdatePrompt.svelte";
   import Icon from "./components/Icon.svelte";
 
   let session = $state<SessionInfo | null>(null);
@@ -166,6 +167,7 @@
   <NowPlaying onClose={() => (nowPlayingOpen = false)} />
 {/if}
 <Toasts />
+<UpdatePrompt />
 {#if ui.appearanceOpen}
   <Appearance onClose={() => (ui.appearanceOpen = false)} />
 {/if}

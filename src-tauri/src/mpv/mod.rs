@@ -3,6 +3,8 @@
 
 pub mod events;
 pub mod ipc;
+#[cfg(windows)]
+mod job;
 pub mod process;
 pub mod serve;
 

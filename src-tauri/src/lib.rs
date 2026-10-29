@@ -4,6 +4,7 @@ mod mpv;
 mod player;
 mod store;
 mod tidal;
+mod updater;
 
 use std::sync::Arc;
 
@@ -15,6 +16,7 @@ use commands::AppState;
 use mpv::process::ProcessGuard;
 use store::Store;
 use tidal::TidalClient;
+use updater::UpdateState;
 
 const DB_FILE: &str = "seaglass.db";
 
@@ -28,6 +30,8 @@ pub fn run() {
         .init();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(UpdateState::default())
         .setup(|app| {
             let tidal = Arc::new(TidalClient::new()?);
             let mpv_conf = app
@@ -48,6 +52,7 @@ pub fn run() {
                 player,
                 store,
             });
+            updater::spawn(app.handle().clone(), Arc::clone(&mpv_process));
             app.manage(mpv_process);
             Ok(())
         })
@@ -78,13 +83,17 @@ pub fn run() {
             commands::player::queue_state,
             commands::settings::ui_settings,
             commands::settings::set_ui_settings,
+            updater::update_status,
+            updater::install_update,
         ])
         .build(tauri::generate_context!())
         .expect("échec du lancement de l'application")
         .run(|app, event| {
             // Tauri quitte sans exécuter les destructeurs : mpv doit être arrêté ici.
+            // Une mise à jour reportée (« Plus tard ») s'installe à ce moment-là.
             if let RunEvent::Exit = event {
                 app.state::<Arc<ProcessGuard>>().kill();
+                app.state::<UpdateState>().install_on_exit();
             }
         });
 }

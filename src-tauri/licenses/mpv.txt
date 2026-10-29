@@ -1,0 +1,15 @@
+Seaglass est livré avec mpv (https://mpv.io), lancé comme programme séparé et piloté
+par IPC. mpv n'est pas lié au code de Seaglass.
+
+mpv est distribué sous licence GPL version 2 ou ultérieure (LGPL pour certaines
+parties) ; le binaire fourni inclut aussi FFmpeg et d'autres bibliothèques sous
+licences libres compatibles.
+
+- Code source de mpv : https://github.com/mpv-player/mpv
+- Binaire Windows utilisé : builds communautaires « mpv-winbuild »
+  (https://github.com/zhongfly/mpv-winbuild), qui publient leurs scripts de
+  compilation et les versions exactes de chaque dépendance.
+- Texte de la GPL : voir Seaglass-GPL-3.0.txt (GPL v3) et
+  https://www.gnu.org/licenses/old-licenses/gpl-2.0.html (GPL v2).
+
+La version exacte de mpv livrée s'affiche avec : mpv.exe --version

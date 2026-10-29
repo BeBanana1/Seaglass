@@ -144,6 +144,12 @@ export interface UiSettings {
   theme: Theme;
 }
 
+export interface UpdateInfo {
+  version: string;
+  currentVersion: string;
+  notes: string | null;
+}
+
 export interface SessionInfo {
   userId: number;
   countryCode: string;
@@ -183,6 +189,9 @@ export const commands = {
   queueState: () => invoke<QueueView>("queue_state"),
   uiSettings: () => invoke<UiSettings>("ui_settings"),
   setUiSettings: (settings: UiSettings) => invoke<void>("set_ui_settings", { settings }),
+  updateStatus: () => invoke<UpdateInfo | null>("update_status"),
+  /** L'installeur ferme l'app puis la relance. */
+  installUpdate: () => invoke<void>("install_update"),
 };
 
 export const events = {
@@ -190,6 +199,8 @@ export const events = {
     listen<PlayerState>("player-state", (e) => cb(e.payload)),
   onQueueState: (cb: (q: QueueView) => void): Promise<UnlistenFn> =>
     listen<QueueView>("queue-state", (e) => cb(e.payload)),
+  onUpdateReady: (cb: (u: UpdateInfo) => void): Promise<UnlistenFn> =>
+    listen<UpdateInfo>("update-ready", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>
     listen<Toast>("toast", (e) => cb(e.payload)),
 };
