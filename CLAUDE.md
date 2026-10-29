@@ -3,7 +3,7 @@
 Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
 Projet personnel, Windows en priorité.
 
-> Statut : **phase 0 (spike) validée le 2026-10-29**. Flux FLAC sans DRM confirmés (voir « Résultats du spike »). Prochaine étape : phase 1, squelette Tauri.
+> Statut : **phase 1 validée le 2026-10-29**. Connexion PKCE, recherche et lecture FLAC de bout en bout dans l'app. Prochaine étape : phase 2, file d'attente, gapless et persistance.
 
 ## Principes non négociables
 
@@ -43,9 +43,9 @@ seaglass/
    └─ src/
       ├─ lib.rs              # setup Tauri, lancement des tâches
       ├─ commands.rs         # commandes Tauri : valident l'entrée puis envoient un Cmd
-      ├─ tidal/              # auth.rs, api.rs, models.rs
+      ├─ tidal/              # auth.rs, api.rs, models.rs, manifest.rs (décodage + détection DRM)
       ├─ player/             # actor.rs, queue.rs, state.rs
-      ├─ mpv/                # process.rs, ipc.rs, events.rs
+      ├─ mpv/                # process.rs, ipc.rs, events.rs, serve.rs (MPD servis en HTTP local)
       ├─ store/              # SQLite
       └─ integrations/       # smtc.rs, discord.rs
 ```
@@ -81,8 +81,8 @@ seaglass/
 ## Feuille de route
 
 0. ~~**Spike**~~ ✅ : script Python `spike/play.py` avec `tidalapi` : connexion, récupération du manifeste d'un titre, lecture dans mpv. Flux FLAC sans DRM confirmés avec le client PKCE.
-1. **(actuel)** Squelette Tauri + Svelte, module `mpv/` (process + IPC + événements), commandes `login` (PKCE), `search`, `play`.
-2. Acteur lecteur + file d'attente + gapless + persistance.
+1. ~~**Squelette**~~ ✅ : Tauri + Svelte, module `mpv/` (process + IPC + événements), commandes `login` (PKCE), `search`, `play`, `toggle_pause`, `seek`. Acteur lecteur minimal (un titre à la fois).
+2. **(actuel)** File d'attente (`queue.rs`) + gapless + persistance, dans l'acteur existant.
 3. Vues : accueil, recherche, album, artiste, playlist, bibliothèque.
 4. Intégrations : SMTC, Discord RPC, Last.fm.
 5. Thème, finitions, sidecar mpv, installeur.
@@ -108,6 +108,14 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 - **Métadonnées** : `track.audioQuality` vaut `LOSSLESS` même pour un titre hi-res, la disponibilité hi-res se lit dans `mediaMetadata.tags` (`HIRES_LOSSLESS`, `DOLBY_ATMOS`). Le format réel (`bitDepth`, `sampleRate`) n'est connu qu'avec `playbackinfopostpaywall`.
 - **Lecture** : le MPD utilise `SegmentTemplate` + `SegmentTimeline` avec des URLs absolues signées. mpv le lit via le démuxeur DASH de ffmpeg s'il est servi en HTTP. Le spike le sert depuis la mémoire sur `127.0.0.1` (rien sur disque). Le backend Rust devra faire de même (petit serveur local) ou valider une autre approche. mpv sort en `s32` pour du 24 bits, c'est normal.
 - À surveiller : un avertissement ffmpeg `dash: Error when loading first fragment of playlist` vu une fois sur un titre 24/48, sans effet sur la lecture.
+
+## Implémentation (phase 1)
+
+- **Identifiant client** : `TIDAL_CLIENT_ID` / `TIDAL_CLIENT_SECRET` (client PKCE) dans `.env`, injectés à la compilation par `build.rs`. Une variable d'environnement au lancement reste prioritaire.
+- **Connexion** : fenêtre webview `login` (sans aucune capability) sur `login.tidal.com/authorize` ; `on_navigation` intercepte `https://tidal.com/android/login/auth?code=…` et bloque la navigation. Refresh token dans le Credential Manager (service `seaglass`, utilisateur `tidal-refresh-token`). L'access token (4 h) n'est jamais persisté, il est rafraîchi 60 s avant expiration ou sur 401.
+- **Garde DRM** : avant chaque lecture, `tidal::manifest` rejette les MPD avec `ContentProtection` / `cenc:default_KID` / `cenc:pssh` / UUID Widevine, puis le segment d'initialisation (lu en mémoire) s'il contient `pssh`/`tenc`/`sinf`/`enca`.
+- **Manifestes** : `mpv::serve` écoute sur `127.0.0.1:<port aléatoire>` et garde les 4 derniers MPD en mémoire ; mpv reçoit `http://127.0.0.1:<port>/<track>-<n>.mpd`.
+- Vérifié en lecture réelle : `audio-codec-name=flac`, `current-ao=wasapi`, sortie `s16` 44,1 kHz pour un titre 16/44,1.
 
 ## Commandes
 

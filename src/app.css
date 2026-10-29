@@ -1,0 +1,70 @@
+:root {
+  --bg: #0d1517;
+  --bg-raised: #142023;
+  --bg-hover: #1b2a2e;
+  --border: #22353a;
+  --text: #e3eeec;
+  --text-muted: #8ba4a1;
+  --accent: #7fd1b9;
+  --accent-strong: #a6e8d4;
+  --danger: #f08a7e;
+  --radius: 8px;
+  --player-height: 84px;
+
+  color-scheme: dark;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--bg);
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.badge.muted {
+  color: var(--text-muted);
+  background: var(--bg-hover);
+}
