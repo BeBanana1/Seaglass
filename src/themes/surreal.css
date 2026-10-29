@@ -1,0 +1,192 @@
+/* Thème Surréalisme : paysage vectoriel onirique, aplats pastel, objets qui flottent.
+   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+
+:root[data-theme="surreal"] {
+  --float-shadow: 0 26px 30px -18px rgb(61 42 77 / 0.45);
+}
+
+/* Panneaux : cartes de papier translucides, ombre douce et portée vers le bas. */
+:root[data-theme="surreal"] .panel {
+  border: 1px solid rgb(255 255 255 / 0.6);
+  box-shadow: 0 24px 50px -28px rgb(61 42 77 / 0.45);
+}
+
+:root[data-theme="surreal"] h1,
+:root[data-theme="surreal"] .hero .title {
+  font-style: italic;
+}
+
+:root[data-theme="surreal"] .brand {
+  font-style: italic;
+  font-size: 22px;
+  color: var(--text);
+}
+
+:root[data-theme="surreal"] h2 {
+  font-style: italic;
+  font-size: 20px;
+}
+
+:root[data-theme="surreal"] .badge {
+  border-radius: 999px;
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, #fffaf4);
+}
+
+/* Pochettes : objets posés au-dessus de leur ombre, qui lévitent au survol. */
+:root[data-theme="surreal"] .card .image {
+  border-radius: 18px;
+  box-shadow: var(--float-shadow);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root[data-theme="surreal"] .card .image.round {
+  border-radius: 50%;
+}
+
+:root[data-theme="surreal"] .card:hover {
+  background: transparent;
+}
+
+:root[data-theme="surreal"] .card:hover .image {
+  transform: translateY(-10px) rotate(-2deg);
+}
+
+:root[data-theme="surreal"] header .image {
+  border-radius: 28px;
+  box-shadow: var(--float-shadow);
+  animation: surreal-float 8s ease-in-out infinite alternate;
+}
+
+:root[data-theme="surreal"] header .image.round {
+  border-radius: 50%;
+}
+
+:root[data-theme="surreal"] .row {
+  border-radius: 14px;
+}
+
+:root[data-theme="surreal"] .row:hover {
+  background: rgb(255 255 255 / 0.55);
+}
+
+:root[data-theme="surreal"] .row.active .title {
+  font-style: italic;
+  color: var(--accent);
+}
+
+:root[data-theme="surreal"] .row .cover {
+  border-radius: 10px;
+}
+
+/* Commandes : galets ronds. */
+:root[data-theme="surreal"] .transport .play {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  box-shadow: 0 14px 22px -12px rgb(61 42 77 / 0.6);
+}
+
+:root[data-theme="surreal"] .progress .track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(61 42 77 / 0.1);
+}
+
+:root[data-theme="surreal"] .progress .fill {
+  box-shadow: none;
+}
+
+:root[data-theme="surreal"] nav button.active {
+  background: rgb(255 255 255 / 0.7);
+  box-shadow: 0 8px 16px -10px rgb(61 42 77 / 0.35);
+}
+
+:root[data-theme="surreal"] input[type="search"] {
+  border: none;
+  background: rgb(255 255 255 / 0.75);
+  box-shadow: 0 12px 24px -16px rgb(61 42 77 / 0.4);
+  font-family: var(--display-family);
+  font-style: italic;
+  font-size: 18px;
+}
+
+:root[data-theme="surreal"] .tabs button.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme="surreal"] .signal {
+  border: none;
+  border-radius: 22px;
+  background: rgb(255 255 255 / 0.65);
+}
+
+/* Vue « En lecture » : la pochette flotte au-dessus de son ombre sur la colline. */
+:root[data-theme="surreal"] .now-playing .art {
+  position: relative;
+  overflow: visible;
+  border-radius: 28px;
+  background: transparent;
+  box-shadow: none;
+  animation: surreal-float 9s ease-in-out infinite alternate;
+}
+
+:root[data-theme="surreal"] .now-playing .art img {
+  border-radius: 28px;
+}
+
+:root[data-theme="surreal"] .now-playing .art::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -54px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgb(61 42 77 / 0.22);
+  filter: blur(6px);
+  animation: surreal-shadow 9s ease-in-out infinite alternate;
+}
+
+:root[data-theme="surreal"] .now-playing .close {
+  background: rgb(255 255 255 / 0.7);
+}
+
+:root[data-theme="surreal"] .hero {
+  border-radius: 32px;
+  color: var(--text);
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--tint) 30%, #fff6ec),
+    color-mix(in oklab, var(--tint) 12%, #fbe4d6)
+  );
+  box-shadow: 0 30px 50px -34px rgb(61 42 77 / 0.5);
+}
+
+:root[data-theme="surreal"] .hero .bg {
+  display: none;
+}
+
+:root[data-theme="surreal"] .hero .label,
+:root[data-theme="surreal"] .hero .meta {
+  color: var(--text-muted);
+}
+
+:root[data-theme="surreal"] .hero .cover {
+  border-radius: 50%;
+  box-shadow: var(--float-shadow);
+  animation: surreal-float 7s ease-in-out infinite alternate;
+}
+
+@keyframes surreal-float {
+  to {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes surreal-shadow {
+  to {
+    transform: scaleX(0.82);
+    opacity: 0.6;
+  }
+}

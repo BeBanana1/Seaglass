@@ -18,6 +18,16 @@ export const THEMES: { id: Theme; name: string; description: string }[] = [
     name: "Atelier",
     description: "Clair et éditorial, grande typographie, beaucoup d'air.",
   },
+  {
+    id: "acidwave",
+    name: "Acidwave",
+    description: "Néons acides, chrome liquide et hologrammes ; ça pulse pendant la lecture.",
+  },
+  {
+    id: "surreal",
+    name: "Surréalisme",
+    description: "Paysage vectoriel onirique teinté par l'album, objets qui flottent.",
+  },
 ];
 
 export const ui = $state<{ settings: UiSettings; appearanceOpen: boolean }>({

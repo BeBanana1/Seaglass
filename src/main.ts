@@ -1,6 +1,8 @@
 import { mount } from "svelte";
 import App from "./App.svelte";
 import "./app.css";
+import "./themes/acidwave.css";
+import "./themes/surreal.css";
 
 const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");

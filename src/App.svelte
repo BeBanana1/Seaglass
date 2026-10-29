@@ -15,7 +15,7 @@
   import Playlist from "./views/Playlist.svelte";
   import Queue from "./views/Queue.svelte";
   import NowPlaying from "./views/NowPlaying.svelte";
-  import Ambient from "./components/Ambient.svelte";
+  import Backdrop from "./components/backdrops/Backdrop.svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import PlayerBar from "./components/PlayerBar.svelte";
   import Toasts from "./components/Toasts.svelte";
@@ -50,6 +50,12 @@
   $effect(() => {
     const color = player.state.track?.album.color;
     if (color) document.documentElement.style.setProperty("--album", color);
+  });
+
+  // Les fonds animés (Acidwave) ne bougent que pendant la lecture.
+  $effect(() => {
+    const s = player.state;
+    document.documentElement.dataset.playing = String(!!s.track && !s.paused && !s.idle);
   });
 
   // Chaque changement de page repart du haut.
@@ -94,7 +100,7 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="backdrop-layer"><Ambient /></div>
+<div class="backdrop-layer"><Backdrop /></div>
 
 <div class="shell">
   <header>
@@ -168,17 +174,11 @@
 {/if}
 
 <style>
-  /* Fond d'ambiance : seulement pour le thème Verre de mer. */
+  /* Fond propre au thème (vide pour Studio et Atelier). */
   .backdrop-layer {
     position: fixed;
     inset: 0;
     z-index: -1;
-    display: none;
-  }
-
-  :global(:root[data-theme="seaglass"]) .backdrop-layer,
-  :global(:root:not([data-theme])) .backdrop-layer {
-    display: block;
   }
 
   .shell {

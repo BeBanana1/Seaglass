@@ -17,6 +17,10 @@ pub enum Theme {
     Studio,
     /// Clair, éditorial, grande typographie.
     Atelier,
+    /// Néons acides, chrome liquide et hologrammes sur fond noir.
+    Acidwave,
+    /// Paysage vectoriel onirique, aplats pastel et objets qui flottent.
+    Surreal,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -57,5 +61,9 @@ mod tests {
         assert_eq!(s.theme, Theme::Seaglass);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"studio"}"#).unwrap();
         assert_eq!(s.theme, Theme::Studio);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"acidwave"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Acidwave);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"surreal"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Surreal);
     }
 }

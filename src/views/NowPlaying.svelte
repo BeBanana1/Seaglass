@@ -4,7 +4,7 @@
   import { queue } from "../lib/stores/queue.svelte";
   import { fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
-  import Ambient from "../components/Ambient.svelte";
+  import Backdrop from "../components/backdrops/Backdrop.svelte";
   import Icon from "../components/Icon.svelte";
   import Progress from "../components/Progress.svelte";
   import SignalPath from "../components/SignalPath.svelte";
@@ -22,7 +22,7 @@
 </script>
 
 <div class="now-playing" role="dialog" aria-modal="true" aria-label="En lecture">
-  <Ambient intensity={1.4} />
+  <Backdrop context="nowplaying" />
   <button class="close" onclick={onClose} title="Fermer (Échap)">
     <Icon name="close" size={20} />
   </button>
@@ -247,10 +247,6 @@
   }
 
   /* Atelier : page de magazine, sans fond flouté. */
-  :global([data-theme="atelier"]) .now-playing :global(.ambient) {
-    display: none;
-  }
-
   :global([data-theme="atelier"]) .art {
     border-radius: 0;
     box-shadow: 18px 18px 0 color-mix(in oklab, var(--album) 35%, var(--bg));

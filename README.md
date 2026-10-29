@@ -17,7 +17,7 @@ Version actuelle : voir [`VERSION`](VERSION).
 - File et position restaurées au démarrage.
 - Chaîne audio affichée en direct : format reçu, décodage, format envoyé à la carte son.
 - Touches média du clavier et panneau multimédia de Windows (SMTC).
-- Trois thèmes : **Verre de mer** (verre dépoli sur la pochette, couleurs accordées à l'album), **Studio** (console sombre et dense) et **Atelier** (clair, éditorial).
+- Cinq thèmes : **Verre de mer** (verre dépoli sur la pochette, couleurs accordées à l'album), **Studio** (console sombre et dense), **Atelier** (clair, éditorial), **Acidwave** (néons acides et chrome, qui pulse pendant la lecture) et **Surréalisme** (paysage vectoriel onirique teinté par l'album).
 - Vue « En lecture » plein écran ; raccourcis : Espace, Ctrl+K, Échap, Alt+←.
 
 ## Prérequis

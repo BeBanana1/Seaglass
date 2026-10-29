@@ -87,7 +87,7 @@ seaglass/
 1. ~~**Squelette**~~ ✅ : Tauri + Svelte, module `mpv/` (process + IPC + événements), commandes `login` (PKCE), `search`, `play`, `toggle_pause`, `seek`. Acteur lecteur minimal (un titre à la fois).
 2. ~~**File d'attente**~~ ✅ : `queue.rs` (testé), gapless, retry sur erreur, repeat One via `loop-file`, persistance SQLite.
 3. ~~**Vues**~~ ✅ : accueil, recherche multi-types, album, artiste, playlist, bibliothèque (playlists, albums, artistes, titres).
-4. ~~**Intégrations + UI**~~ ✅ : SMTC ; thèmes Verre de mer / Studio / Atelier, vue « En lecture », chaîne audio, raccourcis clavier. Discord RPC et Last.fm reportés (pas avant que l'utilisateur le demande).
+4. ~~**Intégrations + UI**~~ ✅ : SMTC ; thèmes Verre de mer / Studio / Atelier / Acidwave / Surréalisme, vue « En lecture », chaîne audio, raccourcis clavier. Discord RPC et Last.fm reportés (pas avant que l'utilisateur le demande).
 5. **(actuel)** Finitions : mode exclusif WASAPI (réglage), sidecar mpv + Job Object, mixes de l'accueil, installeur.
 
 ## Résultats du spike (2026-10-29, tidalapi 0.8.11, abonnement HI_RES, pays CH)
@@ -145,11 +145,12 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 - **État restauré** : `pause` de mpv est ignoré tant qu'aucun titre n'est chargé (sinon le `pause=false` initial efface l'état « en pause » restauré) ; `paused=false` est posé explicitement après un chargement.
 - **Couleur d'album** : `vibrantColor` → `AlbumRef::color` / `AlbumSummary::color`, filtrée en `#rrggbb` (elle part dans le CSS). L'UI la pose en `--album` sur `<html>`.
 - **Réglages UI** : `ui_settings` / `set_ui_settings`, JSON dans `kv` (`ui.settings`). Thème inconnu refusé à la désérialisation.
-- **Thèmes** : `data-theme` sur `<html>`, jetons CSS dans `app.css`, variantes par composant via `:global([data-theme=…])`. Verre de mer : panneaux translucides sur la pochette floutée (`Ambient.svelte`) ; Studio : à plat, angles vifs, chaîne audio complète dans la barre ; Atelier : clair, titres serif.
+- **Thèmes** : `data-theme` sur `<html>`, jetons CSS dans `app.css`. Verre de mer : panneaux translucides sur la pochette floutée (`Ambient.svelte`) ; Studio : à plat, angles vifs, chaîne audio complète dans la barre ; Atelier : clair, titres serif. Les trois premiers ont leurs variantes dans les composants (`:global([data-theme=…])`) ; **Acidwave** et **Surréalisme** sont regroupés dans `src/themes/<thème>.css`, qui surchargent par nom de classe de composant (spécificité supérieure aux styles scopés) : renommer une classe de composant peut casser ces thèmes.
+- **Fonds** (`components/backdrops/Backdrop.svelte`) : un par thème, derrière le shell et la vue « En lecture ». Acidwave : nappes holographiques, grille en perspective, trame, grain (`AcidField`), animés seulement si `data-playing="true"` sur `<html>`. Surréalisme : paysage SVG dessiné à la main (`SurrealScene`), teinté par `--album` avec des mélanges `oklch` (en `oklab`, bleu + pêche donnait du gris) ; les objets restent sur les bords, le centre est au contenu.
 - **Chaîne audio** (`SignalPath.svelte`) : source → mpv → sortie, verdict « Fréquence native » / « Rééchantillonné » / « Profondeur réduite » / « Compressé ». En mode partagé, Windows peut encore mixer : c'est dit dans le détail du verdict, pas présenté comme bit-perfect.
 - **Raccourcis** : Espace (lecture/pause), Ctrl+K ou `/` (recherche), Échap (fermer), Alt+← (retour).
 - **Prévisualisation sans Tauri** : `pnpm dev` puis `http://127.0.0.1:1420/?theme=studio&route=album&nowplaying=1` (paramètres : `theme`, `route`, `tab`, `nowplaying`, `queue`, `paused`, `loggedout`). Données de `src/lib/mock/fixtures.json`, généré par `cargo test dump_ui_fixtures -- --ignored` (gitignoré : contient la bibliothèque du compte). La branche factice est éliminée du build de production (`import.meta.env.DEV`).
-- **Piège Vite** : une fois, le CSS d'un composant est resté périmé après plusieurs éditions rapides ; redémarrer `pnpm tauri dev` (et vider `node_modules/.vite`) a suffi.
+- **Piège Vite** : à deux reprises, après des éditions de fichiers par script, le CSS d'un composant est resté périmé alors que son JS était à jour (règles absentes du `?svelte&type=style`). Redémarrer `pnpm tauri dev` et vider `node_modules/.vite` règle le problème. Le panneau de navigateur intégré, quand il est masqué, gèle aussi les animations et le chargement différé des images : pour une capture, injecter `*{animation:none!important}`.
 
 ## Commandes
 

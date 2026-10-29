@@ -59,7 +59,9 @@
   }
 
   .dialog {
-    width: min(760px, 92vw);
+    width: min(980px, 94vw);
+    max-height: 92vh;
+    overflow: auto;
     padding: 24px;
     border: 1px solid var(--border);
     border-radius: calc(var(--panel-radius) + 2px);
@@ -86,7 +88,7 @@
 
   .themes {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     gap: 14px;
   }
 
@@ -233,6 +235,58 @@
 
   .atelier .l {
     background: #6d675b;
+  }
+
+  .preview.acidwave {
+    gap: 3px;
+    background:
+      radial-gradient(circle at 15% 15%, rgb(200 255 0 / 0.55), transparent 50%),
+      radial-gradient(circle at 85% 70%, rgb(255 43 214 / 0.55), transparent 50%),
+      #050507;
+  }
+
+  .acidwave .side,
+  .acidwave .main,
+  .acidwave .bar {
+    border-radius: 2px;
+    background: rgb(8 8 12 / 0.75);
+    border: 1px solid rgb(200 255 0 / 0.35);
+  }
+
+  .acidwave .h {
+    background: linear-gradient(180deg, #fff, #4d5560 50%, #eef3f7);
+    box-shadow: 0 0 6px rgb(200 255 0 / 0.6);
+  }
+
+  .acidwave .l {
+    background: #c8ff00;
+  }
+
+  .preview.surreal {
+    position: relative;
+    gap: 5px;
+    padding: 8px;
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 72% 62%, #f6b38a 0 16%, transparent 17%),
+      linear-gradient(180deg, #e8d9f0, #fbe7d8 70%);
+  }
+
+  .surreal .side,
+  .surreal .main,
+  .surreal .bar {
+    border-radius: 10px;
+    background: rgb(255 250 244 / 0.8);
+    box-shadow: 0 6px 10px -6px rgb(61 42 77 / 0.5);
+  }
+
+  .surreal .h {
+    background: #3d2a4d;
+    border-radius: 6px;
+  }
+
+  .surreal .l {
+    background: #b49cbf;
   }
 
   .done {

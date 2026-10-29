@@ -138,7 +138,7 @@ export interface SearchResults {
   playlists: PlaylistSummary[];
 }
 
-export type Theme = "seaglass" | "studio" | "atelier";
+export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal";
 
 export interface UiSettings {
   theme: Theme;

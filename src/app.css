@@ -86,6 +86,61 @@
   --label-transform: none;
 }
 
+/* --- Acidwave : néons acides, chrome liquide, hologrammes (voir themes/acidwave.css) - */
+:root[data-theme="acidwave"] {
+  color-scheme: dark;
+  --bg: #050507;
+  --surface: rgb(8 8 12 / 0.6);
+  --bg-raised: rgb(255 255 255 / 0.05);
+  --bg-hover: rgb(200 255 0 / 0.08);
+  --border: rgb(200 255 0 / 0.2);
+  --text: #f5f5ef;
+  --text-muted: rgb(245 245 239 / 0.58);
+  --accent: #c8ff00;
+  --accent-strong: #e2ff6b;
+  --accent-contrast: #050507;
+  --acid-magenta: #ff2bd6;
+  --acid-uv: #7b2bff;
+  --acid-cyan: #00f0ff;
+  --chrome: linear-gradient(180deg, #ffffff 0%, #d6dde4 34%, #4d5560 50%, #eef3f7 62%, #8f99a4 100%);
+  --ok: #c8ff00;
+  --danger: #ff4d7a;
+  --radius: 3px;
+  --panel-radius: 4px;
+  --panel-blur: blur(16px) saturate(1.2);
+  --shell-gap: 8px;
+  --display-weight: 700;
+  --display-tracking: 0.01em;
+  --display-family: Bahnschrift, "Segoe UI Variable Display", sans-serif;
+  --label-transform: uppercase;
+}
+
+/* --- Surréalisme : paysage vectoriel onirique (voir themes/surreal.css) ------------ */
+:root[data-theme="surreal"] {
+  color-scheme: light;
+  --bg: color-mix(in oklch, var(--album) 16%, #f7efe5);
+  --surface: rgb(255 250 244 / 0.62);
+  --bg-raised: rgb(255 255 255 / 0.6);
+  --bg-hover: color-mix(in oklch, var(--album) 14%, #fffaf4);
+  --border: rgb(70 45 60 / 0.12);
+  --text: #2c2232;
+  --text-muted: #77697c;
+  --accent: color-mix(in oklch, var(--album) 62%, #3d2a4d);
+  --accent-strong: color-mix(in oklch, var(--album) 48%, #3d2a4d);
+  --accent-contrast: #fff8f0;
+  --danger: #b4473a;
+  --ok: #3f8a66;
+  --warn: #a8701a;
+  --radius: 14px;
+  --panel-radius: 26px;
+  --panel-blur: blur(6px) saturate(1.1);
+  --shell-gap: 14px;
+  --display-weight: 400;
+  --display-tracking: -0.01em;
+  --display-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  --label-transform: none;
+}
+
 * {
   box-sizing: border-box;
 }
