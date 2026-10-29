@@ -18,6 +18,7 @@
   .backdrop {
     position: fixed;
     inset: 0;
+    z-index: 60;
     display: grid;
     place-items: center;
     background: rgb(0 0 0 / 0.5);
@@ -27,8 +28,10 @@
     width: min(400px, 90vw);
     padding: 24px;
     border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-raised);
+    border-radius: calc(var(--panel-radius) + 2px);
+    color: var(--text);
+    background: var(--dialog-bg);
+    box-shadow: 0 30px 80px rgb(0 0 0 / 0.4);
   }
 
   h2 {
@@ -49,5 +52,9 @@
     padding: 6px 16px;
     border: 1px solid var(--border);
     border-radius: 999px;
+  }
+
+  button:hover {
+    background: var(--bg-hover);
   }
 </style>

@@ -66,14 +66,8 @@
     border: 1px solid var(--border);
     border-radius: calc(var(--panel-radius) + 2px);
     color: var(--text);
-    background: var(--surface);
-    backdrop-filter: var(--panel-blur);
+    background: var(--dialog-bg);
     box-shadow: 0 30px 80px rgb(0 0 0 / 0.4);
-  }
-
-  :global([data-theme="studio"]) .dialog,
-  :global([data-theme="atelier"]) .dialog {
-    background: var(--bg);
   }
 
   h2 {
