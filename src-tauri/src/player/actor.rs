@@ -268,9 +268,9 @@ impl Player {
                 }
                 Property::Pause(_) => {}
                 Property::PausedForCache(b) => s.buffering = b,
-                Property::AudioParams(a) => s.output = a,
+                Property::AudioParams(a) => s.set_output(a),
                 Property::CurrentAo(ao) => s.output_driver = ao,
-                Property::IdleActive(i) => s.idle = i,
+                Property::IdleActive(i) => s.set_idle(i),
                 Property::PlaylistPos(pos) => self.on_playlist_pos(pos).await,
             },
             MpvEvent::FileLoaded => self.failures = 0,

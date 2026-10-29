@@ -131,6 +131,10 @@ mod tests {
             ev,
             Some(MpvEvent::Property(Property::AudioParams(Some(expected))))
         );
+
+        // Fin de fichier : mpv envoie la propriété sans `data`.
+        let ev = parse(&json!({"event":"property-change","id":6,"name":"audio-params"}));
+        assert_eq!(ev, Some(MpvEvent::Property(Property::AudioParams(None))));
     }
 
     #[test]
