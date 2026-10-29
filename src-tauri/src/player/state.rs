@@ -39,6 +39,24 @@ impl PlayerState {
                 ..self.clone()
             } == *other
     }
+
+    /// Applique `audio-params`. mpv le passe à `null` à chaque fin de fichier, mais ne renvoie
+    /// pas la valeur si le fichier suivant a le même format (la chaîne audio n'est pas
+    /// reconfigurée) : un `null` est donc ignoré, la sortie n'est effacée qu'avec `set_idle`.
+    /// Un changement de format, lui, est toujours notifié.
+    pub fn set_output(&mut self, params: Option<AudioParams>) {
+        if params.is_some() {
+            self.output = params;
+        }
+    }
+
+    /// Applique `idle-active` : sans fichier, mpv n'a plus de sortie audio ouverte.
+    pub fn set_idle(&mut self, idle: bool) {
+        self.idle = idle;
+        if idle {
+            self.output = None;
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -69,5 +87,32 @@ mod tests {
         assert!(a.differs_only_by_time(&b));
         assert!(!a.differs_only_by_time(&c));
         assert!(!a.differs_only_by_time(&a));
+    }
+
+    fn params(samplerate: u32) -> Option<AudioParams> {
+        Some(AudioParams {
+            format: "s32".into(),
+            samplerate,
+            channel_count: 2,
+        })
+    }
+
+    /// Changement de titre de même format : mpv envoie `null` puis plus rien (#12).
+    #[test]
+    fn output_survives_track_change_with_same_format() {
+        let mut s = PlayerState::default();
+        s.set_idle(false);
+        s.set_output(params(96000));
+        s.set_output(None);
+        assert_eq!(s.output, params(96000));
+
+        // Un nouveau format remplace la sortie.
+        s.set_output(params(44100));
+        assert_eq!(s.output, params(44100));
+
+        // Plus rien à lire : la sortie est fermée.
+        s.set_idle(true);
+        assert_eq!(s.output, None);
+        assert!(s.idle);
     }
 }
