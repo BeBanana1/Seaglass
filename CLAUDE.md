@@ -185,6 +185,12 @@ pnpm check
 - **Version** : `VERSION` à la racine est la source de vérité, affichée dans l'en-tête de l'app. `0.<phase>.<patch>` avant la 1.0 : patch à chaque lot de changements, mineure à la fin d'une phase. `src-tauri/Cargo.toml` doit être mis à jour en même temps (`build.rs` fait échouer la compilation sinon) ; `tauri.conf.json` n'a pas de version et reprend celle de Cargo.
 - Licence GPL-3.0 (`LICENSE`).
 
+## Issues Gitea (pour Claude)
+
+- Dépôt : `bebanana/Seaglass` sur `https://git.bebanana.ch` (Gitea 1.27). L'API exige une authentification.
+- Accès via le serveur MCP officiel `gitea-mcp` (v1.11.0, installé dans `%LOCALAPPDATA%\Programs\gitea-mcp\`), déclaré dans `.mcp.json`. Le jeton vient de la variable d'environnement utilisateur `GITEA_ACCESS_TOKEN` : ne jamais l'écrire dans un fichier ni l'afficher. Outils utiles : `list_issues`, `issue_read` (`method: get` / commentaires), `issue_write` (commenter, labels), `pull_request_write`.
+- Pour traiter une issue : la lire avec ses commentaires, poster un commentaire avec le plan avant de coder, travailler sur une branche `issue-<n>-<sujet>`, référencer l'issue dans le commit (`fix(ui): … (#8)`) et ouvrir une PR vers `main` avec `Closes #<n>`. Répondre dans l'issue si une question s'y pose plutôt que de deviner.
+
 ## Façon de travailler (pour Claude)
 
 - Fournir les **fichiers complets** modifiés, pas des patchs partiels.
