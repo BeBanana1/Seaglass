@@ -171,7 +171,8 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 
 - **Workflow** : `.gitea/workflows/ci.yml`, sur push vers `main` et sur chaque PR : `pnpm check`, `pnpm build`, `cargo fmt --check`, `clippy -D warnings`, `cargo test`. `pnpm build` passe avant Rust car `tauri::generate_context!` exige `dist/`. Ni `.env` ni `fixtures.json` ne sont nécessaires.
 - **Runner** : `act_runner` en Docker sur le serveur, enregistré **au niveau du dépôt** (pas de l'instance), label `ubuntu-latest:docker://docker.gitea.com/runner-images:ubuntu-latest`. Il monte le socket Docker, donc il équivaut à root sur le serveur : ne jamais l'ouvrir à d'autres dépôts.
-- **Limite** : sous Linux, le code `#[cfg(windows)]` (SMTC, Job Object, `CREATE_NO_WINDOW`) n'est ni compilé ni testé ; `pnpm release` le vérifie sous Windows. Du code partagé utilisé seulement par une intégration Windows doit tolérer le code mort hors Windows (`integrations/mod.rs`), sinon clippy échoue en CI.
+- **Limite** : sous Linux, le code `#[cfg(windows)]` (SMTC, Job Object, `CREATE_NO_WINDOW`) n'est ni compilé ni testé ; `pnpm release` le vérifie sous Windows. Du code partagé utilisé seulement par une intégration Windows doit tolérer le code mort hors Windows (`#[cfg_attr(not(windows), allow(dead_code))]`, voir `integrations/mod.rs` et `Cmd::SetPaused`), sinon clippy échoue en CI. L'IPC mpv passe par un socket Unix hors Windows (`mpv::ipc::open`).
+- **Durée** : environ 7 min sur le runner partagé (préparation ~4 min, clippy ~1 min, tests ~1 min 30). Caches désactivés : le serveur de cache d'act_runner était injoignable depuis les jobs (`ETIMEDOUT`, 5 min perdues par action de cache). Les remettre une fois le runner dédié configuré (`container.network`, `cache.port`).
 - **Pas de release en CI** : la clé minisign reste sur le PC, `pnpm release` reste manuel.
 
 ## Commandes
