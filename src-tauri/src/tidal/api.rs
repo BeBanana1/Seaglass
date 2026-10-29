@@ -11,6 +11,7 @@ use serde::de::DeserializeOwned;
 use tokio::sync::{OnceCell, RwLock};
 
 use super::auth::{self, ClientCredentials, PkceChallenge, Tokens};
+use super::cache::TrackCache;
 use super::manifest;
 use super::models::{
     AlbumRef, ArtistRef, AudioQuality, SessionInfo, Stream, StreamFormat, Track, TrackId,
@@ -38,6 +39,7 @@ pub struct TidalClient {
     creds: ClientCredentials,
     auth: RwLock<Option<AuthState>>,
     restored: OnceCell<()>,
+    pub cache: TrackCache,
 }
 
 impl TidalClient {
@@ -51,6 +53,7 @@ impl TidalClient {
             creds: ClientCredentials::load()?,
             auth: RwLock::new(None),
             restored: OnceCell::new(),
+            cache: TrackCache::default(),
         })
     }
 
@@ -117,12 +120,20 @@ impl TidalClient {
                 ],
             )
             .await?;
-        Ok(raw.tracks.items.into_iter().map(Track::from).collect())
+        let tracks: Vec<Track> = raw.tracks.items.into_iter().map(Track::from).collect();
+        self.cache.insert_all(&tracks);
+        Ok(tracks)
     }
 
+    /// Métadonnées d'un titre, depuis le cache si possible.
     pub async fn track(&self, id: TrackId) -> Result<Track> {
+        if let Some(track) = self.cache.get(id) {
+            return Ok(track);
+        }
         let raw: RawTrack = self.get(&format!("tracks/{id}"), &[]).await?;
-        Ok(raw.into())
+        let track = Track::from(raw);
+        self.cache.insert_all([&track]);
+        Ok(track)
     }
 
     /// Demande un flux et refuse tout flux chiffré (manifeste ou segment d'initialisation).

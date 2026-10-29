@@ -6,7 +6,8 @@
 <div class="backdrop" onclick={onClose}>
   <div class="dialog" role="dialog" tabindex="-1" aria-modal="true" aria-label="À propos" onclick={(e) => e.stopPropagation()}>
     <h2>Seaglass</h2>
-    <p>Version 0.1.0</p>
+    <p>Version {__APP_VERSION__}</p>
+    <p>Licence GPL-3.0.</p>
     <p><strong>Client non officiel, non affilié à TIDAL.</strong></p>
     <p>Streaming uniquement : aucun flux n'est téléchargé ni enregistré sur disque.</p>
     <button onclick={onClose}>Fermer</button>

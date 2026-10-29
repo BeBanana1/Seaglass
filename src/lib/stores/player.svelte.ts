@@ -13,6 +13,10 @@ const initial: PlayerState = {
   idle: true,
   timePos: 0,
   duration: 0,
+  shuffle: false,
+  repeat: "off",
+  hasPrevious: false,
+  hasNext: false,
 };
 
 export const player = $state({

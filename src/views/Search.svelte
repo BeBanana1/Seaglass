@@ -23,9 +23,13 @@
     }
   }
 
-  async function play(track: Track) {
+  /** Les résultats forment le contexte de lecture. */
+  async function play(index: number) {
     try {
-      await commands.play(track.id);
+      await commands.playTracks(
+        results.map((t) => t.id),
+        index,
+      );
     } catch (err) {
       error = String(err);
     }
@@ -51,17 +55,11 @@
     <p class="muted">Aucun résultat.</p>
   {/if}
 
-  <ol>
-    {#each results as track (track.id)}
-      <li>
-        <TrackRow
-          {track}
-          active={player.state.track?.id === track.id}
-          onPlay={() => play(track)}
-        />
-      </li>
+  <div role="list">
+    {#each results as track, i (track.id)}
+      <TrackRow {track} active={player.state.track?.id === track.id} onPlay={() => play(i)} />
     {/each}
-  </ol>
+  </div>
 </section>
 
 <style>
@@ -70,8 +68,6 @@
   }
 
   form {
-    position: sticky;
-    top: 0;
     margin-bottom: 16px;
   }
 
@@ -87,12 +83,6 @@
 
   input::placeholder {
     color: var(--text-muted);
-  }
-
-  ol {
-    margin: 0;
-    padding: 0;
-    list-style: none;
   }
 
   .muted {

@@ -2,6 +2,7 @@
 
 pub mod api;
 pub mod auth;
+pub mod cache;
 mod manifest;
 pub mod models;
 

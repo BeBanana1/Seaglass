@@ -1,20 +1,38 @@
 <script lang="ts">
-  import type { Track } from "../lib/ipc";
+  import { commands, type Track } from "../lib/ipc";
   import { artistNames, formatTime, fullTitle } from "../lib/format";
+  import Icon from "./Icon.svelte";
 
   let {
     track,
     active = false,
+    compact = false,
+    actions = true,
     onPlay,
-  }: { track: Track; active?: boolean; onPlay: () => void } = $props();
+    onRemove,
+  }: {
+    track: Track;
+    active?: boolean;
+    /** Variante étroite (panneau de file) : sans colonne album. */
+    compact?: boolean;
+    /** Boutons « Lire ensuite » / « Ajouter à la file » (ou « Retirer » si `onRemove`). */
+    actions?: boolean;
+    onPlay?: () => void;
+    onRemove?: () => void;
+  } = $props();
 </script>
 
-<button class="row" class:active ondblclick={onPlay} onkeydown={(e) => e.key === "Enter" && onPlay()}>
-  {#if track.album.coverUrl}
-    <img src={track.album.coverUrl} alt="" loading="lazy" />
-  {:else}
-    <div class="cover-placeholder"></div>
-  {/if}
+<div class="row" class:active class:compact role="listitem" ondblclick={onPlay}>
+  <div class="cover">
+    {#if track.album.coverUrl}
+      <img src={track.album.coverUrl} alt="" loading="lazy" />
+    {/if}
+    {#if onPlay}
+      <button class="cover-play" onclick={onPlay} aria-label="Lire {track.title}">
+        <Icon name="play" size={16} />
+      </button>
+    {/if}
+  </div>
   <div class="main">
     <span class="title">
       {fullTitle(track)}
@@ -23,20 +41,38 @@
     </span>
     <span class="sub">{artistNames(track)}</span>
   </div>
-  <span class="album">{track.album.title}</span>
+  {#if !compact}
+    <span class="album">{track.album.title}</span>
+  {/if}
+  <div class="actions">
+    {#if !actions}
+      <!-- aucune action -->
+    {:else if onRemove}
+      <button onclick={onRemove} title="Retirer de la file"><Icon name="close" size={16} /></button>
+    {:else}
+      <button onclick={() => commands.playNext(track.id)} title="Lire ensuite">
+        <Icon name="playNext" size={16} />
+      </button>
+      <button onclick={() => commands.addToQueue(track.id)} title="Ajouter à la file">
+        <Icon name="add" size={16} />
+      </button>
+    {/if}
+  </div>
   <span class="duration">{formatTime(track.duration)}</span>
-</button>
+</div>
 
 <style>
   .row {
     display: grid;
-    grid-template-columns: 40px minmax(0, 2fr) minmax(0, 1fr) 56px;
+    grid-template-columns: 40px minmax(0, 2fr) minmax(0, 1fr) auto 48px;
     align-items: center;
     gap: 12px;
-    width: 100%;
     padding: 6px 10px;
     border-radius: var(--radius);
-    text-align: left;
+  }
+
+  .row.compact {
+    grid-template-columns: 40px minmax(0, 1fr) auto 40px;
   }
 
   .row:hover {
@@ -47,13 +83,34 @@
     color: var(--accent);
   }
 
-  img,
-  .cover-placeholder {
+  .cover {
+    position: relative;
     width: 40px;
     height: 40px;
     border-radius: 4px;
-    object-fit: cover;
+    overflow: hidden;
     background: var(--bg-raised);
+  }
+
+  .cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cover-play {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--text);
+    background: rgb(0 0 0 / 0.55);
+    opacity: 0;
+  }
+
+  .row:hover .cover-play,
+  .cover-play:focus-visible {
+    opacity: 1;
   }
 
   .main {
@@ -74,6 +131,28 @@
   .album,
   .duration {
     color: var(--text-muted);
+  }
+
+  .actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+  }
+
+  .row:hover .actions,
+  .actions:focus-within {
+    opacity: 1;
+  }
+
+  .actions button {
+    padding: 4px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  .actions button:hover {
+    color: var(--text);
+    background: var(--border);
   }
 
   .duration {

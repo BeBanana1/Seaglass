@@ -3,7 +3,7 @@
 Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
 Projet personnel, Windows en priorité.
 
-> Statut : **phase 1 validée le 2026-10-29**. Connexion PKCE, recherche et lecture FLAC de bout en bout dans l'app. Prochaine étape : phase 2, file d'attente, gapless et persistance.
+> Statut : **phase 2 validée le 2026-10-29** (v0.2.0). File d'attente, gapless et persistance vérifiés en lecture réelle. Prochaine étape : phase 3, vues (accueil, album, artiste, playlist, bibliothèque).
 
 ## Principes non négociables
 
@@ -66,13 +66,14 @@ seaglass/
 - **Repeat One** = `loop-file=inf` côté mpv, pas de rechargement.
 - **Précédent** : si `time_pos > 3 s`, seek à 0, sinon dernière piste de `history` en `loadfile … replace`.
 - **Erreur de lecture** (`end-file` reason `error`) : redemander une URL une fois, puis passer à la suivante et émettre un événement `toast`.
-- **Vers l'UI** : un seul événement `player-state` émis seulement si l'état a changé, avec `time_pos` limité à environ 4 Hz. L'UI interpole la barre de progression avec `requestAnimationFrame`.
+- **Vers l'UI** : événement `player-state` émis seulement si l'état a changé, avec `time_pos` limité à environ 4 Hz. L'UI interpole la barre de progression avec `requestAnimationFrame`. La liste de la file part dans un événement séparé `queue-state`, émis seulement quand la file change (sinon elle serait renvoyée 4 fois par seconde).
 - **Persistance** : file et position sauvegardées dans SQLite (debounce de 2 s), restaurées en pause au démarrage.
 
 ## mpv
 
 - Lancé par l'app avec `--no-config --include=<seaglass.conf>` pour **ne jamais** charger la config mpv vidéo personnelle de l'utilisateur.
-- Options de base : `--idle=yes --no-video --input-ipc-server=\\.\pipe\seaglass-mpv --ao=wasapi --gapless-audio=weak --prefetch-playlist=yes`.
+- Options de base : `--idle=yes --no-video --input-ipc-server=\\.\pipe\seaglass-mpv-<pid de l'app> --ao=wasapi --gapless-audio=weak --prefetch-playlist=yes`. Le pid dans le nom du pipe empêche de se connecter à un mpv orphelin d'un lancement précédent.
+- Tauri quitte sans exécuter les destructeurs : mpv est tué explicitement sur `RunEvent::Exit` (`mpv::process::ProcessGuard`). En cas de plantage il peut rester orphelin ; un Job Object Windows (`KILL_ON_JOB_CLOSE`) réglera ça avec le sidecar (phase 5).
 - Mode bit-perfect (réglage utilisateur) : `--audio-exclusive=yes`, volume mpv à 100, pas de `replaygain`, pas de `audio-samplerate` forcé, pas de filtres audio.
 - Propriétés observées : `playlist-pos`, `time-pos`, `duration`, `pause`, `paused-for-cache`, `audio-params`, `current-ao`, `idle-active`. Événement : `end-file`.
 - Un micro-blanc lors d'un changement de fréquence d'échantillonnage en mode exclusif est **normal** (réouverture du périphérique). Ce n'est pas un bug à corriger.
@@ -82,8 +83,8 @@ seaglass/
 
 0. ~~**Spike**~~ ✅ : script Python `spike/play.py` avec `tidalapi` : connexion, récupération du manifeste d'un titre, lecture dans mpv. Flux FLAC sans DRM confirmés avec le client PKCE.
 1. ~~**Squelette**~~ ✅ : Tauri + Svelte, module `mpv/` (process + IPC + événements), commandes `login` (PKCE), `search`, `play`, `toggle_pause`, `seek`. Acteur lecteur minimal (un titre à la fois).
-2. **(actuel)** File d'attente (`queue.rs`) + gapless + persistance, dans l'acteur existant.
-3. Vues : accueil, recherche, album, artiste, playlist, bibliothèque.
+2. ~~**File d'attente**~~ ✅ : `queue.rs` (testé), gapless, retry sur erreur, repeat One via `loop-file`, persistance SQLite.
+3. **(actuel)** Vues : accueil, album, artiste, playlist, bibliothèque (la recherche existe déjà).
 4. Intégrations : SMTC, Discord RPC, Last.fm.
 5. Thème, finitions, sidecar mpv, installeur.
 
@@ -115,6 +116,16 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 - **Connexion** : fenêtre webview `login` (sans aucune capability) sur `login.tidal.com/authorize` ; `on_navigation` intercepte `https://tidal.com/android/login/auth?code=…` et bloque la navigation. Refresh token dans le Credential Manager (service `seaglass`, utilisateur `tidal-refresh-token`). L'access token (4 h) n'est jamais persisté, il est rafraîchi 60 s avant expiration ou sur 401.
 - **Garde DRM** : avant chaque lecture, `tidal::manifest` rejette les MPD avec `ContentProtection` / `cenc:default_KID` / `cenc:pssh` / UUID Widevine, puis le segment d'initialisation (lu en mémoire) s'il contient `pssh`/`tenc`/`sinf`/`enca`.
 - **Manifestes** : `mpv::serve` écoute sur `127.0.0.1:<port aléatoire>` et garde les 4 derniers MPD en mémoire ; mpv reçoit `http://127.0.0.1:<port>/<track>-<n>.mpd`.
+
+## Implémentation (phase 2)
+
+- **Acteur** découpé en `actor.rs` (boucle, commandes, émission), `playback.rs` (fenêtre mpv, gapless, erreurs) et `persist.rs`. Les résolutions réseau (métadonnées + flux) tournent hors de l'acteur et reviennent en `Cmd::Resolved` ; les compteurs `load_req` / `preload_req` écartent les réponses périmées.
+- **Précédent** : l'historique garde l'origine de chaque titre. Revenir sur un titre du contexte replace le curseur (« Suivant » ramène au titre quitté) ; un titre courant issu de la file manuelle y est remis en tête.
+- **Shuffle** : Fisher-Yates sur tous les autres titres du contexte, piste courante en tête.
+- **Erreurs** : nouvelle URL une fois par titre, puis titre suivant avec toast ; arrêt après 3 échecs consécutifs.
+- **Persistance** : `seaglass.db` dans `%APPDATA%\dev.seaglass.app\` (tables `kv` et `tracks`). Écriture au plus toutes les 2 s : position seule, ou file + métadonnées des titres référencés si la file a changé. Au démarrage, la file est restaurée en pause et le titre n'est chargé dans mpv qu'au premier clic sur Lecture, à la position sauvegardée.
+- **Cache de métadonnées** en mémoire (`tidal::cache`), alimenté par la recherche ; il permet d'afficher la file sans requête.
+- Vérifié en lecture réelle : préchargement à 25 s de la fin (`playlist-count=2`), bascule sans rechargement puis `playlist-count=1`, restauration à la bonne position avec mpv inactif.
 - Vérifié en lecture réelle : `audio-codec-name=flac`, `current-ao=wasapi`, sortie `s16` 44,1 kHz pour un titre 16/44,1.
 
 ## Commandes
@@ -143,7 +154,9 @@ cd src-tauri; cargo fmt; cargo clippy -- -D warnings; cargo test
 - Les types partagés UI ↔ Rust sont définis côté Rust et dupliqués dans `src/lib/ipc.ts` (envisager `tauri-specta` si ça devient pénible).
 - Tests unitaires obligatoires pour `player/queue.rs` (shuffle, repeat, file manuelle, précédent) : c'est de la logique pure, sans mpv ni réseau.
 - Identifiants et code en anglais, commentaires et docs en français.
-- Commits au format Conventional Commits (`feat(player): …`). Dépôt sur le Gitea perso.
+- Commits au format Conventional Commits (`feat(player): …`). Dépôt sur le Gitea perso (`origin`). Claude peut commiter et pousser seul, en le signalant dans son message.
+- **Version** : `VERSION` à la racine est la source de vérité, affichée dans l'en-tête de l'app. `0.<phase>.<patch>` avant la 1.0 : patch à chaque lot de changements, mineure à la fin d'une phase. `src-tauri/Cargo.toml` doit être mis à jour en même temps (`build.rs` fait échouer la compilation sinon) ; `tauri.conf.json` n'a pas de version et reprend celle de Cargo.
+- Licence GPL-3.0 (`LICENSE`).
 
 ## Façon de travailler (pour Claude)
 

@@ -1,10 +1,11 @@
-//! Lecteur : un acteur unique possède l'état ; tout passe par `Cmd`.
-//!
-//! Phase 1 : lecture d'un titre à la fois. File d'attente, gapless et persistance
-//! arrivent en phase 2 (`queue.rs`).
+//! Lecteur : un acteur unique possède la file et l'état ; tout passe par `Cmd`.
 
 pub mod actor;
+mod persist;
+mod playback;
+pub mod queue;
 pub mod state;
 
 pub use actor::{Cmd, spawn};
-pub use state::PlayerState;
+pub use queue::Repeat;
+pub use state::{PlayerState, QueueView};

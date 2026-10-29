@@ -5,13 +5,14 @@ use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tokio::sync::{mpsc, oneshot};
 
-use crate::player::{Cmd, PlayerState};
+use crate::player::{Cmd, PlayerState, QueueView, Repeat};
 use crate::tidal::models::{SessionInfo, Track, TrackId};
 use crate::tidal::{TidalClient, TidalError, auth};
 
 const LOGIN_WINDOW: &str = "login";
 const MAX_QUERY_LEN: usize = 200;
 const SEARCH_LIMIT: u32 = 50;
+const MAX_CONTEXT_LEN: usize = 10_000;
 
 pub struct AppState {
     pub tidal: Arc<TidalClient>,
@@ -100,14 +101,79 @@ pub async fn search(state: State<'_, AppState>, query: String) -> CmdResult<Vec<
         .map_err(err)
 }
 
+/// Lit `track_ids` comme contexte (album, playlist, résultats de recherche) à partir de
+/// `start_index`.
 #[tauri::command]
-pub async fn play(state: State<'_, AppState>, track_id: u64) -> CmdResult<()> {
-    send_cmd(&state, Cmd::Play(TrackId(track_id))).await
+pub async fn play_tracks(
+    state: State<'_, AppState>,
+    track_ids: Vec<u64>,
+    start_index: usize,
+) -> CmdResult<()> {
+    if track_ids.is_empty() || track_ids.len() > MAX_CONTEXT_LEN {
+        return Err(format!(
+            "le contexte doit contenir entre 1 et {MAX_CONTEXT_LEN} titres"
+        ));
+    }
+    if start_index >= track_ids.len() {
+        return Err("index de départ hors du contexte".into());
+    }
+    let ids = track_ids.into_iter().map(TrackId).collect();
+    send_cmd(
+        &state,
+        Cmd::PlayTracks {
+            ids,
+            start: start_index,
+        },
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn play_next(state: State<'_, AppState>, track_id: u64) -> CmdResult<()> {
+    send_cmd(&state, Cmd::PlayNext(TrackId(track_id))).await
+}
+
+#[tauri::command]
+pub async fn add_to_queue(state: State<'_, AppState>, track_id: u64) -> CmdResult<()> {
+    send_cmd(&state, Cmd::AddToQueue(TrackId(track_id))).await
+}
+
+/// Retire l'entrée `index` de la file manuelle.
+#[tauri::command]
+pub async fn remove_from_queue(state: State<'_, AppState>, index: usize) -> CmdResult<()> {
+    send_cmd(&state, Cmd::RemoveFromQueue(index)).await
+}
+
+#[tauri::command]
+pub async fn next(state: State<'_, AppState>) -> CmdResult<()> {
+    send_cmd(&state, Cmd::Next).await
+}
+
+#[tauri::command]
+pub async fn previous(state: State<'_, AppState>) -> CmdResult<()> {
+    send_cmd(&state, Cmd::Previous).await
 }
 
 #[tauri::command]
 pub async fn toggle_pause(state: State<'_, AppState>) -> CmdResult<()> {
     send_cmd(&state, Cmd::TogglePause).await
+}
+
+#[tauri::command]
+pub async fn set_shuffle(state: State<'_, AppState>, enabled: bool) -> CmdResult<()> {
+    send_cmd(&state, Cmd::SetShuffle(enabled)).await
+}
+
+#[tauri::command]
+pub async fn set_repeat(state: State<'_, AppState>, mode: Repeat) -> CmdResult<()> {
+    send_cmd(&state, Cmd::SetRepeat(mode)).await
+}
+
+#[tauri::command]
+pub async fn queue_state(state: State<'_, AppState>) -> CmdResult<QueueView> {
+    let (tx, rx) = oneshot::channel();
+    send_cmd(&state, Cmd::GetQueue(tx)).await?;
+    rx.await.map_err(|_| "lecteur arrêté".to_owned())
 }
 
 #[tauri::command]

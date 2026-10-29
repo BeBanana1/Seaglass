@@ -44,6 +44,8 @@ export interface AudioParams {
   channelCount: number;
 }
 
+export type Repeat = "off" | "all" | "one";
+
 export interface PlayerState {
   track: Track | null;
   stream: StreamFormat | null;
@@ -55,6 +57,15 @@ export interface PlayerState {
   idle: boolean;
   timePos: number;
   duration: number;
+  shuffle: boolean;
+  repeat: Repeat;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
+export interface QueueView {
+  manual: Track[];
+  upcoming: Track[];
 }
 
 export interface SessionInfo {
@@ -72,15 +83,26 @@ export const commands = {
   login: () => invoke<SessionInfo>("login"),
   logout: () => invoke<void>("logout"),
   search: (query: string) => invoke<Track[]>("search", { query }),
-  play: (trackId: TrackId) => invoke<void>("play", { trackId }),
+  playTracks: (trackIds: TrackId[], startIndex: number) =>
+    invoke<void>("play_tracks", { trackIds, startIndex }),
+  playNext: (trackId: TrackId) => invoke<void>("play_next", { trackId }),
+  addToQueue: (trackId: TrackId) => invoke<void>("add_to_queue", { trackId }),
+  removeFromQueue: (index: number) => invoke<void>("remove_from_queue", { index }),
+  next: () => invoke<void>("next"),
+  previous: () => invoke<void>("previous"),
   togglePause: () => invoke<void>("toggle_pause"),
   seek: (seconds: number) => invoke<void>("seek", { seconds }),
+  setShuffle: (enabled: boolean) => invoke<void>("set_shuffle", { enabled }),
+  setRepeat: (mode: Repeat) => invoke<void>("set_repeat", { mode }),
   playerState: () => invoke<PlayerState>("player_state"),
+  queueState: () => invoke<QueueView>("queue_state"),
 };
 
 export const events = {
   onPlayerState: (cb: (s: PlayerState) => void): Promise<UnlistenFn> =>
     listen<PlayerState>("player-state", (e) => cb(e.payload)),
+  onQueueState: (cb: (q: QueueView) => void): Promise<UnlistenFn> =>
+    listen<QueueView>("queue-state", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>
     listen<Toast>("toast", (e) => cb(e.payload)),
 };

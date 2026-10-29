@@ -2,9 +2,11 @@
   import { onMount } from "svelte";
   import { commands, type SessionInfo } from "./lib/ipc";
   import { initPlayer } from "./lib/stores/player.svelte";
+  import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
   import Login from "./views/Login.svelte";
   import Search from "./views/Search.svelte";
+  import Queue from "./views/Queue.svelte";
   import PlayerBar from "./components/PlayerBar.svelte";
   import Toasts from "./components/Toasts.svelte";
   import About from "./components/About.svelte";
@@ -12,9 +14,10 @@
   let session = $state<SessionInfo | null>(null);
   let ready = $state(false);
   let aboutOpen = $state(false);
+  let queueOpen = $state(false);
 
   onMount(async () => {
-    await Promise.all([initPlayer(), initToasts()]);
+    await Promise.all([initPlayer(), initQueue(), initToasts()]);
     try {
       session = await commands.authStatus();
     } catch (e) {
@@ -31,7 +34,7 @@
 
 <div class="shell">
   <header>
-    <span class="brand">Seaglass</span>
+    <span class="brand">Seaglass <span class="version">v{__APP_VERSION__}</span></span>
     <div class="actions">
       <button onclick={() => (aboutOpen = true)}>À propos</button>
       {#if session}
@@ -40,17 +43,22 @@
     </div>
   </header>
 
-  <main>
-    {#if !ready}
-      <p class="muted">Chargement…</p>
-    {:else if session}
-      <Search />
-    {:else}
-      <Login onLogin={(s) => (session = s)} />
+  <div class="body" class:with-queue={queueOpen && session}>
+    <main>
+      {#if !ready}
+        <p class="muted">Chargement…</p>
+      {:else if session}
+        <Search />
+      {:else}
+        <Login onLogin={(s) => (session = s)} />
+      {/if}
+    </main>
+    {#if queueOpen && session}
+      <Queue />
     {/if}
-  </main>
+  </div>
 
-  <PlayerBar />
+  <PlayerBar {queueOpen} onToggleQueue={() => (queueOpen = !queueOpen)} />
 </div>
 
 <Toasts />
@@ -79,6 +87,14 @@
     color: var(--accent);
   }
 
+  .version {
+    margin-left: 6px;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--text-muted);
+  }
+
   .actions {
     display: flex;
     gap: 16px;
@@ -87,6 +103,16 @@
 
   .actions button:hover {
     color: var(--text);
+  }
+
+  .body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .body.with-queue {
+    grid-template-columns: minmax(0, 1fr) 340px;
   }
 
   main {

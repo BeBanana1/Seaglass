@@ -10,7 +10,7 @@ use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
 use tokio::sync::{mpsc, oneshot};
 
 use super::events::{self, MpvEvent, OBSERVED};
-use super::process::PIPE_NAME;
+use super::process::pipe_name;
 use super::{MpvError, Result};
 
 const CONNECT_ATTEMPTS: u32 = 50;
@@ -36,12 +36,6 @@ impl MpvHandle {
             .map_err(|_| MpvError::Closed)?;
         rx.await.map_err(|_| MpvError::Closed)?
     }
-
-    pub async fn set_property(&self, name: &str, value: Value) -> Result<()> {
-        self.command(vec![json!("set_property"), json!(name), value])
-            .await
-            .map(drop)
-    }
 }
 
 /// Se connecte au pipe de mpv (qui met un moment à le créer), puis observe les propriétés.
@@ -59,9 +53,10 @@ pub async fn connect(events_tx: mpsc::Sender<MpvEvent>) -> Result<MpvHandle> {
 }
 
 async fn open_pipe() -> Result<NamedPipeClient> {
+    let name = pipe_name();
     let mut last_err = None;
     for _ in 0..CONNECT_ATTEMPTS {
-        match ClientOptions::new().open(PIPE_NAME) {
+        match ClientOptions::new().open(&name) {
             Ok(pipe) => return Ok(pipe),
             Err(e) => last_err = Some(e),
         }

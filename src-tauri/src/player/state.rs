@@ -1,7 +1,9 @@
-//! État du lecteur tel qu'envoyé à l'UI (événement `player-state`).
+//! États envoyés à l'UI : `player-state` (fréquent, léger) et `queue-state`
+//! (seulement quand la file change, car il contient des listes de titres).
 
 use serde::Serialize;
 
+use super::queue::Repeat;
 use crate::mpv::AudioParams;
 use crate::tidal::models::{StreamFormat, Track};
 
@@ -22,10 +24,14 @@ pub struct PlayerState {
     /// Position en secondes ; l'UI interpole entre deux événements.
     pub time_pos: f64,
     pub duration: f64,
+    pub shuffle: bool,
+    pub repeat: Repeat,
+    pub has_previous: bool,
+    pub has_next: bool,
 }
 
 impl PlayerState {
-    /// Vrai si seuls `time_pos` diffère : ces changements sont limités à ~4 Hz.
+    /// Vrai si seul `time_pos` diffère : ces changements sont limités à ~4 Hz.
     pub fn differs_only_by_time(&self, other: &Self) -> bool {
         self.time_pos != other.time_pos
             && Self {
@@ -33,6 +39,15 @@ impl PlayerState {
                 ..self.clone()
             } == *other
     }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QueueView {
+    /// File manuelle (« Lire ensuite » / « Ajouter à la file »).
+    pub manual: Vec<Track>,
+    /// Prochains titres du contexte.
+    pub upcoming: Vec<Track>,
 }
 
 #[cfg(test)]

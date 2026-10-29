@@ -5,6 +5,7 @@ use std::path::Path;
 const EMBEDDED_ENV: [&str; 2] = ["TIDAL_CLIENT_ID", "TIDAL_CLIENT_SECRET"];
 
 fn main() {
+    check_version();
     let env_file = Path::new("../.env");
     println!("cargo:rerun-if-changed=../.env");
     if let Ok(content) = std::fs::read_to_string(env_file) {
@@ -25,4 +26,16 @@ fn main() {
         }
     }
     tauri_build::build()
+}
+
+/// `../VERSION` est la source de vérité : la compilation échoue si Cargo.toml diverge
+/// (tauri.conf.json n'a pas de version et reprend celle de Cargo.toml).
+fn check_version() {
+    println!("cargo:rerun-if-changed=../VERSION");
+    let version = std::fs::read_to_string("../VERSION").unwrap_or_default();
+    let version = version.trim();
+    let cargo = std::env::var("CARGO_PKG_VERSION").unwrap_or_default();
+    if version != cargo {
+        panic!("VERSION ({version}) et Cargo.toml ({cargo}) diffèrent : mettre à jour les deux");
+    }
 }

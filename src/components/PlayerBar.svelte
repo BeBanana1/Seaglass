@@ -1,8 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { commands } from "../lib/ipc";
+  import { commands, type Repeat } from "../lib/ipc";
   import { estimatedPosition, player } from "../lib/stores/player.svelte";
   import { artistNames, formatStream, formatTime, fullTitle } from "../lib/format";
+  import Icon from "./Icon.svelte";
+
+  let { queueOpen, onToggleQueue }: { queueOpen: boolean; onToggleQueue: () => void } = $props();
+
+  const nextRepeat: Record<Repeat, Repeat> = { off: "all", all: "one", one: "off" };
+  const repeatLabel: Record<Repeat, string> = {
+    off: "Répéter : désactivé",
+    all: "Répéter : tout",
+    one: "Répéter : ce titre",
+  };
 
   let position = $state(0);
   /** Position en cours de glissement : on n'écrase pas la barre tant que l'utilisateur la tient. */
@@ -48,20 +58,43 @@
   </div>
 
   <div class="center">
-    <button
-      class="play"
-      onclick={() => commands.togglePause()}
-      disabled={!s.track}
-      aria-label={playing ? "Pause" : "Lecture"}
-    >
-      {#if s.loading || s.buffering}
-        <span class="spinner"></span>
-      {:else if playing}
-        <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
-      {:else}
-        <svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z" /></svg>
-      {/if}
-    </button>
+    <div class="transport">
+      <button
+        class="toggle"
+        class:on={s.shuffle}
+        onclick={() => commands.setShuffle(!s.shuffle)}
+        title={s.shuffle ? "Lecture aléatoire : activée" : "Lecture aléatoire : désactivée"}
+      >
+        <Icon name="shuffle" />
+      </button>
+      <button onclick={() => commands.previous()} disabled={!s.track} title="Précédent">
+        <Icon name="previous" />
+      </button>
+      <button
+        class="play"
+        onclick={() => commands.togglePause()}
+        disabled={!s.track}
+        aria-label={playing ? "Pause" : "Lecture"}
+      >
+        {#if s.loading || s.buffering}
+          <span class="spinner"></span>
+        {:else}
+          <Icon name={playing ? "pause" : "play"} />
+        {/if}
+      </button>
+      <button onclick={() => commands.next()} disabled={!s.hasNext} title="Suivant">
+        <Icon name="next" />
+      </button>
+      <button
+        class="toggle"
+        class:on={s.repeat !== "off"}
+        onclick={() => commands.setRepeat(nextRepeat[s.repeat])}
+        title={repeatLabel[s.repeat]}
+      >
+        <Icon name="repeat" />
+        {#if s.repeat === "one"}<span class="one">1</span>{/if}
+      </button>
+    </div>
     <div class="progress">
       <span class="time">{formatTime(shown)}</span>
       <input
@@ -79,13 +112,18 @@
     </div>
   </div>
 
-  <div class="format">
-    {#if s.stream}
-      <span class="badge" class:muted={s.stream.codec !== "flac"}>{formatStream(s.stream)}</span>
-    {/if}
-    {#if outputLabel()}
-      <span class="sub" title="Format envoyé à la sortie audio">{outputLabel()}</span>
-    {/if}
+  <div class="right">
+    <div class="format">
+      {#if s.stream}
+        <span class="badge" class:muted={s.stream.codec !== "flac"}>{formatStream(s.stream)}</span>
+      {/if}
+      {#if outputLabel()}
+        <span class="sub" title="Format envoyé à la sortie audio">{outputLabel()}</span>
+      {/if}
+    </div>
+    <button class="toggle" class:on={queueOpen} onclick={onToggleQueue} title="File d'attente">
+      <Icon name="queue" />
+    </button>
   </div>
 </footer>
 
@@ -148,15 +186,40 @@
     background: var(--text);
   }
 
-  .play:disabled {
-    opacity: 0.4;
-    cursor: default;
+  .transport {
+    display: flex;
+    align-items: center;
+    gap: 14px;
   }
 
-  .play svg {
-    width: 18px;
-    height: 18px;
-    fill: currentColor;
+  .transport button:not(.play),
+  .right .toggle {
+    position: relative;
+    padding: 4px;
+    color: var(--text-muted);
+  }
+
+  .transport button:not(.play):hover:not(:disabled),
+  .right .toggle:hover {
+    color: var(--text);
+  }
+
+  .toggle.on,
+  .toggle.on:hover {
+    color: var(--accent) !important;
+  }
+
+  .one {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   .spinner {
@@ -212,6 +275,14 @@
 
   input[type="range"]:disabled {
     cursor: default;
+  }
+
+  .right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    min-width: 0;
   }
 
   .format {
