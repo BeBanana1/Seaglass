@@ -13,6 +13,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::queue::{Queue, Repeat};
 use super::state::{PlayerState, QueueView};
+use crate::integrations::Observers;
 use crate::mpv::process::ProcessGuard;
 use crate::mpv::{self, MpvEvent, MpvHandle, Property, serve::ManifestServer};
 use crate::store::Store;
@@ -42,6 +43,10 @@ pub enum Cmd {
     SetRepeat(Repeat),
     GetState(oneshot::Sender<PlayerState>),
     GetQueue(oneshot::Sender<QueueView>),
+    /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
+    SetPaused(bool),
+    /// Branche les intégrations système (SMTC…), créées après l'acteur.
+    AttachObservers(Observers),
     /// Résultat d'une résolution réseau (métadonnées + flux) lancée par l'acteur.
     Resolved {
         request: u64,
@@ -96,6 +101,7 @@ pub(super) struct Player {
     pub(super) persist_queue: bool,
     pub(super) persist_position: bool,
     pub(super) last_persist: Instant,
+    observers: Observers,
 }
 
 pub fn spawn(
@@ -143,6 +149,7 @@ pub fn spawn(
             persist_queue: false,
             persist_position: false,
             last_persist: Instant::now(),
+            observers: Observers::default(),
         };
         player.restore();
         player.apply_loop_file().await;
@@ -212,6 +219,11 @@ impl Player {
             Cmd::Next => self.skip_next().await,
             Cmd::Previous => self.previous().await,
             Cmd::TogglePause => self.toggle_pause().await,
+            Cmd::SetPaused(paused) => self.set_paused(paused).await,
+            Cmd::AttachObservers(observers) => {
+                observers.notify(&self.state);
+                self.observers = observers;
+            }
             Cmd::Seek(secs) => self.seek(secs).await,
             Cmd::SetShuffle(on) => {
                 self.queue.set_shuffle(on, &mut self.rng);
@@ -249,10 +261,12 @@ impl Player {
                 }
                 Property::Duration(d) if self.loaded => s.duration = d.unwrap_or(0.0),
                 Property::TimePos(_) | Property::Duration(_) => {}
-                Property::Pause(p) => {
+                // Sans titre chargé, `pause` reste celui de l'état restauré.
+                Property::Pause(p) if self.loaded => {
                     s.paused = p;
                     self.persist_position = true;
                 }
+                Property::Pause(_) => {}
                 Property::PausedForCache(b) => s.buffering = b,
                 Property::AudioParams(a) => s.output = a,
                 Property::CurrentAo(ao) => s.output_driver = ao,
@@ -314,6 +328,7 @@ impl Player {
         if let Err(e) = self.app.emit("player-state", &self.state) {
             tracing::warn!("émission player-state : {e}");
         }
+        self.observers.notify(&self.state);
         self.emitted = self.state.clone();
         self.last_emit = Instant::now();
     }

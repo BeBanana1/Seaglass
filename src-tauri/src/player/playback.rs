@@ -116,6 +116,8 @@ impl Player {
                 self.mpv_command(vec![json!("set_property"), json!("pause"), json!(false)])
                     .await;
                 self.loaded = true;
+                // mpv n'émet rien si `pause` valait déjà `false` : l'état est fixé ici.
+                self.state.paused = false;
                 self.state.track = Some(track);
                 self.state.stream = Some(stream.format);
             }
@@ -236,6 +238,17 @@ impl Player {
         if self.loaded {
             self.mpv_command(vec![json!("cycle"), json!("pause")]).await;
         } else if let Some(id) = self.queue.current() {
+            self.load_current(id, self.state.time_pos);
+        }
+    }
+
+    /// Touches média : Lecture relance un titre restauré, Pause est sans effet s'il n'y a
+    /// rien de chargé.
+    pub(super) async fn set_paused(&mut self, paused: bool) {
+        if self.loaded {
+            self.mpv_command(vec![json!("set_property"), json!("pause"), json!(paused)])
+                .await;
+        } else if !paused && let Some(id) = self.queue.current() {
             self.load_current(id, self.state.time_pos);
         }
     }

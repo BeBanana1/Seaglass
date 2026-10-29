@@ -1,4 +1,5 @@
 mod commands;
+mod integrations;
 mod mpv;
 mod player;
 mod store;
@@ -41,6 +42,7 @@ pub fn run() {
                 mpv_conf,
                 Arc::clone(&mpv_process),
             );
+            attach_integrations(app, &player);
             app.manage(AppState { tidal, player });
             app.manage(mpv_process);
             Ok(())
@@ -79,6 +81,32 @@ pub fn run() {
                 app.state::<Arc<ProcessGuard>>().kill();
             }
         });
+}
+
+/// SMTC (touches média, panneau Windows), branché sur la fenêtre principale. Un échec
+/// est journalisé sans empêcher l'app de démarrer.
+fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<player::Cmd>) {
+    #[allow(unused_mut)]
+    let mut observers = integrations::Observers::default();
+    #[cfg(windows)]
+    {
+        let hwnd = app
+            .get_webview_window("main")
+            .ok_or_else(|| "fenêtre principale introuvable".to_owned())
+            .and_then(|w| w.hwnd().map_err(|e| e.to_string()));
+        match hwnd.and_then(|h| integrations::smtc::start(h.0 as isize, player.clone())) {
+            Ok(smtc) => observers.smtc = Some(smtc),
+            Err(e) => tracing::warn!("SMTC indisponible : {e}"),
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = app;
+    if player
+        .try_send(player::Cmd::AttachObservers(observers))
+        .is_err()
+    {
+        tracing::warn!("intégrations non branchées : lecteur indisponible");
+    }
 }
 
 /// Base SQLite dans le dossier de données de l'app ; l'app fonctionne sans, sans persistance.
