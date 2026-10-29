@@ -1,0 +1,13 @@
+# Secrets
+.env
+.env.*
+
+# Python (spike)
+spike/.venv/
+__pycache__/
+*.pyc
+
+# Node / Tauri (phase 1+)
+node_modules/
+dist/
+src-tauri/target/
