@@ -44,6 +44,8 @@ pub enum Cmd {
     GetState(oneshot::Sender<PlayerState>),
     GetQueue(oneshot::Sender<QueueView>),
     /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
+    /// Seul SMTC l'envoie : code mort hors Windows (CI Linux).
+    #[cfg_attr(not(windows), allow(dead_code))]
     SetPaused(bool),
     /// Branche les intégrations système (SMTC…), créées après l'acteur.
     AttachObservers(Observers),
