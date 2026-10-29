@@ -125,10 +125,16 @@ $dest = $env:SEAGLASS_RELEASE_DEST
 # Cible scp : « hôte:… » ou « utilisateur@hôte:… » (au moins 2 caractères avant « : »,
 # pour ne pas confondre avec une lettre de lecteur comme « D: »).
 if ($dest -match '^[^\\/:]{2,}:') {
+    $sshHost, $remotePath = $dest -split ':', 2
     scp -r $out "$dest/"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (installeur)" }
+    # scp reprend des droits Windows trop larges (dossier en écriture pour tous) : on les
+    # remet à 755 / 644 avant de rendre la version visible.
+    ssh $sshHost "chmod 755 '$remotePath/$version' && chmod 644 '$remotePath/$version'/*"
+    if ($LASTEXITCODE -ne 0) { Fail "échec du réglage des droits sur le serveur" }
     scp $manifestPath "$dest/latest.json"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (manifeste)" }
+    ssh $sshHost "chmod 644 '$remotePath/latest.json'"
 } else {
     New-Item -ItemType Directory -Force $dest | Out-Null
     Copy-Item $out (Join-Path $dest $version) -Recurse -Force
