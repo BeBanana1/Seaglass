@@ -33,7 +33,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: pnpm
 
       - name: Frontend
         run: |
@@ -45,11 +44,9 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-          # Garde le cache même si clippy ou un test échoue : le run suivant reste rapide.
-          cache-on-failure: true
+      # Pas de cache (pnpm, Swatinem/rust-cache) tant que le serveur de cache du runner
+      # est injoignable depuis les jobs : chaque action attendait 5 min un ETIMEDOUT.
+      # À remettre avec le runner dédié (`container.network` + `cache.port`).
 
       # `pnpm build` d'abord : `tauri::generate_context!` exige que `dist/` existe.
       - name: Rust
