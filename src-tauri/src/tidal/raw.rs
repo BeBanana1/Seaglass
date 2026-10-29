@@ -1,0 +1,275 @@
+//! Formats JSON bruts de l'API (v1 et flux d'accueil v2) et leur conversion en `models`.
+//! Rien de ce fichier ne sort du module `tidal`.
+
+use serde::Deserialize;
+
+use super::models::{
+    AlbumRef, AlbumSummary, ArtistRef, ArtistSummary, PlaylistSummary, Track, TrackId,
+};
+
+const IMAGE_URL: &str = "https://resources.tidal.com/images";
+
+/// URL d'image à partir d'un identifiant de ressource (`a-b-c` → `a/b/c/<taille>.jpg`).
+pub(super) fn image_url(id: &str, size: u32) -> String {
+    format!("{IMAGE_URL}/{}/{size}x{size}.jpg", id.replace('-', "/"))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct RawPage<T> {
+    pub items: Vec<T>,
+    pub total_number_of_items: Option<u32>,
+}
+
+/// Entrée des favoris : `{ "created": …, "item": … }`.
+#[derive(Deserialize)]
+pub(super) struct RawFavorite<T> {
+    pub item: T,
+}
+
+/// Entrée de `playlistsAndFavoritePlaylists` : `{ "type": …, "playlist": … }`.
+#[derive(Deserialize)]
+pub(super) struct RawPlaylistEntry {
+    pub playlist: RawPlaylist,
+}
+
+#[derive(Deserialize)]
+pub(super) struct RawSearch {
+    #[serde(default = "RawPage::empty")]
+    pub tracks: RawPage<RawTrack>,
+    #[serde(default = "RawPage::empty")]
+    pub albums: RawPage<RawAlbumFull>,
+    #[serde(default = "RawPage::empty")]
+    pub artists: RawPage<RawArtistFull>,
+    #[serde(default = "RawPage::empty")]
+    pub playlists: RawPage<RawPlaylist>,
+}
+
+impl<T> RawPage<T> {
+    fn empty() -> Self {
+        Self {
+            items: Vec::new(),
+            total_number_of_items: Some(0),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct RawTrack {
+    id: u64,
+    title: String,
+    version: Option<String>,
+    duration: u32,
+    #[serde(default)]
+    explicit: bool,
+    #[serde(default)]
+    artists: Vec<RawArtist>,
+    /// Absent dans certains flux (titres de l'accueil) : ces titres sont ignorés.
+    album: Option<RawAlbum>,
+    media_metadata: Option<RawMediaMetadata>,
+}
+
+#[derive(Deserialize)]
+pub(super) struct RawArtist {
+    id: u64,
+    name: String,
+}
+
+#[derive(Deserialize)]
+struct RawAlbum {
+    id: u64,
+    title: String,
+    cover: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct RawMediaMetadata {
+    #[serde(default)]
+    tags: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct RawAlbumFull {
+    pub id: u64,
+    pub title: String,
+    pub cover: Option<String>,
+    #[serde(default)]
+    pub artists: Vec<RawArtist>,
+    pub release_date: Option<String>,
+    pub number_of_tracks: Option<u32>,
+    #[serde(rename = "type")]
+    pub kind: Option<String>,
+    #[serde(default)]
+    pub explicit: bool,
+    media_metadata: Option<RawMediaMetadata>,
+    pub duration: Option<u32>,
+    pub copyright: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub(super) struct RawArtistFull {
+    pub id: u64,
+    pub name: String,
+    pub picture: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct RawPlaylist {
+    pub uuid: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub square_image: Option<String>,
+    pub number_of_tracks: Option<u32>,
+    pub duration: Option<u32>,
+    #[serde(rename = "type")]
+    pub kind: Option<String>,
+    pub creator: Option<RawCreator>,
+}
+
+#[derive(Deserialize)]
+pub(super) struct RawCreator {
+    pub id: Option<u64>,
+}
+
+/// Ligne du flux d'accueil v2 : `{ "type", "title", "items": [{ "type", "data" }] }`.
+#[derive(Deserialize)]
+pub(super) struct RawHomeRow {
+    pub title: Option<String>,
+    #[serde(default)]
+    pub items: Vec<RawHomeItem>,
+}
+
+#[derive(Deserialize)]
+pub(super) struct RawHomeItem {
+    #[serde(rename = "type")]
+    pub kind: String,
+    #[serde(default)]
+    pub data: serde_json::Value,
+}
+
+#[derive(Deserialize)]
+pub(super) struct RawHome {
+    #[serde(default)]
+    pub items: Vec<RawHomeRow>,
+}
+
+fn has_hires(meta: Option<&RawMediaMetadata>) -> bool {
+    meta.is_some_and(|m| m.tags.iter().any(|t| t == "HIRES_LOSSLESS"))
+}
+
+fn artist_refs(artists: Vec<RawArtist>) -> Vec<ArtistRef> {
+    artists
+        .into_iter()
+        .map(|a| ArtistRef {
+            id: a.id,
+            name: a.name,
+        })
+        .collect()
+}
+
+impl RawTrack {
+    pub(super) fn into_track(self) -> Option<Track> {
+        let album = self.album?;
+        Some(Track {
+            id: TrackId(self.id),
+            title: self.title,
+            version: self.version,
+            duration: self.duration,
+            artists: artist_refs(self.artists),
+            album: AlbumRef {
+                id: album.id,
+                title: album.title,
+                cover_url: album.cover.as_deref().map(|c| image_url(c, 320)),
+            },
+            explicit: self.explicit,
+            hires: has_hires(self.media_metadata.as_ref()),
+        })
+    }
+}
+
+pub(super) fn tracks(raw: Vec<RawTrack>) -> Vec<Track> {
+    raw.into_iter().filter_map(RawTrack::into_track).collect()
+}
+
+impl From<RawAlbumFull> for AlbumSummary {
+    fn from(raw: RawAlbumFull) -> Self {
+        AlbumSummary {
+            id: raw.id,
+            title: raw.title,
+            artists: artist_refs(raw.artists),
+            cover_url: raw.cover.as_deref().map(|c| image_url(c, 320)),
+            release_date: raw.release_date,
+            number_of_tracks: raw.number_of_tracks,
+            album_type: raw.kind,
+            explicit: raw.explicit,
+            hires: has_hires(raw.media_metadata.as_ref()),
+        }
+    }
+}
+
+impl From<RawArtistFull> for ArtistSummary {
+    fn from(raw: RawArtistFull) -> Self {
+        ArtistSummary {
+            id: raw.id,
+            name: raw.name,
+            picture_url: raw.picture.as_deref().map(|p| image_url(p, 320)),
+        }
+    }
+}
+
+impl RawPlaylist {
+    /// `user_id` : utilisateur connecté, pour signaler ses propres playlists.
+    pub(super) fn into_summary(self, user_id: Option<u64>) -> PlaylistSummary {
+        let creator = self.creator.and_then(|c| c.id);
+        PlaylistSummary {
+            uuid: self.uuid,
+            title: self.title,
+            description: self.description.filter(|d| !d.trim().is_empty()),
+            image_url: self.square_image.as_deref().map(|i| image_url(i, 320)),
+            number_of_tracks: self.number_of_tracks,
+            duration: self.duration,
+            editorial: self.kind.as_deref() == Some("EDITORIAL"),
+            mine: creator.is_some() && creator == user_id,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn image_url_from_resource_id() {
+        assert_eq!(
+            image_url("3f5f9e03-c58c-4053", 320),
+            "https://resources.tidal.com/images/3f5f9e03/c58c/4053/320x320.jpg"
+        );
+    }
+
+    #[test]
+    fn track_without_album_is_skipped() {
+        let raw: Vec<RawTrack> = serde_json::from_str(
+            r#"[{"id":1,"title":"a","duration":10,"artists":[]},
+                {"id":2,"title":"b","duration":10,"artists":[],"album":{"id":3,"title":"c","cover":null}}]"#,
+        )
+        .unwrap();
+        let t = tracks(raw);
+        assert_eq!(t.len(), 1);
+        assert_eq!(t[0].id, TrackId(2));
+    }
+
+    #[test]
+    fn playlist_ownership() {
+        let raw: RawPlaylist = serde_json::from_str(
+            r#"{"uuid":"u","title":"t","description":"  ","squareImage":null,"type":"USER","creator":{"id":42}}"#,
+        )
+        .unwrap();
+        let p = raw.into_summary(Some(42));
+        assert!(p.mine);
+        assert!(!p.editorial);
+        assert_eq!(p.description, None);
+    }
+}

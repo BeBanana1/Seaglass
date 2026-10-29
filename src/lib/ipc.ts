@@ -68,6 +68,74 @@ export interface QueueView {
   upcoming: Track[];
 }
 
+export interface AlbumSummary {
+  id: number;
+  title: string;
+  artists: ArtistRef[];
+  coverUrl: string | null;
+  /** `AAAA-MM-JJ`. */
+  releaseDate: string | null;
+  numberOfTracks: number | null;
+  /** `ALBUM`, `EP` ou `SINGLE`. */
+  albumType: string | null;
+  explicit: boolean;
+  hires: boolean;
+}
+
+export interface ArtistSummary {
+  id: number;
+  name: string;
+  pictureUrl: string | null;
+}
+
+export interface PlaylistSummary {
+  uuid: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  numberOfTracks: number | null;
+  duration: number | null;
+  editorial: boolean;
+  mine: boolean;
+}
+
+export type MediaItem =
+  | ({ kind: "album" } & AlbumSummary)
+  | ({ kind: "artist" } & ArtistSummary)
+  | ({ kind: "playlist" } & PlaylistSummary);
+
+export interface HomeRow {
+  title: string;
+  items: MediaItem[];
+}
+
+export interface AlbumPage {
+  album: AlbumSummary;
+  coverLargeUrl: string | null;
+  duration: number | null;
+  copyright: string | null;
+  tracks: Track[];
+}
+
+export interface ArtistPage {
+  artist: ArtistSummary;
+  topTracks: Track[];
+  albums: AlbumSummary[];
+  singles: AlbumSummary[];
+}
+
+export interface PlaylistPage {
+  playlist: PlaylistSummary;
+  tracks: Track[];
+}
+
+export interface SearchResults {
+  tracks: Track[];
+  albums: AlbumSummary[];
+  artists: ArtistSummary[];
+  playlists: PlaylistSummary[];
+}
+
 export interface SessionInfo {
   userId: number;
   countryCode: string;
@@ -82,9 +150,18 @@ export const commands = {
   authStatus: () => invoke<SessionInfo | null>("auth_status"),
   login: () => invoke<SessionInfo>("login"),
   logout: () => invoke<void>("logout"),
-  search: (query: string) => invoke<Track[]>("search", { query }),
-  playTracks: (trackIds: TrackId[], startIndex: number) =>
-    invoke<void>("play_tracks", { trackIds, startIndex }),
+  search: (query: string) => invoke<SearchResults>("search", { query }),
+  album: (id: number) => invoke<AlbumPage>("album", { id }),
+  artist: (id: number) => invoke<ArtistPage>("artist", { id }),
+  playlist: (uuid: string) => invoke<PlaylistPage>("playlist", { uuid }),
+  libraryTracks: () => invoke<Track[]>("library_tracks"),
+  libraryAlbums: () => invoke<AlbumSummary[]>("library_albums"),
+  libraryArtists: () => invoke<ArtistSummary[]>("library_artists"),
+  libraryPlaylists: () => invoke<PlaylistSummary[]>("library_playlists"),
+  home: () => invoke<HomeRow[]>("home"),
+  /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
+  playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false) =>
+    invoke<void>("play_tracks", { trackIds, startIndex, shuffle }),
   playNext: (trackId: TrackId) => invoke<void>("play_next", { trackId }),
   addToQueue: (trackId: TrackId) => invoke<void>("add_to_queue", { trackId }),
   removeFromQueue: (index: number) => invoke<void>("remove_from_queue", { index }),

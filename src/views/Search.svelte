@@ -1,21 +1,31 @@
-<script lang="ts">
-  import { commands, type Track } from "../lib/ipc";
-  import { player } from "../lib/stores/player.svelte";
-  import TrackRow from "../components/TrackRow.svelte";
+<script lang="ts" module>
+  import type { SearchResults } from "../lib/ipc";
 
-  let query = $state("");
-  let results = $state<Track[]>([]);
+  // Conservé au niveau du module : revenir sur la recherche retrouve la dernière requête.
+  const saved = $state<{ query: string; results: SearchResults | null; allTracks: boolean }>({
+    query: "",
+    results: null,
+    allTracks: false,
+  });
+</script>
+
+<script lang="ts">
+  import { commands, type MediaItem } from "../lib/ipc";
+  import CardGrid from "../components/CardGrid.svelte";
+  import TrackList from "../components/TrackList.svelte";
+
+  const COLLAPSED_TRACKS = 8;
+
   let searching = $state(false);
   let error = $state<string | null>(null);
-  let searched = $state(false);
 
   async function submit(e: SubmitEvent) {
     e.preventDefault();
     searching = true;
     error = null;
     try {
-      results = await commands.search(query);
-      searched = true;
+      saved.results = await commands.search(saved.query);
+      saved.allTracks = false;
     } catch (err) {
       error = String(err);
     } finally {
@@ -23,27 +33,30 @@
     }
   }
 
-  /** Les résultats forment le contexte de lecture. */
-  async function play(index: number) {
-    try {
-      await commands.playTracks(
-        results.map((t) => t.id),
-        index,
-      );
-    } catch (err) {
-      error = String(err);
-    }
-  }
+  const r = $derived(saved.results);
+  const tracks = $derived(
+    r ? (saved.allTracks ? r.tracks : r.tracks.slice(0, COLLAPSED_TRACKS)) : [],
+  );
+  const artists = $derived<MediaItem[]>(r?.artists.map((a) => ({ kind: "artist", ...a })) ?? []);
+  const albums = $derived<MediaItem[]>(r?.albums.map((a) => ({ kind: "album", ...a })) ?? []);
+  const playlists = $derived<MediaItem[]>(
+    r?.playlists.map((p) => ({ kind: "playlist", ...p })) ?? [],
+  );
+  const empty = $derived(
+    r !== null && !r.tracks.length && !r.artists.length && !r.albums.length && !r.playlists.length,
+  );
 </script>
 
 <section>
   <form onsubmit={submit}>
+    <!-- svelte-ignore a11y_autofocus -->
     <input
       type="search"
-      placeholder="Titres, artistes…"
-      bind:value={query}
+      placeholder="Titres, artistes, albums, playlists…"
+      bind:value={saved.query}
       autocomplete="off"
       spellcheck="false"
+      autofocus
     />
   </form>
 
@@ -51,24 +64,34 @@
     <p class="error">{error}</p>
   {:else if searching}
     <p class="muted">Recherche…</p>
-  {:else if searched && results.length === 0}
+  {:else if empty}
     <p class="muted">Aucun résultat.</p>
   {/if}
 
-  <div role="list">
-    {#each results as track, i (track.id)}
-      <TrackRow {track} active={player.state.track?.id === track.id} onPlay={() => play(i)} />
-    {/each}
-  </div>
+  {#if r && r.tracks.length > 0}
+    <div class="tracks">
+      <h2>Titres</h2>
+      <!-- Le contexte de lecture est la liste affichée. -->
+      <TrackList {tracks} />
+      {#if r.tracks.length > COLLAPSED_TRACKS}
+        <button class="more" onclick={() => (saved.allTracks = !saved.allTracks)}>
+          {saved.allTracks ? "Afficher moins" : `Afficher les ${r.tracks.length} titres`}
+        </button>
+      {/if}
+    </div>
+  {/if}
+  <CardGrid title="Artistes" items={artists} row />
+  <CardGrid title="Albums" items={albums} row />
+  <CardGrid title="Playlists" items={playlists} row />
 </section>
 
 <style>
   section {
-    padding: 20px;
+    padding: 20px 24px;
   }
 
   form {
-    margin-bottom: 16px;
+    margin: 0 10px 20px;
   }
 
   input {
@@ -85,11 +108,33 @@
     color: var(--text-muted);
   }
 
+  .tracks {
+    margin-bottom: 28px;
+  }
+
+  h2 {
+    margin: 0 10px 8px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .more {
+    margin: 6px 10px 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .more:hover {
+    color: var(--text);
+  }
+
   .muted {
+    margin: 0 10px;
     color: var(--text-muted);
   }
 
   .error {
+    margin: 0 10px;
     color: var(--danger);
   }
 </style>

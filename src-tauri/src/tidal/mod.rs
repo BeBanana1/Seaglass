@@ -3,8 +3,10 @@
 pub mod api;
 pub mod auth;
 pub mod cache;
+mod catalog;
 mod manifest;
 pub mod models;
+mod raw;
 
 pub use api::TidalClient;
 

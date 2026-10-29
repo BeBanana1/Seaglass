@@ -1,10 +1,12 @@
 <script lang="ts">
   import { commands, type Track } from "../lib/ipc";
-  import { artistNames, formatTime, fullTitle } from "../lib/format";
+  import { formatTime, fullTitle } from "../lib/format";
+  import { go } from "../lib/stores/nav.svelte";
   import Icon from "./Icon.svelte";
 
   let {
     track,
+    number,
     active = false,
     compact = false,
     actions = true,
@@ -12,6 +14,8 @@
     onRemove,
   }: {
     track: Track;
+    /** Numéro affiché devant le titre (position dans l'album ou la playlist). */
+    number?: number;
     active?: boolean;
     /** Variante étroite (panneau de file) : sans colonne album. */
     compact?: boolean;
@@ -22,7 +26,15 @@
   } = $props();
 </script>
 
-<div class="row" class:active class:compact role="listitem" ondblclick={onPlay}>
+<div
+  class="row"
+  class:active
+  class:compact
+  class:numbered={number !== undefined}
+  role="listitem"
+  ondblclick={onPlay}
+>
+  {#if number !== undefined}<span class="number">{number}</span>{/if}
   <div class="cover">
     {#if track.album.coverUrl}
       <img src={track.album.coverUrl} alt="" loading="lazy" />
@@ -39,10 +51,16 @@
       {#if track.explicit}<span class="badge muted">E</span>{/if}
       {#if track.hires}<span class="badge">HI-RES</span>{/if}
     </span>
-    <span class="sub">{artistNames(track)}</span>
+    <span class="sub">
+      {#each track.artists as artist, i (artist.id)}
+        {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button>
+      {/each}
+    </span>
   </div>
   {#if !compact}
-    <span class="album">{track.album.title}</span>
+    <span class="album">
+      <button class="link" onclick={() => go({ name: "album", id: track.album.id })}>{track.album.title}</button>
+    </span>
   {/if}
   <div class="actions">
     {#if !actions}
@@ -69,6 +87,25 @@
     gap: 12px;
     padding: 6px 10px;
     border-radius: var(--radius);
+  }
+
+  .row.numbered {
+    grid-template-columns: 24px 40px minmax(0, 2fr) minmax(0, 1fr) auto 48px;
+  }
+
+  .row.compact.numbered {
+    grid-template-columns: 24px 40px minmax(0, 1fr) auto 48px;
+  }
+
+  .number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+
+  .link:hover {
+    color: var(--text);
+    text-decoration: underline;
   }
 
   .row.compact {

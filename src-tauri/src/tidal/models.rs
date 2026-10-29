@@ -89,6 +89,98 @@ pub struct Stream {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AlbumSummary {
+    pub id: u64,
+    pub title: String,
+    pub artists: Vec<ArtistRef>,
+    pub cover_url: Option<String>,
+    /// `AAAA-MM-JJ`.
+    pub release_date: Option<String>,
+    pub number_of_tracks: Option<u32>,
+    /// `ALBUM`, `EP` ou `SINGLE`.
+    pub album_type: Option<String>,
+    pub explicit: bool,
+    pub hires: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistSummary {
+    pub id: u64,
+    pub name: String,
+    pub picture_url: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistSummary {
+    pub uuid: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub image_url: Option<String>,
+    pub number_of_tracks: Option<u32>,
+    /// Durée totale en secondes.
+    pub duration: Option<u32>,
+    /// Playlist éditoriale du service.
+    pub editorial: bool,
+    /// Créée par l'utilisateur connecté.
+    pub mine: bool,
+}
+
+/// Élément affichable sous forme de carte (accueil, résultats).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum MediaItem {
+    Album(AlbumSummary),
+    Artist(ArtistSummary),
+    Playlist(PlaylistSummary),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HomeRow {
+    pub title: String,
+    pub items: Vec<MediaItem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumPage {
+    pub album: AlbumSummary,
+    /// Pochette en grand format pour l'en-tête.
+    pub cover_large_url: Option<String>,
+    pub duration: Option<u32>,
+    pub copyright: Option<String>,
+    pub tracks: Vec<Track>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistPage {
+    pub artist: ArtistSummary,
+    pub top_tracks: Vec<Track>,
+    pub albums: Vec<AlbumSummary>,
+    pub singles: Vec<AlbumSummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistPage {
+    pub playlist: PlaylistSummary,
+    pub tracks: Vec<Track>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchResults {
+    pub tracks: Vec<Track>,
+    pub albums: Vec<AlbumSummary>,
+    pub artists: Vec<ArtistSummary>,
+    pub playlists: Vec<PlaylistSummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionInfo {
     pub user_id: u64,
     pub country_code: String,

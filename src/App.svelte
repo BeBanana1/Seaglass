@@ -4,17 +4,26 @@
   import { initPlayer } from "./lib/stores/player.svelte";
   import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
+  import { back, canGoBack, current, nav } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
+  import Home from "./views/Home.svelte";
   import Search from "./views/Search.svelte";
+  import Library from "./views/Library.svelte";
+  import Album from "./views/Album.svelte";
+  import Artist from "./views/Artist.svelte";
+  import Playlist from "./views/Playlist.svelte";
   import Queue from "./views/Queue.svelte";
+  import Sidebar from "./components/Sidebar.svelte";
   import PlayerBar from "./components/PlayerBar.svelte";
   import Toasts from "./components/Toasts.svelte";
   import About from "./components/About.svelte";
+  import Icon from "./components/Icon.svelte";
 
   let session = $state<SessionInfo | null>(null);
   let ready = $state(false);
   let aboutOpen = $state(false);
   let queueOpen = $state(false);
+  let main = $state<HTMLElement>();
 
   onMount(async () => {
     await Promise.all([initPlayer(), initQueue(), initToasts()]);
@@ -26,15 +35,31 @@
     ready = true;
   });
 
+  // Chaque changement de page repart du haut.
+  $effect(() => {
+    void nav.stack.length;
+    void current();
+    main?.scrollTo({ top: 0 });
+  });
+
   async function logout() {
     await commands.logout();
     session = null;
   }
+
+  const route = $derived(current());
 </script>
 
 <div class="shell">
   <header>
-    <span class="brand">Seaglass <span class="version">v{__APP_VERSION__}</span></span>
+    <div class="left">
+      {#if session}
+        <button class="back" onclick={back} disabled={!canGoBack()} aria-label="Retour">
+          <Icon name="previous" size={14} />
+        </button>
+      {/if}
+      <span class="brand">Seaglass <span class="version">v{__APP_VERSION__}</span></span>
+    </div>
     <div class="actions">
       <button onclick={() => (aboutOpen = true)}>À propos</button>
       {#if session}
@@ -43,14 +68,25 @@
     </div>
   </header>
 
-  <div class="body" class:with-queue={queueOpen && session}>
-    <main>
+  <div class="body" class:with-nav={session} class:with-queue={queueOpen && session}>
+    {#if session}<Sidebar />{/if}
+    <main bind:this={main}>
       {#if !ready}
         <p class="muted">Chargement…</p>
-      {:else if session}
-        <Search />
-      {:else}
+      {:else if !session}
         <Login onLogin={(s) => (session = s)} />
+      {:else if route.name === "home"}
+        <Home />
+      {:else if route.name === "search"}
+        <Search />
+      {:else if route.name === "library"}
+        <Library tab={route.tab} />
+      {:else if route.name === "album"}
+        <Album id={route.id} />
+      {:else if route.name === "artist"}
+        <Artist id={route.id} />
+      {:else if route.name === "playlist"}
+        <Playlist uuid={route.uuid} />
       {/if}
     </main>
     {#if queueOpen && session}
@@ -77,8 +113,33 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 20px;
+    padding: 10px 20px;
     border-bottom: 1px solid var(--border);
+  }
+
+  .left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .back {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    background: var(--bg-raised);
+  }
+
+  .back:hover:not(:disabled) {
+    color: var(--text);
+  }
+
+  .back:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   .brand {
@@ -111,8 +172,12 @@
     min-height: 0;
   }
 
-  .body.with-queue {
-    grid-template-columns: minmax(0, 1fr) 340px;
+  .body.with-nav {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+
+  .body.with-nav.with-queue {
+    grid-template-columns: 200px minmax(0, 1fr) 340px;
   }
 
   main {

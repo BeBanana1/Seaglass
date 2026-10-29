@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use rand::SeedableRng;
 use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
@@ -28,6 +28,8 @@ pub enum Cmd {
     PlayTracks {
         ids: Vec<TrackId>,
         start: usize,
+        /// Active la lecture aléatoire et part d'un titre au hasard (`start` est ignoré).
+        shuffle: bool,
     },
     PlayNext(TrackId),
     AddToQueue(TrackId),
@@ -177,7 +179,17 @@ impl Player {
 
     async fn handle_cmd(&mut self, cmd: Cmd) {
         match cmd {
-            Cmd::PlayTracks { ids, start } => {
+            Cmd::PlayTracks {
+                ids,
+                start,
+                shuffle,
+            } => {
+                let start = if shuffle && !ids.is_empty() {
+                    self.queue.set_shuffle(true, &mut self.rng);
+                    self.rng.random_range(0..ids.len())
+                } else {
+                    start
+                };
                 let started = self.queue.set_context(ids, start, &mut self.rng);
                 if let Some(id) = started {
                     self.on_queue_changed().await;

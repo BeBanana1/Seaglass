@@ -3,7 +3,7 @@
 Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
 Projet personnel, Windows en priorité.
 
-> Statut : **phase 2 validée le 2026-10-29** (v0.2.0). File d'attente, gapless et persistance vérifiés en lecture réelle. Prochaine étape : phase 3, vues (accueil, album, artiste, playlist, bibliothèque).
+> Statut : **phase 3 livrée le 2026-10-29** (v0.3.0). Accueil, recherche, album, artiste, playlist et bibliothèque ; endpoints vérifiés sur un compte réel. Prochaine étape : phase 4, intégrations (SMTC, Discord RPC, Last.fm).
 
 ## Principes non négociables
 
@@ -42,8 +42,8 @@ seaglass/
    ├─ mpv/seaglass.conf        # config mpv dédiée à l'app
    └─ src/
       ├─ lib.rs              # setup Tauri, lancement des tâches
-      ├─ commands.rs         # commandes Tauri : valident l'entrée puis envoient un Cmd
-      ├─ tidal/              # auth.rs, api.rs, models.rs, manifest.rs (décodage + détection DRM)
+      ├─ commands/           # auth.rs, player.rs, catalog.rs : valident l'entrée puis délèguent
+      ├─ tidal/              # auth.rs, api.rs, catalog.rs, raw.rs (JSON bruts), models.rs, cache.rs, manifest.rs (DRM)
       ├─ player/             # actor.rs, queue.rs, state.rs
       ├─ mpv/                # process.rs, ipc.rs, events.rs, serve.rs (MPD servis en HTTP local)
       ├─ store/              # SQLite
@@ -84,8 +84,8 @@ seaglass/
 0. ~~**Spike**~~ ✅ : script Python `spike/play.py` avec `tidalapi` : connexion, récupération du manifeste d'un titre, lecture dans mpv. Flux FLAC sans DRM confirmés avec le client PKCE.
 1. ~~**Squelette**~~ ✅ : Tauri + Svelte, module `mpv/` (process + IPC + événements), commandes `login` (PKCE), `search`, `play`, `toggle_pause`, `seek`. Acteur lecteur minimal (un titre à la fois).
 2. ~~**File d'attente**~~ ✅ : `queue.rs` (testé), gapless, retry sur erreur, repeat One via `loop-file`, persistance SQLite.
-3. **(actuel)** Vues : accueil, album, artiste, playlist, bibliothèque (la recherche existe déjà).
-4. Intégrations : SMTC, Discord RPC, Last.fm.
+3. ~~**Vues**~~ ✅ : accueil, recherche multi-types, album, artiste, playlist, bibliothèque (playlists, albums, artistes, titres).
+4. **(actuel)** Intégrations : SMTC, Discord RPC, Last.fm.
 5. Thème, finitions, sidecar mpv, installeur.
 
 ## Résultats du spike (2026-10-29, tidalapi 0.8.11, abonnement HI_RES, pays CH)
@@ -127,6 +127,15 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 - **Cache de métadonnées** en mémoire (`tidal::cache`), alimenté par la recherche ; il permet d'afficher la file sans requête.
 - Vérifié en lecture réelle : préchargement à 25 s de la fin (`playlist-count=2`), bascule sans rechargement puis `playlist-count=1`, restauration à la bonne position avec mpv inactif.
 - Vérifié en lecture réelle : `audio-codec-name=flac`, `current-ao=wasapi`, sortie `s16` 44,1 kHz pour un titre 16/44,1.
+
+## Implémentation (phase 3)
+
+- **Endpoints** (vérifiés, test `cargo test live_catalog -- --ignored --nocapture`) : `search?types=TRACKS,ALBUMS,ARTISTS,PLAYLISTS`, `albums/{id}` + `/tracks`, `artists/{id}` + `/toptracks` + `/albums` (`filter=EPSANDSINGLES` pour les singles), `playlists/{uuid}` + `/tracks`, `users/{id}/favorites/{tracks,albums,artists}` (`order=DATE&orderDirection=DESC`, éléments `{created, item}`), `users/{id}/playlistsAndFavoritePlaylists` (éléments `{type, playlist}`), v2 `home/feed/static?deviceType=BROWSER&platform=WEB&locale=fr_FR`.
+- **Pagination** : avancer selon `totalNumberOfItems`, pas selon le nombre d'éléments reçus (les titres indisponibles sont filtrés : 97 reçus pour `limit=100`). Pages de 100, sauf `playlistsAndFavoritePlaylists` qui refuse plus de 50.
+- **Accueil v2** : lignes `{type, title, items: [{type, data}]}`. Seuls `ALBUM`, `ARTIST` et `PLAYLIST` sont gardés ; `MIX`, `TRACK` (sans album) et `DEEP_LINK` sont ignorés pour l'instant. Avec `locale=fr_FR`, les titres de lignes sont en français.
+- **Images** : `resources.tidal.com/images/<id avec / à la place des ->/<n>x<n>.jpg`. Pochettes 320 (listes) et 640 (en-tête d'album), photos d'artiste et playlists (`squareImage`) en 320.
+- **`MediaItem`** est sérialisé avec l'étiquette `kind` : aucun type qu'il contient ne doit avoir de champ `kind` (d'où `AlbumSummary::album_type`, test `media_item_tag_is_unique`).
+- **UI** : navigation par pile de routes (`lib/stores/nav.svelte.ts`) sans URL, bouton Retour dans l'en-tête. Lire un titre d'une liste met toute la liste en contexte ; « Aléatoire » passe par `play_tracks(…, shuffle: true)`, le backend choisit le titre de départ.
 
 ## Commandes
 

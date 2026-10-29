@@ -9,7 +9,9 @@ Version actuelle : voir [`VERSION`](VERSION).
 ## Fonctionnalités
 
 - Connexion au compte (OAuth PKCE) ; le jeton est rangé dans le Gestionnaire d'identifiants Windows.
-- Recherche de titres, lecture FLAC jusqu'en 24 bits.
+- Accueil personnalisé, recherche (titres, albums, artistes, playlists), pages album, artiste et playlist.
+- Bibliothèque : playlists, albums, artistes et titres favoris.
+- Lecture FLAC jusqu'en 24 bits.
 - File d'attente : contexte d'origine, « Lire ensuite », « Ajouter à la file », lecture aléatoire, répétition (tout / un titre), précédent.
 - Enchaînement sans blanc (gapless) : le titre suivant est préchargé 30 s avant la fin.
 - File et position restaurées au démarrage.

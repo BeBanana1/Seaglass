@@ -1,0 +1,338 @@
+//! Catalogue : recherche, albums, artistes, playlists, favoris et accueil.
+//!
+//! Endpoints vérifiés avec le spike : `search` (multi-types), `albums/{id}`,
+//! `albums/{id}/tracks`, `artists/{id}`, `artists/{id}/toptracks`,
+//! `artists/{id}/albums[?filter=EPSANDSINGLES]`, `playlists/{uuid}`,
+//! `playlists/{uuid}/tracks`, `users/{id}/favorites/{tracks,albums,artists}`,
+//! `users/{id}/playlistsAndFavoritePlaylists`, v2 `home/feed/static`.
+
+use serde::de::DeserializeOwned;
+
+use super::api::{API_V2, TidalClient};
+use super::models::{
+    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, MediaItem, PlaylistPage,
+    PlaylistSummary, SearchResults, Track,
+};
+use super::raw::{
+    self, RawAlbumFull, RawArtistFull, RawFavorite, RawHome, RawPage, RawPlaylist,
+    RawPlaylistEntry, RawSearch, RawTrack, image_url,
+};
+use super::{Result, TidalError};
+
+/// Taille de page des listes paginées.
+const PAGE_SIZE: u32 = 100;
+/// `playlistsAndFavoritePlaylists` refuse plus de 50 éléments par page (vérifié).
+const PLAYLISTS_PAGE_SIZE: u32 = 50;
+/// Plafond des titres chargés pour un album ou une playlist.
+const MAX_TRACKS: usize = 10_000;
+/// Plafond de chaque catégorie de la bibliothèque.
+const LIBRARY_MAX: usize = 2_000;
+const TOP_TRACKS: u32 = 10;
+const ARTIST_ALBUMS: u32 = 50;
+const HOME_LOCALE: &str = "fr_FR";
+
+impl TidalClient {
+    pub async fn search(&self, query: &str, limit: u32) -> Result<SearchResults> {
+        let raw: RawSearch = self
+            .get(
+                "search",
+                &[
+                    ("query", query.to_owned()),
+                    ("types", "TRACKS,ALBUMS,ARTISTS,PLAYLISTS".to_owned()),
+                    ("limit", limit.to_string()),
+                ],
+            )
+            .await?;
+        let user = self.user_id().await.ok();
+        let tracks = self.remember(raw::tracks(raw.tracks.items));
+        Ok(SearchResults {
+            tracks,
+            albums: raw.albums.items.into_iter().map(Into::into).collect(),
+            artists: raw.artists.items.into_iter().map(Into::into).collect(),
+            playlists: raw
+                .playlists
+                .items
+                .into_iter()
+                .map(|p| p.into_summary(user))
+                .collect(),
+        })
+    }
+
+    pub async fn album(&self, id: u64) -> Result<AlbumPage> {
+        let (path, tracks_path) = (format!("albums/{id}"), format!("albums/{id}/tracks"));
+        let (raw, tracks) = tokio::try_join!(
+            self.get::<RawAlbumFull>(&path, &[]),
+            self.get_all::<RawTrack>(&tracks_path, &[], PAGE_SIZE, MAX_TRACKS),
+        )?;
+        let cover_large_url = raw.cover.as_deref().map(|c| image_url(c, 640));
+        let (duration, copyright) = (raw.duration, raw.copyright.clone());
+        Ok(AlbumPage {
+            album: raw.into(),
+            cover_large_url,
+            duration,
+            copyright,
+            tracks: self.remember(raw::tracks(tracks)),
+        })
+    }
+
+    pub async fn artist(&self, id: u64) -> Result<ArtistPage> {
+        let top = [("limit", TOP_TRACKS.to_string())];
+        let albums = [("limit", ARTIST_ALBUMS.to_string())];
+        let singles = [
+            ("limit", ARTIST_ALBUMS.to_string()),
+            ("filter", "EPSANDSINGLES".to_owned()),
+        ];
+        let path = format!("artists/{id}");
+        let (top_path, albums_path) = (format!("{path}/toptracks"), format!("{path}/albums"));
+        let (artist, top_tracks, albums, singles) = tokio::try_join!(
+            self.get::<RawArtistFull>(&path, &[]),
+            self.get::<RawPage<RawTrack>>(&top_path, &top),
+            self.get::<RawPage<RawAlbumFull>>(&albums_path, &albums),
+            self.get::<RawPage<RawAlbumFull>>(&albums_path, &singles),
+        )?;
+        Ok(ArtistPage {
+            artist: artist.into(),
+            top_tracks: self.remember(raw::tracks(top_tracks.items)),
+            albums: albums.items.into_iter().map(Into::into).collect(),
+            singles: singles.items.into_iter().map(Into::into).collect(),
+        })
+    }
+
+    pub async fn playlist(&self, uuid: &str) -> Result<PlaylistPage> {
+        let (path, tracks_path) = (
+            format!("playlists/{uuid}"),
+            format!("playlists/{uuid}/tracks"),
+        );
+        let (raw, tracks) = tokio::try_join!(
+            self.get::<RawPlaylist>(&path, &[]),
+            self.get_all::<RawTrack>(&tracks_path, &[], PAGE_SIZE, MAX_TRACKS),
+        )?;
+        let user = self.user_id().await.ok();
+        Ok(PlaylistPage {
+            playlist: raw.into_summary(user),
+            tracks: self.remember(raw::tracks(tracks)),
+        })
+    }
+
+    /// Titres favoris, du plus récent au plus ancien.
+    pub async fn favorite_tracks(&self) -> Result<Vec<Track>> {
+        let raw: Vec<RawFavorite<RawTrack>> = self.favorites("tracks").await?;
+        Ok(self.remember(raw::tracks(raw.into_iter().map(|f| f.item).collect())))
+    }
+
+    pub async fn favorite_albums(&self) -> Result<Vec<AlbumSummary>> {
+        let raw: Vec<RawFavorite<RawAlbumFull>> = self.favorites("albums").await?;
+        Ok(raw.into_iter().map(|f| f.item.into()).collect())
+    }
+
+    pub async fn favorite_artists(&self) -> Result<Vec<ArtistSummary>> {
+        let raw: Vec<RawFavorite<RawArtistFull>> = self.favorites("artists").await?;
+        Ok(raw.into_iter().map(|f| f.item.into()).collect())
+    }
+
+    /// Playlists créées par l'utilisateur et playlists suivies.
+    pub async fn library_playlists(&self) -> Result<Vec<PlaylistSummary>> {
+        let user = self.user_id().await?;
+        let raw: Vec<RawPlaylistEntry> = self
+            .get_all(
+                &format!("users/{user}/playlistsAndFavoritePlaylists"),
+                &[],
+                PLAYLISTS_PAGE_SIZE,
+                LIBRARY_MAX,
+            )
+            .await?;
+        Ok(raw
+            .into_iter()
+            .map(|e| e.playlist.into_summary(Some(user)))
+            .collect())
+    }
+
+    /// Lignes de l'accueil personnalisé. Seuls albums, artistes et playlists sont gardés
+    /// (les mixes et raccourcis ne sont pas encore pris en charge).
+    pub async fn home(&self) -> Result<Vec<HomeRow>> {
+        let raw: RawHome = self
+            .get_at(
+                API_V2,
+                "home/feed/static",
+                &[
+                    ("deviceType", "BROWSER".to_owned()),
+                    ("locale", HOME_LOCALE.to_owned()),
+                    ("platform", "WEB".to_owned()),
+                ],
+            )
+            .await?;
+        let user = self.user_id().await.ok();
+        Ok(raw
+            .items
+            .into_iter()
+            .filter_map(|row| {
+                let items: Vec<MediaItem> = row
+                    .items
+                    .into_iter()
+                    .filter_map(|it| home_item(&it.kind, it.data, user))
+                    .collect();
+                (!items.is_empty()).then(|| HomeRow {
+                    title: row.title.unwrap_or_default(),
+                    items,
+                })
+            })
+            .collect())
+    }
+
+    async fn favorites<T: DeserializeOwned>(&self, kind: &str) -> Result<Vec<T>> {
+        let user = self.user_id().await?;
+        self.get_all(
+            &format!("users/{user}/favorites/{kind}"),
+            &[
+                ("order", "DATE".to_owned()),
+                ("orderDirection", "DESC".to_owned()),
+            ],
+            PAGE_SIZE,
+            LIBRARY_MAX,
+        )
+        .await
+    }
+
+    /// Parcourt une liste paginée. On avance selon `totalNumberOfItems` : une page peut
+    /// contenir moins d'éléments que demandé (titres indisponibles filtrés par l'API).
+    async fn get_all<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        params: &[(&str, String)],
+        page_size: u32,
+        max: usize,
+    ) -> Result<Vec<T>> {
+        let mut out = Vec::new();
+        let mut offset: u32 = 0;
+        loop {
+            let mut query = params.to_vec();
+            query.push(("limit", page_size.to_string()));
+            query.push(("offset", offset.to_string()));
+            let page: RawPage<T> = self.get(path, &query).await?;
+            let received = page.items.len();
+            out.extend(page.items);
+            offset += page_size;
+            let done = match page.total_number_of_items {
+                Some(total) => offset >= total,
+                None => received < page_size as usize,
+            };
+            if done || out.len() >= max {
+                break;
+            }
+        }
+        out.truncate(max);
+        Ok(out)
+    }
+
+    async fn user_id(&self) -> Result<u64> {
+        self.session()
+            .await
+            .map(|s| s.user_id)
+            .ok_or(TidalError::NotLoggedIn)
+    }
+
+    /// Ajoute les titres au cache (affichage de la file) et les renvoie.
+    fn remember(&self, tracks: Vec<Track>) -> Vec<Track> {
+        self.cache.insert_all(&tracks);
+        tracks
+    }
+}
+
+fn home_item(kind: &str, data: serde_json::Value, user: Option<u64>) -> Option<MediaItem> {
+    match kind {
+        "ALBUM" => serde_json::from_value::<RawAlbumFull>(data)
+            .ok()
+            .map(|a| MediaItem::Album(a.into())),
+        "ARTIST" => serde_json::from_value::<RawArtistFull>(data)
+            .ok()
+            .map(|a| MediaItem::Artist(a.into())),
+        "PLAYLIST" => serde_json::from_value::<RawPlaylist>(data)
+            .ok()
+            .map(|p| MediaItem::Playlist(p.into_summary(user))),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn home_items_by_kind() {
+        let album = json!({"id": 1, "title": "a", "cover": "x-y", "artists": [{"id": 2, "name": "b"}],
+                           "mediaMetadata": {"tags": ["HIRES_LOSSLESS"]}});
+        assert!(matches!(home_item("ALBUM", album, None), Some(MediaItem::Album(a)) if a.hires));
+        let mix = json!({"id": "m"});
+        assert_eq!(home_item("MIX", mix, None), None);
+        let broken = json!({"title": "sans id"});
+        assert_eq!(home_item("ARTIST", broken, None), None);
+    }
+
+    /// Appelle chaque endpoint du catalogue avec la session enregistrée (réseau requis) :
+    /// `cargo test live_catalog -- --ignored --nocapture`.
+    #[tokio::test]
+    #[ignore = "réseau et session TIDAL requis"]
+    async fn live_catalog() {
+        let client = TidalClient::new().unwrap();
+        assert!(
+            client.current_session().await.unwrap().is_some(),
+            "pas de session"
+        );
+
+        let search = client.search("interstellar", 5).await.unwrap();
+        println!(
+            "recherche : {} titres, {} albums, {} artistes, {} playlists",
+            search.tracks.len(),
+            search.albums.len(),
+            search.artists.len(),
+            search.playlists.len()
+        );
+        let album = client.album(156_749_593).await.unwrap();
+        println!(
+            "album : {} ({} titres)",
+            album.album.title,
+            album.tracks.len()
+        );
+        assert_eq!(album.tracks.len(), 30);
+        let artist = client.artist(12_979).await.unwrap();
+        println!(
+            "artiste : {} ({} top, {} albums, {} singles)",
+            artist.artist.name,
+            artist.top_tracks.len(),
+            artist.albums.len(),
+            artist.singles.len()
+        );
+        let uuid = &search.playlists[0].uuid;
+        let playlist = client.playlist(uuid).await.unwrap();
+        println!(
+            "playlist : {} ({} titres)",
+            playlist.playlist.title,
+            playlist.tracks.len()
+        );
+        println!(
+            "bibliothèque : {} titres, {} albums, {} artistes, {} playlists",
+            client.favorite_tracks().await.unwrap().len(),
+            client.favorite_albums().await.unwrap().len(),
+            client.favorite_artists().await.unwrap().len(),
+            client.library_playlists().await.unwrap().len()
+        );
+        let home = client.home().await.unwrap();
+        for row in &home {
+            println!("accueil : {} ({} éléments)", row.title, row.items.len());
+        }
+        assert!(!home.is_empty());
+    }
+
+    /// L'étiquette `kind` de `MediaItem` ne doit entrer en conflit avec aucun champ.
+    #[test]
+    fn media_item_tag_is_unique() {
+        let album = json!({"id": 1, "title": "a", "type": "SINGLE"});
+        let item = home_item("ALBUM", album, None).unwrap();
+        let text = serde_json::to_string(&item).unwrap();
+        assert_eq!(text.matches("\"kind\"").count(), 1);
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(value["kind"], "album");
+        assert_eq!(value["albumType"], "SINGLE");
+    }
+}

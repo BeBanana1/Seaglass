@@ -1,6 +1,8 @@
-//! Client HTTP TIDAL (API v1). Les formats JSON bruts restent privés à ce fichier.
+//! Client HTTP TIDAL : authentification, requêtes, titres et flux.
+//! Les endpoints de catalogue (albums, artistes, playlists, favoris, accueil) sont dans
+//! `catalog.rs` ; les formats JSON bruts dans `raw.rs`.
 //!
-//! Endpoints vérifiés avec le spike : `sessions`, `search`, `tracks/{id}`,
+//! Endpoints vérifiés avec le spike : `sessions`, `tracks/{id}`,
 //! `tracks/{id}/playbackinfopostpaywall`.
 
 use std::time::{Duration, Instant};
@@ -13,13 +15,12 @@ use tokio::sync::{OnceCell, RwLock};
 use super::auth::{self, ClientCredentials, PkceChallenge, Tokens};
 use super::cache::TrackCache;
 use super::manifest;
-use super::models::{
-    AlbumRef, ArtistRef, AudioQuality, SessionInfo, Stream, StreamFormat, Track, TrackId,
-};
+use super::models::{AudioQuality, SessionInfo, Stream, StreamFormat, Track, TrackId};
+use super::raw::RawTrack;
 use super::{Result, TidalError};
 
-const API_V1: &str = "https://api.tidal.com/v1/";
-const IMAGE_URL: &str = "https://resources.tidal.com/images";
+pub(super) const API_V1: &str = "https://api.tidal.com/v1/";
+pub(super) const API_V2: &str = "https://api.tidal.com/v2/";
 const USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 12; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/91.0.4472.114 Safari/537.36";
 const CLIENT_VERSION: &str = "2025.7.16";
 /// Marge avant expiration à partir de laquelle on rafraîchit l'access token.
@@ -109,29 +110,15 @@ impl TidalClient {
         self.auth.read().await.as_ref().map(|a| a.session.clone())
     }
 
-    pub async fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<Track>> {
-        let raw: RawSearch = self
-            .get(
-                "search",
-                &[
-                    ("query", query.to_owned()),
-                    ("types", "TRACKS".to_owned()),
-                    ("limit", limit.to_string()),
-                ],
-            )
-            .await?;
-        let tracks: Vec<Track> = raw.tracks.items.into_iter().map(Track::from).collect();
-        self.cache.insert_all(&tracks);
-        Ok(tracks)
-    }
-
     /// Métadonnées d'un titre, depuis le cache si possible.
     pub async fn track(&self, id: TrackId) -> Result<Track> {
         if let Some(track) = self.cache.get(id) {
             return Ok(track);
         }
         let raw: RawTrack = self.get(&format!("tracks/{id}"), &[]).await?;
-        let track = Track::from(raw);
+        let track = raw
+            .into_track()
+            .ok_or_else(|| TidalError::Decode(format!("titre {id} sans album")))?;
         self.cache.insert_all([&track]);
         Ok(track)
     }
@@ -180,7 +167,7 @@ impl TidalClient {
 
     async fn install(&self, tokens: Tokens, refresh: String) -> Result<SessionInfo> {
         let raw: RawSession = self
-            .send(&tokens.access, "sessions", &[])
+            .send(API_V1, &tokens.access, "sessions", &[])
             .await?
             .json()
             .await
@@ -215,13 +202,27 @@ impl TidalClient {
         Ok((state.access.clone(), state.session.country_code.clone()))
     }
 
-    async fn get<T: DeserializeOwned>(&self, path: &str, params: &[(&str, String)]) -> Result<T> {
+    /// GET sur l'API v1 avec `countryCode`, en rafraîchissant le token sur 401.
+    pub(super) async fn get<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        params: &[(&str, String)],
+    ) -> Result<T> {
+        self.get_at(API_V1, path, params).await
+    }
+
+    pub(super) async fn get_at<T: DeserializeOwned>(
+        &self,
+        base: &str,
+        path: &str,
+        params: &[(&str, String)],
+    ) -> Result<T> {
         let mut force_refresh = false;
         loop {
             let (access, country) = self.credentials(force_refresh).await?;
             let mut query: Vec<(&str, String)> = vec![("countryCode", country)];
             query.extend(params.iter().cloned());
-            let resp = self.send(&access, path, &query).await;
+            let resp = self.send(base, &access, path, &query).await;
             match resp {
                 Err(TidalError::Api { status: 401, .. }) if !force_refresh => {
                     force_refresh = true;
@@ -238,13 +239,14 @@ impl TidalClient {
 
     async fn send(
         &self,
+        base: &str,
         access: &str,
         path: &str,
         query: &[(&str, String)],
     ) -> Result<reqwest::Response> {
         let resp = self
             .http
-            .get(format!("{API_V1}{path}"))
+            .get(format!("{base}{path}"))
             .query(query)
             .bearer_auth(access)
             .header("x-tidal-client-version", CLIENT_VERSION)
@@ -287,49 +289,6 @@ struct RawApiError {
 }
 
 #[derive(Deserialize)]
-struct RawSearch {
-    tracks: RawPage<RawTrack>,
-}
-
-#[derive(Deserialize)]
-struct RawPage<T> {
-    items: Vec<T>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RawTrack {
-    id: u64,
-    title: String,
-    version: Option<String>,
-    duration: u32,
-    #[serde(default)]
-    explicit: bool,
-    artists: Vec<RawArtist>,
-    album: RawAlbum,
-    media_metadata: Option<RawMediaMetadata>,
-}
-
-#[derive(Deserialize)]
-struct RawArtist {
-    id: u64,
-    name: String,
-}
-
-#[derive(Deserialize)]
-struct RawAlbum {
-    id: u64,
-    title: String,
-    cover: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct RawMediaMetadata {
-    #[serde(default)]
-    tags: Vec<String>,
-}
-
-#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RawPlayback {
     audio_quality: AudioQuality,
@@ -337,36 +296,4 @@ struct RawPlayback {
     manifest: String,
     bit_depth: Option<u8>,
     sample_rate: Option<u32>,
-}
-
-impl From<RawTrack> for Track {
-    fn from(raw: RawTrack) -> Self {
-        let hires = raw
-            .media_metadata
-            .is_some_and(|m| m.tags.iter().any(|t| t == "HIRES_LOSSLESS"));
-        Track {
-            id: TrackId(raw.id),
-            title: raw.title,
-            version: raw.version,
-            duration: raw.duration,
-            artists: raw
-                .artists
-                .into_iter()
-                .map(|a| ArtistRef {
-                    id: a.id,
-                    name: a.name,
-                })
-                .collect(),
-            album: AlbumRef {
-                id: raw.album.id,
-                title: raw.album.title,
-                cover_url: raw
-                    .album
-                    .cover
-                    .map(|c| format!("{IMAGE_URL}/{}/320x320.jpg", c.replace('-', "/"))),
-            },
-            explicit: raw.explicit,
-            hires,
-        }
-    }
 }
