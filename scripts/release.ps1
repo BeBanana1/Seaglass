@@ -15,8 +15,8 @@
   Variables d'environnement :
     SEAGLASS_UPDATE_BASE_URL  URL publique du dossier de mises à jour
                               (défaut : https://updates.bebanana.ch/seaglass)
-    SEAGLASS_RELEASE_DEST     destination de publication : dossier local ou UNC,
-                              ou cible scp « utilisateur@hôte:/chemin »
+    SEAGLASS_RELEASE_DEST     destination de publication : dossier local ou UNC, ou cible
+                              scp « utilisateur@hôte:/chemin » ou « alias-ssh:/chemin »
     SEAGLASS_MPV_PATH         mpv.exe à embarquer (défaut : celui du PATH)
     SEAGLASS_SIGNING_KEY      clé privée de l'updater (défaut : ~/.tauri/seaglass.key)
 
@@ -122,7 +122,9 @@ if (-not $Publish) {
 Step "publication vers $env:SEAGLASS_RELEASE_DEST"
 $dest = $env:SEAGLASS_RELEASE_DEST
 # Le manifeste part en dernier : l'updater ne voit la version qu'une fois l'installeur en place.
-if ($dest -match '^[^\\/:]+@[^:]+:') {
+# Cible scp : « hôte:… » ou « utilisateur@hôte:… » (au moins 2 caractères avant « : »,
+# pour ne pas confondre avec une lettre de lecteur comme « D: »).
+if ($dest -match '^[^\\/:]{2,}:') {
     scp -r $out "$dest/"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (installeur)" }
     scp $manifestPath "$dest/latest.json"
