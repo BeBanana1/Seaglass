@@ -52,7 +52,9 @@ cd src-tauri; cargo fmt; cargo clippy --all-targets -- -D warnings; cargo test
 pnpm check
 ```
 
-L'architecture, les conventions et la feuille de route sont décrites dans [`CLAUDE.md`](CLAUDE.md). Le dossier `spike/` contient le script Python de la phase 0 qui a validé les formats de flux.
+Aperçu de l'interface sans Tauri, sur des données factices : `pnpm dev`, puis `http://127.0.0.1:1420/?theme=studio&route=album` (voir CLAUDE.md, « Prévisualisation sans Tauri »).
+
+L'architecture, les conventions et la feuille de route sont décrites dans [`CLAUDE.md`](CLAUDE.md). Les bugs et demandes sont suivis dans les issues du dépôt Gitea ; chaque correction passe par une branche `issue-<n>-…` et une PR qui ferme l'issue. Le dossier `spike/` contient le script Python de la phase 0 qui a validé les formats de flux.
 
 ## Licence
 

@@ -3,7 +3,7 @@
 Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
 Projet personnel, Windows en priorité.
 
-> Statut : **phase 4 livrée le 2026-10-29** (v0.4.0) : SMTC (touches média, panneau Windows) et refonte de l'UI en trois thèmes. Discord RPC et Last.fm sont reportés à la demande de l'utilisateur. Prochaine étape : phase 5 (sidecar mpv, mode exclusif, installeur).
+> Statut : **v0.4.3** (2026-10-29). Phase 4 livrée : SMTC et UI en cinq thèmes ; bugs #6, #8, #12 et #27 corrigés via des PR Gitea. Discord RPC et Last.fm reportés à la demande de l'utilisateur. Prochaine étape : phase 5 (installeur, sidecar mpv, mises à jour, mode exclusif).
 
 ## Principes non négociables
 
@@ -38,7 +38,8 @@ seaglass/
 │  ├─ lib/transport.ts       # invoke/listen réels, ou backend factice hors Tauri (dev)
 │  ├─ lib/mock/              # backend factice + fixtures.json (gitignoré) pour prévisualiser l'UI
 │  ├─ lib/stores/            # état miroir du backend (player, queue, library, ui, nav)
-│  ├─ components/
+│  ├─ components/            # dont backdrops/ (fonds par thème)
+│  ├─ themes/                # acidwave.css, surreal.css (surcharges par classe de composant)
 │  └─ views/                 # Home, Search, Album, Artist, Playlist, Library
 └─ src-tauri/
    ├─ mpv/seaglass.conf        # config mpv dédiée à l'app
@@ -184,7 +185,7 @@ pnpm check
 - Tests unitaires obligatoires pour `player/queue.rs` (shuffle, repeat, file manuelle, précédent) : c'est de la logique pure, sans mpv ni réseau.
 - Identifiants et code en anglais, commentaires et docs en français.
 - Commits au format Conventional Commits (`feat(player): …`). Dépôt sur le Gitea perso (`origin`). Claude peut commiter et pousser seul, en le signalant dans son message.
-- **Version** : `VERSION` à la racine est la source de vérité, affichée dans l'en-tête de l'app. `0.<phase>.<patch>` avant la 1.0 : patch à chaque lot de changements, mineure à la fin d'une phase. `src-tauri/Cargo.toml` doit être mis à jour en même temps (`build.rs` fait échouer la compilation sinon) ; `tauri.conf.json` n'a pas de version et reprend celle de Cargo.
+- **Version** : `VERSION` à la racine est la source de vérité, affichée dans l'en-tête de l'app. `0.<phase>.<patch>` avant la 1.0 : patch à chaque lot de changements **qui modifie l'app livrée** (code, config, dépendances), mineure à la fin d'une phase. Pas de changement de version pour la seule documentation (`*.md`), sinon chaque correction de doc deviendrait une « mise à jour » une fois l'updater en place. `src-tauri/Cargo.toml` doit être mis à jour en même temps (`build.rs` fait échouer la compilation sinon) ; `tauri.conf.json` n'a pas de version et reprend celle de Cargo.
 - Licence GPL-3.0 (`LICENSE`).
 
 ## Issues Gitea (pour Claude)
@@ -194,6 +195,8 @@ pnpm check
 - Pour traiter une issue : la lire avec ses commentaires, poster un commentaire avec le plan avant de coder, travailler sur une branche `issue-<n>-<sujet>`, référencer l'issue dans le commit (`fix(ui): … (#8)`) et ouvrir une PR vers `main` avec `Closes #<n>`. Répondre dans l'issue si une question s'y pose plutôt que de deviner.
 
 ## Façon de travailler (pour Claude)
+
+- **Ne pas accepter une proposition de l'utilisateur telle quelle** : à chaque proposition (fonctionnalité, outil, workflow, architecture), dire d'abord s'il existe une meilleure façon de faire ou une pratique plus standard, avec les raisons et une recommandation, puis avancer avec ce qu'il confirme.
 
 - Fournir les **fichiers complets** modifiés, pas des patchs partiels.
 - Commandes shell en PowerShell.
