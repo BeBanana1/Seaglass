@@ -1,8 +1,7 @@
 // Wrappers typés des commandes et événements Tauri.
 // Types dupliqués depuis Rust : tidal/models.rs, player/state.rs, mpv/events.rs.
 
-import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { invoke, listen, type UnlistenFn } from "./transport";
 
 export type TrackId = number;
 
@@ -15,6 +14,8 @@ export interface AlbumRef {
   id: number;
   title: string;
   coverUrl: string | null;
+  /** Couleur dominante de la pochette (`#rrggbb`). */
+  color: string | null;
 }
 
 export interface Track {
@@ -73,6 +74,7 @@ export interface AlbumSummary {
   title: string;
   artists: ArtistRef[];
   coverUrl: string | null;
+  color: string | null;
   /** `AAAA-MM-JJ`. */
   releaseDate: string | null;
   numberOfTracks: number | null;
@@ -136,6 +138,12 @@ export interface SearchResults {
   playlists: PlaylistSummary[];
 }
 
+export type Theme = "seaglass" | "studio" | "atelier";
+
+export interface UiSettings {
+  theme: Theme;
+}
+
 export interface SessionInfo {
   userId: number;
   countryCode: string;
@@ -173,6 +181,8 @@ export const commands = {
   setRepeat: (mode: Repeat) => invoke<void>("set_repeat", { mode }),
   playerState: () => invoke<PlayerState>("player_state"),
   queueState: () => invoke<QueueView>("queue_state"),
+  uiSettings: () => invoke<UiSettings>("ui_settings"),
+  setUiSettings: (settings: UiSettings) => invoke<void>("set_ui_settings", { settings }),
 };
 
 export const events = {

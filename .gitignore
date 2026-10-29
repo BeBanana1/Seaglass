@@ -12,3 +12,6 @@ node_modules/
 dist/
 src-tauri/target/
 src-tauri/gen/schemas/
+
+# Données factices de prévisualisation (contiennent la bibliothèque du compte)
+src/lib/mock/fixtures.json

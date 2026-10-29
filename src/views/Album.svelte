@@ -43,13 +43,11 @@
         {#each album.artists as artist, i (artist.id)}
           {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button>
         {/each}
-        {#each details as part}
-          <span> · {part}</span>
-        {/each}
+        <span class="details">{details.map((d) => ` · ${d}`).join("")}</span>
         {#if album.hires}<span class="badge">HI-RES</span>{/if}
       {/snippet}
     </PageHeader>
-    <TrackList tracks={page.tracks} numbering="index" showAlbum={false} />
+    <TrackList tracks={page.tracks} numbering="index" showAlbum={false} showCover={false} />
     {#if page.copyright}<p class="copyright">{page.copyright}</p>{/if}
   {/if}
 </section>

@@ -77,10 +77,12 @@ pub(super) struct RawArtist {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct RawAlbum {
     id: u64,
     title: String,
     cover: Option<String>,
+    vibrant_color: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -95,6 +97,7 @@ pub(super) struct RawAlbumFull {
     pub id: u64,
     pub title: String,
     pub cover: Option<String>,
+    vibrant_color: Option<String>,
     #[serde(default)]
     pub artists: Vec<RawArtist>,
     pub release_date: Option<String>,
@@ -156,6 +159,13 @@ pub(super) struct RawHome {
     pub items: Vec<RawHomeRow>,
 }
 
+/// Garde uniquement une couleur `#rrggbb` : la valeur part telle quelle dans le CSS.
+fn hex_color(color: Option<String>) -> Option<String> {
+    color.filter(|c| {
+        c.len() == 7 && c.starts_with('#') && c[1..].chars().all(|ch| ch.is_ascii_hexdigit())
+    })
+}
+
 fn has_hires(meta: Option<&RawMediaMetadata>) -> bool {
     meta.is_some_and(|m| m.tags.iter().any(|t| t == "HIRES_LOSSLESS"))
 }
@@ -183,6 +193,7 @@ impl RawTrack {
                 id: album.id,
                 title: album.title,
                 cover_url: album.cover.as_deref().map(|c| image_url(c, 320)),
+                color: hex_color(album.vibrant_color),
             },
             explicit: self.explicit,
             hires: has_hires(self.media_metadata.as_ref()),
@@ -201,6 +212,7 @@ impl From<RawAlbumFull> for AlbumSummary {
             title: raw.title,
             artists: artist_refs(raw.artists),
             cover_url: raw.cover.as_deref().map(|c| image_url(c, 320)),
+            color: hex_color(raw.vibrant_color),
             release_date: raw.release_date,
             number_of_tracks: raw.number_of_tracks,
             album_type: raw.kind,
@@ -247,6 +259,17 @@ mod tests {
             image_url("3f5f9e03-c58c-4053", 320),
             "https://resources.tidal.com/images/3f5f9e03/c58c/4053/320x320.jpg"
         );
+    }
+
+    #[test]
+    fn only_hex_colors_are_kept() {
+        assert_eq!(
+            hex_color(Some("#4f95b0".into())).as_deref(),
+            Some("#4f95b0")
+        );
+        assert_eq!(hex_color(Some("red;}body{".into())), None);
+        assert_eq!(hex_color(Some("#4f95b".into())), None);
+        assert_eq!(hex_color(None), None);
     }
 
     #[test]

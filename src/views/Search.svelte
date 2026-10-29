@@ -108,6 +108,19 @@
     color: var(--text-muted);
   }
 
+  :global([data-theme="studio"]) input {
+    border-radius: 0;
+  }
+
+  :global([data-theme="atelier"]) input {
+    border-radius: 0;
+    border-width: 0 0 1px;
+    border-color: var(--text);
+    background: transparent;
+    font-family: var(--display-family);
+    font-size: 20px;
+  }
+
   .tracks {
     margin-bottom: 28px;
   }

@@ -121,6 +121,7 @@ mod tests {
                     id: 3,
                     title: "Inception".into(),
                     cover_url: None,
+                    color: None,
                 },
                 explicit: false,
                 hires: true,

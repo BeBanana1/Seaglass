@@ -269,61 +269,6 @@ mod tests {
         assert_eq!(home_item("ARTIST", broken, None), None);
     }
 
-    /// Appelle chaque endpoint du catalogue avec la session enregistrée (réseau requis) :
-    /// `cargo test live_catalog -- --ignored --nocapture`.
-    #[tokio::test]
-    #[ignore = "réseau et session TIDAL requis"]
-    async fn live_catalog() {
-        let client = TidalClient::new().unwrap();
-        assert!(
-            client.current_session().await.unwrap().is_some(),
-            "pas de session"
-        );
-
-        let search = client.search("interstellar", 5).await.unwrap();
-        println!(
-            "recherche : {} titres, {} albums, {} artistes, {} playlists",
-            search.tracks.len(),
-            search.albums.len(),
-            search.artists.len(),
-            search.playlists.len()
-        );
-        let album = client.album(156_749_593).await.unwrap();
-        println!(
-            "album : {} ({} titres)",
-            album.album.title,
-            album.tracks.len()
-        );
-        assert_eq!(album.tracks.len(), 30);
-        let artist = client.artist(12_979).await.unwrap();
-        println!(
-            "artiste : {} ({} top, {} albums, {} singles)",
-            artist.artist.name,
-            artist.top_tracks.len(),
-            artist.albums.len(),
-            artist.singles.len()
-        );
-        let uuid = &search.playlists[0].uuid;
-        let playlist = client.playlist(uuid).await.unwrap();
-        println!(
-            "playlist : {} ({} titres)",
-            playlist.playlist.title,
-            playlist.tracks.len()
-        );
-        println!(
-            "bibliothèque : {} titres, {} albums, {} artistes, {} playlists",
-            client.favorite_tracks().await.unwrap().len(),
-            client.favorite_albums().await.unwrap().len(),
-            client.favorite_artists().await.unwrap().len(),
-            client.library_playlists().await.unwrap().len()
-        );
-        let home = client.home().await.unwrap();
-        for row in &home {
-            println!("accueil : {} ({} éléments)", row.title, row.items.len());
-        }
-        assert!(!home.is_empty());
-    }
-
     /// L'étiquette `kind` de `MediaItem` ne doit entrer en conflit avec aucun champ.
     #[test]
     fn media_item_tag_is_unique() {

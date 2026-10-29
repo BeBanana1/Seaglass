@@ -26,6 +26,9 @@ pub struct AlbumRef {
     pub title: String,
     /// URL d'une pochette 320×320, si disponible.
     pub cover_url: Option<String>,
+    /// Couleur dominante de la pochette (`#rrggbb`), pour accorder l'interface.
+    #[serde(default)]
+    pub color: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -94,6 +97,8 @@ pub struct AlbumSummary {
     pub title: String,
     pub artists: Vec<ArtistRef>,
     pub cover_url: Option<String>,
+    /// Couleur dominante de la pochette (`#rrggbb`).
+    pub color: Option<String>,
     /// `AAAA-MM-JJ`.
     pub release_date: Option<String>,
     pub number_of_tracks: Option<u32>,

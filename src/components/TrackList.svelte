@@ -8,11 +8,13 @@
     tracks,
     numbering = "none",
     showAlbum = true,
+    showCover = true,
   }: {
     /** Contexte de lecture : lire un titre met toute la liste en file. */
     tracks: Track[];
     numbering?: "none" | "index";
     showAlbum?: boolean;
+    showCover?: boolean;
   } = $props();
 
   async function play(index: number) {
@@ -33,6 +35,7 @@
       {track}
       number={numbering === "index" ? i + 1 : undefined}
       compact={!showAlbum}
+      {showCover}
       active={player.state.track?.id === track.id}
       onPlay={() => play(i)}
     />

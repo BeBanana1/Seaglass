@@ -1,0 +1,185 @@
+<script lang="ts">
+  // Chaîne audio : ce que le service envoie → ce que mpv décode → ce qui part vers Windows.
+  import { player } from "../lib/stores/player.svelte";
+  import { formatStream, khz, outputFormat, signalVerdict } from "../lib/format";
+
+  let {
+    compact = false,
+    dense = false,
+  }: {
+    /** Pastille seule. */
+    compact?: boolean;
+    /** Chaîne complète resserrée sur une ligne (barre de lecture du thème Studio). */
+    dense?: boolean;
+  } = $props();
+
+  const s = $derived(player.state);
+  const verdict = $derived(signalVerdict(s.stream, s.output));
+</script>
+
+{#if compact}
+  <span class="chip {verdict.tone}" title="{verdict.label} — {verdict.detail}">
+    <span class="dot"></span>
+    {s.stream ? formatStream(s.stream) : "—"}
+  </span>
+{:else}
+  <div class="path {verdict.tone}" class:dense>
+    <div class="node">
+      <span class="label">Source</span>
+      <span class="value mono">{s.stream ? formatStream(s.stream) : "—"}</span>
+      <span class="sub">{s.stream?.quality === "HI_RES_LOSSLESS" ? "Hi-Res" : s.stream ? "Lossless" : ""}</span>
+    </div>
+    <span class="wire" aria-hidden="true"></span>
+    <div class="node">
+      <span class="label">Décodage</span>
+      <span class="value mono">mpv</span>
+      <span class="sub">{s.output ? outputFormat(s.output.format) : "—"}</span>
+    </div>
+    <span class="wire" aria-hidden="true"></span>
+    <div class="node">
+      <span class="label">Sortie</span>
+      <span class="value mono">{s.output ? `${khz(s.output.samplerate)} kHz` : "—"}</span>
+      <span class="sub">{s.outputDriver ? `${s.outputDriver.toUpperCase()} · partagé` : ""}</span>
+    </div>
+    <div class="verdict" title={verdict.detail}>
+      <span class="dot"></span>{verdict.label}
+    </div>
+  </div>
+{/if}
+
+<style>
+  .ok {
+    --tone: var(--ok);
+  }
+  .warn {
+    --tone: var(--warn);
+  }
+  .lossy {
+    --tone: var(--danger);
+  }
+  .idle {
+    --tone: var(--text-muted);
+  }
+
+  .dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--tone);
+    box-shadow: 0 0 8px var(--tone);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .path {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .node {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 92px;
+  }
+
+  .label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .value {
+    font-size: 13px;
+  }
+
+  .sub {
+    min-height: 1em;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .wire {
+    flex: 1;
+    min-width: 18px;
+    max-width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--border), var(--tone), var(--border));
+    background-size: 200% 100%;
+    animation: flow 2.4s linear infinite;
+  }
+
+  .verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    padding: 6px 12px;
+    border: 1px solid color-mix(in oklab, var(--tone) 50%, transparent);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tone);
+    background: color-mix(in oklab, var(--tone) 10%, transparent);
+  }
+
+  .dense {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .dense .node {
+    min-width: 0;
+  }
+
+  .dense .wire {
+    min-width: 10px;
+    max-width: 24px;
+  }
+
+  .dense .value {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .dense .sub {
+    white-space: nowrap;
+  }
+
+  .dense .verdict {
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 0;
+  }
+
+  @keyframes flow {
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  :global([data-theme="studio"]) .chip,
+  :global([data-theme="studio"]) .verdict {
+    border-radius: 0;
+  }
+
+  :global([data-theme="atelier"]) .dot {
+    box-shadow: none;
+  }
+</style>

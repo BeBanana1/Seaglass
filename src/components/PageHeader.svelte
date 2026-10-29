@@ -152,4 +152,26 @@
   .secondary:hover {
     background: var(--bg-hover);
   }
+
+  :global([data-theme="studio"]) .actions button,
+  :global([data-theme="studio"]) .image {
+    border-radius: 0;
+  }
+
+  :global([data-theme="studio"]) .image,
+  :global([data-theme="atelier"]) .image {
+    box-shadow: none;
+  }
+
+  :global([data-theme="atelier"]) .actions button {
+    border-radius: 2px;
+  }
+
+  :global([data-theme="atelier"]) .image {
+    border-radius: 0;
+  }
+
+  :global([data-theme="atelier"]) h1 {
+    font-size: 40px;
+  }
 </style>

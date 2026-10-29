@@ -15,7 +15,10 @@ Version actuelle : voir [`VERSION`](VERSION).
 - File d'attente : contexte d'origine, « Lire ensuite », « Ajouter à la file », lecture aléatoire, répétition (tout / un titre), précédent.
 - Enchaînement sans blanc (gapless) : le titre suivant est préchargé 30 s avant la fin.
 - File et position restaurées au démarrage.
-- Affichage du format reçu et du format réellement envoyé à la carte son.
+- Chaîne audio affichée en direct : format reçu, décodage, format envoyé à la carte son.
+- Touches média du clavier et panneau multimédia de Windows (SMTC).
+- Trois thèmes : **Verre de mer** (verre dépoli sur la pochette, couleurs accordées à l'album), **Studio** (console sombre et dense) et **Atelier** (clair, éditorial).
+- Vue « En lecture » plein écran ; raccourcis : Espace, Ctrl+K, Échap, Alt+←.
 
 ## Prérequis
 

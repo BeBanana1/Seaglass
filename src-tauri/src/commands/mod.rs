@@ -3,17 +3,20 @@
 pub mod auth;
 pub mod catalog;
 pub mod player;
+pub mod settings;
 
 use std::sync::Arc;
 
 use tokio::sync::mpsc;
 
 use crate::player::Cmd;
+use crate::store::Store;
 use crate::tidal::TidalClient;
 
 pub struct AppState {
     pub tidal: Arc<TidalClient>,
     pub player: mpsc::Sender<Cmd>,
+    pub store: Option<Arc<Store>>,
 }
 
 pub(crate) type CmdResult<T> = Result<T, String>;

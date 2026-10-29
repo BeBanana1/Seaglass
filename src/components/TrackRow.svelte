@@ -7,6 +7,7 @@
   let {
     track,
     number,
+    showCover = true,
     active = false,
     compact = false,
     actions = true,
@@ -16,6 +17,8 @@
     track: Track;
     /** Numéro affiché devant le titre (position dans l'album ou la playlist). */
     number?: number;
+    /** Pochette en début de ligne (inutile sur une page d'album). */
+    showCover?: boolean;
     active?: boolean;
     /** Variante étroite (panneau de file) : sans colonne album. */
     compact?: boolean;
@@ -31,11 +34,12 @@
   class:active
   class:compact
   class:numbered={number !== undefined}
+  class:no-cover={!showCover}
   role="listitem"
   ondblclick={onPlay}
 >
   {#if number !== undefined}<span class="number">{number}</span>{/if}
-  <div class="cover">
+  <div class="cover" class:hidden={!showCover}>
     {#if track.album.coverUrl}
       <img src={track.album.coverUrl} alt="" loading="lazy" />
     {/if}
@@ -51,11 +55,12 @@
       {#if track.explicit}<span class="badge muted">E</span>{/if}
       {#if track.hires}<span class="badge">HI-RES</span>{/if}
     </span>
-    <span class="sub">
-      {#each track.artists as artist, i (artist.id)}
-        {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button>
-      {/each}
-    </span>
+    <span class="sub"
+      >{#each track.artists as artist, i (artist.id)}{#if i > 0},&nbsp;{/if}<button
+          class="link"
+          onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button
+        >{/each}</span
+    >
   </div>
   {#if !compact}
     <span class="album">
@@ -95,6 +100,20 @@
 
   .row.compact.numbered {
     grid-template-columns: 24px 40px minmax(0, 1fr) auto 48px;
+  }
+
+  .row.no-cover .cover.hidden {
+    width: 32px;
+    background: none;
+  }
+
+  .row.no-cover .cover.hidden img {
+    display: none;
+  }
+
+  .row.no-cover .cover-play {
+    background: none;
+    color: var(--accent);
   }
 
   .number {

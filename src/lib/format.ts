@@ -1,6 +1,13 @@
 // Mise en forme pour l'affichage uniquement.
 
-import type { AlbumSummary, MediaItem, PlaylistSummary, StreamFormat, Track } from "./ipc";
+import type {
+  AlbumSummary,
+  AudioParams,
+  MediaItem,
+  PlaylistSummary,
+  StreamFormat,
+  Track,
+} from "./ipc";
 
 export function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -86,4 +93,47 @@ export function formatStream(f: StreamFormat): string {
     return `FLAC ${f.bitDepth}/${(f.sampleRate / 1000).toLocaleString("fr-FR")}`;
   }
   return codec;
+}
+
+export type SignalTone = "ok" | "warn" | "lossy" | "idle";
+
+export interface SignalVerdict {
+  label: string;
+  tone: SignalTone;
+  detail: string;
+}
+
+/** Ce que mpv fait du flux reçu : fréquence et profondeur conservées ou non. */
+export function signalVerdict(
+  stream: StreamFormat | null,
+  output: AudioParams | null,
+): SignalVerdict {
+  if (!stream) return { label: "Aucun flux", tone: "idle", detail: "" };
+  if (stream.codec !== "flac") {
+    return { label: "Compressé", tone: "lossy", detail: "flux AAC avec perte" };
+  }
+  if (!output) return { label: "En attente", tone: "idle", detail: "sortie audio pas encore ouverte" };
+  if (stream.sampleRate && output.samplerate !== stream.sampleRate) {
+    return {
+      label: "Rééchantillonné",
+      tone: "warn",
+      detail: `${khz(stream.sampleRate)} → ${khz(output.samplerate)} kHz`,
+    };
+  }
+  if (output.format === "s16" && (stream.bitDepth ?? 16) > 16) {
+    return { label: "Profondeur réduite", tone: "warn", detail: "24 → 16 bits" };
+  }
+  return {
+    label: "Fréquence native",
+    tone: "ok",
+    detail: "mpv transmet sans conversion ; en mode partagé, Windows peut encore mixer",
+  };
+}
+
+export function khz(rate: number): string {
+  return (rate / 1000).toLocaleString("fr-FR");
+}
+
+export function outputFormat(format: string): string {
+  return { s16: "16 bits", s24: "24 bits", s32: "32 bits", float: "32 bits flottant" }[format] ?? format;
 }

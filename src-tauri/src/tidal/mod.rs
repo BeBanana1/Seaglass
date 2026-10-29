@@ -4,6 +4,8 @@ pub mod api;
 pub mod auth;
 pub mod cache;
 mod catalog;
+#[cfg(test)]
+mod live_tests;
 mod manifest;
 pub mod models;
 mod raw;

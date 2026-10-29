@@ -1,56 +1,35 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { commands, type Repeat } from "../lib/ipc";
-  import { estimatedPosition, player } from "../lib/stores/player.svelte";
-  import { artistNames, formatStream, formatTime, fullTitle } from "../lib/format";
+  import { player } from "../lib/stores/player.svelte";
+  import { fullTitle } from "../lib/format";
+  import { go } from "../lib/stores/nav.svelte";
   import Icon from "./Icon.svelte";
+  import Progress from "./Progress.svelte";
+  import SignalPath from "./SignalPath.svelte";
+  import Transport from "./Transport.svelte";
 
-  let { queueOpen, onToggleQueue }: { queueOpen: boolean; onToggleQueue: () => void } = $props();
-
-  const nextRepeat: Record<Repeat, Repeat> = { off: "all", all: "one", one: "off" };
-  const repeatLabel: Record<Repeat, string> = {
-    off: "Répéter : désactivé",
-    all: "Répéter : tout",
-    one: "Répéter : ce titre",
-  };
-
-  let position = $state(0);
-  /** Position en cours de glissement : on n'écrase pas la barre tant que l'utilisateur la tient. */
-  let dragging = $state<number | null>(null);
-
-  onMount(() => {
-    let frame = requestAnimationFrame(function tick(now) {
-      position = estimatedPosition(now);
-      frame = requestAnimationFrame(tick);
-    });
-    return () => cancelAnimationFrame(frame);
-  });
+  let {
+    queueOpen,
+    onToggleQueue,
+    onOpenNowPlaying,
+  }: { queueOpen: boolean; onToggleQueue: () => void; onOpenNowPlaying: () => void } = $props();
 
   const s = $derived(player.state);
-  const shown = $derived(dragging ?? position);
-  const playing = $derived(!s.paused && !s.idle);
-
-  async function seekTo(value: number) {
-    dragging = null;
-    await commands.seek(value);
-  }
-
-  function outputLabel(): string | null {
-    if (!s.output) return null;
-    const rate = (s.output.samplerate / 1000).toLocaleString("fr-FR");
-    return `${s.outputDriver ?? "?"} · ${rate} kHz · ${s.output.format}`;
-  }
 </script>
 
-<footer>
+<footer class="panel">
   <div class="now">
     {#if s.track}
-      {#if s.track.album.coverUrl}
-        <img src={s.track.album.coverUrl} alt="" />
-      {/if}
+      <button class="cover" onclick={onOpenNowPlaying} title="Vue « En lecture »">
+        {#if s.track.album.coverUrl}<img src={s.track.album.coverUrl} alt="" />{/if}
+        <span class="expand"><Icon name="add" size={14} /></span>
+      </button>
       <div class="meta">
         <span class="title">{fullTitle(s.track)}</span>
-        <span class="sub">{artistNames(s.track)}</span>
+        <span class="sub">
+          {#each s.track.artists as artist, i (artist.id)}
+            {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button>
+          {/each}
+        </span>
       </div>
     {:else}
       <span class="sub">Rien en lecture</span>
@@ -58,69 +37,15 @@
   </div>
 
   <div class="center">
-    <div class="transport">
-      <button
-        class="toggle"
-        class:on={s.shuffle}
-        onclick={() => commands.setShuffle(!s.shuffle)}
-        title={s.shuffle ? "Lecture aléatoire : activée" : "Lecture aléatoire : désactivée"}
-      >
-        <Icon name="shuffle" />
-      </button>
-      <button onclick={() => commands.previous()} disabled={!s.track} title="Précédent">
-        <Icon name="previous" />
-      </button>
-      <button
-        class="play"
-        onclick={() => commands.togglePause()}
-        disabled={!s.track}
-        aria-label={playing ? "Pause" : "Lecture"}
-      >
-        {#if s.loading || s.buffering}
-          <span class="spinner"></span>
-        {:else}
-          <Icon name={playing ? "pause" : "play"} />
-        {/if}
-      </button>
-      <button onclick={() => commands.next()} disabled={!s.hasNext} title="Suivant">
-        <Icon name="next" />
-      </button>
-      <button
-        class="toggle"
-        class:on={s.repeat !== "off"}
-        onclick={() => commands.setRepeat(nextRepeat[s.repeat])}
-        title={repeatLabel[s.repeat]}
-      >
-        <Icon name="repeat" />
-        {#if s.repeat === "one"}<span class="one">1</span>{/if}
-      </button>
-    </div>
-    <div class="progress">
-      <span class="time">{formatTime(shown)}</span>
-      <input
-        type="range"
-        min="0"
-        max={s.duration || 1}
-        step="0.1"
-        value={shown}
-        disabled={!s.track || !s.duration}
-        oninput={(e) => (dragging = e.currentTarget.valueAsNumber)}
-        onchange={(e) => seekTo(e.currentTarget.valueAsNumber)}
-        style:--progress="{s.duration ? (shown / s.duration) * 100 : 0}%"
-      />
-      <span class="time">{formatTime(s.duration)}</span>
-    </div>
+    <Transport />
+    <Progress />
   </div>
 
   <div class="right">
-    <div class="format">
-      {#if s.stream}
-        <span class="badge" class:muted={s.stream.codec !== "flac"}>{formatStream(s.stream)}</span>
-      {/if}
-      {#if outputLabel()}
-        <span class="sub" title="Format envoyé à la sortie audio">{outputLabel()}</span>
-      {/if}
-    </div>
+    <div class="signal-full"><SignalPath dense /></div>
+    <button class="signal-chip" onclick={onOpenNowPlaying} title="Chaîne audio">
+      <SignalPath compact />
+    </button>
     <button class="toggle" class:on={queueOpen} onclick={onToggleQueue} title="File d'attente">
       <Icon name="queue" />
     </button>
@@ -130,12 +55,11 @@
 <style>
   footer {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
     align-items: center;
-    gap: 16px;
-    padding: 0 20px;
-    border-top: 1px solid var(--border);
-    background: var(--bg-raised);
+    gap: 20px;
+    height: 100%;
+    padding: 0 18px;
   }
 
   .now {
@@ -145,10 +69,46 @@
     min-width: 0;
   }
 
-  img {
-    width: 52px;
-    height: 52px;
-    border-radius: 4px;
+  .cover {
+    position: relative;
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-raised);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
+  }
+
+  .cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+  }
+
+  .cover:hover img {
+    transform: scale(1.06);
+  }
+
+  .expand {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    color: var(--text);
+    background: rgb(0 0 0 / 0.55);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .cover:hover .expand {
+    opacity: 1;
   }
 
   .meta {
@@ -164,117 +124,25 @@
     text-overflow: ellipsis;
   }
 
+  .title {
+    font-weight: 600;
+  }
+
   .sub {
-    color: var(--text-muted);
     font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .link:hover {
+    color: var(--text);
+    text-decoration: underline;
   }
 
   .center {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-  }
-
-  .play {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: var(--bg);
-    background: var(--text);
-  }
-
-  .transport {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .transport button:not(.play),
-  .right .toggle {
-    position: relative;
-    padding: 4px;
-    color: var(--text-muted);
-  }
-
-  .transport button:not(.play):hover:not(:disabled),
-  .right .toggle:hover {
-    color: var(--text);
-  }
-
-  .toggle.on,
-  .toggle.on:hover {
-    color: var(--accent) !important;
-  }
-
-  .one {
-    position: absolute;
-    top: -2px;
-    right: -4px;
-    font-size: 9px;
-    font-weight: 700;
-  }
-
-  button:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-
-  .spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid currentColor;
-    border-right-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .progress {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .time {
-    min-width: 40px;
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-muted);
-    text-align: center;
-  }
-
-  input[type="range"] {
-    flex: 1;
-    height: 4px;
-    appearance: none;
-    border-radius: 2px;
-    background: linear-gradient(
-      to right,
-      var(--accent) var(--progress),
-      var(--border) var(--progress)
-    );
-    cursor: pointer;
-  }
-
-  input[type="range"]::-webkit-slider-thumb {
-    appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--text);
-  }
-
-  input[type="range"]:disabled {
-    cursor: default;
+    gap: 6px;
   }
 
   .right {
@@ -285,11 +153,55 @@
     min-width: 0;
   }
 
-  .format {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
+  .signal-full {
+    display: none;
+  }
+
+  .toggle {
+    padding: 6px;
+    color: var(--text-muted);
+  }
+
+  .toggle:hover {
+    color: var(--text);
+  }
+
+  .toggle.on {
+    color: var(--accent);
+  }
+
+  /* Studio : la chaîne audio complète remplace la pastille, la pochette est carrée. */
+  :global([data-theme="studio"]) footer {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.3fr);
+    border-top: 1px solid var(--border);
+  }
+
+  :global([data-theme="studio"]) .signal-full {
+    display: block;
     min-width: 0;
+  }
+
+  :global([data-theme="studio"]) .signal-chip {
+    display: none;
+  }
+
+  :global([data-theme="studio"]) .cover {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  :global([data-theme="atelier"]) footer {
+    border-top: 1px solid var(--text);
+  }
+
+  :global([data-theme="atelier"]) .cover {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  :global([data-theme="atelier"]) .title {
+    font-family: var(--display-family);
+    font-size: 15px;
+    font-weight: 500;
   }
 </style>

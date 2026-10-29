@@ -38,12 +38,16 @@ pub fn run() {
             let player = player::spawn(
                 app.handle().clone(),
                 Arc::clone(&tidal),
-                store,
+                store.clone(),
                 mpv_conf,
                 Arc::clone(&mpv_process),
             );
             attach_integrations(app, &player);
-            app.manage(AppState { tidal, player });
+            app.manage(AppState {
+                tidal,
+                player,
+                store,
+            });
             app.manage(mpv_process);
             Ok(())
         })
@@ -72,6 +76,8 @@ pub fn run() {
             commands::player::set_repeat,
             commands::player::player_state,
             commands::player::queue_state,
+            commands::settings::ui_settings,
+            commands::settings::set_ui_settings,
         ])
         .build(tauri::generate_context!())
         .expect("échec du lancement de l'application")

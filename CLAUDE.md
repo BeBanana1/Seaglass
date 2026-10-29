@@ -3,7 +3,7 @@
 Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
 Projet personnel, Windows en priorité.
 
-> Statut : **phase 3 livrée le 2026-10-29** (v0.3.0). Accueil, recherche, album, artiste, playlist et bibliothèque ; endpoints vérifiés sur un compte réel. Prochaine étape : phase 4, intégrations (SMTC, Discord RPC, Last.fm).
+> Statut : **phase 4 livrée le 2026-10-29** (v0.4.0) : SMTC (touches média, panneau Windows) et refonte de l'UI en trois thèmes. Discord RPC et Last.fm sont reportés à la demande de l'utilisateur. Prochaine étape : phase 5 (sidecar mpv, mode exclusif, installeur).
 
 ## Principes non négociables
 
@@ -35,19 +35,21 @@ seaglass/
 ├─ spike/                    # phase 0 : scripts Python jetables
 ├─ src/                      # frontend Svelte
 │  ├─ lib/ipc.ts             # wrappers typés des commandes et événements Tauri
-│  ├─ lib/stores/            # état miroir du backend (player, queue, library)
+│  ├─ lib/transport.ts       # invoke/listen réels, ou backend factice hors Tauri (dev)
+│  ├─ lib/mock/              # backend factice + fixtures.json (gitignoré) pour prévisualiser l'UI
+│  ├─ lib/stores/            # état miroir du backend (player, queue, library, ui, nav)
 │  ├─ components/
 │  └─ views/                 # Home, Search, Album, Artist, Playlist, Library
 └─ src-tauri/
    ├─ mpv/seaglass.conf        # config mpv dédiée à l'app
    └─ src/
       ├─ lib.rs              # setup Tauri, lancement des tâches
-      ├─ commands/           # auth.rs, player.rs, catalog.rs : valident l'entrée puis délèguent
+      ├─ commands/           # auth.rs, player.rs, catalog.rs, settings.rs : valident l'entrée puis délèguent
       ├─ tidal/              # auth.rs, api.rs, catalog.rs, raw.rs (JSON bruts), models.rs, cache.rs, manifest.rs (DRM)
       ├─ player/             # actor.rs, queue.rs, state.rs
       ├─ mpv/                # process.rs, ipc.rs, events.rs, serve.rs (MPD servis en HTTP local)
       ├─ store/              # SQLite
-      └─ integrations/       # smtc.rs, discord.rs
+      └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs ; discord.rs plus tard
 ```
 
 ## Architecture du lecteur
@@ -85,8 +87,8 @@ seaglass/
 1. ~~**Squelette**~~ ✅ : Tauri + Svelte, module `mpv/` (process + IPC + événements), commandes `login` (PKCE), `search`, `play`, `toggle_pause`, `seek`. Acteur lecteur minimal (un titre à la fois).
 2. ~~**File d'attente**~~ ✅ : `queue.rs` (testé), gapless, retry sur erreur, repeat One via `loop-file`, persistance SQLite.
 3. ~~**Vues**~~ ✅ : accueil, recherche multi-types, album, artiste, playlist, bibliothèque (playlists, albums, artistes, titres).
-4. **(actuel)** Intégrations : SMTC, Discord RPC, Last.fm.
-5. Thème, finitions, sidecar mpv, installeur.
+4. ~~**Intégrations + UI**~~ ✅ : SMTC ; thèmes Verre de mer / Studio / Atelier, vue « En lecture », chaîne audio, raccourcis clavier. Discord RPC et Last.fm reportés (pas avant que l'utilisateur le demande).
+5. **(actuel)** Finitions : mode exclusif WASAPI (réglage), sidecar mpv + Job Object, mixes de l'accueil, installeur.
 
 ## Résultats du spike (2026-10-29, tidalapi 0.8.11, abonnement HI_RES, pays CH)
 
@@ -137,6 +139,18 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 - **`MediaItem`** est sérialisé avec l'étiquette `kind` : aucun type qu'il contient ne doit avoir de champ `kind` (d'où `AlbumSummary::album_type`, test `media_item_tag_is_unique`).
 - **UI** : navigation par pile de routes (`lib/stores/nav.svelte.ts`) sans URL, bouton Retour dans l'en-tête. Lire un titre d'une liste met toute la liste en contexte ; « Aléatoire » passe par `play_tracks(…, shuffle: true)`, le backend choisit le titre de départ.
 
+## Implémentation (phase 4)
+
+- **SMTC** (`integrations/smtc.rs`) : `ISystemMediaTransportControlsInterop::GetForWindow(hwnd de la fenêtre main)` sur un thread dédié (MTA). L'acteur notifie `Observers` à chaque `player-state` émis ; le thread ne touche SMTC que si les métadonnées, le statut ou les boutons changent, et la timeline toutes les 5 s ou après un saut. Boutons → `Cmd::SetPaused(bool)`, `Next`, `Previous` (`try_send`, thread WinRT). Vérifié avec l'API `GlobalSystemMediaTransportControlsSessionManager` : session `seaglass.exe`, titre / artiste / album / vignette / timeline, et Play / Pause / Suivant / Précédent pilotent bien le lecteur.
+- **État restauré** : `pause` de mpv est ignoré tant qu'aucun titre n'est chargé (sinon le `pause=false` initial efface l'état « en pause » restauré) ; `paused=false` est posé explicitement après un chargement.
+- **Couleur d'album** : `vibrantColor` → `AlbumRef::color` / `AlbumSummary::color`, filtrée en `#rrggbb` (elle part dans le CSS). L'UI la pose en `--album` sur `<html>`.
+- **Réglages UI** : `ui_settings` / `set_ui_settings`, JSON dans `kv` (`ui.settings`). Thème inconnu refusé à la désérialisation.
+- **Thèmes** : `data-theme` sur `<html>`, jetons CSS dans `app.css`, variantes par composant via `:global([data-theme=…])`. Verre de mer : panneaux translucides sur la pochette floutée (`Ambient.svelte`) ; Studio : à plat, angles vifs, chaîne audio complète dans la barre ; Atelier : clair, titres serif.
+- **Chaîne audio** (`SignalPath.svelte`) : source → mpv → sortie, verdict « Fréquence native » / « Rééchantillonné » / « Profondeur réduite » / « Compressé ». En mode partagé, Windows peut encore mixer : c'est dit dans le détail du verdict, pas présenté comme bit-perfect.
+- **Raccourcis** : Espace (lecture/pause), Ctrl+K ou `/` (recherche), Échap (fermer), Alt+← (retour).
+- **Prévisualisation sans Tauri** : `pnpm dev` puis `http://127.0.0.1:1420/?theme=studio&route=album&nowplaying=1` (paramètres : `theme`, `route`, `tab`, `nowplaying`, `queue`, `paused`, `loggedout`). Données de `src/lib/mock/fixtures.json`, généré par `cargo test dump_ui_fixtures -- --ignored` (gitignoré : contient la bibliothèque du compte). La branche factice est éliminée du build de production (`import.meta.env.DEV`).
+- **Piège Vite** : une fois, le CSS d'un composant est resté périmé après plusieurs éditions rapides ; redémarrer `pnpm tauri dev` (et vider `node_modules/.vite`) a suffi.
+
 ## Commandes
 
 PowerShell sous Windows.
@@ -153,7 +167,10 @@ python spike\play.py play <id> --exclusive
 # App (à partir de la phase 1)
 pnpm install
 pnpm tauri dev
-cd src-tauri; cargo fmt; cargo clippy -- -D warnings; cargo test
+cd src-tauri; cargo fmt; cargo clippy --all-targets -- -D warnings; cargo test
+cargo test live_catalog -- --ignored --nocapture   # endpoints réels (session requise)
+cargo test dump_ui_fixtures -- --ignored          # données de prévisualisation de l'UI
+pnpm check
 ```
 
 ## Conventions

@@ -86,6 +86,25 @@ impl Store {
         Ok(())
     }
 
+    /// Valeur JSON d'un réglage (`None` s'il n'a jamais été enregistré).
+    pub fn get_setting<T: serde::de::DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
+        let conn = self.conn.lock().map_err(|_| StoreError::Poisoned)?;
+        let json: Option<String> = conn
+            .query_row("SELECT value FROM kv WHERE key = ?1", [key], |r| r.get(0))
+            .optional()?;
+        Ok(json.map(|j| serde_json::from_str(&j)).transpose()?)
+    }
+
+    pub fn set_setting<T: Serialize>(&self, key: &str, value: &T) -> Result<()> {
+        let conn = self.conn.lock().map_err(|_| StoreError::Poisoned)?;
+        conn.execute(
+            "INSERT INTO kv (key, value) VALUES (?1, ?2)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            params![key, serde_json::to_string(value)?],
+        )?;
+        Ok(())
+    }
+
     pub fn load_player(&self) -> Result<Option<SavedPlayer>> {
         let conn = self.conn.lock().map_err(|_| StoreError::Poisoned)?;
         let get = |key: &str| -> Result<Option<String>> {
@@ -134,10 +153,23 @@ mod tests {
                 id: 1,
                 title: "a".into(),
                 cover_url: None,
+                color: None,
             },
             explicit: false,
             hires: true,
         }
+    }
+
+    #[test]
+    fn settings_roundtrip() {
+        let store = Store::in_memory().unwrap();
+        assert_eq!(store.get_setting::<String>("ui").unwrap(), None);
+        store.set_setting("ui", &"studio").unwrap();
+        store.set_setting("ui", &"atelier").unwrap();
+        assert_eq!(
+            store.get_setting::<String>("ui").unwrap().as_deref(),
+            Some("atelier")
+        );
     }
 
     #[test]
