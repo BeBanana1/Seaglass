@@ -33,6 +33,8 @@ Demander avant d'ajouter une dépendance qui n'est pas dans cette liste.
 ```
 seaglass/
 ├─ CLAUDE.md
+├─ .gitea/workflows/ci.yml   # CI (runner dédié, voir ci/)
+├─ ci/                       # image des jobs CI et runner act_runner (Docker, serveur)
 ├─ spike/                    # phase 0 : scripts Python jetables
 ├─ src/                      # frontend Svelte
 │  ├─ lib/ipc.ts             # wrappers typés des commandes et événements Tauri
@@ -169,10 +171,12 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 
 ## Implémentation (phase 5 : CI)
 
-- **Workflow** : `.gitea/workflows/ci.yml`, sur push vers `main` et sur chaque PR : `pnpm check`, `pnpm build`, `cargo fmt --check`, `clippy -D warnings`, `cargo test`. `pnpm build` passe avant Rust car `tauri::generate_context!` exige `dist/`. Ni `.env` ni `fixtures.json` ne sont nécessaires.
-- **Runner** : `act_runner` en Docker sur le serveur, enregistré **au niveau du dépôt** (pas de l'instance), label `ubuntu-latest:docker://docker.gitea.com/runner-images:ubuntu-latest`. Il monte le socket Docker, donc il équivaut à root sur le serveur : ne jamais l'ouvrir à d'autres dépôts.
+- **Workflow** : `.gitea/workflows/ci.yml`, sur push vers `main` et sur chaque PR, sauf si seuls des `*.md` / `LICENSE` changent : `pnpm check`, `pnpm build`, `cargo fmt --check`, `clippy -D warnings`, `cargo test`. `pnpm build` passe avant Rust car `tauri::generate_context!` exige `dist/`. Ni `.env` ni `fixtures.json` ne sont nécessaires.
+- **Runner dédié** (`ci/`, installation dans `ci/README.md`) : `act_runner` 0.6.1 en Docker sur le serveur, enregistré **au niveau du dépôt**, label `seaglass`. Il monte le socket Docker, donc il équivaut à root sur le serveur : ne jamais l'ouvrir à d'autres dépôts. Le runner partagé (firmware, KiCad) n'est plus utilisé.
+- **Image des jobs** `seaglass-ci:<tag daté>` (`ci/Dockerfile`, base `node:24-bookworm`) : bibliothèques de Tauri, Rust stable + rustfmt + clippy, pnpm. Construite sur le serveur (`docker compose --profile build build`), sans registre (`force_pull: false`). Changer de tag = `.env` + label de `config.yaml`.
+- **Cache** : les jobs rejoignent le réseau du runner (`container.network: seaglass-ci`) et le cache écoute sur un port fixe (8088). Sans ça, chaque action de cache attend 5 min un `ETIMEDOUT` (vu sur le runner partagé).
 - **Limite** : sous Linux, le code `#[cfg(windows)]` (SMTC, Job Object, `CREATE_NO_WINDOW`) n'est ni compilé ni testé ; `pnpm release` le vérifie sous Windows. Du code partagé utilisé seulement par une intégration Windows doit tolérer le code mort hors Windows (`#[cfg_attr(not(windows), allow(dead_code))]`, voir `integrations/mod.rs` et `Cmd::SetPaused`), sinon clippy échoue en CI. L'IPC mpv passe par un socket Unix hors Windows (`mpv::ipc::open`).
-- **Durée** : environ 7 min sur le runner partagé (préparation ~4 min, clippy ~1 min, tests ~1 min 30). Caches désactivés : le serveur de cache d'act_runner était injoignable depuis les jobs (`ETIMEDOUT`, 5 min perdues par action de cache). Les remettre une fois le runner dédié configuré (`container.network`, `cache.port`).
+- **Durée** : environ 7 min sur le runner partagé, sans cache (préparation ~4 min, clippy ~1 min, tests ~1 min 30). Sur le runner dédié, à mesurer.
 - **Pas de release en CI** : la clé minisign reste sur le PC, `pnpm release` reste manuel.
 
 ## Commandes
