@@ -6,7 +6,10 @@ use std::time::Duration;
 
 use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
+#[cfg(unix)]
+use tokio::net::UnixStream as Pipe;
+#[cfg(windows)]
+use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient as Pipe};
 use tokio::sync::{mpsc, oneshot};
 
 use super::events::{self, MpvEvent, OBSERVED};
@@ -52,11 +55,22 @@ pub async fn connect(events_tx: mpsc::Sender<MpvEvent>) -> Result<MpvHandle> {
     Ok(handle)
 }
 
-async fn open_pipe() -> Result<NamedPipeClient> {
+/// Named pipe sous Windows ; socket Unix ailleurs (CI Linux).
+#[cfg(windows)]
+async fn open(name: &str) -> std::io::Result<Pipe> {
+    ClientOptions::new().open(name)
+}
+
+#[cfg(unix)]
+async fn open(name: &str) -> std::io::Result<Pipe> {
+    Pipe::connect(name).await
+}
+
+async fn open_pipe() -> Result<Pipe> {
     let name = pipe_name();
     let mut last_err = None;
     for _ in 0..CONNECT_ATTEMPTS {
-        match ClientOptions::new().open(&name) {
+        match open(&name).await {
             Ok(pipe) => return Ok(pipe),
             Err(e) => last_err = Some(e),
         }
@@ -68,7 +82,7 @@ async fn open_pipe() -> Result<NamedPipeClient> {
 }
 
 async fn io_task(
-    pipe: NamedPipeClient,
+    pipe: Pipe,
     mut requests: mpsc::Receiver<Request>,
     events_tx: mpsc::Sender<MpvEvent>,
 ) {

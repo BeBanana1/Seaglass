@@ -20,8 +20,18 @@ const BUNDLED_MPV: &str = "mpv";
 
 /// Pipe IPC propre à ce lancement : un mpv orphelin d'un lancement précédent ne peut
 /// jamais être pris pour le nôtre.
+#[cfg(windows)]
 pub fn pipe_name() -> String {
     format!(r"\\.\pipe\seaglass-mpv-{}", std::process::id())
+}
+
+/// Hors Windows, mpv attend le chemin d'un socket Unix.
+#[cfg(not(windows))]
+pub fn pipe_name() -> String {
+    std::env::temp_dir()
+        .join(format!("seaglass-mpv-{}.sock", std::process::id()))
+        .to_string_lossy()
+        .into_owned()
 }
 
 /// `SEAGLASS_MPV_PATH`, sinon le mpv installé avec l'app, sinon celui du `PATH` (dev).
