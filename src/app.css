@@ -477,6 +477,51 @@
   --meta-family: var(--font-mono);
 }
 
+/* --- Risographie : fanzine deux encres (voir themes/riso.css) ----------------------- */
+/* Encre principale = accent (rose), seconde encre --riso-blue. Pas de flou ni d'ombre
+   douce : des aplats décalés, comme deux passages mal repérés. */
+:root[data-theme="riso"] {
+  color-scheme: light;
+  --riso-blue: #0b5fa5;
+  --bg: #f4efe4;
+  --surface: rgb(250 247 240 / 0.9);
+  --dialog-bg: #faf7f0;
+  --bg-raised: rgb(255 255 255 / 0.55);
+  --bg-hover: color-mix(in srgb, var(--accent) 12%, #faf7f0);
+  --border: rgb(29 26 43 / 0.22);
+  --text: #1d1a2b;
+  --text-muted: #5a5566;
+  --accent: #c8166f;
+  --accent-strong: #a8105c;
+  --accent-contrast: #faf7f0;
+  --danger: #b23a2a;
+  --ok: #1f7a4a;
+  --warn: #8a5a00;
+  --radius: 4px;
+  --radius-card: 2px;
+  --radius-cover: 0;
+  --panel-radius: 6px;
+  --dialog-radius: 6px;
+  --popover-radius: 6px;
+  --panel-blur: none;
+  --panel-border: 2px solid var(--text);
+  --panel-shadow: 6px 6px 0 color-mix(in srgb, var(--riso-blue) 45%, transparent);
+  --dialog-border: 2px solid var(--text);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow: 8px 8px 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  --popover-shadow: 5px 5px 0 color-mix(in srgb, var(--riso-blue) 55%, transparent);
+  --shadow-cover: 6px 6px 0 color-mix(in srgb, var(--riso-blue) 65%, transparent);
+  --shadow-raised: 3px 3px 0 color-mix(in srgb, var(--accent) 60%, transparent);
+  --control-bg: transparent;
+  --focus-ring: 3px solid var(--riso-blue);
+  --shell-gap: 14px;
+  --display-weight: 900;
+  --display-tracking: -0.02em;
+  --display-family: "Arial Black", "Segoe UI Black", "Segoe UI", sans-serif;
+  --label-transform: uppercase;
+  --label-tracking: 0.08em;
+}
+
 * {
   box-sizing: border-box;
 }

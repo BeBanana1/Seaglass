@@ -42,6 +42,8 @@ pub enum Theme {
     NeumorphDark,
     /// Écran cathodique monochrome, tout en mono ; l'accent est la couleur du phosphore (#68).
     Terminal,
+    /// Fanzine imprimé en risographie : papier, deux encres, trame, décalage de repérage (#69).
+    Riso,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -236,6 +238,8 @@ mod tests {
         assert_eq!(s.theme, Theme::NeumorphDark);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"terminal"}"#).unwrap();
         assert_eq!(s.theme, Theme::Terminal);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"riso"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Riso);
     }
 
     #[test]

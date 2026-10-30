@@ -17,7 +17,7 @@ Version actuelle : voir [`VERSION`](VERSION).
 - File et position restaurées au démarrage.
 - Chaîne audio affichée en direct : format reçu, décodage, format envoyé à la carte son.
 - Touches média du clavier et panneau multimédia de Windows (SMTC).
-- Dix thèmes : **Verre de mer** (verre dépoli sur la pochette, couleurs accordées à l'album), **Studio** (console sombre et dense), **Atelier** (clair, éditorial), **Acidwave** (néons acides et chrome, qui pulse pendant la lecture), **Surréalisme** (paysage vectoriel onirique teinté par l'album), **Solarpunk** (futur végétal et lumineux, pochettes en arche), **Cyberpunk** (interface de visée dans une ville néon, angles coupés), **Neumorphism** (reliefs doux ton sur ton, en clair et en sombre) et **Terminal** (écran cathodique monochrome dont la couleur d'accent est le phosphore).
+- Onze thèmes : **Verre de mer** (verre dépoli sur la pochette, couleurs accordées à l'album), **Studio** (console sombre et dense), **Atelier** (clair, éditorial), **Acidwave** (néons acides et chrome, qui pulse pendant la lecture), **Surréalisme** (paysage vectoriel onirique teinté par l'album), **Solarpunk** (futur végétal et lumineux, pochettes en arche), **Cyberpunk** (interface de visée dans une ville néon, angles coupés), **Neumorphism** (reliefs doux ton sur ton, en clair et en sombre), **Terminal** (écran cathodique monochrome dont la couleur d'accent est le phosphore) et **Risographie** (fanzine deux encres, papier grainé, pochettes en bichromie).
 - Page Réglages (Ctrl+,) : thème, taille du cache de lecture (en mémoire), lancement à l'ouverture de session.
 - Vue « En lecture » plein écran ; raccourcis : Espace, Ctrl+K, Ctrl+,, Échap, Alt+←.
 

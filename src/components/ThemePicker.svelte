@@ -365,6 +365,32 @@
     box-shadow: 0 0 6px rgb(65 255 122 / 0.7);
   }
 
+  .preview.riso {
+    gap: 5px;
+    padding: 8px;
+    border-radius: 4px;
+    background:
+      radial-gradient(circle at 12% 18%, rgb(200 22 111 / 0.55) 0 22%, transparent 23%),
+      radial-gradient(circle at 88% 88%, rgb(11 95 165 / 0.5) 0 20%, transparent 21%),
+      #f4efe4;
+  }
+
+  .riso :is(.side, .main, .bar) {
+    border-radius: 3px;
+    background: #faf7f0;
+    border: 1.5px solid #1d1a2b;
+    box-shadow: 3px 3px 0 rgb(11 95 165 / 0.45);
+  }
+
+  .riso .h {
+    background: #1d1a2b;
+    box-shadow: 2px 1px 0 rgb(200 22 111 / 0.6);
+  }
+
+  .riso .l {
+    background: linear-gradient(transparent 40%, rgb(200 22 111 / 0.5) 40%);
+  }
+
   .terminal .l {
     background: repeating-linear-gradient(90deg, rgb(65 255 122 / 0.6) 0 4px, transparent 4px 6px);
   }

@@ -47,6 +47,10 @@ export const fr = {
       name: "Terminal",
       description: "Écran cathodique monochrome, tout en mono ; la couleur d'accent devient celle du phosphore.",
     },
+    riso: {
+      name: "Risographie",
+      description: "Fanzine imprimé en deux encres : papier grainé, trame, léger décalage de repérage.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -160,6 +164,10 @@ export const en: typeof fr = {
     terminal: {
       name: "Terminal",
       description: "Monochrome CRT, all monospace; the accent color becomes the phosphor.",
+    },
+    riso: {
+      name: "Risograph",
+      description: "A two-ink printed zine: grainy paper, halftone, slight misregistration.",
     },
   },
 
