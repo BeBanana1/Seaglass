@@ -37,6 +37,7 @@
       title={page.artist.name}
       round
       trackIds={page.topTracks.map((track) => track.id)}
+      favorite={{ kind: "artist", id: page.artist.id }}
       onRadio={() => go({ name: "radio", seed: "artist", id })}
     />
     {#if page.topTracks.length > 0}

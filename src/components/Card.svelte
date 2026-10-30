@@ -1,21 +1,32 @@
 <script lang="ts">
   import type { MediaItem } from "../lib/ipc";
   import { mediaImage, mediaSubtitle, mediaTitle } from "../lib/format";
+  import { cardMenu, cardRoute } from "../lib/cardMenu";
+  import { menu, menuPosition, openMenu } from "../lib/stores/menu.svelte";
   import { go } from "../lib/stores/nav.svelte";
 
   let { item }: { item: MediaItem } = $props();
 
-  function open() {
-    if (item.kind === "album") go({ name: "album", id: item.id });
-    else if (item.kind === "artist") go({ name: "artist", id: item.id });
-    else if (item.kind === "mix") go({ name: "mix", id: item.id });
-    else go({ name: "playlist", uuid: item.uuid });
+  let cardEl = $state<HTMLButtonElement>();
+  const menuOpen = $derived(!!cardEl && menu.open?.owner === cardEl);
+
+  // Clic droit, touche Menu ou Maj+F10 (#81) : ouvrir, favori, liens.
+  function onContextmenu(e: MouseEvent) {
+    e.preventDefault();
+    const card = e.currentTarget as HTMLButtonElement;
+    openMenu({ ...menuPosition(e, card), entries: cardMenu(item), from: card, owner: card });
   }
 
   const image = $derived(mediaImage(item));
 </script>
 
-<button class="card" onclick={open}>
+<button
+  class="card"
+  class:menu-open={menuOpen}
+  bind:this={cardEl}
+  onclick={() => go(cardRoute(item))}
+  oncontextmenu={onContextmenu}
+>
   <div class="image" class:round={item.kind === "artist"}>
     {#if image}
       <img src={image} alt="" loading="lazy" />
@@ -39,7 +50,8 @@
     text-align: left;
   }
 
-  .card:hover {
+  .card:hover,
+  .card.menu-open {
     background: var(--bg-hover);
   }
 

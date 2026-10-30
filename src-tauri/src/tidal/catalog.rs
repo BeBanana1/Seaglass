@@ -10,6 +10,7 @@
 use serde::de::DeserializeOwned;
 
 use super::api::{API_V2, TidalClient};
+use super::likes::LikedKind;
 use super::mix::RawMix;
 use super::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, MediaItem, PlaylistPage,
@@ -121,19 +122,30 @@ impl TidalClient {
         let entries = self.remember_entries(raw::favorite_entries(raw));
         // Liste complète : elle fait foi pour les cœurs (likes faits sur un autre appareil).
         if entries.len() < LIBRARY_MAX {
-            self.likes.replace(entries.iter().map(|e| e.track.id));
+            let ids = entries.iter().map(|e| e.track.id).collect();
+            self.likes.replace(LikedKind::Tracks(ids));
         }
         Ok(entries)
     }
 
     pub async fn favorite_albums(&self) -> Result<Vec<AlbumSummary>> {
         let raw: Vec<RawFavorite<RawAlbumFull>> = self.favorites("albums").await?;
-        Ok(raw.into_iter().map(|f| f.item.into()).collect())
+        let albums: Vec<AlbumSummary> = raw.into_iter().map(|f| f.item.into()).collect();
+        if albums.len() < LIBRARY_MAX {
+            self.likes
+                .replace(LikedKind::Albums(albums.iter().map(|a| a.id).collect()));
+        }
+        Ok(albums)
     }
 
     pub async fn favorite_artists(&self) -> Result<Vec<ArtistSummary>> {
         let raw: Vec<RawFavorite<RawArtistFull>> = self.favorites("artists").await?;
-        Ok(raw.into_iter().map(|f| f.item.into()).collect())
+        let artists: Vec<ArtistSummary> = raw.into_iter().map(|f| f.item.into()).collect();
+        if artists.len() < LIBRARY_MAX {
+            self.likes
+                .replace(LikedKind::Artists(artists.iter().map(|a| a.id).collect()));
+        }
+        Ok(artists)
     }
 
     /// Playlists créées par l'utilisateur et playlists suivies.
@@ -147,10 +159,18 @@ impl TidalClient {
                 LIBRARY_MAX,
             )
             .await?;
-        Ok(raw
+        let playlists: Vec<PlaylistSummary> = raw
             .into_iter()
             .map(|e| e.playlist.into_summary(Some(user)))
-            .collect())
+            .collect();
+        // Seules les playlists des autres se suivent ; les vôtres n'ont pas de bouton.
+        if playlists.len() < LIBRARY_MAX {
+            let followed = playlists.iter().filter(|p| !p.mine);
+            self.likes.replace(LikedKind::Playlists(
+                followed.map(|p| p.uuid.clone()).collect(),
+            ));
+        }
+        Ok(playlists)
     }
 
     /// Lignes de l'accueil personnalisé. Seuls albums, artistes, playlists et mixes sont

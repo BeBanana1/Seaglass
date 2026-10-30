@@ -11,6 +11,8 @@ mod hires;
 mod info;
 mod likes;
 #[cfg(test)]
+mod live_collection;
+#[cfg(test)]
 mod live_tests;
 mod lyrics;
 mod manifest;

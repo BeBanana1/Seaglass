@@ -243,6 +243,28 @@ pub enum RadioSeed {
     Artist,
 }
 
+/// Ce qu'on peut ajouter aux favoris (#4, #81). Pas de mix : les enregistrer n'est pas
+/// encore proposé.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum LikeTarget {
+    Track { id: TrackId },
+    Album { id: u64 },
+    Artist { id: u64 },
+    Playlist { uuid: String },
+}
+
+/// Tous les favoris, en identifiants (événement `likes`). Chaque liste est triée.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LikedIds {
+    pub tracks: Vec<TrackId>,
+    pub albums: Vec<u64>,
+    pub artists: Vec<u64>,
+    /// Playlists suivies (et parfois les vôtres : `favorites/ids` en mêle).
+    pub playlists: Vec<String>,
+}
+
 /// Radio d'un titre ou d'un artiste : une liste de titres proches, calculée par le service.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

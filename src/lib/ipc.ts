@@ -171,6 +171,22 @@ export type MediaItem =
   | ({ kind: "playlist" } & PlaylistSummary)
   | ({ kind: "mix" } & MixSummary);
 
+/** Ce qu'on peut ajouter aux favoris (#4, #81). */
+export type LikeTarget =
+  | { kind: "track"; id: TrackId }
+  | { kind: "album"; id: number }
+  | { kind: "artist"; id: number }
+  | { kind: "playlist"; uuid: string };
+
+/** Tous les favoris, en identifiants (événement `likes`). */
+export interface LikedIds {
+  tracks: TrackId[];
+  albums: number[];
+  artists: number[];
+  /** Playlists suivies. */
+  playlists: string[];
+}
+
 export interface HomeRow {
   /** Identifiant stable de la section (`moduleId` de l'API), indépendant du titre. */
   key: string;
@@ -335,10 +351,10 @@ export const commands = {
   trackInfo: (trackId: TrackId) => invoke<TrackInfo>("track_info", { trackId }),
   /** Album hi-res au même titre, pour un album qui ne l'est pas (#59). */
   hiresTwinAlbum: (albumId: number) => invoke<AlbumSummary | null>("hires_twin_album", { albumId }),
-  /** Identifiants des titres likés (mis à jour ensuite par l'événement `liked-tracks`). */
-  likedTracks: () => invoke<TrackId[]>("liked_tracks"),
-  setTrackLiked: (trackId: TrackId, liked: boolean) =>
-    invoke<void>("set_track_liked", { trackId, liked }),
+  /** Identifiants de tous les favoris (mis à jour ensuite par l'événement `likes`). */
+  likes: () => invoke<LikedIds>("likes"),
+  /** Ajoute aux favoris ou retire ; l'événement `likes` suit la confirmation. */
+  setLiked: (target: LikeTarget, liked: boolean) => invoke<void>("set_liked", { target, liked }),
   /** Playlists créées par l'utilisateur, les seules modifiables. */
   ownPlaylists: () => invoke<PlaylistSummary[]>("own_playlists"),
   /** Ajoute à la fin, sans doublon ; renvoie le nombre de titres réellement ajoutés. */
@@ -407,8 +423,8 @@ export const events = {
     listen<QueueView>("queue-state", (e) => cb(e.payload)),
   onUpdateReady: (cb: (u: UpdateInfo) => void): Promise<UnlistenFn> =>
     listen<UpdateInfo>("update-ready", (e) => cb(e.payload)),
-  onLikedTracks: (cb: (ids: TrackId[]) => void): Promise<UnlistenFn> =>
-    listen<TrackId[]>("liked-tracks", (e) => cb(e.payload)),
+  onLikes: (cb: (ids: LikedIds) => void): Promise<UnlistenFn> =>
+    listen<LikedIds>("likes", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>
     listen<Toast>("toast", (e) => cb(e.payload)),
 };

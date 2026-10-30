@@ -78,19 +78,35 @@ pub async fn library_tracks(
     Ok(tracks)
 }
 
+// Comme pour les titres, chaque liste complète met à jour les favoris affichés (#81).
 #[tauri::command]
-pub async fn library_albums(state: State<'_, AppState>) -> CmdResult<Vec<AlbumSummary>> {
-    state.tidal.favorite_albums().await.map_err(err)
+pub async fn library_albums(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<AlbumSummary>> {
+    let albums = state.tidal.favorite_albums().await.map_err(err)?;
+    super::collection::emit_likes(&app, &state).await;
+    Ok(albums)
 }
 
 #[tauri::command]
-pub async fn library_artists(state: State<'_, AppState>) -> CmdResult<Vec<ArtistSummary>> {
-    state.tidal.favorite_artists().await.map_err(err)
+pub async fn library_artists(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<ArtistSummary>> {
+    let artists = state.tidal.favorite_artists().await.map_err(err)?;
+    super::collection::emit_likes(&app, &state).await;
+    Ok(artists)
 }
 
 #[tauri::command]
-pub async fn library_playlists(state: State<'_, AppState>) -> CmdResult<Vec<PlaylistSummary>> {
-    state.tidal.library_playlists().await.map_err(err)
+pub async fn library_playlists(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<PlaylistSummary>> {
+    let playlists = state.tidal.library_playlists().await.map_err(err)?;
+    super::collection::emit_likes(&app, &state).await;
+    Ok(playlists)
 }
 
 /// Lignes de l'accueil dans l'ordre choisi, masquées comprises (marquées `hidden`).

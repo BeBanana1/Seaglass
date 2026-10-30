@@ -12,13 +12,17 @@
 
 import type {
   AlbumPage,
+  AlbumSummary,
   ArtistPage,
+  ArtistSummary,
   FeedItem,
   HomeLayout,
   HomeRow,
   HomeSection,
   Lang,
   LanguagePref,
+  LikedIds,
+  LikeTarget,
   Lyrics,
   MixPage,
   MixSummary,
@@ -222,8 +226,49 @@ function setCurrent(track: Track | undefined) {
   emit("queue-state", queueView());
 }
 
-// Écritures (#4) : likes et playlists de l'utilisateur, gardés en mémoire.
+// Écritures (#4, #81) : favoris et playlists de l'utilisateur, gardés en mémoire.
 const liked = new Set<number>(fx.library.tracks.map((t) => t.id));
+const favAlbums = [...(fx.library.albums as AlbumSummary[])];
+const favArtists = [...(fx.library.artists as ArtistSummary[])];
+const libPlaylists = [...fx.library.playlists];
+
+function likedIds(): LikedIds {
+  return {
+    tracks: [...liked],
+    albums: favAlbums.map((a) => a.id),
+    artists: favArtists.map((a) => a.id),
+    playlists: libPlaylists.filter((p) => !p.mine).map((p) => p.uuid),
+  };
+}
+
+/** Ajoute en tête (comme le tri par date du service) ou retire un favori de la liste. */
+function toggleIn<T>(list: T[], known: T[], match: (x: T) => boolean, on: boolean) {
+  const i = list.findIndex(match);
+  if (i >= 0 && !on) list.splice(i, 1);
+  const found = known.find(match);
+  if (i < 0 && on && found) list.unshift(found);
+}
+
+function setLiked(target: LikeTarget, on: boolean) {
+  switch (target.kind) {
+    case "track":
+      if (on) liked.add(Number(target.id));
+      else liked.delete(Number(target.id));
+      break;
+    case "album": {
+      const known = [fx.album.album, ...fx.search.albums, ...fx.artist.albums, ...fx.artist.singles];
+      toggleIn(favAlbums, known, (a) => a.id === Number(target.id), on);
+      break;
+    }
+    case "artist":
+      toggleIn(favArtists, [fx.artist.artist, ...fx.search.artists], (a) => a.id === Number(target.id), on);
+      break;
+    case "playlist":
+      toggleIn(libPlaylists, [fx.playlist.playlist, ...fx.search.playlists], (p) => p.uuid === target.uuid, on);
+      break;
+  }
+  emit("likes", likedIds());
+}
 const own: PlaylistSummary[] = fx.library.playlists.filter((p) => p.mine);
 if (params.has("mine") && !own.some((p) => p.uuid === fx.playlist.playlist.uuid)) {
   own.unshift({ ...fx.playlist.playlist, mine: true, editorial: false });
@@ -272,12 +317,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     hiresTwin ? { ...fx.album.album, id: fx.album.album.id + 1, title: `${fx.album.album.title} (Hi-Res)`, hires: true } : null,
   artist: () => fx.artist,
   playlist: ({ uuid }) => ownPage(String(uuid)) ?? fx.playlist,
-  liked_tracks: () => [...liked],
-  set_track_liked: ({ trackId, liked: on }) => {
-    if (on) liked.add(Number(trackId));
-    else liked.delete(Number(trackId));
-    emit("liked-tracks", [...liked]);
-  },
+  likes: () => likedIds(),
+  // Les arguments sont des proxys Svelte : copiés en JSON avant d'être gardés.
+  set_liked: ({ target, liked: on }) => setLiked(JSON.parse(JSON.stringify(target)), Boolean(on)),
   own_playlists: () => own.map((p) => ownPage(p.uuid)?.playlist ?? p),
   add_to_playlist: ({ uuid, trackIds }) => addToOwn(String(uuid), [...(trackIds as number[])]),
   create_playlist: ({ title, trackIds }) => {
@@ -310,9 +352,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   radio: ({ seed, id }) => ({ ...radioPage, seed, id }),
   library_mixes: () => libraryMixes,
   library_tracks: () => fx.library.tracks,
-  library_albums: () => fx.library.albums,
-  library_artists: () => fx.library.artists,
-  library_playlists: () => fx.library.playlists,
+  library_albums: () => [...favAlbums],
+  library_artists: () => [...favArtists],
+  library_playlists: () => [...libPlaylists],
   player_state: () => state,
   queue_state: () => queueView(),
   ui_settings: () => ui,
