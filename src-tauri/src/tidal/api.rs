@@ -142,6 +142,16 @@ impl TidalClient {
         })
     }
 
+    /// Format servi pour `id`, sans lire le flux : sert à proposer une édition hi-res (#59).
+    pub async fn playback_format(
+        &self,
+        id: TrackId,
+        quality: AudioQuality,
+    ) -> Result<StreamFormat> {
+        let (raw, decoded) = self.playback(id, quality).await?;
+        Ok(stream_format(&raw, &decoded))
+    }
+
     /// `playbackinfopostpaywall` et son manifeste décodé (refusé s'il déclare du DRM). Le
     /// segment d'initialisation n'est pas lu : `stream` le vérifie avant toute lecture.
     pub(super) async fn playback(

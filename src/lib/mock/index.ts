@@ -97,6 +97,14 @@ const manual: Track[] = [];
 const volumeParam = params.get("volume");
 /** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18). */
 const hiresEdition = params.get("hiresedition");
+/** `?hiresoffer=Thriller` : réglage « Demander », bandeau qui propose une édition hi-res (#59). */
+const hiresOfferParam = params.get("hiresoffer");
+/** `?hirestwin=1` : la page album propose un album jumeau hi-res (#59). */
+const hiresTwin = params.has("hirestwin");
+
+function offerFormat(album: string): StreamFormat {
+  return { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 192000, bitrate: 5071, hiresEdition: album };
+}
 
 const state: PlayerState = {
   track: context[index] ?? null,
@@ -117,6 +125,7 @@ const state: PlayerState = {
     level: volumeParam && volumeParam !== "muted" ? Math.min(100, Math.max(0, Number(volumeParam) || 0)) : 100,
     muted: volumeParam === "muted",
   },
+  hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
 };
 
 let ui: UiSettings = {
@@ -144,7 +153,7 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
     .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
     .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
 }
-let playback: PlaybackSettings = { cacheSize: 64, hiresUpgrade: true };
+let playback: PlaybackSettings = { cacheSize: 64, hiresUpgrade: hiresOfferParam ? "ask" : "auto" };
 let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
@@ -176,10 +185,12 @@ function setCurrent(track: Track | undefined) {
     duration: track.duration,
     paused: false,
     idle: false,
+    hiresOffer:
+      !track.hires && hiresOfferParam !== null && playback.hiresUpgrade === "ask" ? offerFormat(hiresOfferParam) : null,
     // Avec `?hiresedition=…` et le réglage actif, un titre non hi-res est « remplacé » par
     // une autre édition, comme le ferait le backend.
     ...(() => {
-      const upgraded = !track.hires && hiresEdition !== null && playback.hiresUpgrade;
+      const upgraded = !track.hires && hiresEdition !== null && playback.hiresUpgrade === "auto";
       const hires = track.hires || upgraded;
       return {
         stream: hires
@@ -245,7 +256,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
   track_info: ({ trackId }) => mockTrackInfo(Number(trackId)),
   search: ({ query }) => (String(query).trim() ? fx.search : { tracks: [], albums: [], artists: [], playlists: [] }),
-  album: () => fx.album,
+  // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
+  album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
+  hires_twin_album: () =>
+    hiresTwin ? { ...fx.album.album, id: fx.album.album.id + 1, title: `${fx.album.album.title} (Hi-Res)`, hires: true } : null,
   artist: () => fx.artist,
   playlist: ({ uuid }) => ownPage(String(uuid)) ?? fx.playlist,
   liked_tracks: () => [...liked],
@@ -351,6 +365,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   remove_from_queue: ({ index: i }) => {
     manual.splice(Number(i), 1);
     emit("queue-state", queueView());
+  },
+  answer_hires_offer: ({ accept }) => {
+    if (!state.hiresOffer) return;
+    if (accept) state.stream = state.hiresOffer;
+    state.hiresOffer = null;
+    emit("player-state", state);
   },
   clear_queue: () => {
     manual.length = 0;
@@ -476,7 +496,7 @@ function mockTrackInfo(trackId: number): TrackInfo {
         ? {
             track: { ...track, id: track.id + 1_000_000, hires: true, album: { ...track.album, title: hiresEdition } },
             stream: hires,
-            played: playback.hiresUpgrade,
+            played: playback.hiresUpgrade === "auto",
           }
         : null,
   };

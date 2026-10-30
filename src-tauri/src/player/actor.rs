@@ -1,6 +1,7 @@
 //! Acteur lecteur : seule tâche qui possède la file, `PlayerState` et le handle mpv.
 //! La gestion de la fenêtre mpv (gapless, erreurs) est dans `playback.rs`.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -12,7 +13,7 @@ use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
 use super::queue::{Queue, Repeat};
-use super::settings::PlaybackSettings;
+use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::state::{PlayerState, QueueView};
 use crate::integrations::Observers;
 use crate::mpv::process::ProcessGuard;
@@ -55,6 +56,8 @@ pub enum Cmd {
     /// Réglages de lecture enregistrés, appliqués à chaud (taille du cache mpv, édition
     /// hi-res).
     SetPlaybackSettings(PlaybackSettings),
+    /// Réponse au bandeau qui propose l'édition hi-res du titre courant (#59).
+    AnswerHiresOffer(bool),
     GetState(oneshot::Sender<PlayerState>),
     GetQueue(oneshot::Sender<QueueView>),
     /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
@@ -68,6 +71,11 @@ pub enum Cmd {
         request: u64,
         slot: Slot,
         result: Result<Box<(Track, Stream)>, String>,
+    },
+    /// Édition hi-res trouvée pour le titre courant, à proposer (mode « Demander »).
+    HiresOffer {
+        request: u64,
+        offer: StreamFormat,
     },
 }
 
@@ -113,8 +121,13 @@ pub(super) struct Player {
     /// Titre pour lequel une nouvelle URL a déjà été demandée après une erreur.
     pub(super) retried: Option<TrackId>,
     pub(super) failures: u32,
-    /// Lire une autre édition hi-res d'un titre qui n'en a pas (#18, réglage).
-    pub(super) hires_upgrade: bool,
+    /// Lire une autre édition hi-res d'un titre qui n'en a pas (#18), ou la proposer (#59).
+    pub(super) hires_upgrade: HiresUpgrade,
+    /// Réponses au bandeau « Demander » par album, pour la session : oui = les titres de
+    /// l'album passent à l'édition hi-res sans redemander, non = plus rien n'est proposé.
+    pub(super) hires_answers: HashMap<u64, bool>,
+    /// Invalide les recherches d'offre lancées pour un titre qui n'est plus le courant.
+    pub(super) offer_req: u64,
     pub(super) queue_dirty: bool,
     pub(super) persist_queue: bool,
     pub(super) persist_position: bool,
@@ -166,6 +179,8 @@ pub fn spawn(
             retried: None,
             failures: 0,
             hires_upgrade: settings.hires_upgrade,
+            hires_answers: HashMap::new(),
+            offer_req: 0,
             queue_dirty: true,
             persist_queue: false,
             persist_position: false,
@@ -279,9 +294,18 @@ impl Player {
             }
             Cmd::SetPlaybackSettings(settings) => {
                 // Pris en compte à la prochaine résolution : le titre en cours n'est pas
-                // rechargé.
-                self.hires_upgrade = settings.hires_upgrade;
+                // rechargé, mais passer à « Demander » propose déjà son édition hi-res.
+                if settings.hires_upgrade != self.hires_upgrade {
+                    self.hires_upgrade = settings.hires_upgrade;
+                    self.maybe_offer_hires();
+                }
                 self.apply_cache_size(settings.cache_size).await;
+            }
+            Cmd::AnswerHiresOffer(accept) => self.answer_hires_offer(accept).await,
+            Cmd::HiresOffer { request, offer } => {
+                if request == self.offer_req {
+                    self.state.hires_offer = Some(offer);
+                }
             }
             Cmd::GetState(reply) => {
                 let _ = reply.send(self.state.clone());

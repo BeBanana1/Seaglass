@@ -2,6 +2,7 @@
   import { player } from "../lib/stores/player.svelte";
   import { fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
+  import HiresOffer from "./HiresOffer.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import Progress from "./Progress.svelte";
@@ -19,6 +20,7 @@
 </script>
 
 <footer class="panel">
+  <HiresOffer />
   <div class="now">
     {#if s.track}
       <button class="cover" onclick={onOpenNowPlaying} title="Vue « En lecture »">
@@ -58,6 +60,7 @@
 
 <style>
   footer {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
     align-items: center;

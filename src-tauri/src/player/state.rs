@@ -31,6 +31,9 @@ pub struct PlayerState {
     pub has_next: bool,
     /// Volume logiciel de mpv ; tout autre réglage que 100 non coupé n'est plus bit-perfect.
     pub volume: Volume,
+    /// Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son
+    /// format, l'album dans `hires_edition`.
+    pub hires_offer: Option<StreamFormat>,
 }
 
 impl PlayerState {
