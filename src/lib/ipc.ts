@@ -143,6 +143,15 @@ export interface HomeSection extends HomeRow {
   hidden: boolean;
 }
 
+/** Sortie d'un artiste suivi (fil d'actualité). */
+export interface FeedItem {
+  /** Date de la sortie, en millisecondes UTC. */
+  occurredAt: number | null;
+  /** Déjà vue dans un client TIDAL (lu seulement). */
+  seen: boolean;
+  album: AlbumSummary;
+}
+
 /** Disposition de l'accueil enregistrée (clés de `HomeRow`). */
 export interface HomeLayout {
   order: string[];
@@ -249,6 +258,7 @@ export const commands = {
   libraryArtists: () => invoke<ArtistSummary[]>("library_artists"),
   libraryPlaylists: () => invoke<PlaylistSummary[]>("library_playlists"),
   home: () => invoke<HomeSection[]>("home"),
+  feed: () => invoke<FeedItem[]>("feed"),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle }),

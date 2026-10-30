@@ -3,13 +3,14 @@
 // (gitignoré). Sans ce fichier, un jeu minimal synthétique est utilisé.
 //
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
-// mix|radio|library|search|home|settings`, `?tab=` (onglet de la bibliothèque ou section des
+// mix|radio|library|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`.
 
 import type {
   AlbumPage,
   ArtistPage,
+  FeedItem,
   HomeLayout,
   HomeRow,
   HomeSection,
@@ -37,6 +38,8 @@ interface Fixtures {
   mix?: MixPage | null;
   radio?: RadioPage;
   home: HomeRow[];
+  /** Absent des fixtures générées avant le fil d'actualité. */
+  feed?: FeedItem[];
   library: {
     tracks: TrackEntry[];
     albums: unknown[];
@@ -179,6 +182,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   login: () => ({ userId: 1, countryCode: "CH" }),
   logout: () => null,
   home: () => arrangeHome(fx.home, ui.home),
+  feed: () => fx.feed ?? [],
   search: ({ query }) => (String(query).trim() ? fx.search : { tracks: [], albums: [], artists: [], playlists: [] }),
   album: () => fx.album,
   artist: () => fx.artist,
@@ -328,6 +332,7 @@ export function initialView(): { route: Route | null; nowPlaying: boolean; queue
     radio: { name: "radio", seed: radioPage.seed, id: radioPage.id },
     library: { name: "library", tab: (params.get("tab") as LibraryTab) ?? "playlists" },
     search: { name: "search" },
+    feed: { name: "feed" },
     settings: { name: "settings", section: (params.get("tab") as SettingsSection) ?? "appearance" },
   };
   return {
@@ -403,6 +408,10 @@ function synthetic(): Fixtures {
           },
         ],
       },
+    ],
+    feed: [
+      { occurredAt: Date.now(), seen: false, album: { ...album, albumType: "SINGLE" } },
+      { occurredAt: Date.UTC(2024, 0, 1), seen: true, album },
     ],
     library: { tracks: likedTracks, albums: [album], artists: [], playlists: [] },
   };
