@@ -1,6 +1,6 @@
 <!-- Page Réglages : une section par onglet. Les valeurs viennent toutes du backend. -->
 <script lang="ts">
-  import { commands, type CacheSize, type PlaybackSettings } from "../lib/ipc";
+  import { commands, type CacheSize, type HiresUpgrade, type PlaybackSettings } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
@@ -16,8 +16,22 @@
 
   const CACHE_SIZES: CacheSize[] = [32, 64, 128, 256];
 
+  const HIRES_MODES: { id: HiresUpgrade; label: string; note: string }[] = [
+    {
+      id: "auto",
+      label: "Automatique",
+      note: "L'édition hi-res est lue à la place du titre, sans demander. La chaîne audio l'indique.",
+    },
+    {
+      id: "ask",
+      label: "Demander",
+      note: "Le titre d'origine démarre, et la barre de lecture propose l'édition hi-res. La réponse vaut pour tout l'album.",
+    },
+    { id: "off", label: "Désactivé", note: "Le titre est toujours lu depuis l'édition affichée." },
+  ];
   let playback = $state<PlaybackSettings | null>(null);
   const cacheSize = $derived(playback?.cacheSize ?? null);
+  const hiresUpgrade = $derived(playback?.hiresUpgrade ?? null);
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
 
@@ -51,8 +65,8 @@
     if (playback && size !== playback.cacheSize) savePlayback({ ...playback, cacheSize: size });
   }
 
-  function toggleHiresUpgrade() {
-    if (playback) savePlayback({ ...playback, hiresUpgrade: !playback.hiresUpgrade });
+  function setHiresUpgrade(mode: HiresUpgrade) {
+    if (playback && mode !== playback.hiresUpgrade) savePlayback({ ...playback, hiresUpgrade: mode });
   }
 
   async function loadAutostart() {
@@ -149,27 +163,25 @@
     </div>
     <div class="group">
       <h2>Qualité</h2>
-      <label class="setting-row">
-        <span class="text">
-          <span class="setting-label">Chercher une édition hi-res</span>
-          <span class="hint">
-            Si un titre n'existe qu'en qualité CD, lire le même enregistrement depuis une autre
-            édition en hi-res (album d'origine, réédition, compilation). La chaîne audio
-            l'indique ; le master peut différer de l'édition affichée.
-          </span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={playback?.hiresUpgrade === true}
-          role="switch"
-          aria-checked={playback?.hiresUpgrade === true}
-          aria-label="Chercher une édition hi-res"
-          disabled={playback === null}
-          onclick={toggleHiresUpgrade}
-        >
-          <span class="knob"></span>
-        </button>
-      </label>
+      <p class="hint">
+        Un titre qui n'existe qu'en qualité CD a souvent une autre édition en hi-res (album
+        d'origine, réédition, compilation). Le master peut différer de l'édition affichée.
+      </p>
+      <div class="cache-sizes hires-modes" role="radiogroup" aria-label="Édition hi-res">
+        {#each HIRES_MODES as mode (mode.id)}
+          <button
+            class="cache-size hires-mode"
+            class:selected={hiresUpgrade === mode.id}
+            role="radio"
+            aria-checked={hiresUpgrade === mode.id}
+            disabled={hiresUpgrade === null}
+            onclick={() => setHiresUpgrade(mode.id)}
+          >
+            {mode.label}
+          </button>
+        {/each}
+      </div>
+      <p class="note">{HIRES_MODES.find((m) => m.id === hiresUpgrade)?.note ?? ""}</p>
     </div>
   {:else}
     <div class="group">
@@ -305,6 +317,12 @@
   .cache-size.selected:hover:not(:disabled) {
     color: var(--accent-contrast);
     background: var(--accent-strong);
+  }
+
+  /* Mêmes sélecteurs que le cache (styles des thèmes compris), en texte courant. */
+  .hires-mode {
+    min-width: 0;
+    font-family: inherit;
   }
 
   .setting-row {

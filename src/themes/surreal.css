@@ -141,6 +141,20 @@
   font-style: italic;
 }
 
+:root[data-theme="surreal"] .hires-offer,
+:root[data-theme="surreal"] .hires-twin {
+  border: none;
+  border-radius: 22px;
+  background: rgb(255 255 255 / 0.8);
+  box-shadow: 0 18px 30px -18px rgb(61 42 77 / 0.5);
+}
+
+:root[data-theme="surreal"] .hires-offer-title,
+:root[data-theme="surreal"] .hires-twin-text {
+  font-family: var(--display-family);
+  font-style: italic;
+}
+
 /* Vue « En lecture » : la pochette flotte au-dessus de son ombre sur la colline. */
 :root[data-theme="surreal"] .now-playing .art {
   position: relative;

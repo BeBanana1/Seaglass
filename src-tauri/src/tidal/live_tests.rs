@@ -3,6 +3,7 @@
 //! - `cargo test live_catalog -- --ignored --nocapture` : appelle chaque endpoint.
 //! - `cargo test live_lyrics -- --ignored --nocapture` : paroles synchronisées et absentes.
 //! - `cargo test live_track_info -- --ignored --nocapture` : infos détaillées d'un titre (#3).
+//! - `cargo test live_hires_twin_album -- --ignored --nocapture` : album jumeau hi-res (#59).
 //! - `cargo test dump_ui_fixtures -- --ignored` : écrit `src/lib/mock/fixtures.json`
 //!   (gitignoré, contient la bibliothèque du compte) pour prévisualiser l'UI hors Tauri.
 
@@ -234,6 +235,25 @@ async fn live_hires_twin() {
     println!("flux : {:?}", stream.format);
     assert_eq!(stream.format.bit_depth, Some(24));
     assert_eq!(stream.format.sample_rate, Some(192_000));
+}
+
+/// `cargo test live_hires_twin_album -- --ignored --nocapture` : la page de « Hotel
+/// California (2013 Remaster) » en 16/44,1 propose son jumeau hi-res (#59), pas l'inverse.
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_hires_twin_album() {
+    let client = client().await;
+    let start = std::time::Instant::now();
+    let twin = client.hires_twin_album(20_767_338).await.unwrap().unwrap();
+    println!(
+        "jumeau : {} ({}) en {:?}",
+        twin.id,
+        twin.title,
+        start.elapsed()
+    );
+    assert_eq!(twin.id, 68_709_104);
+    assert!(twin.hires);
+    assert!(client.hires_twin_album(68_709_104).await.unwrap().is_none());
 }
 
 #[tokio::test]

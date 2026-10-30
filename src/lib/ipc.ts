@@ -106,6 +106,9 @@ export interface PlayerState {
   hasPrevious: boolean;
   hasNext: boolean;
   volume: Volume;
+  /** Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son format,
+   *  l'album dans `hiresEdition`. */
+  hiresOffer: StreamFormat | null;
 }
 
 /** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
@@ -276,11 +279,14 @@ export interface UiSettings {
 /** Taille du cache mpv en Mio : seules ces valeurs sont acceptées par le backend. */
 export type CacheSize = 32 | 64 | 128 | 256;
 
+export type HiresUpgrade = "auto" | "ask" | "off";
+
 /** Réglages de lecture, stockés à part des réglages d'UI. */
 export interface PlaybackSettings {
   cacheSize: CacheSize;
-  /** Lire l'édition hi-res d'un titre qui n'en a pas (même enregistrement). */
-  hiresUpgrade: boolean;
+  /** Édition hi-res d'un titre qui n'en a pas (même enregistrement) : la lire à sa place,
+   *  la proposer (#59) ou l'ignorer. */
+  hiresUpgrade: HiresUpgrade;
 }
 
 export interface UpdateInfo {
@@ -320,6 +326,8 @@ export const commands = {
   lyrics: (trackId: TrackId) => invoke<Lyrics | null>("lyrics", { trackId }),
   /** Format réel, ReplayGain, BPM… : une requête de lecture, à ne demander qu'à la demande. */
   trackInfo: (trackId: TrackId) => invoke<TrackInfo>("track_info", { trackId }),
+  /** Album hi-res au même titre, pour un album qui ne l'est pas (#59). */
+  hiresTwinAlbum: (albumId: number) => invoke<AlbumSummary | null>("hires_twin_album", { albumId }),
   /** Identifiants des titres likés (mis à jour ensuite par l'événement `liked-tracks`). */
   likedTracks: () => invoke<TrackId[]>("liked_tracks"),
   setTrackLiked: (trackId: TrackId, liked: boolean) =>
@@ -345,6 +353,8 @@ export const commands = {
     invoke<void>("enqueue_tracks", { trackIds, next }),
   removeFromQueue: (index: number) => invoke<void>("remove_from_queue", { index }),
   clearQueue: () => invoke<void>("clear_queue"),
+  /** Réponse au bandeau « Édition hi-res disponible », valable pour tout l'album (#59). */
+  answerHiresOffer: (accept: boolean) => invoke<void>("answer_hires_offer", { accept }),
   next: () => invoke<void>("next"),
   previous: () => invoke<void>("previous"),
   togglePause: () => invoke<void>("toggle_pause"),
