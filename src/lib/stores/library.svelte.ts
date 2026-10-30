@@ -4,6 +4,7 @@ import {
   commands,
   type AlbumSummary,
   type ArtistSummary,
+  type MixSummary,
   type PlaylistSummary,
   type TrackEntry,
 } from "../ipc";
@@ -19,6 +20,7 @@ const empty = <T>(): Slot<T> => ({ items: null, error: null, loading: false });
 
 export const library = $state({
   playlists: empty<PlaylistSummary>(),
+  mixes: empty<MixSummary>(),
   albums: empty<AlbumSummary>(),
   artists: empty<ArtistSummary>(),
   tracks: empty<TrackEntry>(),
@@ -26,6 +28,7 @@ export const library = $state({
 
 const loaders = {
   playlists: commands.libraryPlaylists,
+  mixes: commands.libraryMixes,
   albums: commands.libraryAlbums,
   artists: commands.libraryArtists,
   tracks: commands.libraryTracks,

@@ -5,6 +5,7 @@
 //!   (gitignoré, contient la bibliothèque du compte) pour prévisualiser l'UI hors Tauri.
 
 use super::TidalClient;
+use super::models::{MediaItem, RadioSeed};
 
 const ALBUM_ID: u64 = 156_749_593;
 const ARTIST_ID: u64 = 12_979;
@@ -69,6 +70,31 @@ async fn live_catalog() {
         println!("accueil : {} ({} éléments)", row.title, row.items.len());
     }
     assert!(!home.is_empty());
+    let mixes = client.favorite_mixes().await.unwrap();
+    println!("mixes enregistrés : {}", mixes.len());
+    let home_mix = home.iter().flat_map(|r| &r.items).find_map(|i| match i {
+        MediaItem::Mix(m) => Some(m.id.clone()),
+        _ => None,
+    });
+    if let Some(id) = home_mix.or_else(|| mixes.first().map(|m| m.id.clone())) {
+        let mix = client.mix(&id).await.unwrap();
+        println!("mix : {} ({} titres)", mix.mix.title, mix.tracks.len());
+        assert!(!mix.tracks.is_empty());
+        assert!(mix.image_large_url.is_some());
+    }
+    let track_radio = client
+        .radio(RadioSeed::Track, album.tracks[0].id.0)
+        .await
+        .unwrap();
+    let artist_radio = client.radio(RadioSeed::Artist, ARTIST_ID).await.unwrap();
+    println!(
+        "radios : {} ({} titres), {} ({} titres)",
+        track_radio.title,
+        track_radio.tracks.len(),
+        artist_radio.title,
+        artist_radio.tracks.len()
+    );
+    assert!(!track_radio.tracks.is_empty() && !artist_radio.tracks.is_empty());
 }
 
 #[tokio::test]
@@ -79,9 +105,21 @@ async fn dump_ui_fixtures() {
     let playlist = client.playlist(&search.playlists[0].uuid).await.unwrap();
     let mut tracks = client.favorite_tracks().await.unwrap();
     tracks.truncate(100);
+    let album = client.album(ALBUM_ID).await.unwrap();
+    let mixes = client.favorite_mixes().await.unwrap();
+    let mix = match mixes.first() {
+        Some(m) => Some(client.mix(&m.id).await.unwrap()),
+        None => None,
+    };
+    let radio = client
+        .radio(RadioSeed::Track, album.tracks[0].id.0)
+        .await
+        .unwrap();
     let fixtures = serde_json::json!({
         "search": search,
-        "album": client.album(ALBUM_ID).await.unwrap(),
+        "album": album,
+        "mix": mix,
+        "radio": radio,
         "artist": client.artist(ARTIST_ID).await.unwrap(),
         "playlist": playlist,
         "home": client.home().await.unwrap(),
@@ -90,6 +128,7 @@ async fn dump_ui_fixtures() {
             "albums": client.favorite_albums().await.unwrap(),
             "artists": client.favorite_artists().await.unwrap(),
             "playlists": client.library_playlists().await.unwrap(),
+            "mixes": mixes,
         },
     });
     let path = std::path::Path::new("../src/lib/mock/fixtures.json");

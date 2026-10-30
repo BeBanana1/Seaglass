@@ -3,7 +3,7 @@
 // (gitignoré). Sans ce fichier, un jeu minimal synthétique est utilisé.
 //
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
-// library|search|home|settings`, `?tab=` (onglet de la bibliothèque ou section des
+// mix|radio|library|search|home|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`.
 
@@ -13,10 +13,13 @@ import type {
   HomeLayout,
   HomeRow,
   HomeSection,
+  MixPage,
+  MixSummary,
   PlaybackSettings,
   PlayerState,
   PlaylistPage,
   QueueView,
+  RadioPage,
   SearchResults,
   Theme,
   Track,
@@ -30,13 +33,39 @@ interface Fixtures {
   album: AlbumPage;
   artist: ArtistPage;
   playlist: PlaylistPage;
+  /** Absents des fixtures générées avant les mixes : remplacés par un jeu synthétique. */
+  mix?: MixPage | null;
+  radio?: RadioPage;
   home: HomeRow[];
-  library: { tracks: TrackEntry[]; albums: unknown[]; artists: unknown[]; playlists: unknown[] };
+  library: {
+    tracks: TrackEntry[];
+    albums: unknown[];
+    artists: unknown[];
+    playlists: unknown[];
+    mixes?: MixSummary[];
+  };
 }
 
 const found = import.meta.glob<Fixtures>("./fixtures.json", { eager: true, import: "default" });
 const fx: Fixtures = Object.values(found)[0] ?? synthetic();
 const params = new URLSearchParams(location.search);
+
+const demoMix: MixSummary = {
+  id: "0000000000000000000000000000ff",
+  title: "My Mix 1",
+  subtitle: "Artiste de démonstration et d'autres",
+  imageUrl: null,
+  mixType: "DAILY_MIX",
+};
+const mixPage: MixPage = fx.mix ?? { mix: demoMix, imageLargeUrl: null, tracks: fx.album.tracks.slice(0, 10) };
+const radioPage: RadioPage = fx.radio ?? {
+  seed: "track",
+  id: fx.album.tracks[0]?.id ?? 1,
+  title: fx.album.tracks[0]?.title ?? "Titre",
+  imageUrl: fx.album.tracks[0]?.album.coverUrl ?? null,
+  tracks: [...fx.album.tracks].reverse(),
+};
+const libraryMixes: MixSummary[] = fx.library.mixes ?? [mixPage.mix];
 
 const allTracks = new Map<number, Track>();
 for (const t of [
@@ -45,6 +74,8 @@ for (const t of [
   ...fx.playlist.tracks,
   ...fx.search.tracks,
   ...fx.library.tracks,
+  ...mixPage.tracks,
+  ...radioPage.tracks,
 ]) {
   allTracks.set(t.id, t);
 }
@@ -152,6 +183,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   album: () => fx.album,
   artist: () => fx.artist,
   playlist: () => fx.playlist,
+  mix: () => mixPage,
+  // La radio factice garde ses titres, mais reprend le point de départ demandé.
+  radio: ({ seed, id }) => ({ ...radioPage, seed, id }),
+  library_mixes: () => libraryMixes,
   library_tracks: () => fx.library.tracks,
   library_albums: () => fx.library.albums,
   library_artists: () => fx.library.artists,
@@ -289,6 +324,8 @@ export function initialView(): { route: Route | null; nowPlaying: boolean; queue
     album: { name: "album", id: fx.album.album.id },
     artist: { name: "artist", id: fx.artist.artist.id },
     playlist: { name: "playlist", uuid: fx.playlist.playlist.uuid },
+    mix: { name: "mix", id: mixPage.mix.id },
+    radio: { name: "radio", seed: radioPage.seed, id: radioPage.id },
     library: { name: "library", tab: (params.get("tab") as LibraryTab) ?? "playlists" },
     search: { name: "search" },
     settings: { name: "settings", section: (params.get("tab") as SettingsSection) ?? "appearance" },
@@ -350,7 +387,23 @@ function synthetic(): Fixtures {
       },
       tracks: playlistTracks,
     },
-    home: [{ key: "FOR_YOU", title: "Pour vous", items: [{ kind: "album", ...album }] }],
+    home: [
+      { key: "FOR_YOU", title: "Pour vous", items: [{ kind: "album", ...album }] },
+      {
+        key: "HISTORY_MIXES",
+        title: "Votre historique de lecture",
+        items: [
+          {
+            kind: "mix",
+            id: "0000000000000000000000000000ff",
+            title: "My Mix 1",
+            subtitle: "Artiste de démonstration et d'autres",
+            imageUrl: null,
+            mixType: "DAILY_MIX",
+          },
+        ],
+      },
+    ],
     library: { tracks: likedTracks, albums: [album], artists: [], playlists: [] },
   };
 }

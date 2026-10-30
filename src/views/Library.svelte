@@ -28,6 +28,7 @@
 
   const tabs: { id: LibraryTab; label: string }[] = [
     { id: "playlists", label: "Playlists" },
+    { id: "mixes", label: "Mixes" },
     { id: "albums", label: "Albums" },
     { id: "artists", label: "Artistes" },
     { id: "tracks", label: "Titres" },
@@ -43,6 +44,8 @@
     switch (tab) {
       case "playlists":
         return (library.playlists.items ?? []).map((p) => ({ kind: "playlist", ...p }));
+      case "mixes":
+        return (library.mixes.items ?? []).map((m) => ({ kind: "mix", ...m }));
       case "albums":
         return (library.albums.items ?? []).map((a) => ({ kind: "album", ...a }));
       case "artists":
