@@ -46,6 +46,19 @@ pub struct Track {
     pub hires: bool,
 }
 
+/// Titre d'une liste (playlist ou favoris) avec sa date d'ajout à cette liste.
+/// Sérialisé à plat : côté UI, c'est un `Track` avec un champ `addedAt` en plus.
+/// La date n'appartient qu'à la liste : elle ne va ni dans le cache ni dans la file.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackEntry {
+    #[serde(flatten)]
+    pub track: Track,
+    /// Millisecondes depuis l'epoch Unix (UTC) : `dateAdded` d'un titre de playlist,
+    /// `created` d'un favori. `None` si l'API ne la donne pas ou si elle est illisible.
+    pub added_at: Option<i64>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AudioQuality {
@@ -172,7 +185,8 @@ pub struct ArtistPage {
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistPage {
     pub playlist: PlaylistSummary,
-    pub tracks: Vec<Track>,
+    /// Dans l'ordre de la playlist.
+    pub tracks: Vec<TrackEntry>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]

@@ -30,6 +30,12 @@ export interface Track {
   hires: boolean;
 }
 
+/** Titre d'une liste (playlist ou favoris) avec sa date d'ajout à cette liste. */
+export interface TrackEntry extends Track {
+  /** Millisecondes depuis l'epoch Unix (UTC) ; `null` si l'API ne la donne pas. */
+  addedAt: number | null;
+}
+
 export type AudioQuality = "LOW" | "HIGH" | "LOSSLESS" | "HI_RES_LOSSLESS";
 
 export interface StreamFormat {
@@ -136,7 +142,8 @@ export interface ArtistPage {
 
 export interface PlaylistPage {
   playlist: PlaylistSummary;
-  tracks: Track[];
+  /** Dans l'ordre de la playlist. */
+  tracks: TrackEntry[];
 }
 
 export interface SearchResults {
@@ -176,7 +183,7 @@ export const commands = {
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
   playlist: (uuid: string) => invoke<PlaylistPage>("playlist", { uuid }),
-  libraryTracks: () => invoke<Track[]>("library_tracks"),
+  libraryTracks: () => invoke<TrackEntry[]>("library_tracks"),
   libraryAlbums: () => invoke<AlbumSummary[]>("library_albums"),
   libraryArtists: () => invoke<ArtistSummary[]>("library_artists"),
   libraryPlaylists: () => invoke<PlaylistSummary[]>("library_playlists"),

@@ -5,7 +5,7 @@ import {
   type AlbumSummary,
   type ArtistSummary,
   type PlaylistSummary,
-  type Track,
+  type TrackEntry,
 } from "../ipc";
 import type { LibraryTab } from "./nav.svelte";
 
@@ -21,7 +21,7 @@ export const library = $state({
   playlists: empty<PlaylistSummary>(),
   albums: empty<AlbumSummary>(),
   artists: empty<ArtistSummary>(),
-  tracks: empty<Track>(),
+  tracks: empty<TrackEntry>(),
 });
 
 const loaders = {
