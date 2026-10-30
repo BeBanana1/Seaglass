@@ -137,6 +137,10 @@
   background: rgb(255 255 255 / 0.65);
 }
 
+:root[data-theme="surreal"] .hires-edition {
+  font-style: italic;
+}
+
 /* Vue « En lecture » : la pochette flotte au-dessus de son ombre sur la colline. */
 :root[data-theme="surreal"] .now-playing .art {
   position: relative;

@@ -213,6 +213,13 @@
   background: rgb(0 0 0 / 0.55);
 }
 
+:root[data-theme="acidwave"] .hires-edition {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 :root[data-theme="acidwave"] .verdict {
   border-radius: 0;
 }
