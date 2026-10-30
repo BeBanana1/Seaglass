@@ -8,6 +8,7 @@ import { openPlaylistPicker } from "./stores/playlistPicker.svelte";
 import type { MenuEntry } from "./stores/menu.svelte";
 import { pushToast } from "./stores/toasts.svelte";
 import { openTrackInfo } from "./stores/trackInfo.svelte";
+import { t } from "./i18n.svelte";
 
 export interface TrackMenuOptions {
   /** Lire le titre dans son contexte (liste affichée). */
@@ -35,21 +36,22 @@ async function run(action: () => Promise<unknown>) {
 
 async function copyLink(track: Track) {
   await navigator.clipboard.writeText(trackLink(track));
-  pushToast({ level: "info", message: "Lien copié" });
+  pushToast({ level: "info", message: t.common.linkCopied });
 }
 
 export function trackMenu(
   track: Track,
   { onPlay, onRemove, queueable = true, onRemoveFromPlaylist }: TrackMenuOptions,
 ): MenuEntry[] {
+  const m = t.menu;
   const entries: MenuEntry[] = [];
-  if (onPlay) entries.push({ label: "Lire", icon: "play", action: onPlay });
+  if (onPlay) entries.push({ label: m.play, icon: "play", action: onPlay });
   if (onRemove) {
-    entries.push({ label: "Retirer de la file", icon: "close", action: onRemove });
+    entries.push({ label: m.removeFromQueue, icon: "close", action: onRemove });
   } else if (queueable) {
     entries.push(
-      { label: "Lire ensuite", icon: "playNext", action: () => run(() => commands.playNext(track.id)) },
-      { label: "Ajouter à la file", icon: "add", action: () => run(() => commands.addToQueue(track.id)) },
+      { label: m.playNext, icon: "playNext", action: () => run(() => commands.playNext(track.id)) },
+      { label: m.addToQueue, icon: "add", action: () => run(() => commands.addToQueue(track.id)) },
     );
   }
   if (entries.length > 0) entries.push("separator");
@@ -57,29 +59,29 @@ export function trackMenu(
   const liked = isLiked(track.id);
   entries.push(
     {
-      label: liked ? "Retirer des titres likés" : "Ajouter aux titres likés",
+      label: liked ? m.unlike : m.like,
       icon: liked ? "heartFilled" : "heart",
       action: () => toggleLike(track),
     },
     {
-      label: "Ajouter à une playlist…",
+      label: m.addToPlaylist,
       icon: "playlistAdd",
       action: () => openPlaylistPicker({ trackIds: [track.id], label: fullTitle(track) }),
     },
   );
   if (onRemoveFromPlaylist) {
-    entries.push({ label: "Retirer de cette playlist", icon: "remove", action: onRemoveFromPlaylist });
+    entries.push({ label: m.removeFromPlaylist, icon: "remove", action: onRemoveFromPlaylist });
   }
   entries.push("separator");
 
   entries.push(
-    { label: "Radio du titre", icon: "radio", action: () => go({ name: "radio", seed: "track", id: track.id }) },
-    { label: "Aller à l'album", icon: "album", action: () => go({ name: "album", id: track.album.id }) },
+    { label: m.trackRadio, icon: "radio", action: () => go({ name: "radio", seed: "track", id: track.id }) },
+    { label: m.goToAlbum, icon: "album", action: () => go({ name: "album", id: track.album.id }) },
   );
   // Une entrée par artiste : « Aller à l'artiste » seul serait ambigu sur un featuring.
   for (const artist of track.artists) {
     entries.push({
-      label: track.artists.length > 1 ? `Aller à ${artist.name}` : "Aller à l'artiste",
+      label: track.artists.length > 1 ? m.goTo(artist.name) : m.goToArtist,
       icon: "artist",
       action: () => go({ name: "artist", id: artist.id }),
     });
@@ -87,8 +89,8 @@ export function trackMenu(
 
   entries.push(
     "separator",
-    { label: "Infos du titre", icon: "info", action: () => openTrackInfo(track) },
-    { label: "Copier le lien", icon: "link", action: () => run(() => copyLink(track)) },
+    { label: m.trackInfo, icon: "info", action: () => openTrackInfo(track) },
+    { label: m.copyLink, icon: "link", action: () => run(() => copyLink(track)) },
   );
   return entries;
 }

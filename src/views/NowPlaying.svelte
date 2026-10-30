@@ -18,6 +18,7 @@
   import SignalPath from "../components/SignalPath.svelte";
   import Transport from "../components/Transport.svelte";
   import Volume from "../components/Volume.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   let { onClose }: { onClose: () => void } = $props();
 
@@ -38,7 +39,7 @@
   });
 </script>
 
-<div class="now-playing" class:lyrics-open={panel === "lyrics"} role="dialog" aria-modal="true" aria-label="En lecture">
+<div class="now-playing" class:lyrics-open={panel === "lyrics"} role="dialog" aria-modal="true" aria-label={t.views.nowPlaying.title}>
   <Backdrop context="nowplaying" />
   <div class="top-actions" class:with-panel={panel}>
     <button
@@ -46,7 +47,7 @@
       class:on={panel === "lyrics"}
       onclick={() => toggle("lyrics")}
       aria-pressed={panel === "lyrics"}
-      title="Paroles"
+      title={t.views.nowPlaying.lyrics}
     >
       <Icon name="lyrics" size={20} />
     </button>
@@ -55,11 +56,11 @@
       class:on={queueOpen}
       onclick={() => toggle("queue")}
       aria-pressed={queueOpen}
-      title="File d'attente"
+      title={t.player.queue}
     >
       <Icon name="queue" size={20} />
     </button>
-    <button class="close" onclick={onClose} title="Fermer (Échap)">
+    <button class="close" onclick={onClose} title={t.views.nowPlaying.close}>
       <Icon name="close" size={20} />
     </button>
   </div>
@@ -75,7 +76,7 @@
             {/if}
           </div>
           <div class="info">
-            <span class="label">En lecture</span>
+            <span class="label">{t.views.nowPlaying.title}</span>
             <h1 class="display">{fullTitle(track)}</h1>
             <div class="who">
               {#each track.artists as artist, i (artist.id)}
@@ -90,12 +91,12 @@
               <button
                 class="now-add"
                 onclick={() => openPlaylistPicker({ trackIds: [track.id], label: fullTitle(track) })}
-                title="Ajouter à une playlist"
-                aria-label="Ajouter à une playlist"
+                title={t.views.header.addToPlaylist}
+                aria-label={t.views.header.addToPlaylist}
               >
                 <Icon name="playlistAdd" size={20} />
               </button>
-              <button class="now-add" onclick={() => openTrackInfo(track)} title="Infos du titre" aria-label="Infos du titre">
+              <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
                 <Icon name="info" size={20} />
               </button>
             </div>
@@ -110,13 +111,13 @@
 
             {#if upNext.length > 0 && !panel}
               <div class="next">
-                <span class="label">À suivre</span>
+                <span class="label">{t.views.nowPlaying.upNext}</span>
                 <ol>
-                  {#each upNext as t, i (`${i}-${t.id}`)}
+                  {#each upNext as next, i (`${i}-${next.id}`)}
                     <li>
-                      {#if t.album.coverUrl}<img src={t.album.coverUrl} alt="" />{/if}
-                      <span class="t">{fullTitle(t)}</span>
-                      <span class="a">{t.artists.map((a) => a.name).join(", ")}</span>
+                      {#if next.album.coverUrl}<img src={next.album.coverUrl} alt="" />{/if}
+                      <span class="t">{fullTitle(next)}</span>
+                      <span class="a">{next.artists.map((a) => a.name).join(", ")}</span>
                     </li>
                   {/each}
                 </ol>
@@ -125,18 +126,18 @@
           </div>
         </div>
       {:else}
-        <p class="empty">Rien en lecture.</p>
+        <p class="empty">{t.views.nowPlaying.empty}</p>
       {/if}
     </div>
 
     {#if queueOpen}
-      <aside class="panel np-panel np-queue" aria-label="File d'attente">
-        <h2>File d'attente</h2>
+      <aside class="panel np-panel np-queue" aria-label={t.player.queue}>
+        <h2>{t.player.queue}</h2>
         <QueueList current={false} />
       </aside>
     {:else if panel === "lyrics"}
-      <aside class="panel np-panel np-lyrics" aria-label="Paroles">
-        <h2>Paroles</h2>
+      <aside class="panel np-panel np-lyrics" aria-label={t.views.nowPlaying.lyrics}>
+        <h2>{t.views.nowPlaying.lyrics}</h2>
         <Lyrics />
       </aside>
     {/if}

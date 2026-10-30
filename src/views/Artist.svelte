@@ -4,6 +4,7 @@
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
   import CardGrid from "../components/CardGrid.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   let { id }: { id: number } = $props();
 
@@ -28,23 +29,23 @@
   {#if error}
     <p class="error">{error}</p>
   {:else if !page}
-    <p class="muted">Chargement…</p>
+    <p class="muted">{t.common.loading}</p>
   {:else}
     <PageHeader
       image={page.artist.pictureUrl}
-      eyebrow="Artiste"
+      eyebrow={t.format.artist}
       title={page.artist.name}
       round
-      trackIds={page.topTracks.map((t) => t.id)}
+      trackIds={page.topTracks.map((track) => track.id)}
       onRadio={() => go({ name: "radio", seed: "artist", id })}
     />
     {#if page.topTracks.length > 0}
-      <h2>Titres populaires</h2>
+      <h2>{t.views.artist.popular}</h2>
       <TrackList tracks={page.topTracks} numbering="index" />
     {/if}
     <div class="grids">
-      <CardGrid title="Albums" items={asItems(page.albums)} />
-      <CardGrid title="EP et singles" items={asItems(page.singles)} />
+      <CardGrid title={t.views.artist.albums} items={asItems(page.albums)} />
+      <CardGrid title={t.views.artist.singles} items={asItems(page.singles)} />
     </div>
   {/if}
 </section>

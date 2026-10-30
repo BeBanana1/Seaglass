@@ -9,21 +9,26 @@ mod job;
 pub mod process;
 pub mod serve;
 
+use crate::i18n::{tr, trf};
 pub use cache::CacheSize;
 pub use events::{AudioParams, EndReason, MpvEvent, Property};
 pub use ipc::MpvHandle;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MpvError {
-    #[error("impossible de lancer mpv ({0}) : vérifier le PATH ou SEAGLASS_MPV_PATH")]
+    #[error("{}", trf!(
+        "impossible de lancer mpv ({}) : vérifier le PATH ou SEAGLASS_MPV_PATH",
+        "cannot start mpv ({}): check PATH or SEAGLASS_MPV_PATH",
+        .0
+    ))]
     Spawn(std::io::Error),
-    #[error("connexion IPC à mpv impossible : {0}")]
+    #[error("{}", trf!("connexion IPC à mpv impossible : {}", "cannot connect to mpv over IPC: {}", .0))]
     Connect(std::io::Error),
-    #[error("mpv s'est arrêté")]
+    #[error("{}", tr("mpv s'est arrêté", "mpv stopped"))]
     Closed,
-    #[error("mpv a refusé la commande : {0}")]
+    #[error("{}", trf!("mpv a refusé la commande : {}", "mpv rejected the command: {}", .0))]
     Command(String),
-    #[error("serveur de manifestes : {0}")]
+    #[error("{}", trf!("serveur de manifestes : {}", "manifest server: {}", .0))]
     Serve(std::io::Error),
 }
 

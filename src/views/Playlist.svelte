@@ -15,6 +15,7 @@
   import { refreshPinTitle } from "../lib/stores/ui.svelte";
   import { notePlaylistChange, playlistChanges } from "../lib/stores/playlistPicker.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   const SORT_KEYS: SortKey[] = ["position", "added", "title", "artist", "album", "duration"];
   const DEFAULT_SORT: TrackSort = { key: "position", descending: false };
@@ -59,7 +60,7 @@
     if (!entry) return;
     try {
       await commands.removeFromPlaylist(uuid, entry.position - 1, entry.track.id);
-      pushToast({ level: "info", message: `« ${fullTitle(entry.track)} » retiré de la playlist` });
+      pushToast({ level: "info", message: t.views.playlist.removed(fullTitle(entry.track)) });
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
@@ -77,15 +78,15 @@
   {#if error}
     <p class="error">{error}</p>
   {:else if !page}
-    <p class="muted">Chargement…</p>
+    <p class="muted">{t.common.loading}</p>
   {:else}
     {@const playlist = page.playlist}
     <PageHeader
       image={playlist.imageUrl}
-      eyebrow="Playlist"
+      eyebrow={t.format.playlist}
       title={playlist.title}
       description={playlist.description}
-      trackIds={sorted.map((t) => t.track.id)}
+      trackIds={sorted.map((l) => l.track.id)}
       queueable
       pin={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
     >
@@ -104,11 +105,11 @@
       />
     {/if}
     {#if shown.length === 0 && query.trim()}
-      <p class="muted empty">Aucun titre ne correspond à « {query.trim()} ».</p>
+      <p class="muted empty">{t.library.noMatch(query.trim())}</p>
     {:else}
       <TrackList
-        tracks={shown.map((t) => t.track)}
-        positions={shown.map((t) => t.position)}
+        tracks={shown.map((l) => l.track)}
+        positions={shown.map((l) => l.position)}
         numbering="index"
         onRemoveFromPlaylist={page.playlist.mine ? removeAt : undefined}
       />

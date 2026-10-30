@@ -33,7 +33,10 @@ pub enum StoreError {
     Sqlite(#[from] rusqlite::Error),
     #[error("JSON : {0}")]
     Json(#[from] serde_json::Error),
-    #[error("verrou de la base empoisonné")]
+    #[error(
+        "{}",
+        crate::i18n::tr("verrou de la base empoisonné", "database lock poisoned")
+    )]
     Poisoned,
 }
 

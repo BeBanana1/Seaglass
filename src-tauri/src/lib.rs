@@ -1,4 +1,5 @@
 mod commands;
+mod i18n;
 mod integrations;
 mod mpv;
 mod player;
@@ -41,6 +42,12 @@ pub fn run() {
                 .path()
                 .resolve("mpv/seaglass.conf", BaseDirectory::Resource)?;
             let store = open_store(app);
+            // Avant le lecteur : ses toasts et les requêtes TIDAL suivent la langue.
+            i18n::set(
+                commands::settings::load_from(store.as_deref())
+                    .language
+                    .resolve(),
+            );
             let mpv_process = Arc::new(ProcessGuard::default());
             let player = player::spawn(
                 app.handle().clone(),
@@ -104,6 +111,8 @@ pub fn run() {
             commands::player::queue_state,
             commands::settings::ui_settings,
             commands::settings::set_ui_settings,
+            commands::settings::language,
+            commands::settings::set_language,
             commands::settings::set_home_layout,
             commands::settings::reset_home_layout,
             commands::settings::set_pins,

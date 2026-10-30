@@ -2,7 +2,7 @@
   // « Ajouter à une playlist » (#4) : vos playlists, filtre, création d'une nouvelle.
   // Ouverte par `openPlaylistPicker` (lib/stores/playlistPicker.svelte.ts).
   import { commands, type PlaylistSummary } from "../lib/ipc";
-  import { plural } from "../lib/format";
+  import { t } from "../lib/i18n.svelte";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
   import { closePlaylistPicker, notePlaylistChange, picker } from "../lib/stores/playlistPicker.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
@@ -56,14 +56,13 @@
     try {
       const added = await commands.addToPlaylist(playlist.uuid, request.trackIds);
       const skipped = request.trackIds.length - added;
-      const where = `« ${playlist.title} »`;
-      let message: string;
-      if (added === 0) message = `Déjà dans ${where}`;
-      else if (request.trackIds.length === 1) message = `Ajouté à ${where}`;
-      else {
-        message = `${plural(added, "titre")} ${added > 1 ? "ajoutés" : "ajouté"} à ${where}`;
-        if (skipped > 0) message += ` (${skipped} déjà ${skipped > 1 ? "présents" : "présent"})`;
-      }
+      const p = t.library.picker;
+      const message =
+        added === 0
+          ? p.already(playlist.title)
+          : request.trackIds.length === 1
+            ? p.addedOne(playlist.title)
+            : p.addedMany(added, playlist.title, skipped);
       pushToast({ level: "info", message });
       done(playlist.uuid);
     } catch (e) {
@@ -81,7 +80,7 @@
     busy = true;
     try {
       const uuid = await commands.createPlaylist(title, request.trackIds);
-      pushToast({ level: "info", message: `Playlist « ${title} » créée` });
+      pushToast({ level: "info", message: t.library.picker.created(title) });
       done(uuid);
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
@@ -112,37 +111,37 @@
     >
       <header>
         <div>
-          <h3 id="picker-title" class="display">Ajouter à une playlist</h3>
+          <h3 id="picker-title" class="display">{t.library.picker.title}</h3>
           <p class="sub">{picker.request.label}</p>
         </div>
-        <button class="close" onclick={closePlaylistPicker} aria-label="Fermer"><Icon name="close" /></button>
+        <button class="close" onclick={closePlaylistPicker} aria-label={t.common.close}><Icon name="close" /></button>
       </header>
 
       <input
         class="picker-filter"
         type="text"
-        placeholder="Filtrer vos playlists"
+        placeholder={t.library.picker.filter}
         bind:value={query}
         bind:this={filterInput}
-        aria-label="Filtrer vos playlists"
+        aria-label={t.library.picker.filter}
       />
 
       {#if creating}
         <form class="picker-new-form" onsubmit={create}>
           <input
             type="text"
-            placeholder="Nom de la playlist"
+            placeholder={t.library.picker.newName}
             maxlength="200"
             bind:value={newTitle}
             bind:this={titleInput}
-            aria-label="Nom de la nouvelle playlist"
+            aria-label={t.library.picker.newNameLabel}
           />
-          <button class="primary" type="submit" disabled={busy || !newTitle.trim()}>Créer</button>
+          <button class="primary" type="submit" disabled={busy || !newTitle.trim()}>{t.library.picker.create}</button>
         </form>
       {:else}
         <button class="picker-item picker-new" onclick={() => (creating = true)} disabled={busy}>
           <span class="thumb"><Icon name="add" /></span>
-          <span class="name">Nouvelle playlist…</span>
+          <span class="name">{t.library.picker.newPlaylist}</span>
         </button>
       {/if}
 
@@ -150,11 +149,11 @@
         {#if error}
           <p class="error">{error}</p>
         {:else if !playlists}
-          <p class="sub">Chargement…</p>
+          <p class="sub">{t.common.loading}</p>
         {:else if playlists.length === 0}
-          <p class="sub">Vous n'avez pas encore de playlist.</p>
+          <p class="sub">{t.library.picker.none}</p>
         {:else if shown.length === 0}
-          <p class="sub">Aucune playlist ne correspond à « {query.trim()} ».</p>
+          <p class="sub">{t.library.picker.noMatch(query.trim())}</p>
         {:else}
           {#each shown as playlist (playlist.uuid)}
             <button class="picker-item" onclick={() => add(playlist)} disabled={busy}>
@@ -165,7 +164,7 @@
               </span>
               <span class="name">{playlist.title}</span>
               {#if playlist.numberOfTracks !== null}
-                <span class="count">{plural(playlist.numberOfTracks, "titre")}</span>
+                <span class="count">{t.common.tracks(playlist.numberOfTracks)}</span>
               {/if}
             </button>
           {/each}

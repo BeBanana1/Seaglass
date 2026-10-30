@@ -1,0 +1,39 @@
+// Menu contextuel d'un titre et boutons d'action sur un titre (cœur, épingle).
+
+export const fr = {
+  play: "Lire",
+  removeFromQueue: "Retirer de la file",
+  playNext: "Lire ensuite",
+  addToQueue: "Ajouter à la file",
+  unlike: "Retirer des titres likés",
+  like: "Ajouter aux titres likés",
+  addToPlaylist: "Ajouter à une playlist…",
+  removeFromPlaylist: "Retirer de cette playlist",
+  trackRadio: "Radio du titre",
+  goToAlbum: "Aller à l'album",
+  goToArtist: "Aller à l'artiste",
+  goTo: (name: string) => `Aller à ${name}`,
+  trackInfo: "Infos du titre",
+  copyLink: "Copier le lien",
+  pin: "Épingler dans la barre latérale",
+  unpin: "Désépingler de la barre latérale",
+};
+
+export const en: typeof fr = {
+  play: "Play",
+  removeFromQueue: "Remove from queue",
+  playNext: "Play next",
+  addToQueue: "Add to queue",
+  unlike: "Remove from liked tracks",
+  like: "Add to liked tracks",
+  addToPlaylist: "Add to playlist…",
+  removeFromPlaylist: "Remove from this playlist",
+  trackRadio: "Track radio",
+  goToAlbum: "Go to album",
+  goToArtist: "Go to artist",
+  goTo: (name: string) => `Go to ${name}`,
+  trackInfo: "Track info",
+  copyLink: "Copy link",
+  pin: "Pin to sidebar",
+  unpin: "Unpin from sidebar",
+};

@@ -3,6 +3,7 @@
   import { setTheme, THEMES, ui } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import type { Theme } from "../lib/ipc";
+  import { t } from "../lib/i18n.svelte";
 
   async function choose(theme: Theme) {
     try {
@@ -13,8 +14,9 @@
   }
 </script>
 
-<div class="themes" role="radiogroup" aria-label="Thème">
-  {#each THEMES as theme (theme.id)}
+<div class="themes" role="radiogroup" aria-label={t.settings.theme}>
+  {#each THEMES as id (id)}
+    {@const theme = { id, ...t.settings.themes[id] }}
     <button
       class="theme-card"
       class:selected={ui.settings.theme === theme.id}

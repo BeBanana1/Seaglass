@@ -9,7 +9,9 @@ use tauri::{AppHandle, State};
 use tauri_plugin_autostart::ManagerExt;
 
 use super::{AppState, CmdResult, err};
+use crate::i18n::{self, Lang, LanguagePref, tr};
 use crate::player::{Cmd, PlaybackSettings};
+use crate::store::Store;
 use home_layout::{HomeLayout, SectionPref};
 use pins::Pin;
 
@@ -42,6 +44,8 @@ pub struct UiSettings {
     /// Couleur d'accent choisie (`#rrggbb`, #23) ; absente : celle du thème.
     #[serde(deserialize_with = "accent_color")]
     pub accent: Option<String>,
+    /// Langue de l'app (#7) ; `system` suit la langue d'affichage de Windows.
+    pub language: LanguagePref,
 }
 
 /// N'accepte que `#rrggbb` (mis en minuscules) : la valeur part telle quelle dans le CSS.
@@ -53,15 +57,20 @@ fn accent_color<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>
     if hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()) {
         Ok(Some(color.to_ascii_lowercase()))
     } else {
-        Err(serde::de::Error::custom(
+        Err(serde::de::Error::custom(tr(
             "couleur d'accent invalide (attendu #rrggbb)",
-        ))
+            "invalid accent color (expected #rrggbb)",
+        )))
     }
 }
 
 /// Réglages enregistrés ; illisibles (ancienne version, valeur inconnue) : valeurs par défaut.
 pub(crate) fn load(state: &AppState) -> UiSettings {
-    let Some(store) = &state.store else {
+    load_from(state.store.as_deref())
+}
+
+pub(crate) fn load_from(store: Option<&Store>) -> UiSettings {
+    let Some(store) = store else {
         return UiSettings::default();
     };
     store
@@ -73,7 +82,11 @@ pub(crate) fn load(state: &AppState) -> UiSettings {
 fn save(state: &AppState, settings: &UiSettings) -> CmdResult<()> {
     match &state.store {
         Some(store) => store.set_setting(KEY_UI, settings).map_err(err),
-        None => Err("base SQLite indisponible, réglage non enregistré".into()),
+        None => Err(tr(
+            "base SQLite indisponible, réglage non enregistré",
+            "SQLite database unavailable, setting not saved",
+        )
+        .into()),
     }
 }
 
@@ -85,7 +98,27 @@ pub async fn ui_settings(state: State<'_, AppState>) -> CmdResult<UiSettings> {
 /// La désérialisation de `settings` valide le thème : une valeur inconnue est refusée.
 #[tauri::command]
 pub async fn set_ui_settings(state: State<'_, AppState>, settings: UiSettings) -> CmdResult<()> {
-    save(&state, &settings)
+    save(&state, &settings)?;
+    i18n::set(settings.language.resolve());
+    Ok(())
+}
+
+/// Langue effective : celle du réglage, ou celle du système pour `system`.
+#[tauri::command]
+pub async fn language() -> CmdResult<Lang> {
+    Ok(i18n::current())
+}
+
+/// Enregistre le réglage de langue, l'applique aux messages du backend et à la `locale`
+/// des requêtes TIDAL, et renvoie la langue effective.
+#[tauri::command]
+pub async fn set_language(state: State<'_, AppState>, language: LanguagePref) -> CmdResult<Lang> {
+    let mut settings = load(&state);
+    settings.language = language;
+    save(&state, &settings)?;
+    let lang = language.resolve();
+    i18n::set(lang);
+    Ok(lang)
 }
 
 /// Enregistre l'ordre et le masquage des sections affichées sur l'accueil (dans l'ordre de
@@ -134,14 +167,18 @@ pub async fn set_playback_settings(
     settings: PlaybackSettings,
 ) -> CmdResult<()> {
     let Some(store) = &state.store else {
-        return Err("base SQLite indisponible, réglage non enregistré".into());
+        return Err(tr(
+            "base SQLite indisponible, réglage non enregistré",
+            "SQLite database unavailable, setting not saved",
+        )
+        .into());
     };
     settings.save(store).map_err(err)?;
     state
         .player
         .send(Cmd::SetPlaybackSettings(settings))
         .await
-        .map_err(|_| "lecteur arrêté".to_owned())
+        .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
 }
 
 /// État réel du lancement au démarrage, lu dans le système à chaque appel : il peut avoir

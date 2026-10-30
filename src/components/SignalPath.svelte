@@ -10,6 +10,7 @@
     softwareGain,
     volumeLabel,
   } from "../lib/format";
+  import { t } from "../lib/i18n.svelte";
 
   let {
     compact = false,
@@ -25,27 +26,27 @@
   const verdict = $derived(signalVerdict(s.stream, s.output, s.volume));
   /** Sous-titre du nœud mpv : format de sortie, et le volume s'il modifie le signal. */
   const decodeSub = $derived(
-    [s.output ? outputFormat(s.output.format) : "—", softwareGain(s.volume) ? `vol. ${volumeLabel(s.volume)}` : ""]
+    [s.output ? outputFormat(s.output.format) : "—", softwareGain(s.volume) ? t.player.volumeShort(volumeLabel(s.volume)) : ""]
       .filter(Boolean)
       .join(" · "),
   );
   /** Flux pris sur une autre édition hi-res du même enregistrement (#18). */
   const edition = $derived(s.stream?.hiresEdition ?? null);
-  const editionHint = $derived(edition ? `Version hi-res de l'édition « ${edition} »` : undefined);
+  const editionHint = $derived(edition ? t.player.editionHint(edition) : undefined);
   const sourceSub = $derived.by(() => {
     if (!s.stream) return "";
     const kind = edition
-      ? "Hi-Res · autre édition"
+      ? t.player.hiresOtherEdition
       : s.stream.quality === "HI_RES_LOSSLESS"
         ? "Hi-Res"
         : s.stream.codec === "flac"
           ? "Lossless"
-          : "Avec perte";
+          : t.player.lossy;
     // Débit moyen du manifeste (#3) ; la version resserrée garde la ligne courte.
     return s.stream.bitrate && !dense ? `${kind} · ${kbps(s.stream.bitrate)}` : kind;
   });
   const sourceTitle = $derived(
-    [editionHint, s.stream?.bitrate ? `Débit moyen : ${kbps(s.stream.bitrate)}` : ""].filter(Boolean).join(" — ") ||
+    [editionHint, s.stream?.bitrate ? t.player.averageBitrate(kbps(s.stream.bitrate)) : ""].filter(Boolean).join(" — ") ||
       undefined,
   );
 </script>
@@ -58,28 +59,28 @@
 {:else}
   <div class="path {verdict.tone}" class:dense>
     <div class="node" title={sourceTitle}>
-      <span class="label">Source</span>
+      <span class="label">{t.player.source}</span>
       <span class="value mono">{s.stream ? formatStream(s.stream) : "—"}</span>
       <span class="sub">{sourceSub}</span>
     </div>
     <span class="wire" aria-hidden="true"></span>
     <div class="node">
-      <span class="label">Décodage</span>
+      <span class="label">{t.player.decoding}</span>
       <span class="value mono">mpv</span>
       <span class="sub">{decodeSub}</span>
     </div>
     <span class="wire" aria-hidden="true"></span>
     <div class="node">
-      <span class="label">Sortie</span>
+      <span class="label">{t.player.output}</span>
       <span class="value mono">{s.output ? `${khz(s.output.samplerate)} kHz` : "—"}</span>
-      <span class="sub">{s.outputDriver ? `${s.outputDriver.toUpperCase()} · partagé` : ""}</span>
+      <span class="sub">{s.outputDriver ? `${s.outputDriver.toUpperCase()} · ${t.player.shared}` : ""}</span>
     </div>
     <div class="verdict" title={verdict.detail}>
       <span class="dot"></span>{verdict.label}
     </div>
     {#if edition && !dense}
-      <p class="hires-edition" title="Même enregistrement, lu depuis une autre édition : le master peut différer.">
-        Édition hi-res : <span class="hires-edition-album">{edition}</span>
+      <p class="hires-edition" title={t.player.hiresEditionHint}>
+        {t.player.hiresEdition} <span class="hires-edition-album">{edition}</span>
       </p>
     {/if}
   </div>

@@ -10,6 +10,7 @@ use std::collections::{BTreeSet, HashMap};
 
 use serde::{Deserialize, Serialize};
 
+use crate::i18n::{tr, trf};
 use crate::tidal::models::HomeRow;
 
 /// Nombre maximal de sections envoyées par l'UI (le flux en compte une quinzaine).
@@ -46,9 +47,13 @@ pub struct SectionPref {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum LayoutError {
-    #[error("trop de sections ({0}, maximum {MAX_SECTIONS})")]
+    #[error("{}", trf!(
+        "trop de sections ({}, maximum {MAX_SECTIONS})",
+        "too many sections ({}, maximum {MAX_SECTIONS})",
+        .0
+    ))]
     TooMany(usize),
-    #[error("clé de section invalide")]
+    #[error("{}", tr("clé de section invalide", "invalid section key"))]
     InvalidKey,
 }
 

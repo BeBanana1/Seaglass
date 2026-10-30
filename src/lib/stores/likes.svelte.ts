@@ -2,6 +2,7 @@
 
 import { commands, events, type Track, type TrackId } from "../ipc";
 import { pushToast } from "./toasts.svelte";
+import { t } from "../i18n.svelte";
 
 export const likes = $state<{ ids: Set<TrackId>; pending: Set<TrackId> }>({
   ids: new Set(),
@@ -21,7 +22,7 @@ export async function loadLikes() {
   try {
     likes.ids = new Set(await commands.likedTracks());
   } catch (e) {
-    pushToast({ level: "error", message: `Titres likés illisibles : ${e}` });
+    pushToast({ level: "error", message: t.common.likesError(String(e)) });
   }
 }
 

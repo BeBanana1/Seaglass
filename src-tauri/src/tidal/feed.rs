@@ -17,8 +17,6 @@ use super::models::{FeedItem, MediaItem};
 use super::raw::RawAlbumFull;
 use super::{Result, TidalError};
 
-const FEED_LOCALE: &str = "fr_FR";
-
 #[derive(Deserialize)]
 struct RawFeed {
     #[serde(default)]
@@ -72,7 +70,7 @@ impl TidalClient {
                 &[
                     ("userId", user.to_string()),
                     ("deviceType", "BROWSER".to_owned()),
-                    ("locale", FEED_LOCALE.to_owned()),
+                    ("locale", crate::i18n::tidal_locale().to_owned()),
                     ("platform", "WEB".to_owned()),
                 ],
             )

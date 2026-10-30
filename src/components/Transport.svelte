@@ -1,16 +1,12 @@
 <script lang="ts">
   import { commands, type Repeat } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
+  import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
 
   let { large = false }: { large?: boolean } = $props();
 
   const nextRepeat: Record<Repeat, Repeat> = { off: "all", all: "one", one: "off" };
-  const repeatLabel: Record<Repeat, string> = {
-    off: "Répéter : désactivé",
-    all: "Répéter : tout",
-    one: "Répéter : ce titre",
-  };
 
   const s = $derived(player.state);
   const playing = $derived(!s.paused && !s.idle);
@@ -22,19 +18,19 @@
     class="toggle"
     class:on={s.shuffle}
     onclick={() => commands.setShuffle(!s.shuffle)}
-    title={s.shuffle ? "Lecture aléatoire : activée" : "Lecture aléatoire : désactivée"}
+    title={s.shuffle ? t.player.shuffleOn : t.player.shuffleOff}
   >
     <Icon name="shuffle" size={size - 2} />
   </button>
-  <button onclick={() => commands.previous()} disabled={!s.track} title="Précédent">
+  <button onclick={() => commands.previous()} disabled={!s.track} title={t.player.previous}>
     <Icon name="previous" {size} />
   </button>
   <button
     class="play"
     onclick={() => commands.togglePause()}
     disabled={!s.track}
-    aria-label={playing ? "Pause" : "Lecture"}
-    title={playing ? "Pause (Espace)" : "Lecture (Espace)"}
+    aria-label={playing ? t.player.pause : t.player.play}
+    title={playing ? t.player.pauseHint : t.player.playHint}
   >
     {#if s.loading || s.buffering}
       <span class="spinner"></span>
@@ -42,14 +38,14 @@
       <Icon name={playing ? "pause" : "play"} {size} />
     {/if}
   </button>
-  <button onclick={() => commands.next()} disabled={!s.hasNext} title="Suivant">
+  <button onclick={() => commands.next()} disabled={!s.hasNext} title={t.player.next}>
     <Icon name="next" {size} />
   </button>
   <button
     class="toggle"
     class:on={s.repeat !== "off"}
     onclick={() => commands.setRepeat(nextRepeat[s.repeat])}
-    title={repeatLabel[s.repeat]}
+    title={t.player.repeat[s.repeat]}
   >
     <Icon name="repeat" size={size - 2} />
     {#if s.repeat === "one"}<span class="one">1</span>{/if}

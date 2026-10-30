@@ -8,6 +8,7 @@ use super::actor::{Cmd, Player, Slot};
 use super::queue::Repeat;
 use super::settings::HiresUpgrade;
 use super::upgrade;
+use crate::i18n::{tr, trf};
 use crate::mpv::{CacheSize, EndReason};
 use crate::tidal::models::{AudioQuality, Stream, StreamSource, Track, TrackId};
 
@@ -208,14 +209,17 @@ impl Player {
         let Some(id) = self.queue.current() else {
             return;
         };
-        let detail = error.unwrap_or_else(|| "erreur inconnue".into());
+        let detail = error.unwrap_or_else(|| tr("erreur inconnue", "unknown error").into());
         if self.retried != Some(id) {
             tracing::warn!("erreur de lecture sur {id} ({detail}), nouvelle URL");
             self.retried = Some(id);
             self.load_current(id, self.state.time_pos);
         } else {
-            self.on_track_failed(format!("lecture impossible : {detail}"))
-                .await;
+            self.on_track_failed(trf!(
+                "lecture impossible : {detail}",
+                "cannot play: {detail}"
+            ))
+            .await;
         }
     }
 
@@ -226,7 +230,14 @@ impl Player {
         self.loaded = false;
         if self.failures >= MAX_FAILURES {
             self.failures = 0;
-            self.toast("error", "trop d'échecs consécutifs, lecture arrêtée".into());
+            self.toast(
+                "error",
+                tr(
+                    "trop d'échecs consécutifs, lecture arrêtée",
+                    "too many consecutive failures, playback stopped",
+                )
+                .into(),
+            );
             self.mpv_command(vec![json!("stop")]).await;
             return;
         }
@@ -340,7 +351,14 @@ impl Player {
                 Some(server.publish(&track.id.to_string(), mpd.clone()))
             }
             (StreamSource::Dash(_), None) => {
-                self.toast("error", "serveur de manifestes indisponible".into());
+                self.toast(
+                    "error",
+                    tr(
+                        "serveur de manifestes indisponible",
+                        "manifest server unavailable",
+                    )
+                    .into(),
+                );
                 None
             }
         }

@@ -1,0 +1,82 @@
+// Mise en forme partagée : durées, verdicts de la chaîne audio, tonalités, sous-titres.
+
+import { num } from "./state.svelte";
+
+export const fr = {
+  longDuration: (h: number, min: number) => (h > 0 ? `${h} h ${min} min` : `${min} min`),
+  single: "Single",
+  ep: "EP",
+  album: "Album",
+  editorial: "Éditoriale",
+  yourPlaylist: "Votre playlist",
+  playlist: "Playlist",
+  artist: "Artiste",
+  mix: "Mix",
+  percent: (n: number) => `${num(n)} %`,
+  muted: "coupé",
+
+  verdict: {
+    mutedLabel: "Son coupé",
+    mutedDetail: "son coupé dans mpv",
+    gainLabel: "Volume logiciel",
+    gainDetail: (level: number) =>
+      `volume ${level} % : gain appliqué par mpv, plus bit-perfect (100 % pour le rétablir)`,
+    withVolume: (detail: string, volume: string) => `${detail} ; volume ${volume}`,
+    noStream: "Aucun flux",
+    lossyLabel: "Compressé",
+    lossyDetail: "flux AAC avec perte",
+    waitingLabel: "En attente",
+    waitingDetail: "sortie audio pas encore ouverte",
+    resampledLabel: "Rééchantillonné",
+    reducedLabel: "Profondeur réduite",
+    reducedDetail: "24 → 16 bits",
+    nativeLabel: "Fréquence native",
+    nativeDetail: "mpv transmet sans conversion ; en mode partagé, Windows peut encore mixer",
+  },
+
+  /** Noms des notes, de Do à Si (C à B). */
+  notes: { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" } as Record<string, string>,
+  major: " majeur",
+  minor: " mineur",
+  bits: (n: number) => `${n} bits`,
+  float32: "32 bits flottant",
+};
+
+export const en: typeof fr = {
+  longDuration: (h: number, min: number) => (h > 0 ? `${h} h ${min} min` : `${min} min`),
+  single: "Single",
+  ep: "EP",
+  album: "Album",
+  editorial: "Editorial",
+  yourPlaylist: "Your playlist",
+  playlist: "Playlist",
+  artist: "Artist",
+  mix: "Mix",
+  percent: (n: number) => `${num(n)}%`,
+  muted: "muted",
+
+  verdict: {
+    mutedLabel: "Muted",
+    mutedDetail: "muted in mpv",
+    gainLabel: "Software volume",
+    gainDetail: (level: number) =>
+      `volume ${level}%: gain applied by mpv, no longer bit-perfect (set 100% to restore)`,
+    withVolume: (detail: string, volume: string) => `${detail}; volume ${volume}`,
+    noStream: "No stream",
+    lossyLabel: "Compressed",
+    lossyDetail: "lossy AAC stream",
+    waitingLabel: "Waiting",
+    waitingDetail: "audio output not open yet",
+    resampledLabel: "Resampled",
+    reducedLabel: "Reduced bit depth",
+    reducedDetail: "24 → 16 bits",
+    nativeLabel: "Native rate",
+    nativeDetail: "mpv passes it through unchanged; in shared mode, Windows may still mix",
+  },
+
+  notes: { C: "C", D: "D", E: "E", F: "F", G: "G", A: "A", B: "B" },
+  major: " major",
+  minor: " minor",
+  bits: (n: number) => `${n}-bit`,
+  float32: "32-bit float",
+};

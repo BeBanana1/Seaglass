@@ -12,7 +12,11 @@ pub const MAX_LEVEL: u8 = 100;
 const UNMUTE_LEVEL: u8 = 50;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-#[error("volume invalide : {0} (attendu entre 0 et {MAX_LEVEL})")]
+#[error("{}", crate::i18n::trf!(
+    "volume invalide : {} (attendu entre 0 et {MAX_LEVEL})",
+    "invalid volume: {} (expected 0 to {MAX_LEVEL})",
+    .0
+))]
 pub struct InvalidVolume(pub u8);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

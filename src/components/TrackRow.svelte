@@ -6,6 +6,7 @@
   import { trackMenu } from "../lib/trackMenu";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   let {
     track,
@@ -76,7 +77,7 @@
       <img src={track.album.coverUrl} alt="" loading="lazy" />
     {/if}
     {#if onPlay}
-      <button class="cover-play" onclick={onPlay} aria-label="Lire {track.title}">
+      <button class="cover-play" onclick={onPlay} aria-label={t.views.row.play(track.title)}>
         <Icon name="play" size={16} />
       </button>
     {/if}
@@ -103,15 +104,15 @@
     {#if !actions}
       <!-- seulement le menu -->
     {:else if onRemove}
-      <button onclick={onRemove} title="Retirer de la file"><Icon name="close" size={16} /></button>
+      <button onclick={onRemove} title={t.menu.removeFromQueue}><Icon name="close" size={16} /></button>
     {:else}
-      <button onclick={() => commands.playNext(track.id)} title="Lire ensuite">
+      <button onclick={() => commands.playNext(track.id)} title={t.menu.playNext}>
         <Icon name="playNext" size={16} />
       </button>
-      <button onclick={() => commands.addToQueue(track.id)} title="Ajouter à la file">
+      <button onclick={() => commands.addToQueue(track.id)} title={t.menu.addToQueue}>
         <Icon name="add" size={16} />
       </button>
-      <button onclick={() => go({ name: "radio", seed: "track", id: track.id })} title="Radio du titre">
+      <button onclick={() => go({ name: "radio", seed: "track", id: track.id })} title={t.menu.trackRadio}>
         <Icon name="radio" size={16} />
       </button>
     {/if}
@@ -119,8 +120,8 @@
       class="more"
       bind:this={moreButton}
       onclick={toggleMore}
-      title="Plus d'actions"
-      aria-label="Plus d'actions"
+      title={t.views.row.more}
+      aria-label={t.views.row.more}
       aria-haspopup="menu"
       aria-expanded={menuOpen && menu.open?.from === moreButton}
     >

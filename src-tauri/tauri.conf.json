@@ -38,7 +38,7 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["French"]
+        "languages": ["English", "French"]
       }
     },
     "icon": [

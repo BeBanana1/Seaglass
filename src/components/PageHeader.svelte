@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { commands, type Pin, type TrackId } from "../lib/ipc";
-  import { plural } from "../lib/format";
+  import { t } from "../lib/i18n.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import Icon from "./Icon.svelte";
   import PinButton from "./PinButton.svelte";
@@ -47,10 +47,7 @@
   async function enqueue(next: boolean) {
     try {
       await commands.enqueueTracks(trackIds, next);
-      const added = plural(trackIds.length, "titre");
-      const verb = trackIds.length > 1 ? "ajoutés" : "ajouté";
-      const where = next ? "en tête de la file" : "à la file";
-      pushToast({ level: "info", message: `${added} ${verb} ${where}` });
+      pushToast({ level: "info", message: t.views.header.enqueued(trackIds.length, next) });
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
@@ -69,28 +66,28 @@
     {#if trackIds.length > 0}
       <div class="actions">
         <button class="primary" onclick={() => play(false)}>
-          <Icon name="play" size={16} /> Lecture
+          <Icon name="play" size={16} /> {t.common.play}
         </button>
         <button class="secondary" onclick={() => play(true)}>
-          <Icon name="shuffle" size={16} /> Aléatoire
+          <Icon name="shuffle" size={16} /> {t.common.shuffle}
         </button>
         {#if queueable}
-          <button class="secondary icon" onclick={() => enqueue(true)} title="Lire ensuite" aria-label="Lire ensuite">
+          <button class="secondary icon" onclick={() => enqueue(true)} title={t.views.header.playNext} aria-label={t.views.header.playNext}>
             <Icon name="playNext" size={18} />
           </button>
           <button
             class="secondary icon"
             onclick={() => enqueue(false)}
-            title="Ajouter à la file"
-            aria-label="Ajouter à la file"
+            title={t.views.header.addToQueue}
+            aria-label={t.views.header.addToQueue}
           >
             <Icon name="add" size={18} />
           </button>
           <button
             class="secondary icon"
-            onclick={() => openPlaylistPicker({ trackIds, label: `${title} · ${plural(trackIds.length, "titre")}` })}
-            title="Ajouter à une playlist"
-            aria-label="Ajouter à une playlist"
+            onclick={() => openPlaylistPicker({ trackIds, label: `${title} · ${t.common.tracks(trackIds.length)}` })}
+            title={t.views.header.addToPlaylist}
+            aria-label={t.views.header.addToPlaylist}
           >
             <Icon name="playlistAdd" size={18} />
           </button>
@@ -98,7 +95,7 @@
         {#if pin}<PinButton {pin} />{/if}
         {#if onRadio}
           <button class="secondary" onclick={onRadio}>
-            <Icon name="radio" size={16} /> Radio
+            <Icon name="radio" size={16} /> {t.views.header.radio}
           </button>
         {/if}
       </div>

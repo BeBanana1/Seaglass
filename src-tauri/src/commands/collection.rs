@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use super::catalog::is_uuid;
 use super::{AppState, CmdResult, err};
+use crate::i18n::{tr, trf};
 use crate::tidal::models::{PlaylistSummary, TrackId};
 
 const MAX_TITLE_LEN: usize = 200;
@@ -65,10 +66,13 @@ pub async fn create_playlist(
 ) -> CmdResult<String> {
     let title = title.trim();
     if title.is_empty() {
-        return Err("titre de playlist vide".into());
+        return Err(tr("titre de playlist vide", "empty playlist title").into());
     }
     if title.chars().count() > MAX_TITLE_LEN {
-        return Err(format!("titre limité à {MAX_TITLE_LEN} caractères"));
+        return Err(trf!(
+            "titre limité à {MAX_TITLE_LEN} caractères",
+            "title limited to {MAX_TITLE_LEN} characters"
+        ));
     }
     if track_ids.len() > MAX_ADD {
         return Err(format!("{MAX_ADD} titres au plus"));
@@ -79,7 +83,12 @@ pub async fn create_playlist(
             .tidal
             .add_to_playlist(&uuid, &track_ids)
             .await
-            .map_err(|e| format!("playlist créée, mais ajout des titres impossible : {e}"))?;
+            .map_err(|e| {
+                trf!(
+                    "playlist créée, mais ajout des titres impossible : {e}",
+                    "playlist created, but the tracks could not be added: {e}"
+                )
+            })?;
     }
     Ok(uuid)
 }
@@ -120,7 +129,7 @@ fn validate_tracks(uuid: &str, track_ids: &[TrackId]) -> Result<(), String> {
         return Err("identifiant de playlist invalide".into());
     }
     if track_ids.is_empty() {
-        return Err("aucun titre à ajouter".into());
+        return Err(tr("aucun titre à ajouter", "no tracks to add").into());
     }
     if track_ids.len() > MAX_ADD {
         return Err(format!("{MAX_ADD} titres au plus"));

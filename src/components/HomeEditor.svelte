@@ -6,6 +6,7 @@
   import { tick } from "svelte";
   import type { HomeSection } from "../lib/ipc";
   import { mediaImage } from "../lib/format";
+  import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
 
   let {
@@ -49,7 +50,7 @@
     [keys[index], keys[target]] = [keys[target], keys[index]];
     const { key, title } = groups[index];
     onchange(keys.flatMap((k) => sections.filter((s) => s.key === k)));
-    announce = `« ${title} » en position ${target + 1} sur ${keys.length}`;
+    announce = t.views.homeEditor.moved(title, target + 1, keys.length);
     // Le nœud déplacé perd le focus : on le rend au même bouton, ou à l'autre s'il est désactivé.
     await tick();
     const sel = (d: string) => `[data-key="${CSS.escape(key)}"] [data-dir="${d}"]`;
@@ -61,17 +62,14 @@
 
   function toggle(key: string) {
     const g = groups.find((g) => g.key === key);
-    if (g) announce = `« ${g.title} » ${g.hidden ? "affichée" : "masquée"}`;
+    if (g) announce = t.views.homeEditor.toggled(g.title, !g.hidden);
     onchange(sections.map((s) => (s.key === key ? { ...s, hidden: !s.hidden } : s)));
   }
 </script>
 
 <div class="home-editor">
-  <p class="home-editor-hint">
-    Masquez les sections qui ne vous servent pas et choisissez leur ordre. Les nouvelles sections
-    apparaissent à leur place habituelle.
-  </p>
-  <ol class="home-editor-list" bind:this={list} aria-label="Sections de l'accueil">
+  <p class="home-editor-hint">{t.views.homeEditor.hint}</p>
+  <ol class="home-editor-list" bind:this={list} aria-label={t.views.homeEditor.sections}>
     {#each groups as g, i (g.key)}
       <li class="home-editor-item" class:off={g.hidden} data-key={g.key}>
         <span class="home-editor-thumbs" aria-hidden="true">
@@ -80,7 +78,7 @@
         <span class="home-editor-name">
           <span class="home-editor-title">{g.title}</span>
           <span class="home-editor-meta">
-            {g.count} élément{g.count > 1 ? "s" : ""}{g.hidden ? " · masquée" : ""}
+            {t.views.homeEditor.items(g.count)}{g.hidden ? t.views.homeEditor.hiddenSuffix : ""}
           </span>
         </span>
         <span class="home-editor-actions">
@@ -89,8 +87,8 @@
             data-dir="up"
             disabled={i === 0}
             onclick={() => move(i, -1)}
-            aria-label="Monter « {g.title} »"
-            title="Monter"
+            aria-label={t.views.homeEditor.upItem(g.title)}
+            title={t.views.homeEditor.up}
           >
             <Icon name="up" />
           </button>
@@ -99,8 +97,8 @@
             data-dir="down"
             disabled={i === groups.length - 1}
             onclick={() => move(i, 1)}
-            aria-label="Descendre « {g.title} »"
-            title="Descendre"
+            aria-label={t.views.homeEditor.downItem(g.title)}
+            title={t.views.homeEditor.down}
           >
             <Icon name="down" />
           </button>
@@ -108,11 +106,11 @@
             class="home-editor-toggle"
             role="switch"
             aria-checked={!g.hidden}
-            aria-label="Afficher « {g.title} »"
+            aria-label={t.views.homeEditor.showItem(g.title)}
             onclick={() => toggle(g.key)}
           >
             <Icon name={g.hidden ? "eyeOff" : "eye"} size={16} />
-            {g.hidden ? "Masquée" : "Affichée"}
+            {g.hidden ? t.views.homeEditor.hidden : t.views.homeEditor.shown}
           </button>
         </span>
       </li>
@@ -120,7 +118,7 @@
   </ol>
   <div class="home-editor-footer">
     <button class="home-editor-reset" disabled={!canReset} onclick={onreset}>
-      Réinitialiser
+      {t.views.homeEditor.reset}
     </button>
   </div>
   <p class="visually-hidden" aria-live="polite">{announce}</p>

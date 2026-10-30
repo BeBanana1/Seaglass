@@ -17,6 +17,8 @@ import type {
   HomeLayout,
   HomeRow,
   HomeSection,
+  Lang,
+  LanguagePref,
   Lyrics,
   MixPage,
   MixSummary,
@@ -138,7 +140,15 @@ let ui: UiSettings = {
   ],
   // `?accent=ff5c8a` : couleur d'accent personnalisée.
   accent: params.get("accent") ? `#${params.get("accent")}` : null,
+  // `?lang=en` : interface en anglais.
+  language: (params.get("lang") as LanguagePref) ?? "system",
 };
+
+/** « Système » du backend factice : la langue du navigateur. */
+function effectiveLanguage(pref: LanguagePref): Lang {
+  if (pref !== "system") return pref;
+  return navigator.language.startsWith("fr") ? "fr" : "en";
+}
 
 /** Version simplifiée de `HomeLayout::arrange` : sections connues dans l'ordre enregistré,
  *  les autres à leur place dans le flux. Le flux factice ne change pas. */
@@ -317,6 +327,11 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   set_ui_settings: ({ settings }) => {
     ui = settings as UiSettings;
+  },
+  language: () => effectiveLanguage(ui.language),
+  set_language: ({ language }) => {
+    ui.language = language as LanguagePref;
+    return effectiveLanguage(ui.language);
   },
   set_home_layout: ({ sections }) => {
     const list = sections as { key: string; hidden: boolean }[];

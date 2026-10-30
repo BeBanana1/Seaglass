@@ -1,6 +1,7 @@
 <script lang="ts">
   import { commands, type RadioSeed, type Track } from "../lib/ipc";
-  import { formatLongDuration, plural } from "../lib/format";
+  import { formatLongDuration } from "../lib/format";
+  import { t } from "../lib/i18n.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
 
@@ -25,7 +26,7 @@
     if ("mix" in s) {
       const p = await commands.mix(s.mix);
       return {
-        eyebrow: "Mix",
+        eyebrow: t.format.mix,
         title: p.mix.title,
         description: p.mix.subtitle,
         image: p.imageLargeUrl ?? p.mix.imageUrl,
@@ -35,9 +36,9 @@
     }
     const p = await commands.radio(s.seed, s.id);
     return {
-      eyebrow: "Radio",
+      eyebrow: t.views.mix.radio,
       title: p.title,
-      description: s.seed === "track" ? "Des titres proches de ce morceau." : "Des titres proches de cet artiste.",
+      description: s.seed === "track" ? t.views.mix.trackRadio : t.views.mix.artistRadio,
       image: p.imageUrl,
       round: s.seed === "artist",
       tracks: p.tracks,
@@ -53,14 +54,14 @@
       .catch((e) => (error = String(e)));
   });
 
-  const duration = $derived(view ? view.tracks.reduce((sum, t) => sum + t.duration, 0) : 0);
+  const duration = $derived(view ? view.tracks.reduce((sum, track) => sum + track.duration, 0) : 0);
 </script>
 
 <section>
   {#if error}
     <p class="error">{error}</p>
   {:else if !view}
-    <p class="muted">Chargement…</p>
+    <p class="muted">{t.common.loading}</p>
   {:else}
     <PageHeader
       image={view.image}
@@ -68,16 +69,16 @@
       title={view.title}
       description={view.description}
       round={view.round}
-      trackIds={view.tracks.map((t) => t.id)}
+      trackIds={view.tracks.map((track) => track.id)}
       queueable
     >
       {#snippet meta()}
-        {plural(view?.tracks.length ?? 0, "titre")}
+        {t.common.tracks(view?.tracks.length ?? 0)}
         {#if formatLongDuration(duration)} · {formatLongDuration(duration)}{/if}
       {/snippet}
     </PageHeader>
     {#if view.tracks.length === 0}
-      <p class="muted">Aucun titre disponible.</p>
+      <p class="muted">{t.views.mix.empty}</p>
     {:else}
       <TrackList tracks={view.tracks} numbering="index" />
     {/if}

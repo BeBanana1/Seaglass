@@ -5,6 +5,7 @@
   import { khz } from "../lib/format";
   import { player } from "../lib/stores/player.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
 
   const offer = $derived(player.state.hiresOffer);
@@ -24,15 +25,15 @@
 {#if offer}
   <div class="hires-offer" role="status">
     <span class="text">
-      <span class="hires-offer-title">Édition {format} disponible</span>
+      <span class="hires-offer-title">{t.player.hiresAvailable(format)}</span>
       {#if offer.hiresEdition}<span class="hires-offer-album">{offer.hiresEdition}</span>{/if}
     </span>
-    <button class="hires-offer-accept" onclick={() => answer(true)}>Écouter en {format}</button>
+    <button class="hires-offer-accept" onclick={() => answer(true)}>{t.player.hiresListen(format)}</button>
     <button
       class="hires-offer-dismiss"
       onclick={() => answer(false)}
-      title="Ne plus proposer pour cet album"
-      aria-label="Ne plus proposer pour cet album"
+      title={t.player.hiresDecline}
+      aria-label={t.player.hiresDecline}
     >
       <Icon name="close" size={14} />
     </button>

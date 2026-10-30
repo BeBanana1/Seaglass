@@ -3,6 +3,7 @@
   import type { AlbumSummary } from "../lib/ipc";
   import { albumKind, year } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   let { album, context }: { album: AlbumSummary; context: string } = $props();
 
@@ -16,7 +17,7 @@
 >
   {#if large}<img class="bg" src={large} alt="" aria-hidden="true" />{/if}
   <div class="content">
-    <span class="label">À la une · {context}</span>
+    <span class="label">{t.views.home.featured(context)}</span>
     <span class="title display">{album.title}</span>
     <span class="meta">
       {[album.artists.map((a) => a.name).join(", "), albumKind(album), year(album.releaseDate)]
@@ -24,7 +25,7 @@
         .join(" · ")}
       {#if album.hires}<span class="badge">HI-RES</span>{/if}
     </span>
-    <span class="cta">Ouvrir l'album →</span>
+    <span class="cta">{t.views.home.openAlbum}</span>
   </div>
   {#if large}<img class="cover" src={large} alt="" />{/if}
 </button>

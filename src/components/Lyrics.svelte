@@ -5,6 +5,7 @@
   import { onMount } from "svelte";
   import { commands, type Lyrics, type TrackId } from "../lib/ipc";
   import { estimatedPosition, player } from "../lib/stores/player.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   /** Délai pendant lequel le suivi automatique s'arrête après un défilement manuel. */
   const MANUAL_SCROLL_PAUSE_MS = 4000;
@@ -104,13 +105,13 @@
 
 <div class="lyrics" dir={lyrics?.rtl ? "rtl" : undefined}>
   {#if trackId === null}
-    <p class="lyrics-empty">Rien en lecture.</p>
+    <p class="lyrics-empty">{t.player.lyricsNothing}</p>
   {:else if status === "loading"}
-    <p class="lyrics-empty">Chargement des paroles…</p>
+    <p class="lyrics-empty">{t.player.lyricsLoading}</p>
   {:else if status === "error"}
-    <p class="lyrics-empty">Paroles indisponibles pour le moment.</p>
+    <p class="lyrics-empty">{t.player.lyricsError}</p>
   {:else if !lyrics}
-    <p class="lyrics-empty">Pas de paroles pour ce titre.</p>
+    <p class="lyrics-empty">{t.player.lyricsNone}</p>
   {:else}
     <div
       class="lyrics-scroll"
@@ -137,7 +138,7 @@
       {/if}
     </div>
     {#if lyrics.provider}
-      <p class="lyrics-credit">Paroles : {providerName(lyrics.provider)}</p>
+      <p class="lyrics-credit">{t.player.lyricsCredit(providerName(lyrics.provider))}</p>
     {/if}
   {/if}
 </div>

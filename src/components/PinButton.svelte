@@ -2,12 +2,13 @@
   import type { Pin } from "../lib/ipc";
   import { isPinned, togglePin } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
 
   let { pin }: { pin: Pin } = $props();
 
   const pinned = $derived(isPinned(pin));
-  const label = $derived(pinned ? "Désépingler de la barre latérale" : "Épingler dans la barre latérale");
+  const label = $derived(pinned ? t.menu.unpin : t.menu.pin);
 
   async function toggle() {
     try {

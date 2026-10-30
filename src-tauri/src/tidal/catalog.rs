@@ -31,7 +31,6 @@ const MAX_TRACKS: usize = 10_000;
 const LIBRARY_MAX: usize = 2_000;
 const TOP_TRACKS: u32 = 10;
 const ARTIST_ALBUMS: u32 = 50;
-const HOME_LOCALE: &str = "fr_FR";
 
 impl TidalClient {
     pub async fn search(&self, query: &str, limit: u32) -> Result<SearchResults> {
@@ -163,7 +162,7 @@ impl TidalClient {
                 "home/feed/static",
                 &[
                     ("deviceType", "BROWSER".to_owned()),
-                    ("locale", HOME_LOCALE.to_owned()),
+                    ("locale", crate::i18n::tidal_locale().to_owned()),
                     ("platform", "WEB".to_owned()),
                 ],
             )

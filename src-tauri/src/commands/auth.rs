@@ -35,7 +35,7 @@ pub async fn login(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Sess
 
     let nav_tx = Arc::clone(&tx);
     let window = WebviewWindowBuilder::new(&app, LOGIN_WINDOW, WebviewUrl::External(url))
-        .title("Connexion")
+        .title(crate::i18n::tr("Connexion", "Sign in"))
         .inner_size(480.0, 760.0)
         .on_navigation(move |url| match auth::redirect_code(url) {
             Some(code) => {

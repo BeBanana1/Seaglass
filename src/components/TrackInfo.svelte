@@ -18,6 +18,7 @@
   } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
   import { closeTrackInfo, trackInfo } from "../lib/stores/trackInfo.svelte";
+  import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
 
   let info = $state<TrackInfo | null>(null);
@@ -39,12 +40,12 @@
   });
 
   const track = $derived(info?.track ?? trackInfo.track);
-  const tags = $derived((info?.tags ?? []).map(tagLabel).filter((t): t is string => !!t));
+  const tags = $derived((info?.tags ?? []).map(tagLabel).filter((tag): tag is string => !!tag));
   const position = $derived.by(() => {
     if (!info?.trackNumber) return null;
     return info.volumeNumber && info.volumeNumber > 1
-      ? `Piste ${info.trackNumber}, disque ${info.volumeNumber}`
-      : `Piste ${info.trackNumber}`;
+      ? t.info.trackAndDisc(info.trackNumber, info.volumeNumber)
+      : t.info.trackNumber(info.trackNumber);
   });
   const hasGain = $derived(info && (info.trackGain !== null || info.albumGain !== null));
 
@@ -63,7 +64,7 @@
 
   function resolution(f: StreamFormat): string | null {
     if (!f.bitDepth || !f.sampleRate) return f.sampleRate ? `${khz(f.sampleRate)} kHz` : null;
-    return `${f.bitDepth} bits / ${khz(f.sampleRate)} kHz`;
+    return t.info.resolutionValue(f.bitDepth, khz(f.sampleRate));
   }
 
   function openAlbum(id: number) {
@@ -80,16 +81,16 @@
 </script>
 
 {#snippet format(f: StreamFormat)}
-  <dt>Qualité</dt>
+  <dt>{t.info.quality}</dt>
   <dd>{quality(f)}</dd>
-  <dt>Format</dt>
+  <dt>{t.info.format}</dt>
   <dd class="mono">{formatStream(f)}</dd>
   {#if resolution(f)}
-    <dt>Résolution</dt>
+    <dt>{t.info.resolution}</dt>
     <dd class="mono">{resolution(f)}</dd>
   {/if}
   {#if f.bitrate}
-    <dt>Débit moyen</dt>
+    <dt>{t.info.bitrate}</dt>
     <dd class="mono">{kbps(f.bitrate)}</dd>
   {/if}
 {/snippet}
@@ -111,28 +112,28 @@
           {#if track.album.coverUrl}<img src={track.album.coverUrl} alt="" />{/if}
         </span>
         <div class="heading">
-          <span class="label">Infos du titre</span>
+          <span class="label">{t.info.title}</span>
           <h3 id="track-info-title" class="display">{fullTitle(track)}</h3>
           <p class="sub">{artistNames(track)} · {track.album.title}</p>
         </div>
-        <button class="close" onclick={closeTrackInfo} aria-label="Fermer"><Icon name="close" /></button>
+        <button class="close" onclick={closeTrackInfo} aria-label={t.common.close}><Icon name="close" /></button>
       </header>
 
       <div class="body" aria-busy={!info && !error}>
         {#if error}
           <p class="error">{error}</p>
         {:else if !info}
-          <p class="sub">Chargement…</p>
+          <p class="sub">{t.common.loading}</p>
         {:else}
           <section class="info-section">
-            <h4>Flux</h4>
+            <h4>{t.info.stream}</h4>
             {#if info.stream}
               <dl>{@render format(info.stream)}</dl>
             {:else}
-              <p class="error">{info.streamError ?? "Flux indisponible"}</p>
+              <p class="error">{info.streamError ?? t.info.streamUnavailable}</p>
             {/if}
             {#if tags.length > 0}
-              <div class="info-tags" aria-label="Disponible en">
+              <div class="info-tags" aria-label={t.info.availableIn}>
                 {#each tags as tag (tag)}<span class="info-tag">{tag}</span>{/each}
               </div>
             {/if}
@@ -141,13 +142,11 @@
           {#if info.hiresEdition}
             {@const edition = info.hiresEdition}
             <section class="info-section info-edition">
-              <h4>Édition hi-res</h4>
+              <h4>{t.info.hiresEdition}</h4>
               <p class="note">
-                Même enregistrement sur
+                {t.info.sameRecording}
                 <button class="link" onclick={() => openAlbum(edition.track.album.id)}>{edition.track.album.title}</button>.
-                {edition.played
-                  ? "Seaglass la lit à la place de ce titre."
-                  : "Pas lue à sa place (Réglages › Lecture › Qualité)."}
+                {edition.played ? t.info.played : t.info.notPlayed}
               </p>
               {#if edition.stream}<dl>{@render format(edition.stream)}</dl>{/if}
             </section>
@@ -155,44 +154,44 @@
 
           {#if hasGain}
             <section class="info-section">
-              <h4>Normalisation (ReplayGain)</h4>
+              <h4>{t.info.replayGain}</h4>
               <dl>
                 {#if info.trackGain !== null}
-                  <dt>Gain du titre</dt>
+                  <dt>{t.info.trackGain}</dt>
                   <dd class="mono">{decibels(info.trackGain)}</dd>
                 {/if}
                 {#if info.trackPeak !== null}
-                  <dt>Crête du titre</dt>
+                  <dt>{t.info.trackPeak}</dt>
                   <dd class="mono">{peak(info.trackPeak)}</dd>
                 {/if}
                 {#if info.albumGain !== null}
-                  <dt>Gain de l'album</dt>
+                  <dt>{t.info.albumGain}</dt>
                   <dd class="mono">{decibels(info.albumGain)}</dd>
                 {/if}
                 {#if info.albumPeak !== null}
-                  <dt>Crête de l'album</dt>
+                  <dt>{t.info.albumPeak}</dt>
                   <dd class="mono">{peak(info.albumPeak)}</dd>
                 {/if}
               </dl>
-              <p class="note">Indicatif : Seaglass n'applique aucun gain, pour rester bit-perfect.</p>
+              <p class="note">{t.info.gainNote}</p>
             </section>
           {/if}
 
           <section class="info-section">
-            <h4>Titre</h4>
+            <h4>{t.info.track}</h4>
             <dl>
               {#if position}
-                <dt>Position</dt>
+                <dt>{t.info.position}</dt>
                 <dd>{position}</dd>
               {/if}
-              <dt>Durée</dt>
+              <dt>{t.info.duration}</dt>
               <dd class="mono">{formatTime(track.duration)}</dd>
               {#if info.bpm}
-                <dt>Tempo</dt>
+                <dt>{t.info.tempo}</dt>
                 <dd class="mono">{info.bpm} BPM</dd>
               {/if}
               {#if musicalKey(info.key, info.keyScale)}
-                <dt>Tonalité</dt>
+                <dt>{t.info.key}</dt>
                 <dd>{musicalKey(info.key, info.keyScale)}</dd>
               {/if}
               {#if track.isrc}

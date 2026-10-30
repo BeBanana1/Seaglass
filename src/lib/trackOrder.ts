@@ -3,6 +3,7 @@
 
 import { artistNames, fullTitle } from "./format";
 import type { TrackEntry } from "./ipc";
+import { locale } from "./i18n.svelte";
 
 export type SortKey = "position" | "added" | "title" | "artist" | "album" | "duration";
 
@@ -10,15 +11,6 @@ export interface TrackSort {
   key: SortKey;
   descending: boolean;
 }
-
-export const SORT_LABELS: Record<SortKey, string> = {
-  position: "Ordre de la playlist",
-  added: "Date d'ajout",
-  title: "Titre",
-  artist: "Artiste",
-  album: "Album",
-  duration: "Durée",
-};
 
 /** Titre affiché, avec sa position (à partir de 1) dans la liste d'origine. */
 export interface ListedTrack {
@@ -31,7 +23,16 @@ export function normalize(text: string): string {
   return text.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("fr");
 }
 
-const collator = new Intl.Collator("fr", { sensitivity: "base", numeric: true });
+// Tri alphabétique de la langue courante, recréé seulement quand elle change.
+let collator: { locale: string; intl: Intl.Collator } | null = null;
+
+function collate(a: string, b: string): number {
+  const current = locale();
+  if (collator?.locale !== current) {
+    collator = { locale: current, intl: new Intl.Collator(current, { sensitivity: "base", numeric: true }) };
+  }
+  return collator.intl.compare(a, b);
+}
 
 // Texte de recherche de chaque titre, calculé une fois par objet reçu.
 const haystacks = new WeakMap<TrackEntry, string>();
@@ -62,11 +63,11 @@ export function filterTracks(list: ListedTrack[], query: string): ListedTrack[] 
 function compare(a: TrackEntry, b: TrackEntry, key: Exclude<SortKey, "position" | "added">) {
   switch (key) {
     case "title":
-      return collator.compare(fullTitle(a), fullTitle(b));
+      return collate(fullTitle(a), fullTitle(b));
     case "artist":
-      return collator.compare(artistNames(a), artistNames(b));
+      return collate(artistNames(a), artistNames(b));
     case "album":
-      return collator.compare(a.album.title, b.album.title);
+      return collate(a.album.title, b.album.title);
     case "duration":
       return a.duration - b.duration;
   }

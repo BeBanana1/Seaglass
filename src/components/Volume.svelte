@@ -3,6 +3,7 @@
   // celui du backend ; seul le glissement en cours est gardé localement.
   import { commands } from "../lib/ipc";
   import { player, stepVolume } from "../lib/stores/player.svelte";
+  import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
 
   const v = $derived(player.state.volume);
@@ -11,7 +12,7 @@
   const shown = $derived(dragging ?? (v.muted ? 0 : v.level));
   const icon = $derived(shown === 0 ? "volumeMute" : shown < 50 ? "volumeLow" : "volume");
   // Silencieux (coupé ou à 0) : l'icône rétablit le son ; le backend remonte un niveau à 0.
-  const label = $derived(shown === 0 ? "Rétablir le son" : "Couper le son");
+  const label = $derived(shown === 0 ? t.player.unmute : t.player.mute);
 
   let root: HTMLDivElement;
 
@@ -32,7 +33,7 @@
   }
 </script>
 
-<div class="volume" bind:this={root} title="Volume : {shown} % (molette, Ctrl+↑ / Ctrl+↓)">
+<div class="volume" bind:this={root} title={t.player.volumeHint(t.format.percent(shown))}>
   <button
     class="mute"
     class:off={shown === 0}
@@ -50,8 +51,8 @@
       max="100"
       step="1"
       value={shown}
-      aria-label="Volume"
-      aria-valuetext="{shown} %"
+      aria-label={t.player.volume}
+      aria-valuetext={t.format.percent(shown)}
       oninput={(e) => onInput(e.currentTarget.valueAsNumber)}
       onchange={() => (dragging = null)}
     />

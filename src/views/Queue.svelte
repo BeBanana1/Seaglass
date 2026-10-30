@@ -1,9 +1,10 @@
 <script lang="ts">
   import QueueList from "../components/QueueList.svelte";
+  import { t } from "../lib/i18n.svelte";
 </script>
 
 <aside>
-  <h2>File d'attente</h2>
+  <h2>{t.player.queue}</h2>
   <QueueList />
 </aside>
 

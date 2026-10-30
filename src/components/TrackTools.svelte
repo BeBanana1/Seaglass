@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { plural } from "../lib/format";
-  import { SORT_LABELS, type SortKey, type TrackSort } from "../lib/trackOrder";
+  import { num, t } from "../lib/i18n.svelte";
+  import type { SortKey, TrackSort } from "../lib/trackOrder";
 
   let {
     query = $bindable(""),
@@ -29,26 +29,26 @@
   <input
     type="search"
     class="filter"
-    placeholder="Filtrer les titres"
-    aria-label="Filtrer les titres"
+    placeholder={t.library.filter}
+    aria-label={t.library.filter}
     bind:value={query}
     autocomplete="off"
     spellcheck="false"
   />
   {#if query.trim()}
-    <span class="count">{shown.toLocaleString("fr-FR")} sur {plural(total, "titre")}</span>
+    <span class="count">{t.common.tracksOf(shown, total)}</span>
   {/if}
   <div class="sort">
-    <select value={sort.key} onchange={setKey} aria-label="Trier par">
+    <select value={sort.key} onchange={setKey} aria-label={t.library.sortBy}>
       {#each keys as key (key)}
-        <option value={key}>{SORT_LABELS[key]}</option>
+        <option value={key}>{t.library.sort[key]}</option>
       {/each}
     </select>
     <button
       class="direction"
       onclick={() => (sort = { ...sort, descending: !sort.descending })}
-      title={sort.descending ? "Ordre décroissant" : "Ordre croissant"}
-      aria-label={sort.descending ? "Ordre décroissant" : "Ordre croissant"}
+      title={sort.descending ? t.library.descending : t.library.ascending}
+      aria-label={sort.descending ? t.library.descending : t.library.ascending}
       >{sort.descending ? "↓" : "↑"}</button
     >
   </div>

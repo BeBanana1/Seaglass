@@ -21,30 +21,49 @@ mod twin;
 
 pub use api::TidalClient;
 
+use crate::i18n::{tr, trf};
+
 #[derive(Debug, thiserror::Error)]
 pub enum TidalError {
-    #[error("pas de session TIDAL, connexion requise")]
+    #[error(
+        "{}",
+        tr(
+            "pas de session TIDAL, connexion requise",
+            "no TIDAL session, please sign in"
+        )
+    )]
     NotLoggedIn,
-    #[error("identifiant client absent : définir TIDAL_CLIENT_ID dans .env")]
+    #[error(
+        "{}",
+        tr(
+            "identifiant client absent : définir TIDAL_CLIENT_ID dans .env",
+            "missing client ID: set TIDAL_CLIENT_ID in .env"
+        )
+    )]
     MissingClientId,
-    #[error("connexion annulée")]
+    #[error("{}", tr("connexion annulée", "sign-in cancelled"))]
     LoginCancelled,
-    #[error("authentification refusée : {0}")]
+    #[error("{}", trf!("authentification refusée : {}", "authentication refused: {}", .0))]
     Auth(String),
-    #[error("erreur API TIDAL {status} : {message}")]
+    #[error("{}", trf!("erreur API TIDAL {} : {}", "TIDAL API error {}: {}", .status, .message))]
     Api { status: u16, message: String },
-    #[error("réseau : {0}")]
+    #[error("{}", trf!("réseau : {}", "network: {}", .0))]
     Http(#[from] reqwest::Error),
-    #[error("réponse inattendue : {0}")]
+    #[error("{}", trf!("réponse inattendue : {}", "unexpected response: {}", .0))]
     Decode(String),
-    /// La ressource a changé depuis sa lecture (ETag périmé, titre déplacé).
+    /// La ressource a changé depuis sa lecture (ETag périmé, titre déplacé). Message déjà
+    /// dans la langue courante.
     #[error("{0}")]
     Conflict(String),
-    #[error("flux protégé par DRM ({0}), lecture impossible")]
+    #[error("{}", trf!(
+        "flux protégé par DRM ({}), lecture impossible",
+        "DRM-protected stream ({}), cannot play",
+        .0
+    ))]
     Drm(String),
-    #[error("format de flux non pris en charge : {0}")]
+    #[error("{}", trf!("format de flux non pris en charge : {}", "unsupported stream format: {}", .0))]
     UnsupportedStream(String),
-    #[error("Gestionnaire d'identifiants : {0}")]
+    #[error("{}", trf!("Gestionnaire d'identifiants : {}", "Credential Manager: {}", .0))]
     Keyring(#[from] keyring::Error),
 }
 

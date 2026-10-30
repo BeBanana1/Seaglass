@@ -13,6 +13,7 @@
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
   import PinButton from "../components/PinButton.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   // Titres likés : l'API les renvoie du plus récent au plus ancien (date du like).
   const TRACK_SORT_KEYS: SortKey[] = ["added", "title", "artist", "album", "duration"];
@@ -26,13 +27,7 @@
   // Le contexte de lecture est la liste affichée, dans l'ordre affiché.
   const shownTracks = $derived(filterTracks(sortTracks(listTracks(allTracks), sort), query));
 
-  const tabs: { id: LibraryTab; label: string }[] = [
-    { id: "playlists", label: "Playlists" },
-    { id: "mixes", label: "Mixes" },
-    { id: "albums", label: "Albums" },
-    { id: "artists", label: "Artistes" },
-    { id: "tracks", label: "Titres" },
-  ];
+  const tabs: LibraryTab[] = ["playlists", "mixes", "albums", "artists", "tracks"];
 
   $effect(() => {
     loadLibrary(tab);
@@ -58,24 +53,24 @@
 
 <section>
   <div class="top">
-    <h1>Bibliothèque</h1>
+    <h1>{t.library.title}</h1>
     <div class="top-actions">
       {#if tab === "tracks"}<PinButton pin={{ kind: "likedTracks" }} />{/if}
       <button class="refresh" onclick={() => loadLibrary(tab, true)} disabled={slot.loading}>
-        Actualiser
+        {t.library.refresh}
       </button>
     </div>
   </div>
   <div class="tabs" role="tablist">
-    {#each tabs as t (t.id)}
+    {#each tabs as id (id)}
       <button
         role="tab"
-        aria-selected={t.id === tab}
-        class:active={t.id === tab}
-        onclick={() => replace({ name: "library", tab: t.id })}
+        aria-selected={id === tab}
+        class:active={id === tab}
+        onclick={() => replace({ name: "library", tab: id })}
       >
-        {t.label}
-        {#if library[t.id].items}<span class="count">{library[t.id].items?.length}</span>{/if}
+        {t.library.tabs[id]}
+        {#if library[id].items}<span class="count">{library[id].items?.length}</span>{/if}
       </button>
     {/each}
   </div>
@@ -83,9 +78,9 @@
   {#if slot.error}
     <p class="error">{slot.error}</p>
   {:else if !slot.items}
-    <p class="muted">Chargement…</p>
+    <p class="muted">{t.common.loading}</p>
   {:else if slot.items.length === 0}
-    <p class="muted">Rien ici pour l'instant.</p>
+    <p class="muted">{t.library.empty}</p>
   {:else if tab === "tracks"}
     <TrackTools
       bind:query
@@ -95,9 +90,9 @@
       total={allTracks.length}
     />
     {#if shownTracks.length === 0}
-      <p class="muted">Aucun titre ne correspond à « {query.trim()} ».</p>
+      <p class="muted">{t.library.noMatch(query.trim())}</p>
     {:else}
-      <TrackList tracks={shownTracks.map((t) => t.track)} />
+      <TrackList tracks={shownTracks.map((l) => l.track)} />
     {/if}
   {:else}
     <CardGrid items={cards} />
