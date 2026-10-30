@@ -27,6 +27,10 @@ export const fr = {
       name: "Surréalisme",
       description: "Paysage vectoriel onirique teinté par l'album, objets qui flottent.",
     },
+    solarpunk: {
+      name: "Solarpunk",
+      description: "Futur végétal et lumineux : feuillages, or solaire, formes Art nouveau.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -120,6 +124,10 @@ export const en: typeof fr = {
     surreal: {
       name: "Surrealism",
       description: "Dreamlike vector landscape tinted by the album, with floating objects.",
+    },
+    solarpunk: {
+      name: "Solarpunk",
+      description: "A green, sunlit future: foliage, solar gold, Art Nouveau curves.",
     },
   },
 

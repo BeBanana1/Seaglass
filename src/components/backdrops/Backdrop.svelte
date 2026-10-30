@@ -4,6 +4,7 @@
   import Ambient from "../Ambient.svelte";
   import AcidField from "./AcidField.svelte";
   import SurrealScene from "./SurrealScene.svelte";
+  import SolarScene from "./SolarScene.svelte";
 
   let { context = "shell" }: { context?: "shell" | "nowplaying" } = $props();
 
@@ -17,4 +18,6 @@
   <AcidField {intense} />
 {:else if theme === "surreal"}
   <SurrealScene {intense} />
+{:else if theme === "solarpunk"}
+  <SolarScene {intense} />
 {/if}
