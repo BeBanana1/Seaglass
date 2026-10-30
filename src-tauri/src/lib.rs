@@ -31,6 +31,9 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // Lancement au démarrage (clé `Run` de l'utilisateur, exe courant). Piloté
+        // seulement par les commandes `settings` : aucune permission côté UI.
+        .plugin(tauri_plugin_autostart::Builder::new().build())
         .manage(UpdateState::default())
         .setup(|app| {
             let tidal = Arc::new(TidalClient::new()?);
@@ -83,6 +86,10 @@ pub fn run() {
             commands::player::queue_state,
             commands::settings::ui_settings,
             commands::settings::set_ui_settings,
+            commands::settings::playback_settings,
+            commands::settings::set_playback_settings,
+            commands::settings::autostart_enabled,
+            commands::settings::set_autostart,
             updater::update_status,
             updater::install_update,
         ])
