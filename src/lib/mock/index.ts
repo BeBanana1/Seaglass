@@ -54,10 +54,12 @@ let index = Math.min(1, context.length - 1);
 const manual: Track[] = [];
 /** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
 const volumeParam = params.get("volume");
+/** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18). */
+const hiresEdition = params.get("hiresedition");
 
 const state: PlayerState = {
   track: context[index] ?? null,
-  stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100 },
+  stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100, hiresEdition },
   output: { format: "s32", samplerate: 44100, channelCount: 2 },
   outputDriver: "wasapi",
   loading: false,
@@ -101,7 +103,7 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
     .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
     .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
 }
-let playback: PlaybackSettings = { cacheSize: 64 };
+let playback: PlaybackSettings = { cacheSize: 64, hiresUpgrade: true };
 let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
@@ -134,8 +136,8 @@ function setCurrent(track: Track | undefined) {
     paused: false,
     idle: false,
     stream: track.hires
-      ? { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 48000 }
-      : { quality: "LOSSLESS", codec: "flac", bitDepth: 16, sampleRate: 44100 },
+      ? { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 48000, hiresEdition: null }
+      : { quality: "LOSSLESS", codec: "flac", bitDepth: 16, sampleRate: 44100, hiresEdition: null },
     output: { format: track.hires ? "s32" : "s16", samplerate: track.hires ? 48000 : 44100, channelCount: 2 },
   });
   state.hasNext = manual.length > 0 || index + 1 < context.length;

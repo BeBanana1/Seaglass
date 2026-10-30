@@ -28,6 +28,8 @@ export interface Track {
   album: AlbumRef;
   explicit: boolean;
   hires: boolean;
+  /** Identifiant de l'enregistrement, commun à ses éditions. */
+  isrc?: string | null;
 }
 
 /** Titre d'une liste (playlist ou favoris) avec sa date d'ajout à cette liste. */
@@ -43,6 +45,8 @@ export interface StreamFormat {
   codec: string;
   bitDepth: number | null;
   sampleRate: number | null;
+  /** Album de l'édition hi-res réellement lue, quand ce n'est pas celle du titre affiché (#18). */
+  hiresEdition: string | null;
 }
 
 export interface AudioParams {
@@ -185,6 +189,8 @@ export type CacheSize = 32 | 64 | 128 | 256;
 /** Réglages de lecture, stockés à part des réglages d'UI. */
 export interface PlaybackSettings {
   cacheSize: CacheSize;
+  /** Lire l'édition hi-res d'un titre qui n'en a pas (même enregistrement). */
+  hiresUpgrade: boolean;
 }
 
 export interface UpdateInfo {

@@ -6,6 +6,7 @@ use serde_json::{Value, json};
 
 use super::actor::{Cmd, Player, Slot};
 use super::queue::Repeat;
+use super::upgrade;
 use crate::mpv::{CacheSize, EndReason};
 use crate::tidal::models::{AudioQuality, Stream, StreamSource, Track, TrackId};
 
@@ -71,12 +72,17 @@ impl Player {
     }
 
     /// Résout métadonnées et flux hors de l'acteur, qui reste réactif pendant ce temps.
+    /// Le flux peut venir d'une autre édition hi-res (`upgrade::resolve_stream`) : la file
+    /// et l'affichage gardent `id`.
     fn resolve(&self, id: TrackId, slot: Slot, request: u64) {
         let (tidal, tx) = (self.tidal.clone(), self.tx.clone());
+        let upgrade = self.hires_upgrade;
+        let current = matches!(slot, Slot::Current { .. });
         tauri::async_runtime::spawn(async move {
             let result = async {
                 let track = tidal.track(id).await?;
-                let stream = tidal.stream(id, QUALITY).await?;
+                let stream =
+                    upgrade::resolve_stream(&tidal, &track, QUALITY, upgrade, current).await?;
                 Ok::<_, crate::tidal::TidalError>(Box::new((track, stream)))
             }
             .await

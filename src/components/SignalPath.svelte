@@ -28,19 +28,25 @@
       .filter(Boolean)
       .join(" · "),
   );
+  /** Flux pris sur une autre édition hi-res du même enregistrement (#18). */
+  const edition = $derived(s.stream?.hiresEdition ?? null);
+  const sourceSub = $derived(
+    !s.stream ? "" : edition ? "Hi-Res · autre édition" : s.stream.quality === "HI_RES_LOSSLESS" ? "Hi-Res" : "Lossless",
+  );
+  const editionHint = $derived(edition ? `Version hi-res de l'édition « ${edition} »` : undefined);
 </script>
 
 {#if compact}
-  <span class="chip {verdict.tone}" title="{verdict.label} — {verdict.detail}">
+  <span class="chip {verdict.tone}" title="{verdict.label} — {verdict.detail}{editionHint ? ` — ${editionHint}` : ''}">
     <span class="dot"></span>
     {s.stream ? formatStream(s.stream) : "—"}
   </span>
 {:else}
   <div class="path {verdict.tone}" class:dense>
-    <div class="node">
+    <div class="node" title={editionHint}>
       <span class="label">Source</span>
       <span class="value mono">{s.stream ? formatStream(s.stream) : "—"}</span>
-      <span class="sub">{s.stream?.quality === "HI_RES_LOSSLESS" ? "Hi-Res" : s.stream ? "Lossless" : ""}</span>
+      <span class="sub">{sourceSub}</span>
     </div>
     <span class="wire" aria-hidden="true"></span>
     <div class="node">

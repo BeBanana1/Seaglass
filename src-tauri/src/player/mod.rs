@@ -6,6 +6,7 @@ mod playback;
 pub mod queue;
 pub mod settings;
 pub mod state;
+mod upgrade;
 pub mod volume;
 
 pub use actor::{Cmd, spawn};

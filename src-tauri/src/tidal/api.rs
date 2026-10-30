@@ -14,6 +14,7 @@ use tokio::sync::{OnceCell, RwLock};
 
 use super::auth::{self, ClientCredentials, PkceChallenge, Tokens};
 use super::cache::TrackCache;
+use super::hires::HiresCache;
 use super::manifest;
 use super::models::{AudioQuality, SessionInfo, Stream, StreamFormat, Track, TrackId};
 use super::raw::RawTrack;
@@ -41,6 +42,7 @@ pub struct TidalClient {
     auth: RwLock<Option<AuthState>>,
     restored: OnceCell<()>,
     pub cache: TrackCache,
+    pub(super) hires: HiresCache,
 }
 
 impl TidalClient {
@@ -55,6 +57,7 @@ impl TidalClient {
             auth: RwLock::new(None),
             restored: OnceCell::new(),
             cache: TrackCache::default(),
+            hires: HiresCache::default(),
         })
     }
 
@@ -145,6 +148,7 @@ impl TidalClient {
                 codec: decoded.codec,
                 bit_depth: raw.bit_depth,
                 sample_rate: raw.sample_rate,
+                hires_edition: None,
             },
             source: decoded.source,
         })

@@ -96,3 +96,34 @@ async fn dump_ui_fixtures() {
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(path, serde_json::to_string(&fixtures).unwrap()).unwrap();
 }
+
+/// `cargo test live_hires -- --ignored --nocapture` : *Billie Jean* de « Thriller 25 Super
+/// Deluxe Edition » n'existe qu'en 16/44,1, la même ISRC est hi-res sur d'autres éditions.
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_hires() {
+    use super::models::{AudioQuality, TrackId};
+
+    let client = client().await;
+    let track = client.track(TrackId(1_632_061)).await.unwrap();
+    assert!(!track.hires);
+    assert_eq!(track.isrc.as_deref(), Some("USSM19902991"));
+    let start = std::time::Instant::now();
+    let edition = client.hires_edition(&track).await.unwrap().unwrap();
+    println!(
+        "édition hi-res : {} ({}) en {:?}",
+        edition.id,
+        edition.album.title,
+        start.elapsed()
+    );
+    assert!(edition.hires);
+    assert!(client.known_hires_edition(track.id).is_some());
+    let stream = client
+        .stream(edition.id, AudioQuality::HiResLossless)
+        .await
+        .unwrap();
+    println!("flux : {:?}", stream.format);
+    assert_eq!(stream.format.bit_depth, Some(24));
+    // Un titre déjà hi-res n'est jamais remplacé.
+    assert!(client.hires_edition(&edition).await.unwrap().is_none());
+}
