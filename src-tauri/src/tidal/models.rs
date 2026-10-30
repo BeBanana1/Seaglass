@@ -163,6 +163,17 @@ pub struct HomeRow {
     pub items: Vec<MediaItem>,
 }
 
+/// Sortie d'un artiste suivi, dans le fil d'actualité.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedItem {
+    /// Date de la sortie, en millisecondes UTC.
+    pub occurred_at: Option<i64>,
+    /// Déjà vue dans un client TIDAL (état lu, jamais modifié par l'app).
+    pub seen: bool,
+    pub album: AlbumSummary,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlbumPage {

@@ -72,6 +72,7 @@ pub fn run() {
             commands::catalog::library_artists,
             commands::catalog::library_playlists,
             commands::catalog::home,
+            commands::catalog::feed,
             commands::player::play_tracks,
             commands::player::play_next,
             commands::player::add_to_queue,

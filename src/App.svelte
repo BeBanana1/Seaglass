@@ -8,6 +8,7 @@
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
+  import Feed from "./views/Feed.svelte";
   import Search from "./views/Search.svelte";
   import Library from "./views/Library.svelte";
   import Album from "./views/Album.svelte";
@@ -146,6 +147,8 @@
         <Login onLogin={(s) => (session = s)} />
       {:else if route.name === "home"}
         <Home />
+      {:else if route.name === "feed"}
+        <Feed />
       {:else if route.name === "search"}
         <Search />
       {:else if route.name === "library"}

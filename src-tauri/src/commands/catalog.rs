@@ -1,12 +1,12 @@
 //! Commandes de navigation : recherche, pages album / artiste / playlist, bibliothèque,
-//! accueil.
+//! accueil, fil d'actualité.
 
 use tauri::State;
 
 use super::settings::home_layout::HomeSection;
 use super::{AppState, CmdResult, err, settings};
 use crate::tidal::models::{
-    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, PlaylistPage, PlaylistSummary,
+    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, PlaylistPage, PlaylistSummary,
     SearchResults, TrackEntry,
 };
 
@@ -68,6 +68,12 @@ pub async fn library_playlists(state: State<'_, AppState>) -> CmdResult<Vec<Play
 pub async fn home(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
     let rows = state.tidal.home().await.map_err(err)?;
     Ok(settings::load(&state).home.arrange(rows))
+}
+
+/// Sorties récentes des artistes suivis.
+#[tauri::command]
+pub async fn feed(state: State<'_, AppState>) -> CmdResult<Vec<FeedItem>> {
+    state.tidal.feed().await.map_err(err)
 }
 
 /// UUID au format `8-4-4-4-12` (hexadécimal), seul format de playlist accepté dans l'URL.

@@ -7,6 +7,7 @@
 
   const entries: { label: string; route: Route; match: Route["name"][] }[] = [
     { label: "Accueil", route: { name: "home" }, match: ["home"] },
+    { label: "Fil d'actualité", route: { name: "feed" }, match: ["feed"] },
     { label: "Recherche", route: { name: "search" }, match: ["search"] },
     { label: "Bibliothèque", route: { name: "library", tab: "playlists" }, match: ["library"] },
     { label: "Réglages", route: { name: "settings", section: "appearance" }, match: ["settings"] },

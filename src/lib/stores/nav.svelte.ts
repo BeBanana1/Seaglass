@@ -6,6 +6,7 @@ export type SettingsSection = "appearance" | "playback" | "app";
 
 export type Route =
   | { name: "home" }
+  | { name: "feed" }
   | { name: "search" }
   | { name: "library"; tab: LibraryTab }
   | { name: "settings"; section: SettingsSection }

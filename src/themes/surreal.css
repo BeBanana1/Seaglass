@@ -268,3 +268,7 @@
   font-family: var(--display-family);
   font-style: italic;
 }
+
+:root[data-theme="surreal"] .feed-new {
+  box-shadow: 0 8px 16px -10px rgb(61 42 77 / 0.35);
+}

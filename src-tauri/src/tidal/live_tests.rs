@@ -69,6 +69,13 @@ async fn live_catalog() {
         println!("accueil : {} ({} éléments)", row.title, row.items.len());
     }
     assert!(!home.is_empty());
+    let feed = client.feed().await.unwrap();
+    println!(
+        "fil : {} sorties, {} non vues",
+        feed.len(),
+        feed.iter().filter(|f| !f.seen).count()
+    );
+    assert!(feed.iter().all(|f| f.occurred_at.is_some()));
 }
 
 #[tokio::test]
@@ -85,6 +92,7 @@ async fn dump_ui_fixtures() {
         "artist": client.artist(ARTIST_ID).await.unwrap(),
         "playlist": playlist,
         "home": client.home().await.unwrap(),
+        "feed": client.feed().await.unwrap(),
         "library": {
             "tracks": tracks,
             "albums": client.favorite_albums().await.unwrap(),
