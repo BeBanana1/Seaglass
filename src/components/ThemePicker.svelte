@@ -271,6 +271,36 @@
     background: #2c7a41;
   }
 
+  .preview.cyberpunk {
+    gap: 3px;
+    border-radius: 0;
+    background:
+      linear-gradient(180deg, transparent 62%, rgb(255 42 109 / 0.35)),
+      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.35) 0 1px, transparent 1px 3px),
+      #06070d;
+  }
+
+  .cyberpunk .side,
+  .cyberpunk .main,
+  .cyberpunk .bar {
+    border-radius: 0;
+    background: rgb(9 11 20 / 0.85);
+    border: 1px solid rgb(0 229 255 / 0.45);
+  }
+
+  .cyberpunk .main {
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+
+  .cyberpunk .h {
+    background: #fcee0a;
+    box-shadow: 2px 0 0 rgb(255 42 109 / 0.7);
+  }
+
+  .cyberpunk .l {
+    background: #00e5ff;
+  }
+
   :global([data-theme="studio"]) .theme-card {
     border-radius: 0;
   }

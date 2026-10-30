@@ -31,6 +31,10 @@ export const fr = {
       name: "Solarpunk",
       description: "Futur végétal et lumineux : feuillages, or solaire, formes Art nouveau.",
     },
+    cyberpunk: {
+      name: "Cyberpunk",
+      description: "Interface de visée dans une ville néon : jaune signal, cyan, angles coupés.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -128,6 +132,10 @@ export const en: typeof fr = {
     solarpunk: {
       name: "Solarpunk",
       description: "A green, sunlit future: foliage, solar gold, Art Nouveau curves.",
+    },
+    cyberpunk: {
+      name: "Cyberpunk",
+      description: "A HUD in a neon city: signal yellow, cyan, cut corners.",
     },
   },
 
