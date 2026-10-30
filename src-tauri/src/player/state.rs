@@ -3,6 +3,7 @@
 
 use serde::Serialize;
 
+use super::output::OutputDevice;
 use super::queue::Repeat;
 use super::volume::Volume;
 use crate::mpv::AudioParams;
@@ -17,6 +18,8 @@ pub struct PlayerState {
     /// Format réellement envoyé à la sortie audio par mpv.
     pub output: Option<AudioParams>,
     pub output_driver: Option<String>,
+    /// Périphérique de sortie réellement utilisé (#79).
+    pub output_device: Option<OutputDevice>,
     /// Un titre est en cours de résolution (métadonnées + manifeste).
     pub loading: bool,
     pub paused: bool,

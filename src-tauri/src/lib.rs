@@ -118,6 +118,7 @@ pub fn run() {
             commands::settings::set_pins,
             commands::settings::playback_settings,
             commands::settings::set_playback_settings,
+            commands::settings::audio_devices,
             commands::settings::autostart_enabled,
             commands::settings::set_autostart,
             updater::update_status,

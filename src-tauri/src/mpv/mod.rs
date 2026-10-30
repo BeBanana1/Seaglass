@@ -2,6 +2,7 @@
 //! petit serveur HTTP local qui sert les manifestes DASH depuis la mémoire.
 
 pub mod cache;
+pub mod device;
 pub mod events;
 pub mod ipc;
 #[cfg(windows)]
@@ -11,6 +12,7 @@ pub mod serve;
 
 use crate::i18n::{tr, trf};
 pub use cache::CacheSize;
+pub use device::AudioDevice;
 pub use events::{AudioParams, EndReason, MpvEvent, Property};
 pub use ipc::MpvHandle;
 

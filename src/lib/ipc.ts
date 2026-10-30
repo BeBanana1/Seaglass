@@ -90,11 +90,35 @@ export interface AudioParams {
 
 export type Repeat = "off" | "all" | "one";
 
+/** Périphérique de sortie WASAPI (#79) : identifiant mpv (`wasapi/{guid}`) et nom Windows. */
+export interface AudioDevice {
+  id: string;
+  name: string;
+}
+
+/** Périphériques connus de mpv (commande `audio_devices`, événement `audio-devices`). */
+export interface AudioDevices {
+  devices: AudioDevice[];
+  /** Identifiant du périphérique par défaut de Windows, s'il est connu. */
+  systemDefault: string | null;
+}
+
+/** Sortie réellement utilisée, pour la chaîne audio (#79). */
+export interface OutputDevice {
+  /** Nom Windows du périphérique ouvert ; `null` si inconnu. */
+  name: string | null;
+  /** Périphérique par défaut du système (aucun choix, ou repli). */
+  systemDefault: boolean;
+  /** Périphérique choisi mais indisponible : nom enregistré. */
+  missing: string | null;
+}
+
 export interface PlayerState {
   track: Track | null;
   stream: StreamFormat | null;
   output: AudioParams | null;
   outputDriver: string | null;
+  outputDevice: OutputDevice | null;
   loading: boolean;
   paused: boolean;
   buffering: boolean;
@@ -294,6 +318,9 @@ export interface PlaybackSettings {
   /** Édition hi-res d'un titre qui n'en a pas (même enregistrement) : la lire à sa place,
    *  la proposer (#59) ou l'ignorer. */
   hiresUpgrade: HiresUpgrade;
+  /** Périphérique de sortie choisi (#79) ; `null` = périphérique par défaut du système.
+   *  Gardé même débranché : le lecteur se replie sur le défaut puis y revient. */
+  audioDevice: AudioDevice | null;
 }
 
 export interface UpdateInfo {
@@ -389,6 +416,8 @@ export const commands = {
   /** Enregistre et applique à chaud (sans recharger le titre en cours). */
   setPlaybackSettings: (settings: PlaybackSettings) =>
     invoke<void>("set_playback_settings", { settings }),
+  /** Périphériques de sortie connus de mpv ; la suite arrive par `audio-devices`. */
+  audioDevices: () => invoke<AudioDevices>("audio_devices"),
   /** État réel du lancement au démarrage, lu dans le système. */
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
   /** Renvoie l'état relu après changement. */
@@ -409,6 +438,8 @@ export const events = {
     listen<UpdateInfo>("update-ready", (e) => cb(e.payload)),
   onLikedTracks: (cb: (ids: TrackId[]) => void): Promise<UnlistenFn> =>
     listen<TrackId[]>("liked-tracks", (e) => cb(e.payload)),
+  onAudioDevices: (cb: (d: AudioDevices) => void): Promise<UnlistenFn> =>
+    listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>
     listen<Toast>("toast", (e) => cb(e.payload)),
 };

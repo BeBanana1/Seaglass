@@ -206,6 +206,10 @@ impl Player {
 
     /// Erreur mpv : une nouvelle URL une fois (signature expirée ?), puis titre suivant.
     async fn on_playback_error(&mut self, error: Option<String>) {
+        // Périphérique de sortie choisi qui ne s'ouvre pas : repli, pas une erreur du flux.
+        if self.on_output_init_failed(error.as_deref()).await {
+            return;
+        }
         let Some(id) = self.queue.current() else {
             return;
         };

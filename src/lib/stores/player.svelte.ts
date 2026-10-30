@@ -7,6 +7,7 @@ const initial: PlayerState = {
   stream: null,
   output: null,
   outputDriver: null,
+  outputDevice: null,
   loading: false,
   paused: false,
   buffering: false,

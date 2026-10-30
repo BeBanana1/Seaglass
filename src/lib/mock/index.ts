@@ -8,7 +8,8 @@
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
-// `?trackinfo=1` (ouvre les infos du titre en cours).
+// `?trackinfo=1` (ouvre les infos du titre en cours), `?device=dac|missing` (périphérique
+// de sortie choisi, branché ou débranché).
 
 import type {
   AlbumPage,
@@ -22,6 +23,8 @@ import type {
   Lyrics,
   MixPage,
   MixSummary,
+  AudioDevices,
+  OutputDevice,
   PlaybackSettings,
   PlayerState,
   PlaylistPage,
@@ -113,6 +116,8 @@ const state: PlayerState = {
   stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100, bitrate: 1854, hiresEdition },
   output: { format: "s32", samplerate: 44100, channelCount: 2 },
   outputDriver: "wasapi",
+  // Calculé plus bas, après les réglages de lecture factices.
+  outputDevice: null,
   loading: false,
   paused: params.has("paused"),
   buffering: false,
@@ -163,7 +168,28 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
     .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
     .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
 }
-let playback: PlaybackSettings = { cacheSize: 64, hiresUpgrade: hiresOfferParam ? "ask" : "auto" };
+// `?device=missing` : le périphérique choisi est débranché ; `?device=dac` : il est branché.
+const DAC = { id: "wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}", name: "Haut-parleurs (Focusrite USB Audio)" };
+const SPEAKERS = { id: "wasapi/{0d7e4c2b-58a1-4c5e-9f1e-3b2a9c1d7e44}", name: "Haut-parleurs (Realtek(R) Audio)" };
+const deviceParam = params.get("device");
+let playback: PlaybackSettings = {
+  cacheSize: 64,
+  hiresUpgrade: hiresOfferParam ? "ask" : "auto",
+  audioDevice: deviceParam ? DAC : null,
+};
+const audioDevices: AudioDevices = {
+  devices: deviceParam === "missing" ? [SPEAKERS] : [SPEAKERS, DAC],
+  systemDefault: SPEAKERS.id,
+};
+
+/** Même logique que `player/output.rs` : choix s'il est branché, sinon défaut du système. */
+function outputDevice(): OutputDevice {
+  const chosen = playback.audioDevice;
+  const present = chosen && audioDevices.devices.some((d) => d.id === chosen.id);
+  if (chosen && present) return { name: chosen.name, systemDefault: false, missing: null };
+  return { name: SPEAKERS.name, systemDefault: true, missing: chosen ? chosen.name : null };
+}
+state.outputDevice = outputDevice();
 let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
@@ -348,8 +374,11 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (![32, 64, 128, 256].includes(next.cacheSize)) {
       throw new Error(`taille de cache non prise en charge : ${next.cacheSize} Mio`);
     }
-    playback = next;
+    playback = JSON.parse(JSON.stringify(next));
+    state.outputDevice = outputDevice();
+    emit("player-state", state);
   },
+  audio_devices: () => audioDevices,
   autostart_enabled: () => autostart,
   set_autostart: ({ enabled }) => {
     autostart = Boolean(enabled);

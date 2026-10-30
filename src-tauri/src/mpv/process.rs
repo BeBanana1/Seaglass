@@ -6,6 +6,7 @@ use std::sync::Mutex;
 
 use tokio::process::{Child, Command};
 
+use super::device::AUTO;
 use super::{CacheSize, MpvError, Result};
 
 /// `CREATE_NO_WINDOW` : pas de console qui s'ouvre à côté de l'app.
@@ -46,8 +47,10 @@ fn executable() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("mpv"))
 }
 
-/// Lance mpv en mode idle, avec la taille de cache choisie dans les réglages.
-pub fn spawn(conf: &Path, cache: CacheSize) -> Result<Child> {
+/// Lance mpv en mode idle, avec la taille de cache et le périphérique de sortie choisis
+/// dans les réglages (`None` = périphérique par défaut du système). Un périphérique absent
+/// est corrigé par le lecteur dès la première liste reçue, avant toute lecture.
+pub fn spawn(conf: &Path, cache: CacheSize, audio_device: Option<&str>) -> Result<Child> {
     let exe = executable();
     tracing::info!("mpv : {}", exe.display());
     let mut cmd = Command::new(exe);
@@ -62,6 +65,7 @@ pub fn spawn(conf: &Path, cache: CacheSize) -> Result<Child> {
             "--prefetch-playlist=yes",
         ])
         .args(cache.args())
+        .arg(format!("--audio-device={}", audio_device.unwrap_or(AUTO)))
         .arg(format!("--input-ipc-server={}", pipe_name()))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
