@@ -55,6 +55,20 @@
     }
   }
 
+  let updateCheck = $state<"idle" | "checking" | "uptodate" | "ready">("idle");
+
+  async function checkUpdates() {
+    if (updateCheck === "checking") return;
+    updateCheck = "checking";
+    try {
+      // Une version prête est réémise en `update-ready` : UpdatePrompt la propose.
+      updateCheck = (await commands.checkForUpdates()) ? "ready" : "uptodate";
+    } catch (e) {
+      updateCheck = "idle";
+      fail(`Vérification des mises à jour impossible : ${e}`);
+    }
+  }
+
   async function toggleAutostart() {
     if (autostart === null || autostartBusy) return;
     autostartBusy = true;
@@ -145,6 +159,27 @@
           <span class="knob"></span>
         </button>
       </label>
+    </div>
+
+    <div class="group">
+      <h2>Mises à jour</h2>
+      <div class="setting-row">
+        <span class="text">
+          <span class="setting-label">Vérifier les mises à jour</span>
+          <span class="hint">
+            {#if updateCheck === "uptodate"}
+              Seaglass est à jour.
+            {:else if updateCheck === "ready"}
+              Une nouvelle version est prête à être installée.
+            {:else}
+              Vérification automatique au démarrage puis toutes les 6 heures.
+            {/if}
+          </span>
+        </span>
+        <button class="update-check" onclick={checkUpdates} disabled={updateCheck === "checking"}>
+          {updateCheck === "checking" ? "Vérification…" : "Vérifier"}
+        </button>
+      </div>
     </div>
 
     <div class="group about">
@@ -305,6 +340,23 @@
     cursor: default;
   }
 
+  .update-check {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border: 1px solid var(--border) !important;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+
+  .update-check:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+
+  .update-check:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
   .about p {
     margin: 6px 0;
     color: var(--text-muted);
@@ -327,7 +379,8 @@
   :global([data-theme="studio"]) .cache-size,
   :global([data-theme="studio"]) .setting-row,
   :global([data-theme="studio"]) .setting-switch,
-  :global([data-theme="studio"]) .setting-switch .knob {
+  :global([data-theme="studio"]) .setting-switch .knob,
+  :global([data-theme="studio"]) .update-check {
     border-radius: 0;
   }
 

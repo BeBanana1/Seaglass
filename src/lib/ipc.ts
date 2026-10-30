@@ -255,6 +255,8 @@ export const commands = {
   updateStatus: () => invoke<UpdateInfo | null>("update_status"),
   /** L'installeur ferme l'app puis la relance. */
   installUpdate: () => invoke<void>("install_update"),
+  /** Vérifie tout de suite : la mise à jour prête (réémise en `update-ready`), ou `null` si à jour. */
+  checkForUpdates: () => invoke<UpdateInfo | null>("check_for_updates"),
 };
 
 export const events = {
