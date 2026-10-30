@@ -52,9 +52,9 @@
     max-width: min(560px, calc(100% - 36px));
     padding: 8px 8px 8px 14px;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--popover-radius);
     background: var(--dialog-bg);
-    box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+    box-shadow: var(--popover-shadow);
     font-size: 13px;
     animation: rise 0.2s ease-out;
   }
@@ -66,6 +66,7 @@
   }
 
   .hires-offer-title {
+    font-family: var(--meta-family);
     font-weight: 600;
   }
 
@@ -123,6 +124,5 @@
 
   :global([data-theme="atelier"]) .hires-offer {
     border-color: var(--text);
-    box-shadow: 0 10px 28px rgb(60 45 20 / 0.18);
   }
 </style>

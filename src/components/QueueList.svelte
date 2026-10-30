@@ -78,6 +78,7 @@
     border-radius: 999px;
     font-size: 12px;
     color: var(--text-muted);
+    background: var(--control-bg, none);
   }
 
   .queue-clear:hover {

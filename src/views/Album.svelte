@@ -101,7 +101,7 @@
     margin: 0 10px 16px;
     padding: 10px 12px;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--popover-radius);
     background: var(--bg-raised);
     font-size: 13px;
   }
@@ -112,6 +112,7 @@
 
   .hires-twin-text {
     flex: 1;
+    font-family: var(--meta-family);
     min-width: 0;
   }
 

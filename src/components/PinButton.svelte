@@ -31,7 +31,7 @@
     width: 37px;
     height: 37px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     color: var(--text-muted);
   }
 
@@ -42,13 +42,5 @@
 
   button.pinned {
     color: var(--accent);
-  }
-
-  :global([data-theme="studio"]) button {
-    border-radius: 0;
-  }
-
-  :global([data-theme="atelier"]) button {
-    border-radius: 2px;
   }
 </style>

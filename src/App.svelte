@@ -278,6 +278,10 @@
     color: var(--text-muted);
   }
 
+  .actions button {
+    clip-path: var(--control-clip);
+  }
+
   .actions button:hover {
     color: var(--text);
   }

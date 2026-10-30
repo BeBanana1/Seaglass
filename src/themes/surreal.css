@@ -1,29 +1,14 @@
 /* Thème Surréalisme : paysage vectoriel onirique, aplats pastel, objets qui flottent.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
-
-:root[data-theme="surreal"] {
-  --float-shadow: 0 26px 30px -18px rgb(61 42 77 / 0.45);
-}
-
-/* Panneaux : cartes de papier translucides, ombre douce et portée vers le bas. */
-:root[data-theme="surreal"] .panel {
-  border: 1px solid rgb(255 255 255 / 0.6);
-  box-shadow: 0 24px 50px -28px rgb(61 42 77 / 0.45);
-}
-
-:root[data-theme="surreal"] h1,
-:root[data-theme="surreal"] .hero .title {
-  font-style: italic;
-}
+   Jetons (panneaux, dialogues, pochettes, titres en italique) dans app.css ; ici, ce qu'un
+   jeton ne dit pas. Surcharges par classe de composant (spécificité supérieure aux styles
+   scopés Svelte). */
 
 :root[data-theme="surreal"] .brand {
-  font-style: italic;
   font-size: 22px;
   color: var(--text);
 }
 
 :root[data-theme="surreal"] h2 {
-  font-style: italic;
   font-size: 20px;
 }
 
@@ -35,13 +20,7 @@
 
 /* Pochettes : objets posés au-dessus de leur ombre, qui lévitent au survol. */
 :root[data-theme="surreal"] .card .image {
-  border-radius: 18px;
-  box-shadow: var(--float-shadow);
   transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-:root[data-theme="surreal"] .card .image.round {
-  border-radius: 50%;
 }
 
 :root[data-theme="surreal"] .card:hover {
@@ -53,17 +32,7 @@
 }
 
 :root[data-theme="surreal"] header .image {
-  border-radius: 28px;
-  box-shadow: var(--float-shadow);
   animation: surreal-float 8s ease-in-out infinite alternate;
-}
-
-:root[data-theme="surreal"] header .image.round {
-  border-radius: 50%;
-}
-
-:root[data-theme="surreal"] .row {
-  border-radius: 14px;
 }
 
 :root[data-theme="surreal"] .row:hover {
@@ -114,7 +83,7 @@
 :root[data-theme="surreal"] nav button.active,
 :root[data-theme="surreal"] nav .pin.active {
   background: rgb(255 255 255 / 0.7);
-  box-shadow: 0 8px 16px -10px rgb(61 42 77 / 0.35);
+  box-shadow: var(--shadow-raised);
 }
 
 :root[data-theme="surreal"] input[type="search"] {
@@ -144,7 +113,6 @@
 :root[data-theme="surreal"] .hires-offer,
 :root[data-theme="surreal"] .hires-twin {
   border: none;
-  border-radius: 22px;
   background: rgb(255 255 255 / 0.8);
   box-shadow: 0 18px 30px -18px rgb(61 42 77 / 0.5);
 }
@@ -159,14 +127,13 @@
 :root[data-theme="surreal"] .now-playing .art {
   position: relative;
   overflow: visible;
-  border-radius: 28px;
   background: transparent;
   box-shadow: none;
   animation: surreal-float 9s ease-in-out infinite alternate;
 }
 
 :root[data-theme="surreal"] .now-playing .art img {
-  border-radius: 28px;
+  border-radius: var(--radius-cover);
 }
 
 :root[data-theme="surreal"] .now-playing .art::after {
@@ -184,10 +151,8 @@
 
 :root[data-theme="surreal"] .now-playing .close,
 :root[data-theme="surreal"] .now-playing .queue-toggle,
-:root[data-theme="surreal"] .now-playing .lyrics-toggle,
-:root[data-theme="surreal"] .update-check,
-:root[data-theme="surreal"] .queue-clear {
-  background: rgb(255 255 255 / 0.7);
+:root[data-theme="surreal"] .now-playing .lyrics-toggle {
+  background: var(--control-bg);
 }
 
 :root[data-theme="surreal"] .hero {
@@ -212,7 +177,6 @@
 
 :root[data-theme="surreal"] .hero .cover {
   border-radius: 50%;
-  box-shadow: var(--float-shadow);
   animation: surreal-float 7s ease-in-out infinite alternate;
 }
 
@@ -234,8 +198,10 @@
 :root[data-theme="surreal"] .home-editor-reset,
 :root[data-theme="surreal"] .home-editor-toggle {
   border: none;
-  background: rgb(255 255 255 / 0.7);
-  box-shadow: 0 8px 16px -10px rgb(61 42 77 / 0.35);
+}
+
+:root[data-theme="surreal"] .home-editor-toggle {
+  background: var(--control-bg);
 }
 
 :root[data-theme="surreal"] .home-customize.active,
@@ -298,18 +264,9 @@
   transform: scale(1.06) rotate(-0.6deg);
 }
 
-:root[data-theme="surreal"] .feed-new {
-  box-shadow: 0 8px 16px -10px rgb(61 42 77 / 0.35);
-}
-
-/* Menu contextuel : nuage arrondi, ombre portée douce. */
+/* Menu contextuel : nuage arrondi, entrées en pilule. */
 :root[data-theme="surreal"] .context-menu {
   padding: 6px;
-  border: none;
-  border-radius: 22px;
-  background: rgb(255 250 244 / 0.92);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 24px 40px -22px rgb(61 42 77 / 0.55);
 }
 
 :root[data-theme="surreal"] .context-menu-item {
@@ -321,19 +278,7 @@
   background: color-mix(in oklch, var(--album) 18%, #fffaf4);
 }
 
-/* Cœurs et « Ajouter à une playlist » (#4) : carte flottante, entrées en pilule. */
-:root[data-theme="surreal"] .playlist-picker {
-  border: none;
-  border-radius: 28px;
-  background: rgb(255 250 244 / 0.94);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 30px 60px -30px rgb(61 42 77 / 0.6);
-}
-
-:root[data-theme="surreal"] .playlist-picker h3 {
-  font-style: italic;
-}
-
+/* Cœurs et « Ajouter à une playlist » (#4) : entrées en pilule. */
 :root[data-theme="surreal"] .playlist-picker input {
   border-radius: 999px;
   background: rgb(255 255 255 / 0.75);
@@ -351,21 +296,9 @@
   color: color-mix(in oklch, var(--album) 55%, #c2416b);
 }
 
-/* Infos du titre (#3) : carte flottante comme le sélecteur de playlist. */
-:root[data-theme="surreal"] .track-info {
-  border: none;
-  border-radius: 28px;
-  background: rgb(255 250 244 / 0.94);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 30px 60px -30px rgb(61 42 77 / 0.6);
-}
-
-:root[data-theme="surreal"] .track-info h3,
+/* Infos du titre (#3) : rubriques en italique, teintées par l'album. */
 :root[data-theme="surreal"] .info-section h4 {
   font-style: italic;
-}
-
-:root[data-theme="surreal"] .info-section h4 {
   letter-spacing: 0.02em;
   text-transform: none;
   font-size: 13px;

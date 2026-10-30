@@ -118,6 +118,7 @@
 
   .pins-title {
     padding: 0 12px 4px;
+    font-family: var(--meta-family);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.04em;

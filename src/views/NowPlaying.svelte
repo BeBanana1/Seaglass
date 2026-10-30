@@ -224,12 +224,14 @@
 
   .art {
     aspect-ratio: 1;
-    border-radius: 14px;
+    border-radius: var(--radius-cover, 14px);
     overflow: hidden;
     background: var(--bg-raised);
-    box-shadow:
+    box-shadow: var(
+      --shadow-cover,
       0 30px 80px rgb(0 0 0 / 0.5),
-      0 0 120px color-mix(in oklab, var(--album) 35%, transparent);
+      0 0 120px color-mix(in oklab, var(--album) 35%, transparent)
+    );
   }
 
   .art img {
@@ -419,7 +421,6 @@
 
   /* Studio : pas de flou, grille nette, pochette sans ombre colorée. */
   :global([data-theme="studio"]) .art {
-    border-radius: 0;
     box-shadow: none;
     outline: 1px solid var(--border);
   }
@@ -442,7 +443,6 @@
 
   /* Atelier : page de magazine, sans fond flouté. */
   :global([data-theme="atelier"]) .art {
-    border-radius: 0;
     box-shadow: 18px 18px 0 color-mix(in oklab, var(--album) 35%, var(--bg));
   }
 

@@ -46,9 +46,10 @@
   .image {
     aspect-ratio: 1;
     margin-bottom: 6px;
-    border-radius: var(--radius);
+    border-radius: var(--radius-card);
     overflow: hidden;
     background: var(--bg-raised);
+    box-shadow: var(--shadow-cover, none);
   }
 
   .image.round {

@@ -1,17 +1,6 @@
 /* Thème Acidwave : néons acides, chrome liquide, hologrammes.
+   Jetons (panneaux, dialogues, pochettes, angles) dans app.css ; ici, ce qu'un jeton ne dit pas.
    Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
-
-:root[data-theme="acidwave"] {
-  --album-glow: color-mix(in oklab, var(--accent) 70%, var(--acid-magenta));
-}
-
-/* Panneaux : verre noir, filet néon. */
-:root[data-theme="acidwave"] .panel {
-  border: 1px solid var(--border);
-  box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.6),
-    0 0 24px color-mix(in srgb, var(--accent) 6%, transparent) inset;
-}
 
 /* Titres : chrome liquide, capitales serrées. */
 :root[data-theme="acidwave"] h1,
@@ -61,24 +50,6 @@
   color: var(--text-muted);
   background: var(--bg-hover);
   box-shadow: none;
-}
-
-/* Pochettes : liseré holographique. */
-:root[data-theme="acidwave"] .card .image,
-:root[data-theme="acidwave"] header .image,
-:root[data-theme="acidwave"] .now-playing .art,
-:root[data-theme="acidwave"] .hero .cover {
-  border-radius: 2px;
-  box-shadow:
-    0 0 0 1px rgb(255 255 255 / 0.15),
-    0 0 0 3px #050507,
-    0 0 0 4px var(--album-glow),
-    0 0 28px color-mix(in oklab, var(--album-glow) 45%, transparent);
-}
-
-:root[data-theme="acidwave"] header .image.round,
-:root[data-theme="acidwave"] .card .image.round {
-  border-radius: 50%;
 }
 
 :root[data-theme="acidwave"] .card:hover {
@@ -161,12 +132,9 @@
   }
 }
 
-/* Boutons à angles vifs, coupés en biais. */
-:root[data-theme="acidwave"] header .actions button,
+/* Boutons à angles vifs, coupés en biais (les autres suivent --control-clip). */
 :root[data-theme="acidwave"] .tabs button,
 :root[data-theme="acidwave"] .refresh,
-:root[data-theme="acidwave"] .track-tools select,
-:root[data-theme="acidwave"] .track-tools .direction,
 :root[data-theme="acidwave"] .search-hint {
   border-radius: 0;
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
@@ -189,14 +157,6 @@
   color: var(--accent);
 }
 
-:root[data-theme="acidwave"] .pins-title {
-  font-family: var(--font-mono);
-}
-
-:root[data-theme="acidwave"] .pin-button {
-  border-radius: 0;
-}
-
 :root[data-theme="acidwave"] input[type="search"] {
   border-radius: 0;
   border-color: var(--accent);
@@ -214,7 +174,6 @@
 }
 
 :root[data-theme="acidwave"] .hires-edition {
-  font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -223,13 +182,11 @@
 :root[data-theme="acidwave"] .hires-offer,
 :root[data-theme="acidwave"] .hires-twin {
   border-color: var(--accent);
-  border-radius: 0;
   box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 :root[data-theme="acidwave"] .hires-offer-title,
 :root[data-theme="acidwave"] .hires-twin-text {
-  font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -293,12 +250,15 @@
 :root[data-theme="acidwave"] .home-editor-reset,
 :root[data-theme="acidwave"] .update-check,
 :root[data-theme="acidwave"] .queue-clear {
-  border-radius: 0;
   border-color: var(--border);
+  font-size: 12px;
+}
+
+:root[data-theme="acidwave"] .update-check,
+:root[data-theme="acidwave"] .queue-clear {
+  border-radius: 0;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  font-size: 12px;
-  background: rgb(0 0 0 / 0.55);
 }
 
 :root[data-theme="acidwave"] .home-customize.active {
@@ -330,9 +290,7 @@
 }
 
 :root[data-theme="acidwave"] .home-editor-toggle {
-  border-radius: 0;
   transform: skewX(-12deg);
-  text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 11px;
 }
@@ -358,7 +316,6 @@
 }
 
 :root[data-theme="acidwave"] .cache-size {
-  border-radius: 0;
   clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
 }
 
@@ -378,21 +335,12 @@
 }
 
 :root[data-theme="acidwave"] .feed-new {
-  border-radius: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
   font-size: 10px;
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 /* Menu contextuel : console noire, filet néon, entrée active soulignée à gauche. */
 :root[data-theme="acidwave"] .context-menu {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 0;
-  background: rgb(5 5 7 / 0.94);
-  box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.7),
-    0 0 26px color-mix(in srgb, var(--accent) 18%, transparent);
   font-family: var(--font-mono);
   font-size: 12px;
 }
@@ -421,15 +369,6 @@
   filter: drop-shadow(0 0 6px var(--acid-magenta));
 }
 
-:root[data-theme="acidwave"] .playlist-picker {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 0;
-  background: rgb(5 5 7 / 0.96);
-  box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.7),
-    0 0 40px color-mix(in srgb, var(--accent) 18%, transparent);
-}
-
 :root[data-theme="acidwave"] .playlist-picker input {
   border-radius: 0;
   border-color: var(--accent);
@@ -451,25 +390,14 @@
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
 
-/* Infos du titre (#3) : même cadre que le sélecteur de playlist, rubriques en mono. */
-:root[data-theme="acidwave"] .track-info {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 0;
-  background: rgb(5 5 7 / 0.96);
-  box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.7),
-    0 0 40px color-mix(in srgb, var(--accent) 18%, transparent);
-}
-
+/* Infos du titre (#3) : rubriques en néon. */
 :root[data-theme="acidwave"] .info-section h4 {
-  font-family: var(--font-mono);
   text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 :root[data-theme="acidwave"] .info-tag {
   border-radius: 0;
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  font-family: var(--font-mono);
   text-transform: uppercase;
   color: var(--accent);
 }

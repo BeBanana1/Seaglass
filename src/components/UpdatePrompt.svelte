@@ -65,11 +65,12 @@
     gap: 6px;
     width: min(360px, calc(100vw - 40px));
     padding: 18px;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--panel-radius) + 2px);
+    border: var(--dialog-border);
+    border-radius: var(--dialog-radius);
     color: var(--text);
-    background: var(--dialog-bg);
-    box-shadow: 0 24px 60px rgb(0 0 0 / 0.4);
+    background: var(--dialog-surface);
+    backdrop-filter: var(--dialog-blur);
+    box-shadow: var(--dialog-shadow);
   }
 
   h3 {
