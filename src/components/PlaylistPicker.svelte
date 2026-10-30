@@ -192,11 +192,12 @@
     width: min(440px, 100%);
     max-height: min(620px, 100%);
     padding: 18px;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--panel-radius) + 2px);
+    border: var(--dialog-border);
+    border-radius: var(--dialog-radius);
     color: var(--text);
-    background: var(--dialog-bg);
-    box-shadow: 0 24px 60px rgb(0 0 0 / 0.4);
+    background: var(--dialog-surface);
+    backdrop-filter: var(--dialog-blur);
+    box-shadow: var(--dialog-shadow);
   }
 
   .playlist-picker:focus {
@@ -324,7 +325,6 @@
     color: var(--danger);
   }
 
-  :global([data-theme="studio"]) .playlist-picker,
   :global([data-theme="studio"]) input,
   :global([data-theme="studio"]) .picker-new-form .primary {
     border-radius: 0;

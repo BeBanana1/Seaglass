@@ -93,11 +93,12 @@
   .direction {
     height: 32px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     color: var(--text-muted);
     background: var(--bg-raised);
     font: inherit;
     font-size: 13px;
+    clip-path: var(--control-clip);
   }
 
   select {
@@ -121,9 +122,7 @@
     background: var(--bg-hover);
   }
 
-  :global([data-theme="studio"]) .filter,
-  :global([data-theme="studio"]) select,
-  :global([data-theme="studio"]) .direction {
+  :global([data-theme="studio"]) .filter {
     border-radius: 0;
   }
 
@@ -132,10 +131,5 @@
     border-width: 0 0 1px;
     border-color: var(--text);
     background: transparent;
-  }
-
-  :global([data-theme="atelier"]) select,
-  :global([data-theme="atelier"]) .direction {
-    border-radius: 2px;
   }
 </style>

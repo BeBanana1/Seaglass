@@ -119,10 +119,11 @@
     min-width: 210px;
     max-width: 320px;
     padding: 4px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--dialog-bg);
-    box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+    border: var(--dialog-border);
+    border-radius: var(--popover-radius);
+    background: var(--dialog-surface);
+    backdrop-filter: var(--dialog-blur);
+    box-shadow: var(--popover-shadow);
     font-size: 13px;
   }
 
@@ -170,9 +171,5 @@
     height: 1px;
     margin: 4px 6px;
     background: var(--border);
-  }
-
-  :global([data-theme="atelier"]) .context-menu {
-    box-shadow: 0 10px 28px rgb(60 45 20 / 0.18);
   }
 </style>

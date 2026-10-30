@@ -72,7 +72,7 @@
     place-items: center;
     padding: 4px;
     color: var(--text-muted);
-    transition: color 0.15s;
+    transition: color var(--motion-fast);
   }
 
   .mute:hover {
@@ -85,6 +85,7 @@
     height: 4px;
     border-radius: 2px;
     background: var(--border);
+    box-shadow: var(--shadow-inset);
   }
 
   .fill {
@@ -93,7 +94,7 @@
     width: calc(var(--ratio) * 100%);
     border-radius: inherit;
     background: var(--text-muted);
-    transition: background 0.15s;
+    transition: background var(--motion-fast);
   }
 
   .volume:hover .fill,
@@ -118,7 +119,7 @@
     border-radius: 50%;
     background: var(--text);
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity var(--motion-fast);
   }
 
   .volume:hover input::-webkit-slider-thumb,

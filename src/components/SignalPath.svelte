@@ -181,6 +181,7 @@
   .hires-edition {
     flex-basis: 100%;
     margin: 0;
+    font-family: var(--meta-family);
     font-size: 12px;
     color: var(--text-muted);
   }

@@ -112,7 +112,7 @@
     color: var(--text);
     background: rgb(0 0 0 / 0.55);
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity var(--motion-fast);
   }
 
   .cover:hover .expand {

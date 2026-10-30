@@ -231,8 +231,11 @@
     margin-left: 6px;
     padding: 6px 12px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 13px;
+    letter-spacing: var(--label-tracking);
+    text-transform: var(--label-transform);
+    box-shadow: var(--shadow-raised);
   }
 
   .home-editor-toggle[aria-checked="true"] {
@@ -252,8 +255,12 @@
   .home-editor-reset {
     padding: 8px 18px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-weight: 600;
+    letter-spacing: var(--label-tracking);
+    text-transform: var(--label-transform);
+    background: var(--control-bg, none);
+    box-shadow: var(--shadow-raised);
   }
 
   .home-editor-reset:hover:not(:disabled) {
@@ -274,17 +281,13 @@
     white-space: nowrap;
   }
 
-  :global([data-theme="studio"]) .home-editor-icon,
-  :global([data-theme="studio"]) .home-editor-toggle,
-  :global([data-theme="studio"]) .home-editor-reset {
+  :global([data-theme="studio"]) .home-editor-icon {
     border-radius: 0;
   }
 
   :global([data-theme="studio"]) .home-editor-toggle,
   :global([data-theme="studio"]) .home-editor-reset {
-    text-transform: var(--label-transform);
     font-size: 12px;
-    letter-spacing: 0.06em;
   }
 
   :global([data-theme="atelier"]) .home-editor-item {
@@ -296,10 +299,5 @@
   :global([data-theme="atelier"]) .home-editor-title {
     font-family: var(--display-family);
     font-size: 17px;
-  }
-
-  :global([data-theme="atelier"]) .home-editor-toggle,
-  :global([data-theme="atelier"]) .home-editor-reset {
-    border-radius: 2px;
   }
 </style>

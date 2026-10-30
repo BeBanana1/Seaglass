@@ -301,13 +301,13 @@
     gap: 4px;
     padding: 4px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
   }
 
   .cache-size {
     min-width: 76px;
     padding: 6px 14px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-family: var(--font-mono);
     font-size: 13px;
     color: var(--text-muted);
@@ -369,7 +369,7 @@
     border-radius: 999px;
     background: var(--bg-hover);
     box-shadow: inset 0 0 0 1px var(--border);
-    transition: background 0.15s;
+    transition: background var(--motion-fast);
   }
 
   .setting-switch .knob {
@@ -381,8 +381,8 @@
     border-radius: 50%;
     background: var(--text-muted);
     transition:
-      transform 0.15s,
-      background 0.15s;
+      transform var(--motion-fast),
+      background var(--motion-fast);
   }
 
   .setting-switch.on {
@@ -405,6 +405,7 @@
     border: 1px solid var(--border) !important;
     border-radius: 999px;
     font-weight: 600;
+    background: var(--control-bg, none);
   }
 
   .update-check:hover:not(:disabled) {
@@ -434,8 +435,6 @@
 
   /* Studio : angles vifs. Atelier : angles à peine arrondis, pas de fond. */
   :global([data-theme="studio"]) .tabs button,
-  :global([data-theme="studio"]) .cache-sizes,
-  :global([data-theme="studio"]) .cache-size,
   :global([data-theme="studio"]) .setting-row,
   :global([data-theme="studio"]) .setting-switch,
   :global([data-theme="studio"]) .setting-switch .knob,
@@ -443,8 +442,6 @@
     border-radius: 0;
   }
 
-  :global([data-theme="atelier"]) .cache-sizes,
-  :global([data-theme="atelier"]) .cache-size,
   :global([data-theme="atelier"]) .setting-row {
     border-radius: 2px;
   }

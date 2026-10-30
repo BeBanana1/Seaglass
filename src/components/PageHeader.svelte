@@ -115,10 +115,10 @@
     flex-shrink: 0;
     width: 200px;
     height: 200px;
-    border-radius: 8px;
+    border-radius: var(--radius-cover, 8px);
     overflow: hidden;
     background: var(--bg-raised);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 0.4);
+    box-shadow: var(--shadow-cover, 0 8px 24px rgb(0 0 0 / 0.4));
   }
 
   .image.round {
@@ -175,12 +175,17 @@
     margin-top: 8px;
   }
 
+  .actions button,
+  .actions :global(.pin-button) {
+    clip-path: var(--control-clip);
+  }
+
   .actions button {
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 8px 18px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-weight: 600;
   }
 
@@ -207,21 +212,14 @@
     padding: 0;
   }
 
-  :global([data-theme="studio"]) .actions button,
-  :global([data-theme="studio"]) .image {
-    border-radius: 0;
-  }
-
   :global([data-theme="studio"]) .image,
   :global([data-theme="atelier"]) .image {
     box-shadow: none;
   }
 
-  :global([data-theme="atelier"]) .actions button {
-    border-radius: 2px;
-  }
-
-  :global([data-theme="atelier"]) .image {
+  /* Studio et Atelier : portrait d'artiste carré, comme les pochettes. */
+  :global([data-theme="studio"]) .image.round,
+  :global([data-theme="atelier"]) .image.round {
     border-radius: 0;
   }
 

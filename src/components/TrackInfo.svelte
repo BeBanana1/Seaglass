@@ -228,11 +228,12 @@
     width: min(480px, 100%);
     max-height: min(680px, 100%);
     padding: 18px;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--panel-radius) + 2px);
+    border: var(--dialog-border);
+    border-radius: var(--dialog-radius);
     color: var(--text);
-    background: var(--dialog-bg);
-    box-shadow: 0 24px 60px rgb(0 0 0 / 0.4);
+    background: var(--dialog-surface);
+    backdrop-filter: var(--dialog-blur);
+    box-shadow: var(--dialog-shadow);
   }
 
   .track-info:focus {
@@ -305,6 +306,7 @@
 
   .info-section h4 {
     margin: 0 0 8px;
+    font-family: var(--meta-family);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -345,6 +347,7 @@
     padding: 2px 8px;
     border: 1px solid var(--border);
     border-radius: 999px;
+    font-family: var(--meta-family);
     font-size: 11px;
     color: var(--text-muted);
   }
@@ -377,7 +380,6 @@
     color: var(--danger);
   }
 
-  :global([data-theme="studio"]) .track-info,
   :global([data-theme="studio"]) .info-tag,
   :global([data-theme="studio"]) .cover {
     border-radius: 0;

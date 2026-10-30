@@ -118,10 +118,14 @@
     flex-shrink: 0;
     padding: 6px 16px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 13px;
     font-weight: 600;
+    letter-spacing: var(--label-tracking);
+    text-transform: var(--label-transform);
     color: var(--text-muted);
+    background: var(--control-bg, none);
+    box-shadow: var(--shadow-raised);
   }
 
   .home-customize:hover {
@@ -150,13 +154,6 @@
   }
 
   :global([data-theme="studio"]) .home-customize {
-    border-radius: 0;
-    text-transform: var(--label-transform);
     font-size: 12px;
-    letter-spacing: 0.06em;
-  }
-
-  :global([data-theme="atelier"]) .home-customize {
-    border-radius: 2px;
   }
 </style>

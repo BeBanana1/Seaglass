@@ -1,5 +1,39 @@
 /* Thèmes : `data-theme` sur <html> (voir lib/stores/ui.svelte.ts).
-   `--album` est la couleur dominante de la pochette en cours, posée par App.svelte. */
+   `--album` est la couleur dominante de la pochette en cours, posée par App.svelte.
+
+   Un thème est d'abord un jeu de jetons. Couleurs : --bg, --surface, --dialog-bg, --bg-raised,
+   --bg-hover, --border, --text, --text-muted, --accent (+ -strong, -contrast), --danger, --ok, --warn.
+   Le reste, avec sa valeur par défaut ci-dessous :
+
+   Formes
+     --radius            lignes, cartes, champs carrés
+     --radius-pill       boutons-pilules, puces, sélecteurs (999px ; 0 = angles vifs)
+     --radius-card       pochettes des cartes (= --radius)
+     --radius-cover      grandes pochettes : en-tête de page, « En lecture », bandeau d'accueil
+                         (facultatif : sans lui, chaque pochette garde son arrondi)
+     --panel-radius      panneaux du shell
+     --dialog-radius     dialogues (sélecteur de playlist, infos du titre, mise à jour)
+     --popover-radius    menu contextuel, bandeau d'édition hi-res
+     --control-clip      découpe des boutons d'action (`clip-path`, none par défaut)
+   Profondeur
+     --panel-border, --panel-shadow    panneaux du shell
+     --dialog-border, --dialog-surface, --dialog-blur, --dialog-shadow    dialogues et menu
+     --popover-shadow    menu contextuel, bandeau d'édition hi-res
+     --shadow-cover      grandes pochettes et cartes (facultatif, comme --radius-cover)
+     --shadow-raised     contrôles posés au-dessus de la page (none)
+     --shadow-inset      rainures : pistes de progression et de volume, interrupteurs, recherche (none)
+     --focus-ring        contour du focus clavier
+   Surfaces
+     --control-bg        boutons secondaires (Personnaliser, Vérifier, Vider la file…) ; facultatif
+   Typo
+     --display-family, --display-weight, --display-tracking, --display-style    titres
+     --label-transform, --label-tracking    libellés en capitales (boutons secondaires, pastilles)
+     --meta-family       informations techniques (édition hi-res, infos du titre, épingles)
+   Mouvement
+     --motion-fast       transitions courtes (survol, interrupteurs)
+
+   Les surcharges par classe (themes/*.css) restent pour ce qu'un jeton ne dit pas : décor,
+   pseudo-éléments, animations, découpes particulières. */
 
 :root {
   --album: #4f95b0;
@@ -10,6 +44,23 @@
   --danger: #f08a7e;
   --ok: #7ad6a4;
   --warn: #f2c46d;
+  --radius-pill: 999px;
+  --radius-card: var(--radius);
+  --dialog-radius: calc(var(--panel-radius) + 2px);
+  --popover-radius: var(--radius);
+  --control-clip: none;
+  --dialog-border: 1px solid var(--border);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-blur: none;
+  --dialog-shadow: 0 24px 60px rgb(0 0 0 / 0.4);
+  --popover-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+  --shadow-raised: none;
+  --shadow-inset: none;
+  --focus-ring: 2px solid var(--accent);
+  --display-style: normal;
+  --label-tracking: normal;
+  --meta-family: var(--font-ui);
+  --motion-fast: 0.15s;
 }
 
 /* --- Verre de mer : panneaux translucides sur la pochette floutée ----------------- */
@@ -31,6 +82,8 @@
   --radius: 10px;
   --panel-radius: 18px;
   --panel-blur: blur(28px) saturate(1.4);
+  --panel-border: 1px solid var(--border);
+  --panel-shadow: 0 10px 40px rgb(0 0 0 / 0.25);
   --shell-gap: 10px;
   --display-weight: 700;
   --display-tracking: -0.02em;
@@ -53,13 +106,19 @@
   --accent-strong: #ffc977;
   --accent-contrast: #0a0a0b;
   --radius: 2px;
+  --radius-pill: 0;
+  --radius-cover: 0;
   --panel-radius: 0;
+  --dialog-radius: 0;
   --panel-blur: none;
+  --panel-border: none;
+  --panel-shadow: none;
   --shell-gap: 0px;
   --display-weight: 600;
   --display-tracking: 0;
   --display-family: var(--font-ui);
   --label-transform: uppercase;
+  --label-tracking: 0.06em;
   --player-height: 96px;
 }
 
@@ -81,8 +140,13 @@
   --ok: #2f7a52;
   --warn: #9a6a12;
   --radius: 4px;
+  --radius-pill: 2px;
+  --radius-cover: 0;
   --panel-radius: 0;
   --panel-blur: none;
+  --panel-border: none;
+  --panel-shadow: none;
+  --popover-shadow: 0 10px 28px rgb(60 45 20 / 0.18);
   --shell-gap: 0px;
   --display-weight: 500;
   --display-tracking: -0.015em;
@@ -110,14 +174,42 @@
   --chrome: linear-gradient(180deg, #ffffff 0%, #d6dde4 34%, #4d5560 50%, #eef3f7 62%, #8f99a4 100%);
   --ok: #c8ff00;
   --danger: #ff4d7a;
+  --album-glow: color-mix(in oklab, var(--accent) 70%, var(--acid-magenta));
   --radius: 3px;
+  --radius-pill: 0;
+  --radius-card: 2px;
+  --radius-cover: 2px;
   --panel-radius: 4px;
+  --dialog-radius: 0;
+  --popover-radius: 0;
+  --control-clip: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
   --panel-blur: blur(16px) saturate(1.2);
+  --panel-border: 1px solid var(--border);
+  --panel-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.6),
+    0 0 24px color-mix(in srgb, var(--accent) 6%, transparent) inset;
+  --dialog-border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  --dialog-surface: rgb(5 5 7 / 0.96);
+  --dialog-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.7),
+    0 0 40px color-mix(in srgb, var(--accent) 18%, transparent);
+  --popover-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.7),
+    0 0 26px color-mix(in srgb, var(--accent) 18%, transparent);
+  /* Pochettes : liseré holographique. */
+  --shadow-cover:
+    0 0 0 1px rgb(255 255 255 / 0.15),
+    0 0 0 3px #050507,
+    0 0 0 4px var(--album-glow),
+    0 0 28px color-mix(in oklab, var(--album-glow) 45%, transparent);
+  --control-bg: rgb(0 0 0 / 0.55);
   --shell-gap: 8px;
   --display-weight: 700;
   --display-tracking: 0.01em;
   --display-family: Bahnschrift, "Segoe UI Variable Display", sans-serif;
   --label-transform: uppercase;
+  --label-tracking: 0.12em;
+  --meta-family: var(--font-mono);
 }
 
 /* --- Surréalisme : paysage vectoriel onirique (voir themes/surreal.css) ------------ */
@@ -137,13 +229,29 @@
   --danger: #b4473a;
   --ok: #3f8a66;
   --warn: #a8701a;
+  --float-shadow: 0 26px 30px -18px rgb(61 42 77 / 0.45);
   --radius: 14px;
+  --radius-card: 18px;
+  --radius-cover: 28px;
   --panel-radius: 26px;
+  --popover-radius: 22px;
   --panel-blur: blur(6px) saturate(1.1);
+  --panel-border: 1px solid rgb(255 255 255 / 0.6);
+  --panel-shadow: 0 24px 50px -28px rgb(61 42 77 / 0.45);
+  --dialog-border: none;
+  --dialog-surface: rgb(255 250 244 / 0.94);
+  --dialog-blur: blur(10px);
+  --dialog-shadow: 0 30px 60px -30px rgb(61 42 77 / 0.6);
+  --popover-shadow: 0 24px 40px -22px rgb(61 42 77 / 0.55);
+  /* Pochettes posées au-dessus de leur ombre, galets de papier. */
+  --shadow-cover: var(--float-shadow);
+  --shadow-raised: 0 8px 16px -10px rgb(61 42 77 / 0.35);
+  --control-bg: rgb(255 255 255 / 0.7);
   --shell-gap: 14px;
   --display-weight: 400;
   --display-tracking: -0.01em;
   --display-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  --display-style: italic;
   --label-transform: none;
 }
 
@@ -185,7 +293,7 @@ input {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -200,20 +308,17 @@ input {
 
 /* Panneaux du shell : cartes de verre flottantes ou zones à plat selon le thème. */
 .panel {
+  border: var(--panel-border);
   background: var(--surface);
   border-radius: var(--panel-radius);
   backdrop-filter: var(--panel-blur);
-}
-
-:root[data-theme="seaglass"] .panel,
-:root:not([data-theme]) .panel {
-  border: 1px solid var(--border);
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.25);
+  box-shadow: var(--panel-shadow);
 }
 
 /* Titres de page et de section. */
 .display {
   font-family: var(--display-family);
+  font-style: var(--display-style);
   font-weight: var(--display-weight);
   letter-spacing: var(--display-tracking);
 }
@@ -274,6 +379,7 @@ input {
 h1,
 h2 {
   font-family: var(--display-family);
+  font-style: var(--display-style);
   font-weight: var(--display-weight);
   letter-spacing: var(--display-tracking);
 }

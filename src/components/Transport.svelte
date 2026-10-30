@@ -70,8 +70,8 @@
     padding: 4px;
     color: var(--text-muted);
     transition:
-      color 0.15s,
-      transform 0.15s;
+      color var(--motion-fast),
+      transform var(--motion-fast);
   }
 
   button:hover:not(:disabled) {

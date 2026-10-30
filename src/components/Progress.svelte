@@ -69,6 +69,7 @@
     height: 4px;
     border-radius: 2px;
     background: var(--border);
+    box-shadow: var(--shadow-inset);
   }
 
   .large .track {
@@ -102,7 +103,7 @@
     border-radius: 50%;
     background: var(--text);
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity var(--motion-fast);
   }
 
   .progress:hover input::-webkit-slider-thumb,

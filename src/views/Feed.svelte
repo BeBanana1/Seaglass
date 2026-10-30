@@ -146,11 +146,14 @@
     top: 18px;
     left: 18px;
     padding: 2px 8px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 11px;
     font-weight: 700;
+    letter-spacing: var(--label-tracking);
+    text-transform: var(--label-transform);
     color: var(--accent-contrast);
     background: var(--accent);
+    box-shadow: var(--shadow-raised);
     pointer-events: none;
   }
 
@@ -168,15 +171,5 @@
   .error {
     margin: 0 10px;
     color: var(--danger);
-  }
-
-  :global([data-theme="studio"]) .feed-new {
-    border-radius: 0;
-    text-transform: var(--label-transform);
-    letter-spacing: 0.06em;
-  }
-
-  :global([data-theme="atelier"]) .feed-new {
-    border-radius: 2px;
   }
 </style>

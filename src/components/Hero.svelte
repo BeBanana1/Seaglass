@@ -93,8 +93,8 @@
     width: 184px;
     height: 184px;
     flex-shrink: 0;
-    border-radius: var(--radius);
-    box-shadow: 0 20px 50px rgb(0 0 0 / 0.45);
+    border-radius: var(--radius-cover, var(--radius));
+    box-shadow: var(--shadow-cover, 0 20px 50px rgb(0 0 0 / 0.45));
     transform: rotate(3deg);
     transition: transform 0.4s;
   }
@@ -109,7 +109,6 @@
   }
 
   :global([data-theme="studio"]) .cover {
-    border-radius: 0;
     transform: none;
   }
 
@@ -130,7 +129,6 @@
   }
 
   :global([data-theme="atelier"]) .cover {
-    border-radius: 0;
     box-shadow: 12px 12px 0 color-mix(in oklab, var(--tint) 45%, var(--bg));
     transform: none;
   }
