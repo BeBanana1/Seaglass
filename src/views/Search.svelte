@@ -13,6 +13,7 @@
   import { commands, type MediaItem } from "../lib/ipc";
   import CardGrid from "../components/CardGrid.svelte";
   import TrackList from "../components/TrackList.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   const COLLAPSED_TRACKS = 8;
 
@@ -52,7 +53,7 @@
     <!-- svelte-ignore a11y_autofocus -->
     <input
       type="search"
-      placeholder="Titres, artistes, albums, playlists…"
+      placeholder={t.views.search.placeholder}
       bind:value={saved.query}
       autocomplete="off"
       spellcheck="false"
@@ -63,26 +64,26 @@
   {#if error}
     <p class="error">{error}</p>
   {:else if searching}
-    <p class="muted">Recherche…</p>
+    <p class="muted">{t.views.search.searching}</p>
   {:else if empty}
-    <p class="muted">Aucun résultat.</p>
+    <p class="muted">{t.views.search.noResults}</p>
   {/if}
 
   {#if r && r.tracks.length > 0}
     <div class="tracks">
-      <h2>Titres</h2>
+      <h2>{t.views.search.tracks}</h2>
       <!-- Le contexte de lecture est la liste affichée. -->
       <TrackList {tracks} />
       {#if r.tracks.length > COLLAPSED_TRACKS}
         <button class="more" onclick={() => (saved.allTracks = !saved.allTracks)}>
-          {saved.allTracks ? "Afficher moins" : `Afficher les ${r.tracks.length} titres`}
+          {saved.allTracks ? t.views.search.showLess : t.views.search.showAll(r.tracks.length)}
         </button>
       {/if}
     </div>
   {/if}
-  <CardGrid title="Artistes" items={artists} row />
-  <CardGrid title="Albums" items={albums} row />
-  <CardGrid title="Playlists" items={playlists} row />
+  <CardGrid title={t.views.search.artists} items={artists} row />
+  <CardGrid title={t.views.search.albums} items={albums} row />
+  <CardGrid title={t.views.search.playlists} items={playlists} row />
 </section>
 
 <style>

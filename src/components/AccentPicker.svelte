@@ -3,6 +3,7 @@
 <script lang="ts">
   import { ACCENT_PRESETS, setAccent, ui } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   const current = $derived(ui.settings.accent);
   const custom = $derived(current !== null && !ACCENT_PRESETS.includes(current));
@@ -22,7 +23,7 @@
   }
 </script>
 
-<div class="accents" role="radiogroup" aria-label="Couleur d'accent">
+<div class="accents" role="radiogroup" aria-label={t.settings.accent}>
   <button
     class="accent-theme"
     class:selected={current === null}
@@ -30,7 +31,7 @@
     aria-checked={current === null}
     onclick={() => choose(null)}
   >
-    Celle du thème
+    {t.settings.accentTheme}
   </button>
   {#each ACCENT_PRESETS as color (color)}
     <button
@@ -44,9 +45,9 @@
       onclick={() => choose(color)}
     ></button>
   {/each}
-  <label class="accent-custom" class:selected={custom} title="Autre couleur">
-    <input type="color" value={current ?? "#c8ff00"} onchange={onPick} aria-label="Autre couleur" />
-    <span>{custom ? current : "Autre…"}</span>
+  <label class="accent-custom" class:selected={custom} title={t.settings.accentOther}>
+    <input type="color" value={current ?? "#c8ff00"} onchange={onPick} aria-label={t.settings.accentOther} />
+    <span>{custom ? current : t.settings.accentOtherShort}</span>
   </label>
 </div>
 

@@ -6,8 +6,11 @@
   import CardGrid from "../components/CardGrid.svelte";
   import Hero from "../components/Hero.svelte";
   import HomeEditor from "../components/HomeEditor.svelte";
+  import { i18n, t } from "../lib/i18n.svelte";
 
-  // Gardé entre deux visites de l'accueil pour éviter de recharger à chaque retour.
+  // Gardé entre deux visites de l'accueil pour éviter de recharger à chaque retour, tant
+  // que la langue ne change pas (les titres des sections viennent du service).
+  if (cachedLang !== i18n.lang) cached = null;
   let rows = $state<HomeSection[] | null>(cached);
   let error = $state<string | null>(null);
   let editing = $state(false);
@@ -28,6 +31,7 @@
     if (rows) return;
     try {
       rows = cached = await commands.home();
+      cachedLang = i18n.lang;
     } catch (e) {
       error = String(e);
     }
@@ -58,11 +62,12 @@
 
 <script lang="ts" module>
   let cached: HomeSection[] | null = null;
+  let cachedLang: string | null = null;
 </script>
 
 <section>
   <div class="home-head">
-    <h1>Accueil</h1>
+    <h1>{t.views.home.title}</h1>
     {#if rows}
       <button
         class="home-customize"
@@ -70,14 +75,14 @@
         aria-expanded={editing}
         onclick={() => (editing = !editing)}
       >
-        {editing ? "Terminé" : "Personnaliser"}
+        {editing ? t.views.home.done : t.views.home.customize}
       </button>
     {/if}
   </div>
   {#if error}
     <p class="error">{error}</p>
   {:else if !rows}
-    <p class="muted">Chargement…</p>
+    <p class="muted">{t.common.loading}</p>
   {:else if editing}
     <HomeEditor sections={rows} canReset={customized} onchange={change} onreset={reset} />
   {:else}
@@ -86,7 +91,7 @@
       <CardGrid title={row.title} items={row.items} row />
     {/each}
     {#if rows.length > 0 && visible.length === 0}
-      <p class="muted">Toutes les sections sont masquées. « Personnaliser » permet de les réafficher.</p>
+      <p class="muted">{t.views.home.allHidden}</p>
     {/if}
   {/if}
 </section>

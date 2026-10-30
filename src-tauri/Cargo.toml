@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.4.15"
+version = "0.4.17"
 description = "Seaglass, client de streaming non officiel"
 authors = ["bebanana"]
 edition = "2024"
@@ -39,6 +39,7 @@ windows = { version = "0.62", features = [
     "Media",
     "Storage_Streams",
     "Win32_Foundation",
+    "Win32_Globalization",
     "Win32_Security",
     "Win32_System_JobObjects",
     "Win32_System_WinRT",

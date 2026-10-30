@@ -1,6 +1,7 @@
 <script lang="ts">
   import { commands, type AlbumPage, type AlbumSummary } from "../lib/ipc";
-  import { albumKind, formatLongDuration, plural, year } from "../lib/format";
+  import { albumKind, formatLongDuration, year } from "../lib/format";
+  import { t } from "../lib/i18n.svelte";
   import { go } from "../lib/stores/nav.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
@@ -25,7 +26,7 @@
         if (!p.album.hires) {
           commands
             .hiresTwinAlbum(target)
-            .then((t) => target === id && (twin = t))
+            .then((found) => target === id && (twin = found))
             // Simple suggestion : une erreur n'empêche rien, elle reste dans les journaux.
             .catch((e) => console.warn("album hi-res :", e));
         }
@@ -38,19 +39,19 @@
   {#if error}
     <p class="error">{error}</p>
   {:else if !page}
-    <p class="muted">Chargement…</p>
+    <p class="muted">{t.common.loading}</p>
   {:else}
     {@const album = page.album}
     {@const details = [
       year(album.releaseDate),
-      plural(page.tracks.length, "titre"),
+      t.common.tracks(page.tracks.length),
       formatLongDuration(page.duration),
     ].filter(Boolean)}
     <PageHeader
       image={page.coverLargeUrl ?? album.coverUrl}
       eyebrow={albumKind(album)}
       title={album.title}
-      trackIds={page.tracks.map((t) => t.id)}
+      trackIds={page.tracks.map((track) => track.id)}
       queueable
     >
       {#snippet meta()}
@@ -65,8 +66,8 @@
       {@const target = twin}
       <p class="hires-twin">
         <span class="badge">HI-RES</span>
-        <span class="hires-twin-text">Cet album existe en Hi-Res<span class="hires-twin-title">&nbsp;: {target.title}{target.releaseDate ? ` (${year(target.releaseDate)})` : ""}</span></span>
-        <button class="hires-twin-open" onclick={() => go({ name: "album", id: target.id })}>Ouvrir</button>
+        <span class="hires-twin-text">{t.views.album.hiresTwin}<span class="hires-twin-title">&nbsp;: {target.title}{target.releaseDate ? ` (${year(target.releaseDate)})` : ""}</span></span>
+        <button class="hires-twin-open" onclick={() => go({ name: "album", id: target.id })}>{t.views.album.open}</button>
       </p>
     {/if}
     <TrackList tracks={page.tracks} numbering="index" showAlbum={false} showCover={false} />

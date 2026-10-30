@@ -5,6 +5,7 @@
   import { player } from "../lib/stores/player.svelte";
   import { queue } from "../lib/stores/queue.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { t } from "../lib/i18n.svelte";
   import TrackRow from "./TrackRow.svelte";
 
   /** `current` : afficher aussi le titre en cours (inutile si la vue l'affiche déjà en grand). */
@@ -28,21 +29,21 @@
 <div class="queue-list">
   {#if clearable}
     <div class="queue-actions">
-      <button class="queue-clear" onclick={clear} title="Retire les titres à venir, le titre en cours continue">
-        Vider la file
+      <button class="queue-clear" onclick={clear} title={t.player.clearQueueHint}>
+        {t.player.clearQueue}
       </button>
     </div>
   {/if}
 
   {#if current && player.state.track}
-    <h3>En cours</h3>
+    <h3>{t.player.nowPlaying}</h3>
     <div role="list">
       <TrackRow track={player.state.track} active compact actions={false} />
     </div>
   {/if}
 
   {#if queue.view.manual.length > 0}
-    <h3>Ensuite dans la file</h3>
+    <h3>{t.player.nextInQueue}</h3>
     <div role="list">
       {#each queue.view.manual as track, i (`${i}-${track.id}`)}
         <TrackRow {track} compact onRemove={() => commands.removeFromQueue(i)} />
@@ -51,7 +52,7 @@
   {/if}
 
   {#if queue.view.upcoming.length > 0}
-    <h3>Ensuite</h3>
+    <h3>{t.player.upNext}</h3>
     <div role="list">
       {#each queue.view.upcoming as track, i (`${i}-${track.id}`)}
         <TrackRow {track} compact actions={false} />
@@ -60,7 +61,7 @@
   {/if}
 
   {#if empty}
-    <p class="muted">La file est vide.</p>
+    <p class="muted">{t.player.queueEmpty}</p>
   {/if}
 </div>
 

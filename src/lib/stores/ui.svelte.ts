@@ -3,33 +3,8 @@
 
 import { commands, type HomeSection, type Pin, type Theme, type UiSettings } from "../ipc";
 
-export const THEMES: { id: Theme; name: string; description: string }[] = [
-  {
-    id: "seaglass",
-    name: "Verre de mer",
-    description: "Verre dépoli sur la pochette en cours ; les couleurs suivent l'album.",
-  },
-  {
-    id: "studio",
-    name: "Studio",
-    description: "Console sombre et dense, la chaîne audio au premier plan.",
-  },
-  {
-    id: "atelier",
-    name: "Atelier",
-    description: "Clair et éditorial, grande typographie, beaucoup d'air.",
-  },
-  {
-    id: "acidwave",
-    name: "Acidwave",
-    description: "Néons acides, chrome liquide et hologrammes ; ça pulse pendant la lecture.",
-  },
-  {
-    id: "surreal",
-    name: "Surréalisme",
-    description: "Paysage vectoriel onirique teinté par l'album, objets qui flottent.",
-  },
-];
+/** Thèmes dans l'ordre du sélecteur ; noms et descriptions dans `i18n/settings.ts`. */
+export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal"];
 
 /** Panneau latéral de la vue « En lecture » : file d'attente ou paroles, un seul à la fois. */
 export type NowPlayingPanel = "queue" | "lyrics" | null;
@@ -39,7 +14,7 @@ export const ui = $state<{
   /** Panneau ouvert dans la vue « En lecture » (mémorisé pour la session). */
   nowPlayingPanel: NowPlayingPanel;
 }>({
-  settings: { theme: "seaglass", home: { order: [], hidden: [] }, pins: [], accent: null },
+  settings: { theme: "seaglass", home: { order: [], hidden: [] }, pins: [], accent: null, language: "system" },
   nowPlayingPanel: null,
 });
 

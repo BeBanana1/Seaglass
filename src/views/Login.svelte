@@ -1,5 +1,6 @@
 <script lang="ts">
   import { commands, type SessionInfo } from "../lib/ipc";
+  import { t } from "../lib/i18n.svelte";
 
   let { onLogin }: { onLogin: (s: SessionInfo) => void } = $props();
 
@@ -20,15 +21,15 @@
 </script>
 
 <section>
-  <h1>Bienvenue</h1>
-  <p>Connectez-vous avec votre compte de streaming pour commencer.</p>
+  <h1>{t.views.login.welcome}</h1>
+  <p>{t.views.login.intro}</p>
   <button class="primary" onclick={login} disabled={pending}>
-    {pending ? "Connexion en cours…" : "Se connecter"}
+    {pending ? t.views.login.pending : t.views.login.signIn}
   </button>
   {#if error}
     <p class="error">{error}</p>
   {/if}
-  <p class="disclaimer">Client non officiel, non affilié à TIDAL.</p>
+  <p class="disclaimer">{t.views.login.disclaimer}</p>
 </section>
 
 <style>

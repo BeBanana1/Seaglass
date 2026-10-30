@@ -1,34 +1,28 @@
 <!-- Page Réglages : une section par onglet. Les valeurs viennent toutes du backend. -->
 <script lang="ts">
-  import { commands, type CacheSize, type HiresUpgrade, type PlaybackSettings } from "../lib/ipc";
+  import {
+    commands,
+    type CacheSize,
+    type HiresUpgrade,
+    type LanguagePref,
+    type PlaybackSettings,
+  } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { ui } from "../lib/stores/ui.svelte";
+  import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
 
   let { section }: { section: SettingsSection } = $props();
 
-  const sections: { id: SettingsSection; label: string }[] = [
-    { id: "appearance", label: "Apparence" },
-    { id: "playback", label: "Lecture" },
-    { id: "app", label: "Application" },
-  ];
+  const sections: SettingsSection[] = ["appearance", "playback", "app"];
+
+  const LANGUAGES: LanguagePref[] = ["system", "fr", "en"];
 
   const CACHE_SIZES: CacheSize[] = [32, 64, 128, 256];
 
-  const HIRES_MODES: { id: HiresUpgrade; label: string; note: string }[] = [
-    {
-      id: "auto",
-      label: "Automatique",
-      note: "L'édition hi-res est lue à la place du titre, sans demander. La chaîne audio l'indique.",
-    },
-    {
-      id: "ask",
-      label: "Demander",
-      note: "Le titre d'origine démarre, et la barre de lecture propose l'édition hi-res. La réponse vaut pour tout l'album.",
-    },
-    { id: "off", label: "Désactivé", note: "Le titre est toujours lu depuis l'édition affichée." },
-  ];
+  const HIRES_MODES: HiresUpgrade[] = ["auto", "ask", "off"];
   let playback = $state<PlaybackSettings | null>(null);
   const cacheSize = $derived(playback?.cacheSize ?? null);
   const hiresUpgrade = $derived(playback?.hiresUpgrade ?? null);
@@ -61,6 +55,16 @@
     }
   }
 
+  async function chooseLanguage(pref: LanguagePref) {
+    if (pref === ui.settings.language) return;
+    try {
+      await setLanguage(pref);
+      ui.settings = { ...ui.settings, language: pref };
+    } catch (e) {
+      fail(e);
+    }
+  }
+
   function setCacheSize(size: CacheSize) {
     if (playback && size !== playback.cacheSize) savePlayback({ ...playback, cacheSize: size });
   }
@@ -87,7 +91,7 @@
       updateCheck = (await commands.checkForUpdates()) ? "ready" : "uptodate";
     } catch (e) {
       updateCheck = "idle";
-      fail(`Vérification des mises à jour impossible : ${e}`);
+      fail(t.settings.checkFailed(String(e)));
     }
   }
 
@@ -106,43 +110,54 @@
 </script>
 
 <section class="settings">
-  <h1>Réglages</h1>
+  <h1>{t.settings.title}</h1>
   <div class="tabs" role="tablist">
-    {#each sections as s (s.id)}
+    {#each sections as id (id)}
       <button
         role="tab"
-        aria-selected={s.id === section}
-        class:active={s.id === section}
-        onclick={() => replace({ name: "settings", section: s.id })}
+        aria-selected={id === section}
+        class:active={id === section}
+        onclick={() => replace({ name: "settings", section: id })}
       >
-        {s.label}
+        {t.settings.sections[id]}
       </button>
     {/each}
   </div>
 
   {#if section === "appearance"}
     <div class="group">
-      <h2>Thème</h2>
-      <p class="hint">Le thème s'applique tout de suite et reste enregistré.</p>
+      <h2>{t.settings.language}</h2>
+      <p class="hint">{t.settings.languageHint}</p>
+      <div class="cache-sizes languages" role="radiogroup" aria-label={t.settings.language}>
+        {#each LANGUAGES as lang (lang)}
+          <button
+            class="cache-size language"
+            class:selected={ui.settings.language === lang}
+            role="radio"
+            aria-checked={ui.settings.language === lang}
+            lang={lang === "system" ? undefined : lang}
+            onclick={() => chooseLanguage(lang)}
+          >
+            {t.settings.languages[lang]}
+          </button>
+        {/each}
+      </div>
+    </div>
+    <div class="group">
+      <h2>{t.settings.theme}</h2>
+      <p class="hint">{t.settings.themeHint}</p>
       <ThemePicker />
     </div>
     <div class="group">
-      <h2>Couleur d'accent</h2>
-      <p class="hint">
-        Boutons, éléments actifs et titres mis en avant. Par défaut, chaque thème a la sienne
-        (accordée à l'album pour Verre de mer, Atelier et Surréalisme).
-      </p>
+      <h2>{t.settings.accent}</h2>
+      <p class="hint">{t.settings.accentHint}</p>
       <AccentPicker />
     </div>
   {:else if section === "playback"}
     <div class="group">
-      <h2>Cache de lecture</h2>
-      <p class="hint">
-        Mémoire réservée à la lecture en avance de chaque titre chargé (en cours et suivant).
-        64 Mo couvrent environ 5 minutes de FLAC 24 bits / 48 kHz, une dizaine en 16 bits /
-        44,1 kHz. Un cache plus grand résiste mieux à une connexion instable.
-      </p>
-      <div class="cache-sizes" role="radiogroup" aria-label="Taille du cache">
+      <h2>{t.settings.cache}</h2>
+      <p class="hint">{t.settings.cacheHint}</p>
+      <div class="cache-sizes" role="radiogroup" aria-label={t.settings.cacheSize}>
         {#each CACHE_SIZES as size (size)}
           <button
             class="cache-size"
@@ -152,51 +167,45 @@
             disabled={cacheSize === null}
             onclick={() => setCacheSize(size)}
           >
-            {size} Mo
+            {t.settings.megabytes(size)}
           </button>
         {/each}
       </div>
-      <p class="note">
-        Appliqué tout de suite, sans interrompre la lecture. Le cache reste en mémoire : rien
-        n'est écrit sur disque.
-      </p>
+      <p class="note">{t.settings.cacheNote}</p>
     </div>
     <div class="group">
-      <h2>Qualité</h2>
-      <p class="hint">
-        Un titre qui n'existe qu'en qualité CD a souvent une autre édition en hi-res (album
-        d'origine, réédition, compilation). Le master peut différer de l'édition affichée.
-      </p>
-      <div class="cache-sizes hires-modes" role="radiogroup" aria-label="Édition hi-res">
-        {#each HIRES_MODES as mode (mode.id)}
+      <h2>{t.settings.quality}</h2>
+      <p class="hint">{t.settings.qualityHint}</p>
+      <div class="cache-sizes hires-modes" role="radiogroup" aria-label={t.settings.hiresEdition}>
+        {#each HIRES_MODES as mode (mode)}
           <button
             class="cache-size hires-mode"
-            class:selected={hiresUpgrade === mode.id}
+            class:selected={hiresUpgrade === mode}
             role="radio"
-            aria-checked={hiresUpgrade === mode.id}
+            aria-checked={hiresUpgrade === mode}
             disabled={hiresUpgrade === null}
-            onclick={() => setHiresUpgrade(mode.id)}
+            onclick={() => setHiresUpgrade(mode)}
           >
-            {mode.label}
+            {t.settings.hiresModes[mode].label}
           </button>
         {/each}
       </div>
-      <p class="note">{HIRES_MODES.find((m) => m.id === hiresUpgrade)?.note ?? ""}</p>
+      <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
     </div>
   {:else}
     <div class="group">
-      <h2>Démarrage</h2>
+      <h2>{t.settings.startup}</h2>
       <label class="setting-row">
         <span class="text">
-          <span class="setting-label">Lancer Seaglass à l'ouverture de session</span>
-          <span class="hint">Réglage de Windows : il peut aussi être changé dans le Gestionnaire des tâches.</span>
+          <span class="setting-label">{t.settings.autostart}</span>
+          <span class="hint">{t.settings.autostartHint}</span>
         </span>
         <button
           class="setting-switch"
           class:on={autostart === true}
           role="switch"
           aria-checked={autostart === true}
-          aria-label="Lancer Seaglass à l'ouverture de session"
+          aria-label={t.settings.autostart}
           disabled={autostart === null || autostartBusy}
           onclick={toggleAutostart}
         >
@@ -206,32 +215,32 @@
     </div>
 
     <div class="group">
-      <h2>Mises à jour</h2>
+      <h2>{t.settings.updates}</h2>
       <div class="setting-row">
         <span class="text">
-          <span class="setting-label">Vérifier les mises à jour</span>
+          <span class="setting-label">{t.settings.checkUpdates}</span>
           <span class="hint">
             {#if updateCheck === "uptodate"}
-              Seaglass est à jour.
+              {t.settings.upToDate}
             {:else if updateCheck === "ready"}
-              Une nouvelle version est prête à être installée.
+              {t.settings.updateReady}
             {:else}
-              Vérification automatique au démarrage puis toutes les 6 heures.
+              {t.settings.updateAuto}
             {/if}
           </span>
         </span>
         <button class="update-check" onclick={checkUpdates} disabled={updateCheck === "checking"}>
-          {updateCheck === "checking" ? "Vérification…" : "Vérifier"}
+          {updateCheck === "checking" ? t.settings.checking : t.settings.check}
         </button>
       </div>
     </div>
 
     <div class="group about">
-      <h2>À propos</h2>
+      <h2>{t.settings.about}</h2>
       <p><span class="app-name">Seaglass</span> <span class="mono">v{__APP_VERSION__}</span></p>
-      <p><strong>Client non officiel, non affilié à TIDAL.</strong></p>
-      <p>Streaming uniquement : aucun flux n'est téléchargé ni enregistré sur disque.</p>
-      <p>Licence GPL-3.0. Lecture assurée par mpv.</p>
+      <p><strong>{t.settings.disclaimer}</strong></p>
+      <p>{t.settings.streamingOnly}</p>
+      <p>{t.settings.license}</p>
     </div>
   {/if}
 </section>

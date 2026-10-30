@@ -130,7 +130,11 @@ impl TidalClient {
         let page: RawPage<RawItem> = self.get(&format!("playlists/{uuid}/items"), &query).await?;
         if page.items.first().map(|i| i.item.id) != Some(expected) {
             return Err(TidalError::Conflict(
-                "la playlist a changé, rouvrez-la avant de retirer ce titre".into(),
+                crate::i18n::tr(
+                    "la playlist a changé, rouvrez-la avant de retirer ce titre",
+                    "the playlist has changed, reopen it before removing this track",
+                )
+                .into(),
             ));
         }
         let path = format!("playlists/{uuid}/items/{index}");
@@ -171,7 +175,11 @@ impl TidalClient {
             .await;
         match resp {
             Err(TidalError::Api { status: 412, .. }) => Err(TidalError::Conflict(
-                "la playlist a été modifiée ailleurs, réessayez".into(),
+                crate::i18n::tr(
+                    "la playlist a été modifiée ailleurs, réessayez",
+                    "the playlist was changed elsewhere, try again",
+                )
+                .into(),
             )),
             other => other,
         }

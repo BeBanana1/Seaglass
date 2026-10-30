@@ -3,14 +3,17 @@
   import { current, replace, type Route } from "../lib/stores/nav.svelte";
   import { togglePin, ui } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
 
-  const entries: { label: string; route: Route; match: Route["name"][] }[] = [
-    { label: "Accueil", route: { name: "home" }, match: ["home"] },
-    { label: "Fil d'actualité", route: { name: "feed" }, match: ["feed"] },
-    { label: "Recherche", route: { name: "search" }, match: ["search"] },
-    { label: "Bibliothèque", route: { name: "library", tab: "playlists" }, match: ["library"] },
-    { label: "Réglages", route: { name: "settings", section: "appearance" }, match: ["settings"] },
+  type EntryKey = keyof typeof t.common.nav;
+
+  const entries: { key: EntryKey; route: Route; match: Route["name"][] }[] = [
+    { key: "home", route: { name: "home" }, match: ["home"] },
+    { key: "feed", route: { name: "feed" }, match: ["feed"] },
+    { key: "search", route: { name: "search" }, match: ["search"] },
+    { key: "library", route: { name: "library", tab: "playlists" }, match: ["library"] },
+    { key: "settings", route: { name: "settings", section: "appearance" }, match: ["settings"] },
   ];
 
   const route = $derived(current());
@@ -18,7 +21,8 @@
   const pinRoute = (pin: Pin): Route =>
     pin.kind === "playlist" ? { name: "playlist", uuid: pin.uuid } : { name: "library", tab: "tracks" };
 
-  const pinLabel = (pin: Pin) => (pin.kind === "playlist" ? pin.title || "Playlist" : "Titres likés");
+  const pinLabel = (pin: Pin) =>
+    pin.kind === "playlist" ? pin.title || t.format.playlist : t.library.likedTracks;
 
   function pinActive(pin: Pin): boolean {
     const r = route;
@@ -37,17 +41,17 @@
 </script>
 
 <nav>
-  {#each entries as entry (entry.label)}
+  {#each entries as entry (entry.key)}
     <button
       class:active={entry.match.includes(route.name)}
       class:settings={entry.route.name === "settings"}
       onclick={() => replace(entry.route)}
     >
-      {entry.label}
+      {t.common.nav[entry.key]}
     </button>
     {#if entry.route.name === "library" && ui.settings.pins.length > 0}
       <div class="pins">
-        <span class="pins-title">Épinglés</span>
+        <span class="pins-title">{t.library.pinned}</span>
         {#each ui.settings.pins as pin (pin.kind === "playlist" ? pin.uuid : pin.kind)}
           <div class="pin" class:active={pinActive(pin)}>
             <button class="pin-open" onclick={() => replace(pinRoute(pin))} title={pinLabel(pin)}>
@@ -56,8 +60,8 @@
             <button
               class="pin-remove"
               onclick={() => unpin(pin)}
-              title="Désépingler"
-              aria-label={`Désépingler ${pinLabel(pin)}`}
+              title={t.library.unpin}
+              aria-label={t.library.unpinItem(pinLabel(pin))}
             >
               <Icon name="close" size={14} />
             </button>

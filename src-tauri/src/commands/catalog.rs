@@ -5,6 +5,7 @@ use tauri::{AppHandle, State};
 
 use super::settings::home_layout::HomeSection;
 use super::{AppState, CmdResult, err, settings};
+use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, Lyrics, MixPage, MixSummary,
@@ -22,7 +23,10 @@ pub async fn search(state: State<'_, AppState>, query: String) -> CmdResult<Sear
         return Ok(SearchResults::default());
     }
     if query.chars().count() > MAX_QUERY_LEN {
-        return Err(format!("recherche limitée à {MAX_QUERY_LEN} caractères"));
+        return Err(trf!(
+            "recherche limitée à {MAX_QUERY_LEN} caractères",
+            "search limited to {MAX_QUERY_LEN} characters"
+        ));
     }
     state.tidal.search(query, SEARCH_LIMIT).await.map_err(err)
 }
@@ -40,7 +44,7 @@ pub async fn artist(state: State<'_, AppState>, id: u64) -> CmdResult<ArtistPage
 #[tauri::command]
 pub async fn playlist(state: State<'_, AppState>, uuid: String) -> CmdResult<PlaylistPage> {
     if !is_uuid(&uuid) {
-        return Err("identifiant de playlist invalide".into());
+        return Err(tr("identifiant de playlist invalide", "invalid playlist ID").into());
     }
     state.tidal.playlist(&uuid).await.map_err(err)
 }
@@ -48,7 +52,7 @@ pub async fn playlist(state: State<'_, AppState>, uuid: String) -> CmdResult<Pla
 #[tauri::command]
 pub async fn mix(state: State<'_, AppState>, id: String) -> CmdResult<MixPage> {
     if !is_mix_id(&id) {
-        return Err("identifiant de mix invalide".into());
+        return Err(tr("identifiant de mix invalide", "invalid mix ID").into());
     }
     state.tidal.mix(&id).await.map_err(err)
 }

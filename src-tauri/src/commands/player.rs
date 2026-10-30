@@ -4,6 +4,7 @@ use tauri::State;
 use tokio::sync::oneshot;
 
 use super::{AppState, CmdResult};
+use crate::i18n::{tr, trf};
 use crate::player::volume::Volume;
 use crate::player::{Cmd, PlayerState, QueueView, Repeat};
 use crate::tidal::models::TrackId;
@@ -20,12 +21,17 @@ pub async fn play_tracks(
     shuffle: Option<bool>,
 ) -> CmdResult<()> {
     if track_ids.is_empty() || track_ids.len() > MAX_CONTEXT_LEN {
-        return Err(format!(
-            "le contexte doit contenir entre 1 et {MAX_CONTEXT_LEN} titres"
+        return Err(trf!(
+            "le contexte doit contenir entre 1 et {MAX_CONTEXT_LEN} titres",
+            "the context must contain 1 to {MAX_CONTEXT_LEN} tracks"
         ));
     }
     if start_index >= track_ids.len() {
-        return Err("index de départ hors du contexte".into());
+        return Err(tr(
+            "index de départ hors du contexte",
+            "start index out of context",
+        )
+        .into());
     }
     let ids = track_ids.into_iter().map(TrackId).collect();
     send_cmd(
@@ -58,8 +64,9 @@ pub async fn enqueue_tracks(
     next: bool,
 ) -> CmdResult<()> {
     if track_ids.is_empty() || track_ids.len() > MAX_CONTEXT_LEN {
-        return Err(format!(
-            "la liste doit contenir entre 1 et {MAX_CONTEXT_LEN} titres"
+        return Err(trf!(
+            "la liste doit contenir entre 1 et {MAX_CONTEXT_LEN} titres",
+            "the list must contain 1 to {MAX_CONTEXT_LEN} tracks"
         ));
     }
     let ids = track_ids.into_iter().map(TrackId).collect();
@@ -102,7 +109,7 @@ pub async fn toggle_pause(state: State<'_, AppState>) -> CmdResult<()> {
 #[tauri::command]
 pub async fn seek(state: State<'_, AppState>, seconds: f64) -> CmdResult<()> {
     if !seconds.is_finite() || seconds < 0.0 {
-        return Err("position invalide".into());
+        return Err(tr("position invalide", "invalid position").into());
     }
     send_cmd(&state, Cmd::Seek(seconds)).await
 }
@@ -133,14 +140,16 @@ pub async fn set_muted(state: State<'_, AppState>, muted: bool) -> CmdResult<()>
 pub async fn player_state(state: State<'_, AppState>) -> CmdResult<PlayerState> {
     let (tx, rx) = oneshot::channel();
     send_cmd(&state, Cmd::GetState(tx)).await?;
-    rx.await.map_err(|_| "lecteur arrêté".to_owned())
+    rx.await
+        .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
 }
 
 #[tauri::command]
 pub async fn queue_state(state: State<'_, AppState>) -> CmdResult<QueueView> {
     let (tx, rx) = oneshot::channel();
     send_cmd(&state, Cmd::GetQueue(tx)).await?;
-    rx.await.map_err(|_| "lecteur arrêté".to_owned())
+    rx.await
+        .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
 }
 
 async fn send_cmd(state: &AppState, cmd: Cmd) -> CmdResult<()> {
@@ -148,5 +157,5 @@ async fn send_cmd(state: &AppState, cmd: Cmd) -> CmdResult<()> {
         .player
         .send(cmd)
         .await
-        .map_err(|_| "lecteur arrêté".to_owned())
+        .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
 }

@@ -3,8 +3,11 @@
   import { commands, type FeedItem, type MediaItem } from "../lib/ipc";
   import { albumKind } from "../lib/format";
   import Card from "../components/Card.svelte";
+  import { i18n, locale, t } from "../lib/i18n.svelte";
 
   // Gardé entre deux visites, comme l'accueil : le fil ne bouge qu'une fois par jour.
+  // Rechargé si la langue change (sous-titres des mixes).
+  if (cachedLang !== i18n.lang) cached = null;
   let items = $state<FeedItem[] | null>(cached);
   let error = $state<string | null>(null);
 
@@ -27,10 +30,10 @@
   const unseen = $derived((items ?? []).filter((i) => !i.seen).length);
 
   function groupLabel(at: number | null, today: number): string {
-    if (at === null) return "Plus tôt";
-    if (at >= today) return "Aujourd'hui";
-    if (at >= today - 6 * DAY_MS) return "Cette semaine";
-    const month = new Date(at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    if (at === null) return t.views.feed.earlier;
+    if (at >= today) return t.views.feed.today;
+    if (at >= today - 6 * DAY_MS) return t.views.feed.thisWeek;
+    const month = new Date(at).toLocaleDateString(locale(), { month: "long", year: "numeric" });
     return month.charAt(0).toUpperCase() + month.slice(1);
   }
 
@@ -38,16 +41,17 @@
   const itemKey = (item: MediaItem) => `${item.kind}-${item.kind === "playlist" ? item.uuid : item.id}`;
 
   /** Type de l'élément : Single / EP / Album, ou Mix pour le mix mensuel. */
-  const itemKind = (item: MediaItem) => (item.kind === "album" ? albumKind(item) : "Mix");
+  const itemKind = (item: MediaItem) => (item.kind === "album" ? albumKind(item) : t.format.mix);
 
   function shortDate(at: number | null): string | null {
-    return at === null ? null : new Date(at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    return at === null ? null : new Date(at).toLocaleDateString(locale(), { day: "numeric", month: "short" });
   }
 
   onMount(async () => {
     if (items) return;
     try {
       items = cached = await commands.feed();
+      cachedLang = i18n.lang;
     } catch (e) {
       error = String(e);
     }
@@ -56,21 +60,22 @@
 
 <script lang="ts" module>
   let cached: FeedItem[] | null = null;
+  let cachedLang: string | null = null;
 </script>
 
 <section>
   <div class="feed-head">
-    <h1>Fil d'actualité</h1>
+    <h1>{t.views.feed.title}</h1>
     <p class="muted">
-      Sorties des artistes que vous suivez et mixes du mois{#if unseen > 0}&nbsp;· <span class="feed-count">{unseen} nouvelles</span>{/if}
+      {t.views.feed.intro}{#if unseen > 0}&nbsp;· <span class="feed-count">{t.views.feed.unseen(unseen)}</span>{/if}
     </p>
   </div>
   {#if error}
     <p class="error">{error}</p>
   {:else if !items}
-    <p class="muted">Chargement…</p>
+    <p class="muted">{t.common.loading}</p>
   {:else if items.length === 0}
-    <p class="muted">Aucune sortie récente. Suivez des artistes pour voir leurs nouveautés ici.</p>
+    <p class="muted">{t.views.feed.empty}</p>
   {:else}
     {#each groups as group (group.label)}
       <section class="feed-group">
@@ -79,7 +84,7 @@
           {#each group.items as entry, i (`${itemKey(entry.item)}-${i}`)}
             <div class="feed-item">
               <Card item={entry.item} />
-              {#if !entry.seen}<span class="feed-new">Nouveau</span>{/if}
+              {#if !entry.seen}<span class="feed-new">{t.views.feed.new}</span>{/if}
               <span class="feed-meta">
                 {[itemKind(entry.item), shortDate(entry.occurredAt)].filter(Boolean).join(" · ")}
               </span>

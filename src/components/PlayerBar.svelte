@@ -2,6 +2,7 @@
   import { player } from "../lib/stores/player.svelte";
   import { fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
+  import { t } from "../lib/i18n.svelte";
   import HiresOffer from "./HiresOffer.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
@@ -23,7 +24,7 @@
   <HiresOffer />
   <div class="now">
     {#if s.track}
-      <button class="cover" onclick={onOpenNowPlaying} title="Vue « En lecture »">
+      <button class="cover" onclick={onOpenNowPlaying} title={t.player.openNowPlaying}>
         {#if s.track.album.coverUrl}<img src={s.track.album.coverUrl} alt="" />{/if}
         <span class="expand"><Icon name="add" size={14} /></span>
       </button>
@@ -37,7 +38,7 @@
       </div>
       <LikeButton track={s.track} />
     {:else}
-      <span class="sub">Rien en lecture</span>
+      <span class="sub">{t.player.nothingPlaying}</span>
     {/if}
   </div>
 
@@ -48,11 +49,11 @@
 
   <div class="right">
     <div class="signal-full"><SignalPath dense /></div>
-    <button class="signal-chip" onclick={onOpenNowPlaying} title="Chaîne audio">
+    <button class="signal-chip" onclick={onOpenNowPlaying} title={t.player.signalPath}>
       <SignalPath compact />
     </button>
     <Volume />
-    <button class="toggle" class:on={queueOpen} onclick={onToggleQueue} title="File d'attente">
+    <button class="toggle" class:on={queueOpen} onclick={onToggleQueue} title={t.player.queue}>
       <Icon name="queue" />
     </button>
   </div>

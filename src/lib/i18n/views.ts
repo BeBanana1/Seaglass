@@ -1,0 +1,189 @@
+// Pages : accueil, fil, recherche, connexion, album, artiste, playlist, mix, « En lecture ».
+
+import { num } from "./state.svelte";
+
+export const fr = {
+  home: {
+    title: "Accueil",
+    customize: "Personnaliser",
+    done: "Terminé",
+    allHidden: "Toutes les sections sont masquées. « Personnaliser » permet de les réafficher.",
+    featured: (context: string) => `À la une · ${context}`,
+    openAlbum: "Ouvrir l'album →",
+  },
+  homeEditor: {
+    hint:
+      "Masquez les sections qui ne vous servent pas et choisissez leur ordre. Les nouvelles sections " +
+      "apparaissent à leur place habituelle.",
+    sections: "Sections de l'accueil",
+    items: (n: number) => `${num(n)} ${n > 1 ? "éléments" : "élément"}`,
+    hiddenSuffix: " · masquée",
+    up: "Monter",
+    down: "Descendre",
+    upItem: (title: string) => `Monter « ${title} »`,
+    downItem: (title: string) => `Descendre « ${title} »`,
+    showItem: (title: string) => `Afficher « ${title} »`,
+    hidden: "Masquée",
+    shown: "Affichée",
+    reset: "Réinitialiser",
+    moved: (title: string, position: number, total: number) => `« ${title} » en position ${position} sur ${total}`,
+    toggled: (title: string, hidden: boolean) => `« ${title} » ${hidden ? "masquée" : "affichée"}`,
+  },
+  feed: {
+    title: "Fil d'actualité",
+    intro: "Sorties des artistes que vous suivez et mixes du mois",
+    unseen: (n: number) => `${num(n)} ${n > 1 ? "nouvelles" : "nouvelle"}`,
+    empty: "Aucune sortie récente. Suivez des artistes pour voir leurs nouveautés ici.",
+    earlier: "Plus tôt",
+    today: "Aujourd'hui",
+    thisWeek: "Cette semaine",
+    new: "Nouveau",
+  },
+  search: {
+    placeholder: "Titres, artistes, albums, playlists…",
+    searching: "Recherche…",
+    noResults: "Aucun résultat.",
+    tracks: "Titres",
+    showLess: "Afficher moins",
+    showAll: (n: number) => `Afficher les ${num(n)} titres`,
+    artists: "Artistes",
+    albums: "Albums",
+    playlists: "Playlists",
+  },
+  login: {
+    welcome: "Bienvenue",
+    intro: "Connectez-vous avec votre compte de streaming pour commencer.",
+    pending: "Connexion en cours…",
+    signIn: "Se connecter",
+    disclaimer: "Client non officiel, non affilié à TIDAL.",
+  },
+  album: {
+    hiresTwin: "Cet album existe en Hi-Res",
+    open: "Ouvrir",
+  },
+  artist: {
+    popular: "Titres populaires",
+    albums: "Albums",
+    singles: "EP et singles",
+  },
+  playlist: {
+    removed: (title: string) => `« ${title} » retiré de la playlist`,
+  },
+  mix: {
+    radio: "Radio",
+    trackRadio: "Des titres proches de ce morceau.",
+    artistRadio: "Des titres proches de cet artiste.",
+    empty: "Aucun titre disponible.",
+  },
+  header: {
+    playNext: "Lire ensuite",
+    addToQueue: "Ajouter à la file",
+    addToPlaylist: "Ajouter à une playlist",
+    radio: "Radio",
+    enqueued: (n: number, next: boolean) =>
+      `${num(n)} ${n > 1 ? "titres ajoutés" : "titre ajouté"} ${next ? "en tête de la file" : "à la file"}`,
+  },
+  row: {
+    play: (title: string) => `Lire ${title}`,
+    more: "Plus d'actions",
+  },
+  nowPlaying: {
+    title: "En lecture",
+    lyrics: "Paroles",
+    close: "Fermer (Échap)",
+    upNext: "À suivre",
+    empty: "Rien en lecture.",
+  },
+};
+
+export const en: typeof fr = {
+  home: {
+    title: "Home",
+    customize: "Customize",
+    done: "Done",
+    allHidden: "All sections are hidden. Use “Customize” to show them again.",
+    featured: (context: string) => `Featured · ${context}`,
+    openAlbum: "Open album →",
+  },
+  homeEditor: {
+    hint: "Hide the sections you don't use and choose their order. New sections appear in their usual place.",
+    sections: "Home sections",
+    items: (n: number) => `${num(n)} ${n === 1 ? "item" : "items"}`,
+    hiddenSuffix: " · hidden",
+    up: "Move up",
+    down: "Move down",
+    upItem: (title: string) => `Move “${title}” up`,
+    downItem: (title: string) => `Move “${title}” down`,
+    showItem: (title: string) => `Show “${title}”`,
+    hidden: "Hidden",
+    shown: "Shown",
+    reset: "Reset",
+    moved: (title: string, position: number, total: number) => `“${title}” moved to position ${position} of ${total}`,
+    toggled: (title: string, hidden: boolean) => `“${title}” ${hidden ? "hidden" : "shown"}`,
+  },
+  feed: {
+    title: "Feed",
+    intro: "Releases from artists you follow and monthly mixes",
+    unseen: (n: number) => `${num(n)} new`,
+    empty: "No recent releases. Follow artists to see what's new from them here.",
+    earlier: "Earlier",
+    today: "Today",
+    thisWeek: "This week",
+    new: "New",
+  },
+  search: {
+    placeholder: "Tracks, artists, albums, playlists…",
+    searching: "Searching…",
+    noResults: "No results.",
+    tracks: "Tracks",
+    showLess: "Show less",
+    showAll: (n: number) => `Show all ${num(n)} tracks`,
+    artists: "Artists",
+    albums: "Albums",
+    playlists: "Playlists",
+  },
+  login: {
+    welcome: "Welcome",
+    intro: "Sign in with your streaming account to get started.",
+    pending: "Signing in…",
+    signIn: "Sign in",
+    disclaimer: "Unofficial client, not affiliated with TIDAL.",
+  },
+  album: {
+    hiresTwin: "This album is available in Hi-Res",
+    open: "Open",
+  },
+  artist: {
+    popular: "Popular tracks",
+    albums: "Albums",
+    singles: "EPs and singles",
+  },
+  playlist: {
+    removed: (title: string) => `“${title}” removed from the playlist`,
+  },
+  mix: {
+    radio: "Radio",
+    trackRadio: "Tracks similar to this song.",
+    artistRadio: "Tracks similar to this artist.",
+    empty: "No tracks available.",
+  },
+  header: {
+    playNext: "Play next",
+    addToQueue: "Add to queue",
+    addToPlaylist: "Add to playlist",
+    radio: "Radio",
+    enqueued: (n: number, next: boolean) =>
+      `${num(n)} ${n === 1 ? "track" : "tracks"} added ${next ? "to the front of the queue" : "to the queue"}`,
+  },
+  row: {
+    play: (title: string) => `Play ${title}`,
+    more: "More actions",
+  },
+  nowPlaying: {
+    title: "Now playing",
+    lyrics: "Lyrics",
+    close: "Close (Esc)",
+    upNext: "Up next",
+    empty: "Nothing playing.",
+  },
+};

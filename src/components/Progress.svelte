@@ -3,6 +3,7 @@
   import { commands } from "../lib/ipc";
   import { estimatedPosition, player } from "../lib/stores/player.svelte";
   import { formatTime } from "../lib/format";
+  import { t } from "../lib/i18n.svelte";
 
   let { large = false }: { large?: boolean } = $props();
 
@@ -39,7 +40,7 @@
       step="0.1"
       value={shown}
       disabled={!s.track || !s.duration}
-      aria-label="Position"
+      aria-label={t.player.position}
       oninput={(e) => (dragging = e.currentTarget.valueAsNumber)}
       onchange={(e) => seekTo(e.currentTarget.valueAsNumber)}
     />

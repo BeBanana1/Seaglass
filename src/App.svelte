@@ -6,6 +6,7 @@
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
   import { initUi, ui } from "./lib/stores/ui.svelte";
+  import { initLanguage, t } from "./lib/i18n.svelte";
   import { openTrackInfo } from "./lib/stores/trackInfo.svelte";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
@@ -37,7 +38,7 @@
   let main = $state<HTMLElement>();
 
   onMount(async () => {
-    await Promise.all([initUi(), initPlayer(), initQueue(), initToasts(), initLikes()]);
+    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes()]);
     try {
       session = await commands.authStatus();
     } catch (e) {
@@ -138,7 +139,7 @@
   <header>
     <div class="left">
       {#if session || route.name === "settings"}
-        <button class="back" onclick={back} disabled={!canGoBack()} aria-label="Retour" title="Retour (Alt+←)">
+        <button class="back" onclick={back} disabled={!canGoBack()} aria-label={t.common.back} title={t.common.backHint}>
           <Icon name="previous" size={13} />
         </button>
       {/if}
@@ -148,13 +149,13 @@
     <div class="actions">
       {#if session}
         <button class="search-hint" onclick={() => replace({ name: "search" })}>
-          Rechercher <kbd>Ctrl K</kbd>
+          {t.common.searchHint} <kbd>Ctrl K</kbd>
         </button>
       {/if}
-      <button onclick={() => openSettings()} title="Réglages (Ctrl+,)">Réglages</button>
-      <button onclick={() => openSettings("app")}>À propos</button>
+      <button onclick={() => openSettings()} title={t.common.settingsHint}>{t.common.nav.settings}</button>
+      <button onclick={() => openSettings("app")}>{t.common.about}</button>
       {#if session}
-        <button onclick={logout}>Se déconnecter</button>
+        <button onclick={logout}>{t.common.logout}</button>
       {/if}
     </div>
   </header>
@@ -163,7 +164,7 @@
     {#if session}<div class="panel nav"><Sidebar /></div>{/if}
     <main class="panel" bind:this={main}>
       {#if !ready}
-        <p class="muted">Chargement…</p>
+        <p class="muted">{t.common.loading}</p>
       {:else if route.name === "settings"}
         <Settings section={route.section} />
       {:else if !session}

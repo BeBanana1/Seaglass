@@ -274,7 +274,14 @@ export interface UiSettings {
   pins: Pin[];
   /** Couleur d'accent `#rrggbb` ; `null` : celle du thème. */
   accent: string | null;
+  /** Langue choisie (#7) ; `system` suit la langue d'affichage de Windows. */
+  language: LanguagePref;
 }
+
+/** Langue effective de l'app, décidée par le backend. */
+export type Lang = "fr" | "en";
+
+export type LanguagePref = "system" | Lang;
 
 /** Taille du cache mpv en Mio : seules ces valeurs sont acceptées par le backend. */
 export type CacheSize = 32 | 64 | 128 | 256;
@@ -368,6 +375,10 @@ export const commands = {
   queueState: () => invoke<QueueView>("queue_state"),
   uiSettings: () => invoke<UiSettings>("ui_settings"),
   setUiSettings: (settings: UiSettings) => invoke<void>("set_ui_settings", { settings }),
+  /** Langue effective (réglage, ou langue du système). */
+  language: () => invoke<Lang>("language"),
+  /** Enregistre le réglage ; renvoie la langue effective. */
+  setLanguage: (language: LanguagePref) => invoke<Lang>("set_language", { language }),
   /** Sections affichées, dans l'ordre de l'écran ; renvoie la disposition enregistrée. */
   setHomeLayout: (sections: { key: string; hidden: boolean }[]) =>
     invoke<HomeLayout>("set_home_layout", { sections }),

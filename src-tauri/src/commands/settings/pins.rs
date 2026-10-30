@@ -6,6 +6,7 @@
 
 use std::collections::HashSet;
 
+use crate::i18n::{tr, trf};
 use serde::{Deserialize, Serialize};
 
 /// Nombre maximal d'épingles.
@@ -26,9 +27,13 @@ pub enum Pin {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum PinError {
-    #[error("trop d'épingles ({0}, maximum {MAX_PINS})")]
+    #[error("{}", trf!(
+        "trop d'épingles ({}, maximum {MAX_PINS})",
+        "too many pins ({}, maximum {MAX_PINS})",
+        .0
+    ))]
     TooMany(usize),
-    #[error("identifiant de playlist invalide")]
+    #[error("{}", tr("identifiant de playlist invalide", "invalid playlist ID"))]
     InvalidUuid,
 }
 

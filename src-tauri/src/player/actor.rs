@@ -15,6 +15,7 @@ use tokio::sync::{mpsc, oneshot};
 use super::queue::{Queue, Repeat};
 use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::state::{PlayerState, QueueView};
+use crate::i18n::tr;
 use crate::integrations::Observers;
 use crate::mpv::process::ProcessGuard;
 use crate::mpv::{self, CacheSize, MpvEvent, MpvHandle, Property, serve::ManifestServer};
@@ -349,10 +350,14 @@ impl Player {
             MpvEvent::FileLoaded => self.failures = 0,
             MpvEvent::EndFile { reason, error } => self.on_end_file(reason, error).await,
             MpvEvent::Disconnected => {
-                self.mpv = Err("mpv s'est arrêté, redémarrer l'app".into());
+                self.mpv = Err(tr(
+                    "mpv s'est arrêté, redémarrer l'app",
+                    "mpv stopped, restart the app",
+                )
+                .into());
                 self.loaded = false;
                 self.next_loaded = None;
-                self.toast("error", "mpv s'est arrêté".into());
+                self.toast("error", tr("mpv s'est arrêté", "mpv stopped").into());
             }
             MpvEvent::StartFile => {}
         }

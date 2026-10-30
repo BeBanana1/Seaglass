@@ -4,6 +4,7 @@
 //! - `cargo test live_lyrics -- --ignored --nocapture` : paroles synchronisées et absentes.
 //! - `cargo test live_track_info -- --ignored --nocapture` : infos détaillées d'un titre (#3).
 //! - `cargo test live_hires_twin_album -- --ignored --nocapture` : album jumeau hi-res (#59).
+//! - `cargo test live_locale -- --ignored --nocapture` : titres de l'accueil en anglais (#7).
 //! - `cargo test dump_ui_fixtures -- --ignored` : écrit `src/lib/mock/fixtures.json`
 //!   (gitignoré, contient la bibliothèque du compte) pour prévisualiser l'UI hors Tauri.
 
@@ -24,6 +25,40 @@ async fn client() -> TidalClient {
         "pas de session"
     );
     client
+}
+
+/// La `locale` suit la langue de l'app : mêmes lignes d'accueil (même `key`), titres traduits.
+/// Change la langue globale le temps du test : à lancer seul.
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis, change la langue globale"]
+async fn live_locale() {
+    use crate::i18n::{self, Lang};
+    let client = client().await;
+    i18n::set(Lang::En);
+    let en = client.home().await;
+    i18n::set(Lang::Fr);
+    let en = en.unwrap();
+    let fr = client.home().await.unwrap();
+    for row in &en {
+        let fr_title = fr
+            .iter()
+            .find(|r| r.key == row.key)
+            .map(|r| r.title.as_str());
+        println!("{} : {:?} / {:?}", row.key, row.title, fr_title);
+    }
+    let mix = en.iter().flat_map(|r| &r.items).find_map(|i| match i {
+        MediaItem::Mix(m) => Some(m),
+        _ => None,
+    });
+    println!("mix : {:?}", mix.map(|m| (&m.title, &m.subtitle)));
+    let translated = en
+        .iter()
+        .filter(|r| fr.iter().any(|f| f.key == r.key && f.title != r.title))
+        .count();
+    assert!(
+        translated > 0,
+        "aucun titre de ligne ne change avec la locale"
+    );
 }
 
 #[tokio::test]

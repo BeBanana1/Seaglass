@@ -22,7 +22,6 @@ const FAVORITE_MIXES_PAGE: u32 = 50;
 const FAVORITE_MIXES_MAX: usize = 500;
 /// L'API renvoie au plus 100 titres de radio (96 vus pour un titre, 100 pour un artiste).
 const RADIO_SIZE: u32 = 100;
-const MIX_LOCALE: &str = "fr_FR";
 
 impl TidalClient {
     /// En-tête et titres d'un mix (deux requêtes en parallèle).
@@ -30,7 +29,7 @@ impl TidalClient {
         let page_params = [
             ("mixId", id.to_owned()),
             ("deviceType", "BROWSER".to_owned()),
-            ("locale", MIX_LOCALE.to_owned()),
+            ("locale", crate::i18n::tidal_locale().to_owned()),
         ];
         let items_path = format!("mixes/{id}/items");
         let (page, items) = tokio::try_join!(

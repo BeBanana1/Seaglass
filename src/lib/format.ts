@@ -9,6 +9,7 @@ import type {
   Track,
   Volume,
 } from "./ipc";
+import { num, t } from "./i18n.svelte";
 
 export function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -23,12 +24,7 @@ export function formatTime(seconds: number): string {
 export function formatLongDuration(seconds: number | null): string | null {
   if (!seconds) return null;
   const minutes = Math.round(seconds / 60);
-  const h = Math.floor(minutes / 60);
-  return h > 0 ? `${h} h ${minutes % 60} min` : `${minutes} min`;
-}
-
-export function plural(n: number, singular: string, pluralForm = `${singular}s`): string {
-  return `${n.toLocaleString("fr-FR")} ${n > 1 ? pluralForm : singular}`;
+  return t.format.longDuration(Math.floor(minutes / 60), minutes % 60);
 }
 
 export function artistNames(track: Track): string {
@@ -46,17 +42,17 @@ export function year(date: string | null): string | null {
 export function albumKind(album: AlbumSummary): string {
   switch (album.albumType) {
     case "SINGLE":
-      return "Single";
+      return t.format.single;
     case "EP":
-      return "EP";
+      return t.format.ep;
     default:
-      return "Album";
+      return t.format.album;
   }
 }
 
 export function playlistSubtitle(p: PlaylistSummary): string {
-  const parts = [p.editorial ? "Éditoriale" : p.mine ? "Votre playlist" : "Playlist"];
-  if (p.numberOfTracks) parts.push(plural(p.numberOfTracks, "titre"));
+  const parts = [p.editorial ? t.format.editorial : p.mine ? t.format.yourPlaylist : t.format.playlist];
+  if (p.numberOfTracks) parts.push(t.common.tracks(p.numberOfTracks));
   return parts.join(" · ");
 }
 
@@ -71,11 +67,11 @@ export function mediaSubtitle(item: MediaItem): string {
         .filter(Boolean)
         .join(" · ");
     case "artist":
-      return "Artiste";
+      return t.format.artist;
     case "playlist":
       return playlistSubtitle(item);
     case "mix":
-      return item.subtitle ?? "Mix";
+      return item.subtitle ?? t.format.mix;
   }
 }
 
@@ -94,7 +90,7 @@ export function mediaImage(item: MediaItem): string | null {
 export function formatStream(f: StreamFormat): string {
   const codec = f.codec.startsWith("mp4a") ? "AAC" : f.codec.toUpperCase();
   if (f.bitDepth && f.sampleRate && codec === "FLAC") {
-    return `FLAC ${f.bitDepth}/${(f.sampleRate / 1000).toLocaleString("fr-FR")}`;
+    return `FLAC ${f.bitDepth}/${khz(f.sampleRate)}`;
   }
   return codec;
 }
@@ -114,7 +110,7 @@ export function softwareGain(volume: Volume): boolean {
 
 /** Niveau lisible pour la chaîne audio (« coupé », « 60 % »). */
 export function volumeLabel(volume: Volume): string {
-  return volume.muted ? "coupé" : `${volume.level} %`;
+  return volume.muted ? t.format.muted : t.format.percent(volume.level);
 }
 
 /**
@@ -128,78 +124,72 @@ export function signalVerdict(
   volume: Volume = { level: 100, muted: false },
 ): SignalVerdict {
   const verdict = streamVerdict(stream, output);
+  const v = t.format.verdict;
   if (verdict.tone === "ok" && softwareGain(volume)) {
     return {
-      label: volume.muted ? "Son coupé" : "Volume logiciel",
+      label: volume.muted ? v.mutedLabel : v.gainLabel,
       tone: "warn",
-      detail: volume.muted
-        ? "son coupé dans mpv"
-        : `volume ${volume.level} % : gain appliqué par mpv, plus bit-perfect (100 % pour le rétablir)`,
+      detail: volume.muted ? v.mutedDetail : v.gainDetail(volume.level),
     };
   }
   if (verdict.tone === "warn" && softwareGain(volume)) {
-    return { ...verdict, detail: `${verdict.detail} ; volume ${volumeLabel(volume)}` };
+    return { ...verdict, detail: v.withVolume(verdict.detail, volumeLabel(volume)) };
   }
   return verdict;
 }
 
 function streamVerdict(stream: StreamFormat | null, output: AudioParams | null): SignalVerdict {
-  if (!stream) return { label: "Aucun flux", tone: "idle", detail: "" };
+  const v = t.format.verdict;
+  if (!stream) return { label: v.noStream, tone: "idle", detail: "" };
   if (stream.codec !== "flac") {
-    return { label: "Compressé", tone: "lossy", detail: "flux AAC avec perte" };
+    return { label: v.lossyLabel, tone: "lossy", detail: v.lossyDetail };
   }
-  if (!output) return { label: "En attente", tone: "idle", detail: "sortie audio pas encore ouverte" };
+  if (!output) return { label: v.waitingLabel, tone: "idle", detail: v.waitingDetail };
   if (stream.sampleRate && output.samplerate !== stream.sampleRate) {
     return {
-      label: "Rééchantillonné",
+      label: v.resampledLabel,
       tone: "warn",
       detail: `${khz(stream.sampleRate)} → ${khz(output.samplerate)} kHz`,
     };
   }
   if (output.format === "s16" && (stream.bitDepth ?? 16) > 16) {
-    return { label: "Profondeur réduite", tone: "warn", detail: "24 → 16 bits" };
+    return { label: v.reducedLabel, tone: "warn", detail: v.reducedDetail };
   }
-  return {
-    label: "Fréquence native",
-    tone: "ok",
-    detail: "mpv transmet sans conversion ; en mode partagé, Windows peut encore mixer",
-  };
+  return { label: v.nativeLabel, tone: "ok", detail: v.nativeDetail };
 }
 
 export function khz(rate: number): string {
-  return (rate / 1000).toLocaleString("fr-FR");
+  return num(rate / 1000);
 }
 
 /** Débit en kbps : « 5 071 kbps ». */
 export function kbps(rate: number): string {
-  return `${rate.toLocaleString("fr-FR")} kbps`;
+  return `${num(rate)} kbps`;
 }
 
-const NOTES: Record<string, string> = { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" };
-
-/** Tonalité en notation française. L'API mêle les formes (`FSharp`, `Bb`, `F`) : une forme
- *  inconnue est rendue telle quelle. */
+/** Tonalité dans la notation de la langue (Do / C). L'API mêle les formes (`FSharp`, `Bb`,
+ *  `F`) : une forme inconnue est rendue telle quelle. */
 export function musicalKey(key: string | null, scale: string | null): string | null {
   if (!key) return null;
   const m = /^([A-G])(Sharp|#|Flat|b)?$/.exec(key);
   if (!m) return [key, scale?.toLowerCase()].filter(Boolean).join(" ");
   const accidental = !m[2] ? "" : m[2] === "Sharp" || m[2] === "#" ? "♯" : "♭";
-  const mode = scale === "MAJOR" ? " majeur" : scale === "MINOR" ? " mineur" : "";
-  return `${NOTES[m[1]]}${accidental}${mode}`;
+  const mode = scale === "MAJOR" ? t.format.major : scale === "MINOR" ? t.format.minor : "";
+  return `${t.format.notes[m[1]]}${accidental}${mode}`;
 }
 
 /** Gain ReplayGain : « −6,17 dB ». */
 export function decibels(gain: number): string {
-  const text = Math.abs(gain).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const text = num(Math.abs(gain), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${gain < 0 ? "−" : gain > 0 ? "+" : ""}${text} dB`;
 }
 
 /** Crête en pleine échelle (1 = 0 dBFS) : « 0,997 (−0,02 dBFS) ». */
 export function peak(amplitude: number): string {
-  const value = amplitude.toLocaleString("fr-FR", { maximumFractionDigits: 3 });
+  const value = num(amplitude, { maximumFractionDigits: 3 });
   if (amplitude <= 0) return value;
   const dbfs = 20 * Math.log10(amplitude);
-  const text = Math.abs(dbfs).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const text = num(Math.abs(dbfs), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${value} (${dbfs < -0.005 ? "−" : ""}${text} dBFS)`;
 }
 
@@ -213,5 +203,6 @@ export function tagLabel(tag: string): string | null {
 }
 
 export function outputFormat(format: string): string {
-  return { s16: "16 bits", s24: "24 bits", s32: "32 bits", float: "32 bits flottant" }[format] ?? format;
+  const f = t.format;
+  return { s16: f.bits(16), s24: f.bits(24), s32: f.bits(32), float: f.float32 }[format] ?? format;
 }

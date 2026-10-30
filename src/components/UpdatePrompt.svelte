@@ -5,6 +5,7 @@
   import { commands, events, type UpdateInfo } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   let update = $state<UpdateInfo | null>(null);
   let dismissed = $state(false);
@@ -37,17 +38,17 @@
 
 {#if update && !dismissed}
   <div class="prompt" role="alertdialog" aria-labelledby="update-title">
-    <span class="label">Mise à jour prête</span>
+    <span class="label">{t.settings.update.ready}</span>
     <h3 id="update-title" class="display">Seaglass {update.version}</h3>
-    <p class="sub">Version actuelle : {update.currentVersion}</p>
+    <p class="sub">{t.settings.update.current(update.currentVersion)}</p>
     {#if update.notes}<pre class="notes">{update.notes}</pre>{/if}
-    {#if playing}<p class="sub">La lecture s'arrêtera le temps de l'installation (quelques secondes).</p>{/if}
+    {#if playing}<p class="sub">{t.settings.update.playbackStops}</p>{/if}
     <div class="actions">
       <button class="primary" onclick={install} disabled={installing}>
-        {installing ? "Installation…" : "Installer et redémarrer"}
+        {installing ? t.settings.update.installing : t.settings.update.install}
       </button>
-      <button class="later" onclick={() => (dismissed = true)} title="Elle s'installera à la fermeture de l'app">
-        Plus tard
+      <button class="later" onclick={() => (dismissed = true)} title={t.settings.update.laterHint}>
+        {t.settings.update.later}
       </button>
     </div>
   </div>
