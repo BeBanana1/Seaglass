@@ -41,6 +41,8 @@ pub enum Cmd {
         next: bool,
     },
     RemoveFromQueue(usize),
+    /// Vide la file manuelle et la suite du contexte ; le titre courant continue.
+    ClearQueue,
     Next,
     Previous,
     TogglePause,
@@ -237,6 +239,11 @@ impl Player {
             }
             Cmd::RemoveFromQueue(index) => {
                 if self.queue.remove_manual(index) {
+                    self.on_queue_changed().await;
+                }
+            }
+            Cmd::ClearQueue => {
+                if self.queue.clear_upcoming() {
                     self.on_queue_changed().await;
                 }
             }

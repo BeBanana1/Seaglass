@@ -210,6 +210,14 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     manual.splice(Number(i), 1);
     emit("queue-state", queueView());
   },
+  clear_queue: () => {
+    manual.length = 0;
+    context = context.slice(index, index + 1);
+    index = 0;
+    state.hasNext = false;
+    emit("player-state", state);
+    emit("queue-state", queueView());
+  },
   next: () => {
     if (manual.length) return setCurrent(manual.shift());
     if (index + 1 < context.length) setCurrent(context[++index]);

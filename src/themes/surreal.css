@@ -165,7 +165,8 @@
 }
 
 :root[data-theme="surreal"] .now-playing .close,
-:root[data-theme="surreal"] .now-playing .queue-toggle {
+:root[data-theme="surreal"] .now-playing .queue-toggle,
+:root[data-theme="surreal"] .queue-clear {
   background: rgb(255 255 255 / 0.7);
 }
 
