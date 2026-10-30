@@ -431,6 +431,52 @@
   --warn: #f0c26a;
 }
 
+/* --- Terminal : écran cathodique monochrome (voir themes/terminal.css) -------------- */
+/* Une seule couleur : le texte est l'accent (le phosphore). Une couleur d'accent choisie
+   dans les réglages change donc tout l'écran (vert, ambre, blanc…). */
+:root[data-theme="terminal"] {
+  color-scheme: dark;
+  --font-ui: var(--font-mono);
+  --font-display: var(--font-mono);
+  --bg: #040704;
+  --surface: rgb(4 8 4 / 0.92);
+  --dialog-bg: #060a06;
+  --bg-raised: color-mix(in srgb, var(--accent) 6%, transparent);
+  --bg-hover: color-mix(in srgb, var(--accent) 14%, transparent);
+  --border: color-mix(in srgb, var(--accent) 38%, transparent);
+  --text: color-mix(in srgb, var(--accent) 85%, white);
+  --text-muted: color-mix(in srgb, var(--accent) 55%, #808080);
+  --accent: #41ff7a;
+  --accent-strong: color-mix(in srgb, var(--accent) 75%, white);
+  --accent-contrast: var(--bg);
+  --danger: #ff7a5c;
+  --ok: var(--accent);
+  --warn: #ffd166;
+  --radius: 0;
+  --radius-pill: 0;
+  --radius-card: 0;
+  --radius-cover: 0;
+  --panel-radius: 0;
+  --dialog-radius: 0;
+  --popover-radius: 0;
+  --panel-blur: none;
+  --panel-border: 1px solid var(--border);
+  --panel-shadow: 0 0 24px color-mix(in srgb, var(--accent) 8%, transparent);
+  --dialog-border: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  --dialog-surface: rgb(4 8 4 / 0.97);
+  --dialog-shadow: 0 0 40px color-mix(in srgb, var(--accent) 16%, transparent);
+  --popover-shadow: 0 0 24px color-mix(in srgb, var(--accent) 14%, transparent);
+  --shadow-cover: 0 0 0 1px var(--border);
+  --control-bg: transparent;
+  --focus-ring: 2px dashed var(--accent);
+  --shell-gap: 6px;
+  --display-weight: 700;
+  --display-tracking: 0;
+  --display-family: var(--font-mono);
+  --label-transform: none;
+  --meta-family: var(--font-mono);
+}
+
 * {
   box-sizing: border-box;
 }
