@@ -5,7 +5,7 @@
       "command": "${LOCALAPPDATA}/Programs/gitea-mcp/gitea-mcp.exe",
       "args": ["-t", "stdio", "--host", "https://git.bebanana.ch"],
       "env": {
-        "GITEA_ACCESS_TOKEN": "${GITEA_ACCESS_TOKEN}"
+        "GITEA_ACCESS_TOKEN": "${GITEA_CLAUDE_TOKEN}"
       }
     }
   }
