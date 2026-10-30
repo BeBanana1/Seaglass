@@ -41,6 +41,7 @@ export const fr = {
   nowPlaying: "En cours",
   nextInQueue: "Ensuite dans la file",
   upNext: "Ensuite",
+  radioFrom: (title: string) => `Radio de ${title}`,
   queueEmpty: "La file est vide.",
 
   lyricsNothing: "Rien en lecture.",
@@ -91,6 +92,7 @@ export const en: typeof fr = {
   nowPlaying: "Now playing",
   nextInQueue: "Next in queue",
   upNext: "Up next",
+  radioFrom: (title: string) => `${title} radio`,
   queueEmpty: "The queue is empty.",
 
   lyricsNothing: "Nothing playing.",

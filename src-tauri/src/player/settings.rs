@@ -17,6 +17,8 @@ pub struct PlaybackSettings {
     /// Titre sans version hi-res : lire l'édition hi-res du même enregistrement si elle
     /// existe (#18), ou la proposer (#59).
     pub hires_upgrade: HiresUpgrade,
+    /// Fin de file : enchaîner sur la radio du dernier titre (#78). Désactivé par défaut.
+    pub auto_radio: bool,
 }
 
 /// Que faire d'une édition hi-res trouvée pour un titre qui n'en a pas.
@@ -92,8 +94,9 @@ mod tests {
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto"}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","autoRadio":false}"#
         );
+        assert!(!s.auto_radio, "radio automatique désactivée par défaut");
     }
 
     #[test]
