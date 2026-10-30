@@ -57,7 +57,7 @@
     padding: 10px 24px;
     border-radius: 999px;
     font-weight: 600;
-    color: var(--bg);
+    color: var(--accent-contrast);
     background: var(--accent);
   }
 

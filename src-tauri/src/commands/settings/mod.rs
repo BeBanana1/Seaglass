@@ -39,6 +39,24 @@ pub struct UiSettings {
     pub home: HomeLayout,
     /// Raccourcis de la barre latérale, dans l'ordre d'affichage (#10).
     pub pins: Vec<Pin>,
+    /// Couleur d'accent choisie (`#rrggbb`, #23) ; absente : celle du thème.
+    #[serde(deserialize_with = "accent_color")]
+    pub accent: Option<String>,
+}
+
+/// N'accepte que `#rrggbb` (mis en minuscules) : la valeur part telle quelle dans le CSS.
+fn accent_color<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+    let Some(color) = Option::<String>::deserialize(d)? else {
+        return Ok(None);
+    };
+    let hex = color.strip_prefix('#').unwrap_or_default();
+    if hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()) {
+        Ok(Some(color.to_ascii_lowercase()))
+    } else {
+        Err(serde::de::Error::custom(
+            "couleur d'accent invalide (attendu #rrggbb)",
+        ))
+    }
 }
 
 /// Réglages enregistrés ; illisibles (ancienne version, valeur inconnue) : valeurs par défaut.
@@ -162,12 +180,32 @@ mod tests {
         assert_eq!(s.theme, Theme::Surreal);
     }
 
+    #[test]
+    fn accent_must_be_a_hex_color() {
+        let s: UiSettings = serde_json::from_str(r##"{"accent":"#FF5C8A"}"##).unwrap();
+        assert_eq!(s.accent.as_deref(), Some("#ff5c8a"));
+        let s: UiSettings = serde_json::from_str(r#"{"accent":null}"#).unwrap();
+        assert_eq!(s.accent, None);
+        for bad in [
+            r#""red""#,
+            r##""#fff""##,
+            r##""#12345g""##,
+            r#""ff5c8a""#,
+            r##""#ff5c8a;color:red""##,
+            "1",
+        ] {
+            let json = format!(r#"{{"accent":{bad}}}"#);
+            assert!(serde_json::from_str::<UiSettings>(&json).is_err(), "{bad}");
+        }
+    }
+
     /// Les réglages enregistrés avant l'accueil personnalisable restent lisibles.
     #[test]
     fn home_layout_defaults_and_round_trips() {
         let s: UiSettings = serde_json::from_str(r#"{"theme":"atelier"}"#).unwrap();
         assert_eq!(s.home, HomeLayout::default());
         assert!(s.pins.is_empty());
+        assert_eq!(s.accent, None);
         let s: UiSettings =
             serde_json::from_str(r#"{"theme":"studio","home":{"order":["A","B"],"hidden":["B"]}}"#)
                 .unwrap();

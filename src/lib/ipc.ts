@@ -175,6 +175,8 @@ export interface UiSettings {
   theme: Theme;
   home: HomeLayout;
   pins: Pin[];
+  /** Couleur d'accent `#rrggbb` ; `null` : celle du thème. */
+  accent: string | null;
 }
 
 /** Taille du cache mpv en Mio : seules ces valeurs sont acceptées par le backend. */
