@@ -10,7 +10,7 @@ services:
       # Même adresse que le runner partagé : Gitea sur l'hôte, joignable aussi
       # depuis les conteneurs des jobs (checkout).
       GITEA_INSTANCE_URL: http://172.17.0.1:3002
-      GITEA_RUNNER_REGISTRATION_TOKEN: ${SEAGLASS_RUNNER_TOKEN}
+      GITEA_RUNNER_REGISTRATION_TOKEN: ${SEAGLASS_RUNNER_TOKEN:?à définir dans .env (voir .env.example)}
       GITEA_RUNNER_NAME: seaglass
     volumes:
       - ./config.yaml:/config.yaml:ro
@@ -23,7 +23,7 @@ services:
   # Image des jobs, construite à la demande : docker compose --profile build build
   image:
     build: .
-    image: seaglass-ci:${SEAGLASS_CI_TAG}
+    image: seaglass-ci:${SEAGLASS_CI_TAG:?à définir dans .env (voir .env.example)}
     profiles: [build]
 
 networks:
