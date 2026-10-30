@@ -19,7 +19,14 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
+      # Historique complet et tags : le contrôle de version compare au dernier tag `v*`.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # En premier : quelques secondes, et l'oubli le plus fréquent avant une release.
+      - name: Version
+        run: bash scripts/check-version.sh
 
       - name: Frontend
         run: |
