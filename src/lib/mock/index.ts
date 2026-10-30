@@ -3,20 +3,26 @@
 // (gitignoré). Sans ce fichier, un jeu minimal synthétique est utilisé.
 //
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
-// library|search|home|settings`, `?tab=` (onglet de la bibliothèque ou section des
+// mix|radio|library|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
-// `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`.
+// `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
+// `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole).
 
 import type {
   AlbumPage,
   ArtistPage,
+  FeedItem,
   HomeLayout,
   HomeRow,
   HomeSection,
+  Lyrics,
+  MixPage,
+  MixSummary,
   PlaybackSettings,
   PlayerState,
   PlaylistPage,
   QueueView,
+  RadioPage,
   SearchResults,
   Theme,
   Track,
@@ -30,13 +36,41 @@ interface Fixtures {
   album: AlbumPage;
   artist: ArtistPage;
   playlist: PlaylistPage;
+  /** Absents des fixtures générées avant les mixes : remplacés par un jeu synthétique. */
+  mix?: MixPage | null;
+  radio?: RadioPage;
   home: HomeRow[];
-  library: { tracks: TrackEntry[]; albums: unknown[]; artists: unknown[]; playlists: unknown[] };
+  /** Absent des fixtures générées avant le fil d'actualité. */
+  feed?: FeedItem[];
+  library: {
+    tracks: TrackEntry[];
+    albums: unknown[];
+    artists: unknown[];
+    playlists: unknown[];
+    mixes?: MixSummary[];
+  };
 }
 
 const found = import.meta.glob<Fixtures>("./fixtures.json", { eager: true, import: "default" });
 const fx: Fixtures = Object.values(found)[0] ?? synthetic();
 const params = new URLSearchParams(location.search);
+
+const demoMix: MixSummary = {
+  id: "0000000000000000000000000000ff",
+  title: "My Mix 1",
+  subtitle: "Artiste de démonstration et d'autres",
+  imageUrl: null,
+  mixType: "DAILY_MIX",
+};
+const mixPage: MixPage = fx.mix ?? { mix: demoMix, imageLargeUrl: null, tracks: fx.album.tracks.slice(0, 10) };
+const radioPage: RadioPage = fx.radio ?? {
+  seed: "track",
+  id: fx.album.tracks[0]?.id ?? 1,
+  title: fx.album.tracks[0]?.title ?? "Titre",
+  imageUrl: fx.album.tracks[0]?.album.coverUrl ?? null,
+  tracks: [...fx.album.tracks].reverse(),
+};
+const libraryMixes: MixSummary[] = fx.library.mixes ?? [mixPage.mix];
 
 const allTracks = new Map<number, Track>();
 for (const t of [
@@ -45,6 +79,8 @@ for (const t of [
   ...fx.playlist.tracks,
   ...fx.search.tracks,
   ...fx.library.tracks,
+  ...mixPage.tracks,
+  ...radioPage.tracks,
 ]) {
   allTracks.set(t.id, t);
 }
@@ -150,10 +186,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   login: () => ({ userId: 1, countryCode: "CH" }),
   logout: () => null,
   home: () => arrangeHome(fx.home, ui.home),
+  feed: () => fx.feed ?? [],
+  lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
   search: ({ query }) => (String(query).trim() ? fx.search : { tracks: [], albums: [], artists: [], playlists: [] }),
   album: () => fx.album,
   artist: () => fx.artist,
   playlist: () => fx.playlist,
+  mix: () => mixPage,
+  // La radio factice garde ses titres, mais reprend le point de départ demandé.
+  radio: ({ seed, id }) => ({ ...radioPage, seed, id }),
+  library_mixes: () => libraryMixes,
   library_tracks: () => fx.library.tracks,
   library_albums: () => fx.library.albums,
   library_artists: () => fx.library.artists,
@@ -285,20 +327,56 @@ export async function listen<T>(event: string, cb: (e: { payload: T }) => void) 
   return () => set.delete(cb as Listener);
 }
 
+/** Couplets inventés, répartis sur toute la durée du titre (aucune vraie parole). */
+const LYRIC_VERSES = [
+  ["Le verre poli par la marée", "garde la couleur des étés", "on le ramasse sans y penser", "il brille encore au soleil levé"],
+  ["", "Refrain, les vagues reviennent", "et la lumière se souvient", "de tout ce qu'on n'a pas dit", "sur le sable, à minuit"],
+  ["Une bouteille il y a cent ans", "jetée au large par le vent", "", "elle revient en éclats lents", "plus douce qu'au commencement"],
+];
+
+function mockLyrics(trackId: number): Lyrics | null {
+  const mode = params.get("lyrics");
+  if (mode === "none") return null;
+  const lines = [...LYRIC_VERSES, LYRIC_VERSES[1]].flat();
+  if (mode === "plain") {
+    return { trackId, provider: "MUSIXMATCH", rtl: false, text: { kind: "plain", lines } };
+  }
+  const duration = allTracks.get(trackId)?.duration ?? 200;
+  const step = (duration * 1000 - 8000) / lines.length;
+  return {
+    trackId,
+    provider: "MUSIXMATCH",
+    rtl: false,
+    text: {
+      kind: "synced",
+      lines: lines.map((text, i) => ({ timeMs: Math.round(6000 + i * step), text })),
+    },
+  };
+}
+
 /** Paramètres d'URL de navigation, appliqués une fois l'app montée. */
-export function initialView(): { route: Route | null; nowPlaying: boolean; queue: boolean } {
+export function initialView(): {
+  route: Route | null;
+  nowPlaying: boolean;
+  queue: boolean;
+  lyrics: boolean;
+} {
   const routes: Record<string, Route> = {
     album: { name: "album", id: fx.album.album.id },
     artist: { name: "artist", id: fx.artist.artist.id },
     playlist: { name: "playlist", uuid: fx.playlist.playlist.uuid },
+    mix: { name: "mix", id: mixPage.mix.id },
+    radio: { name: "radio", seed: radioPage.seed, id: radioPage.id },
     library: { name: "library", tab: (params.get("tab") as LibraryTab) ?? "playlists" },
     search: { name: "search" },
+    feed: { name: "feed" },
     settings: { name: "settings", section: (params.get("tab") as SettingsSection) ?? "appearance" },
   };
   return {
     route: routes[params.get("route") ?? ""] ?? null,
     nowPlaying: params.has("nowplaying"),
     queue: params.has("queue"),
+    lyrics: params.has("lyrics"),
   };
 }
 
@@ -352,7 +430,27 @@ function synthetic(): Fixtures {
       },
       tracks: playlistTracks,
     },
-    home: [{ key: "FOR_YOU", title: "Pour vous", items: [{ kind: "album", ...album }] }],
+    home: [
+      { key: "FOR_YOU", title: "Pour vous", items: [{ kind: "album", ...album }] },
+      {
+        key: "HISTORY_MIXES",
+        title: "Votre historique de lecture",
+        items: [
+          {
+            kind: "mix",
+            id: "0000000000000000000000000000ff",
+            title: "My Mix 1",
+            subtitle: "Artiste de démonstration et d'autres",
+            imageUrl: null,
+            mixType: "DAILY_MIX",
+          },
+        ],
+      },
+    ],
+    feed: [
+      { occurredAt: Date.now(), seen: false, album: { ...album, albumType: "SINGLE" } },
+      { occurredAt: Date.UTC(2024, 0, 1), seen: true, album },
+    ],
     library: { tracks: likedTracks, albums: [album], artists: [], playlists: [] },
   };
 }

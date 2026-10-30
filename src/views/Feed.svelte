@@ -1,0 +1,171 @@
+<script lang="ts">
+  import { onMount } from "svelte";
+  import { commands, type FeedItem } from "../lib/ipc";
+  import { albumKind } from "../lib/format";
+  import Card from "../components/Card.svelte";
+
+  // Gardé entre deux visites, comme l'accueil : le fil ne bouge qu'une fois par jour.
+  let items = $state<FeedItem[] | null>(cached);
+  let error = $state<string | null>(null);
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  /** Sorties groupées : aujourd'hui, les 7 derniers jours, puis par mois. */
+  const groups = $derived.by(() => {
+    const out: { label: string; items: FeedItem[] }[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (const item of items ?? []) {
+      const label = groupLabel(item.occurredAt, today.getTime());
+      const last = out[out.length - 1];
+      if (last?.label === label) last.items.push(item);
+      else out.push({ label, items: [item] });
+    }
+    return out;
+  });
+
+  const unseen = $derived((items ?? []).filter((i) => !i.seen).length);
+
+  function groupLabel(at: number | null, today: number): string {
+    if (at === null) return "Plus tôt";
+    if (at >= today) return "Aujourd'hui";
+    if (at >= today - 6 * DAY_MS) return "Cette semaine";
+    const month = new Date(at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    return month.charAt(0).toUpperCase() + month.slice(1);
+  }
+
+  function shortDate(at: number | null): string | null {
+    return at === null ? null : new Date(at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  }
+
+  onMount(async () => {
+    if (items) return;
+    try {
+      items = cached = await commands.feed();
+    } catch (e) {
+      error = String(e);
+    }
+  });
+</script>
+
+<script lang="ts" module>
+  let cached: FeedItem[] | null = null;
+</script>
+
+<section>
+  <div class="feed-head">
+    <h1>Fil d'actualité</h1>
+    <p class="muted">
+      Sorties des artistes que vous suivez{#if unseen > 0}&nbsp;· <span class="feed-count">{unseen} nouvelles</span>{/if}
+    </p>
+  </div>
+  {#if error}
+    <p class="error">{error}</p>
+  {:else if !items}
+    <p class="muted">Chargement…</p>
+  {:else if items.length === 0}
+    <p class="muted">Aucune sortie récente. Suivez des artistes pour voir leurs nouveautés ici.</p>
+  {:else}
+    {#each groups as group (group.label)}
+      <section class="feed-group">
+        <h2>{group.label}</h2>
+        <div class="items">
+          {#each group.items as item, i (`${item.album.id}-${i}`)}
+            <div class="feed-item">
+              <Card item={{ kind: "album", ...item.album }} />
+              {#if !item.seen}<span class="feed-new">Nouveau</span>{/if}
+              <span class="feed-meta">
+                {[albumKind(item.album), shortDate(item.occurredAt)].filter(Boolean).join(" · ")}
+              </span>
+            </div>
+          {/each}
+        </div>
+      </section>
+    {/each}
+  {/if}
+</section>
+
+<style>
+  section {
+    padding: 24px;
+  }
+
+  section.feed-group {
+    padding: 0;
+    margin-bottom: 28px;
+  }
+
+  .feed-head {
+    margin: 0 10px 20px;
+  }
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 26px;
+  }
+
+  .feed-head .muted {
+    margin: 0;
+  }
+
+  .feed-count {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h2 {
+    margin: 0 10px 8px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  }
+
+  .feed-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .feed-new {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-contrast);
+    background: var(--accent);
+    pointer-events: none;
+  }
+
+  .feed-meta {
+    margin: -6px 10px 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .muted {
+    margin: 0 10px;
+    color: var(--text-muted);
+  }
+
+  .error {
+    margin: 0 10px;
+    color: var(--danger);
+  }
+
+  :global([data-theme="studio"]) .feed-new {
+    border-radius: 0;
+    text-transform: var(--label-transform);
+    letter-spacing: 0.06em;
+  }
+
+  :global([data-theme="atelier"]) .feed-new {
+    border-radius: 2px;
+  }
+</style>

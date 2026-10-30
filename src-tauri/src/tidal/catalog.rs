@@ -5,10 +5,12 @@
 //! `artists/{id}/albums[?filter=EPSANDSINGLES]`, `playlists/{uuid}`,
 //! `playlists/{uuid}/tracks`, `users/{id}/favorites/{tracks,albums,artists}`,
 //! `users/{id}/playlistsAndFavoritePlaylists`, v2 `home/feed/static`.
+//! Mixes et radios : `mix.rs`.
 
 use serde::de::DeserializeOwned;
 
 use super::api::{API_V2, TidalClient};
+use super::mix::RawMix;
 use super::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, MediaItem, PlaylistPage,
     PlaylistSummary, SearchResults, Track, TrackEntry,
@@ -147,8 +149,8 @@ impl TidalClient {
             .collect())
     }
 
-    /// Lignes de l'accueil personnalisé. Seuls albums, artistes et playlists sont gardés
-    /// (les mixes et raccourcis ne sont pas encore pris en charge).
+    /// Lignes de l'accueil personnalisé. Seuls albums, artistes, playlists et mixes sont
+    /// gardés (`TRACK` sans album et `DEEP_LINK` sont ignorés).
     pub async fn home(&self) -> Result<Vec<HomeRow>> {
         let raw: RawHome = self
             .get_at(
@@ -197,7 +199,7 @@ impl TidalClient {
 
     /// Parcourt une liste paginée. On avance selon `totalNumberOfItems` : une page peut
     /// contenir moins d'éléments que demandé (titres indisponibles filtrés par l'API).
-    async fn get_all<T: DeserializeOwned>(
+    pub(super) async fn get_all<T: DeserializeOwned>(
         &self,
         path: &str,
         params: &[(&str, String)],
@@ -226,7 +228,7 @@ impl TidalClient {
         Ok(out)
     }
 
-    async fn user_id(&self) -> Result<u64> {
+    pub(super) async fn user_id(&self) -> Result<u64> {
         self.session()
             .await
             .map(|s| s.user_id)
@@ -234,7 +236,7 @@ impl TidalClient {
     }
 
     /// Ajoute les titres au cache (affichage de la file) et les renvoie.
-    fn remember(&self, tracks: Vec<Track>) -> Vec<Track> {
+    pub(super) fn remember(&self, tracks: Vec<Track>) -> Vec<Track> {
         self.cache.insert_all(&tracks);
         tracks
     }
@@ -266,6 +268,10 @@ fn home_item(kind: &str, data: serde_json::Value, user: Option<u64>) -> Option<M
         "PLAYLIST" => serde_json::from_value::<RawPlaylist>(data)
             .ok()
             .map(|p| MediaItem::Playlist(p.into_summary(user))),
+        "MIX" => serde_json::from_value::<RawMix>(data)
+            .ok()
+            .and_then(RawMix::into_summary)
+            .map(MediaItem::Mix),
         _ => None,
     }
 }
@@ -290,8 +296,12 @@ mod tests {
         let album = json!({"id": 1, "title": "a", "cover": "x-y", "artists": [{"id": 2, "name": "b"}],
                            "mediaMetadata": {"tags": ["HIRES_LOSSLESS"]}});
         assert!(matches!(home_item("ALBUM", album, None), Some(MediaItem::Album(a)) if a.hires));
-        let mix = json!({"id": "m"});
-        assert_eq!(home_item("MIX", mix, None), None);
+        let mix = json!({"id": "m", "type": "DISCOVERY_MIX", "titleTextInfo": {"text": "My Daily Discovery"}});
+        assert!(
+            matches!(home_item("MIX", mix, None), Some(MediaItem::Mix(m)) if m.title == "My Daily Discovery")
+        );
+        let untitled = json!({"id": "m"});
+        assert_eq!(home_item("MIX", untitled, None), None);
         let broken = json!({"title": "sans id"});
         assert_eq!(home_item("ARTIST", broken, None), None);
     }

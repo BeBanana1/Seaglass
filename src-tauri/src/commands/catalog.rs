@@ -1,13 +1,13 @@
-//! Commandes de navigation : recherche, pages album / artiste / playlist, bibliothèque,
-//! accueil.
+//! Commandes de navigation : recherche, pages album / artiste / playlist / mix, radios,
+//! bibliothèque, accueil, fil d'actualité, paroles.
 
 use tauri::State;
 
 use super::settings::home_layout::HomeSection;
 use super::{AppState, CmdResult, err, settings};
 use crate::tidal::models::{
-    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, PlaylistPage, PlaylistSummary,
-    SearchResults, TrackEntry,
+    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, Lyrics, MixPage, MixSummary,
+    PlaylistPage, PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry, TrackId,
 };
 
 const MAX_QUERY_LEN: usize = 200;
@@ -44,6 +44,24 @@ pub async fn playlist(state: State<'_, AppState>, uuid: String) -> CmdResult<Pla
 }
 
 #[tauri::command]
+pub async fn mix(state: State<'_, AppState>, id: String) -> CmdResult<MixPage> {
+    if !is_mix_id(&id) {
+        return Err("identifiant de mix invalide".into());
+    }
+    state.tidal.mix(&id).await.map_err(err)
+}
+
+#[tauri::command]
+pub async fn radio(state: State<'_, AppState>, seed: RadioSeed, id: u64) -> CmdResult<RadioPage> {
+    state.tidal.radio(seed, id).await.map_err(err)
+}
+
+#[tauri::command]
+pub async fn library_mixes(state: State<'_, AppState>) -> CmdResult<Vec<MixSummary>> {
+    state.tidal.favorite_mixes().await.map_err(err)
+}
+
+#[tauri::command]
 pub async fn library_tracks(state: State<'_, AppState>) -> CmdResult<Vec<TrackEntry>> {
     state.tidal.favorite_tracks().await.map_err(err)
 }
@@ -70,6 +88,18 @@ pub async fn home(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
     Ok(settings::load(&state).home.arrange(rows))
 }
 
+/// Paroles d'un titre ; `None` si TIDAL n'en a pas (ce n'est pas une erreur).
+#[tauri::command]
+pub async fn lyrics(state: State<'_, AppState>, track_id: TrackId) -> CmdResult<Option<Lyrics>> {
+    state.tidal.lyrics(track_id).await.map_err(err)
+}
+
+/// Sorties récentes des artistes suivis.
+#[tauri::command]
+pub async fn feed(state: State<'_, AppState>) -> CmdResult<Vec<FeedItem>> {
+    state.tidal.feed().await.map_err(err)
+}
+
 /// UUID au format `8-4-4-4-12` (hexadécimal), seul format de playlist accepté dans l'URL.
 fn is_uuid(s: &str) -> bool {
     let groups: Vec<&str> = s.split('-').collect();
@@ -80,9 +110,23 @@ fn is_uuid(s: &str) -> bool {
             .all(|(g, len)| g.len() == len && g.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
+/// Identifiant de mix : alphanumérique (30 caractères hexadécimaux observés), il part dans l'URL.
+fn is_mix_id(s: &str) -> bool {
+    (1..=64).contains(&s.len()) && s.chars().all(|c| c.is_ascii_alphanumeric())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::is_uuid;
+    use super::{is_mix_id, is_uuid};
+
+    #[test]
+    fn mix_id_validation() {
+        assert!(is_mix_id("01636e04b6e9ec28485f7d0372b7f3"));
+        assert!(!is_mix_id(""));
+        assert!(!is_mix_id("../users/1"));
+        assert!(!is_mix_id("abc?x=1"));
+        assert!(!is_mix_id(&"a".repeat(65)));
+    }
 
     #[test]
     fn uuid_validation() {

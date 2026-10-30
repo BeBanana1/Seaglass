@@ -1,13 +1,19 @@
 //! Tests sur l'API réelle, ignorés par défaut (réseau et session enregistrée requis).
 //!
 //! - `cargo test live_catalog -- --ignored --nocapture` : appelle chaque endpoint.
+//! - `cargo test live_lyrics -- --ignored --nocapture` : paroles synchronisées et absentes.
 //! - `cargo test dump_ui_fixtures -- --ignored` : écrit `src/lib/mock/fixtures.json`
 //!   (gitignoré, contient la bibliothèque du compte) pour prévisualiser l'UI hors Tauri.
 
 use super::TidalClient;
+use super::models::{LyricsText, MediaItem, RadioSeed, TrackId};
 
 const ALBUM_ID: u64 = 156_749_593;
 const ARTIST_ID: u64 = 12_979;
+/// « Bohemian Rhapsody » : paroles horodatées (Musixmatch).
+const LYRICS_TRACK: TrackId = TrackId(534_050_211);
+/// « Clair de lune » : instrumental, `tracks/{id}/lyrics` répond 404.
+const NO_LYRICS_TRACK: TrackId = TrackId(5_940_831);
 
 async fn client() -> TidalClient {
     let client = TidalClient::new().unwrap();
@@ -69,6 +75,38 @@ async fn live_catalog() {
         println!("accueil : {} ({} éléments)", row.title, row.items.len());
     }
     assert!(!home.is_empty());
+    let feed = client.feed().await.unwrap();
+    println!(
+        "fil : {} sorties, {} non vues",
+        feed.len(),
+        feed.iter().filter(|f| !f.seen).count()
+    );
+    assert!(feed.iter().all(|f| f.occurred_at.is_some()));
+    let mixes = client.favorite_mixes().await.unwrap();
+    println!("mixes enregistrés : {}", mixes.len());
+    let home_mix = home.iter().flat_map(|r| &r.items).find_map(|i| match i {
+        MediaItem::Mix(m) => Some(m.id.clone()),
+        _ => None,
+    });
+    if let Some(id) = home_mix.or_else(|| mixes.first().map(|m| m.id.clone())) {
+        let mix = client.mix(&id).await.unwrap();
+        println!("mix : {} ({} titres)", mix.mix.title, mix.tracks.len());
+        assert!(!mix.tracks.is_empty());
+        assert!(mix.image_large_url.is_some());
+    }
+    let track_radio = client
+        .radio(RadioSeed::Track, album.tracks[0].id.0)
+        .await
+        .unwrap();
+    let artist_radio = client.radio(RadioSeed::Artist, ARTIST_ID).await.unwrap();
+    println!(
+        "radios : {} ({} titres), {} ({} titres)",
+        track_radio.title,
+        track_radio.tracks.len(),
+        artist_radio.title,
+        artist_radio.tracks.len()
+    );
+    assert!(!track_radio.tracks.is_empty() && !artist_radio.tracks.is_empty());
 }
 
 #[tokio::test]
@@ -79,17 +117,31 @@ async fn dump_ui_fixtures() {
     let playlist = client.playlist(&search.playlists[0].uuid).await.unwrap();
     let mut tracks = client.favorite_tracks().await.unwrap();
     tracks.truncate(100);
+    let album = client.album(ALBUM_ID).await.unwrap();
+    let mixes = client.favorite_mixes().await.unwrap();
+    let mix = match mixes.first() {
+        Some(m) => Some(client.mix(&m.id).await.unwrap()),
+        None => None,
+    };
+    let radio = client
+        .radio(RadioSeed::Track, album.tracks[0].id.0)
+        .await
+        .unwrap();
     let fixtures = serde_json::json!({
         "search": search,
-        "album": client.album(ALBUM_ID).await.unwrap(),
+        "album": album,
+        "mix": mix,
+        "radio": radio,
         "artist": client.artist(ARTIST_ID).await.unwrap(),
         "playlist": playlist,
         "home": client.home().await.unwrap(),
+        "feed": client.feed().await.unwrap(),
         "library": {
             "tracks": tracks,
             "albums": client.favorite_albums().await.unwrap(),
             "artists": client.favorite_artists().await.unwrap(),
             "playlists": client.library_playlists().await.unwrap(),
+            "mixes": mixes,
         },
     });
     let path = std::path::Path::new("../src/lib/mock/fixtures.json");
@@ -126,4 +178,23 @@ async fn live_hires() {
     assert_eq!(stream.format.bit_depth, Some(24));
     // Un titre déjà hi-res n'est jamais remplacé.
     assert!(client.hires_edition(&edition).await.unwrap().is_none());
+}
+
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_lyrics() {
+    let client = client().await;
+    let lyrics = client.lyrics(LYRICS_TRACK).await.unwrap().unwrap();
+    let LyricsText::Synced { lines } = &lyrics.text else {
+        panic!("paroles non synchronisées");
+    };
+    println!(
+        "paroles : {} lignes ({:?}), première à {} ms : {}",
+        lines.len(),
+        lyrics.provider,
+        lines[0].time_ms,
+        lines[0].text
+    );
+    assert!(lines.windows(2).all(|w| w[0].time_ms <= w[1].time_ms));
+    assert!(client.lyrics(NO_LYRICS_TRACK).await.unwrap().is_none());
 }

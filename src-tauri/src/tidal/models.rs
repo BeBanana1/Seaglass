@@ -152,6 +152,20 @@ pub struct PlaylistSummary {
     pub mine: bool,
 }
 
+/// Mix généré par le service (My Mix, Daily Discovery, mix d'artiste…). Son contenu
+/// change dans le temps : il n'est jamais mis en cache.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MixSummary {
+    pub id: String,
+    pub title: String,
+    pub subtitle: Option<String>,
+    /// URL d'une image 320×320.
+    pub image_url: Option<String>,
+    /// `DAILY_MIX`, `DISCOVERY_MIX`, `ARTIST_MIX`, `TRACK_MIX`…
+    pub mix_type: Option<String>,
+}
+
 /// Élément affichable sous forme de carte (accueil, résultats).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -159,6 +173,7 @@ pub enum MediaItem {
     Album(AlbumSummary),
     Artist(ArtistSummary),
     Playlist(PlaylistSummary),
+    Mix(MixSummary),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -168,6 +183,17 @@ pub struct HomeRow {
     pub key: String,
     pub title: String,
     pub items: Vec<MediaItem>,
+}
+
+/// Sortie d'un artiste suivi, dans le fil d'actualité.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedItem {
+    /// Date de la sortie, en millisecondes UTC.
+    pub occurred_at: Option<i64>,
+    /// Déjà vue dans un client TIDAL (état lu, jamais modifié par l'app).
+    pub seen: bool,
+    pub album: AlbumSummary,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -198,6 +224,35 @@ pub struct PlaylistPage {
     pub tracks: Vec<TrackEntry>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MixPage {
+    pub mix: MixSummary,
+    /// Image 640×640 pour l'en-tête.
+    pub image_large_url: Option<String>,
+    pub tracks: Vec<Track>,
+}
+
+/// Point de départ d'une radio.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RadioSeed {
+    Track,
+    Artist,
+}
+
+/// Radio d'un titre ou d'un artiste : une liste de titres proches, calculée par le service.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RadioPage {
+    pub seed: RadioSeed,
+    pub id: u64,
+    /// Titre du morceau ou nom de l'artiste de départ.
+    pub title: String,
+    pub image_url: Option<String>,
+    pub tracks: Vec<Track>,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResults {
@@ -212,4 +267,33 @@ pub struct SearchResults {
 pub struct SessionInfo {
     pub user_id: u64,
     pub country_code: String,
+}
+
+/// Paroles d'un titre (`tracks/{id}/lyrics`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Lyrics {
+    pub track_id: TrackId,
+    /// Fournisseur à créditer (« MUSIXMATCH »).
+    pub provider: Option<String>,
+    /// Écriture de droite à gauche.
+    pub rtl: bool,
+    pub text: LyricsText,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum LyricsText {
+    /// Lignes horodatées, triées par temps ; une ligne vide marque un passage instrumental.
+    Synced { lines: Vec<LyricLine> },
+    /// Texte sans horodatage, ligne par ligne (lignes vides = séparation de couplets).
+    Plain { lines: Vec<String> },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LyricLine {
+    /// Début de la ligne, en millisecondes.
+    pub time_ms: u32,
+    pub text: String,
 }

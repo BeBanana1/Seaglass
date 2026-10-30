@@ -236,8 +236,28 @@
 }
 
 :root[data-theme="acidwave"] .now-playing .close,
-:root[data-theme="acidwave"] .now-playing .queue-toggle {
+:root[data-theme="acidwave"] .now-playing .queue-toggle,
+:root[data-theme="acidwave"] .now-playing .lyrics-toggle {
   border-radius: 0;
+}
+
+/* Paroles : ligne courante en néon, les autres en filigrane. */
+:root[data-theme="acidwave"] .lyrics-line {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+:root[data-theme="acidwave"] .lyrics-line.active {
+  color: var(--accent);
+  text-shadow:
+    0 0 14px color-mix(in srgb, var(--accent) 60%, transparent),
+    0 0 2px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+
+:root[data-theme="acidwave"] .lyrics-credit {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 /* Accueil personnalisable : lignes de console, filet néon, interrupteurs en biais. */
@@ -327,4 +347,12 @@
 
 :root[data-theme="acidwave"] .setting-switch.on {
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+:root[data-theme="acidwave"] .feed-new {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
 }
