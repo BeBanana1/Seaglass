@@ -63,6 +63,11 @@
     <div class="verdict" title={verdict.detail}>
       <span class="dot"></span>{verdict.label}
     </div>
+    {#if edition && !dense}
+      <p class="hires-edition" title="Même enregistrement, lu depuis une autre édition : le master peut différer.">
+        Édition hi-res : <span class="hires-edition-album">{edition}</span>
+      </p>
+    {/if}
   </div>
 {/if}
 
@@ -155,6 +160,19 @@
     font-weight: 600;
     color: var(--tone);
     background: color-mix(in oklab, var(--tone) 10%, transparent);
+  }
+
+  /* Ligne pleine largeur sous la chaîne : édition réellement lue (#18). */
+  .hires-edition {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .hires-edition-album {
+    font-weight: 600;
+    color: var(--tone);
   }
 
   .dense {

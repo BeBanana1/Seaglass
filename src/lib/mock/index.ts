@@ -171,10 +171,24 @@ function setCurrent(track: Track | undefined) {
     duration: track.duration,
     paused: false,
     idle: false,
-    stream: track.hires
-      ? { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 48000, hiresEdition: null }
-      : { quality: "LOSSLESS", codec: "flac", bitDepth: 16, sampleRate: 44100, hiresEdition: null },
-    output: { format: track.hires ? "s32" : "s16", samplerate: track.hires ? 48000 : 44100, channelCount: 2 },
+    // Avec `?hiresedition=…` et le réglage actif, un titre non hi-res est « remplacé » par
+    // une autre édition, comme le ferait le backend.
+    ...(() => {
+      const upgraded = !track.hires && hiresEdition !== null && playback.hiresUpgrade;
+      const hires = track.hires || upgraded;
+      return {
+        stream: hires
+          ? {
+              quality: "HI_RES_LOSSLESS",
+              codec: "flac",
+              bitDepth: 24,
+              sampleRate: 48000,
+              hiresEdition: upgraded ? hiresEdition : null,
+            }
+          : { quality: "LOSSLESS", codec: "flac", bitDepth: 16, sampleRate: 44100, hiresEdition: null },
+        output: { format: hires ? "s32" : "s16", samplerate: hires ? 48000 : 44100, channelCount: 2 },
+      };
+    })(),
   });
   state.hasNext = manual.length > 0 || index + 1 < context.length;
   emit("player-state", state);
