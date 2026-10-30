@@ -1,4 +1,5 @@
 mod commands;
+mod home_layout;
 mod integrations;
 mod mpv;
 mod player;
@@ -86,6 +87,8 @@ pub fn run() {
             commands::player::queue_state,
             commands::settings::ui_settings,
             commands::settings::set_ui_settings,
+            commands::settings::set_home_layout,
+            commands::settings::reset_home_layout,
             updater::update_status,
             updater::install_update,
         ])

@@ -3,9 +3,10 @@
 
 use tauri::State;
 
-use super::{AppState, CmdResult, err};
+use super::{AppState, CmdResult, err, settings};
+use crate::home_layout::HomeSection;
 use crate::tidal::models::{
-    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, PlaylistPage, PlaylistSummary,
+    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, PlaylistPage, PlaylistSummary,
     SearchResults, TrackEntry,
 };
 
@@ -62,9 +63,11 @@ pub async fn library_playlists(state: State<'_, AppState>) -> CmdResult<Vec<Play
     state.tidal.library_playlists().await.map_err(err)
 }
 
+/// Lignes de l'accueil dans l'ordre choisi, masquées comprises (marquées `hidden`).
 #[tauri::command]
-pub async fn home(state: State<'_, AppState>) -> CmdResult<Vec<HomeRow>> {
-    state.tidal.home().await.map_err(err)
+pub async fn home(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
+    let rows = state.tidal.home().await.map_err(err)?;
+    Ok(settings::load(&state).home.arrange(rows))
 }
 
 /// UUID au format `8-4-4-4-12` (hexadécimal), seul format de playlist accepté dans l'URL.

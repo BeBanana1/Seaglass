@@ -226,3 +226,55 @@
 :root[data-theme="acidwave"] .now-playing .queue-toggle {
   border-radius: 0;
 }
+
+/* Accueil personnalisable : lignes de console, filet néon, interrupteurs en biais. */
+:root[data-theme="acidwave"] .home-customize,
+:root[data-theme="acidwave"] .home-editor-reset {
+  border-radius: 0;
+  border-color: var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  background: rgb(0 0 0 / 0.55);
+}
+
+:root[data-theme="acidwave"] .home-customize.active {
+  color: #050507;
+  background: var(--accent);
+  box-shadow: 0 0 12px rgb(200 255 0 / 0.45);
+}
+
+:root[data-theme="acidwave"] .home-editor-item {
+  border-radius: 0;
+  background: rgb(0 0 0 / 0.55);
+}
+
+:root[data-theme="acidwave"] .home-editor-item:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 14px rgb(200 255 0 / 0.12) inset;
+}
+
+:root[data-theme="acidwave"] .home-editor-title {
+  font-family: var(--display-family);
+  font-stretch: condensed;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+:root[data-theme="acidwave"] .home-editor-thumbs img,
+:root[data-theme="acidwave"] .home-editor-icon {
+  border-radius: 0;
+}
+
+:root[data-theme="acidwave"] .home-editor-toggle {
+  border-radius: 0;
+  transform: skewX(-12deg);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+
+:root[data-theme="acidwave"] .home-editor-toggle[aria-checked="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgb(200 255 0 / 0.35);
+}

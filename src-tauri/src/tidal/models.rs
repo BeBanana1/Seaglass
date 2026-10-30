@@ -157,6 +157,8 @@ pub enum MediaItem {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HomeRow {
+    /// Identifiant stable de la ligne (sert à la masquer ou la déplacer), voir `catalog::row_key`.
+    pub key: String,
     pub title: String,
     pub items: Vec<MediaItem>,
 }

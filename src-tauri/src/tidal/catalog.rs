@@ -171,8 +171,10 @@ impl TidalClient {
                     .into_iter()
                     .filter_map(|it| home_item(&it.kind, it.data, user))
                     .collect();
+                let title = row.title.unwrap_or_default();
                 (!items.is_empty()).then(|| HomeRow {
-                    title: row.title.unwrap_or_default(),
+                    key: row_key(row.module_id.as_deref(), &title),
+                    title,
                     items,
                 })
             })
@@ -244,6 +246,15 @@ impl TidalClient {
     }
 }
 
+/// Clé stable d'une ligne de l'accueil : le `moduleId` de l'API (le titre est traduit et
+/// peut changer), sinon le titre normalisé, préfixé pour ne jamais croiser un `moduleId`.
+fn row_key(module_id: Option<&str>, title: &str) -> String {
+    match module_id.map(str::trim).filter(|m| !m.is_empty()) {
+        Some(id) => id.to_owned(),
+        None => format!("title:{}", title.trim().to_lowercase()),
+    }
+}
+
 fn home_item(kind: &str, data: serde_json::Value, user: Option<u64>) -> Option<MediaItem> {
     match kind {
         "ALBUM" => serde_json::from_value::<RawAlbumFull>(data)
@@ -263,6 +274,16 @@ fn home_item(kind: &str, data: serde_json::Value, user: Option<u64>) -> Option<M
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn row_key_prefers_module_id() {
+        assert_eq!(
+            row_key(Some("YOUR_FAVORITE_ARTISTS"), "Vos artistes préférés"),
+            "YOUR_FAVORITE_ARTISTS"
+        );
+        assert_eq!(row_key(Some("  "), " Pour Vous "), "title:pour vous");
+        assert_eq!(row_key(None, "Pour vous"), "title:pour vous");
+    }
 
     #[test]
     fn home_items_by_kind() {

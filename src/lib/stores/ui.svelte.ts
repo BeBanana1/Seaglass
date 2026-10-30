@@ -1,6 +1,6 @@
-// Réglages d'interface (thème), enregistrés côté backend.
+// Réglages d'interface (thème, disposition de l'accueil), enregistrés côté backend.
 
-import { commands, type Theme, type UiSettings } from "../ipc";
+import { commands, type HomeSection, type Theme, type UiSettings } from "../ipc";
 
 export const THEMES: { id: Theme; name: string; description: string }[] = [
   {
@@ -36,7 +36,7 @@ export const ui = $state<{
   /** Panneau de file dans la vue « En lecture » (mémorisé pour la session). */
   nowPlayingQueue: boolean;
 }>({
-  settings: { theme: "seaglass" },
+  settings: { theme: "seaglass", home: { order: [], hidden: [] } },
   appearanceOpen: false,
   nowPlayingQueue: false,
 });
@@ -58,4 +58,16 @@ export async function setTheme(theme: Theme) {
   ui.settings = { ...ui.settings, theme };
   apply();
   await commands.setUiSettings(ui.settings);
+}
+
+/** Enregistre l'ordre et le masquage des sections de l'accueil, tels qu'affichés. */
+export async function saveHomeLayout(sections: Pick<HomeSection, "key" | "hidden">[]) {
+  // Copie de la disposition gardée à jour : `setUiSettings` renvoie tout l'objet.
+  ui.settings.home = await commands.setHomeLayout(
+    sections.map(({ key, hidden }) => ({ key, hidden })),
+  );
+}
+
+export async function resetHomeLayout() {
+  ui.settings.home = await commands.resetHomeLayout();
 }
