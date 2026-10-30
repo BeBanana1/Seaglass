@@ -448,8 +448,20 @@ function synthetic(): Fixtures {
       },
     ],
     feed: [
-      { occurredAt: Date.now(), seen: false, album: { ...album, albumType: "SINGLE" } },
-      { occurredAt: Date.UTC(2024, 0, 1), seen: true, album },
+      { occurredAt: Date.now(), seen: false, item: { kind: "album", ...album, albumType: "SINGLE" } },
+      {
+        occurredAt: Date.UTC(2024, 0, 1),
+        seen: true,
+        item: {
+          kind: "mix",
+          id: "0000000000000000000000000000fe",
+          title: "December 2023",
+          subtitle: "Artiste de démonstration et plus",
+          imageUrl: null,
+          mixType: "HISTORY_MONTHLY_MIX",
+        },
+      },
+      { occurredAt: Date.UTC(2024, 0, 1), seen: true, item: { kind: "album", ...album } },
     ],
     library: { tracks: likedTracks, albums: [album], artists: [], playlists: [] },
   };

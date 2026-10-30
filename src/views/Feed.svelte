@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { commands, type FeedItem } from "../lib/ipc";
+  import { commands, type FeedItem, type MediaItem } from "../lib/ipc";
   import { albumKind } from "../lib/format";
   import Card from "../components/Card.svelte";
 
@@ -34,6 +34,12 @@
     return month.charAt(0).toUpperCase() + month.slice(1);
   }
 
+  /** Clé d'un élément (un album et un mix peuvent partager un identifiant numérique). */
+  const itemKey = (item: MediaItem) => `${item.kind}-${item.kind === "playlist" ? item.uuid : item.id}`;
+
+  /** Type de l'élément : Single / EP / Album, ou Mix pour le mix mensuel. */
+  const itemKind = (item: MediaItem) => (item.kind === "album" ? albumKind(item) : "Mix");
+
   function shortDate(at: number | null): string | null {
     return at === null ? null : new Date(at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
   }
@@ -56,7 +62,7 @@
   <div class="feed-head">
     <h1>Fil d'actualité</h1>
     <p class="muted">
-      Sorties des artistes que vous suivez{#if unseen > 0}&nbsp;· <span class="feed-count">{unseen} nouvelles</span>{/if}
+      Sorties des artistes que vous suivez et mixes du mois{#if unseen > 0}&nbsp;· <span class="feed-count">{unseen} nouvelles</span>{/if}
     </p>
   </div>
   {#if error}
@@ -70,12 +76,12 @@
       <section class="feed-group">
         <h2>{group.label}</h2>
         <div class="items">
-          {#each group.items as item, i (`${item.album.id}-${i}`)}
+          {#each group.items as entry, i (`${itemKey(entry.item)}-${i}`)}
             <div class="feed-item">
-              <Card item={{ kind: "album", ...item.album }} />
-              {#if !item.seen}<span class="feed-new">Nouveau</span>{/if}
+              <Card item={entry.item} />
+              {#if !entry.seen}<span class="feed-new">Nouveau</span>{/if}
               <span class="feed-meta">
-                {[albumKind(item.album), shortDate(item.occurredAt)].filter(Boolean).join(" · ")}
+                {[itemKind(entry.item), shortDate(entry.occurredAt)].filter(Boolean).join(" · ")}
               </span>
             </div>
           {/each}

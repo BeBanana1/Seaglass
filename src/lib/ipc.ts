@@ -147,13 +147,13 @@ export interface HomeSection extends HomeRow {
   hidden: boolean;
 }
 
-/** Sortie d'un artiste suivi (fil d'actualité). */
+/** Élément du fil d'actualité : sortie d'un artiste suivi (album) ou mix mensuel (mix). */
 export interface FeedItem {
   /** Date de la sortie, en millisecondes UTC. */
   occurredAt: number | null;
   /** Déjà vue dans un client TIDAL (lu seulement). */
   seen: boolean;
-  album: AlbumSummary;
+  item: MediaItem;
 }
 
 /** Disposition de l'accueil enregistrée (clés de `HomeRow`). */
