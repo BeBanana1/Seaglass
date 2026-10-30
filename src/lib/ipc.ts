@@ -168,9 +168,13 @@ export interface SearchResults {
 
 export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal";
 
+/** Raccourci de la barre latérale ; le titre d'une playlist est gardé pour l'afficher sans requête. */
+export type Pin = { kind: "playlist"; uuid: string; title: string } | { kind: "likedTracks" };
+
 export interface UiSettings {
   theme: Theme;
   home: HomeLayout;
+  pins: Pin[];
 }
 
 /** Taille du cache mpv en Mio : seules ces valeurs sont acceptées par le backend. */
@@ -236,6 +240,8 @@ export const commands = {
   setHomeLayout: (sections: { key: string; hidden: boolean }[]) =>
     invoke<HomeLayout>("set_home_layout", { sections }),
   resetHomeLayout: () => invoke<HomeLayout>("reset_home_layout"),
+  /** Remplace les épingles ; renvoie la liste enregistrée (validée, sans doublons). */
+  setPins: (pins: Pin[]) => invoke<Pin[]>("set_pins", { pins }),
   playbackSettings: () => invoke<PlaybackSettings>("playback_settings"),
   /** Enregistre et applique à chaud (sans recharger le titre en cours). */
   setPlaybackSettings: (settings: PlaybackSettings) =>

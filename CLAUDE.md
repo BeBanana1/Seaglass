@@ -3,7 +3,7 @@
 Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
 Projet personnel, Windows en priorité.
 
-> Statut : **v0.4.4 publiée** (2026-10-29) sur `https://updates.bebanana.ch/seaglass/` : installeur NSIS signé, mpv embarqué, mises à jour automatiques. Phase 4 livrée (SMTC, cinq thèmes) ; Discord RPC et Last.fm reportés à la demande de l'utilisateur. Restent en phase 5 : mode exclusif WASAPI, mixes de l'accueil, CI. `main` est en **0.4.5** (non publiée) : page Réglages, volume, cache mpv, lancement au démarrage, accueil personnalisable, filtre et tri des listes, ajout d'albums à la file, file dans « En lecture ».
+> Statut : **v0.4.4 publiée** (2026-10-29) sur `https://updates.bebanana.ch/seaglass/` : installeur NSIS signé, mpv embarqué, mises à jour automatiques. Phase 4 livrée (SMTC, cinq thèmes) ; Discord RPC et Last.fm reportés à la demande de l'utilisateur. Restent en phase 5 : mode exclusif WASAPI, mixes de l'accueil, CI. `main` est en **0.4.5** (non publiée) : page Réglages, volume, cache mpv, lancement au démarrage, accueil personnalisable, filtre et tri des listes, ajout d'albums à la file, file dans « En lecture », playlists épinglées dans la barre latérale.
 
 ## Principes non négociables
 
@@ -192,7 +192,8 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 - **File dans « En lecture »** (#20) : `components/QueueList.svelte`, partagé avec la vue File. Panneau replié par défaut, état de session `ui.nowPlayingQueue`. Toute navigation ferme la vue « En lecture ».
 - **Accueil personnalisable** (#21, #22) : `commands/settings/home_layout.rs` (logique pure, testée), réglage `UiSettings::home { order, hidden }`, commandes `set_home_layout` (sections dans l'ordre de l'écran ; les absentes du flux gardent leur place) et `reset_home_layout`. `home` renvoie des `HomeSection` (avec `hidden`) : l'UI masque hors du mode « Personnaliser ». Masquer porte sur le type de section.
 - **Filtre et tri des listes** (#1, #2, `lib/trackOrder.ts`, `components/TrackTools.svelte`) : présentation sur une liste déjà chargée, dans Playlist et Bibliothèque › Titres. Lire depuis une liste filtrée ou triée met en contexte la liste affichée, dans l'ordre affiché ; Lecture / Aléatoire de l'en-tête suivent le tri mais pas le filtre. `TrackList` accepte `positions` pour garder les numéros d'origine. Ni tri ni filtre mémorisés.
-- **Thèmes** : nouvelles classes surchargées par Acidwave / Surréalisme : `.theme-card`, `.cache-sizes`, `.cache-size`, `.setting-row`, `.setting-switch`, `.volume`, `.mute`, `.home-customize`, `.home-editor-*`, `.queue-toggle`, `.track-tools`.
+- **Épingles** (#10, `commands/settings/pins.rs`, logique pure testée) : `UiSettings::pins`, liste ordonnée de `Pin` (`kind: playlist` avec uuid + titre, ou `likedTracks`). `set_pins` valide (uuid `8-4-4-4-12`, doublons retirés, 50 maximum) et renvoie la liste enregistrée. Bouton `PinButton` dans l'en-tête Playlist et dans Bibliothèque › Titres ; section « Épinglés » sous Bibliothèque dans `Sidebar`. Le titre gardé est remis à jour à l'ouverture de la playlist. Backend factice : les arguments sont des proxys Svelte, un handler qui les renvoie doit les copier en JSON (`structuredClone` les refuse).
+- **Thèmes** : nouvelles classes surchargées par Acidwave / Surréalisme : `.theme-card`, `.cache-sizes`, `.cache-size`, `.setting-row`, `.setting-switch`, `.volume`, `.mute`, `.home-customize`, `.home-editor-*`, `.queue-toggle`, `.track-tools`, `.pins`, `.pin`, `.pin-open`, `.pins-title`, `.pin-button`.
 
 ## Commandes
 

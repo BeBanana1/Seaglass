@@ -11,6 +11,7 @@
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
+  import { refreshPinTitle } from "../lib/stores/ui.svelte";
 
   const SORT_KEYS: SortKey[] = ["position", "added", "title", "artist", "album", "duration"];
   const DEFAULT_SORT: TrackSort = { key: "position", descending: false };
@@ -30,7 +31,12 @@
     sort = DEFAULT_SORT;
     commands
       .playlist(target)
-      .then((p) => target === uuid && (page = p))
+      .then((p) => {
+        if (target !== uuid) return;
+        page = p;
+        // Une playlist épinglée puis renommée : la barre latérale reprend le nouveau titre.
+        refreshPinTitle(target, p.playlist.title).catch(() => {});
+      })
       .catch((e) => (error = String(e)));
   });
 
@@ -54,6 +60,7 @@
       description={playlist.description}
       trackIds={sorted.map((t) => t.track.id)}
       queueable
+      pin={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
     >
       {#snippet meta()}
         {playlistSubtitle(playlist)}

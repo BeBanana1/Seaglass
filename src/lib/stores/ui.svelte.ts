@@ -1,6 +1,6 @@
-// Réglages d'interface (thème, disposition de l'accueil), enregistrés côté backend.
+// Réglages d'interface (thème, disposition de l'accueil, épingles), enregistrés côté backend.
 
-import { commands, type HomeSection, type Theme, type UiSettings } from "../ipc";
+import { commands, type HomeSection, type Pin, type Theme, type UiSettings } from "../ipc";
 
 export const THEMES: { id: Theme; name: string; description: string }[] = [
   {
@@ -35,7 +35,7 @@ export const ui = $state<{
   /** Panneau de file dans la vue « En lecture » (mémorisé pour la session). */
   nowPlayingQueue: boolean;
 }>({
-  settings: { theme: "seaglass", home: { order: [], hidden: [] } },
+  settings: { theme: "seaglass", home: { order: [], hidden: [] }, pins: [] },
   nowPlayingQueue: false,
 });
 
@@ -68,4 +68,29 @@ export async function saveHomeLayout(sections: Pick<HomeSection, "key" | "hidden
 
 export async function resetHomeLayout() {
   ui.settings.home = await commands.resetHomeLayout();
+}
+
+const samePin = (a: Pin, b: Pin) =>
+  a.kind === b.kind && (a.kind !== "playlist" || (b.kind === "playlist" && a.uuid === b.uuid));
+
+export function isPinned(pin: Pin): boolean {
+  return ui.settings.pins.some((p) => samePin(p, pin));
+}
+
+async function savePins(pins: Pin[]) {
+  ui.settings.pins = await commands.setPins(pins);
+}
+
+/** Épingle à la fin de la barre latérale, ou désépingle. */
+export function togglePin(pin: Pin): Promise<void> {
+  const pins = ui.settings.pins;
+  return savePins(isPinned(pin) ? pins.filter((p) => !samePin(p, pin)) : [...pins, pin]);
+}
+
+/** Reporte le titre actuel d'une playlist épinglée (renommée depuis l'épinglage). */
+export async function refreshPinTitle(uuid: string, title: string) {
+  const pins = ui.settings.pins;
+  const stale = pins.some((p) => p.kind === "playlist" && p.uuid === uuid && p.title !== title);
+  if (!stale) return;
+  await savePins(pins.map((p) => (p.kind === "playlist" && p.uuid === uuid ? { ...p, title } : p)));
 }

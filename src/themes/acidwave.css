@@ -178,10 +178,23 @@
   background: var(--accent);
 }
 
-:root[data-theme="acidwave"] nav button.active {
+:root[data-theme="acidwave"] nav button.active,
+:root[data-theme="acidwave"] nav .pin.active {
   color: var(--accent);
   background: linear-gradient(90deg, rgb(200 255 0 / 0.14), transparent);
   box-shadow: inset 2px 0 0 var(--accent);
+}
+
+:root[data-theme="acidwave"] nav .pin.active .pin-open {
+  color: var(--accent);
+}
+
+:root[data-theme="acidwave"] .pins-title {
+  font-family: var(--font-mono);
+}
+
+:root[data-theme="acidwave"] .pin-button {
+  border-radius: 0;
 }
 
 :root[data-theme="acidwave"] input[type="search"] {

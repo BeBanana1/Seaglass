@@ -91,6 +91,7 @@ pub fn run() {
             commands::settings::set_ui_settings,
             commands::settings::set_home_layout,
             commands::settings::reset_home_layout,
+            commands::settings::set_pins,
             commands::settings::playback_settings,
             commands::settings::set_playback_settings,
             commands::settings::autostart_enabled,

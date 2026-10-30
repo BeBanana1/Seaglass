@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { commands, type TrackId } from "../lib/ipc";
+  import { commands, type Pin, type TrackId } from "../lib/ipc";
   import { plural } from "../lib/format";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import Icon from "./Icon.svelte";
+  import PinButton from "./PinButton.svelte";
 
   let {
     image,
@@ -12,6 +13,7 @@
     round = false,
     trackIds = [],
     queueable = false,
+    pin,
     meta,
     description,
   }: {
@@ -24,6 +26,8 @@
     trackIds?: TrackId[];
     /** Affiche « Lire ensuite » / « Ajouter à la file » pour tous les titres (album, playlist). */
     queueable?: boolean;
+    /** Bouton Épingler dans la barre latérale (playlist). */
+    pin?: Pin;
     meta?: Snippet;
     description?: string | null;
   } = $props();
@@ -79,6 +83,7 @@
             <Icon name="add" size={18} />
           </button>
         {/if}
+        {#if pin}<PinButton {pin} />{/if}
       </div>
     {/if}
   </div>
