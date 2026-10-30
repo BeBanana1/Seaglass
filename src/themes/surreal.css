@@ -306,3 +306,33 @@
 :root[data-theme="surreal"] .context-menu-item:focus {
   background: color-mix(in oklch, var(--album) 18%, #fffaf4);
 }
+
+/* Cœurs et « Ajouter à une playlist » (#4) : carte flottante, entrées en pilule. */
+:root[data-theme="surreal"] .playlist-picker {
+  border: none;
+  border-radius: 28px;
+  background: rgb(255 250 244 / 0.94);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 30px 60px -30px rgb(61 42 77 / 0.6);
+}
+
+:root[data-theme="surreal"] .playlist-picker h3 {
+  font-style: italic;
+}
+
+:root[data-theme="surreal"] .playlist-picker input {
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.75);
+}
+
+:root[data-theme="surreal"] .picker-item {
+  border-radius: 999px;
+}
+
+:root[data-theme="surreal"] .picker-item .thumb {
+  border-radius: 50%;
+}
+
+:root[data-theme="surreal"] .like-button.liked {
+  color: color-mix(in oklch, var(--album) 55%, #c2416b);
+}

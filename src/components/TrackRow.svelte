@@ -5,6 +5,7 @@
   import { closeMenu, menu, menuPosition, openMenu } from "../lib/stores/menu.svelte";
   import { trackMenu } from "../lib/trackMenu";
   import Icon from "./Icon.svelte";
+  import LikeButton from "./LikeButton.svelte";
 
   let {
     track,
@@ -15,6 +16,7 @@
     actions = true,
     onPlay,
     onRemove,
+    onRemoveFromPlaylist,
   }: {
     track: Track;
     /** Numéro affiché devant le titre (position dans l'album ou la playlist). */
@@ -28,6 +30,8 @@
     actions?: boolean;
     onPlay?: () => void;
     onRemove?: () => void;
+    /** Ligne d'une de vos playlists : « Retirer de cette playlist » dans le menu. */
+    onRemoveFromPlaylist?: () => void;
   } = $props();
 
   let rowEl = $state<HTMLElement>();
@@ -36,7 +40,7 @@
 
   // Les mêmes entrées au clic droit et sur le bouton « … » (#52).
   function entries() {
-    return trackMenu(track, { onPlay, onRemove, queueable: actions });
+    return trackMenu(track, { onPlay, onRemove, queueable: actions, onRemoveFromPlaylist });
   }
 
   function onContextmenu(e: MouseEvent) {
@@ -122,6 +126,7 @@
     >
       <Icon name="more" size={16} />
     </button>
+    <LikeButton {track} />
   </div>
   <span class="duration">{formatTime(track.duration)}</span>
 </div>
@@ -236,12 +241,17 @@
   .actions {
     display: flex;
     gap: 4px;
+  }
+
+  /* Boutons visibles au survol ; un cœur plein reste affiché. */
+  .actions > :global(*) {
     opacity: 0;
   }
 
-  .row:hover .actions,
-  .actions:focus-within,
-  .row.menu-open .actions {
+  .row:hover .actions > :global(*),
+  .actions:focus-within > :global(*),
+  .row.menu-open .actions > :global(*),
+  .actions > :global(.like-button.liked) {
     opacity: 1;
   }
 

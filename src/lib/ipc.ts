@@ -285,6 +285,21 @@ export const commands = {
   feed: () => invoke<FeedItem[]>("feed"),
   /** `null` si TIDAL n'a pas de paroles pour ce titre. */
   lyrics: (trackId: TrackId) => invoke<Lyrics | null>("lyrics", { trackId }),
+  /** Identifiants des titres likés (mis à jour ensuite par l'événement `liked-tracks`). */
+  likedTracks: () => invoke<TrackId[]>("liked_tracks"),
+  setTrackLiked: (trackId: TrackId, liked: boolean) =>
+    invoke<void>("set_track_liked", { trackId, liked }),
+  /** Playlists créées par l'utilisateur, les seules modifiables. */
+  ownPlaylists: () => invoke<PlaylistSummary[]>("own_playlists"),
+  /** Ajoute à la fin, sans doublon ; renvoie le nombre de titres réellement ajoutés. */
+  addToPlaylist: (uuid: string, trackIds: TrackId[]) =>
+    invoke<number>("add_to_playlist", { uuid, trackIds }),
+  /** Crée une playlist avec ces titres ; renvoie son uuid. */
+  createPlaylist: (title: string, trackIds: TrackId[]) =>
+    invoke<string>("create_playlist", { title, trackIds }),
+  /** `index` : position dans la playlist (0 = premier) ; refusé si un autre titre s'y trouve. */
+  removeFromPlaylist: (uuid: string, index: number, trackId: TrackId) =>
+    invoke<void>("remove_from_playlist", { uuid, index, trackId }),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle }),
@@ -336,6 +351,8 @@ export const events = {
     listen<QueueView>("queue-state", (e) => cb(e.payload)),
   onUpdateReady: (cb: (u: UpdateInfo) => void): Promise<UnlistenFn> =>
     listen<UpdateInfo>("update-ready", (e) => cb(e.payload)),
+  onLikedTracks: (cb: (ids: TrackId[]) => void): Promise<UnlistenFn> =>
+    listen<TrackId[]>("liked-tracks", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>
     listen<Toast>("toast", (e) => cb(e.payload)),
 };

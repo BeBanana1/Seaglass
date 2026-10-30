@@ -7,8 +7,10 @@
   import { ui, type NowPlayingPanel } from "../lib/stores/ui.svelte";
   import { fullTitle } from "../lib/format";
   import { go, nav } from "../lib/stores/nav.svelte";
+  import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
   import Backdrop from "../components/backdrops/Backdrop.svelte";
   import Icon from "../components/Icon.svelte";
+  import LikeButton from "../components/LikeButton.svelte";
   import Lyrics from "../components/Lyrics.svelte";
   import Progress from "../components/Progress.svelte";
   import QueueList from "../components/QueueList.svelte";
@@ -82,6 +84,17 @@
               {/each}
             </div>
             <button class="link album" onclick={() => go({ name: "album", id: track.album.id })}>{track.album.title}</button>
+            <div class="now-actions">
+              <LikeButton {track} size={20} />
+              <button
+                class="now-add"
+                onclick={() => openPlaylistPicker({ trackIds: [track.id], label: fullTitle(track) })}
+                title="Ajouter à une playlist"
+                aria-label="Ajouter à une playlist"
+              >
+                <Icon name="playlistAdd" size={20} />
+              </button>
+            </div>
 
             <div class="controls">
               <Progress large />
@@ -231,6 +244,24 @@
     margin: 0;
     font-size: clamp(28px, 4.2vw, 52px);
     line-height: 1.05;
+  }
+
+  .now-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: -4px;
+  }
+
+  .now-add {
+    display: grid;
+    place-items: center;
+    padding: 4px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  .now-add:hover {
+    color: var(--text);
   }
 
   .who {

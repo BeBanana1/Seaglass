@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { commands, type PlaylistPage } from "../lib/ipc";
-  import { formatLongDuration, playlistSubtitle } from "../lib/format";
+  import { formatLongDuration, fullTitle, playlistSubtitle } from "../lib/format";
   import {
     filterTracks,
     listTracks,
@@ -12,6 +13,8 @@
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
   import { refreshPinTitle } from "../lib/stores/ui.svelte";
+  import { notePlaylistChange, playlistChanges } from "../lib/stores/playlistPicker.svelte";
+  import { pushToast } from "../lib/stores/toasts.svelte";
 
   const SORT_KEYS: SortKey[] = ["position", "added", "title", "artist", "album", "duration"];
   const DEFAULT_SORT: TrackSort = { key: "position", descending: false };
@@ -29,6 +32,16 @@
     error = null;
     query = "";
     sort = DEFAULT_SORT;
+    load(target);
+  });
+
+  // Titres ajoutés ou retirés : rechargement sur place (filtre et tri gardés).
+  $effect(() => {
+    void playlistChanges.revision;
+    if (playlistChanges.uuid === untrack(() => uuid)) untrack(() => load(uuid));
+  });
+
+  function load(target: string) {
     commands
       .playlist(target)
       .then((p) => {
@@ -38,7 +51,21 @@
         refreshPinTitle(target, p.playlist.title).catch(() => {});
       })
       .catch((e) => (error = String(e)));
-  });
+  }
+
+  // `index` : position dans la liste affichée ; le backend reçoit la position d'origine.
+  async function removeAt(index: number) {
+    const entry = shown[index];
+    if (!entry) return;
+    try {
+      await commands.removeFromPlaylist(uuid, entry.position - 1, entry.track.id);
+      pushToast({ level: "info", message: `« ${fullTitle(entry.track)} » retiré de la playlist` });
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+    // Rechargée même en cas d'échec : un refus signifie que la playlist a changé.
+    notePlaylistChange(uuid);
+  }
 
   // Lecture / Aléatoire suivent le tri ; un clic sur un titre met en contexte la liste
   // affichée (triée et filtrée), dans cet ordre.
@@ -83,6 +110,7 @@
         tracks={shown.map((t) => t.track)}
         positions={shown.map((t) => t.position)}
         numbering="index"
+        onRemoveFromPlaylist={page.playlist.mine ? removeAt : undefined}
       />
     {/if}
   {/if}

@@ -8,6 +8,7 @@ mod collection;
 mod date;
 mod feed;
 mod hires;
+mod likes;
 #[cfg(test)]
 mod live_tests;
 mod lyrics;
@@ -34,6 +35,9 @@ pub enum TidalError {
     Http(#[from] reqwest::Error),
     #[error("réponse inattendue : {0}")]
     Decode(String),
+    /// La ressource a changé depuis sa lecture (ETag périmé, titre déplacé).
+    #[error("{0}")]
+    Conflict(String),
     #[error("flux protégé par DRM ({0}), lecture impossible")]
     Drm(String),
     #[error("format de flux non pris en charge : {0}")]

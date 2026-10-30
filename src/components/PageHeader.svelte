@@ -5,6 +5,7 @@
   import { pushToast } from "../lib/stores/toasts.svelte";
   import Icon from "./Icon.svelte";
   import PinButton from "./PinButton.svelte";
+  import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
 
   let {
     image,
@@ -84,6 +85,14 @@
             aria-label="Ajouter à la file"
           >
             <Icon name="add" size={18} />
+          </button>
+          <button
+            class="secondary icon"
+            onclick={() => openPlaylistPicker({ trackIds, label: `${title} · ${plural(trackIds.length, "titre")}` })}
+            title="Ajouter à une playlist"
+            aria-label="Ajouter à une playlist"
+          >
+            <Icon name="playlistAdd" size={18} />
           </button>
         {/if}
         {#if pin}<PinButton {pin} />{/if}
