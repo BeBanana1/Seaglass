@@ -1,13 +1,19 @@
 //! Tests sur l'API réelle, ignorés par défaut (réseau et session enregistrée requis).
 //!
 //! - `cargo test live_catalog -- --ignored --nocapture` : appelle chaque endpoint.
+//! - `cargo test live_lyrics -- --ignored --nocapture` : paroles synchronisées et absentes.
 //! - `cargo test dump_ui_fixtures -- --ignored` : écrit `src/lib/mock/fixtures.json`
 //!   (gitignoré, contient la bibliothèque du compte) pour prévisualiser l'UI hors Tauri.
 
 use super::TidalClient;
+use super::models::{LyricsText, TrackId};
 
 const ALBUM_ID: u64 = 156_749_593;
 const ARTIST_ID: u64 = 12_979;
+/// « Bohemian Rhapsody » : paroles horodatées (Musixmatch).
+const LYRICS_TRACK: TrackId = TrackId(534_050_211);
+/// « Clair de lune » : instrumental, `tracks/{id}/lyrics` répond 404.
+const NO_LYRICS_TRACK: TrackId = TrackId(5_940_831);
 
 async fn client() -> TidalClient {
     let client = TidalClient::new().unwrap();
@@ -95,4 +101,23 @@ async fn dump_ui_fixtures() {
     let path = std::path::Path::new("../src/lib/mock/fixtures.json");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(path, serde_json::to_string(&fixtures).unwrap()).unwrap();
+}
+
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_lyrics() {
+    let client = client().await;
+    let lyrics = client.lyrics(LYRICS_TRACK).await.unwrap().unwrap();
+    let LyricsText::Synced { lines } = &lyrics.text else {
+        panic!("paroles non synchronisées");
+    };
+    println!(
+        "paroles : {} lignes ({:?}), première à {} ms : {}",
+        lines.len(),
+        lyrics.provider,
+        lines[0].time_ms,
+        lines[0].text
+    );
+    assert!(lines.windows(2).all(|w| w[0].time_ms <= w[1].time_ms));
+    assert!(client.lyrics(NO_LYRICS_TRACK).await.unwrap().is_none());
 }

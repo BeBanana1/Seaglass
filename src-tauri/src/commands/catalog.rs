@@ -1,13 +1,13 @@
 //! Commandes de navigation : recherche, pages album / artiste / playlist, bibliothèque,
-//! accueil.
+//! accueil, paroles.
 
 use tauri::State;
 
 use super::settings::home_layout::HomeSection;
 use super::{AppState, CmdResult, err, settings};
 use crate::tidal::models::{
-    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, PlaylistPage, PlaylistSummary,
-    SearchResults, TrackEntry,
+    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, Lyrics, PlaylistPage, PlaylistSummary,
+    SearchResults, TrackEntry, TrackId,
 };
 
 const MAX_QUERY_LEN: usize = 200;
@@ -68,6 +68,12 @@ pub async fn library_playlists(state: State<'_, AppState>) -> CmdResult<Vec<Play
 pub async fn home(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
     let rows = state.tidal.home().await.map_err(err)?;
     Ok(settings::load(&state).home.arrange(rows))
+}
+
+/// Paroles d'un titre ; `None` si TIDAL n'en a pas (ce n'est pas une erreur).
+#[tauri::command]
+pub async fn lyrics(state: State<'_, AppState>, track_id: TrackId) -> CmdResult<Option<Lyrics>> {
+    state.tidal.lyrics(track_id).await.map_err(err)
 }
 
 /// UUID au format `8-4-4-4-12` (hexadécimal), seul format de playlist accepté dans l'URL.

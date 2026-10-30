@@ -7,6 +7,7 @@ mod catalog;
 mod date;
 #[cfg(test)]
 mod live_tests;
+mod lyrics;
 mod manifest;
 pub mod models;
 mod raw;

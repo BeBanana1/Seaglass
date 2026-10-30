@@ -31,13 +31,16 @@ export const THEMES: { id: Theme; name: string; description: string }[] = [
   },
 ];
 
+/** Panneau latéral de la vue « En lecture » : file d'attente ou paroles, un seul à la fois. */
+export type NowPlayingPanel = "queue" | "lyrics" | null;
+
 export const ui = $state<{
   settings: UiSettings;
-  /** Panneau de file dans la vue « En lecture » (mémorisé pour la session). */
-  nowPlayingQueue: boolean;
+  /** Panneau ouvert dans la vue « En lecture » (mémorisé pour la session). */
+  nowPlayingPanel: NowPlayingPanel;
 }>({
   settings: { theme: "seaglass", home: { order: [], hidden: [] }, pins: [], accent: null },
-  nowPlayingQueue: false,
+  nowPlayingPanel: null,
 });
 
 /** Couleurs proposées pour l'accent, en plus du sélecteur libre. */

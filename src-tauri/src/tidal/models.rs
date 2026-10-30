@@ -206,3 +206,32 @@ pub struct SessionInfo {
     pub user_id: u64,
     pub country_code: String,
 }
+
+/// Paroles d'un titre (`tracks/{id}/lyrics`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Lyrics {
+    pub track_id: TrackId,
+    /// Fournisseur à créditer (« MUSIXMATCH »).
+    pub provider: Option<String>,
+    /// Écriture de droite à gauche.
+    pub rtl: bool,
+    pub text: LyricsText,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum LyricsText {
+    /// Lignes horodatées, triées par temps ; une ligne vide marque un passage instrumental.
+    Synced { lines: Vec<LyricLine> },
+    /// Texte sans horodatage, ligne par ligne (lignes vides = séparation de couplets).
+    Plain { lines: Vec<String> },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LyricLine {
+    /// Début de la ligne, en millisecondes.
+    pub time_ms: u32,
+    pub text: String,
+}

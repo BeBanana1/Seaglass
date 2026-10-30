@@ -279,6 +279,17 @@ impl RawPlaylist {
     }
 }
 
+/// Réponse de `tracks/{id}/lyrics` (`subtitles` au format LRC, `lyrics` en texte simple).
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct RawLyrics {
+    pub lyrics_provider: Option<String>,
+    #[serde(default)]
+    pub is_right_to_left: bool,
+    pub lyrics: Option<String>,
+    pub subtitles: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

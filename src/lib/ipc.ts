@@ -159,6 +159,24 @@ export interface PlaylistPage {
   tracks: TrackEntry[];
 }
 
+/** Paroles (`tidal/models.rs` : `Lyrics`). */
+export interface Lyrics {
+  trackId: TrackId;
+  /** Fournisseur à créditer (« MUSIXMATCH »). */
+  provider: string | null;
+  /** Écriture de droite à gauche. */
+  rtl: boolean;
+  text:
+    | { kind: "synced"; lines: LyricLine[] }
+    | { kind: "plain"; lines: string[] };
+}
+
+export interface LyricLine {
+  /** Début de la ligne, en millisecondes ; texte vide = passage instrumental. */
+  timeMs: number;
+  text: string;
+}
+
 export interface SearchResults {
   tracks: Track[];
   albums: AlbumSummary[];
@@ -216,6 +234,8 @@ export const commands = {
   libraryArtists: () => invoke<ArtistSummary[]>("library_artists"),
   libraryPlaylists: () => invoke<PlaylistSummary[]>("library_playlists"),
   home: () => invoke<HomeSection[]>("home"),
+  /** `null` si TIDAL n'a pas de paroles pour ce titre. */
+  lyrics: (trackId: TrackId) => invoke<Lyrics | null>("lyrics", { trackId }),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle }),

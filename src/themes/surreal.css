@@ -166,6 +166,7 @@
 
 :root[data-theme="surreal"] .now-playing .close,
 :root[data-theme="surreal"] .now-playing .queue-toggle,
+:root[data-theme="surreal"] .now-playing .lyrics-toggle,
 :root[data-theme="surreal"] .update-check,
 :root[data-theme="surreal"] .queue-clear {
   background: rgb(255 255 255 / 0.7);
@@ -267,4 +268,14 @@
 :root[data-theme="surreal"] .cache-size {
   font-family: var(--display-family);
   font-style: italic;
+}
+
+/* Paroles : ligne courante portée par la teinte de l'album, en flottement léger. */
+:root[data-theme="surreal"] .lyrics-line {
+  border-radius: 999px;
+}
+
+:root[data-theme="surreal"] .lyrics-line.active {
+  color: color-mix(in oklch, var(--album) 55%, var(--text));
+  transform: scale(1.06) rotate(-0.6deg);
 }
