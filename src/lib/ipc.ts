@@ -144,6 +144,14 @@ export interface UiSettings {
   theme: Theme;
 }
 
+/** Taille du cache mpv en Mio : seules ces valeurs sont acceptées par le backend. */
+export type CacheSize = 32 | 64 | 128 | 256;
+
+/** Réglages de lecture, stockés à part des réglages d'UI. */
+export interface PlaybackSettings {
+  cacheSize: CacheSize;
+}
+
 export interface UpdateInfo {
   version: string;
   currentVersion: string;
@@ -189,6 +197,14 @@ export const commands = {
   queueState: () => invoke<QueueView>("queue_state"),
   uiSettings: () => invoke<UiSettings>("ui_settings"),
   setUiSettings: (settings: UiSettings) => invoke<void>("set_ui_settings", { settings }),
+  playbackSettings: () => invoke<PlaybackSettings>("playback_settings"),
+  /** Enregistre et applique à chaud (sans recharger le titre en cours). */
+  setPlaybackSettings: (settings: PlaybackSettings) =>
+    invoke<void>("set_playback_settings", { settings }),
+  /** État réel du lancement au démarrage, lu dans le système. */
+  autostartEnabled: () => invoke<boolean>("autostart_enabled"),
+  /** Renvoie l'état relu après changement. */
+  setAutostart: (enabled: boolean) => invoke<boolean>("set_autostart", { enabled }),
   updateStatus: () => invoke<UpdateInfo | null>("update_status"),
   /** L'installeur ferme l'app puis la relance. */
   installUpdate: () => invoke<void>("install_update"),

@@ -30,9 +30,8 @@ export const THEMES: { id: Theme; name: string; description: string }[] = [
   },
 ];
 
-export const ui = $state<{ settings: UiSettings; appearanceOpen: boolean }>({
+export const ui = $state<{ settings: UiSettings }>({
   settings: { theme: "seaglass" },
-  appearanceOpen: false,
 });
 
 function apply() {

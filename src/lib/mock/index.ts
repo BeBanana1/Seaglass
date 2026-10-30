@@ -3,12 +3,15 @@
 // (gitignoré). Sans ce fichier, un jeu minimal synthétique est utilisé.
 //
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
-// library|search|home`, `?nowplaying=1`, `?paused=1`, `?loggedout=1`, `?queue=1`, `?update=1`.
+// library|search|home|settings`, `?tab=` (onglet de la bibliothèque ou section des
+// réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
+// `?queue=1`, `?update=1`, `?autostart=1`.
 
 import type {
   AlbumPage,
   ArtistPage,
   HomeRow,
+  PlaybackSettings,
   PlayerState,
   PlaylistPage,
   QueueView,
@@ -17,7 +20,7 @@ import type {
   Track,
   UiSettings,
 } from "../ipc";
-import type { LibraryTab, Route } from "../stores/nav.svelte";
+import type { LibraryTab, Route, SettingsSection } from "../stores/nav.svelte";
 
 interface Fixtures {
   search: SearchResults;
@@ -65,6 +68,8 @@ const state: PlayerState = {
 };
 
 let ui: UiSettings = { theme: (params.get("theme") as Theme) ?? "seaglass" };
+let playback: PlaybackSettings = { cacheSize: 64 };
+let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
 const listeners = new Map<string, Set<Listener>>();
@@ -123,6 +128,20 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   install_update: () => null,
   set_ui_settings: ({ settings }) => {
     ui = settings as UiSettings;
+  },
+  playback_settings: () => playback,
+  // Même validation que le backend : seules les tailles proposées sont acceptées.
+  set_playback_settings: ({ settings }) => {
+    const next = settings as PlaybackSettings;
+    if (![32, 64, 128, 256].includes(next.cacheSize)) {
+      throw new Error(`taille de cache non prise en charge : ${next.cacheSize} Mio`);
+    }
+    playback = next;
+  },
+  autostart_enabled: () => autostart,
+  set_autostart: ({ enabled }) => {
+    autostart = Boolean(enabled);
+    return autostart;
   },
   play_tracks: ({ trackIds, startIndex, shuffle }) => {
     context = (trackIds as number[]).map((id) => allTracks.get(id)).filter((t): t is Track => !!t);
@@ -195,6 +214,7 @@ export function initialView(): { route: Route | null; nowPlaying: boolean; queue
     playlist: { name: "playlist", uuid: fx.playlist.playlist.uuid },
     library: { name: "library", tab: (params.get("tab") as LibraryTab) ?? "playlists" },
     search: { name: "search" },
+    settings: { name: "settings", section: (params.get("tab") as SettingsSection) ?? "appearance" },
   };
   return {
     route: routes[params.get("route") ?? ""] ?? null,
