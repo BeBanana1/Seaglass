@@ -40,6 +40,8 @@ pub enum Theme {
     /// Neumorphism en version sombre, graphite (#67).
     #[serde(rename = "neumorph-dark")]
     NeumorphDark,
+    /// Écran cathodique monochrome, tout en mono ; l'accent est la couleur du phosphore (#68).
+    Terminal,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -232,6 +234,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Neumorph);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"neumorph-dark"}"#).unwrap();
         assert_eq!(s.theme, Theme::NeumorphDark);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"terminal"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Terminal);
     }
 
     #[test]

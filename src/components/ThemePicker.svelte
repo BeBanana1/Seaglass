@@ -345,6 +345,30 @@
     background: #8fa2ff;
   }
 
+  .preview.terminal {
+    gap: 3px;
+    border-radius: 0;
+    background:
+      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.3) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at center, #0a130a, #020402 80%);
+  }
+
+  .terminal :is(.side, .main, .bar) {
+    border-radius: 0;
+    background: transparent;
+    border: 1px solid rgb(65 255 122 / 0.45);
+  }
+
+  .terminal .h {
+    width: 55%;
+    background: #41ff7a;
+    box-shadow: 0 0 6px rgb(65 255 122 / 0.7);
+  }
+
+  .terminal .l {
+    background: repeating-linear-gradient(90deg, rgb(65 255 122 / 0.6) 0 4px, transparent 4px 6px);
+  }
+
   :global([data-theme="studio"]) .theme-card {
     border-radius: 0;
   }

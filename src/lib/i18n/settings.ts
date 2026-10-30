@@ -43,6 +43,10 @@ export const fr = {
       name: "Neumorphism sombre",
       description: "Les mêmes reliefs sur graphite, pour le soir.",
     },
+    terminal: {
+      name: "Terminal",
+      description: "Écran cathodique monochrome, tout en mono ; la couleur d'accent devient celle du phosphore.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -152,6 +156,10 @@ export const en: typeof fr = {
     "neumorph-dark": {
       name: "Neumorphism dark",
       description: "The same relief on graphite, for the evening.",
+    },
+    terminal: {
+      name: "Terminal",
+      description: "Monochrome CRT, all monospace; the accent color becomes the phosphor.",
     },
   },
 
