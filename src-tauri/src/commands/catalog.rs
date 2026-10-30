@@ -5,7 +5,7 @@ use tauri::{AppHandle, State};
 
 use super::settings::home_layout::HomeSection;
 use super::{AppState, CmdResult, err, settings};
-use crate::player::{PlaybackSettings, is_better};
+use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, Lyrics, MixPage, MixSummary,
     PlaylistPage, PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry, TrackId,
@@ -103,19 +103,29 @@ pub async fn lyrics(state: State<'_, AppState>, track_id: TrackId) -> CmdResult<
 }
 
 /// Infos détaillées d'un titre (#3), à la demande (une requête de lecture). `played` dit
-/// si Seaglass lirait l'édition hi-res trouvée à la place du titre, selon le réglage.
+/// si Seaglass lirait l'édition hi-res trouvée à la place du titre sans demander (réglage
+/// automatique ; en mode « Demander », c'est la barre de lecture qui la propose, #59).
 #[tauri::command]
 pub async fn track_info(state: State<'_, AppState>, track_id: TrackId) -> CmdResult<TrackInfo> {
     let mut info = state.tidal.track_info(track_id).await.map_err(err)?;
     let upgrade = PlaybackSettings::load(state.store.as_deref()).hires_upgrade;
     if let Some(edition) = info.hires_edition.as_mut() {
-        edition.played = upgrade
+        edition.played = upgrade == HiresUpgrade::Auto
             && edition
                 .stream
                 .as_ref()
                 .is_some_and(|s| is_better(s, info.stream.as_ref()));
     }
     Ok(info)
+}
+
+/// Album hi-res au même titre de l'artiste principal, pour un album qui ne l'est pas (#59).
+#[tauri::command]
+pub async fn hires_twin_album(
+    state: State<'_, AppState>,
+    album_id: u64,
+) -> CmdResult<Option<AlbumSummary>> {
+    state.tidal.hires_twin_album(album_id).await.map_err(err)
 }
 
 /// Sorties récentes des artistes suivis.

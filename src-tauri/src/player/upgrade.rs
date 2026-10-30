@@ -6,9 +6,14 @@
 //! - Titre courant : la recherche part en parallèle du flux d'origine et ne peut retarder
 //!   le démarrage de plus de `CURRENT_LOOKUP_LIMIT`. Une réponse déjà en cache évite la
 //!   demande du flux d'origine.
+//! - Mode « Demander » (#59) : le titre d'origine démarre sans attendre, `find_offer`
+//!   cherche ensuite l'édition à proposer.
 
 use std::time::Duration;
 
+use super::actor::{Cmd, Player};
+use super::playback::QUALITY;
+use super::settings::HiresUpgrade;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{AudioQuality, Stream, StreamFormat, Track};
 
@@ -68,6 +73,79 @@ pub(super) async fn resolve_stream(
     match original {
         Some(result) => result,
         None => tidal.stream(track.id, quality).await,
+    }
+}
+
+/// Édition hi-res à proposer pour `track`, joué au format `original` : son format (avec
+/// l'album dans `hires_edition`) si elle est réellement meilleure. Rien n'est lu : le flux
+/// sera demandé si l'offre est acceptée.
+pub(super) async fn find_offer(
+    tidal: &TidalClient,
+    track: &Track,
+    quality: AudioQuality,
+    original: &StreamFormat,
+) -> Option<StreamFormat> {
+    if track.hires || quality != AudioQuality::HiResLossless {
+        return None;
+    }
+    let edition = lookup_result(track, tidal.hires_edition(track).await)?;
+    match tidal.playback_format(edition.id, quality).await {
+        Ok(mut format) if is_better(&format, Some(original)) => {
+            format.hires_edition = Some(edition.album.title);
+            Some(format)
+        }
+        Ok(_) => None,
+        Err(e) => {
+            tracing::warn!("{} : format de l'édition {} : {e}", track.id, edition.id);
+            None
+        }
+    }
+}
+
+impl Player {
+    /// Mode « Demander » (#59) : cherche en arrière-plan l'édition hi-res à proposer pour
+    /// le titre courant, sauf si son album a déjà eu une réponse. Retire toute offre
+    /// précédente (autre titre, autre réglage).
+    pub(super) fn maybe_offer_hires(&mut self) {
+        self.offer_req += 1;
+        self.state.hires_offer = None;
+        if self.hires_upgrade != HiresUpgrade::Ask || !self.loaded {
+            return;
+        }
+        let (Some(track), Some(format)) = (&self.state.track, &self.state.stream) else {
+            return;
+        };
+        if track.hires
+            || format.hires_edition.is_some()
+            || self.hires_answers.contains_key(&track.album.id)
+        {
+            return;
+        }
+        let (track, format) = (track.clone(), format.clone());
+        let (tidal, tx, request) = (self.tidal.clone(), self.tx.clone(), self.offer_req);
+        tauri::async_runtime::spawn(async move {
+            if let Some(offer) = find_offer(&tidal, &track, QUALITY, &format).await {
+                let _ = tx.send(Cmd::HiresOffer { request, offer }).await;
+            }
+        });
+    }
+
+    /// Réponse au bandeau, valable pour tout l'album pendant la session. Oui : le titre est
+    /// rechargé à la même position depuis l'édition hi-res (micro-coupure) et la lecture
+    /// reprend ; le suivant préchargé, résolu sans elle, est retiré.
+    pub(super) async fn answer_hires_offer(&mut self, accept: bool) {
+        let Some(album) = self.state.track.as_ref().map(|t| t.album.id) else {
+            return;
+        };
+        if self.state.hires_offer.take().is_none() {
+            return;
+        }
+        self.offer_req += 1;
+        self.hires_answers.insert(album, accept);
+        if accept && let Some(id) = self.queue.current() {
+            self.invalidate_next().await;
+            self.load_current(id, self.state.time_pos);
+        }
     }
 }
 

@@ -6,12 +6,13 @@ use serde_json::{Value, json};
 
 use super::actor::{Cmd, Player, Slot};
 use super::queue::Repeat;
+use super::settings::HiresUpgrade;
 use super::upgrade;
 use crate::mpv::{CacheSize, EndReason};
 use crate::tidal::models::{AudioQuality, Stream, StreamSource, Track, TrackId};
 
 /// Qualité demandée ; deviendra un réglage utilisateur.
-const QUALITY: AudioQuality = AudioQuality::HiResLossless;
+pub(super) const QUALITY: AudioQuality = AudioQuality::HiResLossless;
 /// Préchargement du suivant quand il reste moins que ça sur le titre courant.
 const PRELOAD_BEFORE_END: f64 = 30.0;
 /// En deçà, « Précédent » revient au titre précédent plutôt qu'au début du titre.
@@ -38,6 +39,8 @@ impl Player {
         self.state.loading = true;
         self.state.track = self.tidal.cache.get(id);
         self.state.stream = None;
+        self.state.hires_offer = None;
+        self.offer_req += 1;
         self.state.time_pos = start;
         self.resolve(id, Slot::Current { start }, self.load_req);
     }
@@ -73,14 +76,25 @@ impl Player {
 
     /// Résout métadonnées et flux hors de l'acteur, qui reste réactif pendant ce temps.
     /// Le flux peut venir d'une autre édition hi-res (`upgrade::resolve_stream`) : la file
-    /// et l'affichage gardent `id`.
+    /// et l'affichage gardent `id`. En mode « Demander », seulement pour un album dont
+    /// l'offre a été acceptée.
     fn resolve(&self, id: TrackId, slot: Slot, request: u64) {
         let (tidal, tx) = (self.tidal.clone(), self.tx.clone());
-        let upgrade = self.hires_upgrade;
+        let mode = self.hires_upgrade;
+        let accepted: Vec<u64> = self
+            .hires_answers
+            .iter()
+            .filter_map(|(album, yes)| yes.then_some(*album))
+            .collect();
         let current = matches!(slot, Slot::Current { .. });
         tauri::async_runtime::spawn(async move {
             let result = async {
                 let track = tidal.track(id).await?;
+                let upgrade = match mode {
+                    HiresUpgrade::Auto => true,
+                    HiresUpgrade::Ask => accepted.contains(&track.album.id),
+                    HiresUpgrade::Off => false,
+                };
                 let stream =
                     upgrade::resolve_stream(&tidal, &track, QUALITY, upgrade, current).await?;
                 Ok::<_, crate::tidal::TidalError>(Box::new((track, stream)))
@@ -126,6 +140,7 @@ impl Player {
                 self.state.paused = false;
                 self.state.track = Some(track);
                 self.state.stream = Some(stream.format);
+                self.maybe_offer_hires();
             }
             Slot::Next(id) if request == self.preload_req => {
                 self.preloading = false;
@@ -165,6 +180,7 @@ impl Player {
             self.state.track = Some(track);
             self.state.stream = Some(format);
             self.state.time_pos = 0.0;
+            self.maybe_offer_hires();
         } else if let Some(id) = advanced {
             // Ne devrait pas arriver : toute modification de la file retire l'entrée 1.
             tracing::warn!("préchargé {} mais la file donne {id}", track.id);

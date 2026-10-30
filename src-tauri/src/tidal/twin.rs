@@ -5,7 +5,8 @@
 //! l'artiste (`artists/{id}/albums`, ~300 ms) liste les deux (vérifié le 2026-10-30).
 //!
 //! Repli de `hires_edition` quand l'ISRC ne donne rien : albums hi-res de l'artiste
-//! principal au titre identique, puis le titre de même nom et de même durée.
+//! principal au titre identique, puis le titre de même nom et de même durée. Sert aussi au
+//! lien « Cet album existe en Hi-Res » de la page album (#59).
 
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -66,6 +67,19 @@ impl TidalClient {
             }
         }
         Ok(None)
+    }
+
+    /// Album hi-res de l'artiste principal au même titre que l'album `id`, si celui-ci ne
+    /// l'est pas (#59). Une requête d'album, puis la discographie (en cache par artiste).
+    pub async fn hires_twin_album(&self, id: u64) -> Result<Option<AlbumSummary>> {
+        let raw: RawAlbumFull = self.get(&format!("albums/{id}"), &[]).await?;
+        let album = AlbumSummary::from(raw);
+        let Some(artist) = album.artists.first().filter(|_| !album.hires) else {
+            return Ok(None);
+        };
+        let albums = self.hires_albums(artist.id).await?;
+        let twins = same_title_albums(album.id, &album.title, album.explicit, &albums);
+        Ok(twins.first().map(|a| (*a).clone()))
     }
 
     /// Charge la discographie de l'artiste principal en avance. Une erreur est ignorée :
@@ -132,12 +146,23 @@ fn normalize(text: &str) -> String {
 /// Albums hi-res au même titre que l'album de `track`, autres que lui, même marquage
 /// explicite d'abord.
 fn twin_albums<'a>(track: &Track, albums: &'a [AlbumSummary]) -> Vec<&'a AlbumSummary> {
-    let title = normalize(&track.album.title);
+    same_title_albums(track.album.id, &track.album.title, track.explicit, albums)
+}
+
+/// Albums hi-res titrés `title` (casse et espaces ignorés), autres que l'album `id`, ceux
+/// de marquage explicite `explicit` d'abord.
+fn same_title_albums<'a>(
+    id: u64,
+    title: &str,
+    explicit: bool,
+    albums: &'a [AlbumSummary],
+) -> Vec<&'a AlbumSummary> {
+    let title = normalize(title);
     let mut twins: Vec<&AlbumSummary> = albums
         .iter()
-        .filter(|a| a.hires && a.id != track.album.id && normalize(&a.title) == title)
+        .filter(|a| a.hires && a.id != id && normalize(&a.title) == title)
         .collect();
-    twins.sort_by_key(|a| a.explicit != track.explicit);
+    twins.sort_by_key(|a| a.explicit != explicit);
     twins
 }
 
@@ -240,6 +265,20 @@ mod tests {
             .map(|a| a.id)
             .collect();
         assert_eq!(ids, vec![3, 2]);
+    }
+
+    #[test]
+    fn album_twin_ignores_itself_and_cd_editions() {
+        let albums = vec![
+            album(20_767_338, REMASTER, false),
+            album(68_709_104, REMASTER, true),
+        ];
+        let twins: Vec<u64> = same_title_albums(20_767_338, REMASTER, false, &albums)
+            .iter()
+            .map(|a| a.id)
+            .collect();
+        assert_eq!(twins, vec![68_709_104]);
+        assert!(same_title_albums(68_709_104, REMASTER, false, &albums).is_empty());
     }
 
     #[test]

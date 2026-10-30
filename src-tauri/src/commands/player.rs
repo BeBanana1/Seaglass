@@ -78,6 +78,12 @@ pub async fn clear_queue(state: State<'_, AppState>) -> CmdResult<()> {
     send_cmd(&state, Cmd::ClearQueue).await
 }
 
+/// Réponse au bandeau « Édition hi-res disponible » (#59), valable pour tout l'album.
+#[tauri::command]
+pub async fn answer_hires_offer(state: State<'_, AppState>, accept: bool) -> CmdResult<()> {
+    send_cmd(&state, Cmd::AnswerHiresOffer(accept)).await
+}
+
 #[tauri::command]
 pub async fn next(state: State<'_, AppState>) -> CmdResult<()> {
     send_cmd(&state, Cmd::Next).await
