@@ -4,6 +4,7 @@
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
+  import AccentPicker from "../components/AccentPicker.svelte";
 
   let { section }: { section: SettingsSection } = $props();
 
@@ -88,6 +89,14 @@
       <h2>Thème</h2>
       <p class="hint">Le thème s'applique tout de suite et reste enregistré.</p>
       <ThemePicker />
+    </div>
+    <div class="group">
+      <h2>Couleur d'accent</h2>
+      <p class="hint">
+        Boutons, éléments actifs et titres mis en avant. Par défaut, chaque thème a la sienne
+        (accordée à l'album pour Verre de mer, Atelier et Surréalisme).
+      </p>
+      <AccentPicker />
     </div>
   {:else if section === "playback"}
     <div class="group">

@@ -5,7 +5,7 @@
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
 // library|search|home|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
-// `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`.
+// `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`.
 
 import type {
   AlbumPage,
@@ -84,6 +84,8 @@ let ui: UiSettings = {
     { kind: "playlist", uuid: fx.playlist.playlist.uuid, title: fx.playlist.playlist.title },
     { kind: "likedTracks" },
   ],
+  // `?accent=ff5c8a` : couleur d'accent personnalisée.
+  accent: params.get("accent") ? `#${params.get("accent")}` : null,
 };
 
 /** Version simplifiée de `HomeLayout::arrange` : sections connues dans l'ordre enregistré,

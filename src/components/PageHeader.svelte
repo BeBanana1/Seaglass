@@ -171,7 +171,7 @@
   }
 
   .primary {
-    color: var(--bg);
+    color: var(--accent-contrast);
     background: var(--accent);
   }
 

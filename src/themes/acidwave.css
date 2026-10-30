@@ -10,7 +10,7 @@
   border: 1px solid var(--border);
   box-shadow:
     0 0 0 1px rgb(0 0 0 / 0.6),
-    0 0 24px rgb(200 255 0 / 0.06) inset;
+    0 0 24px color-mix(in srgb, var(--accent) 6%, transparent) inset;
 }
 
 /* Titres : chrome liquide, capitales serrées. */
@@ -27,7 +27,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 10px rgb(200 255 0 / 0.25));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 25%, transparent));
 }
 
 :root[data-theme="acidwave"] .brand {
@@ -52,9 +52,9 @@
 :root[data-theme="acidwave"] .badge {
   border-radius: 0;
   transform: skewX(-12deg);
-  color: #050507;
+  color: var(--accent-contrast);
   background: var(--accent);
-  box-shadow: 0 0 8px rgb(200 255 0 / 0.5);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 :root[data-theme="acidwave"] .badge.muted {
@@ -84,7 +84,7 @@
 :root[data-theme="acidwave"] .card:hover {
   background: transparent;
   outline: 1px solid var(--accent);
-  box-shadow: 0 0 18px rgb(200 255 0 / 0.18);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 :root[data-theme="acidwave"] .card:hover .image {
@@ -93,20 +93,20 @@
 
 /* Lignes de titre. */
 :root[data-theme="acidwave"] .row:hover {
-  background: linear-gradient(90deg, rgb(200 255 0 / 0.1), transparent 70%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%);
 }
 
 :root[data-theme="acidwave"] .row.active .title {
   color: var(--accent);
-  text-shadow: 0 0 10px rgb(200 255 0 / 0.6);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 /* Commandes. */
 :root[data-theme="acidwave"] .transport .play {
   border-radius: 4px;
-  color: #050507;
+  color: var(--accent-contrast);
   background: var(--accent);
-  box-shadow: 0 0 18px rgb(200 255 0 / 0.55);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 :root[data-theme="acidwave"] .transport .play:hover:not(:disabled) {
@@ -127,7 +127,7 @@
 :root[data-theme="acidwave"] .progress .fill {
   border-radius: 0;
   background: linear-gradient(90deg, var(--acid-cyan), var(--accent), var(--acid-magenta));
-  box-shadow: 0 0 14px rgb(200 255 0 / 0.6);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 :root[data-theme="acidwave"] .volume .track {
@@ -143,7 +143,7 @@
 :root[data-theme="acidwave"] .volume:hover .fill,
 :root[data-theme="acidwave"] .volume:focus-within .fill {
   background: linear-gradient(90deg, var(--acid-cyan), var(--accent), var(--acid-magenta));
-  box-shadow: 0 0 10px rgb(200 255 0 / 0.5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 :root[data-theme="acidwave"] .volume .mute.off {
@@ -157,7 +157,7 @@
 
 @keyframes acid-pulse {
   50% {
-    box-shadow: 0 0 30px rgb(200 255 0 / 0.85);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 85%, transparent);
   }
 }
 
@@ -174,14 +174,14 @@
 
 :root[data-theme="acidwave"] header .actions .primary,
 :root[data-theme="acidwave"] .tabs button.active {
-  color: #050507;
+  color: var(--accent-contrast);
   background: var(--accent);
 }
 
 :root[data-theme="acidwave"] nav button.active,
 :root[data-theme="acidwave"] nav .pin.active {
   color: var(--accent);
-  background: linear-gradient(90deg, rgb(200 255 0 / 0.14), transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent);
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
@@ -201,7 +201,7 @@
   border-radius: 0;
   border-color: var(--accent);
   background: rgb(0 0 0 / 0.5);
-  box-shadow: 0 0 16px rgb(200 255 0 / 0.12);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 12%, transparent);
   font-family: var(--font-mono);
 }
 
@@ -252,9 +252,9 @@
 }
 
 :root[data-theme="acidwave"] .home-customize.active {
-  color: #050507;
+  color: var(--accent-contrast);
   background: var(--accent);
-  box-shadow: 0 0 12px rgb(200 255 0 / 0.45);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 :root[data-theme="acidwave"] .home-editor-item {
@@ -264,7 +264,7 @@
 
 :root[data-theme="acidwave"] .home-editor-item:hover {
   border-color: var(--accent);
-  box-shadow: 0 0 14px rgb(200 255 0 / 0.12) inset;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 12%, transparent) inset;
 }
 
 :root[data-theme="acidwave"] .home-editor-title {
@@ -289,7 +289,7 @@
 
 :root[data-theme="acidwave"] .home-editor-toggle[aria-checked="true"] {
   border-color: var(--accent);
-  box-shadow: 0 0 8px rgb(200 255 0 / 0.35);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 /* Réglages : cartes et sélecteurs à angles vifs, sélection au néon. */
@@ -304,7 +304,7 @@
   border-color: var(--accent);
   box-shadow:
     0 0 0 1px var(--accent),
-    0 0 18px rgb(200 255 0 / 0.25);
+    0 0 18px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 :root[data-theme="acidwave"] .cache-size {
@@ -314,7 +314,7 @@
 
 :root[data-theme="acidwave"] .cache-size.selected,
 :root[data-theme="acidwave"] .cache-size.selected:hover:not(:disabled) {
-  color: #050507;
+  color: var(--accent-contrast);
   background: var(--accent);
 }
 
@@ -324,5 +324,5 @@
 }
 
 :root[data-theme="acidwave"] .setting-switch.on {
-  box-shadow: 0 0 12px rgb(200 255 0 / 0.5);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
 }
