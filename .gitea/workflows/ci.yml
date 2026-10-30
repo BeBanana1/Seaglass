@@ -1,38 +1,25 @@
 # Vérifications à chaque push sur main et sur chaque PR : les mêmes que la section
-# « Commandes » de CLAUDE.md. Runner Linux (act_runner en Docker sur le serveur) :
-# le code `#[cfg(windows)]` (SMTC, Job Object) n'y est pas compilé, `pnpm release`
-# le vérifie sous Windows. Aucune release ici : la clé de signature reste sur le PC.
+# « Commandes » de CLAUDE.md. Runner dédié (ci/README.md), image `seaglass-ci` avec
+# Node, pnpm, Rust et les bibliothèques de Tauri déjà installés.
+# Sous Linux, le code `#[cfg(windows)]` (SMTC, Job Object) n'est pas compilé :
+# `pnpm release` le vérifie sous Windows. Aucune release ici : la clé de signature
+# reste sur le PC.
 name: CI
 
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "LICENSE"]
   pull_request:
+    paths-ignore: ["**.md", "LICENSE"]
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: seaglass
     env:
       CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v4
-
-      - name: Dépendances système de Tauri
-        run: |
-          SUDO=$(command -v sudo || true)
-          $SUDO apt-get update
-          $SUDO apt-get install -y --no-install-recommends \
-            build-essential pkg-config \
-            libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev \
-            libayatana-appindicator3-dev librsvg2-dev
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
 
       - name: Frontend
         run: |
@@ -40,13 +27,16 @@ jobs:
           pnpm check
           pnpm build
 
+      # Rust est dans l'image : l'action ne télécharge qu'une nouvelle stable.
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
-      # Pas de cache (pnpm, Swatinem/rust-cache) tant que le serveur de cache du runner
-      # est injoignable depuis les jobs : chaque action attendait 5 min un ETIMEDOUT.
-      # À remettre avec le runner dédié (`container.network` + `cache.port`).
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          # Garde le cache même si clippy ou un test échoue : le run suivant reste rapide.
+          cache-on-failure: true
 
       # `pnpm build` d'abord : `tauri::generate_context!` exige que `dist/` existe.
       - name: Rust
