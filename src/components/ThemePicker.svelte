@@ -1,9 +1,8 @@
+<!-- Choix du thème (section Apparence des réglages), avec une miniature de chacun. -->
 <script lang="ts">
   import { setTheme, THEMES, ui } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import type { Theme } from "../lib/ipc";
-
-  let { onClose }: { onClose: () => void } = $props();
 
   async function choose(theme: Theme) {
     try {
@@ -14,79 +13,34 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-<div class="backdrop" onclick={onClose}>
-  <div
-    class="dialog"
-    role="dialog"
-    tabindex="-1"
-    aria-modal="true"
-    aria-label="Apparence"
-    onclick={(e) => e.stopPropagation()}
-  >
-    <h2 class="display">Apparence</h2>
-    <p class="hint">Le thème s'applique tout de suite et reste enregistré.</p>
-    <div class="themes">
-      {#each THEMES as theme (theme.id)}
-        <button
-          class="theme"
-          class:selected={ui.settings.theme === theme.id}
-          onclick={() => choose(theme.id)}
-          aria-pressed={ui.settings.theme === theme.id}
-        >
-          <span class="preview {theme.id}" aria-hidden="true">
-            <span class="side"></span>
-            <span class="main"><span class="h"></span><span class="l"></span><span class="l short"></span></span>
-            <span class="bar"></span>
-          </span>
-          <span class="name">{theme.name}</span>
-          <span class="desc">{theme.description}</span>
-        </button>
-      {/each}
-    </div>
-    <button class="done" onclick={onClose}>Fermer</button>
-  </div>
+<div class="themes" role="radiogroup" aria-label="Thème">
+  {#each THEMES as theme (theme.id)}
+    <button
+      class="theme-card"
+      class:selected={ui.settings.theme === theme.id}
+      onclick={() => choose(theme.id)}
+      role="radio"
+      aria-checked={ui.settings.theme === theme.id}
+    >
+      <span class="preview {theme.id}" aria-hidden="true">
+        <span class="side"></span>
+        <span class="main"><span class="h"></span><span class="l"></span><span class="l short"></span></span>
+        <span class="bar"></span>
+      </span>
+      <span class="name">{theme.name}</span>
+      <span class="desc">{theme.description}</span>
+    </button>
+  {/each}
 </div>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    display: grid;
-    place-items: center;
-    background: rgb(0 0 0 / 0.5);
-  }
-
-  .dialog {
-    width: min(980px, 94vw);
-    max-height: 92vh;
-    overflow: auto;
-    padding: 24px;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--panel-radius) + 2px);
-    color: var(--text);
-    background: var(--dialog-bg);
-    box-shadow: 0 30px 80px rgb(0 0 0 / 0.4);
-  }
-
-  h2 {
-    margin: 0;
-    font-size: 22px;
-  }
-
-  .hint {
-    margin: 4px 0 18px;
-    color: var(--text-muted);
-  }
-
   .themes {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     gap: 14px;
   }
 
-  .theme {
+  .theme-card {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -96,11 +50,11 @@
     text-align: left;
   }
 
-  .theme:hover {
+  .theme-card:hover {
     background: var(--bg-hover);
   }
 
-  .theme.selected {
+  .theme-card.selected {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
   }
@@ -283,14 +237,11 @@
     background: #b49cbf;
   }
 
-  .done {
-    margin-top: 18px;
-    padding: 6px 16px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
+  :global([data-theme="studio"]) .theme-card {
+    border-radius: 0;
   }
 
-  .done:hover {
-    background: var(--bg-hover);
+  :global([data-theme="atelier"]) .theme-card {
+    border-radius: 2px;
   }
 </style>

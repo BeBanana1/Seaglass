@@ -1,10 +1,13 @@
-//! Réglages d'interface, stockés dans SQLite (table `kv`).
+//! Réglages : interface et lecture dans SQLite (table `kv`, clés séparées), lancement au
+//! démarrage lu et écrit directement dans le système (clé `Run` du registre).
 
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_autostart::ManagerExt;
 
 use super::{AppState, CmdResult, err};
 use crate::home_layout::{HomeLayout, SectionPref};
+use crate::player::{Cmd, PlaybackSettings};
 
 const KEY_UI: &str = "ui.settings";
 
@@ -82,6 +85,48 @@ pub async fn reset_home_layout(state: State<'_, AppState>) -> CmdResult<HomeLayo
     settings.home = HomeLayout::default();
     save(&state, &settings)?;
     Ok(settings.home)
+}
+
+#[tauri::command]
+pub async fn playback_settings(state: State<'_, AppState>) -> CmdResult<PlaybackSettings> {
+    Ok(PlaybackSettings::load(state.store.as_deref()))
+}
+
+/// Enregistre puis applique à chaud. La désérialisation de `settings` valide la taille
+/// du cache : seules les valeurs proposées sont acceptées.
+#[tauri::command]
+pub async fn set_playback_settings(
+    state: State<'_, AppState>,
+    settings: PlaybackSettings,
+) -> CmdResult<()> {
+    let Some(store) = &state.store else {
+        return Err("base SQLite indisponible, réglage non enregistré".into());
+    };
+    settings.save(store).map_err(err)?;
+    state
+        .player
+        .send(Cmd::SetCacheSize(settings.cache_size))
+        .await
+        .map_err(|_| "lecteur arrêté".to_owned())
+}
+
+/// État réel du lancement au démarrage, lu dans le système à chaque appel : il peut avoir
+/// été changé ailleurs (Gestionnaire des tâches), donc rien n'est gardé en base.
+#[tauri::command]
+pub async fn autostart_enabled(app: AppHandle) -> CmdResult<bool> {
+    app.autolaunch().is_enabled().map_err(err)
+}
+
+/// Active ou désactive le lancement au démarrage, puis renvoie l'état relu.
+#[tauri::command]
+pub async fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<bool> {
+    let manager = app.autolaunch();
+    if enabled {
+        manager.enable().map_err(err)?;
+    } else {
+        manager.disable().map_err(err)?;
+    }
+    manager.is_enabled().map_err(err)
 }
 
 #[cfg(test)]

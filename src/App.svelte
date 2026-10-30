@@ -4,8 +4,8 @@
   import { initPlayer, player, stepVolume } from "./lib/stores/player.svelte";
   import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
-  import { initUi, ui } from "./lib/stores/ui.svelte";
-  import { back, canGoBack, current, go, nav, replace } from "./lib/stores/nav.svelte";
+  import { initUi } from "./lib/stores/ui.svelte";
+  import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
   import Search from "./views/Search.svelte";
@@ -15,18 +15,16 @@
   import Playlist from "./views/Playlist.svelte";
   import Queue from "./views/Queue.svelte";
   import NowPlaying from "./views/NowPlaying.svelte";
+  import Settings from "./views/Settings.svelte";
   import Backdrop from "./components/backdrops/Backdrop.svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import PlayerBar from "./components/PlayerBar.svelte";
   import Toasts from "./components/Toasts.svelte";
-  import About from "./components/About.svelte";
-  import Appearance from "./components/Appearance.svelte";
   import UpdatePrompt from "./components/UpdatePrompt.svelte";
   import Icon from "./components/Icon.svelte";
 
   let session = $state<SessionInfo | null>(null);
   let ready = $state(false);
-  let aboutOpen = $state(false);
   let queueOpen = $state(false);
   let nowPlayingOpen = $state(false);
   let main = $state<HTMLElement>();
@@ -71,9 +69,14 @@
     const target = e.target as HTMLElement;
     const typing = target.closest("input, textarea, [contenteditable]") !== null;
     if (e.key === "Escape") {
-      if (ui.appearanceOpen) ui.appearanceOpen = false;
-      else if (aboutOpen) aboutOpen = false;
-      else if (nowPlayingOpen) nowPlayingOpen = false;
+      if (nowPlayingOpen) nowPlayingOpen = false;
+      return;
+    }
+    // Les réglages restent accessibles déconnecté (thème, cache).
+    if (e.ctrlKey && e.key === ",") {
+      e.preventDefault();
+      nowPlayingOpen = false;
+      openSettings();
       return;
     }
     if (!session) return;
@@ -110,7 +113,7 @@
 <div class="shell">
   <header>
     <div class="left">
-      {#if session}
+      {#if session || route.name === "settings"}
         <button class="back" onclick={back} disabled={!canGoBack()} aria-label="Retour" title="Retour (Alt+←)">
           <Icon name="previous" size={13} />
         </button>
@@ -124,8 +127,8 @@
           Rechercher <kbd>Ctrl K</kbd>
         </button>
       {/if}
-      <button onclick={() => (ui.appearanceOpen = true)}>Apparence</button>
-      <button onclick={() => (aboutOpen = true)}>À propos</button>
+      <button onclick={() => openSettings()} title="Réglages (Ctrl+,)">Réglages</button>
+      <button onclick={() => openSettings("app")}>À propos</button>
       {#if session}
         <button onclick={logout}>Se déconnecter</button>
       {/if}
@@ -137,6 +140,8 @@
     <main class="panel" bind:this={main}>
       {#if !ready}
         <p class="muted">Chargement…</p>
+      {:else if route.name === "settings"}
+        <Settings section={route.section} />
       {:else if !session}
         <Login onLogin={(s) => (session = s)} />
       {:else if route.name === "home"}
@@ -172,12 +177,6 @@
 {/if}
 <Toasts />
 <UpdatePrompt />
-{#if ui.appearanceOpen}
-  <Appearance onClose={() => (ui.appearanceOpen = false)} />
-{/if}
-{#if aboutOpen}
-  <About onClose={() => (aboutOpen = false)} />
-{/if}
 
 <style>
   /* Fond propre au thème (vide pour Studio et Atelier). */

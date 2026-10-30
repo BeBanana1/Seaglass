@@ -239,3 +239,29 @@
   border-color: #fffaf4;
   border-radius: 12px;
 }
+
+/* Réglages : galets de papier posés au-dessus de leur ombre. */
+:root[data-theme="surreal"] .theme-card,
+:root[data-theme="surreal"] .setting-row {
+  border: none;
+  border-radius: 22px;
+  background: rgb(255 255 255 / 0.65);
+  box-shadow: 0 16px 26px -20px rgb(61 42 77 / 0.45);
+}
+
+:root[data-theme="surreal"] .theme-card.selected {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 18px 28px -18px rgb(61 42 77 / 0.5);
+}
+
+:root[data-theme="surreal"] .cache-sizes {
+  border: none;
+  background: rgb(255 255 255 / 0.65);
+  box-shadow: 0 12px 24px -16px rgb(61 42 77 / 0.4);
+}
+
+:root[data-theme="surreal"] .cache-size {
+  font-family: var(--display-family);
+  font-style: italic;
+}

@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 
 use super::actor::{Cmd, Player, Slot};
 use super::queue::Repeat;
-use crate::mpv::EndReason;
+use crate::mpv::{CacheSize, EndReason};
 use crate::tidal::models::{AudioQuality, Stream, StreamSource, Track, TrackId};
 
 /// Qualité demandée ; deviendra un réglage utilisateur.
@@ -296,6 +296,19 @@ impl Player {
             .await;
         self.mpv_command(vec![json!("set_property"), json!("mute"), json!(v.muted)])
             .await;
+    }
+
+    /// Nouvelle taille de cache : mpv l'applique aussi au démuxeur déjà ouvert, sans
+    /// rechargement, dès que la lecture consomme des paquets (vérifié par le test
+    /// `mpv::cache::tests::live_cache_resize`). Sans mpv, elle servira au prochain
+    /// lancement (lue dans les réglages).
+    pub(super) async fn apply_cache_size(&mut self, size: CacheSize) {
+        if self.mpv.is_err() {
+            return;
+        }
+        for command in size.set_property_commands() {
+            self.mpv_command(command).await;
+        }
     }
 
     fn stream_url(&self, track: &Track, stream: &Stream) -> Option<String> {

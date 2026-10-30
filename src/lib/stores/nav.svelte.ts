@@ -2,10 +2,13 @@
 
 export type LibraryTab = "playlists" | "albums" | "artists" | "tracks";
 
+export type SettingsSection = "appearance" | "playback" | "app";
+
 export type Route =
   | { name: "home" }
   | { name: "search" }
   | { name: "library"; tab: LibraryTab }
+  | { name: "settings"; section: SettingsSection }
   | { name: "album"; id: number }
   | { name: "artist"; id: number }
   | { name: "playlist"; uuid: string };
@@ -25,6 +28,13 @@ export function go(route: Route) {
 /** Remplace la page courante (changement d'onglet, entrée du menu). */
 export function replace(route: Route) {
   nav.stack = [...nav.stack.slice(0, -1), route];
+}
+
+/** Ouvre une section des réglages : change de section si la page est déjà ouverte. */
+export function openSettings(section: SettingsSection = "appearance") {
+  const route: Route = { name: "settings", section };
+  if (current().name === "settings") replace(route);
+  else go(route);
 }
 
 export function back() {

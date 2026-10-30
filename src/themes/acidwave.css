@@ -278,3 +278,38 @@
   border-color: var(--accent);
   box-shadow: 0 0 8px rgb(200 255 0 / 0.35);
 }
+
+/* Réglages : cartes et sélecteurs à angles vifs, sélection au néon. */
+:root[data-theme="acidwave"] .theme-card,
+:root[data-theme="acidwave"] .cache-sizes,
+:root[data-theme="acidwave"] .setting-row {
+  border-radius: 0;
+  background: rgb(0 0 0 / 0.45);
+}
+
+:root[data-theme="acidwave"] .theme-card.selected {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 18px rgb(200 255 0 / 0.25);
+}
+
+:root[data-theme="acidwave"] .cache-size {
+  border-radius: 0;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+:root[data-theme="acidwave"] .cache-size.selected,
+:root[data-theme="acidwave"] .cache-size.selected:hover:not(:disabled) {
+  color: #050507;
+  background: var(--accent);
+}
+
+:root[data-theme="acidwave"] .setting-switch,
+:root[data-theme="acidwave"] .setting-switch .knob {
+  border-radius: 0;
+}
+
+:root[data-theme="acidwave"] .setting-switch.on {
+  box-shadow: 0 0 12px rgb(200 255 0 / 0.5);
+}

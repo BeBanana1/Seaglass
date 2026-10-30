@@ -6,7 +6,7 @@ use std::sync::Mutex;
 
 use tokio::process::{Child, Command};
 
-use super::{MpvError, Result};
+use super::{CacheSize, MpvError, Result};
 
 /// `CREATE_NO_WINDOW` : pas de console qui s'ouvre à côté de l'app.
 #[cfg(windows)]
@@ -46,8 +46,8 @@ fn executable() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("mpv"))
 }
 
-/// Lance mpv en mode idle.
-pub fn spawn(conf: &Path) -> Result<Child> {
+/// Lance mpv en mode idle, avec la taille de cache choisie dans les réglages.
+pub fn spawn(conf: &Path, cache: CacheSize) -> Result<Child> {
     let exe = executable();
     tracing::info!("mpv : {}", exe.display());
     let mut cmd = Command::new(exe);
@@ -61,6 +61,7 @@ pub fn spawn(conf: &Path) -> Result<Child> {
             "--gapless-audio=weak",
             "--prefetch-playlist=yes",
         ])
+        .args(cache.args())
         .arg(format!("--input-ipc-server={}", pipe_name()))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
