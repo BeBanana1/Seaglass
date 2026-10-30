@@ -53,9 +53,13 @@ async fn live_catalog() {
         playlist.playlist.title,
         playlist.tracks.len()
     );
+    // `dateAdded` est fourni pour chaque titre de playlist (vérifié le 2026-10-30).
+    assert!(playlist.tracks.iter().all(|t| t.added_at.is_some()));
+    let favorites = client.favorite_tracks().await.unwrap();
+    assert!(favorites.iter().all(|t| t.added_at.is_some()));
     println!(
         "bibliothèque : {} titres, {} albums, {} artistes, {} playlists",
-        client.favorite_tracks().await.unwrap().len(),
+        favorites.len(),
         client.favorite_albums().await.unwrap().len(),
         client.favorite_artists().await.unwrap().len(),
         client.library_playlists().await.unwrap().len()

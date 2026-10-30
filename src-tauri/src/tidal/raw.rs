@@ -3,8 +3,9 @@
 
 use serde::Deserialize;
 
+use super::date::timestamp_ms;
 use super::models::{
-    AlbumRef, AlbumSummary, ArtistRef, ArtistSummary, PlaylistSummary, Track, TrackId,
+    AlbumRef, AlbumSummary, ArtistRef, ArtistSummary, PlaylistSummary, Track, TrackEntry, TrackId,
 };
 
 const IMAGE_URL: &str = "https://resources.tidal.com/images";
@@ -21,9 +22,10 @@ pub(super) struct RawPage<T> {
     pub total_number_of_items: Option<u32>,
 }
 
-/// Entrée des favoris : `{ "created": …, "item": … }`.
+/// Entrée des favoris : `{ "created": …, "item": … }` (`created` = date du like).
 #[derive(Deserialize)]
 pub(super) struct RawFavorite<T> {
+    pub created: Option<String>,
     pub item: T,
 }
 
@@ -68,6 +70,8 @@ pub(super) struct RawTrack {
     /// Absent dans certains flux (titres de l'accueil) : ces titres sont ignorés.
     album: Option<RawAlbum>,
     media_metadata: Option<RawMediaMetadata>,
+    /// Date d'ajout, présente seulement dans `playlists/{uuid}/tracks` (vérifié).
+    date_added: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -205,6 +209,28 @@ pub(super) fn tracks(raw: Vec<RawTrack>) -> Vec<Track> {
     raw.into_iter().filter_map(RawTrack::into_track).collect()
 }
 
+/// Titres de playlist, avec leur `dateAdded`.
+pub(super) fn playlist_entries(raw: Vec<RawTrack>) -> Vec<TrackEntry> {
+    raw.into_iter()
+        .filter_map(|t| {
+            let added_at = t.date_added.as_deref().and_then(timestamp_ms);
+            t.into_track().map(|track| TrackEntry { track, added_at })
+        })
+        .collect()
+}
+
+/// Titres favoris, avec la date du like (`created`).
+pub(super) fn favorite_entries(raw: Vec<RawFavorite<RawTrack>>) -> Vec<TrackEntry> {
+    raw.into_iter()
+        .filter_map(|f| {
+            let added_at = f.created.as_deref().and_then(timestamp_ms);
+            f.item
+                .into_track()
+                .map(|track| TrackEntry { track, added_at })
+        })
+        .collect()
+}
+
 impl From<RawAlbumFull> for AlbumSummary {
     fn from(raw: RawAlbumFull) -> Self {
         AlbumSummary {
@@ -282,6 +308,40 @@ mod tests {
         let t = tracks(raw);
         assert_eq!(t.len(), 1);
         assert_eq!(t[0].id, TrackId(2));
+    }
+
+    #[test]
+    fn entries_keep_their_date() {
+        let raw: Vec<RawTrack> = serde_json::from_str(
+            r#"[{"id":1,"title":"a","duration":10,"album":{"id":3,"title":"c"},
+                 "dateAdded":"1970-01-01T00:00:01.000+0000"},
+                {"id":2,"title":"b","duration":10,"album":{"id":3,"title":"c"},"dateAdded":"?"}]"#,
+        )
+        .unwrap();
+        let e = playlist_entries(raw);
+        assert_eq!(e[0].added_at, Some(1000));
+        assert_eq!(e[1].added_at, None);
+
+        let fav: Vec<RawFavorite<RawTrack>> = serde_json::from_str(
+            r#"[{"created":"1970-01-01T00:00:02.000+0000",
+                 "item":{"id":1,"title":"a","duration":10,"album":{"id":3,"title":"c"}}}]"#,
+        )
+        .unwrap();
+        assert_eq!(favorite_entries(fav)[0].added_at, Some(2000));
+    }
+
+    /// `TrackEntry` est sérialisé à plat : l'UI le lit comme un `Track`.
+    #[test]
+    fn entry_is_flat() {
+        let raw: Vec<RawTrack> = serde_json::from_str(
+            r#"[{"id":1,"title":"a","duration":10,"album":{"id":3,"title":"c"},
+                 "dateAdded":"1970-01-01T00:00:01.000+0000"}]"#,
+        )
+        .unwrap();
+        let value = serde_json::to_value(&playlist_entries(raw)[0]).unwrap();
+        assert_eq!(value["id"], 1);
+        assert_eq!(value["album"]["title"], "c");
+        assert_eq!(value["addedAt"], 1000);
     }
 
     #[test]

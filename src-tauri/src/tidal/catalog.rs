@@ -11,7 +11,7 @@ use serde::de::DeserializeOwned;
 use super::api::{API_V2, TidalClient};
 use super::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, MediaItem, PlaylistPage,
-    PlaylistSummary, SearchResults, Track,
+    PlaylistSummary, SearchResults, Track, TrackEntry,
 };
 use super::raw::{
     self, RawAlbumFull, RawArtistFull, RawFavorite, RawHome, RawPage, RawPlaylist,
@@ -110,14 +110,14 @@ impl TidalClient {
         let user = self.user_id().await.ok();
         Ok(PlaylistPage {
             playlist: raw.into_summary(user),
-            tracks: self.remember(raw::tracks(tracks)),
+            tracks: self.remember_entries(raw::playlist_entries(tracks)),
         })
     }
 
-    /// Titres favoris, du plus récent au plus ancien.
-    pub async fn favorite_tracks(&self) -> Result<Vec<Track>> {
+    /// Titres favoris, du plus récent au plus ancien, avec la date du like.
+    pub async fn favorite_tracks(&self) -> Result<Vec<TrackEntry>> {
         let raw: Vec<RawFavorite<RawTrack>> = self.favorites("tracks").await?;
-        Ok(self.remember(raw::tracks(raw.into_iter().map(|f| f.item).collect())))
+        Ok(self.remember_entries(raw::favorite_entries(raw)))
     }
 
     pub async fn favorite_albums(&self) -> Result<Vec<AlbumSummary>> {
@@ -235,6 +235,12 @@ impl TidalClient {
     fn remember(&self, tracks: Vec<Track>) -> Vec<Track> {
         self.cache.insert_all(&tracks);
         tracks
+    }
+
+    /// Comme `remember`, pour des titres de liste (seul le `Track` va dans le cache).
+    fn remember_entries(&self, entries: Vec<TrackEntry>) -> Vec<TrackEntry> {
+        self.cache.insert_all(entries.iter().map(|e| &e.track));
+        entries
     }
 }
 

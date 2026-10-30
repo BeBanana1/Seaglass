@@ -6,7 +6,7 @@ use tauri::State;
 use super::{AppState, CmdResult, err};
 use crate::tidal::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, PlaylistPage, PlaylistSummary,
-    SearchResults, Track,
+    SearchResults, TrackEntry,
 };
 
 const MAX_QUERY_LEN: usize = 200;
@@ -43,7 +43,7 @@ pub async fn playlist(state: State<'_, AppState>, uuid: String) -> CmdResult<Pla
 }
 
 #[tauri::command]
-pub async fn library_tracks(state: State<'_, AppState>) -> CmdResult<Vec<Track>> {
+pub async fn library_tracks(state: State<'_, AppState>) -> CmdResult<Vec<TrackEntry>> {
     state.tidal.favorite_tracks().await.map_err(err)
 }
 
