@@ -111,7 +111,8 @@
   background: var(--accent);
 }
 
-:root[data-theme="surreal"] nav button.active {
+:root[data-theme="surreal"] nav button.active,
+:root[data-theme="surreal"] nav .pin.active {
   background: rgb(255 255 255 / 0.7);
   box-shadow: 0 8px 16px -10px rgb(61 42 77 / 0.35);
 }

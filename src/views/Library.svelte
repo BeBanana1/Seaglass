@@ -12,6 +12,7 @@
   import CardGrid from "../components/CardGrid.svelte";
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
+  import PinButton from "../components/PinButton.svelte";
 
   // Titres likés : l'API les renvoie du plus récent au plus ancien (date du like).
   const TRACK_SORT_KEYS: SortKey[] = ["added", "title", "artist", "album", "duration"];
@@ -55,9 +56,12 @@
 <section>
   <div class="top">
     <h1>Bibliothèque</h1>
-    <button class="refresh" onclick={() => loadLibrary(tab, true)} disabled={slot.loading}>
-      Actualiser
-    </button>
+    <div class="top-actions">
+      {#if tab === "tracks"}<PinButton pin={{ kind: "likedTracks" }} />{/if}
+      <button class="refresh" onclick={() => loadLibrary(tab, true)} disabled={slot.loading}>
+        Actualiser
+      </button>
+    </div>
   </div>
   <div class="tabs" role="tablist">
     {#each tabs as t (t.id)}
@@ -106,6 +110,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   h1 {

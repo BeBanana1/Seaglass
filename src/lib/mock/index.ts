@@ -79,6 +79,11 @@ const state: PlayerState = {
 let ui: UiSettings = {
   theme: (params.get("theme") as Theme) ?? "seaglass",
   home: { order: [], hidden: [] },
+  // La playlist des fixtures et les titres likés, pour voir la section « Épinglés ».
+  pins: [
+    { kind: "playlist", uuid: fx.playlist.playlist.uuid, title: fx.playlist.playlist.title },
+    { kind: "likedTracks" },
+  ],
 };
 
 /** Version simplifiée de `HomeLayout::arrange` : sections connues dans l'ordre enregistré,
@@ -161,6 +166,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return ui.home;
   },
   reset_home_layout: () => (ui.home = { order: [], hidden: [] }),
+  // Copie JSON : l'UI envoie des proxys Svelte, que `structuredClone` refuse.
+  set_pins: ({ pins }) => (ui.pins = JSON.parse(JSON.stringify(pins))),
   playback_settings: () => playback,
   // Même validation que le backend : seules les tailles proposées sont acceptées.
   set_playback_settings: ({ settings }) => {

@@ -2,6 +2,7 @@
 //! démarrage lu et écrit directement dans le système (clé `Run` du registre).
 
 pub mod home_layout;
+pub mod pins;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
@@ -10,6 +11,7 @@ use tauri_plugin_autostart::ManagerExt;
 use super::{AppState, CmdResult, err};
 use crate::player::{Cmd, PlaybackSettings};
 use home_layout::{HomeLayout, SectionPref};
+use pins::Pin;
 
 const KEY_UI: &str = "ui.settings";
 
@@ -35,6 +37,8 @@ pub struct UiSettings {
     pub theme: Theme,
     /// Ordre et sections masquées de l'accueil (#21, #22).
     pub home: HomeLayout,
+    /// Raccourcis de la barre latérale, dans l'ordre d'affichage (#10).
+    pub pins: Vec<Pin>,
 }
 
 /// Réglages enregistrés ; illisibles (ancienne version, valeur inconnue) : valeurs par défaut.
@@ -87,6 +91,16 @@ pub async fn reset_home_layout(state: State<'_, AppState>) -> CmdResult<HomeLayo
     settings.home = HomeLayout::default();
     save(&state, &settings)?;
     Ok(settings.home)
+}
+
+/// Remplace les épingles de la barre latérale ; renvoie la liste enregistrée (validée,
+/// sans doublons), que l'UI reporte dans sa copie des réglages.
+#[tauri::command]
+pub async fn set_pins(state: State<'_, AppState>, pins: Vec<Pin>) -> CmdResult<Vec<Pin>> {
+    let mut settings = load(&state);
+    settings.pins = pins::normalize(pins).map_err(err)?;
+    save(&state, &settings)?;
+    Ok(settings.pins)
 }
 
 #[tauri::command]
@@ -153,6 +167,7 @@ mod tests {
     fn home_layout_defaults_and_round_trips() {
         let s: UiSettings = serde_json::from_str(r#"{"theme":"atelier"}"#).unwrap();
         assert_eq!(s.home, HomeLayout::default());
+        assert!(s.pins.is_empty());
         let s: UiSettings =
             serde_json::from_str(r#"{"theme":"studio","home":{"order":["A","B"],"hidden":["B"]}}"#)
                 .unwrap();
