@@ -3,6 +3,7 @@
 //! Un titre sans tag `HIRES_LOSSLESS` existe souvent en 24 bits sur une autre édition
 //! (album d'origine, compilation, réédition) : même ISRC, autre id. `tracks?isrc=` les
 //! renvoie toutes avec leurs tags en ~130 ms (vérifié le 2026-10-30, `live_hires`).
+//! Sans résultat, repli sur un album jumeau de l'artiste aux ISRC différentes (`twin.rs`).
 
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -11,6 +12,7 @@ use super::Result;
 use super::api::TidalClient;
 use super::models::{Track, TrackId};
 use super::raw::{RawPage, RawTrack};
+use super::twin::TwinCache;
 
 /// Écart de durée toléré entre deux éditions, en secondes.
 const DURATION_TOLERANCE: u32 = 2;
@@ -20,6 +22,7 @@ const DURATION_TOLERANCE: u32 = 2;
 #[derive(Default)]
 pub struct HiresCache {
     editions: RwLock<HashMap<TrackId, Option<Track>>>,
+    pub(super) twins: TwinCache,
 }
 
 impl HiresCache {
@@ -63,15 +66,22 @@ impl TidalClient {
                 }
             }
         };
-        let page: RawPage<RawTrack> = self
-            .get("tracks", &[("isrc", isrc.clone()), ("limit", "50".into())])
-            .await?;
+        // La discographie du repli (#55) se charge en même temps : un titre sans aucune
+        // édition hi-res n'attend pas les deux requêtes l'une après l'autre.
+        let params = [("isrc", isrc.clone()), ("limit", "50".into())];
+        let lookup = self.get::<RawPage<RawTrack>>("tracks", &params);
+        let (page, ()) = tokio::join!(lookup, self.prefetch_twin_albums(track));
+        let page = page?;
         let candidates = page
             .items
             .into_iter()
             .filter(RawTrack::streamable)
             .filter_map(RawTrack::into_track);
-        let edition = pick_edition(track, &isrc, candidates);
+        let edition = match pick_edition(track, &isrc, candidates) {
+            Some(found) => Some(found),
+            // Master hi-res publié à part, sous d'autres ISRC (#55).
+            None => self.twin_edition(track).await?,
+        };
         self.hires.insert(track.id, edition.clone());
         Ok(edition)
     }
