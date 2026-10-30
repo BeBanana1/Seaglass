@@ -74,6 +74,8 @@ export function mediaSubtitle(item: MediaItem): string {
       return "Artiste";
     case "playlist":
       return playlistSubtitle(item);
+    case "mix":
+      return item.subtitle ?? "Mix";
   }
 }
 
@@ -84,6 +86,7 @@ export function mediaImage(item: MediaItem): string | null {
     case "artist":
       return item.pictureUrl;
     case "playlist":
+    case "mix":
       return item.imageUrl;
   }
 }

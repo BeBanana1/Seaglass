@@ -1,5 +1,6 @@
 <script lang="ts">
   import { commands, type ArtistPage, type MediaItem } from "../lib/ipc";
+  import { go } from "../lib/stores/nav.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
   import CardGrid from "../components/CardGrid.svelte";
@@ -35,6 +36,7 @@
       title={page.artist.name}
       round
       trackIds={page.topTracks.map((t) => t.id)}
+      onRadio={() => go({ name: "radio", seed: "artist", id })}
     />
     {#if page.topTracks.length > 0}
       <h2>Titres populaires</h2>

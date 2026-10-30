@@ -1,13 +1,13 @@
-//! Commandes de navigation : recherche, pages album / artiste / playlist, bibliothèque,
-//! accueil.
+//! Commandes de navigation : recherche, pages album / artiste / playlist / mix, radios,
+//! bibliothèque, accueil.
 
 use tauri::State;
 
 use super::settings::home_layout::HomeSection;
 use super::{AppState, CmdResult, err, settings};
 use crate::tidal::models::{
-    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, PlaylistPage, PlaylistSummary,
-    SearchResults, TrackEntry,
+    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, MixPage, MixSummary, PlaylistPage,
+    PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry,
 };
 
 const MAX_QUERY_LEN: usize = 200;
@@ -41,6 +41,24 @@ pub async fn playlist(state: State<'_, AppState>, uuid: String) -> CmdResult<Pla
         return Err("identifiant de playlist invalide".into());
     }
     state.tidal.playlist(&uuid).await.map_err(err)
+}
+
+#[tauri::command]
+pub async fn mix(state: State<'_, AppState>, id: String) -> CmdResult<MixPage> {
+    if !is_mix_id(&id) {
+        return Err("identifiant de mix invalide".into());
+    }
+    state.tidal.mix(&id).await.map_err(err)
+}
+
+#[tauri::command]
+pub async fn radio(state: State<'_, AppState>, seed: RadioSeed, id: u64) -> CmdResult<RadioPage> {
+    state.tidal.radio(seed, id).await.map_err(err)
+}
+
+#[tauri::command]
+pub async fn library_mixes(state: State<'_, AppState>) -> CmdResult<Vec<MixSummary>> {
+    state.tidal.favorite_mixes().await.map_err(err)
 }
 
 #[tauri::command]
@@ -80,9 +98,23 @@ fn is_uuid(s: &str) -> bool {
             .all(|(g, len)| g.len() == len && g.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
+/// Identifiant de mix : alphanumérique (30 caractères hexadécimaux observés), il part dans l'URL.
+fn is_mix_id(s: &str) -> bool {
+    (1..=64).contains(&s.len()) && s.chars().all(|c| c.is_ascii_alphanumeric())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::is_uuid;
+    use super::{is_mix_id, is_uuid};
+
+    #[test]
+    fn mix_id_validation() {
+        assert!(is_mix_id("01636e04b6e9ec28485f7d0372b7f3"));
+        assert!(!is_mix_id(""));
+        assert!(!is_mix_id("../users/1"));
+        assert!(!is_mix_id("abc?x=1"));
+        assert!(!is_mix_id(&"a".repeat(65)));
+    }
 
     #[test]
     fn uuid_validation() {
