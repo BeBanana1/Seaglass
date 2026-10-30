@@ -8,6 +8,7 @@ import "./themes/cyberpunk.css";
 import "./themes/neumorph.css";
 import "./themes/terminal.css";
 import "./themes/riso.css";
+import "./themes/bauhaus.css";
 
 const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");

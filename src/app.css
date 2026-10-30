@@ -522,6 +522,52 @@
   --label-tracking: 0.08em;
 }
 
+/* --- Bauhaus : affiche géométrique (voir themes/bauhaus.css) ------------------------ */
+/* L'accent remplace le rouge ; le jaune et le bleu restent fixes, pour la composition,
+   jamais pour du texte clair. Filets noirs, angles vifs, ombres en aplats de couleur. */
+:root[data-theme="bauhaus"] {
+  color-scheme: light;
+  --bh-yellow: #f2b80d;
+  --bh-blue: #1d4fa0;
+  --bg: #f1ece0;
+  --surface: #f7f3ea;
+  --dialog-bg: #f7f3ea;
+  --bg-raised: rgb(20 20 20 / 0.04);
+  --bg-hover: rgb(20 20 20 / 0.07);
+  --border: rgb(20 20 20 / 0.85);
+  --text: #141414;
+  --text-muted: #4d4a45;
+  --accent: #c8231a;
+  --accent-strong: #a51c14;
+  --accent-contrast: #ffffff;
+  --danger: #a51c14;
+  --ok: #1f6b3a;
+  --warn: #8a5a00;
+  --radius: 0;
+  --radius-pill: 0;
+  --radius-card: 0;
+  --radius-cover: 0;
+  --panel-radius: 0;
+  --dialog-radius: 0;
+  --popover-radius: 0;
+  --panel-blur: none;
+  --panel-border: 2px solid var(--text);
+  --panel-shadow: none;
+  --dialog-border: 2px solid var(--text);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow: 10px 10px 0 var(--bh-yellow);
+  --popover-shadow: 6px 6px 0 var(--bh-blue);
+  --shadow-raised: 4px 4px 0 var(--text);
+  --control-bg: transparent;
+  --focus-ring: 3px solid var(--bh-blue);
+  --shell-gap: 12px;
+  --display-weight: 700;
+  --display-tracking: -0.02em;
+  --display-family: Bahnschrift, "Segoe UI Variable Display", sans-serif;
+  --label-transform: uppercase;
+  --label-tracking: 0.1em;
+}
+
 * {
   box-sizing: border-box;
 }

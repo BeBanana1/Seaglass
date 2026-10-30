@@ -44,6 +44,8 @@ pub enum Theme {
     Terminal,
     /// Fanzine imprimé en risographie : papier, deux encres, trame, décalage de repérage (#69).
     Riso,
+    /// Affiche Bauhaus : grille, primaires, formes géométriques (#70).
+    Bauhaus,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -240,6 +242,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Terminal);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"riso"}"#).unwrap();
         assert_eq!(s.theme, Theme::Riso);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"bauhaus"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Bauhaus);
     }
 
     #[test]

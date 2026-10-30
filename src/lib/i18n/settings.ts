@@ -51,6 +51,10 @@ export const fr = {
       name: "Risographie",
       description: "Fanzine imprimé en deux encres : papier grainé, trame, léger décalage de repérage.",
     },
+    bauhaus: {
+      name: "Bauhaus",
+      description: "Affiche géométrique : grille stricte, rouge, jaune, bleu, cercles et carrés.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -168,6 +172,10 @@ export const en: typeof fr = {
     riso: {
       name: "Risograph",
       description: "A two-ink printed zine: grainy paper, halftone, slight misregistration.",
+    },
+    bauhaus: {
+      name: "Bauhaus",
+      description: "A geometric poster: strict grid, red, yellow, blue, circles and squares.",
     },
   },
 
