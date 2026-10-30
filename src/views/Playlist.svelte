@@ -33,6 +33,7 @@
       title={playlist.title}
       description={playlist.description}
       trackIds={page.tracks.map((t) => t.id)}
+      queueable
     >
       {#snippet meta()}
         {playlistSubtitle(playlist)}

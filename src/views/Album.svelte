@@ -38,6 +38,7 @@
       eyebrow={albumKind(album)}
       title={album.title}
       trackIds={page.tracks.map((t) => t.id)}
+      queueable
     >
       {#snippet meta()}
         {#each album.artists as artist, i (artist.id)}

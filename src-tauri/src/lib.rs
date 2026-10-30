@@ -72,6 +72,7 @@ pub fn run() {
             commands::player::play_tracks,
             commands::player::play_next,
             commands::player::add_to_queue,
+            commands::player::enqueue_tracks,
             commands::player::remove_from_queue,
             commands::player::next,
             commands::player::previous,

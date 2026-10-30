@@ -108,12 +108,25 @@ impl Queue {
 
     /// « Lire ensuite ».
     pub fn play_next(&mut self, id: TrackId) {
-        self.manual.push_front(id);
+        self.enqueue(&[id], true);
     }
 
     /// « Ajouter à la file ».
     pub fn add_to_queue(&mut self, id: TrackId) {
-        self.manual.push_back(id);
+        self.enqueue(&[id], false);
+    }
+
+    /// Ajoute plusieurs titres à la file manuelle en gardant leur ordre (album, playlist) :
+    /// en tête avec `next` (« Lire ensuite »), sinon à la fin (« Ajouter à la file »).
+    pub fn enqueue(&mut self, ids: &[TrackId], next: bool) {
+        if next {
+            // `push_front` titre par titre inverserait l'ordre : on part du dernier.
+            for &id in ids.iter().rev() {
+                self.manual.push_front(id);
+            }
+        } else {
+            self.manual.extend(ids.iter().copied());
+        }
     }
 
     pub fn remove_manual(&mut self, index: usize) -> bool {
@@ -296,6 +309,47 @@ mod tests {
         q.play_next(TrackId(99));
         assert_eq!(q.peek_next(), Some(TrackId(99)));
         assert_eq!(drain(&mut q), vec![99, 100, 101, 1, 2]);
+    }
+
+    #[test]
+    fn enqueue_next_keeps_album_order_ahead_of_manual_queue() {
+        let mut q = Queue::default();
+        q.set_context(ids(0..3), 0, &mut rng());
+        q.add_to_queue(TrackId(100));
+        q.enqueue(&ids(10..13), true);
+        assert_eq!(drain(&mut q), vec![10, 11, 12, 100, 1, 2]);
+    }
+
+    #[test]
+    fn enqueue_appends_album_in_order_after_manual_queue() {
+        let mut q = Queue::default();
+        q.set_context(ids(0..3), 0, &mut rng());
+        q.add_to_queue(TrackId(100));
+        q.enqueue(&ids(10..13), false);
+        assert_eq!(drain(&mut q), vec![100, 10, 11, 12, 1, 2]);
+    }
+
+    #[test]
+    fn enqueue_changes_the_preloaded_next_track() {
+        // Le titre suivant préchargé dans mpv n'est plus le bon : l'acteur doit le retirer.
+        let mut q = Queue::default();
+        q.set_context(ids(0..3), 0, &mut rng());
+        assert_eq!(q.peek_next(), Some(TrackId(1)));
+        q.enqueue(&ids(10..12), false);
+        assert_eq!(q.peek_next(), Some(TrackId(10)));
+        q.enqueue(&ids(20..22), true);
+        assert_eq!(q.peek_next(), Some(TrackId(20)));
+        assert_eq!(q.current(), Some(TrackId(0)));
+    }
+
+    #[test]
+    fn enqueue_nothing_is_a_no_op() {
+        let mut q = Queue::default();
+        q.set_context(ids(0..2), 0, &mut rng());
+        let before = q.clone();
+        q.enqueue(&[], true);
+        q.enqueue(&[], false);
+        assert_eq!(q, before);
     }
 
     #[test]

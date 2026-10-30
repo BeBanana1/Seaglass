@@ -140,6 +140,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (t) manual.push(t);
     emit("queue-state", queueView());
   },
+  enqueue_tracks: ({ trackIds, next }) => {
+    const ts = (trackIds as number[]).map((id) => allTracks.get(id)).filter((t): t is Track => !!t);
+    if (next) manual.unshift(...ts);
+    else manual.push(...ts);
+    emit("queue-state", queueView());
+  },
   remove_from_queue: ({ index: i }) => {
     manual.splice(Number(i), 1);
     emit("queue-state", queueView());
