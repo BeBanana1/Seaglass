@@ -31,6 +31,8 @@ pub enum Theme {
     Acidwave,
     /// Paysage vectoriel onirique, aplats pastel et objets qui flottent.
     Surreal,
+    /// Futur optimiste et végétal : clair, verts profonds, or solaire (#65).
+    Solarpunk,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -215,6 +217,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Acidwave);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"surreal"}"#).unwrap();
         assert_eq!(s.theme, Theme::Surreal);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"solarpunk"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Solarpunk);
     }
 
     #[test]

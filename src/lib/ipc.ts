@@ -263,7 +263,7 @@ export interface SearchResults {
   playlists: PlaylistSummary[];
 }
 
-export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal";
+export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal" | "solarpunk";
 
 /** Raccourci de la barre latérale ; le titre d'une playlist est gardé pour l'afficher sans requête. */
 export type Pin = { kind: "playlist"; uuid: string; title: string } | { kind: "likedTracks" };

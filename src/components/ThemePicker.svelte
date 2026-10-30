@@ -239,6 +239,38 @@
     background: #b49cbf;
   }
 
+  .preview.solarpunk {
+    gap: 5px;
+    padding: 8px;
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 82% 18%, #f3cf6b 0 14%, transparent 15%),
+      radial-gradient(ellipse at 0% 100%, #2e6b3d 0 26%, transparent 27%),
+      radial-gradient(ellipse at 100% 100%, #3f8a4f 0 22%, transparent 23%),
+      linear-gradient(180deg, #f8efcc, #e6eecf 75%);
+  }
+
+  .solarpunk .side,
+  .solarpunk .main,
+  .solarpunk .bar {
+    border-radius: 9px;
+    background: rgb(251 249 236 / 0.82);
+    box-shadow: 0 6px 10px -6px rgb(24 64 36 / 0.45);
+  }
+
+  .solarpunk .main {
+    border-radius: 18px 18px 9px 9px;
+  }
+
+  .solarpunk .h {
+    background: #15301d;
+    border-radius: 6px;
+  }
+
+  .solarpunk .l {
+    background: #2c7a41;
+  }
+
   :global([data-theme="studio"]) .theme-card {
     border-radius: 0;
   }
