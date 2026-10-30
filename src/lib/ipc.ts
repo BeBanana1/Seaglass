@@ -225,6 +225,7 @@ export const commands = {
   enqueueTracks: (trackIds: TrackId[], next: boolean) =>
     invoke<void>("enqueue_tracks", { trackIds, next }),
   removeFromQueue: (index: number) => invoke<void>("remove_from_queue", { index }),
+  clearQueue: () => invoke<void>("clear_queue"),
   next: () => invoke<void>("next"),
   previous: () => invoke<void>("previous"),
   togglePause: () => invoke<void>("toggle_pause"),
