@@ -12,10 +12,11 @@ use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
 use super::queue::{Queue, Repeat};
+use super::settings::PlaybackSettings;
 use super::state::{PlayerState, QueueView};
 use crate::integrations::Observers;
 use crate::mpv::process::ProcessGuard;
-use crate::mpv::{self, MpvEvent, MpvHandle, Property, serve::ManifestServer};
+use crate::mpv::{self, CacheSize, MpvEvent, MpvHandle, Property, serve::ManifestServer};
 use crate::store::Store;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{Stream, StreamFormat, Track, TrackId};
@@ -41,6 +42,8 @@ pub enum Cmd {
     Seek(f64),
     SetShuffle(bool),
     SetRepeat(Repeat),
+    /// Taille du cache mpv, appliquée à chaud (réglage de lecture).
+    SetCacheSize(CacheSize),
     GetState(oneshot::Sender<PlayerState>),
     GetQueue(oneshot::Sender<QueueView>),
     /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
@@ -117,7 +120,8 @@ pub fn spawn(
     let actor_tx = tx.clone();
     tauri::async_runtime::spawn(async move {
         let (events_tx, events_rx) = mpsc::channel(256);
-        let mpv = start_mpv(&mpv_conf, events_tx, &mpv_process).await;
+        let cache = PlaybackSettings::load(store.as_deref()).cache_size;
+        let mpv = start_mpv(&mpv_conf, cache, events_tx, &mpv_process).await;
         if let Err(e) = &mpv {
             tracing::error!("{e}");
         }
@@ -162,10 +166,11 @@ pub fn spawn(
 
 async fn start_mpv(
     conf: &std::path::Path,
+    cache: CacheSize,
     events: mpsc::Sender<MpvEvent>,
     process: &ProcessGuard,
 ) -> Result<Mpv, String> {
-    process.set(mpv::process::spawn(conf).map_err(|e| e.to_string())?);
+    process.set(mpv::process::spawn(conf, cache).map_err(|e| e.to_string())?);
     let handle = mpv::ipc::connect(events).await.map_err(|e| e.to_string())?;
     Ok(Mpv { handle })
 }
@@ -236,6 +241,7 @@ impl Player {
                 self.apply_loop_file().await;
                 self.on_queue_changed().await;
             }
+            Cmd::SetCacheSize(size) => self.apply_cache_size(size).await,
             Cmd::GetState(reply) => {
                 let _ = reply.send(self.state.clone());
             }

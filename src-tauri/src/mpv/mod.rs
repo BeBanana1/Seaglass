@@ -1,6 +1,7 @@
 //! Pilotage de mpv : processus dédié, JSON IPC sur named pipe, événements typés, et
 //! petit serveur HTTP local qui sert les manifestes DASH depuis la mémoire.
 
+pub mod cache;
 pub mod events;
 pub mod ipc;
 #[cfg(windows)]
@@ -8,6 +9,7 @@ mod job;
 pub mod process;
 pub mod serve;
 
+pub use cache::CacheSize;
 pub use events::{AudioParams, EndReason, MpvEvent, Property};
 pub use ipc::MpvHandle;
 
