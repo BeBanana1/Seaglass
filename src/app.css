@@ -297,6 +297,60 @@
   --label-transform: none;
 }
 
+/* --- Cyberpunk : ville néon, interface de visée (voir themes/cyberpunk.css) --------- */
+:root[data-theme="cyberpunk"] {
+  color-scheme: dark;
+  --cy-cyan: #00e5ff;
+  --cy-magenta: #ff2a6d;
+  --cy-cut: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  --bg: #06070d;
+  --surface: rgb(9 11 20 / 0.78);
+  --dialog-bg: #0b0d18;
+  --bg-raised: rgb(0 229 255 / 0.05);
+  --bg-hover: color-mix(in srgb, var(--cy-cyan) 10%, transparent);
+  --border: color-mix(in srgb, var(--cy-cyan) 26%, transparent);
+  --text: #e6f0ff;
+  --text-muted: #8fa3c2;
+  --accent: #fcee0a;
+  --accent-strong: #fff676;
+  --accent-contrast: #06070d;
+  --danger: #ff4f7e;
+  --ok: #3dffb0;
+  --warn: #ffb020;
+  --radius: 0;
+  --radius-pill: 0;
+  --radius-card: 0;
+  --radius-cover: 0;
+  --panel-radius: 0;
+  --dialog-radius: 0;
+  --popover-radius: 0;
+  --control-clip: var(--cy-cut);
+  --panel-blur: blur(10px) saturate(1.2);
+  --panel-border: 1px solid var(--border);
+  --panel-shadow: 0 0 32px rgb(0 229 255 / 0.06);
+  --dialog-border: 1px solid color-mix(in srgb, var(--cy-cyan) 55%, transparent);
+  --dialog-surface: rgb(8 10 19 / 0.96);
+  --dialog-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.8),
+    0 0 40px rgb(0 229 255 / 0.18);
+  --popover-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.8),
+    0 0 26px rgb(0 229 255 / 0.16);
+  /* Pochettes : filet cyan et bloc magenta décalé, comme une image en surimpression. */
+  --shadow-cover:
+    0 0 0 1px rgb(0 229 255 / 0.55),
+    6px 6px 0 rgb(255 42 109 / 0.55);
+  --control-bg: rgb(0 0 0 / 0.5);
+  --focus-ring: 2px solid var(--cy-cyan);
+  --shell-gap: 8px;
+  --display-weight: 700;
+  --display-tracking: 0.02em;
+  --display-family: "Bahnschrift SemiCondensed", Bahnschrift, "Segoe UI Variable Display", sans-serif;
+  --label-transform: uppercase;
+  --label-tracking: 0.14em;
+  --meta-family: var(--font-mono);
+}
+
 * {
   box-sizing: border-box;
 }

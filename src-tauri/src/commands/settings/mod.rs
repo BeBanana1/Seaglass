@@ -33,6 +33,8 @@ pub enum Theme {
     Surreal,
     /// Futur optimiste et végétal : clair, verts profonds, or solaire (#65).
     Solarpunk,
+    /// Ville néon et interface de visée : jaune, cyan, magenta, angles coupés (#66).
+    Cyberpunk,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -219,6 +221,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Surreal);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"solarpunk"}"#).unwrap();
         assert_eq!(s.theme, Theme::Solarpunk);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"cyberpunk"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Cyberpunk);
     }
 
     #[test]
