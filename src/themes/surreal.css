@@ -190,3 +190,36 @@
     opacity: 0.6;
   }
 }
+
+/* Accueil personnalisable : cartes de papier qui flottent, titres en italique. */
+:root[data-theme="surreal"] .home-customize,
+:root[data-theme="surreal"] .home-editor-reset,
+:root[data-theme="surreal"] .home-editor-toggle {
+  border: none;
+  background: rgb(255 255 255 / 0.7);
+  box-shadow: 0 8px 16px -10px rgb(61 42 77 / 0.35);
+}
+
+:root[data-theme="surreal"] .home-customize.active,
+:root[data-theme="surreal"] .home-editor-toggle[aria-checked="true"] {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme="surreal"] .home-editor-item {
+  border: 1px solid rgb(255 255 255 / 0.6);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.5);
+  box-shadow: 0 18px 30px -24px rgb(61 42 77 / 0.45);
+}
+
+:root[data-theme="surreal"] .home-editor-title {
+  font-family: var(--display-family);
+  font-style: italic;
+  font-size: 17px;
+}
+
+:root[data-theme="surreal"] .home-editor-thumbs img {
+  border-color: #fffaf4;
+  border-radius: 12px;
+}

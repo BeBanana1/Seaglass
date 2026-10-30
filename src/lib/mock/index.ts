@@ -8,7 +8,9 @@
 import type {
   AlbumPage,
   ArtistPage,
+  HomeLayout,
   HomeRow,
+  HomeSection,
   PlayerState,
   PlaylistPage,
   QueueView,
@@ -64,7 +66,24 @@ const state: PlayerState = {
   hasNext: true,
 };
 
-let ui: UiSettings = { theme: (params.get("theme") as Theme) ?? "seaglass" };
+let ui: UiSettings = {
+  theme: (params.get("theme") as Theme) ?? "seaglass",
+  home: { order: [], hidden: [] },
+};
+
+/** Version simplifiée de `HomeLayout::arrange` : sections connues dans l'ordre enregistré,
+ *  les autres à leur place dans le flux. Le flux factice ne change pas. */
+function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
+  const keyed = rows.map((r) => ({ ...r, key: r.key ?? `title:${r.title.toLowerCase()}` }));
+  const rank = (k: string) => {
+    const i = layout.order.indexOf(k);
+    return i < 0 ? keyed.findIndex((r) => r.key === k) - 0.5 : i;
+  };
+  return keyed
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
+    .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
+}
 
 type Listener = (e: { payload: unknown }) => void;
 const listeners = new Map<string, Set<Listener>>();
@@ -99,7 +118,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => (params.has("loggedout") ? null : { userId: 1, countryCode: "CH" }),
   login: () => ({ userId: 1, countryCode: "CH" }),
   logout: () => null,
-  home: () => fx.home,
+  home: () => arrangeHome(fx.home, ui.home),
   search: ({ query }) => (String(query).trim() ? fx.search : { tracks: [], albums: [], artists: [], playlists: [] }),
   album: () => fx.album,
   artist: () => fx.artist,
@@ -124,6 +143,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   set_ui_settings: ({ settings }) => {
     ui = settings as UiSettings;
   },
+  set_home_layout: ({ sections }) => {
+    const list = sections as { key: string; hidden: boolean }[];
+    ui.home = { order: list.map((s) => s.key), hidden: list.filter((s) => s.hidden).map((s) => s.key) };
+    return ui.home;
+  },
+  reset_home_layout: () => (ui.home = { order: [], hidden: [] }),
   play_tracks: ({ trackIds, startIndex, shuffle }) => {
     context = (trackIds as number[]).map((id) => allTracks.get(id)).filter((t): t is Track => !!t);
     index = shuffle ? Math.floor(Math.random() * context.length) : Number(startIndex);
@@ -249,7 +274,7 @@ function synthetic(): Fixtures {
       },
       tracks,
     },
-    home: [{ title: "Pour vous", items: [{ kind: "album", ...album }] }],
+    home: [{ key: "FOR_YOU", title: "Pour vous", items: [{ kind: "album", ...album }] }],
     library: { tracks, albums: [album], artists: [], playlists: [] },
   };
 }

@@ -1,0 +1,307 @@
+<script lang="ts">
+  // Mode « Personnaliser l'accueil » (#21, #22) : une ligne par section, avec Monter /
+  // Descendre et Masquer / Afficher. Tout se fait avec des boutons, donc au clavier.
+  // Le composant ne fait que réordonner la liste affichée : l'enregistrement et la règle
+  // des sections absentes ou nouvelles sont côté backend (`HomeLayout`).
+  import { tick } from "svelte";
+  import type { HomeSection } from "../lib/ipc";
+  import { mediaImage } from "../lib/format";
+  import Icon from "./Icon.svelte";
+
+  let {
+    sections,
+    canReset,
+    onchange,
+    onreset,
+  }: {
+    sections: HomeSection[];
+    /** Faux si la disposition est déjà celle par défaut. */
+    canReset: boolean;
+    onchange: (next: HomeSection[]) => void;
+    onreset: () => void;
+  } = $props();
+
+  // Deux lignes peuvent partager une clé (backend : groupées) : une seule entrée ici.
+  const groups = $derived.by(() => {
+    const seen = new Map<string, { key: string; title: string; hidden: boolean; count: number; images: string[] }>();
+    for (const s of sections) {
+      const g = seen.get(s.key);
+      if (g) {
+        g.count += s.items.length;
+        continue;
+      }
+      const images = s.items
+        .map(mediaImage)
+        .filter((i): i is string => !!i)
+        .slice(0, 3);
+      seen.set(s.key, { key: s.key, title: s.title, hidden: s.hidden, count: s.items.length, images });
+    }
+    return [...seen.values()];
+  });
+
+  let list = $state<HTMLOListElement>();
+  let announce = $state("");
+
+  async function move(index: number, dir: -1 | 1) {
+    const keys = groups.map((g) => g.key);
+    const target = index + dir;
+    if (target < 0 || target >= keys.length) return;
+    [keys[index], keys[target]] = [keys[target], keys[index]];
+    const { key, title } = groups[index];
+    onchange(keys.flatMap((k) => sections.filter((s) => s.key === k)));
+    announce = `« ${title} » en position ${target + 1} sur ${keys.length}`;
+    // Le nœud déplacé perd le focus : on le rend au même bouton, ou à l'autre s'il est désactivé.
+    await tick();
+    const sel = (d: string) => `[data-key="${CSS.escape(key)}"] [data-dir="${d}"]`;
+    const btn =
+      list?.querySelector<HTMLButtonElement>(`${sel(dir < 0 ? "up" : "down")}:not(:disabled)`) ??
+      list?.querySelector<HTMLButtonElement>(sel(dir < 0 ? "down" : "up"));
+    btn?.focus();
+  }
+
+  function toggle(key: string) {
+    const g = groups.find((g) => g.key === key);
+    if (g) announce = `« ${g.title} » ${g.hidden ? "affichée" : "masquée"}`;
+    onchange(sections.map((s) => (s.key === key ? { ...s, hidden: !s.hidden } : s)));
+  }
+</script>
+
+<div class="home-editor">
+  <p class="home-editor-hint">
+    Masquez les sections qui ne vous servent pas et choisissez leur ordre. Les nouvelles sections
+    apparaissent à leur place habituelle.
+  </p>
+  <ol class="home-editor-list" bind:this={list} aria-label="Sections de l'accueil">
+    {#each groups as g, i (g.key)}
+      <li class="home-editor-item" class:off={g.hidden} data-key={g.key}>
+        <span class="home-editor-thumbs" aria-hidden="true">
+          {#each g.images as src (src)}<img {src} alt="" loading="lazy" />{/each}
+        </span>
+        <span class="home-editor-name">
+          <span class="home-editor-title">{g.title}</span>
+          <span class="home-editor-meta">
+            {g.count} élément{g.count > 1 ? "s" : ""}{g.hidden ? " · masquée" : ""}
+          </span>
+        </span>
+        <span class="home-editor-actions">
+          <button
+            class="home-editor-icon"
+            data-dir="up"
+            disabled={i === 0}
+            onclick={() => move(i, -1)}
+            aria-label="Monter « {g.title} »"
+            title="Monter"
+          >
+            <Icon name="up" />
+          </button>
+          <button
+            class="home-editor-icon"
+            data-dir="down"
+            disabled={i === groups.length - 1}
+            onclick={() => move(i, 1)}
+            aria-label="Descendre « {g.title} »"
+            title="Descendre"
+          >
+            <Icon name="down" />
+          </button>
+          <button
+            class="home-editor-toggle"
+            role="switch"
+            aria-checked={!g.hidden}
+            aria-label="Afficher « {g.title} »"
+            onclick={() => toggle(g.key)}
+          >
+            <Icon name={g.hidden ? "eyeOff" : "eye"} size={16} />
+            {g.hidden ? "Masquée" : "Affichée"}
+          </button>
+        </span>
+      </li>
+    {/each}
+  </ol>
+  <div class="home-editor-footer">
+    <button class="home-editor-reset" disabled={!canReset} onclick={onreset}>
+      Réinitialiser
+    </button>
+  </div>
+  <p class="visually-hidden" aria-live="polite">{announce}</p>
+</div>
+
+<style>
+  .home-editor {
+    margin: 0 10px;
+  }
+
+  .home-editor-hint {
+    margin: 0 0 16px;
+    color: var(--text-muted);
+  }
+
+  .home-editor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .home-editor-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+  }
+
+  .home-editor-thumbs {
+    display: flex;
+    flex-shrink: 0;
+    width: 84px;
+  }
+
+  .home-editor-thumbs img {
+    width: 40px;
+    height: 40px;
+    margin-right: -18px;
+    object-fit: cover;
+    border: 2px solid var(--surface);
+    border-radius: calc(var(--radius) * 0.6);
+    background: var(--bg-hover);
+  }
+
+  .home-editor-name {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .home-editor-title {
+    overflow: hidden;
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .home-editor-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .home-editor-item.off .home-editor-thumbs,
+  .home-editor-item.off .home-editor-title {
+    opacity: 0.45;
+  }
+
+  .home-editor-item.off .home-editor-thumbs {
+    filter: grayscale(1);
+  }
+
+  .home-editor-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .home-editor-icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    color: var(--text-muted);
+  }
+
+  .home-editor-icon:hover:not(:disabled),
+  .home-editor-toggle:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+
+  .home-editor-icon:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .home-editor-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 116px;
+    margin-left: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 13px;
+  }
+
+  .home-editor-toggle[aria-checked="true"] {
+    color: var(--accent);
+  }
+
+  .home-editor-toggle[aria-checked="false"] {
+    color: var(--text-muted);
+  }
+
+  .home-editor-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
+  }
+
+  .home-editor-reset {
+    padding: 8px 18px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-weight: 600;
+  }
+
+  .home-editor-reset:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+
+  .home-editor-reset:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  :global([data-theme="studio"]) .home-editor-icon,
+  :global([data-theme="studio"]) .home-editor-toggle,
+  :global([data-theme="studio"]) .home-editor-reset {
+    border-radius: 0;
+  }
+
+  :global([data-theme="studio"]) .home-editor-toggle,
+  :global([data-theme="studio"]) .home-editor-reset {
+    text-transform: var(--label-transform);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
+
+  :global([data-theme="atelier"]) .home-editor-item {
+    border-width: 0 0 1px;
+    border-radius: 0;
+    background: none;
+  }
+
+  :global([data-theme="atelier"]) .home-editor-title {
+    font-family: var(--display-family);
+    font-size: 17px;
+  }
+
+  :global([data-theme="atelier"]) .home-editor-toggle,
+  :global([data-theme="atelier"]) .home-editor-reset {
+    border-radius: 2px;
+  }
+</style>

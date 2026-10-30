@@ -107,8 +107,21 @@ export type MediaItem =
   | ({ kind: "playlist" } & PlaylistSummary);
 
 export interface HomeRow {
+  /** Identifiant stable de la section (`moduleId` de l'API), indépendant du titre. */
+  key: string;
   title: string;
   items: MediaItem[];
+}
+
+/** Ligne de l'accueil dans l'ordre choisi ; les masquées ne sont montrées qu'en personnalisation. */
+export interface HomeSection extends HomeRow {
+  hidden: boolean;
+}
+
+/** Disposition de l'accueil enregistrée (clés de `HomeRow`). */
+export interface HomeLayout {
+  order: string[];
+  hidden: string[];
 }
 
 export interface AlbumPage {
@@ -142,6 +155,7 @@ export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal";
 
 export interface UiSettings {
   theme: Theme;
+  home: HomeLayout;
 }
 
 export interface UpdateInfo {
@@ -172,7 +186,7 @@ export const commands = {
   libraryAlbums: () => invoke<AlbumSummary[]>("library_albums"),
   libraryArtists: () => invoke<ArtistSummary[]>("library_artists"),
   libraryPlaylists: () => invoke<PlaylistSummary[]>("library_playlists"),
-  home: () => invoke<HomeRow[]>("home"),
+  home: () => invoke<HomeSection[]>("home"),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle }),
@@ -189,6 +203,10 @@ export const commands = {
   queueState: () => invoke<QueueView>("queue_state"),
   uiSettings: () => invoke<UiSettings>("ui_settings"),
   setUiSettings: (settings: UiSettings) => invoke<void>("set_ui_settings", { settings }),
+  /** Sections affichées, dans l'ordre de l'écran ; renvoie la disposition enregistrée. */
+  setHomeLayout: (sections: { key: string; hidden: boolean }[]) =>
+    invoke<HomeLayout>("set_home_layout", { sections }),
+  resetHomeLayout: () => invoke<HomeLayout>("reset_home_layout"),
   updateStatus: () => invoke<UpdateInfo | null>("update_status"),
   /** L'installeur ferme l'app puis la relance. */
   installUpdate: () => invoke<void>("install_update"),

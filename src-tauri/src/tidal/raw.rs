@@ -137,9 +137,13 @@ pub(super) struct RawCreator {
     pub id: Option<u64>,
 }
 
-/// Ligne du flux d'accueil v2 : `{ "type", "title", "items": [{ "type", "data" }] }`.
+/// Ligne du flux d'accueil v2 : `{ "type", "moduleId", "title", "items": [{ "type", "data" }] }`.
 #[derive(Deserialize)]
 pub(super) struct RawHomeRow {
+    /// Identifiant stable du module (`YOUR_FAVORITE_ARTISTS`, `BECAUSE_YOU_LISTENED_TO_ALBUM`…),
+    /// indépendant de la langue et du contenu de la ligne.
+    #[serde(rename = "moduleId")]
+    pub module_id: Option<String>,
     pub title: Option<String>,
     #[serde(default)]
     pub items: Vec<RawHomeItem>,
