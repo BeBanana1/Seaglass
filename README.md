@@ -23,7 +23,7 @@ Version actuelle : voir [`VERSION`](VERSION).
 
 ## Installation
 
-Télécharger `Seaglass_<version>_x64-setup.exe` et le lancer : l'installation se fait pour l'utilisateur courant, sans droits administrateur, et mpv est inclus. Ensuite, l'app se met à jour toute seule : quand une nouvelle version est prête, elle propose « Installer et redémarrer » ou « Plus tard » (installation à la fermeture). Processeur compatible AVX2 requis par le build de mpv livré.
+Télécharger la dernière version sur **https://updates.bebanana.ch/seaglass/** et lancer l'installeur : l'installation se fait pour l'utilisateur courant, sans droits administrateur, et mpv est inclus. L'installeur n'a pas de certificat de signature Windows : SmartScreen demande « Informations complémentaires » puis « Exécuter quand même ». Ensuite, l'app se met à jour toute seule : quand une nouvelle version est prête, elle propose « Installer et redémarrer » ou « Plus tard » (installation à la fermeture). Processeur compatible AVX2 requis par le build de mpv livré.
 
 ## Prérequis (développement)
 
@@ -64,7 +64,7 @@ L'architecture, les conventions et la feuille de route sont décrites dans [`CLA
 ## Publier une version
 
 1. Monter `VERSION` (et `src-tauri/Cargo.toml`), commiter.
-2. `pnpm release` : construit l'installeur signé et `release/latest.json`, sans rien publier.
+2. `pnpm release` : construit l'installeur signé, `release/latest.json` et la page de téléchargement `release/index.html`, sans rien publier.
 3. `pnpm release -Publish` avec `SEAGLASS_RELEASE_DEST` défini : publie dans le dossier des mises à jour et pose le tag `v<version>`.
 
 La clé privée de signature (`%USERPROFILE%\.tauri\seaglass.key`) doit être sauvegardée : sans elle, les versions installées refuseront toute mise à jour.

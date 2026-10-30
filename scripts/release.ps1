@@ -8,6 +8,7 @@
   3. Construit l'installeur NSIS signé pour l'updater (`pnpm tauri build`).
   4. Range les fichiers à publier dans `release/` :
        release/latest.json                       manifeste lu par l'updater
+       release/index.html                        page de téléchargement (lien stable)
        release/<version>/Seaglass_<version>_x64-setup.exe
   5. Avec -Publish : copie `release/` vers SEAGLASS_RELEASE_DEST, puis pose et pousse le
      tag git `v<version>`.
@@ -110,8 +111,29 @@ $manifestPath = Join-Path $root 'release\latest.json'
 [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
 
 $size = [math]::Round((Get-Item $setup).Length / 1MB, 1)
+
+# Page de téléchargement : l'adresse du dossier ($baseUrl/) mène toujours à la dernière version.
+Step "page de téléchargement"
+function Html($text) { [System.Net.WebUtility]::HtmlEncode($text) }
+$fr = [System.Globalization.CultureInfo]::GetCultureInfo('fr-FR')
+$noteItems = ($Notes -split "`r?`n" | Where-Object { $_.Trim() } | ForEach-Object {
+    '      <li>' + (Html ($_ -replace '^\s*-\s*', '')) + '</li>'
+}) -join "`n"
+$fields = [ordered]@{
+    '{{VERSION}}' = Html $version
+    '{{DATE}}'    = Html (Get-Date).ToString('d MMMM yyyy', $fr)
+    '{{SIZE}}'    = Html $size.ToString($fr)
+    '{{URL}}'     = Html "$baseUrl/$version/$setupName"
+    '{{NOTES}}'   = $noteItems
+}
+$page = Get-Content (Join-Path $PSScriptRoot 'download-page.html') -Raw -Encoding UTF8
+foreach ($field in $fields.GetEnumerator()) { $page = $page.Replace($field.Key, $field.Value) }
+$pagePath = Join-Path $root 'release\index.html'
+[System.IO.File]::WriteAllText($pagePath, $page, [System.Text.UTF8Encoding]::new($false))
+
 Write-Host "    installeur : release\$version\$setupName ($size Mo)"
 Write-Host "    manifeste  : release\latest.json -> $baseUrl/latest.json"
+Write-Host "    page       : release\index.html -> $baseUrl/"
 
 # --- 5. Publication ---------------------------------------------------------------------
 if (-not $Publish) {
@@ -132,12 +154,15 @@ if ($dest -match '^[^\\/:]{2,}:') {
     # remet à 755 / 644 avant de rendre la version visible.
     ssh $sshHost "chmod 755 '$remotePath/$version' && chmod 644 '$remotePath/$version'/*"
     if ($LASTEXITCODE -ne 0) { Fail "échec du réglage des droits sur le serveur" }
+    scp $pagePath "$dest/index.html"
+    if ($LASTEXITCODE -ne 0) { Fail "échec de scp (page de téléchargement)" }
     scp $manifestPath "$dest/latest.json"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (manifeste)" }
-    ssh $sshHost "chmod 644 '$remotePath/latest.json'"
+    ssh $sshHost "chmod 644 '$remotePath/index.html' '$remotePath/latest.json'"
 } else {
     New-Item -ItemType Directory -Force $dest | Out-Null
     Copy-Item $out (Join-Path $dest $version) -Recurse -Force
+    Copy-Item $pagePath (Join-Path $dest 'index.html') -Force
     Copy-Item $manifestPath (Join-Path $dest 'latest.json') -Force
 }
 

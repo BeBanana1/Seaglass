@@ -1,0 +1,103 @@
+<!doctype html>
+<!-- Modèle de la page de téléchargement (index.html du dossier des mises à jour).
+     Rempli par scripts/release.ps1 : les {{…}} sont remplacés, déjà échappés en HTML. -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seaglass {{VERSION}}</title>
+<style>
+  :root {
+    --bg: #eef3f2;
+    --panel: #ffffff;
+    --text: #17201f;
+    --muted: #5b6b69;
+    --line: #d5dfdd;
+    --accent: #2f8f83;
+    --accent-contrast: #ffffff;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1615;
+      --panel: #172120;
+      --text: #e4eeec;
+      --muted: #93a6a3;
+      --line: #263331;
+      --accent: #5cc4b6;
+      --accent-contrast: #08201d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 "Segoe UI", system-ui, sans-serif;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 56px 16px 40px; }
+  h1 { margin: 0; font-size: 2.2rem; letter-spacing: -0.02em; }
+  .tagline { margin: 4px 0 28px; color: var(--muted); }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .download {
+    display: inline-block;
+    padding: 12px 22px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .download:hover { filter: brightness(1.08); }
+  .meta { margin: 12px 0 0; color: var(--muted); font-size: 0.9rem; }
+  h2 { margin: 0 0 10px; font-size: 1.05rem; }
+  ul, ol { margin: 0; padding-left: 1.2em; }
+  li + li { margin-top: 4px; }
+  footer { color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Seaglass</h1>
+  <p class="tagline">Client de streaming musical lossless pour Windows.</p>
+
+  <section class="card">
+    <a class="download" href="{{URL}}">Télécharger pour Windows</a>
+    <p class="meta">Version {{VERSION}} · {{DATE}} · {{SIZE}} Mo</p>
+  </section>
+
+  <section class="card">
+    <h2>Installation</h2>
+    <ol>
+      <li>Lancer le fichier téléchargé. L'installation se fait pour l'utilisateur courant, sans droits administrateur.</li>
+      <li>Si Windows affiche « Windows a protégé votre ordinateur », cliquer sur « Informations complémentaires » puis « Exécuter quand même » : l'installeur n'a pas de certificat de signature Windows.</li>
+      <li>Ensuite, l'app se met à jour toute seule.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Prérequis</h2>
+    <ul>
+      <li>Windows 10 ou 11, 64 bits.</li>
+      <li>Processeur compatible AVX2.</li>
+      <li>Un abonnement TIDAL valide.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Nouveautés</h2>
+    <ul>
+{{NOTES}}
+    </ul>
+  </section>
+
+  <footer>Client non officiel, non affilié à TIDAL. Licence GPL-3.0.</footer>
+</main>
+</body>
+</html>
