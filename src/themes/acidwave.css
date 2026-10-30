@@ -200,6 +200,7 @@
   color: var(--accent);
 }
 
-:root[data-theme="acidwave"] .now-playing .close {
+:root[data-theme="acidwave"] .now-playing .close,
+:root[data-theme="acidwave"] .now-playing .queue-toggle {
   border-radius: 0;
 }
