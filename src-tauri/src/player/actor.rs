@@ -372,6 +372,13 @@ impl Player {
     pub(super) fn mark_queue_dirty(&mut self) {
         self.queue_dirty = true;
         self.persist_queue = true;
+        self.pin_queue_tracks();
+    }
+
+    /// Protège de l'éviction du cache borné les titres de la file (#90) : `queue_view` et
+    /// la sauvegarde les y relisent.
+    pub(super) fn pin_queue_tracks(&self) {
+        self.tidal.cache.set_pinned(self.queue.referenced_ids());
     }
 
     fn queue_view(&self) -> QueueView {

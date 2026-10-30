@@ -5,7 +5,7 @@
 //! `artists/{id}/albums[?filter=EPSANDSINGLES]`, `playlists/{uuid}`,
 //! `playlists/{uuid}/tracks`, `users/{id}/favorites/{tracks,albums,artists}`,
 //! `users/{id}/playlistsAndFavoritePlaylists`, v2 `home/feed/static`.
-//! Mixes et radios : `mix.rs`.
+//! Mixes et radios : `mix.rs` ; pagination (`get_all`) : `paging.rs`.
 
 use serde::de::DeserializeOwned;
 
@@ -199,37 +199,6 @@ impl TidalClient {
             LIBRARY_MAX,
         )
         .await
-    }
-
-    /// Parcourt une liste paginée. On avance selon `totalNumberOfItems` : une page peut
-    /// contenir moins d'éléments que demandé (titres indisponibles filtrés par l'API).
-    pub(super) async fn get_all<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        params: &[(&str, String)],
-        page_size: u32,
-        max: usize,
-    ) -> Result<Vec<T>> {
-        let mut out = Vec::new();
-        let mut offset: u32 = 0;
-        loop {
-            let mut query = params.to_vec();
-            query.push(("limit", page_size.to_string()));
-            query.push(("offset", offset.to_string()));
-            let page: RawPage<T> = self.get(path, &query).await?;
-            let received = page.items.len();
-            out.extend(page.items);
-            offset += page_size;
-            let done = match page.total_number_of_items {
-                Some(total) => offset >= total,
-                None => received < page_size as usize,
-            };
-            if done || out.len() >= max {
-                break;
-            }
-        }
-        out.truncate(max);
-        Ok(out)
     }
 
     pub(super) async fn user_id(&self) -> Result<u64> {
