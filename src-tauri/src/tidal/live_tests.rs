@@ -82,6 +82,24 @@ async fn live_catalog() {
         feed.iter().filter(|f| !f.seen).count()
     );
     assert!(feed.iter().all(|f| f.occurred_at.is_some()));
+    let mixes: Vec<_> = feed
+        .iter()
+        .filter_map(|f| match &f.item {
+            super::models::MediaItem::Mix(m) => Some(m),
+            _ => None,
+        })
+        .collect();
+    println!("fil : {} mixes", mixes.len());
+    // Le mix mensuel du fil s'ouvre comme les autres (`pages/mix` + `mixes/{id}/items`).
+    if let Some(mix) = mixes.first() {
+        let page = client.mix(&mix.id).await.unwrap();
+        println!(
+            "mix du fil : {} ({} titres)",
+            page.mix.title,
+            page.tracks.len()
+        );
+        assert!(!page.tracks.is_empty());
+    }
     let mixes = client.favorite_mixes().await.unwrap();
     println!("mixes enregistrés : {}", mixes.len());
     let home_mix = home.iter().flat_map(|r| &r.items).find_map(|i| match i {

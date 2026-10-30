@@ -185,7 +185,7 @@ pub struct HomeRow {
     pub items: Vec<MediaItem>,
 }
 
-/// Sortie d'un artiste suivi, dans le fil d'actualité.
+/// Élément du fil d'actualité : sortie d'un artiste suivi (album) ou mix mensuel (mix).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedItem {
@@ -193,7 +193,7 @@ pub struct FeedItem {
     pub occurred_at: Option<i64>,
     /// Déjà vue dans un client TIDAL (état lu, jamais modifié par l'app).
     pub seen: bool,
-    pub album: AlbumSummary,
+    pub item: MediaItem,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
