@@ -4,6 +4,7 @@ use tauri::State;
 use tokio::sync::oneshot;
 
 use super::{AppState, CmdResult};
+use crate::player::volume::Volume;
 use crate::player::{Cmd, PlayerState, QueueView, Repeat};
 use crate::tidal::models::TrackId;
 
@@ -85,6 +86,18 @@ pub async fn set_shuffle(state: State<'_, AppState>, enabled: bool) -> CmdResult
 #[tauri::command]
 pub async fn set_repeat(state: State<'_, AppState>, mode: Repeat) -> CmdResult<()> {
     send_cmd(&state, Cmd::SetRepeat(mode)).await
+}
+
+/// Volume logiciel de 0 à 100 (100 = gain unitaire, seul réglage bit-perfect).
+#[tauri::command]
+pub async fn set_volume(state: State<'_, AppState>, volume: u8) -> CmdResult<()> {
+    let level = Volume::validate(volume).map_err(|e| e.to_string())?;
+    send_cmd(&state, Cmd::SetVolume(level)).await
+}
+
+#[tauri::command]
+pub async fn set_muted(state: State<'_, AppState>, muted: bool) -> CmdResult<()> {
+    send_cmd(&state, Cmd::SetMuted(muted)).await
 }
 
 #[tauri::command]

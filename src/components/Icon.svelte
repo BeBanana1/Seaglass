@@ -1,5 +1,9 @@
 <script lang="ts" module>
   // Tracés 24×24, remplis avec `currentColor`.
+  const speaker = "M4 9h3.2l4.2-3.5A1 1 0 0 1 13 6.3v11.4a1 1 0 0 1-1.6.8L7.2 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z";
+  const waveSmall = "M15.52 9.88a1 1 0 0 1 1.42-1.42 5 5 0 0 1 0 7.08 1 1 0 0 1-1.42-1.42 3 3 0 0 0 0-4.24z";
+  const waveLarge = "M17.64 7.76a1 1 0 0 1 1.42-1.42 8 8 0 0 1 0 11.32 1 1 0 0 1-1.42-1.42 6 6 0 0 0 0-8.48z";
+
   const paths = {
     play: "M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z",
     pause: "M7 5h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm7 0h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z",
@@ -11,6 +15,11 @@
     playNext: "M4 6h10a1 1 0 1 1 0 2H4a1 1 0 0 1 0-2zm0 5h7a1 1 0 1 1 0 2H4a1 1 0 1 1 0-2zm0 5h7a1 1 0 1 1 0 2H4a1 1 0 1 1 0-2zm11-4.2a.8.8 0 0 1 1.2-.7l4.4 3.2a.8.8 0 0 1 0 1.3l-4.4 3.2a.8.8 0 0 1-1.2-.7z",
     add: "M12 4a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5a1 1 0 0 1 1-1z",
     close: "M6.3 6.3a1 1 0 0 1 1.4 0L12 10.6l4.3-4.3a1 1 0 1 1 1.4 1.4L13.4 12l4.3 4.3a1 1 0 0 1-1.4 1.4L12 13.4l-4.3 4.3a1 1 0 0 1-1.4-1.4l4.3-4.3-4.3-4.3a1 1 0 0 1 0-1.4z",
+    volume: speaker + waveSmall + waveLarge,
+    volumeLow: speaker + waveSmall,
+    volumeMute:
+      speaker +
+      "M16.3 9.3a1 1 0 0 1 1.4 0l1.3 1.3 1.3-1.3a1 1 0 1 1 1.4 1.4L20.4 12l1.3 1.3a1 1 0 0 1-1.4 1.4L19 13.4l-1.3 1.3a1 1 0 0 1-1.4-1.4l1.3-1.3-1.3-1.3a1 1 0 0 1 0-1.4z",
   } as const;
 
   export type IconName = keyof typeof paths;

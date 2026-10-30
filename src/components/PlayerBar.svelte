@@ -6,6 +6,7 @@
   import Progress from "./Progress.svelte";
   import SignalPath from "./SignalPath.svelte";
   import Transport from "./Transport.svelte";
+  import Volume from "./Volume.svelte";
 
   let {
     queueOpen,
@@ -46,6 +47,7 @@
     <button class="signal-chip" onclick={onOpenNowPlaying} title="Chaîne audio">
       <SignalPath compact />
     </button>
+    <Volume />
     <button class="toggle" class:on={queueOpen} onclick={onToggleQueue} title="File d'attente">
       <Icon name="queue" />
     </button>
@@ -170,9 +172,10 @@
     color: var(--accent);
   }
 
-  /* Studio : la chaîne audio complète remplace la pastille, la pochette est carrée. */
+  /* Studio : la chaîne audio complète remplace la pastille, la pochette est carrée.
+     La colonne de droite porte aussi le volume : elle prend un peu sur le centre. */
   :global([data-theme="studio"]) footer {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.3fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.5fr);
     border-top: 1px solid var(--border);
   }
 

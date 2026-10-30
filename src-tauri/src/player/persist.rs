@@ -1,4 +1,5 @@
-//! Sauvegarde (au plus toutes les 2 s) et restauration de la file et de la position.
+//! Sauvegarde (au plus toutes les 2 s) et restauration de la file, de la position et du
+//! volume.
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -13,6 +14,11 @@ impl Player {
         let Some(store) = &self.store else {
             return;
         };
+        match store.load_volume() {
+            Ok(Some(volume)) => self.state.volume = volume,
+            Ok(None) => {}
+            Err(e) => tracing::warn!("restauration du volume impossible : {e}"),
+        }
         let saved = match store.load_player() {
             Ok(Some(saved)) => saved,
             Ok(None) => return,
@@ -41,7 +47,7 @@ impl Player {
     }
 
     pub(super) fn persist_if_due(&mut self) {
-        if !(self.persist_queue || self.persist_position)
+        if !(self.persist_queue || self.persist_position || self.persist_volume)
             || self.last_persist.elapsed() < PERSIST_INTERVAL
         {
             return;
@@ -54,14 +60,21 @@ impl Player {
             (self.queue.clone(), tracks)
         });
         let position = self.state.time_pos;
+        let volume = self.persist_volume.then_some(self.state.volume);
         self.persist_queue = false;
         self.persist_position = false;
+        self.persist_volume = false;
         self.last_persist = Instant::now();
 
         tokio::task::spawn_blocking(move || {
             let queue = queue.as_ref().map(|(q, t)| (q, t.as_slice()));
             if let Err(e) = store.save_player(queue, position) {
                 tracing::warn!("sauvegarde de la file impossible : {e}");
+            }
+            if let Some(volume) = volume
+                && let Err(e) = store.save_volume(volume)
+            {
+                tracing::warn!("sauvegarde du volume impossible : {e}");
             }
         });
     }

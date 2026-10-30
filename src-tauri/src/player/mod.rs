@@ -5,6 +5,7 @@ mod persist;
 mod playback;
 pub mod queue;
 pub mod state;
+pub mod volume;
 
 pub use actor::{Cmd, spawn};
 pub use queue::Repeat;

@@ -1,7 +1,14 @@
 <script lang="ts">
   // Chaîne audio : ce que le service envoie → ce que mpv décode → ce qui part vers Windows.
   import { player } from "../lib/stores/player.svelte";
-  import { formatStream, khz, outputFormat, signalVerdict } from "../lib/format";
+  import {
+    formatStream,
+    khz,
+    outputFormat,
+    signalVerdict,
+    softwareGain,
+    volumeLabel,
+  } from "../lib/format";
 
   let {
     compact = false,
@@ -14,7 +21,13 @@
   } = $props();
 
   const s = $derived(player.state);
-  const verdict = $derived(signalVerdict(s.stream, s.output));
+  const verdict = $derived(signalVerdict(s.stream, s.output, s.volume));
+  /** Sous-titre du nœud mpv : format de sortie, et le volume s'il modifie le signal. */
+  const decodeSub = $derived(
+    [s.output ? outputFormat(s.output.format) : "—", softwareGain(s.volume) ? `vol. ${volumeLabel(s.volume)}` : ""]
+      .filter(Boolean)
+      .join(" · "),
+  );
 </script>
 
 {#if compact}
@@ -33,7 +46,7 @@
     <div class="node">
       <span class="label">Décodage</span>
       <span class="value mono">mpv</span>
-      <span class="sub">{s.output ? outputFormat(s.output.format) : "—"}</span>
+      <span class="sub">{decodeSub}</span>
     </div>
     <span class="wire" aria-hidden="true"></span>
     <div class="node">

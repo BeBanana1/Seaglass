@@ -7,6 +7,7 @@ import type {
   PlaylistSummary,
   StreamFormat,
   Track,
+  Volume,
 } from "./ipc";
 
 export function formatTime(seconds: number): string {
@@ -103,11 +104,43 @@ export interface SignalVerdict {
   detail: string;
 }
 
-/** Ce que mpv fait du flux reçu : fréquence et profondeur conservées ou non. */
+/** Le volume de mpv modifie l'amplitude : vrai sauf à 100 % sans coupure. */
+export function softwareGain(volume: Volume): boolean {
+  return volume.muted || volume.level !== 100;
+}
+
+/** Niveau lisible pour la chaîne audio (« coupé », « 60 % »). */
+export function volumeLabel(volume: Volume): string {
+  return volume.muted ? "coupé" : `${volume.level} %`;
+}
+
+/**
+ * Ce que mpv fait du flux reçu : fréquence et profondeur conservées ou non. Un volume
+ * différent de 100 % n'invalide que le verdict « Fréquence native » : les autres
+ * conversions restent plus importantes à signaler, le volume est alors dans le détail.
+ */
 export function signalVerdict(
   stream: StreamFormat | null,
   output: AudioParams | null,
+  volume: Volume = { level: 100, muted: false },
 ): SignalVerdict {
+  const verdict = streamVerdict(stream, output);
+  if (verdict.tone === "ok" && softwareGain(volume)) {
+    return {
+      label: volume.muted ? "Son coupé" : "Volume logiciel",
+      tone: "warn",
+      detail: volume.muted
+        ? "son coupé dans mpv"
+        : `volume ${volume.level} % : gain appliqué par mpv, plus bit-perfect (100 % pour le rétablir)`,
+    };
+  }
+  if (verdict.tone === "warn" && softwareGain(volume)) {
+    return { ...verdict, detail: `${verdict.detail} ; volume ${volumeLabel(volume)}` };
+  }
+  return verdict;
+}
+
+function streamVerdict(stream: StreamFormat | null, output: AudioParams | null): SignalVerdict {
   if (!stream) return { label: "Aucun flux", tone: "idle", detail: "" };
   if (stream.codec !== "flac") {
     return { label: "Compressé", tone: "lossy", detail: "flux AAC avec perte" };

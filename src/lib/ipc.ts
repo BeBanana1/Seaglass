@@ -62,6 +62,14 @@ export interface PlayerState {
   repeat: Repeat;
   hasPrevious: boolean;
   hasNext: boolean;
+  volume: Volume;
+}
+
+/** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
+export interface Volume {
+  /** 0 à 100. */
+  level: number;
+  muted: boolean;
 }
 
 export interface QueueView {
@@ -185,6 +193,9 @@ export const commands = {
   seek: (seconds: number) => invoke<void>("seek", { seconds }),
   setShuffle: (enabled: boolean) => invoke<void>("set_shuffle", { enabled }),
   setRepeat: (mode: Repeat) => invoke<void>("set_repeat", { mode }),
+  /** 0 à 100 ; rétablit le son s'il était coupé (sauf à 0). */
+  setVolume: (volume: number) => invoke<void>("set_volume", { volume }),
+  setMuted: (muted: boolean) => invoke<void>("set_muted", { muted }),
   playerState: () => invoke<PlayerState>("player_state"),
   queueState: () => invoke<QueueView>("queue_state"),
   uiSettings: () => invoke<UiSettings>("ui_settings"),

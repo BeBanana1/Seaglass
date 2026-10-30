@@ -3,7 +3,8 @@
 // (gitignoré). Sans ce fichier, un jeu minimal synthétique est utilisé.
 //
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
-// library|search|home`, `?nowplaying=1`, `?paused=1`, `?loggedout=1`, `?queue=1`, `?update=1`.
+// library|search|home`, `?nowplaying=1`, `?paused=1`, `?loggedout=1`, `?queue=1`, `?update=1`,
+// `?volume=60|muted`.
 
 import type {
   AlbumPage,
@@ -46,6 +47,8 @@ for (const t of [
 let context: Track[] = fx.album.tracks;
 let index = Math.min(1, context.length - 1);
 const manual: Track[] = [];
+/** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
+const volumeParam = params.get("volume");
 
 const state: PlayerState = {
   track: context[index] ?? null,
@@ -62,6 +65,10 @@ const state: PlayerState = {
   repeat: "off",
   hasPrevious: true,
   hasNext: true,
+  volume: {
+    level: volumeParam && volumeParam !== "muted" ? Math.min(100, Math.max(0, Number(volumeParam) || 0)) : 100,
+    muted: volumeParam === "muted",
+  },
 };
 
 let ui: UiSettings = { theme: (params.get("theme") as Theme) ?? "seaglass" };
@@ -168,6 +175,19 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   set_repeat: ({ mode }) => {
     state.repeat = mode as PlayerState["repeat"];
+    emit("player-state", state);
+  },
+  // Mêmes règles que `player::volume::Volume` côté Rust.
+  set_volume: ({ volume }) => {
+    const level = Number(volume);
+    if (!Number.isInteger(level) || level < 0 || level > 100) throw new Error("volume invalide");
+    state.volume.level = level;
+    if (level > 0) state.volume.muted = false;
+    emit("player-state", state);
+  },
+  set_muted: ({ muted }) => {
+    state.volume.muted = Boolean(muted);
+    if (!state.volume.muted && state.volume.level === 0) state.volume.level = 50;
     emit("player-state", state);
   },
 };

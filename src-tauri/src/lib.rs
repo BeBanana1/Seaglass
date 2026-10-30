@@ -79,6 +79,8 @@ pub fn run() {
             commands::player::seek,
             commands::player::set_shuffle,
             commands::player::set_repeat,
+            commands::player::set_volume,
+            commands::player::set_muted,
             commands::player::player_state,
             commands::player::queue_state,
             commands::settings::ui_settings,

@@ -281,6 +281,23 @@ impl Player {
         .await;
     }
 
+    pub(super) async fn on_volume_changed(&mut self) {
+        self.persist_volume = true;
+        self.apply_volume().await;
+    }
+
+    /// Volume logiciel de mpv (`volume`, courbe cubique, 100 = gain unitaire) et coupure.
+    pub(super) async fn apply_volume(&mut self) {
+        if self.mpv.is_err() {
+            return;
+        }
+        let v = self.state.volume;
+        self.mpv_command(vec![json!("set_property"), json!("volume"), json!(v.level)])
+            .await;
+        self.mpv_command(vec![json!("set_property"), json!("mute"), json!(v.muted)])
+            .await;
+    }
+
     fn stream_url(&self, track: &Track, stream: &Stream) -> Option<String> {
         match (&stream.source, &self.server) {
             (StreamSource::Direct(url), _) => Some(url.clone()),
