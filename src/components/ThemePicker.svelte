@@ -301,6 +301,50 @@
     background: #00e5ff;
   }
 
+  .preview.neumorph,
+  .preview.neumorph-dark {
+    gap: 7px;
+    padding: 9px;
+    border-radius: 12px;
+    background: #e3e7ed;
+  }
+
+  .preview.neumorph-dark {
+    background: #24272e;
+  }
+
+  .neumorph :is(.side, .main, .bar) {
+    border-radius: 8px;
+    background: #e3e7ed;
+    box-shadow:
+      3px 3px 6px rgb(150 162 184 / 0.6),
+      -3px -3px 6px rgb(255 255 255 / 0.9);
+  }
+
+  .neumorph-dark :is(.side, .main, .bar) {
+    border-radius: 8px;
+    background: #24272e;
+    box-shadow:
+      3px 3px 6px rgb(0 0 0 / 0.5),
+      -3px -3px 6px rgb(255 255 255 / 0.06);
+  }
+
+  .neumorph .h {
+    background: #252b36;
+  }
+
+  .neumorph .l {
+    background: #3f56c9;
+  }
+
+  .neumorph-dark .h {
+    background: #e4e8ef;
+  }
+
+  .neumorph-dark .l {
+    background: #8fa2ff;
+  }
+
   :global([data-theme="studio"]) .theme-card {
     border-radius: 0;
   }
