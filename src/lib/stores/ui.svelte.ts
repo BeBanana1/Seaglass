@@ -4,7 +4,7 @@
 import { commands, type HomeSection, type Pin, type Theme, type UiSettings } from "../ipc";
 
 /** Thèmes dans l'ordre du sélecteur ; noms et descriptions dans `i18n/settings.ts`. */
-export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal", "solarpunk", "cyberpunk"];
+export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal", "solarpunk", "cyberpunk", "neumorph", "neumorph-dark"];
 
 /** Panneau latéral de la vue « En lecture » : file d'attente ou paroles, un seul à la fois. */
 export type NowPlayingPanel = "queue" | "lyrics" | null;

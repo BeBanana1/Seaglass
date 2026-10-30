@@ -35,6 +35,14 @@ export const fr = {
       name: "Cyberpunk",
       description: "Interface de visée dans une ville néon : jaune signal, cyan, angles coupés.",
     },
+    neumorph: {
+      name: "Neumorphism",
+      description: "Reliefs doux ton sur ton : commandes en relief, rainures en creux, listes à plat.",
+    },
+    "neumorph-dark": {
+      name: "Neumorphism sombre",
+      description: "Les mêmes reliefs sur graphite, pour le soir.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -136,6 +144,14 @@ export const en: typeof fr = {
     cyberpunk: {
       name: "Cyberpunk",
       description: "A HUD in a neon city: signal yellow, cyan, cut corners.",
+    },
+    neumorph: {
+      name: "Neumorphism",
+      description: "Soft, tone-on-tone relief: raised controls, inset grooves, flat lists.",
+    },
+    "neumorph-dark": {
+      name: "Neumorphism dark",
+      description: "The same relief on graphite, for the evening.",
     },
   },
 

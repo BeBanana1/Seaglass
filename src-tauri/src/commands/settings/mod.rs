@@ -35,6 +35,11 @@ pub enum Theme {
     Solarpunk,
     /// Ville néon et interface de visée : jaune, cyan, magenta, angles coupés (#66).
     Cyberpunk,
+    /// Reliefs doux ton sur ton, clair : commandes en relief, listes à plat (#67).
+    Neumorph,
+    /// Neumorphism en version sombre, graphite (#67).
+    #[serde(rename = "neumorph-dark")]
+    NeumorphDark,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -223,6 +228,10 @@ mod tests {
         assert_eq!(s.theme, Theme::Solarpunk);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"cyberpunk"}"#).unwrap();
         assert_eq!(s.theme, Theme::Cyberpunk);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"neumorph"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Neumorph);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"neumorph-dark"}"#).unwrap();
+        assert_eq!(s.theme, Theme::NeumorphDark);
     }
 
     #[test]
