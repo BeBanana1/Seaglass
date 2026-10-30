@@ -17,6 +17,7 @@ const initial: PlayerState = {
   repeat: "off",
   hasPrevious: false,
   hasNext: false,
+  volume: { level: 100, muted: false },
 };
 
 export const player = $state({
@@ -33,6 +34,24 @@ function apply(s: PlayerState) {
 export async function initPlayer() {
   await events.onPlayerState(apply);
   apply(await commands.playerState());
+}
+
+/** Cran de volume pour la molette et Ctrl+↑ / Ctrl+↓. */
+const VOLUME_STEP = 5;
+/** Dernier niveau demandé, tant que le backend ne l'a pas forcément renvoyé (molette rapide). */
+let pendingVolume: number | null = null;
+let pendingTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Monte (`1`) ou baisse (`-1`) le volume d'un cran, à partir du niveau affiché (0 si coupé). */
+export function stepVolume(direction: 1 | -1) {
+  const v = player.state.volume;
+  if (v.muted && direction < 0 && pendingVolume === null) return;
+  const base = pendingVolume ?? (v.muted ? 0 : v.level);
+  const next = Math.max(0, Math.min(100, base + direction * VOLUME_STEP));
+  pendingVolume = next;
+  clearTimeout(pendingTimer);
+  pendingTimer = setTimeout(() => (pendingVolume = null), 400);
+  void commands.setVolume(next);
 }
 
 /** Position estimée à l'instant `now`, entre deux événements (~4 Hz). */

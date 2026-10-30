@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { commands, type SessionInfo } from "./lib/ipc";
-  import { initPlayer, player } from "./lib/stores/player.svelte";
+  import { initPlayer, player, stepVolume } from "./lib/stores/player.svelte";
   import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
   import { initUi, ui } from "./lib/stores/ui.svelte";
@@ -89,6 +89,9 @@
       commands.togglePause();
     } else if (e.altKey && e.key === "ArrowLeft") {
       back();
+    } else if (e.ctrlKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && !typing) {
+      e.preventDefault();
+      stepVolume(e.key === "ArrowUp" ? 1 : -1);
     }
   }
 

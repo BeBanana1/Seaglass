@@ -7,6 +7,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use crate::player::queue::Queue;
+use crate::player::volume::Volume;
 use crate::tidal::models::Track;
 
 const SCHEMA: &str = "
@@ -24,6 +25,7 @@ const SCHEMA: &str = "
 
 const KEY_QUEUE: &str = "player.queue";
 const KEY_POSITION: &str = "player.position";
+const KEY_VOLUME: &str = "player.volume";
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
@@ -105,6 +107,17 @@ impl Store {
         Ok(())
     }
 
+    /// Volume sauvegardé, ramené dans les limites (`None` s'il n'a jamais été réglé).
+    pub fn load_volume(&self) -> Result<Option<Volume>> {
+        Ok(self
+            .get_setting::<Volume>(KEY_VOLUME)?
+            .map(Volume::sanitized))
+    }
+
+    pub fn save_volume(&self, volume: Volume) -> Result<()> {
+        self.set_setting(KEY_VOLUME, &volume)
+    }
+
     pub fn load_player(&self) -> Result<Option<SavedPlayer>> {
         let conn = self.conn.lock().map_err(|_| StoreError::Poisoned)?;
         let get = |key: &str| -> Result<Option<String>> {
@@ -176,6 +189,27 @@ mod tests {
     fn empty_store_has_nothing() {
         let store = Store::in_memory().unwrap();
         assert_eq!(store.load_player().unwrap(), None);
+        assert_eq!(store.load_volume().unwrap(), None);
+    }
+
+    #[test]
+    fn volume_roundtrip_and_clamp() {
+        let store = Store::in_memory().unwrap();
+        let v = Volume {
+            level: 35,
+            muted: true,
+        };
+        store.save_volume(v).unwrap();
+        assert_eq!(store.load_volume().unwrap(), Some(v));
+
+        // Valeur hors limites écrite à la main dans la base : ramenée à 100.
+        store
+            .set_setting(
+                KEY_VOLUME,
+                &serde_json::json!({ "level": 250, "muted": false }),
+            )
+            .unwrap();
+        assert_eq!(store.load_volume().unwrap(), Some(Volume::default()));
     }
 
     #[test]

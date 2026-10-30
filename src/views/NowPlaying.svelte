@@ -13,6 +13,7 @@
   import QueueList from "../components/QueueList.svelte";
   import SignalPath from "../components/SignalPath.svelte";
   import Transport from "../components/Transport.svelte";
+  import Volume from "../components/Volume.svelte";
 
   let { onClose }: { onClose: () => void } = $props();
 
@@ -70,6 +71,7 @@
             <div class="controls">
               <Progress large />
               <Transport large />
+              <Volume />
             </div>
 
             <div class="signal"><SignalPath /></div>

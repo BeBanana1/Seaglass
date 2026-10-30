@@ -96,6 +96,21 @@
   box-shadow: none;
 }
 
+:root[data-theme="surreal"] .volume .track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(61 42 77 / 0.1);
+}
+
+:root[data-theme="surreal"] .volume .fill {
+  background: color-mix(in oklch, var(--accent) 55%, var(--text-muted));
+}
+
+:root[data-theme="surreal"] .volume:hover .fill,
+:root[data-theme="surreal"] .volume:focus-within .fill {
+  background: var(--accent);
+}
+
 :root[data-theme="surreal"] nav button.active {
   background: rgb(255 255 255 / 0.7);
   box-shadow: 0 8px 16px -10px rgb(61 42 77 / 0.35);

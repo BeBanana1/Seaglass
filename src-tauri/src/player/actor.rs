@@ -46,6 +46,9 @@ pub enum Cmd {
     Seek(f64),
     SetShuffle(bool),
     SetRepeat(Repeat),
+    /// Niveau 0–100, déjà validé par la commande.
+    SetVolume(u8),
+    SetMuted(bool),
     GetState(oneshot::Sender<PlayerState>),
     GetQueue(oneshot::Sender<QueueView>),
     /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
@@ -107,6 +110,7 @@ pub(super) struct Player {
     pub(super) queue_dirty: bool,
     pub(super) persist_queue: bool,
     pub(super) persist_position: bool,
+    pub(super) persist_volume: bool,
     pub(super) last_persist: Instant,
     observers: Observers,
 }
@@ -155,11 +159,13 @@ pub fn spawn(
             queue_dirty: true,
             persist_queue: false,
             persist_position: false,
+            persist_volume: false,
             last_persist: Instant::now(),
             observers: Observers::default(),
         };
         player.restore();
         player.apply_loop_file().await;
+        player.apply_volume().await;
         player.run(rx, events_rx).await;
     });
     tx
@@ -246,6 +252,14 @@ impl Player {
                 self.queue.set_repeat(repeat);
                 self.apply_loop_file().await;
                 self.on_queue_changed().await;
+            }
+            Cmd::SetVolume(level) => {
+                self.state.volume.set_level(level);
+                self.on_volume_changed().await;
+            }
+            Cmd::SetMuted(muted) => {
+                self.state.volume.set_muted(muted);
+                self.on_volume_changed().await;
             }
             Cmd::GetState(reply) => {
                 let _ = reply.send(self.state.clone());

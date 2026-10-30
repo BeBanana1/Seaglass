@@ -4,6 +4,7 @@
 use serde::Serialize;
 
 use super::queue::Repeat;
+use super::volume::Volume;
 use crate::mpv::AudioParams;
 use crate::tidal::models::{StreamFormat, Track};
 
@@ -28,6 +29,8 @@ pub struct PlayerState {
     pub repeat: Repeat,
     pub has_previous: bool,
     pub has_next: bool,
+    /// Volume logiciel de mpv ; tout autre réglage que 100 non coupé n'est plus bit-perfect.
+    pub volume: Volume,
 }
 
 impl PlayerState {
