@@ -203,3 +203,36 @@ fn serde_roundtrip() {
     let back: Queue = serde_json::from_str(&json).unwrap();
     assert_eq!(back, q);
 }
+
+#[test]
+fn clear_upcoming_keeps_current_and_history() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..5), 0, &mut rng());
+    q.advance();
+    q.add_to_queue(TrackId(100));
+    q.set_repeat(Repeat::All);
+    assert!(q.clear_upcoming());
+    assert_eq!(q.current(), Some(TrackId(1)));
+    assert_eq!(q.manual().count(), 0);
+    assert!(q.upcoming_context(10).is_empty());
+    assert_eq!(q.peek_next(), None);
+    assert_eq!(q.advance(), None);
+    assert_eq!(q.current(), Some(TrackId(1)));
+    // L'historique reste : « Précédent » revient au titre 0, « Suivant » ramène au titre quitté.
+    assert_eq!(q.previous(), Some(TrackId(0)));
+    assert_eq!(q.advance(), Some(TrackId(1)));
+    assert!(!q.clear_upcoming());
+}
+
+#[test]
+fn clear_upcoming_then_new_items_play_normally() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..3), 0, &mut rng());
+    q.set_shuffle(true, &mut rng());
+    assert!(q.clear_upcoming());
+    q.set_shuffle(false, &mut rng());
+    q.add_to_queue(TrackId(7));
+    assert_eq!(drain(&mut q), vec![7]);
+    assert_eq!(q.set_context(ids(10..12), 0, &mut rng()), Some(TrackId(10)));
+    assert_eq!(drain(&mut q), vec![11]);
+}

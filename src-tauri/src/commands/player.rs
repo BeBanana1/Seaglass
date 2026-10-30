@@ -72,6 +72,12 @@ pub async fn remove_from_queue(state: State<'_, AppState>, index: usize) -> CmdR
     send_cmd(&state, Cmd::RemoveFromQueue(index)).await
 }
 
+/// Vide la file (manuelle et suite du contexte) sans arrêter le titre en cours.
+#[tauri::command]
+pub async fn clear_queue(state: State<'_, AppState>) -> CmdResult<()> {
+    send_cmd(&state, Cmd::ClearQueue).await
+}
+
 #[tauri::command]
 pub async fn next(state: State<'_, AppState>) -> CmdResult<()> {
     send_cmd(&state, Cmd::Next).await

@@ -133,6 +133,23 @@ impl Queue {
         self.manual.remove(index).is_some()
     }
 
+    /// Vide la file manuelle et la suite du contexte, sans toucher au titre courant ni à
+    /// l'historique. Le titre courant est détaché du contexte : rien ne le suit plus,
+    /// même en repeat All. Renvoie `false` s'il n'y avait rien à vider.
+    pub fn clear_upcoming(&mut self) -> bool {
+        if self.manual.is_empty() && self.peek_next().is_none() {
+            return false;
+        }
+        self.manual.clear();
+        self.context.clear();
+        self.order.clear();
+        self.pos = 0;
+        if let Some(cur) = &mut self.current {
+            cur.from_context = false;
+        }
+        true
+    }
+
     /// Titre qui suivra naturellement le titre courant (pour le préchargement).
     pub fn peek_next(&self) -> Option<TrackId> {
         self.manual
