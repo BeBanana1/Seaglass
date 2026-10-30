@@ -1,2 +1,5 @@
 # Fichiers copiés tels quels sur le serveur Linux (scp) : jamais de CRLF.
 ci/** text eol=lf
+
+# Scripts shell lancés par bash (CI, Git Bash) : un CR casse `set -euo pipefail`.
+*.sh text eol=lf
