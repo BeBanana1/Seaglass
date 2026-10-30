@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 
 use tokio::process::{Child, Command};
 
@@ -18,18 +18,25 @@ const BUNDLED_MPV: &str = "mpv.exe";
 #[cfg(not(windows))]
 const BUNDLED_MPV: &str = "mpv";
 
-/// Pipe IPC propre à ce lancement : un mpv orphelin d'un lancement précédent ne peut
-/// jamais être pris pour le nôtre.
+/// `<pid>-<128 bits aléatoires>`, tiré une fois par lancement : le pid écarte un mpv
+/// orphelin d'un lancement précédent, la partie aléatoire empêche un autre processus de
+/// créer le pipe avant mpv pour recevoir la connexion de l'app.
+fn pipe_id() -> &'static str {
+    static ID: OnceLock<String> = OnceLock::new();
+    ID.get_or_init(|| format!("{}-{}", std::process::id(), super::serve::random_token()))
+}
+
+/// Pipe IPC propre à ce lancement, partagé par `spawn` et `ipc::connect`.
 #[cfg(windows)]
 pub fn pipe_name() -> String {
-    format!(r"\\.\pipe\seaglass-mpv-{}", std::process::id())
+    format!(r"\\.\pipe\seaglass-mpv-{}", pipe_id())
 }
 
 /// Hors Windows, mpv attend le chemin d'un socket Unix.
 #[cfg(not(windows))]
 pub fn pipe_name() -> String {
     std::env::temp_dir()
-        .join(format!("seaglass-mpv-{}.sock", std::process::id()))
+        .join(format!("seaglass-mpv-{}.sock", pipe_id()))
         .to_string_lossy()
         .into_owned()
 }
@@ -101,5 +108,19 @@ impl ProcessGuard {
         {
             tracing::warn!("arrêt de mpv impossible : {e}");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pipe_name_is_stable_and_unguessable() {
+        let name = pipe_name();
+        assert_eq!(name, pipe_name());
+        let pid = std::process::id().to_string();
+        let suffix = name.split(&format!("seaglass-mpv-{pid}-")).nth(1).unwrap();
+        assert!(suffix.len() >= 32, "{name}");
     }
 }

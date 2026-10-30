@@ -81,7 +81,7 @@ seaglass/
 ## mpv
 
 - Lancé par l'app avec `--no-config --include=<seaglass.conf>` pour **ne jamais** charger la config mpv vidéo personnelle de l'utilisateur.
-- Options de base : `--idle=yes --no-video --input-ipc-server=\\.\pipe\seaglass-mpv-<pid de l'app> --ao=wasapi --gapless-audio=weak --prefetch-playlist=yes`. Le pid dans le nom du pipe empêche de se connecter à un mpv orphelin d'un lancement précédent.
+- Options de base : `--idle=yes --no-video --input-ipc-server=\\.\pipe\seaglass-mpv-<pid de l'app>-<aléatoire> --ao=wasapi --gapless-audio=weak --prefetch-playlist=yes`. Le pid dans le nom du pipe empêche de se connecter à un mpv orphelin d'un lancement précédent, la partie aléatoire qu'un autre processus le crée avant mpv.
 - Tauri quitte sans exécuter les destructeurs : mpv est tué explicitement sur `RunEvent::Exit` (`mpv::process::ProcessGuard`). En cas de plantage, c'est le Job Object (voir plus bas) qui l'arrête.
 - `media-controls=no` et `input-media-keys=no` dans `seaglass.conf` : sinon mpv publie sa propre session SMTC « mpv », qui capte les touches média (cause des issues #6 et #27). Seule la session de Seaglass doit exister.
 - `audio-params` passe à `null` à chaque fin de fichier et n'est pas renvoyé si le titre suivant a le même format : un `null` est ignoré, la sortie n'est effacée que sur `idle-active` (#12, `PlayerState::set_output`).
@@ -128,7 +128,9 @@ Observé avec `spike/play.py probe` puis décodage réel dans mpv 0.41.
 - **Identifiant client** : `TIDAL_CLIENT_ID` / `TIDAL_CLIENT_SECRET` (client PKCE) dans `.env`, injectés à la compilation par `build.rs`. Une variable d'environnement au lancement reste prioritaire.
 - **Connexion** : fenêtre webview `login` (sans aucune capability) sur `login.tidal.com/authorize` ; `on_navigation` intercepte `https://tidal.com/android/login/auth?code=…` et bloque la navigation. Refresh token dans le Credential Manager (service `seaglass`, utilisateur `tidal-refresh-token`). L'access token (4 h) n'est jamais persisté, il est rafraîchi 60 s avant expiration ou sur 401.
 - **Garde DRM** : avant chaque lecture, `tidal::manifest` rejette les MPD avec `ContentProtection` / `cenc:default_KID` / `cenc:pssh` / UUID Widevine, puis le segment d'initialisation (lu en mémoire) s'il contient `pssh`/`tenc`/`sinf`/`enca`.
-- **Manifestes** : `mpv::serve` écoute sur `127.0.0.1:<port aléatoire>` et garde les 4 derniers MPD en mémoire ; mpv reçoit `http://127.0.0.1:<port>/<track>-<n>.mpd`.
+- **Manifestes** : `mpv::serve` écoute sur `127.0.0.1:<port aléatoire>` et garde les 4 derniers MPD en mémoire ; mpv reçoit `http://127.0.0.1:<port>/<jeton>/<track>-<n>.mpd`. Le jeton (128 bits, hex, tiré au démarrage du serveur, #86) protège les URLs de flux signées des autres processus et comptes de la machine : sans lui, 404. Lecture et écriture sous un délai de 5 s, 16 connexions simultanées au plus (au-delà, refermée aussitôt) ; tests dans `serve.rs`, dont celui du délai (~5 s).
+- **Pipe mpv** : `\\.\pipe\seaglass-mpv-<pid>-<128 bits aléatoires>` (`process::pipe_id`, `OnceLock` tiré une fois par lancement, partagé par `spawn` et `ipc::connect`) : un processus local ne peut pas créer le pipe avant mpv (#86).
+- **CSP** (`tauri.conf.json`) : en plus de `default-src 'self'`, `base-uri 'none'`, `form-action 'none'` (les deux `<form>` font `preventDefault`) et `object-src 'none'`. Un nouvel hôte d'images va dans `img-src`.
 
 ## Implémentation (phase 2)
 
