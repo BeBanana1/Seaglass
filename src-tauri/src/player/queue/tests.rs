@@ -116,6 +116,58 @@ fn remove_manual_entry() {
     assert_eq!(q.manual().collect::<Vec<_>>(), vec![TrackId(101)]);
 }
 
+fn manual_ids(q: &Queue) -> Vec<u64> {
+    q.manual().map(|t| t.0).collect()
+}
+
+#[test]
+fn move_manual_down_and_up() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..2), 0, &mut rng());
+    q.enqueue(&ids(10..14), false);
+    // Vers le bas : l'entrée finit à l'index `to`.
+    assert!(q.move_manual(0, 2));
+    assert_eq!(manual_ids(&q), vec![11, 12, 10, 13]);
+    // Vers le haut, jusqu'en tête.
+    assert!(q.move_manual(3, 0));
+    assert_eq!(manual_ids(&q), vec![13, 11, 12, 10]);
+    // Monter / Descendre d'un cran.
+    assert!(q.move_manual(2, 1));
+    assert_eq!(manual_ids(&q), vec![13, 12, 11, 10]);
+    assert!(q.move_manual(2, 3));
+    assert_eq!(manual_ids(&q), vec![13, 12, 10, 11]);
+    // Le contexte n'est pas touché.
+    assert_eq!(drain(&mut q), vec![13, 12, 10, 11, 1]);
+}
+
+#[test]
+fn move_manual_rejects_no_op_and_out_of_range() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..2), 0, &mut rng());
+    q.enqueue(&ids(10..13), false);
+    let before = q.clone();
+    assert!(!q.move_manual(1, 1));
+    assert!(!q.move_manual(3, 0));
+    assert!(!q.move_manual(0, 3));
+    assert_eq!(q, before);
+    let mut empty = Queue::default();
+    assert!(!empty.move_manual(0, 0));
+}
+
+#[test]
+fn move_manual_changes_next_only_through_the_head() {
+    // L'acteur ne retire le préchargé que si `peek_next` change.
+    let mut q = Queue::default();
+    q.set_context(ids(0..2), 0, &mut rng());
+    q.enqueue(&ids(10..14), false);
+    q.move_manual(1, 3);
+    assert_eq!(q.peek_next(), Some(TrackId(10)));
+    q.move_manual(2, 0);
+    assert_eq!(q.peek_next(), Some(TrackId(13)));
+    q.move_manual(0, 3);
+    assert_eq!(q.peek_next(), Some(TrackId(10)));
+}
+
 #[test]
 fn shuffle_keeps_current_first_and_is_a_permutation() {
     let mut q = Queue::default();
