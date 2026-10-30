@@ -243,6 +243,7 @@
 /* Accueil personnalisable : lignes de console, filet néon, interrupteurs en biais. */
 :root[data-theme="acidwave"] .home-customize,
 :root[data-theme="acidwave"] .home-editor-reset,
+:root[data-theme="acidwave"] .update-check,
 :root[data-theme="acidwave"] .queue-clear {
   border-radius: 0;
   border-color: var(--border);

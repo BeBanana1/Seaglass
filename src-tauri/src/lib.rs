@@ -99,6 +99,7 @@ pub fn run() {
             commands::settings::set_autostart,
             updater::update_status,
             updater::install_update,
+            updater::check_for_updates,
         ])
         .build(tauri::generate_context!())
         .expect("échec du lancement de l'application")

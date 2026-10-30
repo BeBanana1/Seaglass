@@ -111,6 +111,16 @@ function emit(event: string, payload: unknown) {
   listeners.get(event)?.forEach((cb) => cb({ payload: structuredClone(payload) }));
 }
 
+function mockUpdate() {
+  return params.has("update")
+    ? {
+        version: "0.5.0",
+        currentVersion: "0.4.4",
+        notes: ["- Installeur Windows", "- Mises à jour automatiques"].join("\n"),
+      }
+    : null;
+}
+
 function queueView(): QueueView {
   return { manual: [...manual], upcoming: context.slice(index + 1, index + 51) };
 }
@@ -150,15 +160,14 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   queue_state: () => queueView(),
   ui_settings: () => ui,
   // `?update=1` : simule une mise à jour prête.
-  update_status: () =>
-    params.has("update")
-      ? {
-          version: "0.5.0",
-          currentVersion: "0.4.4",
-          notes: ["- Installeur Windows", "- Mises à jour automatiques"].join("\n"),
-        }
-      : null,
+  update_status: () => mockUpdate(),
   install_update: () => null,
+  // Sans `?update=1`, l'app est « à jour ».
+  check_for_updates: () => {
+    const u = mockUpdate();
+    if (u) emit("update-ready", u);
+    return u;
+  },
   set_ui_settings: ({ settings }) => {
     ui = settings as UiSettings;
   },
