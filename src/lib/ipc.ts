@@ -178,6 +178,9 @@ export const commands = {
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle }),
   playNext: (trackId: TrackId) => invoke<void>("play_next", { trackId }),
   addToQueue: (trackId: TrackId) => invoke<void>("add_to_queue", { trackId }),
+  /** Plusieurs titres dans l'ordre : en tête de la file avec `next` (« Lire ensuite »), sinon à la fin. */
+  enqueueTracks: (trackIds: TrackId[], next: boolean) =>
+    invoke<void>("enqueue_tracks", { trackIds, next }),
   removeFromQueue: (index: number) => invoke<void>("remove_from_queue", { index }),
   next: () => invoke<void>("next"),
   previous: () => invoke<void>("previous"),

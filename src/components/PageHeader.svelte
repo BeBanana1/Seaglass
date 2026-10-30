@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { commands, type TrackId } from "../lib/ipc";
+  import { plural } from "../lib/format";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import Icon from "./Icon.svelte";
 
@@ -10,6 +11,7 @@
     title,
     round = false,
     trackIds = [],
+    queueable = false,
     meta,
     description,
   }: {
@@ -20,6 +22,8 @@
     round?: boolean;
     /** Contexte lancé par les boutons Lecture / Aléatoire. */
     trackIds?: TrackId[];
+    /** Affiche « Lire ensuite » / « Ajouter à la file » pour tous les titres (album, playlist). */
+    queueable?: boolean;
     meta?: Snippet;
     description?: string | null;
   } = $props();
@@ -27,6 +31,18 @@
   async function play(shuffle: boolean) {
     try {
       await commands.playTracks(trackIds, 0, shuffle);
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
+
+  async function enqueue(next: boolean) {
+    try {
+      await commands.enqueueTracks(trackIds, next);
+      const added = plural(trackIds.length, "titre");
+      const verb = trackIds.length > 1 ? "ajoutés" : "ajouté";
+      const where = next ? "en tête de la file" : "à la file";
+      pushToast({ level: "info", message: `${added} ${verb} ${where}` });
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
@@ -50,6 +66,19 @@
         <button class="secondary" onclick={() => play(true)}>
           <Icon name="shuffle" size={16} /> Aléatoire
         </button>
+        {#if queueable}
+          <button class="secondary icon" onclick={() => enqueue(true)} title="Lire ensuite" aria-label="Lire ensuite">
+            <Icon name="playNext" size={18} />
+          </button>
+          <button
+            class="secondary icon"
+            onclick={() => enqueue(false)}
+            title="Ajouter à la file"
+            aria-label="Ajouter à la file"
+          >
+            <Icon name="add" size={18} />
+          </button>
+        {/if}
       </div>
     {/if}
   </div>
@@ -151,6 +180,12 @@
 
   .secondary:hover {
     background: var(--bg-hover);
+  }
+
+  .actions button.icon {
+    justify-content: center;
+    width: 37px;
+    padding: 0;
   }
 
   :global([data-theme="studio"]) .actions button,
