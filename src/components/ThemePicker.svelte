@@ -391,6 +391,30 @@
     background: linear-gradient(transparent 40%, rgb(200 22 111 / 0.5) 40%);
   }
 
+  .preview.bauhaus {
+    gap: 4px;
+    padding: 7px;
+    border-radius: 0;
+    background:
+      radial-gradient(circle at 92% 8%, #c8231a 0 24%, transparent 25%),
+      radial-gradient(circle at 0% 100%, #f2b80d 0 26%, transparent 27%),
+      #f1ece0;
+  }
+
+  .bauhaus :is(.side, .main, .bar) {
+    border-radius: 0;
+    background: #f7f3ea;
+    border: 1.5px solid #141414;
+  }
+
+  .bauhaus .h {
+    background: #141414;
+  }
+
+  .bauhaus .l {
+    background: #1d4fa0;
+  }
+
   .terminal .l {
     background: repeating-linear-gradient(90deg, rgb(65 255 122 / 0.6) 0 4px, transparent 4px 6px);
   }

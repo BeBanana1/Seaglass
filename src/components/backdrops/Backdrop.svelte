@@ -7,6 +7,7 @@
   import SolarScene from "./SolarScene.svelte";
   import CyberScene from "./CyberScene.svelte";
   import RisoPaper from "./RisoPaper.svelte";
+  import BauhausComposition from "./BauhausComposition.svelte";
 
   let { context = "shell" }: { context?: "shell" | "nowplaying" } = $props();
 
@@ -26,4 +27,6 @@
   <CyberScene {intense} />
 {:else if theme === "riso"}
   <RisoPaper {intense} />
+{:else if theme === "bauhaus"}
+  <BauhausComposition {intense} />
 {/if}
