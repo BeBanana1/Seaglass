@@ -1,13 +1,15 @@
 //! Réglages : interface et lecture dans SQLite (table `kv`, clés séparées), lancement au
 //! démarrage lu et écrit directement dans le système (clé `Run` du registre).
 
+pub mod home_layout;
+
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 use tauri_plugin_autostart::ManagerExt;
 
 use super::{AppState, CmdResult, err};
-use crate::home_layout::{HomeLayout, SectionPref};
 use crate::player::{Cmd, PlaybackSettings};
+use home_layout::{HomeLayout, SectionPref};
 
 const KEY_UI: &str = "ui.settings";
 

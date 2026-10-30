@@ -1,5 +1,4 @@
 mod commands;
-mod home_layout;
 mod integrations;
 mod mpv;
 mod player;

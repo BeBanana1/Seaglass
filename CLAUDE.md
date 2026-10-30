@@ -3,7 +3,7 @@
 Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
 Projet personnel, Windows en priorité.
 
-> Statut : **v0.4.4 publiée** (2026-10-29) sur `https://updates.bebanana.ch/seaglass/` : installeur NSIS signé, mpv embarqué, mises à jour automatiques. Phase 4 livrée (SMTC, cinq thèmes) ; Discord RPC et Last.fm reportés à la demande de l'utilisateur. Restent en phase 5 : mode exclusif WASAPI, mixes de l'accueil, CI.
+> Statut : **v0.4.4 publiée** (2026-10-29) sur `https://updates.bebanana.ch/seaglass/` : installeur NSIS signé, mpv embarqué, mises à jour automatiques. Phase 4 livrée (SMTC, cinq thèmes) ; Discord RPC et Last.fm reportés à la demande de l'utilisateur. Restent en phase 5 : mode exclusif WASAPI, mixes de l'accueil, CI. `main` est en **0.4.5** (non publiée) : page Réglages, volume, cache mpv, lancement au démarrage, accueil personnalisable, filtre et tri des listes, ajout d'albums à la file, file dans « En lecture ».
 
 ## Principes non négociables
 
@@ -11,7 +11,7 @@ Projet personnel, Windows en priorité.
 2. **Rust est la source de vérité.** L'UI n'a aucune logique métier : elle affiche l'état reçu du backend et envoie des commandes. Elle ne parle jamais directement à TIDAL ni à mpv.
 3. **Tout ce qui touche TIDAL vit dans `src-tauri/src/tidal/`.** C'est une API privée non documentée qui peut changer à tout moment : le reste du code ne dépend que des types de `tidal::models`, jamais des formats JSON bruts.
 4. **Aucun secret dans le dépôt.** Client ID / secret dans `.env` (gitignoré) ou variables d'environnement. Tokens utilisateur dans le Gestionnaire d'identifiants Windows via la crate `keyring`. Ne jamais logger un token, même tronqué.
-5. **Pas de nom ni de logo TIDAL** dans le nom de l'app, l'icône ou le titre de fenêtre. Mention « Client non officiel, non affilié à TIDAL » dans l'écran À propos et le README.
+5. **Pas de nom ni de logo TIDAL** dans le nom de l'app, l'icône ou le titre de fenêtre. Mention « Client non officiel, non affilié à TIDAL » dans Réglages › Application et le README.
 
 ## Stack
 
@@ -25,6 +25,7 @@ Projet personnel, Windows en priorité.
 | Secrets | `keyring` (Credential Manager sous Windows) |
 | Intégrations | SMTC Windows (`windows` crate), Discord RPC, Last.fm (plus tard) |
 | Mises à jour | `tauri-plugin-updater` (installeur NSIS signé, manifeste `latest.json`) |
+| Système | `tauri-plugin-autostart` (lancement au démarrage, piloté uniquement côté Rust) |
 
 Demander avant d'ajouter une dépendance qui n'est pas dans cette liste.
 

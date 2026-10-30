@@ -4,7 +4,7 @@
   import { initPlayer, player, stepVolume } from "./lib/stores/player.svelte";
   import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
-  import { initUi } from "./lib/stores/ui.svelte";
+  import { initUi, ui } from "./lib/stores/ui.svelte";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";

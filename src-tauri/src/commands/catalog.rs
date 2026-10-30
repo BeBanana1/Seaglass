@@ -3,8 +3,8 @@
 
 use tauri::State;
 
+use super::settings::home_layout::HomeSection;
 use super::{AppState, CmdResult, err, settings};
-use crate::home_layout::HomeSection;
 use crate::tidal::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, PlaylistPage, PlaylistSummary,
     SearchResults, TrackEntry,
