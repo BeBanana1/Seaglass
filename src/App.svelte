@@ -23,6 +23,7 @@
   import PlayerBar from "./components/PlayerBar.svelte";
   import Toasts from "./components/Toasts.svelte";
   import UpdatePrompt from "./components/UpdatePrompt.svelte";
+  import ContextMenu from "./components/ContextMenu.svelte";
   import Icon from "./components/Icon.svelte";
 
   let session = $state<SessionInfo | null>(null);
@@ -100,6 +101,16 @@
     }
   }
 
+  // Pas de menu WebView2 (Précédent, Actualiser, Imprimer…) hors des champs de texte et des
+  // sélections, où il sert à copier-coller. Les menus de l'app appellent `preventDefault` avant.
+  function onContextmenu(e: MouseEvent) {
+    if (e.defaultPrevented) return;
+    const target = e.target as HTMLElement;
+    const editable = target.closest("input, textarea, [contenteditable]") !== null;
+    const selected = (window.getSelection()?.toString() ?? "") !== "";
+    if (!editable && !selected) e.preventDefault();
+  }
+
   async function logout() {
     await commands.logout();
     session = null;
@@ -108,7 +119,7 @@
   const route = $derived(current());
 </script>
 
-<svelte:window onkeydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} oncontextmenu={onContextmenu} />
 
 <div class="backdrop-layer"><Backdrop /></div>
 
@@ -185,6 +196,7 @@
 {/if}
 <Toasts />
 <UpdatePrompt />
+<ContextMenu />
 
 <style>
   /* Fond propre au thème (vide pour Studio et Atelier). */

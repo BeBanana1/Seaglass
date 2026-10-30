@@ -363,3 +363,33 @@
   font-size: 10px;
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
 }
+
+/* Menu contextuel : console noire, filet néon, entrée active soulignée à gauche. */
+:root[data-theme="acidwave"] .context-menu {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 0;
+  background: rgb(5 5 7 / 0.94);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.7),
+    0 0 26px color-mix(in srgb, var(--accent) 18%, transparent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+:root[data-theme="acidwave"] .context-menu-item {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+:root[data-theme="acidwave"] .context-menu-item:hover,
+:root[data-theme="acidwave"] .context-menu-item:focus {
+  color: var(--accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+:root[data-theme="acidwave"] .context-menu-sep {
+  background: linear-gradient(90deg, var(--acid-cyan), var(--accent), var(--acid-magenta));
+  opacity: 0.5;
+}
