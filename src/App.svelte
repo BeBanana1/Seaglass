@@ -44,6 +44,7 @@
       if (view.route) go(view.route);
       nowPlayingOpen = view.nowPlaying;
       queueOpen = view.queue;
+      ui.nowPlayingQueue = view.queue;
     }
   });
 

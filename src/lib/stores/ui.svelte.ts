@@ -30,9 +30,15 @@ export const THEMES: { id: Theme; name: string; description: string }[] = [
   },
 ];
 
-export const ui = $state<{ settings: UiSettings; appearanceOpen: boolean }>({
+export const ui = $state<{
+  settings: UiSettings;
+  appearanceOpen: boolean;
+  /** Panneau de file dans la vue « En lecture » (mémorisé pour la session). */
+  nowPlayingQueue: boolean;
+}>({
   settings: { theme: "seaglass" },
   appearanceOpen: false,
+  nowPlayingQueue: false,
 });
 
 function apply() {
