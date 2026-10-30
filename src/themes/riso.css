@@ -1,0 +1,156 @@
+/* Thème Risographie (#69) : fanzine imprimé en deux encres.
+   Jetons (papier, encres, aplats décalés, cadres épais) dans app.css ; ici, l'impression :
+   décalage de repérage des titres, surligneur, pochettes en bichromie, cartes de travers.
+   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+
+/* Titres : seconde encre décalée de quelques pixels. */
+:root[data-theme="riso"] :is(h1, .hero .title) {
+  text-shadow: 3px 2px 0 color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+:root[data-theme="riso"] h2 {
+  display: inline;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: linear-gradient(transparent 55%, color-mix(in srgb, var(--accent) 30%, transparent) 55%);
+}
+
+:root[data-theme="riso"] .brand {
+  font-family: var(--display-family);
+  font-weight: 900;
+  text-transform: uppercase;
+  text-shadow: 2px 1px 0 color-mix(in srgb, var(--riso-blue) 55%, transparent);
+}
+
+:root[data-theme="riso"] .badge {
+  border-radius: 999px;
+  color: var(--accent-contrast);
+  background: var(--riso-blue);
+}
+
+/* Pochettes en bichromie (gris sur dégradé rose → bleu, en multiplication) dans les grilles
+   et l'en-tête ; en couleur au survol et dans « En lecture ». */
+:root[data-theme="riso"] :is(.card .image, header .image) {
+  background: linear-gradient(135deg, var(--accent), var(--riso-blue));
+}
+
+:root[data-theme="riso"] :is(.card .image, header .image) img {
+  filter: grayscale(1) contrast(1.25) brightness(1.05);
+  mix-blend-mode: multiply;
+}
+
+:root[data-theme="riso"] .card:hover .image img {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+/* Cartes posées un peu de travers, redressées au survol. */
+:root[data-theme="riso"] .card .image {
+  transition: transform var(--motion-fast);
+}
+
+:root[data-theme="riso"] :nth-child(3n + 1) > .card .image,
+:root[data-theme="riso"] .card:nth-child(3n + 1) .image {
+  transform: rotate(-1.2deg);
+}
+
+:root[data-theme="riso"] :nth-child(3n + 2) > .card .image,
+:root[data-theme="riso"] .card:nth-child(3n + 2) .image {
+  transform: rotate(0.9deg);
+}
+
+:root[data-theme="riso"] .card:hover .image {
+  transform: none;
+}
+
+:root[data-theme="riso"] .card:hover {
+  background: transparent;
+}
+
+/* Surligneur : ligne en cours, navigation, paroles. */
+:root[data-theme="riso"] :is(nav button.active, nav .pin.active) {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--riso-blue) 35%, transparent);
+}
+
+:root[data-theme="riso"] .row.active .title {
+  background: linear-gradient(transparent 50%, color-mix(in srgb, var(--accent) 35%, transparent) 50%);
+}
+
+:root[data-theme="riso"] .row:hover {
+  background: color-mix(in srgb, var(--riso-blue) 8%, transparent);
+}
+
+:root[data-theme="riso"] .lyrics-line.active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Commandes : aplats à bord épais, ombre d'encre décalée. */
+:root[data-theme="riso"] .transport .play {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  box-shadow: 3px 3px 0 var(--riso-blue);
+}
+
+:root[data-theme="riso"] .transport .play:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+:root[data-theme="riso"] :is(.progress .fill, .volume .fill) {
+  background: var(--accent);
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--riso-blue) 60%, transparent);
+}
+
+:root[data-theme="riso"] :is(.progress .track, .volume .track) {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+:root[data-theme="riso"] .info .actions button {
+  border: 2px solid var(--text) !important;
+}
+
+:root[data-theme="riso"] .info .actions .primary {
+  box-shadow: 3px 3px 0 var(--riso-blue);
+}
+
+:root[data-theme="riso"] .tabs button.active {
+  color: var(--accent-contrast);
+  background: var(--riso-blue);
+}
+
+:root[data-theme="riso"] .theme-card.selected {
+  border: 2px solid var(--text);
+  box-shadow: 4px 4px 0 var(--accent);
+}
+
+:root[data-theme="riso"] .signal {
+  border: 2px solid var(--text);
+  backdrop-filter: none;
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* Bandeau d'accueil : affiche sur papier, pochette décalée. */
+:root[data-theme="riso"] .hero {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg));
+  border: 2px solid var(--text);
+  box-shadow: 6px 6px 0 color-mix(in srgb, var(--riso-blue) 45%, transparent);
+}
+
+:root[data-theme="riso"] .hero .bg {
+  display: none;
+}
+
+:root[data-theme="riso"] :is(.hero .label, .hero .meta) {
+  color: var(--text-muted);
+}
+
+:root[data-theme="riso"] .hero .cta {
+  color: var(--accent);
+}
+
+:root[data-theme="riso"] .like-button.liked {
+  color: var(--accent);
+}
