@@ -45,8 +45,41 @@ export interface StreamFormat {
   codec: string;
   bitDepth: number | null;
   sampleRate: number | null;
+  /** Débit moyen déclaré par le manifeste, en kbps (#3). */
+  bitrate: number | null;
   /** Album de l'édition hi-res réellement lue, quand ce n'est pas celle du titre affiché (#18). */
   hiresEdition: string | null;
+}
+
+/** Infos détaillées d'un titre (#3), demandées à l'ouverture du panneau. */
+export interface TrackInfo {
+  track: Track;
+  /** `LOSSLESS`, `HIRES_LOSSLESS`, `DOLBY_ATMOS`… */
+  tags: string[];
+  /** Format servi en qualité maximale ; `null` si refusé (voir `streamError`). */
+  stream: StreamFormat | null;
+  streamError: string | null;
+  /** ReplayGain en dB et crêtes (pleine échelle = 1), jamais appliqués par Seaglass. */
+  trackGain: number | null;
+  trackPeak: number | null;
+  albumGain: number | null;
+  albumPeak: number | null;
+  bpm: number | null;
+  /** Tonalité brute de l'API (`B`, `FSharp`, `Bb`…) et mode (`MAJOR`, `MINOR`). */
+  key: string | null;
+  keyScale: string | null;
+  copyright: string | null;
+  trackNumber: number | null;
+  volumeNumber: number | null;
+  /** Autre édition hi-res du même enregistrement, si le titre n'est pas hi-res. */
+  hiresEdition: HiresEdition | null;
+}
+
+export interface HiresEdition {
+  track: Track;
+  stream: StreamFormat | null;
+  /** Seaglass la lit à la place du titre (réglage actif et flux meilleur). */
+  played: boolean;
 }
 
 export interface AudioParams {
@@ -285,6 +318,8 @@ export const commands = {
   feed: () => invoke<FeedItem[]>("feed"),
   /** `null` si TIDAL n'a pas de paroles pour ce titre. */
   lyrics: (trackId: TrackId) => invoke<Lyrics | null>("lyrics", { trackId }),
+  /** Format réel, ReplayGain, BPM… : une requête de lecture, à ne demander qu'à la demande. */
+  trackInfo: (trackId: TrackId) => invoke<TrackInfo>("track_info", { trackId }),
   /** Identifiants des titres likés (mis à jour ensuite par l'événement `liked-tracks`). */
   likedTracks: () => invoke<TrackId[]>("liked_tracks"),
   setTrackLiked: (trackId: TrackId, liked: boolean) =>

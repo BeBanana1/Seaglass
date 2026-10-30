@@ -3,6 +3,7 @@
   import { player } from "../lib/stores/player.svelte";
   import {
     formatStream,
+    kbps,
     khz,
     outputFormat,
     signalVerdict,
@@ -30,10 +31,23 @@
   );
   /** Flux pris sur une autre édition hi-res du même enregistrement (#18). */
   const edition = $derived(s.stream?.hiresEdition ?? null);
-  const sourceSub = $derived(
-    !s.stream ? "" : edition ? "Hi-Res · autre édition" : s.stream.quality === "HI_RES_LOSSLESS" ? "Hi-Res" : "Lossless",
-  );
   const editionHint = $derived(edition ? `Version hi-res de l'édition « ${edition} »` : undefined);
+  const sourceSub = $derived.by(() => {
+    if (!s.stream) return "";
+    const kind = edition
+      ? "Hi-Res · autre édition"
+      : s.stream.quality === "HI_RES_LOSSLESS"
+        ? "Hi-Res"
+        : s.stream.codec === "flac"
+          ? "Lossless"
+          : "Avec perte";
+    // Débit moyen du manifeste (#3) ; la version resserrée garde la ligne courte.
+    return s.stream.bitrate && !dense ? `${kind} · ${kbps(s.stream.bitrate)}` : kind;
+  });
+  const sourceTitle = $derived(
+    [editionHint, s.stream?.bitrate ? `Débit moyen : ${kbps(s.stream.bitrate)}` : ""].filter(Boolean).join(" — ") ||
+      undefined,
+  );
 </script>
 
 {#if compact}
@@ -43,7 +57,7 @@
   </span>
 {:else}
   <div class="path {verdict.tone}" class:dense>
-    <div class="node" title={editionHint}>
+    <div class="node" title={sourceTitle}>
       <span class="label">Source</span>
       <span class="value mono">{s.stream ? formatStream(s.stream) : "—"}</span>
       <span class="sub">{sourceSub}</span>

@@ -13,3 +13,4 @@ pub use actor::{Cmd, spawn};
 pub use queue::Repeat;
 pub use settings::PlaybackSettings;
 pub use state::{PlayerState, QueueView};
+pub use upgrade::is_better;

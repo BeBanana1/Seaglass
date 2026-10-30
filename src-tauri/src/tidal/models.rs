@@ -91,6 +91,8 @@ pub struct StreamFormat {
     pub codec: String,
     pub bit_depth: Option<u8>,
     pub sample_rate: Option<u32>,
+    /// Débit moyen déclaré par le manifeste, en kbps (#3).
+    pub bitrate: Option<u32>,
     /// Album de l'édition réellement lue quand le flux vient d'une autre édition hi-res du
     /// même enregistrement (#18) ; `None` pour le titre affiché.
     pub hires_edition: Option<String>,
@@ -296,4 +298,40 @@ pub struct LyricLine {
     /// Début de la ligne, en millisecondes.
     pub time_ms: u32,
     pub text: String,
+}
+
+/// Infos détaillées d'un titre (#3), demandées à l'ouverture du panneau.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackInfo {
+    pub track: Track,
+    /// Tags de disponibilité (`LOSSLESS`, `HIRES_LOSSLESS`, `DOLBY_ATMOS`…).
+    pub tags: Vec<String>,
+    /// Format servi en qualité maximale, comme pour une lecture ; `None` si refusé.
+    pub stream: Option<StreamFormat>,
+    /// Raison du refus du flux (DRM, titre indisponible…).
+    pub stream_error: Option<String>,
+    /// ReplayGain (dB) et crêtes (pleine échelle = 1), lus mais jamais appliqués.
+    pub track_gain: Option<f64>,
+    pub track_peak: Option<f64>,
+    pub album_gain: Option<f64>,
+    pub album_peak: Option<f64>,
+    pub bpm: Option<u32>,
+    /// Tonalité telle que donnée par l'API (`B`, `FSharp`…) et son mode (`MAJOR`, `MINOR`).
+    pub key: Option<String>,
+    pub key_scale: Option<String>,
+    pub copyright: Option<String>,
+    pub track_number: Option<u32>,
+    pub volume_number: Option<u32>,
+    /// Autre édition hi-res du même enregistrement (#18, #55), si le titre n'est pas hi-res.
+    pub hires_edition: Option<HiresEdition>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HiresEdition {
+    pub track: Track,
+    pub stream: Option<StreamFormat>,
+    /// Seaglass la lit à la place du titre (réglage actif et flux réellement meilleur).
+    pub played: bool,
 }

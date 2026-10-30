@@ -6,6 +6,7 @@
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
   import { initUi, ui } from "./lib/stores/ui.svelte";
+  import { openTrackInfo } from "./lib/stores/trackInfo.svelte";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
@@ -26,6 +27,7 @@
   import UpdatePrompt from "./components/UpdatePrompt.svelte";
   import ContextMenu from "./components/ContextMenu.svelte";
   import PlaylistPicker from "./components/PlaylistPicker.svelte";
+  import TrackInfo from "./components/TrackInfo.svelte";
   import Icon from "./components/Icon.svelte";
 
   let session = $state<SessionInfo | null>(null);
@@ -48,6 +50,7 @@
       nowPlayingOpen = view.nowPlaying;
       queueOpen = view.queue;
       ui.nowPlayingPanel = view.lyrics ? "lyrics" : view.queue ? "queue" : null;
+      if (view.trackInfo && player.state.track) openTrackInfo(player.state.track);
     }
   });
 
@@ -206,6 +209,7 @@
 <UpdatePrompt />
 <ContextMenu />
 <PlaylistPicker />
+<TrackInfo />
 
 <style>
   /* Fond propre au thème (vide pour Studio et Atelier). */

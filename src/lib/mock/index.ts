@@ -7,7 +7,8 @@
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
-// `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible).
+// `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
+// `?trackinfo=1` (ouvre les infos du titre en cours).
 
 import type {
   AlbumPage,
@@ -26,9 +27,11 @@ import type {
   QueueView,
   RadioPage,
   SearchResults,
+  StreamFormat,
   Theme,
   Track,
   TrackEntry,
+  TrackInfo,
   UiSettings,
 } from "../ipc";
 import type { LibraryTab, Route, SettingsSection } from "../stores/nav.svelte";
@@ -97,7 +100,7 @@ const hiresEdition = params.get("hiresedition");
 
 const state: PlayerState = {
   track: context[index] ?? null,
-  stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100, hiresEdition },
+  stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100, bitrate: 1854, hiresEdition },
   output: { format: "s32", samplerate: 44100, channelCount: 2 },
   outputDriver: "wasapi",
   loading: false,
@@ -185,9 +188,10 @@ function setCurrent(track: Track | undefined) {
               codec: "flac",
               bitDepth: 24,
               sampleRate: 48000,
+              bitrate: 2016,
               hiresEdition: upgraded ? hiresEdition : null,
             }
-          : { quality: "LOSSLESS", codec: "flac", bitDepth: 16, sampleRate: 44100, hiresEdition: null },
+          : { quality: "LOSSLESS", codec: "flac", bitDepth: 16, sampleRate: 44100, bitrate: 893, hiresEdition: null },
         output: { format: hires ? "s32" : "s16", samplerate: hires ? 48000 : 44100, channelCount: 2 },
       };
     })(),
@@ -239,6 +243,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   home: () => arrangeHome(fx.home, ui.home),
   feed: () => fx.feed ?? [],
   lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
+  track_info: ({ trackId }) => mockTrackInfo(Number(trackId)),
   search: ({ query }) => (String(query).trim() ? fx.search : { tracks: [], albums: [], artists: [], playlists: [] }),
   album: () => fx.album,
   artist: () => fx.artist,
@@ -438,12 +443,52 @@ function mockLyrics(trackId: number): Lyrics | null {
   };
 }
 
+/** Infos factices (#3) : titre hi-res en 24/48, sinon 16/44,1 avec l'édition `?hiresedition=`. */
+function mockTrackInfo(trackId: number): TrackInfo {
+  const track = allTracks.get(trackId);
+  if (!track) throw new Error(`titre ${trackId} introuvable`);
+  const cd: StreamFormat = {
+    quality: "LOSSLESS",
+    codec: "flac",
+    bitDepth: 16,
+    sampleRate: 44100,
+    bitrate: 893,
+    hiresEdition: null,
+  };
+  const hires: StreamFormat = { ...cd, quality: "HI_RES_LOSSLESS", bitDepth: 24, sampleRate: 48000, bitrate: 2016 };
+  return {
+    track,
+    tags: track.hires ? ["LOSSLESS", "HIRES_LOSSLESS"] : ["LOSSLESS"],
+    stream: track.hires ? hires : cd,
+    streamError: null,
+    trackGain: -6.17,
+    trackPeak: 0.997284,
+    albumGain: -8.25,
+    albumPeak: 0.997253,
+    bpm: 147,
+    key: track.hires ? "FSharp" : "Bb",
+    keyScale: "MINOR",
+    copyright: "℗ 2024 Label de démonstration",
+    trackNumber: Math.max(1, fx.album.tracks.findIndex((t) => t.id === trackId) + 1),
+    volumeNumber: 1,
+    hiresEdition:
+      !track.hires && hiresEdition !== null
+        ? {
+            track: { ...track, id: track.id + 1_000_000, hires: true, album: { ...track.album, title: hiresEdition } },
+            stream: hires,
+            played: playback.hiresUpgrade,
+          }
+        : null,
+  };
+}
+
 /** Paramètres d'URL de navigation, appliqués une fois l'app montée. */
 export function initialView(): {
   route: Route | null;
   nowPlaying: boolean;
   queue: boolean;
   lyrics: boolean;
+  trackInfo: boolean;
 } {
   const routes: Record<string, Route> = {
     album: { name: "album", id: fx.album.album.id },
@@ -461,6 +506,7 @@ export function initialView(): {
     nowPlaying: params.has("nowplaying"),
     queue: params.has("queue"),
     lyrics: params.has("lyrics"),
+    trackInfo: params.has("trackinfo"),
   };
 }
 

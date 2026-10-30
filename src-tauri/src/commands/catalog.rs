@@ -1,13 +1,15 @@
 //! Commandes de navigation : recherche, pages album / artiste / playlist / mix, radios,
-//! bibliothèque, accueil, fil d'actualité, paroles.
+//! bibliothèque, accueil, fil d'actualité, paroles, infos d'un titre.
 
 use tauri::{AppHandle, State};
 
 use super::settings::home_layout::HomeSection;
 use super::{AppState, CmdResult, err, settings};
+use crate::player::{PlaybackSettings, is_better};
 use crate::tidal::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, Lyrics, MixPage, MixSummary,
     PlaylistPage, PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry, TrackId,
+    TrackInfo,
 };
 
 const MAX_QUERY_LEN: usize = 200;
@@ -98,6 +100,22 @@ pub async fn home(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
 #[tauri::command]
 pub async fn lyrics(state: State<'_, AppState>, track_id: TrackId) -> CmdResult<Option<Lyrics>> {
     state.tidal.lyrics(track_id).await.map_err(err)
+}
+
+/// Infos détaillées d'un titre (#3), à la demande (une requête de lecture). `played` dit
+/// si Seaglass lirait l'édition hi-res trouvée à la place du titre, selon le réglage.
+#[tauri::command]
+pub async fn track_info(state: State<'_, AppState>, track_id: TrackId) -> CmdResult<TrackInfo> {
+    let mut info = state.tidal.track_info(track_id).await.map_err(err)?;
+    let upgrade = PlaybackSettings::load(state.store.as_deref()).hires_upgrade;
+    if let Some(edition) = info.hires_edition.as_mut() {
+        edition.played = upgrade
+            && edition
+                .stream
+                .as_ref()
+                .is_some_and(|s| is_better(s, info.stream.as_ref()));
+    }
+    Ok(info)
 }
 
 /// Sorties récentes des artistes suivis.

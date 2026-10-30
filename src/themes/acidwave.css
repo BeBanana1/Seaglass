@@ -429,3 +429,26 @@
   border-radius: 0;
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
+
+/* Infos du titre (#3) : même cadre que le sélecteur de playlist, rubriques en mono. */
+:root[data-theme="acidwave"] .track-info {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 0;
+  background: rgb(5 5 7 / 0.96);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.7),
+    0 0 40px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+:root[data-theme="acidwave"] .info-section h4 {
+  font-family: var(--font-mono);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+:root[data-theme="acidwave"] .info-tag {
+  border-radius: 0;
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: var(--accent);
+}
