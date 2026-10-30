@@ -6,6 +6,7 @@ pub mod cache;
 mod catalog;
 mod date;
 mod feed;
+mod hires;
 #[cfg(test)]
 mod live_tests;
 mod lyrics;

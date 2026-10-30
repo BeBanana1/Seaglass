@@ -44,6 +44,10 @@ pub struct Track {
     pub explicit: bool,
     /// Disponible en 24 bits (tag `HIRES_LOSSLESS`).
     pub hires: bool,
+    /// Identifiant de l'enregistrement, commun à toutes ses éditions (#18). Absent des
+    /// titres enregistrés avant la 0.4.8.
+    #[serde(default)]
+    pub isrc: Option<String>,
 }
 
 /// Titre d'une liste (playlist ou favoris) avec sa date d'ajout à cette liste.
@@ -87,6 +91,9 @@ pub struct StreamFormat {
     pub codec: String,
     pub bit_depth: Option<u8>,
     pub sample_rate: Option<u32>,
+    /// Album de l'édition réellement lue quand le flux vient d'une autre édition hi-res du
+    /// même enregistrement (#18) ; `None` pour le titre affiché.
+    pub hires_edition: Option<String>,
 }
 
 #[derive(Debug, Clone)]

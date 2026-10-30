@@ -1,6 +1,6 @@
 <!-- Page Réglages : une section par onglet. Les valeurs viennent toutes du backend. -->
 <script lang="ts">
-  import { commands, type CacheSize } from "../lib/ipc";
+  import { commands, type CacheSize, type PlaybackSettings } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
@@ -16,12 +16,13 @@
 
   const CACHE_SIZES: CacheSize[] = [32, 64, 128, 256];
 
-  let cacheSize = $state<CacheSize | null>(null);
+  let playback = $state<PlaybackSettings | null>(null);
+  const cacheSize = $derived(playback?.cacheSize ?? null);
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
 
   $effect(() => {
-    if (section === "playback" && cacheSize === null) loadPlayback();
+    if (section === "playback" && playback === null) loadPlayback();
     if (section === "app" && autostart === null) loadAutostart();
   });
 
@@ -31,20 +32,27 @@
 
   async function loadPlayback() {
     try {
-      cacheSize = (await commands.playbackSettings()).cacheSize;
+      playback = await commands.playbackSettings();
     } catch (e) {
       fail(e);
     }
   }
 
-  async function setCacheSize(size: CacheSize) {
-    if (size === cacheSize) return;
+  async function savePlayback(next: PlaybackSettings) {
     try {
-      await commands.setPlaybackSettings({ cacheSize: size });
-      cacheSize = size;
+      await commands.setPlaybackSettings(next);
+      playback = next;
     } catch (e) {
       fail(e);
     }
+  }
+
+  function setCacheSize(size: CacheSize) {
+    if (playback && size !== playback.cacheSize) savePlayback({ ...playback, cacheSize: size });
+  }
+
+  function toggleHiresUpgrade() {
+    if (playback) savePlayback({ ...playback, hiresUpgrade: !playback.hiresUpgrade });
   }
 
   async function loadAutostart() {
@@ -138,6 +146,30 @@
         Appliqué tout de suite, sans interrompre la lecture. Le cache reste en mémoire : rien
         n'est écrit sur disque.
       </p>
+    </div>
+    <div class="group">
+      <h2>Qualité</h2>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">Chercher une édition hi-res</span>
+          <span class="hint">
+            Si un titre n'existe qu'en qualité CD, lire le même enregistrement depuis une autre
+            édition en hi-res (album d'origine, réédition, compilation). La chaîne audio
+            l'indique ; le master peut différer de l'édition affichée.
+          </span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={playback?.hiresUpgrade === true}
+          role="switch"
+          aria-checked={playback?.hiresUpgrade === true}
+          aria-label="Chercher une édition hi-res"
+          disabled={playback === null}
+          onclick={toggleHiresUpgrade}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
     </div>
   {:else}
     <div class="group">

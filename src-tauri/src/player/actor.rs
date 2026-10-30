@@ -52,8 +52,9 @@ pub enum Cmd {
     /// Niveau 0–100, déjà validé par la commande.
     SetVolume(u8),
     SetMuted(bool),
-    /// Taille du cache mpv, appliquée à chaud (réglage de lecture).
-    SetCacheSize(CacheSize),
+    /// Réglages de lecture enregistrés, appliqués à chaud (taille du cache mpv, édition
+    /// hi-res).
+    SetPlaybackSettings(PlaybackSettings),
     GetState(oneshot::Sender<PlayerState>),
     GetQueue(oneshot::Sender<QueueView>),
     /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
@@ -112,6 +113,8 @@ pub(super) struct Player {
     /// Titre pour lequel une nouvelle URL a déjà été demandée après une erreur.
     pub(super) retried: Option<TrackId>,
     pub(super) failures: u32,
+    /// Lire une autre édition hi-res d'un titre qui n'en a pas (#18, réglage).
+    pub(super) hires_upgrade: bool,
     pub(super) queue_dirty: bool,
     pub(super) persist_queue: bool,
     pub(super) persist_position: bool,
@@ -131,8 +134,8 @@ pub fn spawn(
     let actor_tx = tx.clone();
     tauri::async_runtime::spawn(async move {
         let (events_tx, events_rx) = mpsc::channel(256);
-        let cache = PlaybackSettings::load(store.as_deref()).cache_size;
-        let mpv = start_mpv(&mpv_conf, cache, events_tx, &mpv_process).await;
+        let settings = PlaybackSettings::load(store.as_deref());
+        let mpv = start_mpv(&mpv_conf, settings.cache_size, events_tx, &mpv_process).await;
         if let Err(e) = &mpv {
             tracing::error!("{e}");
         }
@@ -162,6 +165,7 @@ pub fn spawn(
             next_loaded: None,
             retried: None,
             failures: 0,
+            hires_upgrade: settings.hires_upgrade,
             queue_dirty: true,
             persist_queue: false,
             persist_position: false,
@@ -273,7 +277,12 @@ impl Player {
                 self.state.volume.set_muted(muted);
                 self.on_volume_changed().await;
             }
-            Cmd::SetCacheSize(size) => self.apply_cache_size(size).await,
+            Cmd::SetPlaybackSettings(settings) => {
+                // Pris en compte à la prochaine résolution : le titre en cours n'est pas
+                // rechargé.
+                self.hires_upgrade = settings.hires_upgrade;
+                self.apply_cache_size(settings.cache_size).await;
+            }
             Cmd::GetState(reply) => {
                 let _ = reply.send(self.state.clone());
             }

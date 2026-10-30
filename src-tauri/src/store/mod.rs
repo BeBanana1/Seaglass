@@ -170,6 +170,7 @@ mod tests {
             },
             explicit: false,
             hires: true,
+            isrc: None,
         }
     }
 

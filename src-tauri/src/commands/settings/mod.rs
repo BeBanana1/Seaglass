@@ -139,7 +139,7 @@ pub async fn set_playback_settings(
     settings.save(store).map_err(err)?;
     state
         .player
-        .send(Cmd::SetCacheSize(settings.cache_size))
+        .send(Cmd::SetPlaybackSettings(settings))
         .await
         .map_err(|_| "lecteur arrêté".to_owned())
 }

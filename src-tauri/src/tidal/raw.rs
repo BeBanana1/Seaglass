@@ -72,6 +72,9 @@ pub(super) struct RawTrack {
     media_metadata: Option<RawMediaMetadata>,
     /// Date d'ajout, présente seulement dans `playlists/{uuid}/tracks` (vérifié).
     date_added: Option<String>,
+    isrc: Option<String>,
+    stream_ready: Option<bool>,
+    allow_streaming: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -205,7 +208,13 @@ impl RawTrack {
             },
             explicit: self.explicit,
             hires: has_hires(self.media_metadata.as_ref()),
+            isrc: self.isrc.filter(|i| !i.is_empty()),
         })
+    }
+
+    /// Lisible en streaming (`false` seulement si l'API le dit explicitement).
+    pub(super) fn streamable(&self) -> bool {
+        self.stream_ready != Some(false) && self.allow_streaming != Some(false)
     }
 }
 
