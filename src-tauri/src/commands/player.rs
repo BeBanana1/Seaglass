@@ -48,6 +48,23 @@ pub async fn add_to_queue(state: State<'_, AppState>, track_id: u64) -> CmdResul
     send_cmd(&state, Cmd::AddToQueue(TrackId(track_id))).await
 }
 
+/// Ajoute plusieurs titres (album, playlist) à la file manuelle, dans l'ordre donné :
+/// « Lire ensuite » avec `next`, sinon « Ajouter à la file ».
+#[tauri::command]
+pub async fn enqueue_tracks(
+    state: State<'_, AppState>,
+    track_ids: Vec<u64>,
+    next: bool,
+) -> CmdResult<()> {
+    if track_ids.is_empty() || track_ids.len() > MAX_CONTEXT_LEN {
+        return Err(format!(
+            "la liste doit contenir entre 1 et {MAX_CONTEXT_LEN} titres"
+        ));
+    }
+    let ids = track_ids.into_iter().map(TrackId).collect();
+    send_cmd(&state, Cmd::Enqueue { ids, next }).await
+}
+
 /// Retire l'entrée `index` de la file manuelle.
 #[tauri::command]
 pub async fn remove_from_queue(state: State<'_, AppState>, index: usize) -> CmdResult<()> {

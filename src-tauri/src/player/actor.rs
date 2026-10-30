@@ -34,6 +34,11 @@ pub enum Cmd {
     },
     PlayNext(TrackId),
     AddToQueue(TrackId),
+    /// Plusieurs titres dans l'ordre donné : en tête de la file manuelle si `next`, sinon à la fin.
+    Enqueue {
+        ids: Vec<TrackId>,
+        next: bool,
+    },
     RemoveFromQueue(usize),
     Next,
     Previous,
@@ -212,6 +217,12 @@ impl Player {
             Cmd::AddToQueue(id) => {
                 self.queue.add_to_queue(id);
                 self.on_queue_changed().await;
+            }
+            Cmd::Enqueue { ids, next } => {
+                if !ids.is_empty() {
+                    self.queue.enqueue(&ids, next);
+                    self.on_queue_changed().await;
+                }
             }
             Cmd::RemoveFromQueue(index) => {
                 if self.queue.remove_manual(index) {
