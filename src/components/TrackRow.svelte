@@ -22,7 +22,7 @@
     active?: boolean;
     /** Variante étroite (panneau de file) : sans colonne album. */
     compact?: boolean;
-    /** Boutons « Lire ensuite » / « Ajouter à la file » (ou « Retirer » si `onRemove`). */
+    /** Boutons « Lire ensuite » / « Ajouter à la file » / « Radio » (ou « Retirer » si `onRemove`). */
     actions?: boolean;
     onPlay?: () => void;
     onRemove?: () => void;
@@ -78,6 +78,9 @@
       </button>
       <button onclick={() => commands.addToQueue(track.id)} title="Ajouter à la file">
         <Icon name="add" size={16} />
+      </button>
+      <button onclick={() => go({ name: "radio", seed: "track", id: track.id })} title="Radio du titre">
+        <Icon name="radio" size={16} />
       </button>
     {/if}
   </div>

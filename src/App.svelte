@@ -14,6 +14,7 @@
   import Album from "./views/Album.svelte";
   import Artist from "./views/Artist.svelte";
   import Playlist from "./views/Playlist.svelte";
+  import Mix from "./views/Mix.svelte";
   import Queue from "./views/Queue.svelte";
   import NowPlaying from "./views/NowPlaying.svelte";
   import Settings from "./views/Settings.svelte";
@@ -159,6 +160,10 @@
         <Artist id={route.id} />
       {:else if route.name === "playlist"}
         <Playlist uuid={route.uuid} />
+      {:else if route.name === "mix"}
+        <Mix source={{ mix: route.id }} />
+      {:else if route.name === "radio"}
+        <Mix source={{ seed: route.seed, id: route.id }} />
       {/if}
     </main>
     {#if queueOpen && session}

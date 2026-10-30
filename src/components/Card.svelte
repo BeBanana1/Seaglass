@@ -8,6 +8,7 @@
   function open() {
     if (item.kind === "album") go({ name: "album", id: item.id });
     else if (item.kind === "artist") go({ name: "artist", id: item.id });
+    else if (item.kind === "mix") go({ name: "mix", id: item.id });
     else go({ name: "playlist", uuid: item.uuid });
   }
 

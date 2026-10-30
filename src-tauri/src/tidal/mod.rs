@@ -9,6 +9,7 @@ mod feed;
 #[cfg(test)]
 mod live_tests;
 mod manifest;
+mod mix;
 pub mod models;
 mod raw;
 

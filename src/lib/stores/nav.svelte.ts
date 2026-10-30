@@ -1,6 +1,8 @@
 // Navigation interne : une pile de routes, sans URL (l'app n'a qu'une fenêtre).
 
-export type LibraryTab = "playlists" | "albums" | "artists" | "tracks";
+import type { RadioSeed } from "../ipc";
+
+export type LibraryTab = "playlists" | "mixes" | "albums" | "artists" | "tracks";
 
 export type SettingsSection = "appearance" | "playback" | "app";
 
@@ -12,7 +14,9 @@ export type Route =
   | { name: "settings"; section: SettingsSection }
   | { name: "album"; id: number }
   | { name: "artist"; id: number }
-  | { name: "playlist"; uuid: string };
+  | { name: "playlist"; uuid: string }
+  | { name: "mix"; id: string }
+  | { name: "radio"; seed: RadioSeed; id: number };
 
 const MAX_HISTORY = 50;
 
