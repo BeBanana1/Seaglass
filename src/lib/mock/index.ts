@@ -15,6 +15,7 @@ import type {
   SearchResults,
   Theme,
   Track,
+  TrackEntry,
   UiSettings,
 } from "../ipc";
 import type { LibraryTab, Route } from "../stores/nav.svelte";
@@ -25,7 +26,7 @@ interface Fixtures {
   artist: ArtistPage;
   playlist: PlaylistPage;
   home: HomeRow[];
-  library: { tracks: Track[]; albums: unknown[]; artists: unknown[]; playlists: unknown[] };
+  library: { tracks: TrackEntry[]; albums: unknown[]; artists: unknown[]; playlists: unknown[] };
 }
 
 const found = import.meta.glob<Fixtures>("./fixtures.json", { eager: true, import: "default" });
@@ -215,6 +216,10 @@ function synthetic(): Fixtures {
     hires: id % 2 === 0,
   });
   const tracks = Array.from({ length: 12 }, (_, i) => track(i + 1, `Titre ${i + 1}`));
+  // Dates d'ajout dans le désordre (playlist) ou décroissantes (favoris), comme l'API.
+  const day = (d: number) => Date.UTC(2024, 0, d);
+  const playlistTracks = tracks.map((t, i) => ({ ...t, addedAt: day(1 + ((i * 5) % 12)) }));
+  const likedTracks = tracks.map((t, i) => ({ ...t, addedAt: day(12 - i) }));
   const album = {
     id: 1,
     title: "Album de démonstration",
@@ -247,9 +252,9 @@ function synthetic(): Fixtures {
         editorial: true,
         mine: false,
       },
-      tracks,
+      tracks: playlistTracks,
     },
     home: [{ title: "Pour vous", items: [{ kind: "album", ...album }] }],
-    library: { tracks, albums: [album], artists: [], playlists: [] },
+    library: { tracks: likedTracks, albums: [album], artists: [], playlists: [] },
   };
 }

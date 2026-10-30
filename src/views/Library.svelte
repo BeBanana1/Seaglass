@@ -2,10 +2,28 @@
   import type { MediaItem } from "../lib/ipc";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
   import { replace, type LibraryTab } from "../lib/stores/nav.svelte";
+  import {
+    filterTracks,
+    listTracks,
+    sortTracks,
+    type SortKey,
+    type TrackSort,
+  } from "../lib/trackOrder";
   import CardGrid from "../components/CardGrid.svelte";
   import TrackList from "../components/TrackList.svelte";
+  import TrackTools from "../components/TrackTools.svelte";
+
+  // Titres likés : l'API les renvoie du plus récent au plus ancien (date du like).
+  const TRACK_SORT_KEYS: SortKey[] = ["added", "title", "artist", "album", "duration"];
 
   let { tab }: { tab: LibraryTab } = $props();
+
+  let query = $state("");
+  let sort = $state<TrackSort>({ key: "added", descending: true });
+
+  const allTracks = $derived(library.tracks.items ?? []);
+  // Le contexte de lecture est la liste affichée, dans l'ordre affiché.
+  const shownTracks = $derived(filterTracks(sortTracks(listTracks(allTracks), sort), query));
 
   const tabs: { id: LibraryTab; label: string }[] = [
     { id: "playlists", label: "Playlists" },
@@ -62,7 +80,18 @@
   {:else if slot.items.length === 0}
     <p class="muted">Rien ici pour l'instant.</p>
   {:else if tab === "tracks"}
-    <TrackList tracks={library.tracks.items ?? []} />
+    <TrackTools
+      bind:query
+      bind:sort
+      keys={TRACK_SORT_KEYS}
+      shown={shownTracks.length}
+      total={allTracks.length}
+    />
+    {#if shownTracks.length === 0}
+      <p class="muted">Aucun titre ne correspond à « {query.trim()} ».</p>
+    {:else}
+      <TrackList tracks={shownTracks.map((t) => t.track)} />
+    {/if}
   {:else}
     <CardGrid items={cards} />
   {/if}

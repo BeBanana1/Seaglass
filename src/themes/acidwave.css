@@ -145,6 +145,8 @@
 :root[data-theme="acidwave"] header .actions button,
 :root[data-theme="acidwave"] .tabs button,
 :root[data-theme="acidwave"] .refresh,
+:root[data-theme="acidwave"] .track-tools select,
+:root[data-theme="acidwave"] .track-tools .direction,
 :root[data-theme="acidwave"] .search-hint {
   border-radius: 0;
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
