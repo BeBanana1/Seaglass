@@ -6,7 +6,8 @@
 // mix|radio|library|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
-// `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole).
+// `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
+// `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible).
 
 import type {
   AlbumPage,
@@ -21,6 +22,7 @@ import type {
   PlaybackSettings,
   PlayerState,
   PlaylistPage,
+  PlaylistSummary,
   QueueView,
   RadioPage,
   SearchResults,
@@ -46,7 +48,7 @@ interface Fixtures {
     tracks: TrackEntry[];
     albums: unknown[];
     artists: unknown[];
-    playlists: unknown[];
+    playlists: PlaylistSummary[];
     mixes?: MixSummary[];
   };
 }
@@ -195,6 +197,41 @@ function setCurrent(track: Track | undefined) {
   emit("queue-state", queueView());
 }
 
+// Écritures (#4) : likes et playlists de l'utilisateur, gardés en mémoire.
+const liked = new Set<number>(fx.library.tracks.map((t) => t.id));
+const own: PlaylistSummary[] = fx.library.playlists.filter((p) => p.mine);
+if (params.has("mine") && !own.some((p) => p.uuid === fx.playlist.playlist.uuid)) {
+  own.unshift({ ...fx.playlist.playlist, mine: true, editorial: false });
+}
+const ownPages = new Map<string, PlaylistPage>();
+
+/** Page d'une de vos playlists, créée au premier accès avec les titres de démonstration. */
+function ownPage(uuid: string): PlaylistPage | undefined {
+  let page = ownPages.get(uuid);
+  if (!page) {
+    const summary = own.find((p) => p.uuid === uuid);
+    if (!summary) return undefined;
+    page = { playlist: summary, tracks: fx.playlist.tracks.map((t) => ({ ...t })) };
+    ownPages.set(uuid, page);
+  }
+  page.playlist.numberOfTracks = page.tracks.length;
+  return page;
+}
+
+function addToOwn(uuid: string, trackIds: number[]): number {
+  const page = ownPage(uuid);
+  if (!page) throw new Error("playlist introuvable");
+  let added = 0;
+  for (const id of trackIds) {
+    const t = allTracks.get(id);
+    if (!t || page.tracks.some((e) => e.id === id)) continue;
+    page.tracks.push({ ...t, addedAt: Date.now() });
+    added++;
+  }
+  page.playlist.numberOfTracks = page.tracks.length;
+  return added;
+}
+
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => (params.has("loggedout") ? null : { userId: 1, countryCode: "CH" }),
   login: () => ({ userId: 1, countryCode: "CH" }),
@@ -205,7 +242,40 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   search: ({ query }) => (String(query).trim() ? fx.search : { tracks: [], albums: [], artists: [], playlists: [] }),
   album: () => fx.album,
   artist: () => fx.artist,
-  playlist: () => fx.playlist,
+  playlist: ({ uuid }) => ownPage(String(uuid)) ?? fx.playlist,
+  liked_tracks: () => [...liked],
+  set_track_liked: ({ trackId, liked: on }) => {
+    if (on) liked.add(Number(trackId));
+    else liked.delete(Number(trackId));
+    emit("liked-tracks", [...liked]);
+  },
+  own_playlists: () => own.map((p) => ownPage(p.uuid)?.playlist ?? p),
+  add_to_playlist: ({ uuid, trackIds }) => addToOwn(String(uuid), [...(trackIds as number[])]),
+  create_playlist: ({ title, trackIds }) => {
+    const uuid = crypto.randomUUID();
+    const summary: PlaylistSummary = {
+      uuid,
+      title: String(title).trim(),
+      description: null,
+      imageUrl: null,
+      numberOfTracks: 0,
+      duration: null,
+      editorial: false,
+      mine: true,
+    };
+    own.unshift(summary);
+    ownPages.set(uuid, { playlist: summary, tracks: [] });
+    addToOwn(uuid, [...(trackIds as number[])]);
+    return uuid;
+  },
+  remove_from_playlist: ({ uuid, index, trackId }) => {
+    const page = ownPage(String(uuid));
+    if (page?.tracks[Number(index)]?.id !== Number(trackId)) {
+      throw new Error("la playlist a changé, rouvrez-la avant de retirer ce titre");
+    }
+    page.tracks.splice(Number(index), 1);
+    page.playlist.numberOfTracks = page.tracks.length;
+  },
   mix: () => mixPage,
   // La radio factice garde ses titres, mais reprend le point de départ demandé.
   radio: ({ seed, id }) => ({ ...radioPage, seed, id }),

@@ -119,7 +119,12 @@ impl TidalClient {
     /// Titres favoris, du plus récent au plus ancien, avec la date du like.
     pub async fn favorite_tracks(&self) -> Result<Vec<TrackEntry>> {
         let raw: Vec<RawFavorite<RawTrack>> = self.favorites("tracks").await?;
-        Ok(self.remember_entries(raw::favorite_entries(raw)))
+        let entries = self.remember_entries(raw::favorite_entries(raw));
+        // Liste complète : elle fait foi pour les cœurs (likes faits sur un autre appareil).
+        if entries.len() < LIBRARY_MAX {
+            self.likes.replace(entries.iter().map(|e| e.track.id));
+        }
+        Ok(entries)
     }
 
     pub async fn favorite_albums(&self) -> Result<Vec<AlbumSummary>> {

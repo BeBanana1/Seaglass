@@ -4,6 +4,7 @@
   import { initPlayer, player, stepVolume } from "./lib/stores/player.svelte";
   import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
+  import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
   import { initUi, ui } from "./lib/stores/ui.svelte";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
@@ -24,6 +25,7 @@
   import Toasts from "./components/Toasts.svelte";
   import UpdatePrompt from "./components/UpdatePrompt.svelte";
   import ContextMenu from "./components/ContextMenu.svelte";
+  import PlaylistPicker from "./components/PlaylistPicker.svelte";
   import Icon from "./components/Icon.svelte";
 
   let session = $state<SessionInfo | null>(null);
@@ -33,7 +35,7 @@
   let main = $state<HTMLElement>();
 
   onMount(async () => {
-    await Promise.all([initUi(), initPlayer(), initQueue(), initToasts()]);
+    await Promise.all([initUi(), initPlayer(), initQueue(), initToasts(), initLikes()]);
     try {
       session = await commands.authStatus();
     } catch (e) {
@@ -47,6 +49,11 @@
       queueOpen = view.queue;
       ui.nowPlayingPanel = view.lyrics ? "lyrics" : view.queue ? "queue" : null;
     }
+  });
+
+  // Cœurs : chargés à chaque connexion (une requête pour toute la bibliothèque).
+  $effect(() => {
+    if (session) loadLikes();
   });
 
   // Couleur de la pochette en cours, reprise par les thèmes (`--album`).
@@ -114,6 +121,7 @@
   async function logout() {
     await commands.logout();
     session = null;
+    clearLikes();
   }
 
   const route = $derived(current());
@@ -197,6 +205,7 @@
 <Toasts />
 <UpdatePrompt />
 <ContextMenu />
+<PlaylistPicker />
 
 <style>
   /* Fond propre au thème (vide pour Studio et Atelier). */

@@ -393,3 +393,39 @@
   background: linear-gradient(90deg, var(--acid-cyan), var(--accent), var(--acid-magenta));
   opacity: 0.5;
 }
+
+/* Cœurs et « Ajouter à une playlist » (#4). */
+:root[data-theme="acidwave"] .like-button.liked {
+  color: var(--acid-magenta);
+  filter: drop-shadow(0 0 6px var(--acid-magenta));
+}
+
+:root[data-theme="acidwave"] .playlist-picker {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 0;
+  background: rgb(5 5 7 / 0.96);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.7),
+    0 0 40px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+:root[data-theme="acidwave"] .playlist-picker input {
+  border-radius: 0;
+  border-color: var(--accent);
+  background: rgb(0 0 0 / 0.5);
+  font-family: var(--font-mono);
+}
+
+:root[data-theme="acidwave"] .picker-item {
+  border-radius: 0;
+}
+
+:root[data-theme="acidwave"] .picker-item:hover:not(:disabled) {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+:root[data-theme="acidwave"] .picker-new-form .primary {
+  border-radius: 0;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}

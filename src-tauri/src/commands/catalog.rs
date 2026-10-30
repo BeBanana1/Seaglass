@@ -1,7 +1,7 @@
 //! Commandes de navigation : recherche, pages album / artiste / playlist / mix, radios,
 //! bibliothèque, accueil, fil d'actualité, paroles.
 
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use super::settings::home_layout::HomeSection;
 use super::{AppState, CmdResult, err, settings};
@@ -62,8 +62,14 @@ pub async fn library_mixes(state: State<'_, AppState>) -> CmdResult<Vec<MixSumma
 }
 
 #[tauri::command]
-pub async fn library_tracks(state: State<'_, AppState>) -> CmdResult<Vec<TrackEntry>> {
-    state.tidal.favorite_tracks().await.map_err(err)
+pub async fn library_tracks(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<TrackEntry>> {
+    let tracks = state.tidal.favorite_tracks().await.map_err(err)?;
+    // La liste complète met à jour les cœurs (likes faits sur un autre appareil).
+    super::collection::emit_likes(&app, &state).await;
+    Ok(tracks)
 }
 
 #[tauri::command]
@@ -101,7 +107,7 @@ pub async fn feed(state: State<'_, AppState>) -> CmdResult<Vec<FeedItem>> {
 }
 
 /// UUID au format `8-4-4-4-12` (hexadécimal), seul format de playlist accepté dans l'URL.
-fn is_uuid(s: &str) -> bool {
+pub(super) fn is_uuid(s: &str) -> bool {
     let groups: Vec<&str> = s.split('-').collect();
     groups.len() == 5
         && groups

@@ -3,6 +3,7 @@
   import { fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
   import Icon from "./Icon.svelte";
+  import LikeButton from "./LikeButton.svelte";
   import Progress from "./Progress.svelte";
   import SignalPath from "./SignalPath.svelte";
   import Transport from "./Transport.svelte";
@@ -32,6 +33,7 @@
           {/each}
         </span>
       </div>
+      <LikeButton track={s.track} />
     {:else}
       <span class="sub">Rien en lecture</span>
     {/if}

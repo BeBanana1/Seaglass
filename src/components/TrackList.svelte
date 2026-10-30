@@ -10,6 +10,7 @@
     positions,
     showAlbum = true,
     showCover = true,
+    onRemoveFromPlaylist,
   }: {
     /** Contexte de lecture : lire un titre met toute la liste en file, dans cet ordre. */
     tracks: Track[];
@@ -18,6 +19,8 @@
     positions?: number[];
     showAlbum?: boolean;
     showCover?: boolean;
+    /** Liste d'une de vos playlists : « Retirer de cette playlist » sur chaque titre. */
+    onRemoveFromPlaylist?: (index: number) => void;
   } = $props();
 
   async function play(index: number) {
@@ -41,6 +44,7 @@
       {showCover}
       active={player.state.track?.id === track.id}
       onPlay={() => play(i)}
+      onRemoveFromPlaylist={onRemoveFromPlaylist && (() => onRemoveFromPlaylist(i))}
     />
   {/each}
 </div>
