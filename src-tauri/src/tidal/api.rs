@@ -7,7 +7,7 @@
 
 use std::time::{Duration, Instant};
 
-use reqwest::{StatusCode, Url};
+use reqwest::{Method, StatusCode, Url};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use tokio::sync::{OnceCell, RwLock};
@@ -171,7 +171,7 @@ impl TidalClient {
 
     async fn install(&self, tokens: Tokens, refresh: String) -> Result<SessionInfo> {
         let raw: RawSession = self
-            .send(API_V1, &tokens.access, "sessions", &[])
+            .send(&tokens.access, &Call::get(API_V1, "sessions", &[]))
             .await?
             .json()
             .await
@@ -221,41 +221,53 @@ impl TidalClient {
         path: &str,
         params: &[(&str, String)],
     ) -> Result<T> {
+        self.call(&Call::get(base, path, params))
+            .await?
+            .json()
+            .await
+            .map_err(|e| TidalError::Decode(format!("{path} : {e}")))
+    }
+
+    /// Requête authentifiée avec `countryCode`, en rafraîchissant le token sur 401.
+    pub(super) async fn call(&self, call: &Call<'_>) -> Result<reqwest::Response> {
         let mut force_refresh = false;
         loop {
             let (access, country) = self.credentials(force_refresh).await?;
             let mut query: Vec<(&str, String)> = vec![("countryCode", country)];
-            query.extend(params.iter().cloned());
-            let resp = self.send(base, &access, path, &query).await;
+            query.extend(call.query.iter().cloned());
+            let resp = self
+                .send(
+                    &access,
+                    &Call {
+                        query: &query,
+                        ..call.clone()
+                    },
+                )
+                .await;
             match resp {
                 Err(TidalError::Api { status: 401, .. }) if !force_refresh => {
                     force_refresh = true;
                 }
-                other => {
-                    return other?
-                        .json()
-                        .await
-                        .map_err(|e| TidalError::Decode(format!("{path} : {e}")));
-                }
+                other => return other,
             }
         }
     }
 
-    async fn send(
-        &self,
-        base: &str,
-        access: &str,
-        path: &str,
-        query: &[(&str, String)],
-    ) -> Result<reqwest::Response> {
-        let resp = self
+    async fn send(&self, access: &str, call: &Call<'_>) -> Result<reqwest::Response> {
+        let mut req = self
             .http
-            .get(format!("{base}{path}"))
-            .query(query)
+            .request(call.method.clone(), format!("{}{}", call.base, call.path))
+            .query(call.query)
             .bearer_auth(access)
-            .header("x-tidal-client-version", CLIENT_VERSION)
-            .send()
-            .await?;
+            .header("x-tidal-client-version", CLIENT_VERSION);
+        if let Some(form) = call.form {
+            req = req.form(form);
+        }
+        if let Some(etag) = call.if_none_match {
+            req = req.header("If-None-Match", etag);
+        }
+        let resp = req.send().await?;
+        let path = call.path;
         let status = resp.status();
         if status.is_success() {
             return Ok(resp);
@@ -264,7 +276,7 @@ impl TidalClient {
             .json::<RawApiError>()
             .await
             .ok()
-            .and_then(|e| e.user_message)
+            .and_then(RawApiError::message)
             .unwrap_or_else(|| status.canonical_reason().unwrap_or("").to_owned());
         Err(TidalError::Api {
             status: status.as_u16(),
@@ -274,6 +286,32 @@ impl TidalClient {
                 message
             },
         })
+    }
+}
+
+/// Une requête vers l'API : GET par défaut, ou écriture avec formulaire et ETag.
+#[derive(Clone)]
+pub(super) struct Call<'a> {
+    pub method: Method,
+    pub base: &'a str,
+    pub path: &'a str,
+    pub query: &'a [(&'a str, String)],
+    /// Corps `application/x-www-form-urlencoded`.
+    pub form: Option<&'a [(&'a str, String)]>,
+    /// ETag de la ressource : TIDAL refuse une modification de playlist sans lui.
+    pub if_none_match: Option<&'a str>,
+}
+
+impl<'a> Call<'a> {
+    pub fn get(base: &'a str, path: &'a str, query: &'a [(&'a str, String)]) -> Self {
+        Self {
+            method: Method::GET,
+            base,
+            path,
+            query,
+            form: None,
+            if_none_match: None,
+        }
     }
 }
 
@@ -290,6 +328,21 @@ struct RawSession {
 #[serde(rename_all = "camelCase")]
 struct RawApiError {
     user_message: Option<String>,
+    /// Format des erreurs de l'API v2.
+    #[serde(default)]
+    errors: Vec<RawApiErrorDetail>,
+}
+
+#[derive(Deserialize)]
+struct RawApiErrorDetail {
+    detail: Option<String>,
+}
+
+impl RawApiError {
+    fn message(self) -> Option<String> {
+        self.user_message
+            .or_else(|| self.errors.into_iter().find_map(|e| e.detail))
+    }
 }
 
 #[derive(Deserialize)]

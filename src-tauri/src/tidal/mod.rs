@@ -4,6 +4,7 @@ pub mod api;
 pub mod auth;
 pub mod cache;
 mod catalog;
+mod collection;
 mod date;
 mod feed;
 mod hires;
