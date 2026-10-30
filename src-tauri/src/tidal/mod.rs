@@ -8,6 +8,7 @@ mod date;
 mod feed;
 #[cfg(test)]
 mod live_tests;
+mod lyrics;
 mod manifest;
 mod mix;
 pub mod models;

@@ -5,7 +5,8 @@
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
 // mix|radio|library|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
-// `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`.
+// `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
+// `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole).
 
 import type {
   AlbumPage,
@@ -14,6 +15,7 @@ import type {
   HomeLayout,
   HomeRow,
   HomeSection,
+  Lyrics,
   MixPage,
   MixSummary,
   PlaybackSettings,
@@ -183,6 +185,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   logout: () => null,
   home: () => arrangeHome(fx.home, ui.home),
   feed: () => fx.feed ?? [],
+  lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
   search: ({ query }) => (String(query).trim() ? fx.search : { tracks: [], albums: [], artists: [], playlists: [] }),
   album: () => fx.album,
   artist: () => fx.artist,
@@ -322,8 +325,40 @@ export async function listen<T>(event: string, cb: (e: { payload: T }) => void) 
   return () => set.delete(cb as Listener);
 }
 
+/** Couplets inventés, répartis sur toute la durée du titre (aucune vraie parole). */
+const LYRIC_VERSES = [
+  ["Le verre poli par la marée", "garde la couleur des étés", "on le ramasse sans y penser", "il brille encore au soleil levé"],
+  ["", "Refrain, les vagues reviennent", "et la lumière se souvient", "de tout ce qu'on n'a pas dit", "sur le sable, à minuit"],
+  ["Une bouteille il y a cent ans", "jetée au large par le vent", "", "elle revient en éclats lents", "plus douce qu'au commencement"],
+];
+
+function mockLyrics(trackId: number): Lyrics | null {
+  const mode = params.get("lyrics");
+  if (mode === "none") return null;
+  const lines = [...LYRIC_VERSES, LYRIC_VERSES[1]].flat();
+  if (mode === "plain") {
+    return { trackId, provider: "MUSIXMATCH", rtl: false, text: { kind: "plain", lines } };
+  }
+  const duration = allTracks.get(trackId)?.duration ?? 200;
+  const step = (duration * 1000 - 8000) / lines.length;
+  return {
+    trackId,
+    provider: "MUSIXMATCH",
+    rtl: false,
+    text: {
+      kind: "synced",
+      lines: lines.map((text, i) => ({ timeMs: Math.round(6000 + i * step), text })),
+    },
+  };
+}
+
 /** Paramètres d'URL de navigation, appliqués une fois l'app montée. */
-export function initialView(): { route: Route | null; nowPlaying: boolean; queue: boolean } {
+export function initialView(): {
+  route: Route | null;
+  nowPlaying: boolean;
+  queue: boolean;
+  lyrics: boolean;
+} {
   const routes: Record<string, Route> = {
     album: { name: "album", id: fx.album.album.id },
     artist: { name: "artist", id: fx.artist.artist.id },
@@ -339,6 +374,7 @@ export function initialView(): { route: Route | null; nowPlaying: boolean; queue
     route: routes[params.get("route") ?? ""] ?? null,
     nowPlaying: params.has("nowplaying"),
     queue: params.has("queue"),
+    lyrics: params.has("lyrics"),
   };
 }
 

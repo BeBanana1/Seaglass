@@ -1,14 +1,15 @@
 <script lang="ts">
   // Vue immersive « En lecture » : grande pochette, chaîne audio, à suivre,
-  // et panneau de file d'attente repliable (#20).
+  // et panneau latéral repliable : file d'attente (#20) ou paroles (#5).
   import { untrack } from "svelte";
   import { player } from "../lib/stores/player.svelte";
   import { queue } from "../lib/stores/queue.svelte";
-  import { ui } from "../lib/stores/ui.svelte";
+  import { ui, type NowPlayingPanel } from "../lib/stores/ui.svelte";
   import { fullTitle } from "../lib/format";
   import { go, nav } from "../lib/stores/nav.svelte";
   import Backdrop from "../components/backdrops/Backdrop.svelte";
   import Icon from "../components/Icon.svelte";
+  import Lyrics from "../components/Lyrics.svelte";
   import Progress from "../components/Progress.svelte";
   import QueueList from "../components/QueueList.svelte";
   import SignalPath from "../components/SignalPath.svelte";
@@ -19,7 +20,12 @@
 
   const s = $derived(player.state);
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
-  const queueOpen = $derived(ui.nowPlayingQueue);
+  const panel = $derived(ui.nowPlayingPanel);
+  const queueOpen = $derived(panel === "queue");
+
+  function toggle(p: Exclude<NowPlayingPanel, null>) {
+    ui.nowPlayingPanel = ui.nowPlayingPanel === p ? null : p;
+  }
 
   // Toute navigation (lien d'artiste ou d'album, ici ou dans la file) ferme la vue,
   // sinon la page ouverte resterait cachée derrière.
@@ -29,13 +35,22 @@
   });
 </script>
 
-<div class="now-playing" role="dialog" aria-modal="true" aria-label="En lecture">
+<div class="now-playing" class:lyrics-open={panel === "lyrics"} role="dialog" aria-modal="true" aria-label="En lecture">
   <Backdrop context="nowplaying" />
-  <div class="top-actions" class:with-queue={queueOpen}>
+  <div class="top-actions" class:with-panel={panel}>
+    <button
+      class="lyrics-toggle"
+      class:on={panel === "lyrics"}
+      onclick={() => toggle("lyrics")}
+      aria-pressed={panel === "lyrics"}
+      title="Paroles"
+    >
+      <Icon name="lyrics" size={20} />
+    </button>
     <button
       class="queue-toggle"
       class:on={queueOpen}
-      onclick={() => (ui.nowPlayingQueue = !ui.nowPlayingQueue)}
+      onclick={() => toggle("queue")}
       aria-pressed={queueOpen}
       title="File d'attente"
     >
@@ -46,7 +61,7 @@
     </button>
   </div>
 
-  <div class="scroller" class:with-queue={queueOpen}>
+  <div class="scroller" class:with-panel={panel}>
     <div class="stage">
       {#if s.track}
         {@const track = s.track}
@@ -76,7 +91,7 @@
 
             <div class="signal"><SignalPath /></div>
 
-            {#if upNext.length > 0 && !queueOpen}
+            {#if upNext.length > 0 && !panel}
               <div class="next">
                 <span class="label">À suivre</span>
                 <ol>
@@ -98,9 +113,14 @@
     </div>
 
     {#if queueOpen}
-      <aside class="panel np-queue" aria-label="File d'attente">
+      <aside class="panel np-panel np-queue" aria-label="File d'attente">
         <h2>File d'attente</h2>
         <QueueList current={false} />
+      </aside>
+    {:else if panel === "lyrics"}
+      <aside class="panel np-panel np-lyrics" aria-label="Paroles">
+        <h2>Paroles</h2>
+        <Lyrics />
       </aside>
     {/if}
   </div>
@@ -108,13 +128,17 @@
 
 <style>
   .now-playing {
-    --np-queue-width: 380px;
+    --np-panel-width: 380px;
     position: fixed;
     inset: 0;
     z-index: 50;
     overflow: hidden;
     background: var(--bg);
     animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .now-playing.lyrics-open {
+    --np-panel-width: 460px;
   }
 
   @keyframes rise {
@@ -134,7 +158,8 @@
   }
 
   .close,
-  .queue-toggle {
+  .queue-toggle,
+  .lyrics-toggle {
     display: grid;
     place-items: center;
     width: 40px;
@@ -145,11 +170,13 @@
   }
 
   .close:hover,
-  .queue-toggle:hover {
+  .queue-toggle:hover,
+  .lyrics-toggle:hover {
     background: var(--bg-hover);
   }
 
-  .queue-toggle.on {
+  .queue-toggle.on,
+  .lyrics-toggle.on {
     color: var(--accent);
   }
 
@@ -282,13 +309,19 @@
     color: var(--text-muted);
   }
 
-  /* Panneau de file : sous la vue par défaut (fenêtre étroite), à droite si la place le permet. */
-  .np-queue {
+  /* Panneau latéral : sous la vue par défaut (fenêtre étroite), à droite si la place le permet. */
+  .np-panel {
     position: relative;
     justify-self: center;
     width: min(100% - 48px, 420px);
     margin-bottom: 24px;
     padding: 16px 12px;
+  }
+
+  .np-lyrics {
+    display: flex;
+    flex-direction: column;
+    height: min(70vh, 640px);
   }
 
   h2 {
@@ -305,30 +338,36 @@
   }
 
   @media (min-width: 901px) {
-    .scroller.with-queue {
-      grid-template-columns: minmax(0, 1fr) var(--np-queue-width);
+    .scroller.with-panel {
+      grid-template-columns: minmax(0, 1fr) var(--np-panel-width);
       grid-template-rows: minmax(0, 1fr);
       overflow: hidden;
     }
 
-    .with-queue .stage {
+    .with-panel .stage {
       min-height: 0;
       overflow: auto;
     }
 
-    .with-queue .np-queue {
+    .with-panel .np-panel {
       justify-self: stretch;
       width: auto;
+      height: auto;
       margin: 16px 16px 16px 0;
       overflow: auto;
     }
 
-    /* Les boutons restent au-dessus de la pochette, pas sur le panneau. */
-    .top-actions.with-queue {
-      right: calc(var(--np-queue-width) + 34px);
+    /* Les paroles défilent dans leur propre zone, sous le titre du panneau. */
+    .with-panel .np-lyrics {
+      overflow: hidden;
     }
 
-    .with-queue .layout {
+    /* Les boutons restent au-dessus de la pochette, pas sur le panneau. */
+    .top-actions.with-panel {
+      right: calc(var(--np-panel-width) + 34px);
+    }
+
+    .with-panel .layout {
       grid-template-columns: minmax(200px, min(46vh, 32vw)) minmax(320px, 560px);
       gap: clamp(32px, 4vw, 64px);
     }
@@ -336,7 +375,7 @@
 
   /* Entre les deux : file à droite, pochette au-dessus des commandes. */
   @media (min-width: 901px) and (max-width: 1280px) {
-    .with-queue .layout {
+    .with-panel .layout {
       grid-template-columns: minmax(0, 420px);
       padding: 72px 32px 32px;
     }
@@ -355,12 +394,13 @@
   }
 
   :global([data-theme="studio"]) .close,
-  :global([data-theme="studio"]) .queue-toggle {
+  :global([data-theme="studio"]) .queue-toggle,
+  :global([data-theme="studio"]) .lyrics-toggle {
     border-radius: 0;
   }
 
-  :global([data-theme="studio"]) .np-queue,
-  :global([data-theme="atelier"]) .np-queue {
+  :global([data-theme="studio"]) .np-panel,
+  :global([data-theme="atelier"]) .np-panel {
     border: 1px solid var(--border);
   }
 
