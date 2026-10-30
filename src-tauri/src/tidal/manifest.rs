@@ -36,6 +36,8 @@ pub struct Decoded {
     pub codec: String,
     /// URL du segment d'initialisation DASH, à inspecter avant lecture.
     pub init_url: Option<String>,
+    /// Débit moyen déclaré par le MPD (`bandwidth`), en kbps (#3). Absent des manifestes BTS.
+    pub bitrate: Option<u32>,
 }
 
 pub fn decode(mime: &str, manifest_b64: &str) -> Result<Decoded> {
@@ -51,10 +53,14 @@ pub fn decode(mime: &str, manifest_b64: &str) -> Result<Decoded> {
         }
         let codec = xml_attr(&text, "codecs").unwrap_or_else(|| "?".to_owned());
         let init_url = xml_attr(&text, "initialization");
+        let bitrate = xml_attr(&text, "bandwidth")
+            .and_then(|b| b.parse::<u64>().ok())
+            .and_then(|bps| u32::try_from((bps + 500) / 1000).ok());
         Ok(Decoded {
             source: StreamSource::Dash(text),
             codec,
             init_url,
+            bitrate,
         })
     } else if mime.starts_with(BTS_MIME) {
         let bts: BtsManifest = serde_json::from_str(&text)
@@ -72,6 +78,7 @@ pub fn decode(mime: &str, manifest_b64: &str) -> Result<Decoded> {
             source: StreamSource::Direct(url),
             codec: bts.codecs.or(bts.mime_type).unwrap_or_else(|| "?".into()),
             init_url: None,
+            bitrate: None,
         })
     } else {
         Err(TidalError::UnsupportedStream(mime.to_owned()))
@@ -101,13 +108,14 @@ mod tests {
         base64::engine::general_purpose::STANDARD.encode(s)
     }
 
-    const CLEAR_MPD: &str = r#"<?xml version='1.0' encoding='UTF-8'?><MPD xmlns="urn:mpeg:dash:schema:mpd:2011" xmlns:cenc="urn:mpeg:cenc:2013"><Period><AdaptationSet><Representation id="FLAC,44100,24" codecs="flac"><SegmentTemplate initialization="https://x/0.mp4?a=1&amp;b=2" media="https://x/$Number$.mp4"/></Representation></AdaptationSet></Period></MPD>"#;
+    const CLEAR_MPD: &str = r#"<?xml version='1.0' encoding='UTF-8'?><MPD xmlns="urn:mpeg:dash:schema:mpd:2011" xmlns:cenc="urn:mpeg:cenc:2013"><Period><AdaptationSet><Representation id="FLAC,44100,24" codecs="flac" bandwidth="892938" audioSamplingRate="44100"><SegmentTemplate initialization="https://x/0.mp4?a=1&amp;b=2" media="https://x/$Number$.mp4"/></Representation></AdaptationSet></Period></MPD>"#;
 
     #[test]
     fn cenc_namespace_alone_is_not_drm() {
         let d = decode(MPD_MIME, &b64(CLEAR_MPD)).unwrap();
         assert_eq!(d.codec, "flac");
         assert_eq!(d.init_url.as_deref(), Some("https://x/0.mp4?a=1&b=2"));
+        assert_eq!(d.bitrate, Some(893), "bandwidth en bit/s, arrondi en kbps");
         assert!(matches!(d.source, StreamSource::Dash(_)));
     }
 
@@ -128,6 +136,7 @@ mod tests {
         let clear = r#"{"mimeType":"audio/mp4","codecs":"mp4a.40.2","encryptionType":"NONE","urls":["https://x/a.m4a"]}"#;
         let d = decode(BTS_MIME, &b64(clear)).unwrap();
         assert!(matches!(d.source, StreamSource::Direct(u) if u == "https://x/a.m4a"));
+        assert_eq!(d.bitrate, None);
 
         let enc = clear.replace("\"NONE\"", "\"OLD_AES\"");
         assert!(matches!(

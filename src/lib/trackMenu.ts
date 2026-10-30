@@ -7,6 +7,7 @@ import { go } from "./stores/nav.svelte";
 import { openPlaylistPicker } from "./stores/playlistPicker.svelte";
 import type { MenuEntry } from "./stores/menu.svelte";
 import { pushToast } from "./stores/toasts.svelte";
+import { openTrackInfo } from "./stores/trackInfo.svelte";
 
 export interface TrackMenuOptions {
   /** Lire le titre dans son contexte (liste affichée). */
@@ -84,6 +85,10 @@ export function trackMenu(
     });
   }
 
-  entries.push("separator", { label: "Copier le lien", icon: "link", action: () => run(() => copyLink(track)) });
+  entries.push(
+    "separator",
+    { label: "Infos du titre", icon: "info", action: () => openTrackInfo(track) },
+    { label: "Copier le lien", icon: "link", action: () => run(() => copyLink(track)) },
+  );
   return entries;
 }

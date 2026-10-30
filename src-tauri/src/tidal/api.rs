@@ -132,6 +132,23 @@ impl TidalClient {
 
     /// Demande un flux et refuse tout flux chiffré (manifeste ou segment d'initialisation).
     pub async fn stream(&self, id: TrackId, quality: AudioQuality) -> Result<Stream> {
+        let (raw, decoded) = self.playback(id, quality).await?;
+        if let Some(init_url) = &decoded.init_url {
+            self.check_init_segment(init_url).await?;
+        }
+        Ok(Stream {
+            format: stream_format(&raw, &decoded),
+            source: decoded.source,
+        })
+    }
+
+    /// `playbackinfopostpaywall` et son manifeste décodé (refusé s'il déclare du DRM). Le
+    /// segment d'initialisation n'est pas lu : `stream` le vérifie avant toute lecture.
+    pub(super) async fn playback(
+        &self,
+        id: TrackId,
+        quality: AudioQuality,
+    ) -> Result<(RawPlayback, manifest::Decoded)> {
         let raw: RawPlayback = self
             .get(
                 &format!("tracks/{id}/playbackinfopostpaywall"),
@@ -143,19 +160,7 @@ impl TidalClient {
             )
             .await?;
         let decoded = manifest::decode(&raw.manifest_mime_type, &raw.manifest)?;
-        if let Some(init_url) = &decoded.init_url {
-            self.check_init_segment(init_url).await?;
-        }
-        Ok(Stream {
-            format: StreamFormat {
-                quality: raw.audio_quality,
-                codec: decoded.codec,
-                bit_depth: raw.bit_depth,
-                sample_rate: raw.sample_rate,
-                hires_edition: None,
-            },
-            source: decoded.source,
-        })
+        Ok((raw, decoded))
     }
 
     async fn check_init_segment(&self, url: &str) -> Result<()> {
@@ -349,12 +354,29 @@ impl RawApiError {
     }
 }
 
+/// Réponse de `playbackinfopostpaywall` (vérifiée le 2026-10-30) : le gain et les crêtes
+/// ReplayGain y sont aussi, lus par les infos du titre (#3).
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RawPlayback {
+pub(super) struct RawPlayback {
     audio_quality: AudioQuality,
     manifest_mime_type: String,
     manifest: String,
     bit_depth: Option<u8>,
     sample_rate: Option<u32>,
+    pub track_replay_gain: Option<f64>,
+    pub track_peak_amplitude: Option<f64>,
+    pub album_replay_gain: Option<f64>,
+    pub album_peak_amplitude: Option<f64>,
+}
+
+pub(super) fn stream_format(raw: &RawPlayback, decoded: &manifest::Decoded) -> StreamFormat {
+    StreamFormat {
+        quality: raw.audio_quality,
+        codec: decoded.codec.clone(),
+        bit_depth: raw.bit_depth,
+        sample_rate: raw.sample_rate,
+        bitrate: decoded.bitrate,
+        hires_edition: None,
+    }
 }

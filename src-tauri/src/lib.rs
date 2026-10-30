@@ -77,6 +77,7 @@ pub fn run() {
             commands::catalog::home,
             commands::catalog::feed,
             commands::catalog::lyrics,
+            commands::catalog::track_info,
             commands::collection::liked_tracks,
             commands::collection::set_track_liked,
             commands::collection::own_playlists,

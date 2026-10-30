@@ -2,6 +2,7 @@
 //!
 //! - `cargo test live_catalog -- --ignored --nocapture` : appelle chaque endpoint.
 //! - `cargo test live_lyrics -- --ignored --nocapture` : paroles synchronisées et absentes.
+//! - `cargo test live_track_info -- --ignored --nocapture` : infos détaillées d'un titre (#3).
 //! - `cargo test dump_ui_fixtures -- --ignored` : écrit `src/lib/mock/fixtures.json`
 //!   (gitignoré, contient la bibliothèque du compte) pour prévisualiser l'UI hors Tauri.
 
@@ -405,4 +406,42 @@ async fn check_playlist(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Re
         return Err(format!("retrait : {after:?}"));
     }
     Ok(())
+}
+
+/// Infos d'un titre (#3) : *Hotel California* hi-res (24/192, ~5 071 kbps) et *Billie Jean*
+/// de « Thriller 25 » (16/44,1, édition hi-res trouvée par ISRC).
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_track_info() {
+    let client = client().await;
+    let start = std::time::Instant::now();
+    let info = client.track_info(TrackId(68_709_105)).await.unwrap();
+    println!("{info:#?}\nen {:?}", start.elapsed());
+    let stream = info.stream.as_ref().unwrap();
+    assert_eq!(stream.bit_depth, Some(24));
+    assert_eq!(stream.sample_rate, Some(192_000));
+    assert!(
+        stream.bitrate.unwrap() > 2_000,
+        "FLAC 24/192 : plusieurs Mbit/s"
+    );
+    assert!(info.track_gain.is_some() && info.track_peak.is_some());
+    assert!(info.tags.iter().any(|t| t == "HIRES_LOSSLESS"));
+    assert!(info.hires_edition.is_none(), "déjà hi-res");
+
+    let start = std::time::Instant::now();
+    let info = client.track_info(TrackId(1_632_061)).await.unwrap();
+    println!("{info:#?}\nen {:?}", start.elapsed());
+    assert_eq!(info.stream.as_ref().unwrap().bit_depth, Some(16));
+    let edition = info.hires_edition.unwrap();
+    assert_eq!(edition.stream.unwrap().bit_depth, Some(24));
+
+    // Format des tonalités (dièses, bémols) sur quelques titres.
+    let album = client.album(ALBUM_ID).await.unwrap();
+    for track in album.tracks.iter().take(8) {
+        let info = client.track_info(track.id).await.unwrap();
+        println!(
+            "{} : {:?} {:?} {:?} bpm",
+            track.title, info.key, info.key_scale, info.bpm
+        );
+    }
 }

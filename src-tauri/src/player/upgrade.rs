@@ -81,7 +81,8 @@ fn lookup_result(track: &Track, result: crate::tidal::Result<Option<Track>>) -> 
 
 /// Le flux de l'autre édition n'est retenu que s'il est réellement hi-res et, si le flux
 /// d'origine est connu, meilleur sur un axe sans être moins bon sur l'autre.
-fn is_better(candidate: &StreamFormat, original: Option<&StreamFormat>) -> bool {
+/// Aussi utilisé par les infos du titre (#3) pour dire si l'édition serait lue.
+pub fn is_better(candidate: &StreamFormat, original: Option<&StreamFormat>) -> bool {
     if candidate.quality != AudioQuality::HiResLossless {
         return false;
     }
@@ -109,6 +110,7 @@ mod tests {
             codec: "flac".into(),
             bit_depth: Some(bits),
             sample_rate: Some(rate),
+            bitrate: None,
             hires_edition: None,
         }
     }

@@ -212,6 +212,14 @@ impl RawTrack {
         })
     }
 
+    /// Tags de disponibilité (`mediaMetadata.tags`).
+    pub(super) fn tags(&self) -> Vec<String> {
+        self.media_metadata
+            .as_ref()
+            .map(|m| m.tags.clone())
+            .unwrap_or_default()
+    }
+
     /// Lisible en streaming (`false` seulement si l'API le dit explicitement).
     pub(super) fn streamable(&self) -> bool {
         self.stream_ready != Some(false) && self.allow_streaming != Some(false)

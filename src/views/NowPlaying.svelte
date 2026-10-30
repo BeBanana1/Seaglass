@@ -8,6 +8,7 @@
   import { fullTitle } from "../lib/format";
   import { go, nav } from "../lib/stores/nav.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
+  import { openTrackInfo } from "../lib/stores/trackInfo.svelte";
   import Backdrop from "../components/backdrops/Backdrop.svelte";
   import Icon from "../components/Icon.svelte";
   import LikeButton from "../components/LikeButton.svelte";
@@ -93,6 +94,9 @@
                 aria-label="Ajouter à une playlist"
               >
                 <Icon name="playlistAdd" size={20} />
+              </button>
+              <button class="now-add" onclick={() => openTrackInfo(track)} title="Infos du titre" aria-label="Infos du titre">
+                <Icon name="info" size={20} />
               </button>
             </div>
 

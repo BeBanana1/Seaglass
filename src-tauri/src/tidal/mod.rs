@@ -8,6 +8,7 @@ mod collection;
 mod date;
 mod feed;
 mod hires;
+mod info;
 mod likes;
 #[cfg(test)]
 mod live_tests;

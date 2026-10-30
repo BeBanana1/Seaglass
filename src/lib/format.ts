@@ -170,6 +170,48 @@ export function khz(rate: number): string {
   return (rate / 1000).toLocaleString("fr-FR");
 }
 
+/** Débit en kbps : « 5 071 kbps ». */
+export function kbps(rate: number): string {
+  return `${rate.toLocaleString("fr-FR")} kbps`;
+}
+
+const NOTES: Record<string, string> = { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" };
+
+/** Tonalité en notation française. L'API mêle les formes (`FSharp`, `Bb`, `F`) : une forme
+ *  inconnue est rendue telle quelle. */
+export function musicalKey(key: string | null, scale: string | null): string | null {
+  if (!key) return null;
+  const m = /^([A-G])(Sharp|#|Flat|b)?$/.exec(key);
+  if (!m) return [key, scale?.toLowerCase()].filter(Boolean).join(" ");
+  const accidental = !m[2] ? "" : m[2] === "Sharp" || m[2] === "#" ? "♯" : "♭";
+  const mode = scale === "MAJOR" ? " majeur" : scale === "MINOR" ? " mineur" : "";
+  return `${NOTES[m[1]]}${accidental}${mode}`;
+}
+
+/** Gain ReplayGain : « −6,17 dB ». */
+export function decibels(gain: number): string {
+  const text = Math.abs(gain).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${gain < 0 ? "−" : gain > 0 ? "+" : ""}${text} dB`;
+}
+
+/** Crête en pleine échelle (1 = 0 dBFS) : « 0,997 (−0,02 dBFS) ». */
+export function peak(amplitude: number): string {
+  const value = amplitude.toLocaleString("fr-FR", { maximumFractionDigits: 3 });
+  if (amplitude <= 0) return value;
+  const dbfs = 20 * Math.log10(amplitude);
+  const text = Math.abs(dbfs).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${value} (${dbfs < -0.005 ? "−" : ""}${text} dBFS)`;
+}
+
+/** Libellé d'un tag de disponibilité ; les tags inconnus sont ignorés. */
+export function tagLabel(tag: string): string | null {
+  return (
+    { LOSSLESS: "Lossless", HIRES_LOSSLESS: "Hi-Res", DOLBY_ATMOS: "Dolby Atmos", SONY_360RA: "360 Reality Audio" }[
+      tag
+    ] ?? null
+  );
+}
+
 export function outputFormat(format: string): string {
   return { s16: "16 bits", s24: "24 bits", s32: "32 bits", float: "32 bits flottant" }[format] ?? format;
 }
