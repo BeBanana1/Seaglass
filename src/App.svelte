@@ -8,11 +8,13 @@
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
+  import Feed from "./views/Feed.svelte";
   import Search from "./views/Search.svelte";
   import Library from "./views/Library.svelte";
   import Album from "./views/Album.svelte";
   import Artist from "./views/Artist.svelte";
   import Playlist from "./views/Playlist.svelte";
+  import Mix from "./views/Mix.svelte";
   import Queue from "./views/Queue.svelte";
   import NowPlaying from "./views/NowPlaying.svelte";
   import Settings from "./views/Settings.svelte";
@@ -146,6 +148,8 @@
         <Login onLogin={(s) => (session = s)} />
       {:else if route.name === "home"}
         <Home />
+      {:else if route.name === "feed"}
+        <Feed />
       {:else if route.name === "search"}
         <Search />
       {:else if route.name === "library"}
@@ -156,6 +160,10 @@
         <Artist id={route.id} />
       {:else if route.name === "playlist"}
         <Playlist uuid={route.uuid} />
+      {:else if route.name === "mix"}
+        <Mix source={{ mix: route.id }} />
+      {:else if route.name === "radio"}
+        <Mix source={{ seed: route.seed, id: route.id }} />
       {/if}
     </main>
     {#if queueOpen && session}

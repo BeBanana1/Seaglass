@@ -115,10 +115,21 @@ export interface PlaylistSummary {
   mine: boolean;
 }
 
+/** Mix généré par le service (My Mix, Daily Discovery, mix d'artiste…). */
+export interface MixSummary {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  imageUrl: string | null;
+  /** `DAILY_MIX`, `DISCOVERY_MIX`, `ARTIST_MIX`, `TRACK_MIX`… */
+  mixType: string | null;
+}
+
 export type MediaItem =
   | ({ kind: "album" } & AlbumSummary)
   | ({ kind: "artist" } & ArtistSummary)
-  | ({ kind: "playlist" } & PlaylistSummary);
+  | ({ kind: "playlist" } & PlaylistSummary)
+  | ({ kind: "mix" } & MixSummary);
 
 export interface HomeRow {
   /** Identifiant stable de la section (`moduleId` de l'API), indépendant du titre. */
@@ -130,6 +141,15 @@ export interface HomeRow {
 /** Ligne de l'accueil dans l'ordre choisi ; les masquées ne sont montrées qu'en personnalisation. */
 export interface HomeSection extends HomeRow {
   hidden: boolean;
+}
+
+/** Sortie d'un artiste suivi (fil d'actualité). */
+export interface FeedItem {
+  /** Date de la sortie, en millisecondes UTC. */
+  occurredAt: number | null;
+  /** Déjà vue dans un client TIDAL (lu seulement). */
+  seen: boolean;
+  album: AlbumSummary;
 }
 
 /** Disposition de l'accueil enregistrée (clés de `HomeRow`). */
@@ -175,6 +195,25 @@ export interface LyricLine {
   /** Début de la ligne, en millisecondes ; texte vide = passage instrumental. */
   timeMs: number;
   text: string;
+}
+
+export interface MixPage {
+  mix: MixSummary;
+  /** Image 640×640 pour l'en-tête. */
+  imageLargeUrl: string | null;
+  tracks: Track[];
+}
+
+export type RadioSeed = "track" | "artist";
+
+/** Radio d'un titre ou d'un artiste. */
+export interface RadioPage {
+  seed: RadioSeed;
+  id: number;
+  /** Titre du morceau ou nom de l'artiste de départ. */
+  title: string;
+  imageUrl: string | null;
+  tracks: Track[];
 }
 
 export interface SearchResults {
@@ -229,11 +268,15 @@ export const commands = {
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
   playlist: (uuid: string) => invoke<PlaylistPage>("playlist", { uuid }),
+  mix: (id: string) => invoke<MixPage>("mix", { id }),
+  radio: (seed: RadioSeed, id: number) => invoke<RadioPage>("radio", { seed, id }),
+  libraryMixes: () => invoke<MixSummary[]>("library_mixes"),
   libraryTracks: () => invoke<TrackEntry[]>("library_tracks"),
   libraryAlbums: () => invoke<AlbumSummary[]>("library_albums"),
   libraryArtists: () => invoke<ArtistSummary[]>("library_artists"),
   libraryPlaylists: () => invoke<PlaylistSummary[]>("library_playlists"),
   home: () => invoke<HomeSection[]>("home"),
+  feed: () => invoke<FeedItem[]>("feed"),
   /** `null` si TIDAL n'a pas de paroles pour ce titre. */
   lyrics: (trackId: TrackId) => invoke<Lyrics | null>("lyrics", { trackId }),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */

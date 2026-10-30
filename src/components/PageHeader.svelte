@@ -16,6 +16,7 @@
     pin,
     meta,
     description,
+    onRadio,
   }: {
     image: string | null;
     /** Type de page (« Album », « Playlist »…). */
@@ -30,6 +31,8 @@
     pin?: Pin;
     meta?: Snippet;
     description?: string | null;
+    /** Bouton « Radio » (page d'artiste). */
+    onRadio?: () => void;
   } = $props();
 
   async function play(shuffle: boolean) {
@@ -84,6 +87,11 @@
           </button>
         {/if}
         {#if pin}<PinButton {pin} />{/if}
+        {#if onRadio}
+          <button class="secondary" onclick={onRadio}>
+            <Icon name="radio" size={16} /> Radio
+          </button>
+        {/if}
       </div>
     {/if}
   </div>
