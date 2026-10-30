@@ -198,6 +198,43 @@ async fn live_hires() {
     assert!(client.hires_edition(&edition).await.unwrap().is_none());
 }
 
+/// `cargo test live_hires_twin -- --ignored --nocapture` : *Hotel California (2013
+/// Remaster)* (`20767339`, 16/44,1) a un album jumeau hi-res (`68709104`, 24/192) sous
+/// d'autres ISRC (#55). Les autres titres de l'album sortent du cache.
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_hires_twin() {
+    use super::models::AudioQuality;
+
+    let client = client().await;
+    let album = client.album(20_767_338).await.unwrap();
+    let (first, second) = (&album.tracks[0], &album.tracks[1]);
+    assert_eq!(first.id, TrackId(20_767_339));
+    assert!(!first.hires);
+    let start = std::time::Instant::now();
+    let edition = client.hires_edition(first).await.unwrap().unwrap();
+    println!(
+        "jumeau : {} ({}, {}) en {:?}",
+        edition.id,
+        edition.album.title,
+        edition.album.id,
+        start.elapsed()
+    );
+    assert_eq!(edition.album.id, 68_709_104);
+    assert_ne!(edition.isrc, first.isrc);
+    let start = std::time::Instant::now();
+    let next = client.hires_edition(second).await.unwrap().unwrap();
+    println!("{} → {} en {:?}", second.title, next.id, start.elapsed());
+    assert_eq!(next.album.id, 68_709_104);
+    let stream = client
+        .stream(edition.id, AudioQuality::HiResLossless)
+        .await
+        .unwrap();
+    println!("flux : {:?}", stream.format);
+    assert_eq!(stream.format.bit_depth, Some(24));
+    assert_eq!(stream.format.sample_rate, Some(192_000));
+}
+
 #[tokio::test]
 #[ignore = "réseau et session TIDAL requis"]
 async fn live_lyrics() {

@@ -16,6 +16,7 @@ mod manifest;
 mod mix;
 pub mod models;
 mod raw;
+mod twin;
 
 pub use api::TidalClient;
 
