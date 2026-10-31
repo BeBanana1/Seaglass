@@ -4,6 +4,7 @@
   import { go } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
   import HiresOffer from "./HiresOffer.svelte";
+  import MpvIssue from "./MpvIssue.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import Progress from "./Progress.svelte";
@@ -22,6 +23,7 @@
 
 <footer class="panel">
   <HiresOffer />
+  <MpvIssue />
   <div class="now">
     {#if s.track}
       <button class="cover" onclick={onOpenNowPlaying} title={t.player.openNowPlaying}>

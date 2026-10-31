@@ -16,10 +16,9 @@ use super::queue::{Queue, Repeat};
 use super::radio::AutoRadio;
 use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::state::{PlayerState, QueueView};
-use crate::i18n::tr;
 use crate::integrations::Observers;
 use crate::mpv::process::ProcessGuard;
-use crate::mpv::{self, CacheSize, MpvEvent, MpvHandle, Property, serve::ManifestServer};
+use crate::mpv::{self, CacheSize, MpvEvent, MpvHandle, MpvIssue, Property, serve::ManifestServer};
 use crate::store::Store;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{Stream, StreamFormat, Track, TrackId};
@@ -44,6 +43,11 @@ pub enum Cmd {
         next: bool,
     },
     RemoveFromQueue(usize),
+    /// Déplace une entrée de la file manuelle (`from` finit à l'index `to`).
+    MoveInQueue {
+        from: usize,
+        to: usize,
+    },
     /// Vide la file manuelle et la suite du contexte ; le titre courant continue.
     ClearQueue,
     Next,
@@ -158,9 +162,16 @@ pub fn spawn(
     tauri::async_runtime::spawn(async move {
         let (events_tx, events_rx) = mpsc::channel(256);
         let settings = PlaybackSettings::load(store.as_deref());
-        let mpv = start_mpv(&mpv_conf, settings.cache_size, events_tx, &mpv_process).await;
+        let mut mpv = start_mpv(&mpv_conf, settings.cache_size, events_tx, &mpv_process).await;
+        let mut mpv_issue = None;
         if let Err(e) = &mpv {
             tracing::error!("{e}");
+            let issue = MpvIssue::diagnose();
+            if issue == MpvIssue::CpuUnsupported {
+                tracing::error!("processeur sans AVX2 : le mpv embarqué ne peut pas tourner");
+                mpv = Err(issue.message().into());
+            }
+            mpv_issue = Some(issue);
         }
         let server = ManifestServer::start()
             .await
@@ -177,6 +188,7 @@ pub fn spawn(
             queue: Queue::default(),
             state: PlayerState {
                 idle: true,
+                mpv_issue,
                 ..PlayerState::default()
             },
             emitted: PlayerState::default(),
@@ -270,6 +282,18 @@ impl Player {
             Cmd::RemoveFromQueue(index) => {
                 if self.queue.remove_manual(index) {
                     self.on_queue_changed().await;
+                }
+            }
+            Cmd::MoveInQueue { from, to } => {
+                // Le préchargé est toujours `peek_next` : réordonner le milieu de la file ne
+                // le retire pas de mpv (gapless intact, pas de nouvelle résolution).
+                let next = self.queue.peek_next();
+                if self.queue.move_manual(from, to) {
+                    if self.queue.peek_next() == next {
+                        self.mark_queue_dirty();
+                    } else {
+                        self.on_queue_changed().await;
+                    }
                 }
             }
             Cmd::ClearQueue => {
@@ -366,14 +390,12 @@ impl Player {
             MpvEvent::FileLoaded => self.failures = 0,
             MpvEvent::EndFile { reason, error } => self.on_end_file(reason, error).await,
             MpvEvent::Disconnected => {
-                self.mpv = Err(tr(
-                    "mpv s'est arrêté, redémarrer l'app",
-                    "mpv stopped, restart the app",
-                )
-                .into());
+                let issue = MpvIssue::diagnose();
+                self.mpv = Err(issue.message().into());
+                self.state.mpv_issue = Some(issue);
                 self.loaded = false;
                 self.next_loaded = None;
-                self.toast("error", tr("mpv s'est arrêté", "mpv stopped").into());
+                self.toast("error", issue.message().into());
             }
             MpvEvent::StartFile => {}
         }

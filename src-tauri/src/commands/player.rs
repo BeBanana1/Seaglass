@@ -79,6 +79,13 @@ pub async fn remove_from_queue(state: State<'_, AppState>, index: usize) -> CmdR
     send_cmd(&state, Cmd::RemoveFromQueue(index)).await
 }
 
+/// Déplace l'entrée `from` de la file manuelle à l'index `to` (glisser-déposer, Monter /
+/// Descendre). Un index hors de la file est ignoré par l'acteur.
+#[tauri::command]
+pub async fn move_in_queue(state: State<'_, AppState>, from: usize, to: usize) -> CmdResult<()> {
+    send_cmd(&state, Cmd::MoveInQueue { from, to }).await
+}
+
 /// Vide la file (manuelle et suite du contexte) sans arrêter le titre en cours.
 #[tauri::command]
 pub async fn clear_queue(state: State<'_, AppState>) -> CmdResult<()> {

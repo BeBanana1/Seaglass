@@ -15,6 +15,9 @@ export interface TrackMenuOptions {
   onPlay?: () => void;
   /** Titre de la file manuelle : « Retirer » remplace les ajouts à la file. */
   onRemove?: () => void;
+  /** Titre de la file manuelle qui peut monter / descendre d'un cran (#80). */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   /** « Lire ensuite » / « Ajouter à la file ». */
   queueable?: boolean;
   /** Titre d'une de vos playlists : « Retirer de cette playlist ». */
@@ -41,11 +44,13 @@ async function copyLink(track: Track) {
 
 export function trackMenu(
   track: Track,
-  { onPlay, onRemove, queueable = true, onRemoveFromPlaylist }: TrackMenuOptions,
+  { onPlay, onRemove, onMoveUp, onMoveDown, queueable = true, onRemoveFromPlaylist }: TrackMenuOptions,
 ): MenuEntry[] {
   const m = t.menu;
   const entries: MenuEntry[] = [];
   if (onPlay) entries.push({ label: m.play, icon: "play", action: onPlay });
+  if (onMoveUp) entries.push({ label: m.moveUp, icon: "up", action: onMoveUp });
+  if (onMoveDown) entries.push({ label: m.moveDown, icon: "down", action: onMoveDown });
   if (onRemove) {
     entries.push({ label: m.removeFromQueue, icon: "close", action: onRemove });
   } else if (queueable) {

@@ -139,6 +139,19 @@ impl Queue {
         self.manual.remove(index).is_some()
     }
 
+    /// Déplace l'entrée `from` de la file manuelle pour qu'elle finisse à l'index `to`
+    /// (glisser-déposer, Monter / Descendre). Renvoie `false` si rien ne change.
+    pub fn move_manual(&mut self, from: usize, to: usize) -> bool {
+        let len = self.manual.len();
+        if from == to || from >= len || to >= len {
+            return false;
+        }
+        if let Some(id) = self.manual.remove(from) {
+            self.manual.insert(to, id);
+        }
+        true
+    }
+
     /// Vide la file manuelle et la suite du contexte, sans toucher au titre courant ni à
     /// l'historique. Le titre courant est détaché du contexte : rien ne le suit plus,
     /// même en repeat All. Renvoie `false` s'il n'y avait rien à vider.

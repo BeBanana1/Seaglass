@@ -102,7 +102,8 @@ if (params.has("autoradio") && context[index]) {
   context = [radioSeed, ...radioPage.tracks.filter((t) => t.id !== radioSeed?.id)];
   index = 0;
 }
-const manual: Track[] = [];
+/** `?manual=1` : quelques titres dans la file manuelle, pour la réorganiser (#80). */
+const manual: Track[] = params.has("manual") ? fx.playlist.tracks.slice(0, 4) : [];
 /** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
 const volumeParam = params.get("volume");
 /** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18). */
@@ -136,6 +137,8 @@ const state: PlayerState = {
     muted: volumeParam === "muted",
   },
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
+  /** `?mpv=cpu` ou `?mpv=stopped` : bandeau « mpv ne tourne pas » (#92). */
+  mpvIssue: params.get("mpv") === "cpu" ? "cpuUnsupported" : params.get("mpv") === "stopped" ? "stopped" : null,
 };
 
 let ui: UiSettings = {
@@ -392,6 +395,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   remove_from_queue: ({ index: i }) => {
     manual.splice(Number(i), 1);
+    emit("queue-state", queueView());
+  },
+  move_in_queue: ({ from, to }) => {
+    const [f, t] = [Number(from), Number(to)];
+    if (f === t || f >= manual.length || t >= manual.length) return;
+    manual.splice(t, 0, ...manual.splice(f, 1));
     emit("queue-state", queueView());
   },
   answer_hires_offer: ({ accept }) => {
