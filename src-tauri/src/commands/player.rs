@@ -10,6 +10,8 @@ use crate::player::{Cmd, PlayerState, QueueView, Repeat};
 use crate::tidal::models::TrackId;
 
 const MAX_CONTEXT_LEN: usize = 10_000;
+// Lire ou mélanger toute une catégorie de la bibliothèque doit rester accepté (#91).
+const _: () = assert!(crate::tidal::LIBRARY_MAX <= MAX_CONTEXT_LEN);
 
 /// Lit `track_ids` comme contexte (album, playlist, résultats de recherche) à partir de
 /// `start_index`. Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard.

@@ -21,6 +21,7 @@ mod raw;
 mod twin;
 
 pub use api::TidalClient;
+pub use catalog::LIBRARY_MAX;
 
 use crate::i18n::{tr, trf};
 
