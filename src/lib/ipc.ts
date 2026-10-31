@@ -109,7 +109,12 @@ export interface PlayerState {
   /** Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son format,
    *  l'album dans `hiresEdition`. */
   hiresOffer: StreamFormat | null;
+  /** mpv ne tourne pas, avec sa cause probable (#92) ; `null` quand tout va bien. */
+  mpvIssue: MpvIssue | null;
 }
+
+/** `cpuUnsupported` : mpv embarqué (x86-64-v3) sur un processeur sans AVX2. */
+export type MpvIssue = "stopped" | "cpuUnsupported";
 
 /** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
 export interface Volume {
