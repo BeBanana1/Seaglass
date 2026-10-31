@@ -73,6 +73,20 @@ export interface TrackInfo {
   volumeNumber: number | null;
   /** Autre édition hi-res du même enregistrement, si le titre n'est pas hi-res. */
   hiresEdition: HiresEdition | null;
+  /** Crédits groupés par rôle, rangés par le backend ; vide si TIDAL n'en a pas (#84). */
+  credits: CreditGroup[];
+}
+
+export interface CreditGroup {
+  /** Texte libre en anglais (`Composer`, `Bass guitar`…), traduit par `creditRole`. */
+  role: string;
+  contributors: Contributor[];
+}
+
+export interface Contributor {
+  name: string;
+  /** Artiste TIDAL (page artiste), s'il y en a un. */
+  artistId: number | null;
 }
 
 export interface HiresEdition {
