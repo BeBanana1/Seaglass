@@ -4,6 +4,7 @@
 use serde::Serialize;
 
 use super::queue::Repeat;
+use super::sleep::SleepState;
 use super::volume::Volume;
 use crate::mpv::AudioParams;
 use crate::tidal::models::{StreamFormat, Track};
@@ -34,6 +35,8 @@ pub struct PlayerState {
     /// Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son
     /// format, l'album dans `hires_edition`.
     pub hires_offer: Option<StreamFormat>,
+    /// Minuteur de mise en veille actif (#85).
+    pub sleep: Option<SleepState>,
 }
 
 impl PlayerState {

@@ -8,7 +8,8 @@
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
-// `?trackinfo=1` (ouvre les infos du titre en cours).
+// `?trackinfo=1` (ouvre les infos du titre en cours), `?sleep=30|track` (minuteur de mise en
+// veille actif).
 
 import type {
   AlbumPage,
@@ -29,6 +30,8 @@ import type {
   QueueView,
   RadioPage,
   SearchResults,
+  SleepRequest,
+  SleepState,
   StreamFormat,
   Theme,
   Track,
@@ -104,6 +107,13 @@ const hiresOfferParam = params.get("hiresoffer");
 /** `?hirestwin=1` : la page album propose un album jumeau hi-res (#59). */
 const hiresTwin = params.has("hirestwin");
 
+/** `?sleep=30` (minuteur de 30 min) ou `?sleep=track` (fin du titre), #85. */
+function mockSleep(param: string | null): SleepState | null {
+  if (param === "track") return { kind: "endOfTrack" };
+  const minutes = Number(param);
+  return param && minutes > 0 ? { kind: "minutes", endsAt: Date.now() + minutes * 60_000 } : null;
+}
+
 function offerFormat(album: string): StreamFormat {
   return { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 192000, bitrate: 5071, hiresEdition: album };
 }
@@ -128,6 +138,7 @@ const state: PlayerState = {
     muted: volumeParam === "muted",
   },
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
+  sleep: mockSleep(params.get("sleep")),
 };
 
 let ui: UiSettings = {
@@ -385,6 +396,18 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (!state.hiresOffer) return;
     if (accept) state.stream = state.hiresOffer;
     state.hiresOffer = null;
+    emit("player-state", state);
+  },
+  set_sleep_timer: ({ timer }) => {
+    const req = timer as SleepRequest | null;
+    if (req?.kind === "minutes" && (req.minutes < 1 || req.minutes > 600)) {
+      throw new Error(`durée du minuteur invalide : ${req.minutes} min (1 à 600)`);
+    }
+    state.sleep = !req
+      ? null
+      : req.kind === "minutes"
+        ? { kind: "minutes", endsAt: Date.now() + req.minutes * 60_000 }
+        : { kind: "endOfTrack" };
     emit("player-state", state);
   },
   clear_queue: () => {

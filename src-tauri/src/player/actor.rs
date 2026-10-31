@@ -14,6 +14,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::queue::{Queue, Repeat};
 use super::settings::{HiresUpgrade, PlaybackSettings};
+use super::sleep::SleepRequest;
 use super::state::{PlayerState, QueueView};
 use crate::i18n::tr;
 use crate::integrations::Observers;
@@ -59,6 +60,8 @@ pub enum Cmd {
     SetPlaybackSettings(PlaybackSettings),
     /// Réponse au bandeau qui propose l'édition hi-res du titre courant (#59).
     AnswerHiresOffer(bool),
+    /// Minuteur de mise en veille (#85), déjà validé ; `None` l'annule.
+    SetSleepTimer(Option<SleepRequest>),
     GetState(oneshot::Sender<PlayerState>),
     GetQueue(oneshot::Sender<QueueView>),
     /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
@@ -129,6 +132,8 @@ pub(super) struct Player {
     pub(super) hires_answers: HashMap<u64, bool>,
     /// Invalide les recherches d'offre lancées pour un titre qui n'est plus le courant.
     pub(super) offer_req: u64,
+    /// Échéance du minuteur de mise en veille en durée (#85, état dans `state.sleep`).
+    pub(super) sleep_deadline: Option<Instant>,
     pub(super) queue_dirty: bool,
     pub(super) persist_queue: bool,
     pub(super) persist_position: bool,
@@ -182,6 +187,7 @@ pub fn spawn(
             hires_upgrade: settings.hires_upgrade,
             hires_answers: HashMap::new(),
             offer_req: 0,
+            sleep_deadline: None,
             queue_dirty: true,
             persist_queue: false,
             persist_position: false,
@@ -218,7 +224,10 @@ impl Player {
                     None => break,
                 },
                 Some(ev) = events.recv() => self.handle_event(ev).await,
-                _ = tick.tick() => self.persist_if_due(),
+                _ = tick.tick() => {
+                    self.persist_if_due();
+                    self.check_sleep_timer().await;
+                }
             }
             self.emit();
         }
@@ -303,6 +312,7 @@ impl Player {
                 self.apply_cache_size(settings.cache_size).await;
             }
             Cmd::AnswerHiresOffer(accept) => self.answer_hires_offer(accept).await,
+            Cmd::SetSleepTimer(request) => self.set_sleep_timer(request).await,
             Cmd::HiresOffer { request, offer } => {
                 if request == self.offer_req {
                     self.state.hires_offer = Some(offer);

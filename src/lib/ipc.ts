@@ -109,7 +109,14 @@ export interface PlayerState {
   /** Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son format,
    *  l'album dans `hiresEdition`. */
   hiresOffer: StreamFormat | null;
+  /** Minuteur de mise en veille actif (#85). */
+  sleep: SleepState | null;
 }
+
+/** Minuteur actif : échéance en ms epoch (l'UI calcule le temps restant), ou fin du titre. */
+export type SleepState = { kind: "minutes"; endsAt: number } | { kind: "endOfTrack" };
+
+export type SleepRequest = { kind: "minutes"; minutes: number } | { kind: "endOfTrack" };
 
 /** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
 export interface Volume {
@@ -362,6 +369,8 @@ export const commands = {
   clearQueue: () => invoke<void>("clear_queue"),
   /** Réponse au bandeau « Édition hi-res disponible », valable pour tout l'album (#59). */
   answerHiresOffer: (accept: boolean) => invoke<void>("answer_hires_offer", { accept }),
+  /** Pause après une durée ou à la fin du titre en cours ; `null` annule (#85). */
+  setSleepTimer: (timer: SleepRequest | null) => invoke<void>("set_sleep_timer", { timer }),
   next: () => invoke<void>("next"),
   previous: () => invoke<void>("previous"),
   togglePause: () => invoke<void>("toggle_pause"),

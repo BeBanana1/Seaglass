@@ -16,6 +16,7 @@
   import Progress from "../components/Progress.svelte";
   import QueueList from "../components/QueueList.svelte";
   import SignalPath from "../components/SignalPath.svelte";
+  import SleepTimer from "../components/SleepTimer.svelte";
   import Transport from "../components/Transport.svelte";
   import Volume from "../components/Volume.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -99,6 +100,7 @@
               <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
                 <Icon name="info" size={20} />
               </button>
+              <SleepTimer size={20} />
             </div>
 
             <div class="controls">

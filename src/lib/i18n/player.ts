@@ -36,6 +36,14 @@ export const fr = {
   hiresEdition: "Édition hi-res :",
   hiresEditionHint: "Même enregistrement, lu depuis une autre édition : le master peut différer.",
 
+  sleepTimer: "Minuteur de mise en veille",
+  sleepMinutes: (n: number) => `Dans ${n} min`,
+  sleepEndOfTrack: "À la fin du titre",
+  sleepOff: "Désactiver le minuteur",
+  sleepIn: (time: string) => `Pause dans ${time}`,
+  sleepAtEnd: "Pause à la fin du titre",
+  sleepEndShort: "fin du titre",
+
   clearQueue: "Vider la file",
   clearQueueHint: "Retire les titres à venir, le titre en cours continue",
   nowPlaying: "En cours",
@@ -85,6 +93,14 @@ export const en: typeof fr = {
   averageBitrate: (rate: string) => `Average bitrate: ${rate}`,
   hiresEdition: "Hi-res edition:",
   hiresEditionHint: "Same recording, played from another edition: the master may differ.",
+
+  sleepTimer: "Sleep timer",
+  sleepMinutes: (n: number) => `In ${n} min`,
+  sleepEndOfTrack: "At the end of the track",
+  sleepOff: "Turn off the timer",
+  sleepIn: (time: string) => `Pausing in ${time}`,
+  sleepAtEnd: "Pausing at the end of the track",
+  sleepEndShort: "end of track",
 
   clearQueue: "Clear queue",
   clearQueueHint: "Removes upcoming tracks; the current track keeps playing",
