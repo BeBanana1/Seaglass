@@ -109,6 +109,9 @@ export interface PlayerState {
   /** Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son format,
    *  l'album dans `hiresEdition`. */
   hiresOffer: StreamFormat | null;
+  /** Gain de normalisation appliqué au titre courant, en dB (#82) ; `null` si le signal
+   *  n'est pas modifié. */
+  normalization: number | null;
 }
 
 /** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
@@ -288,12 +291,17 @@ export type CacheSize = 32 | 64 | 128 | 256;
 
 export type HiresUpgrade = "auto" | "ask" | "off";
 
+/** Normalisation du volume par ReplayGain (#82). */
+export type Normalization = "off" | "track" | "album";
+
 /** Réglages de lecture, stockés à part des réglages d'UI. */
 export interface PlaybackSettings {
   cacheSize: CacheSize;
   /** Édition hi-res d'un titre qui n'en a pas (même enregistrement) : la lire à sa place,
    *  la proposer (#59) ou l'ignorer. */
   hiresUpgrade: HiresUpgrade;
+  /** Désactivée par défaut : seul mode qui laisse le signal intact. */
+  normalization: Normalization;
 }
 
 export interface UpdateInfo {

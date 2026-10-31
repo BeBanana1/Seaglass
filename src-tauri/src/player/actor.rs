@@ -12,6 +12,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
+use super::normalize::Normalizer;
 use super::queue::{Queue, Repeat};
 use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::state::{PlayerState, QueueView};
@@ -129,6 +130,8 @@ pub(super) struct Player {
     pub(super) hires_answers: HashMap<u64, bool>,
     /// Invalide les recherches d'offre lancées pour un titre qui n'est plus le courant.
     pub(super) offer_req: u64,
+    /// Normalisation du volume (#82) : réglage et ReplayGain des titres chargés.
+    pub(super) normalizer: Normalizer,
     pub(super) queue_dirty: bool,
     pub(super) persist_queue: bool,
     pub(super) persist_position: bool,
@@ -182,6 +185,7 @@ pub fn spawn(
             hires_upgrade: settings.hires_upgrade,
             hires_answers: HashMap::new(),
             offer_req: 0,
+            normalizer: Normalizer::new(settings.normalization),
             queue_dirty: true,
             persist_queue: false,
             persist_position: false,
@@ -301,6 +305,7 @@ impl Player {
                     self.maybe_offer_hires();
                 }
                 self.apply_cache_size(settings.cache_size).await;
+                self.set_normalization(settings.normalization).await;
             }
             Cmd::AnswerHiresOffer(accept) => self.answer_hires_offer(accept).await,
             Cmd::HiresOffer { request, offer } => {

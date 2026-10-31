@@ -5,6 +5,7 @@
 use serde_json::{Value, json};
 
 use super::actor::{Cmd, Player, Slot};
+use super::normalize::file_options;
 use super::queue::Repeat;
 use super::settings::HiresUpgrade;
 use super::upgrade;
@@ -41,6 +42,7 @@ impl Player {
         self.state.track = self.tidal.cache.get(id);
         self.state.stream = None;
         self.state.hires_offer = None;
+        self.state.normalization = None;
         self.offer_req += 1;
         self.state.time_pos = start;
         self.resolve(id, Slot::Current { start }, self.load_req);
@@ -129,10 +131,14 @@ impl Player {
                     return;
                 };
                 log_stream("lecture", &track, &stream);
+                // Gain de normalisation en option du fichier (#82) : il ne touche pas le
+                // titre qui sera préchargé ensuite.
+                let gain = self.normalizer.loaded(stream.gain);
                 let mut cmd = vec![json!("loadfile"), json!(url), json!("replace")];
-                if start > 0.0 {
-                    cmd.extend([json!(-1), json!(format!("start={start}"))]);
+                if let Some(options) = file_options(start, gain) {
+                    cmd.extend([json!(-1), json!(options)]);
                 }
+                self.state.normalization = gain;
                 self.mpv_command(cmd).await;
                 self.mpv_command(vec![json!("set_property"), json!("pause"), json!(false)])
                     .await;
@@ -152,8 +158,12 @@ impl Player {
                             return;
                         };
                         log_stream("préchargement", &track, &stream);
-                        self.mpv_command(vec![json!("loadfile"), json!(url), json!("append")])
-                            .await;
+                        let gain = self.normalizer.preloaded(stream.gain);
+                        let mut cmd = vec![json!("loadfile"), json!(url), json!("append")];
+                        if let Some(options) = file_options(0.0, gain) {
+                            cmd.extend([json!(-1), json!(options)]);
+                        }
+                        self.mpv_command(cmd).await;
                         self.next_loaded = Some((track, stream.format));
                     }
                     // Sans préchargement, la fin du titre déclenchera un chargement classique.
@@ -180,6 +190,7 @@ impl Player {
             self.retried = None;
             self.state.track = Some(track);
             self.state.stream = Some(format);
+            self.state.normalization = self.normalizer.advance();
             self.state.time_pos = 0.0;
             self.maybe_offer_hires();
         } else if let Some(id) = advanced {

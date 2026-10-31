@@ -110,6 +110,18 @@ pub enum StreamSource {
 pub struct Stream {
     pub format: StreamFormat,
     pub source: StreamSource,
+    /// ReplayGain du flux réellement lu (édition hi-res comprise), pour la normalisation
+    /// du volume (#82).
+    pub gain: ReplayGain,
+}
+
+/// ReplayGain de `playbackinfopostpaywall` : gains en dB, crêtes en pleine échelle (1 = 0 dBFS).
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct ReplayGain {
+    pub track_gain: Option<f64>,
+    pub track_peak: Option<f64>,
+    pub album_gain: Option<f64>,
+    pub album_peak: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

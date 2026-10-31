@@ -5,6 +5,7 @@
     type CacheSize,
     type HiresUpgrade,
     type LanguagePref,
+    type Normalization,
     type PlaybackSettings,
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
@@ -23,9 +24,12 @@
   const CACHE_SIZES: CacheSize[] = [32, 64, 128, 256];
 
   const HIRES_MODES: HiresUpgrade[] = ["auto", "ask", "off"];
+
+  const NORMALIZATION_MODES: Normalization[] = ["off", "track", "album"];
   let playback = $state<PlaybackSettings | null>(null);
   const cacheSize = $derived(playback?.cacheSize ?? null);
   const hiresUpgrade = $derived(playback?.hiresUpgrade ?? null);
+  const normalization = $derived(playback?.normalization ?? null);
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
 
@@ -67,6 +71,10 @@
 
   function setCacheSize(size: CacheSize) {
     if (playback && size !== playback.cacheSize) savePlayback({ ...playback, cacheSize: size });
+  }
+
+  function setNormalization(mode: Normalization) {
+    if (playback && mode !== playback.normalization) savePlayback({ ...playback, normalization: mode });
   }
 
   function setHiresUpgrade(mode: HiresUpgrade) {
@@ -191,6 +199,26 @@
         {/each}
       </div>
       <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
+    </div>
+    <div class="group">
+      <h2>{t.settings.normalization}</h2>
+      <p class="hint">{t.settings.normalizationHint}</p>
+      <!-- Le mode exclusif / bit-perfect (phase 5) devra griser ces choix. -->
+      <div class="cache-sizes normalization-modes" role="radiogroup" aria-label={t.settings.normalization}>
+        {#each NORMALIZATION_MODES as mode (mode)}
+          <button
+            class="cache-size hires-mode normalization-mode"
+            class:selected={normalization === mode}
+            role="radio"
+            aria-checked={normalization === mode}
+            disabled={normalization === null}
+            onclick={() => setNormalization(mode)}
+          >
+            {t.settings.normalizationModes[mode].label}
+          </button>
+        {/each}
+      </div>
+      <p class="note">{normalization ? t.settings.normalizationModes[normalization].note : ""}</p>
     </div>
   {:else}
     <div class="group">

@@ -122,9 +122,23 @@ export function signalVerdict(
   stream: StreamFormat | null,
   output: AudioParams | null,
   volume: Volume = { level: 100, muted: false },
+  normalization: number | null = null,
 ): SignalVerdict {
   const verdict = streamVerdict(stream, output);
   const v = t.format.verdict;
+  // Normalisation (#82) : gain appliqué par mpv, comme le volume ; la coupure reste prioritaire.
+  if (normalization !== null && !volume.muted && verdict.tone === "ok") {
+    const detail = v.normalizedDetail(gainLabel(normalization));
+    return {
+      label: v.normalizedLabel,
+      tone: "warn",
+      detail: softwareGain(volume) ? v.withVolume(detail, volumeLabel(volume)) : detail,
+    };
+  }
+  if (normalization !== null && verdict.tone === "warn") {
+    const detail = v.withNormalization(verdict.detail, gainLabel(normalization));
+    return { ...verdict, detail: softwareGain(volume) ? v.withVolume(detail, volumeLabel(volume)) : detail };
+  }
   if (verdict.tone === "ok" && softwareGain(volume)) {
     return {
       label: volume.muted ? v.mutedLabel : v.gainLabel,
@@ -156,6 +170,12 @@ function streamVerdict(stream: StreamFormat | null, output: AudioParams | null):
     return { label: v.reducedLabel, tone: "warn", detail: v.reducedDetail };
   }
   return { label: v.nativeLabel, tone: "ok", detail: v.nativeDetail };
+}
+
+/** Gain en dB signé : « −6,5 dB », « +2 dB ». */
+export function gainLabel(db: number): string {
+  const abs = num(Math.abs(Math.round(db * 10) / 10));
+  return `${db < 0 ? "−" : "+"}${abs} dB`;
 }
 
 export function khz(rate: number): string {

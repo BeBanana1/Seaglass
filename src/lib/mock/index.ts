@@ -8,7 +8,8 @@
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
-// `?trackinfo=1` (ouvre les infos du titre en cours).
+// `?trackinfo=1` (ouvre les infos du titre en cours), `?normalization=track|album`
+// (normalisation du volume active).
 
 import type {
   AlbumPage,
@@ -128,6 +129,8 @@ const state: PlayerState = {
     muted: volumeParam === "muted",
   },
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
+  // Calculé plus bas, après les réglages de lecture factices.
+  normalization: null,
 };
 
 let ui: UiSettings = {
@@ -163,7 +166,18 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
     .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
     .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
 }
-let playback: PlaybackSettings = { cacheSize: 64, hiresUpgrade: hiresOfferParam ? "ask" : "auto" };
+// `?normalization=track|album` : normalisation active (gain factice de −6,5 dB).
+const normalizationParam = params.get("normalization") as PlaybackSettings["normalization"] | null;
+let playback: PlaybackSettings = {
+  cacheSize: 64,
+  hiresUpgrade: hiresOfferParam ? "ask" : "auto",
+  normalization: normalizationParam ?? "off",
+};
+/** Gain factice : −6,5 dB par titre, −4 dB par album. */
+function mockGain(): number | null {
+  return playback.normalization === "off" ? null : playback.normalization === "track" ? -6.5 : -4;
+}
+state.normalization = mockGain();
 let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
@@ -348,7 +362,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (![32, 64, 128, 256].includes(next.cacheSize)) {
       throw new Error(`taille de cache non prise en charge : ${next.cacheSize} Mio`);
     }
-    playback = next;
+    playback = { ...next };
+    state.normalization = mockGain();
+    emit("player-state", state);
   },
   autostart_enabled: () => autostart,
   set_autostart: ({ enabled }) => {

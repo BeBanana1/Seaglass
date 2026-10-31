@@ -19,6 +19,7 @@ const initial: PlayerState = {
   hasNext: false,
   volume: { level: 100, muted: false },
   hiresOffer: null,
+  normalization: null,
 };
 
 export const player = $state({
