@@ -109,7 +109,12 @@ export interface PlayerState {
   /** Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son format,
    *  l'album dans `hiresEdition`. */
   hiresOffer: StreamFormat | null;
+  /** mpv ne tourne pas, avec sa cause probable (#92) ; `null` quand tout va bien. */
+  mpvIssue: MpvIssue | null;
 }
+
+/** `cpuUnsupported` : mpv embarqué (x86-64-v3) sur un processeur sans AVX2. */
+export type MpvIssue = "stopped" | "cpuUnsupported";
 
 /** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
 export interface Volume {
@@ -121,6 +126,8 @@ export interface Volume {
 export interface QueueView {
   manual: Track[];
   upcoming: Track[];
+  /** Titre de départ quand la suite est une radio qui prolonge la file (#78). */
+  radio: Track | null;
 }
 
 export interface AlbumSummary {
@@ -294,6 +301,8 @@ export interface PlaybackSettings {
   /** Édition hi-res d'un titre qui n'en a pas (même enregistrement) : la lire à sa place,
    *  la proposer (#59) ou l'ignorer. */
   hiresUpgrade: HiresUpgrade;
+  /** Fin de file : enchaîner sur la radio du dernier titre (#78). */
+  autoRadio: boolean;
 }
 
 export interface UpdateInfo {
@@ -359,6 +368,8 @@ export const commands = {
   enqueueTracks: (trackIds: TrackId[], next: boolean) =>
     invoke<void>("enqueue_tracks", { trackIds, next }),
   removeFromQueue: (index: number) => invoke<void>("remove_from_queue", { index }),
+  /** Déplace l'entrée `from` de la file manuelle pour qu'elle finisse à l'index `to`. */
+  moveInQueue: (from: number, to: number) => invoke<void>("move_in_queue", { from, to }),
   clearQueue: () => invoke<void>("clear_queue"),
   /** Réponse au bandeau « Édition hi-res disponible », valable pour tout l'album (#59). */
   answerHiresOffer: (accept: boolean) => invoke<void>("answer_hires_offer", { accept }),
