@@ -140,6 +140,11 @@
     gap: 12px;
     padding: 6px 10px;
     border-radius: var(--radius);
+    /* Lignes hors écran ni mises en page ni peintes (listes de milliers de titres, #88). La
+       hauteur réservée est celle d'une ligne (pochette 40 px + marges), `auto` garde ensuite la
+       hauteur mesurée. Contient la peinture : rien d'une ligne ne doit déborder de son cadre. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 52px;
   }
 
   .row.numbered {

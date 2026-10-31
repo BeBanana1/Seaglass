@@ -21,8 +21,10 @@
     }
   }
 
+  const currentTrack = $derived(player.currentTrack);
+
   const empty = $derived(
-    queue.view.manual.length === 0 && queue.view.upcoming.length === 0 && (!current || !player.state.track),
+    queue.view.manual.length === 0 && queue.view.upcoming.length === 0 && (!current || !currentTrack),
   );
 </script>
 
@@ -35,10 +37,10 @@
     </div>
   {/if}
 
-  {#if current && player.state.track}
+  {#if current && currentTrack}
     <h3>{t.player.nowPlaying}</h3>
     <div role="list">
-      <TrackRow track={player.state.track} active compact actions={false} />
+      <TrackRow track={currentTrack} active compact actions={false} />
     </div>
   {/if}
 

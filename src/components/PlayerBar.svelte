@@ -17,26 +17,26 @@
     onOpenNowPlaying,
   }: { queueOpen: boolean; onToggleQueue: () => void; onOpenNowPlaying: () => void } = $props();
 
-  const s = $derived(player.state);
+  const track = $derived(player.currentTrack);
 </script>
 
 <footer class="panel">
   <HiresOffer />
   <div class="now">
-    {#if s.track}
+    {#if track}
       <button class="cover" onclick={onOpenNowPlaying} title={t.player.openNowPlaying}>
-        {#if s.track.album.coverUrl}<img src={s.track.album.coverUrl} alt="" />{/if}
+        {#if track.album.coverUrl}<img src={track.album.coverUrl} alt="" />{/if}
         <span class="expand"><Icon name="add" size={14} /></span>
       </button>
       <div class="meta">
-        <span class="title">{fullTitle(s.track)}</span>
+        <span class="title">{fullTitle(track)}</span>
         <span class="sub">
-          {#each s.track.artists as artist, i (artist.id)}
+          {#each track.artists as artist, i (artist.id)}
             {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button>
           {/each}
         </span>
       </div>
-      <LikeButton track={s.track} />
+      <LikeButton {track} />
     {:else}
       <span class="sub">{t.player.nothingPlaying}</span>
     {/if}

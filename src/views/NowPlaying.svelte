@@ -22,7 +22,7 @@
 
   let { onClose }: { onClose: () => void } = $props();
 
-  const s = $derived(player.state);
+  const current = $derived(player.currentTrack);
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
   const panel = $derived(ui.nowPlayingPanel);
   const queueOpen = $derived(panel === "queue");
@@ -67,8 +67,8 @@
 
   <div class="scroller" class:with-panel={panel}>
     <div class="stage">
-      {#if s.track}
-        {@const track = s.track}
+      {#if current}
+        {@const track = current}
         <div class="layout">
           <div class="art">
             {#if track.album.coverUrl}
