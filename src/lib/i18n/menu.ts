@@ -3,6 +3,8 @@
 export const fr = {
   play: "Lire",
   removeFromQueue: "Retirer de la file",
+  moveUp: "Monter",
+  moveDown: "Descendre",
   playNext: "Lire ensuite",
   addToQueue: "Ajouter à la file",
   unlike: "Retirer des titres likés",
@@ -22,6 +24,8 @@ export const fr = {
 export const en: typeof fr = {
   play: "Play",
   removeFromQueue: "Remove from queue",
+  moveUp: "Move up",
+  moveDown: "Move down",
   playNext: "Play next",
   addToQueue: "Add to queue",
   unlike: "Remove from liked tracks",
