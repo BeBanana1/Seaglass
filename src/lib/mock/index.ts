@@ -13,7 +13,8 @@
 // remplacés par n titres synthétiques, 10 000 au plus), `?ticks=1` (`player-state` émis à 4 Hz
 // pendant la lecture, comme le vrai backend) : mesure des longues listes (#88), `?sleep=30|track`
 // (minuteur de mise en veille actif), `?device=dac|missing` (périphérique de sortie choisi, branché ou
-// débranché).
+// débranché), `?normalization=track|album` (normalisation du volume
+// active).
 
 import type {
   AlbumPage,
@@ -160,6 +161,8 @@ const state: PlayerState = {
     muted: volumeParam === "muted",
   },
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
+  // Calculé plus bas, après les réglages de lecture factices.
+  normalization: null,
   sleep: mockSleep(params.get("sleep")),
   /** `?mpv=cpu` ou `?mpv=stopped` : bandeau « mpv ne tourne pas » (#92). */
   mpvIssue: params.get("mpv") === "cpu" ? "cpuUnsupported" : params.get("mpv") === "stopped" ? "stopped" : null,
@@ -199,6 +202,8 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
     .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
     .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
 }
+// `?normalization=track|album` : normalisation active (gain factice de −6,5 dB).
+const normalizationParam = params.get("normalization") as PlaybackSettings["normalization"] | null;
 // `?device=missing` : le périphérique choisi est débranché ; `?device=dac` : il est branché.
 const DAC = { id: "wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}", name: "Haut-parleurs (Focusrite USB Audio)" };
 const SPEAKERS = { id: "wasapi/{0d7e4c2b-58a1-4c5e-9f1e-3b2a9c1d7e44}", name: "Haut-parleurs (Realtek(R) Audio)" };
@@ -208,6 +213,7 @@ let playback: PlaybackSettings = {
   hiresUpgrade: hiresOfferParam ? "ask" : "auto",
   audioDevice: deviceParam ? DAC : null,
   autoRadio: radioSeed !== null,
+  normalization: normalizationParam ?? "off",
 };
 const audioDevices: AudioDevices = {
   devices: deviceParam === "missing" ? [SPEAKERS] : [SPEAKERS, DAC],
@@ -222,6 +228,11 @@ function outputDevice(): OutputDevice {
   return { name: SPEAKERS.name, systemDefault: true, missing: chosen ? chosen.name : null };
 }
 state.outputDevice = outputDevice();
+/** Gain factice : −6,5 dB par titre, −4 dB par album. */
+function mockGain(): number | null {
+  return playback.normalization === "off" ? null : playback.normalization === "track" ? -6.5 : -4;
+}
+state.normalization = mockGain();
 let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
@@ -492,6 +503,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     }
     playback = JSON.parse(JSON.stringify(next));
     state.outputDevice = outputDevice();
+    state.normalization = mockGain();
     emit("player-state", state);
   },
   audio_devices: () => audioDevices,

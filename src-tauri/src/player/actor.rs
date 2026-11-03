@@ -12,6 +12,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
+use super::normalize::Normalizer;
 use super::output::{AudioDevices, Output};
 use super::queue::{Queue, Repeat};
 use super::radio::AutoRadio;
@@ -146,6 +147,8 @@ pub(super) struct Player {
     pub(super) hires_answers: HashMap<u64, bool>,
     /// Invalide les recherches d'offre lancées pour un titre qui n'est plus le courant.
     pub(super) offer_req: u64,
+    /// Normalisation du volume (#82) : réglage et ReplayGain des titres chargés.
+    pub(super) normalizer: Normalizer,
     /// Périphérique de sortie choisi, liste de mpv et repli (#79).
     pub(super) output: Output,
     /// Échéance du minuteur de mise en veille en durée (#85, état dans `state.sleep`).
@@ -221,6 +224,7 @@ pub fn spawn(
             hires_upgrade: settings.hires_upgrade,
             hires_answers: HashMap::new(),
             offer_req: 0,
+            normalizer: Normalizer::new(settings.normalization),
             output,
             sleep_deadline: None,
             radio: AutoRadio::new(settings.auto_radio),
@@ -360,6 +364,7 @@ impl Player {
                 }
                 self.radio.enabled = settings.auto_radio;
                 self.apply_cache_size(settings.cache_size).await;
+                self.set_normalization(settings.normalization).await;
                 self.set_audio_device(settings.audio_device).await;
             }
             Cmd::AnswerHiresOffer(accept) => self.answer_hires_offer(accept).await,

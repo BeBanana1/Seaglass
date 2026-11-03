@@ -38,6 +38,9 @@ pub struct PlayerState {
     /// Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son
     /// format, l'album dans `hires_edition`.
     pub hires_offer: Option<StreamFormat>,
+    /// Gain de normalisation appliqué au titre courant, en dB (#82) ; `None` si le signal
+    /// n'est pas modifié (réglage désactivé, gain inconnu ou nul).
+    pub normalization: Option<f64>,
     /// Minuteur de mise en veille actif (#85).
     pub sleep: Option<SleepState>,
     /// mpv ne tourne pas (lancement raté ou arrêt), avec sa cause probable (#92). Dans

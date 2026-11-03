@@ -17,7 +17,7 @@ use super::cache::TrackCache;
 use super::hires::HiresCache;
 use super::likes::Likes;
 use super::manifest;
-use super::models::{AudioQuality, SessionInfo, Stream, StreamFormat, Track, TrackId};
+use super::models::{AudioQuality, ReplayGain, SessionInfo, Stream, StreamFormat, Track, TrackId};
 use super::raw::RawTrack;
 use super::{Result, TidalError};
 
@@ -139,6 +139,12 @@ impl TidalClient {
         Ok(Stream {
             format: stream_format(&raw, &decoded),
             source: decoded.source,
+            gain: ReplayGain {
+                track_gain: raw.track_replay_gain,
+                track_peak: raw.track_peak_amplitude,
+                album_gain: raw.album_replay_gain,
+                album_peak: raw.album_peak_amplitude,
+            },
         })
     }
 

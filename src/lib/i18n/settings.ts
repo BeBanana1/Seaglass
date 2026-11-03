@@ -76,6 +76,18 @@ export const fr = {
     "Appliqué tout de suite, sans interrompre la lecture. Le cache reste en mémoire : rien " +
     "n'est écrit sur disque.",
 
+  normalization: "Normalisation du volume",
+  normalizationHint:
+    "Ramène les titres au même volume perçu avec le ReplayGain fourni par le service, sans " +
+    "jamais écrêter. Le signal n'est alors plus bit-perfect.",
+  normalizationModes: {
+    off: { label: "Désactivée", note: "Le signal est transmis tel quel." },
+    track: { label: "Par titre", note: "Chaque titre au même volume : idéal en lecture aléatoire." },
+    album: {
+      label: "Par album",
+      note: "Les écarts voulus entre les titres d'un album sont gardés (gain du titre s'il manque).",
+    },
+  },
   outputDevice: "Sortie audio",
   outputDeviceHint:
     "Périphérique sur lequel Seaglass joue, sans changer celui des autres applications. " +
@@ -211,6 +223,18 @@ export const en: typeof fr = {
   megabytes: (n: number) => `${num(n)} MB`,
   cacheNote: "Applied right away, without interrupting playback. The cache stays in memory: nothing is written to disk.",
 
+  normalization: "Volume normalization",
+  normalizationHint:
+    "Brings tracks to the same perceived loudness using the ReplayGain provided by the " +
+    "service, without ever clipping. The signal is then no longer bit-perfect.",
+  normalizationModes: {
+    off: { label: "Off", note: "The signal is passed through untouched." },
+    track: { label: "Per track", note: "Every track at the same loudness: best for shuffle." },
+    album: {
+      label: "Per album",
+      note: "Keeps the intended differences between an album's tracks (track gain if missing).",
+    },
+  },
   outputDevice: "Audio output",
   outputDeviceHint:
     "Device Seaglass plays on, without changing the one used by other apps. If it is " +

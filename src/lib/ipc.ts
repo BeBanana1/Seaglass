@@ -147,6 +147,9 @@ export interface PlayerState {
   /** Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son format,
    *  l'album dans `hiresEdition`. */
   hiresOffer: StreamFormat | null;
+  /** Gain de normalisation appliqué au titre courant, en dB (#82) ; `null` si le signal
+   *  n'est pas modifié. */
+  normalization: number | null;
   /** Minuteur de mise en veille actif (#85). */
   sleep: SleepState | null;
   /** mpv ne tourne pas, avec sa cause probable (#92) ; `null` quand tout va bien. */
@@ -373,12 +376,17 @@ export type CacheSize = 32 | 64 | 128 | 256;
 
 export type HiresUpgrade = "auto" | "ask" | "off";
 
+/** Normalisation du volume par ReplayGain (#82). */
+export type Normalization = "off" | "track" | "album";
+
 /** Réglages de lecture, stockés à part des réglages d'UI. */
 export interface PlaybackSettings {
   cacheSize: CacheSize;
   /** Édition hi-res d'un titre qui n'en a pas (même enregistrement) : la lire à sa place,
    *  la proposer (#59) ou l'ignorer. */
   hiresUpgrade: HiresUpgrade;
+  /** Désactivée par défaut : seul mode qui laisse le signal intact. */
+  normalization: Normalization;
   /** Périphérique de sortie choisi (#79) ; `null` = périphérique par défaut du système.
    *  Gardé même débranché : le lecteur se replie sur le défaut puis y revient. */
   audioDevice: AudioDevice | null;
