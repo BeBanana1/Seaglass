@@ -20,15 +20,52 @@ pub struct ArtistRef {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", from = "StoredAlbumRef")]
 pub struct AlbumRef {
     pub id: u64,
     pub title: String,
     /// URL d'une pochette 320×320, si disponible.
     pub cover_url: Option<String>,
+    /// Même pochette en 160×160, pour les vignettes des listes (#89).
+    pub cover_small_url: Option<String>,
+    /// Même pochette en 640×640, pour « En lecture ».
+    pub cover_large_url: Option<String>,
     /// Couleur dominante de la pochette (`#rrggbb`), pour accorder l'interface.
-    #[serde(default)]
     pub color: Option<String>,
+}
+
+/// `AlbumRef` relu (SQLite) : les titres enregistrés avant 0.4.36 n'ont que la pochette 320,
+/// les autres tailles en sont déduites.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StoredAlbumRef {
+    id: u64,
+    title: String,
+    cover_url: Option<String>,
+    #[serde(default)]
+    cover_small_url: Option<String>,
+    #[serde(default)]
+    cover_large_url: Option<String>,
+    #[serde(default)]
+    color: Option<String>,
+}
+
+impl From<StoredAlbumRef> for AlbumRef {
+    fn from(s: StoredAlbumRef) -> Self {
+        let resized = |size| {
+            s.cover_url
+                .as_deref()
+                .and_then(|u| super::raw::resized(u, size))
+        };
+        AlbumRef {
+            cover_small_url: s.cover_small_url.or_else(|| resized(160)),
+            cover_large_url: s.cover_large_url.or_else(|| resized(640)),
+            id: s.id,
+            title: s.title,
+            cover_url: s.cover_url,
+            color: s.color,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -132,6 +169,8 @@ pub struct AlbumSummary {
     pub title: String,
     pub artists: Vec<ArtistRef>,
     pub cover_url: Option<String>,
+    /// Même pochette en 640×640, pour le bandeau de l'accueil (#89).
+    pub cover_large_url: Option<String>,
     /// Couleur dominante de la pochette (`#rrggbb`).
     pub color: Option<String>,
     /// `AAAA-MM-JJ`.

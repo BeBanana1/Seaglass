@@ -1,13 +1,13 @@
 <script lang="ts">
   // Bandeau « À la une » de l'accueil : un album mis en avant, teinté de sa propre couleur.
   import type { AlbumSummary } from "../lib/ipc";
-  import { albumKind, year } from "../lib/format";
+  import { albumKind, coverLarge, year } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
 
   let { album, context }: { album: AlbumSummary; context: string } = $props();
 
-  const large = $derived(album.coverUrl?.replace("320x320", "640x640") ?? null);
+  const large = $derived(coverLarge(album));
 </script>
 
 <button

@@ -13,7 +13,12 @@ export interface ArtistRef {
 export interface AlbumRef {
   id: number;
   title: string;
+  /** Pochette 320×320. */
   coverUrl: string | null;
+  /** 160×160 et 640×640 (#89). Toujours envoyées par le backend (déduites de la 320 pour un titre
+   *  enregistré avant 0.4.36), absentes des anciennes fixtures : voir `coverSmall`. */
+  coverSmallUrl?: string | null;
+  coverLargeUrl?: string | null;
   /** Couleur dominante de la pochette (`#rrggbb`). */
   color: string | null;
 }
@@ -175,6 +180,8 @@ export interface AlbumSummary {
   title: string;
   artists: ArtistRef[];
   coverUrl: string | null;
+  /** 640×640 (#89). */
+  coverLargeUrl?: string | null;
   color: string | null;
   /** `AAAA-MM-JJ`. */
   releaseDate: string | null;
