@@ -16,8 +16,15 @@ on:
 jobs:
   check:
     runs-on: seaglass
+    # Un run normal dure 2 à 5 min : au-delà, il est bloqué (vu le 2026-11-03, compilation
+    # des tests figée plus de 10 min) et ne doit pas occuper le runner indéfiniment.
+    timeout-minutes: 20
     env:
       CARGO_TERM_COLOR: always
+      # Pas d'infos de débogage : inutiles pour clippy et les tests, elles alourdissent
+      # l'édition de liens (mémoire du serveur) et le cache (~1,9 Go à restaurer à chaque run).
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
       # Historique complet et tags : le contrôle de version compare au dernier tag `v*`.
       - uses: actions/checkout@v4
