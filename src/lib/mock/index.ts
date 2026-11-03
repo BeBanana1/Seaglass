@@ -8,7 +8,8 @@
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
-// `?trackinfo=1` (ouvre les infos du titre en cours).
+// `?trackinfo=1` (ouvre les infos du titre en cours), `?autoradio=1` (la suite de la file est
+// une radio automatique, réglage activé).
 
 import type {
   AlbumPage,
@@ -94,6 +95,13 @@ for (const t of [
 
 let context: Track[] = fx.album.tracks;
 let index = Math.min(1, context.length - 1);
+/** `?autoradio=1` : la suite de la file est la radio du titre en cours (#78). */
+let radioSeed: Track | null = null;
+if (params.has("autoradio") && context[index]) {
+  radioSeed = context[index];
+  context = [radioSeed, ...radioPage.tracks.filter((t) => t.id !== radioSeed?.id)];
+  index = 0;
+}
 /** `?manual=1` : quelques titres dans la file manuelle, pour la réorganiser (#80). */
 const manual: Track[] = params.has("manual") ? fx.playlist.tracks.slice(0, 4) : [];
 /** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
@@ -166,7 +174,11 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
     .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
     .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
 }
-let playback: PlaybackSettings = { cacheSize: 64, hiresUpgrade: hiresOfferParam ? "ask" : "auto" };
+let playback: PlaybackSettings = {
+  cacheSize: 64,
+  hiresUpgrade: hiresOfferParam ? "ask" : "auto",
+  autoRadio: radioSeed !== null,
+};
 let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
@@ -187,7 +199,7 @@ function mockUpdate() {
 }
 
 function queueView(): QueueView {
-  return { manual: [...manual], upcoming: context.slice(index + 1, index + 51) };
+  return { manual: [...manual], upcoming: context.slice(index + 1, index + 51), radio: radioSeed };
 }
 
 function setCurrent(track: Track | undefined) {
@@ -360,6 +372,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   play_tracks: ({ trackIds, startIndex, shuffle }) => {
     context = (trackIds as number[]).map((id) => allTracks.get(id)).filter((t): t is Track => !!t);
+    radioSeed = null;
     index = shuffle ? Math.floor(Math.random() * context.length) : Number(startIndex);
     state.shuffle = state.shuffle || Boolean(shuffle);
     setCurrent(context[index]);
@@ -398,6 +411,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   clear_queue: () => {
     manual.length = 0;
+    radioSeed = null;
     context = context.slice(index, index + 1);
     index = 0;
     state.hasNext = false;

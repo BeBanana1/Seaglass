@@ -126,6 +126,8 @@ export interface Volume {
 export interface QueueView {
   manual: Track[];
   upcoming: Track[];
+  /** Titre de départ quand la suite est une radio qui prolonge la file (#78). */
+  radio: Track | null;
 }
 
 export interface AlbumSummary {
@@ -299,6 +301,8 @@ export interface PlaybackSettings {
   /** Édition hi-res d'un titre qui n'en a pas (même enregistrement) : la lire à sa place,
    *  la proposer (#59) ou l'ignorer. */
   hiresUpgrade: HiresUpgrade;
+  /** Fin de file : enchaîner sur la radio du dernier titre (#78). */
+  autoRadio: boolean;
 }
 
 export interface UpdateInfo {

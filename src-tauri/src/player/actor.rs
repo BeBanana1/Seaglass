@@ -13,6 +13,7 @@ use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
 use super::queue::{Queue, Repeat};
+use super::radio::AutoRadio;
 use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::state::{PlayerState, QueueView};
 use crate::integrations::Observers;
@@ -82,6 +83,12 @@ pub enum Cmd {
         request: u64,
         offer: StreamFormat,
     },
+    /// Radio du titre `seed`, demandée quand la file s'épuise (#78).
+    RadioResolved {
+        request: u64,
+        seed: TrackId,
+        result: Result<Vec<TrackId>, String>,
+    },
 }
 
 /// Destination d'un flux résolu dans la fenêtre mpv.
@@ -133,6 +140,8 @@ pub(super) struct Player {
     pub(super) hires_answers: HashMap<u64, bool>,
     /// Invalide les recherches d'offre lancées pour un titre qui n'est plus le courant.
     pub(super) offer_req: u64,
+    /// Radio automatique en fin de file (#78).
+    pub(super) radio: AutoRadio,
     pub(super) queue_dirty: bool,
     pub(super) persist_queue: bool,
     pub(super) persist_position: bool,
@@ -194,6 +203,7 @@ pub fn spawn(
             hires_upgrade: settings.hires_upgrade,
             hires_answers: HashMap::new(),
             offer_req: 0,
+            radio: AutoRadio::new(settings.auto_radio),
             queue_dirty: true,
             persist_queue: false,
             persist_position: false,
@@ -324,6 +334,7 @@ impl Player {
                     self.hires_upgrade = settings.hires_upgrade;
                     self.maybe_offer_hires();
                 }
+                self.radio.enabled = settings.auto_radio;
                 self.apply_cache_size(settings.cache_size).await;
             }
             Cmd::AnswerHiresOffer(accept) => self.answer_hires_offer(accept).await,
@@ -343,6 +354,11 @@ impl Player {
                 slot,
                 result,
             } => self.on_resolved(request, slot, result).await,
+            Cmd::RadioResolved {
+                request,
+                seed,
+                result,
+            } => self.on_radio_resolved(request, seed, result).await,
         }
     }
 
@@ -394,6 +410,8 @@ impl Player {
     pub(super) fn mark_queue_dirty(&mut self) {
         self.queue_dirty = true;
         self.persist_queue = true;
+        // File changée : une radio peut de nouveau être demandée.
+        self.radio.asked = None;
     }
 
     fn queue_view(&self) -> QueueView {
@@ -403,6 +421,7 @@ impl Player {
                 .tidal
                 .cache
                 .get_many(self.queue.upcoming_context(UPCOMING_LIMIT)),
+            radio: self.queue.radio().and_then(|id| self.tidal.cache.get(id)),
         }
     }
 

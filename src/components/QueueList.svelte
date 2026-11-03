@@ -6,6 +6,8 @@
   import { queue } from "../lib/stores/queue.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { fullTitle } from "../lib/format";
+  import Icon from "./Icon.svelte";
   import TrackRow from "./TrackRow.svelte";
 
   /** `current` : afficher aussi le titre en cours (inutile si la vue l'affiche déjà en grand). */
@@ -150,7 +152,15 @@
   {/if}
 
   {#if queue.view.upcoming.length > 0}
-    <h3>{t.player.upNext}</h3>
+    {#if queue.view.radio}
+      <!-- La suite est une radio qui prolonge la file épuisée (#78). -->
+      <h3 class="queue-radio">
+        <Icon name="radio" size={14} />
+        <span>{t.player.radioFrom(fullTitle(queue.view.radio))}</span>
+      </h3>
+    {:else}
+      <h3>{t.player.upNext}</h3>
+    {/if}
     <div role="list">
       {#each queue.view.upcoming as track, i (`${i}-${track.id}`)}
         <TrackRow {track} compact actions={false} />
@@ -228,6 +238,25 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--text-muted);
+  }
+
+  .queue-radio {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    color: var(--accent);
+  }
+
+  .queue-radio span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .queue-radio :global(svg) {
+    flex-shrink: 0;
   }
 
   .muted {

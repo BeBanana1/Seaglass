@@ -75,6 +75,8 @@ pub struct QueueView {
     pub manual: Vec<Track>,
     /// Prochains titres du contexte.
     pub upcoming: Vec<Track>,
+    /// Titre de départ quand le contexte est une radio qui prolonge la file (#78).
+    pub radio: Option<Track>,
 }
 
 #[cfg(test)]

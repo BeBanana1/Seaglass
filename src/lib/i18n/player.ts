@@ -48,6 +48,7 @@ export const fr = {
   nextInQueue: "Ensuite dans la file",
   reorderHint: "Glisser pour réorganiser, ou Alt+↑ / Alt+↓",
   upNext: "Ensuite",
+  radioFrom: (title: string) => `Radio de ${title}`,
   queueEmpty: "La file est vide.",
 
   lyricsNothing: "Rien en lecture.",
@@ -105,6 +106,7 @@ export const en: typeof fr = {
   nextInQueue: "Next in queue",
   reorderHint: "Drag to reorder, or Alt+↑ / Alt+↓",
   upNext: "Up next",
+  radioFrom: (title: string) => `${title} radio`,
   queueEmpty: "The queue is empty.",
 
   lyricsNothing: "Nothing playing.",

@@ -6,7 +6,7 @@
 //! - `history` : titres précédents, indépendant du shuffle.
 //! - `Repeat::One` est géré par mpv (`loop-file=inf`) : la file l'ignore.
 
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use crate::tidal::models::TrackId;
 
 const HISTORY_MAX: usize = 500;
+/// Titres récents de l'historique écartés d'une radio automatique (#78).
+const RADIO_RECENT: usize = 100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -42,6 +44,9 @@ pub struct Queue {
     current: Option<Entry>,
     repeat: Repeat,
     shuffle: bool,
+    /// Titre dont la radio prolonge la file épuisée (#78) ; effacé par un nouveau contexte.
+    #[serde(default)]
+    radio: Option<TrackId>,
 }
 
 impl Queue {
@@ -70,6 +75,7 @@ impl Queue {
     ) -> Option<TrackId> {
         let id = *tracks.get(start)?;
         self.push_history();
+        self.radio = None;
         self.order = (0..tracks.len()).collect();
         self.context = tracks;
         if self.shuffle {
@@ -157,8 +163,56 @@ impl Queue {
         self.context.clear();
         self.order.clear();
         self.pos = 0;
+        self.radio = None;
         if let Some(cur) = &mut self.current {
             cur.from_context = false;
+        }
+        true
+    }
+
+    /// Titre dont la radio prolonge la file, s'il y en a une (séparateur de l'UI).
+    pub fn radio(&self) -> Option<TrackId> {
+        self.radio
+    }
+
+    /// Une radio peut prolonger la file : rien ne suit le titre courant, sans répétition
+    /// (repeat All est prioritaire, repeat One est géré par mpv).
+    pub fn wants_radio(&self) -> bool {
+        self.repeat == Repeat::Off && self.current.is_some() && self.peek_next().is_none()
+    }
+
+    /// Prolonge une file épuisée par la radio de `seed`, le titre courant (#78).
+    ///
+    /// Refusé si le titre courant a changé ou si un suivant existe déjà (file modifiée
+    /// pendant la requête). Le titre courant, les titres récents de l'historique et les
+    /// doublons sont écartés. Le nouveau contexte commence par le titre courant, curseur
+    /// dessus : « Suivant » passe au premier titre de la radio.
+    pub fn extend_with_radio(&mut self, seed: TrackId, tracks: &[TrackId]) -> bool {
+        if self.current() != Some(seed) || !self.wants_radio() {
+            return false;
+        }
+        let mut seen: HashSet<TrackId> = self
+            .history
+            .iter()
+            .rev()
+            .take(RADIO_RECENT)
+            .map(|e| e.id)
+            .collect();
+        seen.insert(seed);
+        let fresh: Vec<TrackId> = tracks
+            .iter()
+            .copied()
+            .filter(|&id| seen.insert(id))
+            .collect();
+        if fresh.is_empty() {
+            return false;
+        }
+        self.context = std::iter::once(seed).chain(fresh).collect();
+        self.order = (0..self.context.len()).collect();
+        self.pos = 0;
+        self.radio = Some(seed);
+        if let Some(cur) = &mut self.current {
+            cur.from_context = true;
         }
         true
     }
