@@ -3,6 +3,7 @@
 //! - `cargo test live_catalog -- --ignored --nocapture` : appelle chaque endpoint.
 //! - `cargo test live_lyrics -- --ignored --nocapture` : paroles synchronisées et absentes.
 //! - `cargo test live_track_info -- --ignored --nocapture` : infos détaillées d'un titre (#3).
+//! - `cargo test live_track_credits -- --ignored --nocapture` : crédits d'un titre (#84).
 //! - `cargo test live_hires_twin_album -- --ignored --nocapture` : album jumeau hi-res (#59).
 //! - `cargo test live_locale -- --ignored --nocapture` : titres de l'accueil en anglais (#7).
 //! - `cargo test live_collection -- --ignored --nocapture` : écritures dans la bibliothèque,
@@ -383,4 +384,56 @@ async fn live_track_info() {
             track.title, info.key, info.key_scale, info.bpm
         );
     }
+}
+
+/// Crédits (#84) : rock (rôles nombreux, ingénieurs sans artiste), classique (chef,
+/// orchestre), instrumental (compositeur seul), titre sans crédits. Un contributeur avec
+/// `artistId` doit ouvrir une page d'artiste.
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_track_credits() {
+    let client = client().await;
+    let roles = async |id: u64| {
+        let credits = client.track_credits(TrackId(id)).await.unwrap();
+        for group in &credits {
+            let names: Vec<String> = group
+                .contributors
+                .iter()
+                .map(|c| format!("{} ({:?})", c.name, c.artist_id))
+                .collect();
+            println!("{id} {} : {}", group.role, names.join(", "));
+        }
+        credits
+    };
+    let bohemian = roles(LYRICS_TRACK.0).await;
+    assert_eq!(bohemian[0].role, "Composer", "écriture en premier");
+    let freddie = &bohemian[0].contributors[0];
+    assert_eq!(freddie.artist_id, Some(9664));
+    let page = client.artist(9664).await.unwrap();
+    assert_eq!(page.artist.name, freddie.name);
+    assert!(bohemian.iter().any(|g| g.role == "Mastering Engineer"));
+    // `includeContributors=true` donne aussi un id aux ingénieurs : chacun ouvre une page.
+    let mut ids: Vec<u64> = bohemian
+        .iter()
+        .flat_map(|g| g.contributors.iter().filter_map(|c| c.artist_id))
+        .collect();
+    ids.sort_unstable();
+    ids.dedup();
+    for id in ids {
+        let page = client.artist(id).await;
+        assert!(page.is_ok(), "artiste {id} : {page:?}");
+    }
+
+    // Beethoven, 5e symphonie, Karajan et le Philharmonique de Berlin.
+    let karajan = roles(4_361_552).await;
+    for role in ["Composer", "Conductor", "Orchestra"] {
+        assert!(karajan.iter().any(|g| g.role == role), "{role} absent");
+    }
+    // Clair de lune (Mantovani) et Interstellar : instrumentaux.
+    assert!(!roles(NO_LYRICS_TRACK.0).await.is_empty());
+    let interstellar = roles(156_749_594).await;
+    assert_eq!(interstellar[0].contributors[0].artist_id, Some(ARTIST_ID));
+    // Sans crédits (et titre inexistant) : liste vide, pas d'erreur.
+    assert!(roles(21_125_042).await.is_empty());
+    assert!(roles(1).await.is_empty());
 }

@@ -7,6 +7,7 @@
   import {
     artistNames,
     coverSmall,
+    creditRole,
     decibels,
     formatStream,
     formatTime,
@@ -71,6 +72,11 @@
   function openAlbum(id: number) {
     closeTrackInfo();
     go({ name: "album", id });
+  }
+
+  function openArtist(id: number) {
+    closeTrackInfo();
+    go({ name: "artist", id });
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -205,6 +211,25 @@
               {/if}
             </dl>
           </section>
+
+          {#if info.credits.length > 0}
+            <section class="info-section info-credits">
+              <h4>{t.info.credits}</h4>
+              <dl>
+                {#each info.credits as group (group.role)}
+                  <dt>{creditRole(group.role)}</dt>
+                  <dd>
+                    {#each group.contributors as person, i (person.name)}
+                      {#if i > 0}{", "}{/if}{#if person.artistId !== null}
+                        {@const id = person.artistId}
+                        <button class="link credit-artist" onclick={() => openArtist(id)}>{person.name}</button>
+                      {:else}{person.name}{/if}
+                    {/each}
+                  </dd>
+                {/each}
+              </dl>
+            </section>
+          {/if}
         {/if}
       </div>
     </div>
@@ -361,6 +386,20 @@
 
   .info-section dl + .note {
     margin: 8px 0 0;
+  }
+
+  .credit-artist {
+    padding: 0;
+    font: inherit;
+    color: var(--text);
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--text) 35%, transparent);
+    text-underline-offset: 2px;
+  }
+
+  .credit-artist:hover {
+    text-decoration-color: currentColor;
   }
 
   .note .link {

@@ -198,6 +198,11 @@ export function kbps(rate: number): string {
   return `${num(rate)} kbps`;
 }
 
+/** Rôle d'un crédit (#84) dans la langue courante ; un rôle inconnu reste tel quel. */
+export function creditRole(role: string): string {
+  return t.info.roles[role.toLowerCase().replace(/[^a-z0-9]/g, "")] ?? role;
+}
+
 /** Tonalité dans la notation de la langue (Do / C). L'API mêle les formes (`FSharp`, `Bb`,
  *  `F`) : une forme inconnue est rendue telle quelle. */
 export function musicalKey(key: string | null, scale: string | null): string | null {

@@ -691,6 +691,20 @@ function mockTrackInfo(trackId: number): TrackInfo {
             played: playback.hiresUpgrade === "auto",
           }
         : null,
+    credits: [
+      { role: "Composer", contributors: track.artists.map((a) => ({ name: a.name, artistId: a.id })) },
+      { role: "Lyricist", contributors: [{ name: "Ann Demo", artistId: null }] },
+      {
+        role: "Electric Guitar",
+        contributors: [
+          { name: track.artists[0]?.name ?? "Demo", artistId: track.artists[0]?.id ?? null },
+          { name: "Bob Session", artistId: null },
+        ],
+      },
+      { role: "Producer", contributors: [{ name: "Carla Studio", artistId: null }] },
+      { role: "Mastering Engineer", contributors: [{ name: "Dan Lathe", artistId: null }] },
+      { role: "Theremin Wrangler", contributors: [{ name: "Eve Unknown", artistId: null }] },
+    ],
   };
 }
 

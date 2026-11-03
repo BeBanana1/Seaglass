@@ -411,6 +411,25 @@ pub struct TrackInfo {
     pub volume_number: Option<u32>,
     /// Autre édition hi-res du même enregistrement (#18, #55), si le titre n'est pas hi-res.
     pub hires_edition: Option<HiresEdition>,
+    /// Crédits groupés par rôle (#84) ; vide si TIDAL n'en a pas.
+    pub credits: Vec<CreditGroup>,
+}
+
+/// Un rôle (`Composer`, `Producer`, `Bass guitar`…, texte libre en anglais de l'API) et
+/// ses contributeurs.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreditGroup {
+    pub role: String,
+    pub contributors: Vec<Contributor>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Contributor {
+    pub name: String,
+    /// Artiste TIDAL correspondant (page artiste), s'il y en a un.
+    pub artist_id: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
