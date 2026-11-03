@@ -32,6 +32,14 @@ pub fn run() {
         .init();
 
     tauri::Builder::default()
+        // Une seule instance (#83) : relancer Seaglass, par exemple pendant qu'il est réduit
+        // dans la zone de notification, réaffiche la fenêtre existante au lieu d'ouvrir un
+        // second lecteur. Enregistré en premier, comme le demande le plugin.
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if tray::show_on_second_launch(args) {
+                tray::show_main(app);
+            }
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         // Lancement au démarrage (clé `Run` de l'utilisateur, exe courant). Piloté
         // seulement par les commandes `settings` : aucune permission côté UI. L'app lancée

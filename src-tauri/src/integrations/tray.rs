@@ -38,6 +38,12 @@ pub fn start_hidden(args: impl IntoIterator<Item = String>) -> bool {
     TRAY_READY.load(Ordering::Relaxed) && args.into_iter().any(|a| a == MINIMIZED_ARG)
 }
 
+/// Seaglass relancé alors qu'il tourne déjà : la fenêtre existante est réaffichée, sauf
+/// pour un lancement au démarrage de session (`--minimized`), qui ne doit rien montrer.
+pub fn show_on_second_launch(args: impl IntoIterator<Item = String>) -> bool {
+    !args.into_iter().any(|a| a == MINIMIZED_ARG)
+}
+
 /// Affiche, restaure et met au premier plan la fenêtre principale.
 pub fn show_main(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
@@ -280,6 +286,15 @@ mod tests {
         assert_eq!(cut.chars().count(), 60);
         assert!(cut.ends_with('…'));
         assert_eq!(ellipsize("court", 60), "court");
+    }
+
+    #[test]
+    fn second_launch_shows_the_window_unless_minimized() {
+        assert!(show_on_second_launch(["seaglass.exe".into()]));
+        assert!(!show_on_second_launch([
+            "seaglass.exe".into(),
+            MINIMIZED_ARG.into()
+        ]));
     }
 
     #[test]
