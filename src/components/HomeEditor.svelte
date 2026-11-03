@@ -110,7 +110,9 @@
             onclick={() => toggle(g.key)}
           >
             <Icon name={g.hidden ? "eyeOff" : "eye"} size={16} />
-            {g.hidden ? t.views.homeEditor.hidden : t.views.homeEditor.shown}
+            <span class="home-editor-toggle-label">
+              {g.hidden ? t.views.homeEditor.hidden : t.views.homeEditor.shown}
+            </span>
           </button>
         </span>
       </li>
@@ -279,6 +281,40 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+
+  /* Téléphone (#135) : vignettes et libellé de la bascule ne laissaient plus de place au
+     titre et poussaient les boutons hors du cadre. Icônes seules, à la taille du doigt. */
+  :global(:root[data-platform="android"]) .home-editor {
+    margin: 0;
+  }
+
+  :global(:root[data-platform="android"]) .home-editor-item {
+    gap: 8px;
+    padding: 6px 6px 6px 12px;
+  }
+
+  :global(:root[data-platform="android"]) .home-editor-thumbs,
+  :global(:root[data-platform="android"]) .home-editor-toggle-label {
+    display: none;
+  }
+
+  :global(:root[data-platform="android"]) .home-editor-actions {
+    flex-shrink: 0;
+    gap: 2px;
+  }
+
+  :global(:root[data-platform="android"]) .home-editor-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  :global(:root[data-platform="android"]) .home-editor-toggle {
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-left: 4px;
+    padding: 0;
   }
 
   :global([data-theme="studio"]) .home-editor-icon {
