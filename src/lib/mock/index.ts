@@ -238,6 +238,7 @@ function mockGain(): number | null {
 }
 state.normalization = mockGain();
 let autostart = params.has("autostart");
+let fullscreen = params.has("fullscreen");
 
 type Listener = (e: { payload: unknown }) => void;
 const listeners = new Map<string, Set<Listener>>();
@@ -517,6 +518,13 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // `?platform=android` : mise en page tactile.
   platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
   autostart_enabled: () => autostart,
+  // Le navigateur garde sa taille : seul l'état change (le bouton suit).
+  fullscreen: () => fullscreen,
+  set_fullscreen: ({ fullscreen: on }) => {
+    fullscreen = Boolean(on);
+    emit("fullscreen", fullscreen);
+    return fullscreen;
+  },
   set_autostart: ({ enabled }) => {
     autostart = Boolean(enabled);
     return autostart;

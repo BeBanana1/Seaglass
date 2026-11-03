@@ -162,6 +162,10 @@ pub fn run() {
             #[cfg(desktop)]
             commands::settings::set_autostart,
             #[cfg(desktop)]
+            commands::window::fullscreen,
+            #[cfg(desktop)]
+            commands::window::set_fullscreen,
+            #[cfg(desktop)]
             updater::update_status,
             #[cfg(desktop)]
             updater::install_update,
@@ -212,14 +216,16 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
         )
         .manage(UpdateState::default())
         // Réglage « Fermer la fenêtre » sur « Réduire » : la fenêtre principale est cachée.
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event
-                && window.label() == "main"
-                && tray::hide_on_close()
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. }
+                if window.label() == "main" && tray::hide_on_close() =>
             {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // Le plein écran (#131) change la taille : l'UI suit l'état réel de la fenêtre.
+            WindowEvent::Resized(_) => commands::window::on_resized(window),
+            _ => {}
         })
 }
 

@@ -150,6 +150,7 @@
 }
 
 :root[data-theme="surreal"] .now-playing .close,
+:root[data-theme="surreal"] .now-playing .fullscreen-toggle,
 :root[data-theme="surreal"] .now-playing .queue-toggle,
 :root[data-theme="surreal"] .now-playing .lyrics-toggle {
   background: var(--control-bg);

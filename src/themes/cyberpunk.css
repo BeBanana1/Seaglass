@@ -201,6 +201,7 @@
 
 /* « En lecture » : boutons carrés, titre en cours des paroles en jaune. */
 :root[data-theme="cyberpunk"] .now-playing .close,
+:root[data-theme="cyberpunk"] .now-playing .fullscreen-toggle,
 :root[data-theme="cyberpunk"] .now-playing .queue-toggle,
 :root[data-theme="cyberpunk"] .now-playing .lyrics-toggle {
   border-radius: 0;

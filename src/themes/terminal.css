@@ -141,6 +141,7 @@
     .context-menu-item,
     .picker-item,
     .now-playing .close,
+    .now-playing .fullscreen-toggle,
     .now-playing .queue-toggle,
     .now-playing .lyrics-toggle
   ) {

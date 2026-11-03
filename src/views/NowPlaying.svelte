@@ -21,6 +21,7 @@
   import Volume from "../components/Volume.svelte";
   import TrackRow from "../components/TrackRow.svelte";
   import { platform } from "../lib/platform.svelte";
+  import { appWindow, toggleFullscreen } from "../lib/stores/window.svelte";
   import { t } from "../lib/i18n.svelte";
 
   let { onClose }: { onClose: () => void } = $props();
@@ -95,6 +96,17 @@
     >
       <Icon name="queue" size={20} />
     </button>
+    {#if !platform.mobile}
+      <button
+        class="fullscreen-toggle"
+        onclick={toggleFullscreen}
+        aria-pressed={appWindow.fullscreen}
+        title={appWindow.fullscreen ? t.views.nowPlaying.exitFullscreen : t.views.nowPlaying.fullscreen}
+        aria-label={appWindow.fullscreen ? t.views.nowPlaying.exitFullscreen : t.views.nowPlaying.fullscreen}
+      >
+        <Icon name={appWindow.fullscreen ? "fullscreenExit" : "fullscreen"} size={20} />
+      </button>
+    {/if}
     <button class="close" onclick={onClose} title={t.views.nowPlaying.close}>
       <Icon name="close" size={20} />
     </button>
@@ -232,6 +244,7 @@
   }
 
   .close,
+  .fullscreen-toggle,
   .queue-toggle,
   .lyrics-toggle {
     display: grid;
@@ -244,6 +257,7 @@
   }
 
   .close:hover,
+  .fullscreen-toggle:hover,
   .queue-toggle:hover,
   .lyrics-toggle:hover {
     background: var(--bg-hover);
@@ -534,6 +548,7 @@
   }
 
   :global([data-theme="studio"]) .close,
+  :global([data-theme="studio"]) .fullscreen-toggle,
   :global([data-theme="studio"]) .queue-toggle,
   :global([data-theme="studio"]) .lyrics-toggle {
     border-radius: 0;
