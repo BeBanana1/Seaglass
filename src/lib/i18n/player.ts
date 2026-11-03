@@ -46,6 +46,7 @@ export const fr = {
   clearQueueHint: "Retire les titres à venir, le titre en cours continue",
   nowPlaying: "En cours",
   nextInQueue: "Ensuite dans la file",
+  reorderHint: "Glisser pour réorganiser, ou Alt+↑ / Alt+↓",
   upNext: "Ensuite",
   queueEmpty: "La file est vide.",
 
@@ -102,6 +103,7 @@ export const en: typeof fr = {
   clearQueueHint: "Removes upcoming tracks; the current track keeps playing",
   nowPlaying: "Now playing",
   nextInQueue: "Next in queue",
+  reorderHint: "Drag to reorder, or Alt+↑ / Alt+↓",
   upNext: "Up next",
   queueEmpty: "The queue is empty.",
 

@@ -364,6 +364,8 @@ export const commands = {
   enqueueTracks: (trackIds: TrackId[], next: boolean) =>
     invoke<void>("enqueue_tracks", { trackIds, next }),
   removeFromQueue: (index: number) => invoke<void>("remove_from_queue", { index }),
+  /** Déplace l'entrée `from` de la file manuelle pour qu'elle finisse à l'index `to`. */
+  moveInQueue: (from: number, to: number) => invoke<void>("move_in_queue", { from, to }),
   clearQueue: () => invoke<void>("clear_queue"),
   /** Réponse au bandeau « Édition hi-res disponible », valable pour tout l'album (#59). */
   answerHiresOffer: (accept: boolean) => invoke<void>("answer_hires_offer", { accept }),

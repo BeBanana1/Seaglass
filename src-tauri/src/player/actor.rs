@@ -42,6 +42,11 @@ pub enum Cmd {
         next: bool,
     },
     RemoveFromQueue(usize),
+    /// Déplace une entrée de la file manuelle (`from` finit à l'index `to`).
+    MoveInQueue {
+        from: usize,
+        to: usize,
+    },
     /// Vide la file manuelle et la suite du contexte ; le titre courant continue.
     ClearQueue,
     Next,
@@ -267,6 +272,18 @@ impl Player {
             Cmd::RemoveFromQueue(index) => {
                 if self.queue.remove_manual(index) {
                     self.on_queue_changed().await;
+                }
+            }
+            Cmd::MoveInQueue { from, to } => {
+                // Le préchargé est toujours `peek_next` : réordonner le milieu de la file ne
+                // le retire pas de mpv (gapless intact, pas de nouvelle résolution).
+                let next = self.queue.peek_next();
+                if self.queue.move_manual(from, to) {
+                    if self.queue.peek_next() == next {
+                        self.mark_queue_dirty();
+                    } else {
+                        self.on_queue_changed().await;
+                    }
                 }
             }
             Cmd::ClearQueue => {
