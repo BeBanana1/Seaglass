@@ -1,4 +1,3 @@
-import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -7,11 +6,20 @@ plugins {
     id("rust")
 }
 
-val tauriProperties = Properties().apply {
-    val propFile = file("tauri.properties")
-    if (propFile.exists()) {
-        propFile.inputStream().use { load(it) }
+// Version de l'APK (#157) : lue dans `VERSION` à la racine du dépôt, source de vérité.
+// Le CLI Tauri n'écrit `tauri.properties` que si `tauri.conf.json` a un champ `version`,
+// ce qui n'est pas le cas (la version vient de Cargo.toml) : l'APK restait en 1.0 / 1.
+// versionCode = major * 1 000 000 + minor * 1 000 + patch, la formule du CLI Tauri.
+val appVersion: String = providers
+    .fileContents(layout.projectDirectory.file("../../../../VERSION"))
+    .asText.get().trim()
+val appVersionCode: Int = run {
+    val parts = appVersion.split('.').map { it.toIntOrNull() }
+    require(parts.size == 3 && parts.all { it != null && it in 0..999 }) {
+        "VERSION invalide pour Android : '$appVersion' (attendu x.y.z, chaque nombre < 1000)"
     }
+    val (major, minor, patch) = parts.map { it!! }
+    major * 1_000_000 + minor * 1_000 + patch
 }
 
 // Clé de release (#24) : keystore PKCS12 hors du dépôt, chemin et mot de passe passés
@@ -26,8 +34,8 @@ android {
         applicationId = "dev.seaglass.app"
         minSdk = 24
         targetSdk = 37
-        versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
-        versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
+        versionCode = appVersionCode
+        versionName = appVersion
     }
     signingConfigs {
         if (releaseKeystore != null) {
