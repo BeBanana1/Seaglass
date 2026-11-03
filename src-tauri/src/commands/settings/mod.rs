@@ -10,6 +10,7 @@ use tauri_plugin_autostart::ManagerExt;
 
 use super::{AppState, CmdResult, err};
 use crate::i18n::{self, Lang, LanguagePref, tr};
+use crate::player::output::AudioDevices;
 use crate::player::{Cmd, PlaybackSettings};
 use crate::store::Store;
 use home_layout::{HomeLayout, SectionPref};
@@ -194,6 +195,20 @@ pub async fn set_playback_settings(
         .send(Cmd::SetPlaybackSettings(settings))
         .await
         .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
+}
+
+/// Périphériques de sortie connus de mpv (#79) ; la liste suit ensuite l'événement
+/// `audio-devices` (branchement, changement du périphérique par défaut).
+#[tauri::command]
+pub async fn audio_devices(state: State<'_, AppState>) -> CmdResult<AudioDevices> {
+    let stopped = || tr("lecteur arrêté", "player stopped").to_owned();
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    state
+        .player
+        .send(Cmd::GetAudioDevices(tx))
+        .await
+        .map_err(|_| stopped())?;
+    rx.await.map_err(|_| stopped())
 }
 
 /// État réel du lancement au démarrage, lu dans le système à chaque appel : il peut avoir

@@ -12,9 +12,11 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
+use super::output::{AudioDevices, Output};
 use super::queue::{Queue, Repeat};
 use super::radio::AutoRadio;
 use super::settings::{HiresUpgrade, PlaybackSettings};
+use super::sleep::SleepRequest;
 use super::state::{PlayerState, QueueView};
 use crate::integrations::Observers;
 use crate::mpv::process::ProcessGuard;
@@ -64,8 +66,12 @@ pub enum Cmd {
     SetPlaybackSettings(PlaybackSettings),
     /// Réponse au bandeau qui propose l'édition hi-res du titre courant (#59).
     AnswerHiresOffer(bool),
+    /// Minuteur de mise en veille (#85), déjà validé ; `None` l'annule.
+    SetSleepTimer(Option<SleepRequest>),
     GetState(oneshot::Sender<PlayerState>),
     GetQueue(oneshot::Sender<QueueView>),
+    /// Périphériques de sortie connus de mpv, pour les Réglages (#79).
+    GetAudioDevices(oneshot::Sender<AudioDevices>),
     /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
     /// Seul SMTC l'envoie : code mort hors Windows (CI Linux).
     #[cfg_attr(not(windows), allow(dead_code))]
@@ -140,6 +146,10 @@ pub(super) struct Player {
     pub(super) hires_answers: HashMap<u64, bool>,
     /// Invalide les recherches d'offre lancées pour un titre qui n'est plus le courant.
     pub(super) offer_req: u64,
+    /// Périphérique de sortie choisi, liste de mpv et repli (#79).
+    pub(super) output: Output,
+    /// Échéance du minuteur de mise en veille en durée (#85, état dans `state.sleep`).
+    pub(super) sleep_deadline: Option<Instant>,
     /// Radio automatique en fin de file (#78).
     pub(super) radio: AutoRadio,
     pub(super) queue_dirty: bool,
@@ -162,7 +172,15 @@ pub fn spawn(
     tauri::async_runtime::spawn(async move {
         let (events_tx, events_rx) = mpsc::channel(256);
         let settings = PlaybackSettings::load(store.as_deref());
-        let mut mpv = start_mpv(&mpv_conf, settings.cache_size, events_tx, &mpv_process).await;
+        let output = Output::new(settings.audio_device.clone());
+        let mut mpv = start_mpv(
+            &mpv_conf,
+            settings.cache_size,
+            output.launch_device(),
+            events_tx,
+            &mpv_process,
+        )
+        .await;
         let mut mpv_issue = None;
         if let Err(e) = &mpv {
             tracing::error!("{e}");
@@ -203,6 +221,8 @@ pub fn spawn(
             hires_upgrade: settings.hires_upgrade,
             hires_answers: HashMap::new(),
             offer_req: 0,
+            output,
+            sleep_deadline: None,
             radio: AutoRadio::new(settings.auto_radio),
             queue_dirty: true,
             persist_queue: false,
@@ -222,10 +242,11 @@ pub fn spawn(
 async fn start_mpv(
     conf: &std::path::Path,
     cache: CacheSize,
+    audio_device: Option<&str>,
     events: mpsc::Sender<MpvEvent>,
     process: &ProcessGuard,
 ) -> Result<Mpv, String> {
-    process.set(mpv::process::spawn(conf, cache).map_err(|e| e.to_string())?);
+    process.set(mpv::process::spawn(conf, cache, audio_device).map_err(|e| e.to_string())?);
     let handle = mpv::ipc::connect(events).await.map_err(|e| e.to_string())?;
     Ok(Mpv { handle })
 }
@@ -240,7 +261,10 @@ impl Player {
                     None => break,
                 },
                 Some(ev) = events.recv() => self.handle_event(ev).await,
-                _ = tick.tick() => self.persist_if_due(),
+                _ = tick.tick() => {
+                    self.persist_if_due();
+                    self.check_sleep_timer().await;
+                }
             }
             self.emit();
         }
@@ -336,8 +360,10 @@ impl Player {
                 }
                 self.radio.enabled = settings.auto_radio;
                 self.apply_cache_size(settings.cache_size).await;
+                self.set_audio_device(settings.audio_device).await;
             }
             Cmd::AnswerHiresOffer(accept) => self.answer_hires_offer(accept).await,
+            Cmd::SetSleepTimer(request) => self.set_sleep_timer(request).await,
             Cmd::HiresOffer { request, offer } => {
                 if request == self.offer_req {
                     self.state.hires_offer = Some(offer);
@@ -348,6 +374,9 @@ impl Player {
             }
             Cmd::GetQueue(reply) => {
                 let _ = reply.send(self.queue_view());
+            }
+            Cmd::GetAudioDevices(reply) => {
+                let _ = reply.send(self.output.devices());
             }
             Cmd::Resolved {
                 request,
@@ -386,6 +415,7 @@ impl Player {
                 Property::CurrentAo(ao) => s.output_driver = ao,
                 Property::IdleActive(i) => s.set_idle(i),
                 Property::PlaylistPos(pos) => self.on_playlist_pos(pos).await,
+                Property::AudioDeviceList(list) => self.on_device_list(list).await,
             },
             MpvEvent::FileLoaded => self.failures = 0,
             MpvEvent::EndFile { reason, error } => self.on_end_file(reason, error).await,

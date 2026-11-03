@@ -257,7 +257,7 @@ mod tests {
         let server = ManifestServer::start().await.unwrap();
         let url = server.publish(&track.id.to_string(), mpd);
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
-        let mut child = crate::mpv::process::spawn(&conf, CacheSize::Mib32).unwrap();
+        let mut child = crate::mpv::process::spawn(&conf, CacheSize::Mib32, None).unwrap();
         let (events_tx, mut events_rx) = tokio::sync::mpsc::channel(256);
         tokio::spawn(async move { while events_rx.recv().await.is_some() {} });
         let handle = crate::mpv::ipc::connect(events_tx).await.unwrap();

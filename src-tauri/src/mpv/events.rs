@@ -3,8 +3,10 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::device::{self, AudioDevice};
+
 /// Propriétés observées (`observe_property`), dans l'ordre des identifiants 1..=N.
-pub const OBSERVED: [&str; 8] = [
+pub const OBSERVED: [&str; 9] = [
     "playlist-pos",
     "time-pos",
     "duration",
@@ -13,6 +15,7 @@ pub const OBSERVED: [&str; 8] = [
     "audio-params",
     "current-ao",
     "idle-active",
+    "audio-device-list",
 ];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -34,6 +37,8 @@ pub enum Property {
     AudioParams(Option<AudioParams>),
     CurrentAo(Option<String>),
     IdleActive(bool),
+    /// Périphériques WASAPI connus de mpv, renotifiés au branchement (#79).
+    AudioDeviceList(Vec<AudioDevice>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,6 +99,7 @@ fn parse_property(msg: &Value) -> Option<Property> {
         "audio-params" => Property::AudioParams(serde_json::from_value(data.clone()).ok()),
         "current-ao" => Property::CurrentAo(data.as_str().map(str::to_owned)),
         "idle-active" => Property::IdleActive(flag()),
+        "audio-device-list" => Property::AudioDeviceList(device::parse_list(data)),
         _ => return None,
     })
 }

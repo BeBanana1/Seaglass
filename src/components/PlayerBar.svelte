@@ -9,6 +9,7 @@
   import LikeButton from "./LikeButton.svelte";
   import Progress from "./Progress.svelte";
   import SignalPath from "./SignalPath.svelte";
+  import SleepTimer from "./SleepTimer.svelte";
   import Transport from "./Transport.svelte";
   import Volume from "./Volume.svelte";
 
@@ -54,6 +55,7 @@
     <button class="signal-chip" onclick={onOpenNowPlaying} title={t.player.signalPath}>
       <SignalPath compact />
     </button>
+    <SleepTimer />
     <Volume />
     <button class="toggle" class:on={queueOpen} onclick={onToggleQueue} title={t.player.queue}>
       <Icon name="queue" />

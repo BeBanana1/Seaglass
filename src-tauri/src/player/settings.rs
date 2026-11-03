@@ -4,12 +4,12 @@
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::mpv::CacheSize;
+use crate::mpv::{AudioDevice, CacheSize};
 use crate::store::Store;
 
 const KEY: &str = "playback.settings";
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PlaybackSettings {
     /// Taille du cache mpv, en Mio (#16).
@@ -17,6 +17,10 @@ pub struct PlaybackSettings {
     /// Titre sans version hi-res : lire l'édition hi-res du même enregistrement si elle
     /// existe (#18), ou la proposer (#59).
     pub hires_upgrade: HiresUpgrade,
+    /// Périphérique de sortie choisi (#79) ; `None` = périphérique par défaut du système.
+    /// Gardé même débranché : le lecteur se replie sur le défaut et y revient au
+    /// rebranchement.
+    pub audio_device: Option<AudioDevice>,
     /// Fin de file : enchaîner sur la radio du dernier titre (#78). Désactivé par défaut.
     pub auto_radio: bool,
 }
@@ -94,9 +98,24 @@ mod tests {
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto","autoRadio":false}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","audioDevice":null,"autoRadio":false}"#
         );
         assert!(!s.auto_radio, "radio automatique désactivée par défaut");
+    }
+
+    #[test]
+    fn audio_device_is_validated() {
+        let s: PlaybackSettings = serde_json::from_str(
+            r#"{"audioDevice":{"id":"wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}","name":"DAC"}}"#,
+        )
+        .unwrap();
+        assert_eq!(s.audio_device.map(|d| d.name), Some("DAC".into()));
+        assert!(
+            serde_json::from_str::<PlaybackSettings>(
+                r#"{"audioDevice":{"id":"openal","name":"x"}}"#
+            )
+            .is_err()
+        );
     }
 
     #[test]

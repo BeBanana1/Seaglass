@@ -11,7 +11,9 @@
 // `?trackinfo=1` (ouvre les infos du titre en cours), `?autoradio=1` (la suite de la file est
 // une radio automatique, réglage activé), `?long=5000` (playlist de démonstration et titres likés
 // remplacés par n titres synthétiques, 10 000 au plus), `?ticks=1` (`player-state` émis à 4 Hz
-// pendant la lecture, comme le vrai backend) : mesure des longues listes (#88).
+// pendant la lecture, comme le vrai backend) : mesure des longues listes (#88), `?sleep=30|track`
+// (minuteur de mise en veille actif), `?device=dac|missing` (périphérique de sortie choisi, branché ou
+// débranché).
 
 import type {
   AlbumPage,
@@ -26,6 +28,8 @@ import type {
   Lyrics,
   MixPage,
   MixSummary,
+  AudioDevices,
+  OutputDevice,
   PlaybackSettings,
   PlayerState,
   PlaylistPage,
@@ -33,6 +37,8 @@ import type {
   QueueView,
   RadioPage,
   SearchResults,
+  SleepRequest,
+  SleepState,
   StreamFormat,
   Theme,
   Track,
@@ -116,6 +122,13 @@ const hiresOfferParam = params.get("hiresoffer");
 /** `?hirestwin=1` : la page album propose un album jumeau hi-res (#59). */
 const hiresTwin = params.has("hirestwin");
 
+/** `?sleep=30` (minuteur de 30 min) ou `?sleep=track` (fin du titre), #85. */
+function mockSleep(param: string | null): SleepState | null {
+  if (param === "track") return { kind: "endOfTrack" };
+  const minutes = Number(param);
+  return param && minutes > 0 ? { kind: "minutes", endsAt: Date.now() + minutes * 60_000 } : null;
+}
+
 function offerFormat(album: string): StreamFormat {
   return { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 192000, bitrate: 5071, hiresEdition: album };
 }
@@ -125,6 +138,8 @@ const state: PlayerState = {
   stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100, bitrate: 1854, hiresEdition },
   output: { format: "s32", samplerate: 44100, channelCount: 2 },
   outputDriver: "wasapi",
+  // Calculé plus bas, après les réglages de lecture factices.
+  outputDevice: null,
   loading: false,
   paused: params.has("paused"),
   buffering: false,
@@ -140,6 +155,7 @@ const state: PlayerState = {
     muted: volumeParam === "muted",
   },
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
+  sleep: mockSleep(params.get("sleep")),
   /** `?mpv=cpu` ou `?mpv=stopped` : bandeau « mpv ne tourne pas » (#92). */
   mpvIssue: params.get("mpv") === "cpu" ? "cpuUnsupported" : params.get("mpv") === "stopped" ? "stopped" : null,
 };
@@ -177,11 +193,29 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
     .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
     .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
 }
+// `?device=missing` : le périphérique choisi est débranché ; `?device=dac` : il est branché.
+const DAC = { id: "wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}", name: "Haut-parleurs (Focusrite USB Audio)" };
+const SPEAKERS = { id: "wasapi/{0d7e4c2b-58a1-4c5e-9f1e-3b2a9c1d7e44}", name: "Haut-parleurs (Realtek(R) Audio)" };
+const deviceParam = params.get("device");
 let playback: PlaybackSettings = {
   cacheSize: 64,
   hiresUpgrade: hiresOfferParam ? "ask" : "auto",
+  audioDevice: deviceParam ? DAC : null,
   autoRadio: radioSeed !== null,
 };
+const audioDevices: AudioDevices = {
+  devices: deviceParam === "missing" ? [SPEAKERS] : [SPEAKERS, DAC],
+  systemDefault: SPEAKERS.id,
+};
+
+/** Même logique que `player/output.rs` : choix s'il est branché, sinon défaut du système. */
+function outputDevice(): OutputDevice {
+  const chosen = playback.audioDevice;
+  const present = chosen && audioDevices.devices.some((d) => d.id === chosen.id);
+  if (chosen && present) return { name: chosen.name, systemDefault: false, missing: null };
+  return { name: SPEAKERS.name, systemDefault: true, missing: chosen ? chosen.name : null };
+}
+state.outputDevice = outputDevice();
 let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
@@ -401,8 +435,11 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (![32, 64, 128, 256].includes(next.cacheSize)) {
       throw new Error(`taille de cache non prise en charge : ${next.cacheSize} Mio`);
     }
-    playback = next;
+    playback = JSON.parse(JSON.stringify(next));
+    state.outputDevice = outputDevice();
+    emit("player-state", state);
   },
+  audio_devices: () => audioDevices,
   autostart_enabled: () => autostart,
   set_autostart: ({ enabled }) => {
     autostart = Boolean(enabled);
@@ -445,6 +482,18 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (!state.hiresOffer) return;
     if (accept) state.stream = state.hiresOffer;
     state.hiresOffer = null;
+    emit("player-state", state);
+  },
+  set_sleep_timer: ({ timer }) => {
+    const req = timer as SleepRequest | null;
+    if (req?.kind === "minutes" && (req.minutes < 1 || req.minutes > 600)) {
+      throw new Error(`durée du minuteur invalide : ${req.minutes} min (1 à 600)`);
+    }
+    state.sleep = !req
+      ? null
+      : req.kind === "minutes"
+        ? { kind: "minutes", endsAt: Date.now() + req.minutes * 60_000 }
+        : { kind: "endOfTrack" };
     emit("player-state", state);
   },
   clear_queue: () => {

@@ -8,6 +8,7 @@ const initial: PlayerState = {
   stream: null,
   output: null,
   outputDriver: null,
+  outputDevice: null,
   loading: false,
   paused: false,
   buffering: false,
@@ -20,6 +21,7 @@ const initial: PlayerState = {
   hasNext: false,
   volume: { level: 100, muted: false },
   hiresOffer: null,
+  sleep: null,
   mpvIssue: null,
 };
 
@@ -46,7 +48,7 @@ export const player = new PlayerStore();
 
 /** Champs objets gardés par référence s'ils n'ont pas changé : `currentTrack`, ou un `$derived`
  *  qui lit `player.state.stream`, ne réveillent alors pas leurs lecteurs à chaque position. */
-const SHARED = ["track", "stream", "output", "volume", "hiresOffer"] as const;
+const SHARED = ["track", "stream", "output", "volume", "hiresOffer", "sleep"] as const;
 
 function share(prev: PlayerState, next: PlayerState): PlayerState {
   const out = { ...next };

@@ -5,6 +5,7 @@ use tokio::sync::oneshot;
 
 use super::{AppState, CmdResult};
 use crate::i18n::{tr, trf};
+use crate::player::sleep::SleepRequest;
 use crate::player::volume::Volume;
 use crate::player::{Cmd, PlayerState, QueueView, Repeat};
 use crate::tidal::models::TrackId;
@@ -98,6 +99,17 @@ pub async fn clear_queue(state: State<'_, AppState>) -> CmdResult<()> {
 #[tauri::command]
 pub async fn answer_hires_offer(state: State<'_, AppState>, accept: bool) -> CmdResult<()> {
     send_cmd(&state, Cmd::AnswerHiresOffer(accept)).await
+}
+
+/// Minuteur de mise en veille (#85) : pause après `minutes` ou à la fin du titre en cours ;
+/// `null` l'annule.
+#[tauri::command]
+pub async fn set_sleep_timer(
+    state: State<'_, AppState>,
+    timer: Option<SleepRequest>,
+) -> CmdResult<()> {
+    let timer = timer.map(SleepRequest::validate).transpose()?;
+    send_cmd(&state, Cmd::SetSleepTimer(timer)).await
 }
 
 #[tauri::command]

@@ -76,6 +76,15 @@ export const fr = {
     "Appliqué tout de suite, sans interrompre la lecture. Le cache reste en mémoire : rien " +
     "n'est écrit sur disque.",
 
+  outputDevice: "Sortie audio",
+  outputDeviceHint:
+    "Périphérique sur lequel Seaglass joue, sans changer celui des autres applications. " +
+    "S'il est débranché, la lecture passe sur le périphérique par défaut et y revient au " +
+    "rebranchement.",
+  systemDefault: "Par défaut du système",
+  deviceUnplugged: "débranché",
+  devicesLoading: "Recherche des périphériques…",
+
   quality: "Qualité",
   qualityHint:
     "Un titre qui n'existe qu'en qualité CD a souvent une autre édition en hi-res (album " +
@@ -201,6 +210,14 @@ export const en: typeof fr = {
   cacheSize: "Cache size",
   megabytes: (n: number) => `${num(n)} MB`,
   cacheNote: "Applied right away, without interrupting playback. The cache stays in memory: nothing is written to disk.",
+
+  outputDevice: "Audio output",
+  outputDeviceHint:
+    "Device Seaglass plays on, without changing the one used by other apps. If it is " +
+    "unplugged, playback moves to the default device and comes back when it is plugged in again.",
+  systemDefault: "System default",
+  deviceUnplugged: "unplugged",
+  devicesLoading: "Looking for devices…",
 
   quality: "Quality",
   qualityHint:
