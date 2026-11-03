@@ -118,6 +118,7 @@ pub fn run() {
             commands::settings::set_home_layout,
             commands::settings::reset_home_layout,
             commands::settings::set_pins,
+            commands::settings::set_list_sort,
             commands::settings::playback_settings,
             commands::settings::set_playback_settings,
             commands::settings::audio_devices,

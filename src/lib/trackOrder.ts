@@ -2,15 +2,10 @@
 // Présentation uniquement : aucune requête, la liste reçue du backend n'est pas modifiée.
 
 import { artistNames, fullTitle } from "./format";
-import type { TrackEntry } from "./ipc";
+import type { SortKey, TrackEntry, TrackSort } from "./ipc";
 import { locale } from "./i18n.svelte";
 
-export type SortKey = "position" | "added" | "title" | "artist" | "album" | "duration";
-
-export interface TrackSort {
-  key: SortKey;
-  descending: boolean;
-}
+export type { SortKey, TrackSort };
 
 /** Titre affiché, avec sa position (à partir de 1) dans la liste d'origine. */
 export interface ListedTrack {

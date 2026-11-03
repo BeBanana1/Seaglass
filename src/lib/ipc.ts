@@ -338,6 +338,19 @@ export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal" |
 /** Raccourci de la barre latérale ; le titre d'une playlist est gardé pour l'afficher sans requête. */
 export type Pin = { kind: "playlist"; uuid: string; title: string } | { kind: "likedTracks" };
 
+/** Critères de tri d'une liste de titres (#1, #2). */
+export type SortKey = "position" | "added" | "title" | "artist" | "album" | "duration";
+
+export interface TrackSort {
+  key: SortKey;
+  descending: boolean;
+}
+
+/** Tri mémorisé d'une liste (#93) : uuid de playlist, ou `likedTracks`. */
+export interface ListSort extends TrackSort {
+  list: string;
+}
+
 export interface UiSettings {
   theme: Theme;
   home: HomeLayout;
@@ -346,6 +359,8 @@ export interface UiSettings {
   accent: string | null;
   /** Langue choisie (#7) ; `system` suit la langue d'affichage de Windows. */
   language: LanguagePref;
+  /** Tris mémorisés, le plus récent en tête (#93). */
+  sorts: ListSort[];
 }
 
 /** Langue effective de l'app, décidée par le backend. */
@@ -464,6 +479,9 @@ export const commands = {
   resetHomeLayout: () => invoke<HomeLayout>("reset_home_layout"),
   /** Remplace les épingles ; renvoie la liste enregistrée (validée, sans doublons). */
   setPins: (pins: Pin[]) => invoke<Pin[]>("set_pins", { pins }),
+  /** Mémorise le tri d'une liste (`null` : l'oublie) ; renvoie les tris enregistrés. */
+  setListSort: (list: string, sort: TrackSort | null) =>
+    invoke<ListSort[]>("set_list_sort", { list, sort }),
   playbackSettings: () => invoke<PlaybackSettings>("playback_settings"),
   /** Enregistre et applique à chaud (sans recharger le titre en cours). */
   setPlaybackSettings: (settings: PlaybackSettings) =>

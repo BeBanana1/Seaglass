@@ -3,6 +3,7 @@
 
 pub mod home_layout;
 pub mod pins;
+pub mod sorts;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
@@ -15,6 +16,7 @@ use crate::player::{Cmd, PlaybackSettings};
 use crate::store::Store;
 use home_layout::{HomeLayout, SectionPref};
 use pins::Pin;
+use sorts::{ListSort, TrackSort};
 
 const KEY_UI: &str = "ui.settings";
 
@@ -62,6 +64,8 @@ pub struct UiSettings {
     pub accent: Option<String>,
     /// Langue de l'app (#7) ; `system` suit la langue d'affichage de Windows.
     pub language: LanguagePref,
+    /// Tri mémorisé par playlist et pour les titres likés, le plus récent en tête (#93).
+    pub sorts: Vec<ListSort>,
 }
 
 /// N'accepte que `#rrggbb` (mis en minuscules) : la valeur part telle quelle dans le CSS.
@@ -168,6 +172,20 @@ pub async fn set_pins(state: State<'_, AppState>, pins: Vec<Pin>) -> CmdResult<V
     settings.pins = pins::normalize(pins).map_err(err)?;
     save(&state, &settings)?;
     Ok(settings.pins)
+}
+
+/// Mémorise le tri d'une liste (uuid de playlist ou `likedTracks`), ou l'oublie avec
+/// `null` ; renvoie les tris enregistrés, que l'UI reporte dans sa copie des réglages.
+#[tauri::command]
+pub async fn set_list_sort(
+    state: State<'_, AppState>,
+    list: String,
+    sort: Option<TrackSort>,
+) -> CmdResult<Vec<ListSort>> {
+    let mut settings = load(&state);
+    sorts::update(&mut settings.sorts, &list, sort).map_err(err)?;
+    save(&state, &settings)?;
+    Ok(settings.sorts)
 }
 
 #[tauri::command]
@@ -286,6 +304,7 @@ mod tests {
         let s: UiSettings = serde_json::from_str(r#"{"theme":"atelier"}"#).unwrap();
         assert_eq!(s.home, HomeLayout::default());
         assert!(s.pins.is_empty());
+        assert!(s.sorts.is_empty());
         assert_eq!(s.accent, None);
         let s: UiSettings =
             serde_json::from_str(r#"{"theme":"studio","home":{"order":["A","B"],"hidden":["B"]}}"#)
