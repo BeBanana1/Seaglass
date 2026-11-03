@@ -16,6 +16,7 @@
   import { listSort, saveListSort } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { platform } from "../lib/platform.svelte";
 
   // Titres likés : l'API les renvoie du plus récent au plus ancien (date du like).
   const TRACK_SORT_KEYS: SortKey[] = ["added", "title", "artist", "album", "duration"];
@@ -36,7 +37,12 @@
   // Le contexte de lecture est la liste affichée, dans l'ordre affiché.
   const shownTracks = $derived(filterTracks(sortTracks(listTracks(allTracks), sort), query));
 
-  const tabs: LibraryTab[] = ["playlists", "mixes", "albums", "artists", "tracks"];
+  // Sur Android, les titres likés ont leur onglet dans la navigation du bas (#143) : page à
+  // part, sans les onglets de la bibliothèque, et sans onglet « Titres » en doublon.
+  const likesPage = $derived(platform.mobile && tab === "tracks");
+  const tabs = $derived<LibraryTab[]>(
+    platform.mobile ? ["playlists", "mixes", "albums", "artists"] : ["playlists", "mixes", "albums", "artists", "tracks"],
+  );
 
   $effect(() => {
     loadLibrary(tab);
@@ -62,7 +68,7 @@
 
 <section>
   <div class="top">
-    <h1>{t.library.title}</h1>
+    <h1>{likesPage ? t.library.likedTracks : t.library.title}</h1>
     <div class="top-actions">
       {#if tab === "tracks"}<PinButton pin={{ kind: "likedTracks" }} />{/if}
       <button class="refresh" onclick={() => loadLibrary(tab, true)} disabled={slot.loading}>
@@ -70,21 +76,25 @@
       </button>
     </div>
   </div>
-  <div class="tabs" role="tablist">
-    {#each tabs as id (id)}
-      <button
-        role="tab"
-        aria-selected={id === tab}
-        class:active={id === tab}
-        onclick={() => replace({ name: "library", tab: id })}
-      >
-        {t.library.tabs[id]}
-        {#if library[id].items}<span class="count"
-            >{library[id].items?.length}{library[id].truncated ? "+" : ""}</span
-          >{/if}
-      </button>
-    {/each}
-  </div>
+  {#if likesPage}
+    <div class="likes-gap"></div>
+  {:else}
+    <div class="tabs" role="tablist">
+      {#each tabs as id (id)}
+        <button
+          role="tab"
+          aria-selected={id === tab}
+          class:active={id === tab}
+          onclick={() => replace({ name: "library", tab: id })}
+        >
+          {t.library.tabs[id]}
+          {#if library[id].items}<span class="count"
+              >{library[id].items?.length}{library[id].truncated ? "+" : ""}</span
+            >{/if}
+        </button>
+      {/each}
+    </div>
+  {/if}
 
   {#if slot.error}
     <p class="error">{slot.error}</p>
@@ -159,6 +169,11 @@
     display: flex;
     gap: 6px;
     margin: 16px 10px 20px;
+  }
+
+  /* Page des titres likés sur Android : l'espace que laissaient les onglets. */
+  .likes-gap {
+    height: 16px;
   }
 
   .tabs button {
