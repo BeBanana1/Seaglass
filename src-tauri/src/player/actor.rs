@@ -73,7 +73,7 @@ pub enum Cmd {
     /// Périphériques de sortie connus de mpv, pour les Réglages (#79).
     GetAudioDevices(oneshot::Sender<AudioDevices>),
     /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
-    /// Seul SMTC l'envoie : code mort hors Windows (CI Linux).
+    /// Envoyé par SMTC et la session média d'Android : code mort ailleurs (CI Linux).
     #[cfg_attr(not(windows), allow(dead_code))]
     SetPaused(bool),
     /// Branche les intégrations système (SMTC…), créées après l'acteur.
@@ -183,10 +183,14 @@ pub fn spawn(
                 engine = Err(MpvIssue::CpuUnsupported.message().into());
             }
         }
+        // Android passe le MPD à Media3 en URL `data:` : pas de serveur local.
+        #[cfg(desktop)]
         let server = ManifestServer::start()
             .await
             .inspect_err(|e| tracing::error!("{e}"))
             .ok();
+        #[cfg(mobile)]
+        let server: Option<ManifestServer> = None;
         let mut player = Player {
             app,
             tidal,

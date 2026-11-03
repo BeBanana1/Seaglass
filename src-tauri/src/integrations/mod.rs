@@ -1,10 +1,12 @@
 //! Intégrations système : elles reçoivent un résumé de l'état du lecteur (`NowPlaying`)
 //! et renvoient leurs actions (touches média…) sous forme de `Cmd` à l'acteur.
 
-// Hors Windows (CI Linux), aucune intégration ne consomme `NowPlaying` : sans cela,
+// Hors Windows et Android (CI Linux), aucune intégration ne consomme `NowPlaying` : sans cela,
 // clippy `-D warnings` échouerait sur du code mort.
 #![cfg_attr(not(windows), allow(dead_code))]
 
+#[cfg(any(target_os = "android", test))]
+pub mod media_session;
 #[cfg(windows)]
 pub mod smtc;
 #[cfg(desktop)]
@@ -19,6 +21,8 @@ pub struct Observers {
     pub smtc: Option<smtc::SmtcHandle>,
     #[cfg(desktop)]
     pub tray: Option<tray::TrayHandle>,
+    #[cfg(target_os = "android")]
+    pub media_session: Option<media_session::MediaSessionHandle>,
 }
 
 impl Observers {
@@ -31,8 +35,10 @@ impl Observers {
         if let Some(tray) = &self.tray {
             tray.update(state);
         }
-        #[cfg(mobile)]
-        let _ = state;
+        #[cfg(target_os = "android")]
+        if let Some(session) = &self.media_session {
+            session.update(NowPlaying::from_player(state));
+        }
     }
 }
 

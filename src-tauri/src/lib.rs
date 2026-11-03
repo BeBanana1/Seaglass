@@ -4,6 +4,8 @@ mod commands;
 mod engine;
 mod i18n;
 mod integrations;
+#[cfg(any(target_os = "android", test))]
+mod media3;
 mod mpv;
 mod player;
 mod store;
@@ -65,7 +67,9 @@ pub fn run() {
                 process: Arc::clone(&mpv_process),
             };
             #[cfg(mobile)]
-            let launch = engine::Launch;
+            let launch = engine::Launch {
+                app: app.handle().clone(),
+            };
             let player = player::spawn(
                 app.handle().clone(),
                 Arc::clone(&tidal),
@@ -167,6 +171,8 @@ pub fn run() {
                 _app.state::<Arc<ProcessGuard>>().kill();
                 _app.state::<UpdateState>().install_on_exit();
             }
+            #[cfg(target_os = "android")]
+            android::keep_alive(_app, &_event);
         });
 }
 
@@ -214,9 +220,8 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
 }
 
 /// SMTC (touches média, panneau Windows), branché sur la fenêtre principale, et icône de
-/// la zone de notification. Un échec est journalisé sans empêcher l'app de démarrer.
+/// la zone de notification ; session média sur Android. Un échec est journalisé sans empêcher l'app de démarrer.
 fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<player::Cmd>) {
-    #[cfg_attr(mobile, allow(unused_mut))]
     let mut observers = integrations::Observers::default();
     #[cfg(desktop)]
     match tray::create(app.handle(), player.clone()) {
@@ -234,7 +239,14 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
             Err(e) => tracing::warn!("SMTC indisponible : {e}"),
         }
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "android")]
+    {
+        observers.media_session = Some(integrations::media_session::start(
+            app.handle(),
+            player.clone(),
+        ));
+    }
+    #[cfg(not(any(windows, target_os = "android")))]
     let _ = app;
     if player
         .try_send(player::Cmd::AttachObservers(Box::new(observers)))

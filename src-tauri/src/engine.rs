@@ -1,5 +1,5 @@
 //! Contrat entre l'acteur du lecteur et le moteur qui décode le son : mpv sur le bureau,
-//! Media3 sur Android à venir (#24).
+//! Media3 sur Android (#24, `media3.rs`).
 //!
 //! Le moteur tient une **fenêtre de 2 entrées au maximum** : le titre courant (0) et le
 //! suivant préchargé (1). L'acteur décide de tout (file, préchargement, erreurs) ; le
@@ -9,7 +9,8 @@
 //! Le périphérique de sortie (`AudioDevice`) et la taille du cache (`CacheSize`) restent
 //! définis dans `mpv` : ce sont des réglages du bureau, à revoir avec le moteur Android.
 
-// Sur Android, aucun moteur ne remonte encore d'événement : `End` n'y est pas construit.
+// Sur Android, Media3 n'a ni périphérique à choisir ni liste à remonter :
+// `End::OutputFailed` et `Event::Devices` n'y sont pas construits.
 #![cfg_attr(mobile, allow(dead_code))]
 
 use serde::{Deserialize, Serialize};
@@ -106,10 +107,10 @@ pub(crate) trait Engine {
     async fn apply(&self, op: Op) -> Result<(), String>;
 }
 
+#[cfg(mobile)]
+pub use crate::media3::{Launch, Media3Engine as ActiveEngine};
 #[cfg(desktop)]
 pub use crate::mpv::engine::{Launch, MpvEngine as ActiveEngine};
-#[cfg(mobile)]
-pub use unavailable::{Launch, Unavailable as ActiveEngine};
 
 /// Problème du moteur à signaler en bandeau après un échec de lancement ou un arrêt (#92).
 pub fn diagnose() -> Option<crate::mpv::MpvIssue> {
@@ -117,40 +118,4 @@ pub fn diagnose() -> Option<crate::mpv::MpvIssue> {
     return Some(crate::mpv::MpvIssue::diagnose());
     #[cfg(mobile)]
     None
-}
-
-/// Android avant le moteur Media3 (#24) : l'app tourne sans lecture.
-#[cfg(mobile)]
-mod unavailable {
-    use tokio::sync::mpsc;
-
-    use super::{Engine, Event, Op};
-    use crate::i18n::tr;
-    use crate::mpv::CacheSize;
-
-    /// Jamais construit : `Launch::start` échoue toujours.
-    pub enum Unavailable {}
-
-    impl Engine for Unavailable {
-        async fn apply(&self, _op: Op) -> Result<(), String> {
-            match *self {}
-        }
-    }
-
-    pub struct Launch;
-
-    impl Launch {
-        pub async fn start(
-            &self,
-            _cache: CacheSize,
-            _audio_device: Option<&str>,
-            _events: mpsc::Sender<Event>,
-        ) -> Result<Unavailable, String> {
-            Err(tr(
-                "lecture pas encore disponible sur Android",
-                "playback is not available on Android yet",
-            )
-            .into())
-        }
-    }
 }
