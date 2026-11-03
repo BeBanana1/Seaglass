@@ -8,9 +8,9 @@ use super::{AppState, CmdResult, err, settings};
 use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
-    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, Lyrics, MixPage, MixSummary,
-    PlaylistPage, PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry, TrackId,
-    TrackInfo,
+    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, LibraryList, Lyrics, MixPage,
+    MixSummary, PlaylistPage, PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry,
+    TrackId, TrackInfo,
 };
 
 const MAX_QUERY_LEN: usize = 200;
@@ -71,7 +71,7 @@ pub async fn library_mixes(state: State<'_, AppState>) -> CmdResult<Vec<MixSumma
 pub async fn library_tracks(
     app: AppHandle,
     state: State<'_, AppState>,
-) -> CmdResult<Vec<TrackEntry>> {
+) -> CmdResult<LibraryList<TrackEntry>> {
     let tracks = state.tidal.favorite_tracks().await.map_err(err)?;
     // La liste complète met à jour les cœurs (likes faits sur un autre appareil).
     super::collection::emit_likes(&app, &state).await;
@@ -79,17 +79,19 @@ pub async fn library_tracks(
 }
 
 #[tauri::command]
-pub async fn library_albums(state: State<'_, AppState>) -> CmdResult<Vec<AlbumSummary>> {
+pub async fn library_albums(state: State<'_, AppState>) -> CmdResult<LibraryList<AlbumSummary>> {
     state.tidal.favorite_albums().await.map_err(err)
 }
 
 #[tauri::command]
-pub async fn library_artists(state: State<'_, AppState>) -> CmdResult<Vec<ArtistSummary>> {
+pub async fn library_artists(state: State<'_, AppState>) -> CmdResult<LibraryList<ArtistSummary>> {
     state.tidal.favorite_artists().await.map_err(err)
 }
 
 #[tauri::command]
-pub async fn library_playlists(state: State<'_, AppState>) -> CmdResult<Vec<PlaylistSummary>> {
+pub async fn library_playlists(
+    state: State<'_, AppState>,
+) -> CmdResult<LibraryList<PlaylistSummary>> {
     state.tidal.library_playlists().await.map_err(err)
 }
 

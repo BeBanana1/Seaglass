@@ -10,6 +10,7 @@ use serde::de::DeserializeOwned;
 
 use super::Result;
 use super::api::TidalClient;
+use super::models::LibraryList;
 use super::raw::RawPage;
 
 /// Requêtes de pages en vol au plus, pour une même liste.
@@ -27,6 +28,17 @@ impl TidalClient {
         page_size: u32,
         max: usize,
     ) -> Result<Vec<T>> {
+        Ok(self.get_list(path, params, page_size, max).await?.items)
+    }
+
+    /// Comme `get_all`, en disant si la liste a été coupée au plafond (#91).
+    pub(super) async fn get_list<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        params: &[(&str, String)],
+        page_size: u32,
+        max: usize,
+    ) -> Result<LibraryList<T>> {
         let first: RawPage<T> = self.page(path, params, page_size, 0).await?;
         let total = first.total_number_of_items;
         let mut received = first.items.len();
@@ -60,8 +72,13 @@ impl TidalClient {
                 }
             }
         }
+        let truncated = is_truncated(out.len(), max, total, offset, received, page_size);
         out.truncate(max);
-        Ok(out)
+        Ok(LibraryList {
+            items: out,
+            truncated,
+            total,
+        })
     }
 
     async fn page<T: DeserializeOwned>(
@@ -92,6 +109,24 @@ fn wave(offset: u32, total: u32, page_size: u32, missing: usize) -> Vec<u32> {
             (o < total).then_some(o)
         })
         .collect()
+}
+
+/// La liste s'est arrêtée au plafond alors que d'autres éléments suivaient : plus de `max`
+/// reçus, ou des pages restantes (`next` = offset de la page suivante). Ce n'est pas
+/// `total > len` : les titres indisponibles sont comptés dans le total mais filtrés des pages.
+fn is_truncated(
+    len: usize,
+    max: usize,
+    total: Option<u32>,
+    next: u32,
+    last_received: usize,
+    page_size: u32,
+) -> bool {
+    len > max
+        || match total {
+            Some(total) => next < total,
+            None => len >= max && last_received >= page_size as usize,
+        }
 }
 
 /// Attend toutes les futures, au plus `limit` à la fois (démarrées dans l'ordre), et renvoie
@@ -163,6 +198,28 @@ mod tests {
         assert_eq!(wave(2_000, 2_500, 100, 3), [2_000]);
         assert!(wave(400, 350, 100, 10).is_empty());
         assert!(wave(100, 1_000, 100, 0).is_empty());
+    }
+
+    #[test]
+    fn truncation_is_reported_only_when_items_remain() {
+        // Liste complète, quelques titres indisponibles filtrés : pas coupée.
+        assert!(!is_truncated(424, 10_000, Some(426), 500, 24, 100));
+        // Plafond atteint avec des pages restantes.
+        assert!(is_truncated(10_000, 10_000, Some(12_345), 10_000, 100, 100));
+        // Vague de rattrapage qui dépasse le plafond, même sur la dernière page.
+        assert!(is_truncated(10_040, 10_000, Some(10_050), 10_100, 50, 100));
+        // Exactement le plafond, rien après.
+        assert!(!is_truncated(
+            10_000,
+            10_000,
+            Some(10_000),
+            10_000,
+            100,
+            100
+        ));
+        // Sans total : coupée seulement si la dernière page était pleine.
+        assert!(is_truncated(2_000, 2_000, None, 2_000, 100, 100));
+        assert!(!is_truncated(1_950, 2_000, None, 2_000, 50, 100));
     }
 
     #[tokio::test]

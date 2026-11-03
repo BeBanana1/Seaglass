@@ -38,6 +38,15 @@ export interface TrackEntry extends Track {
   addedAt: number | null;
 }
 
+/** Une catégorie de la bibliothèque, du plus récent au plus ancien (#91). */
+export interface LibraryList<T> {
+  items: T[];
+  /** Coupée au plafond de chargement : seuls les plus récents sont là. */
+  truncated: boolean;
+  /** Nombre annoncé par TIDAL (indisponibles compris), s'il est connu. */
+  total: number | null;
+}
+
 export type AudioQuality = "LOW" | "HIGH" | "LOSSLESS" | "HI_RES_LOSSLESS";
 
 export interface StreamFormat {
@@ -332,10 +341,10 @@ export const commands = {
   mix: (id: string) => invoke<MixPage>("mix", { id }),
   radio: (seed: RadioSeed, id: number) => invoke<RadioPage>("radio", { seed, id }),
   libraryMixes: () => invoke<MixSummary[]>("library_mixes"),
-  libraryTracks: () => invoke<TrackEntry[]>("library_tracks"),
-  libraryAlbums: () => invoke<AlbumSummary[]>("library_albums"),
-  libraryArtists: () => invoke<ArtistSummary[]>("library_artists"),
-  libraryPlaylists: () => invoke<PlaylistSummary[]>("library_playlists"),
+  libraryTracks: () => invoke<LibraryList<TrackEntry>>("library_tracks"),
+  libraryAlbums: () => invoke<LibraryList<AlbumSummary>>("library_albums"),
+  libraryArtists: () => invoke<LibraryList<ArtistSummary>>("library_artists"),
+  libraryPlaylists: () => invoke<LibraryList<PlaylistSummary>>("library_playlists"),
   home: () => invoke<HomeSection[]>("home"),
   feed: () => invoke<FeedItem[]>("feed"),
   /** `null` si TIDAL n'a pas de paroles pour ce titre. */

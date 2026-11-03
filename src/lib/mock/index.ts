@@ -20,6 +20,7 @@ import type {
   HomeSection,
   Lang,
   LanguagePref,
+  LibraryList,
   Lyrics,
   MixPage,
   MixSummary,
@@ -238,6 +239,14 @@ function setCurrent(track: Track | undefined) {
 }
 
 // Écritures (#4) : likes et playlists de l'utilisateur, gardés en mémoire.
+// `?truncated=1` : chaque catégorie se présente comme coupée au plafond (#91), avec un
+// total annoncé de 12 345 (`?truncated=nototal` : total inconnu).
+function libraryList<T>(items: T[]): LibraryList<T> {
+  const mode = params.get("truncated");
+  if (!mode) return { items, truncated: false, total: items.length };
+  return { items, truncated: true, total: mode === "nototal" ? null : 12345 };
+}
+
 const liked = new Set<number>(fx.library.tracks.map((t) => t.id));
 const own: PlaylistSummary[] = fx.library.playlists.filter((p) => p.mine);
 if (params.has("mine") && !own.some((p) => p.uuid === fx.playlist.playlist.uuid)) {
@@ -324,10 +333,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // La radio factice garde ses titres, mais reprend le point de départ demandé.
   radio: ({ seed, id }) => ({ ...radioPage, seed, id }),
   library_mixes: () => libraryMixes,
-  library_tracks: () => fx.library.tracks,
-  library_albums: () => fx.library.albums,
-  library_artists: () => fx.library.artists,
-  library_playlists: () => fx.library.playlists,
+  library_tracks: () => libraryList(fx.library.tracks),
+  library_albums: () => libraryList(fx.library.albums),
+  library_artists: () => libraryList(fx.library.artists),
+  library_playlists: () => libraryList(fx.library.playlists),
   player_state: () => state,
   queue_state: () => queueView(),
   ui_settings: () => ui,

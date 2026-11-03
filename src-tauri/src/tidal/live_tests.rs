@@ -99,7 +99,7 @@ async fn live_catalog() {
     // `dateAdded` est fourni pour chaque titre de playlist (vérifié le 2026-10-30).
     assert!(playlist.tracks.iter().all(|t| t.added_at.is_some()));
     // Pagination (#90) : temps de chargement d'une grosse playlist et des favoris.
-    let mut found = client.library_playlists().await.unwrap();
+    let mut found = client.library_playlists().await.unwrap().items;
     for query in [
         "1000 songs",
         "top 1000",
@@ -122,7 +122,11 @@ async fn live_catalog() {
         started.elapsed()
     );
     let started = std::time::Instant::now();
-    let favorites = client.favorite_tracks().await.unwrap();
+    let liked = client.favorite_tracks().await.unwrap();
+    // 424 titres sur le compte de test : liste complète (le total compte aussi les indisponibles).
+    assert!(!liked.truncated);
+    println!("total annoncé : {:?}", liked.total);
+    let favorites = liked.items;
     println!(
         "titres likés : {} en {:?}",
         favorites.len(),
@@ -134,9 +138,9 @@ async fn live_catalog() {
     println!(
         "bibliothèque : {} titres, {} albums, {} artistes, {} playlists",
         favorites.len(),
-        client.favorite_albums().await.unwrap().len(),
-        client.favorite_artists().await.unwrap().len(),
-        client.library_playlists().await.unwrap().len()
+        client.favorite_albums().await.unwrap().items.len(),
+        client.favorite_artists().await.unwrap().items.len(),
+        client.library_playlists().await.unwrap().items.len()
     );
     let home = client.home().await.unwrap();
     for row in &home {
@@ -201,7 +205,7 @@ async fn dump_ui_fixtures() {
     let client = client().await;
     let search = client.search("interstellar", 20).await.unwrap();
     let playlist = client.playlist(&search.playlists[0].uuid).await.unwrap();
-    let mut tracks = client.favorite_tracks().await.unwrap();
+    let mut tracks = client.favorite_tracks().await.unwrap().items;
     tracks.truncate(100);
     let album = client.album(ALBUM_ID).await.unwrap();
     let mixes = client.favorite_mixes().await.unwrap();
@@ -224,9 +228,9 @@ async fn dump_ui_fixtures() {
         "feed": client.feed().await.unwrap(),
         "library": {
             "tracks": tracks,
-            "albums": client.favorite_albums().await.unwrap(),
-            "artists": client.favorite_artists().await.unwrap(),
-            "playlists": client.library_playlists().await.unwrap(),
+            "albums": client.favorite_albums().await.unwrap().items,
+            "artists": client.favorite_artists().await.unwrap().items,
+            "playlists": client.library_playlists().await.unwrap().items,
             "mixes": mixes,
         },
     });
@@ -396,7 +400,7 @@ async fn live_collection() {
 }
 
 async fn favorite_ids(client: &TidalClient) -> Vec<TrackId> {
-    let favorites = client.favorite_tracks().await.unwrap();
+    let favorites = client.favorite_tracks().await.unwrap().items;
     favorites.into_iter().map(|t| t.track.id).collect()
 }
 
