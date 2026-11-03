@@ -12,8 +12,8 @@
        release/latest.json                       manifeste lu par l'updater
        release/index.html                        page de téléchargement (lien stable)
        release/<version>/Seaglass_<version>_x64-setup.exe
-  5. Avec -Publish : copie `release/` vers SEAGLASS_RELEASE_DEST, puis pose et pousse le
-     tag git `v<version>`.
+  5. Avec -Publish : copie `release/` vers SEAGLASS_RELEASE_DEST, pose et pousse le tag
+     git `v<version>`, puis crée la release Gitea du tag (`gitea-release.ps1`).
 
   Variables d'environnement :
     SEAGLASS_UPDATE_BASE_URL  URL publique du dossier de mises à jour
@@ -26,6 +26,7 @@
                               mot de passe de la clé ; sinon entrée générique
                               « seaglass-signing-key » du Gestionnaire d'identifiants,
                               sinon demandé au clavier
+    SEAGLASS_GITEA_TOKEN      jeton Gitea de la release (voir gitea-release.ps1)
 
 .EXAMPLE
   pnpm release                      # construit dans release/, ne publie rien
@@ -101,33 +102,7 @@ Step "clé de signature"
 $credentialTarget = 'seaglass-signing-key'
 $keyHelp = "procédure : issue #87 / CLAUDE.md, « Signature »"
 
-function Read-StoredSecret([string]$target) {
-    if (-not ('Seaglass.StoredCredential' -as [type])) {
-        Add-Type -Namespace Seaglass -Name StoredCredential -MemberDefinition @'
-[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-private struct CREDENTIAL {
-    public int Flags; public int Type; public string TargetName; public string Comment;
-    public long LastWritten; public int CredentialBlobSize; public IntPtr CredentialBlob;
-    public int Persist; public int AttributeCount; public IntPtr Attributes;
-    public string TargetAlias; public string UserName;
-}
-[DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-private static extern bool CredReadW(string target, int type, int flags, out IntPtr credential);
-[DllImport("advapi32.dll")]
-private static extern void CredFree(IntPtr credential);
-// Secret d'une entrée générique (CRED_TYPE_GENERIC), null si elle n'existe pas.
-public static string Read(string target) {
-    IntPtr ptr;
-    if (!CredReadW(target, 1, 0, out ptr)) return null;
-    try {
-        var c = (CREDENTIAL)Marshal.PtrToStructure(ptr, typeof(CREDENTIAL));
-        return c.CredentialBlobSize == 0 ? "" : Marshal.PtrToStringUni(c.CredentialBlob, c.CredentialBlobSize / 2);
-    } finally { CredFree(ptr); }
-}
-'@
-    }
-    [Seaglass.StoredCredential]::Read($target)
-}
+. (Join-Path $PSScriptRoot 'credentials.ps1')
 
 # Code de sortie de --check : 0 = le mot de passe ouvre la clé, 1 = non, 2 = clé illisible.
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -198,7 +173,7 @@ if (-not (Test-Path $setup) -or -not (Test-Path "$setup.sig")) { Fail "installeu
 Step "manifeste"
 $out = Join-Path $root "release\$version"
 New-Item -ItemType Directory -Force $out | Out-Null
-Copy-Item $setup $out -Force
+Copy-Item $setup, "$setup.sig" $out -Force
 
 if (-not $Notes) {
     # Pas de `git describe` : sans tag, il écrit sur stderr, ce que PowerShell 5.1 traite
@@ -283,3 +258,16 @@ git tag -a $tag -m "Seaglass $version"
 git push origin $tag
 if ($LASTEXITCODE -ne 0) { Fail "échec du push du tag" }
 Write-Host "Seaglass $version publiée." -ForegroundColor Green
+
+# La mise à jour est déjà en ligne : un échec ici n'est qu'un avertissement (#108).
+try {
+    & (Join-Path $PSScriptRoot 'gitea-release.ps1') -Version $version
+    $giteaOk = $LASTEXITCODE -eq 0
+} catch {
+    Write-Host "ERREUR : $_" -ForegroundColor Red
+    $giteaOk = $false
+}
+if (-not $giteaOk) {
+    Write-Host ("ATTENTION : release Gitea non créée, la mise à jour reste publiée.`n" +
+        "    Pour la refaire seule : powershell -File scripts/gitea-release.ps1") -ForegroundColor Yellow
+}
