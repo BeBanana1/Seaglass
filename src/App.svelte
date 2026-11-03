@@ -184,11 +184,11 @@
       <span class="version mono">v{__APP_VERSION__}</span>
     </div>
     {#if platform.mobile}
-      <!-- Android : navigation en bas, déconnexion dans Réglages › Application. -->
-      {#if !session && route.name !== "settings"}
+      <!-- Android : navigation en bas, réglages en haut à droite (#143), déconnexion dans Réglages › Application. -->
+      {#if route.name !== "settings"}
         <div class="actions">
           <button class="icon-action" onclick={() => openSettings()} aria-label={t.common.nav.settings}>
-            <Icon name="settings" size={22} />
+            <Icon name="settings" size={20} />
           </button>
         </div>
       {/if}
@@ -320,11 +320,15 @@
     border-radius: var(--panel-radius) var(--panel-radius) 0 0;
   }
 
+  /* Rond comme le bouton Retour, en face de lui. */
   .icon-action {
     display: grid;
     place-items: center;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    background: var(--bg-raised);
   }
 
   header {
