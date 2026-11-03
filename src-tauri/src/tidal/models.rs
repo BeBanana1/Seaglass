@@ -288,6 +288,9 @@ pub struct PlaylistPage {
     pub playlist: PlaylistSummary,
     /// Dans l'ordre de la playlist.
     pub tracks: Vec<TrackEntry>,
+    /// ETag de la playlist quand la page a été lue (#152) : à rendre à `playlist` pour
+    /// savoir si elle a changé depuis.
+    pub revision: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

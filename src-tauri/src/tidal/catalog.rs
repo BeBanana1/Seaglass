@@ -5,7 +5,8 @@
 //! `artists/{id}/albums[?filter=EPSANDSINGLES]`, `playlists/{uuid}`,
 //! `playlists/{uuid}/tracks`, `users/{id}/favorites/{tracks,albums,artists}`,
 //! `users/{id}/playlistsAndFavoritePlaylists`, v2 `home/feed/static`.
-//! Mixes et radios : `mix.rs` ; pagination (`get_all`) : `paging.rs`.
+//! Mixes et radios : `mix.rs` ; pages de playlist : `playlist.rs` ; pagination (`get_all`) :
+//! `paging.rs`.
 
 use serde::de::DeserializeOwned;
 
@@ -14,7 +15,7 @@ use super::likes::LikedKind;
 use super::mix::RawMix;
 use super::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, LibraryList, MediaItem,
-    PlaylistPage, PlaylistSummary, SearchResults, Track, TrackEntry,
+    PlaylistSummary, SearchResults, Track, TrackEntry,
 };
 use super::raw::{
     self, RawAlbumFull, RawArtistFull, RawFavorite, RawHome, RawPage, RawPlaylist,
@@ -23,11 +24,11 @@ use super::raw::{
 use super::{Result, TidalError};
 
 /// Taille de page des listes paginées.
-const PAGE_SIZE: u32 = 100;
+pub(super) const PAGE_SIZE: u32 = 100;
 /// `playlistsAndFavoritePlaylists` refuse plus de 50 éléments par page (vérifié).
 const PLAYLISTS_PAGE_SIZE: u32 = 50;
 /// Plafond des titres chargés pour un album ou une playlist.
-const MAX_TRACKS: usize = 10_000;
+pub(super) const MAX_TRACKS: usize = 10_000;
 /// Plafond de chaque catégorie de la bibliothèque (#91 : 2 000 avant la pagination
 /// parallèle). Lire toute la liste doit rester sous `MAX_CONTEXT_LEN` (`commands/player.rs`).
 pub const LIBRARY_MAX: usize = 10_000;
@@ -98,22 +99,6 @@ impl TidalClient {
             top_tracks: self.remember(raw::tracks(top_tracks.items)),
             albums: albums.items.into_iter().map(Into::into).collect(),
             singles: singles.items.into_iter().map(Into::into).collect(),
-        })
-    }
-
-    pub async fn playlist(&self, uuid: &str) -> Result<PlaylistPage> {
-        let (path, tracks_path) = (
-            format!("playlists/{uuid}"),
-            format!("playlists/{uuid}/tracks"),
-        );
-        let (raw, tracks) = tokio::try_join!(
-            self.get::<RawPlaylist>(&path, &[]),
-            self.get_all::<RawTrack>(&tracks_path, &[], PAGE_SIZE, MAX_TRACKS),
-        )?;
-        let user = self.user_id().await.ok();
-        Ok(PlaylistPage {
-            playlist: raw.into_summary(user),
-            tracks: self.remember_entries(raw::playlist_entries(tracks)),
         })
     }
 
@@ -244,7 +229,7 @@ impl TidalClient {
     }
 
     /// Comme `remember`, pour des titres de liste (seul le `Track` va dans le cache).
-    fn remember_entries(&self, entries: Vec<TrackEntry>) -> Vec<TrackEntry> {
+    pub(super) fn remember_entries(&self, entries: Vec<TrackEntry>) -> Vec<TrackEntry> {
         self.cache.insert_all(entries.iter().map(|e| &e.track));
         entries
     }

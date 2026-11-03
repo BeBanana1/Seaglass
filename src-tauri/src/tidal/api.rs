@@ -18,6 +18,7 @@ use super::hires::HiresCache;
 use super::likes::Likes;
 use super::manifest;
 use super::models::{AudioQuality, ReplayGain, SessionInfo, Stream, StreamFormat, Track, TrackId};
+use super::playlist::PlaylistCache;
 use super::raw::RawTrack;
 use super::{Result, TidalError};
 
@@ -45,6 +46,7 @@ pub struct TidalClient {
     pub cache: TrackCache,
     pub(super) hires: HiresCache,
     pub(super) likes: Likes,
+    pub(super) playlists: PlaylistCache,
 }
 
 impl TidalClient {
@@ -61,6 +63,7 @@ impl TidalClient {
             cache: TrackCache::default(),
             hires: HiresCache::default(),
             likes: Likes::default(),
+            playlists: PlaylistCache::default(),
         })
     }
 
@@ -110,6 +113,7 @@ impl TidalClient {
     pub async fn logout(&self) -> Result<()> {
         *self.auth.write().await = None;
         self.likes.clear();
+        self.playlists.clear();
         auth::clear_refresh_token()
     }
 
