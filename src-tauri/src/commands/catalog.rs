@@ -78,21 +78,35 @@ pub async fn library_tracks(
     Ok(tracks)
 }
 
+// Comme pour les titres, chaque liste complète met à jour les favoris affichés (#81).
 #[tauri::command]
-pub async fn library_albums(state: State<'_, AppState>) -> CmdResult<LibraryList<AlbumSummary>> {
-    state.tidal.favorite_albums().await.map_err(err)
+pub async fn library_albums(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<LibraryList<AlbumSummary>> {
+    let albums = state.tidal.favorite_albums().await.map_err(err)?;
+    super::collection::emit_likes(&app, &state).await;
+    Ok(albums)
 }
 
 #[tauri::command]
-pub async fn library_artists(state: State<'_, AppState>) -> CmdResult<LibraryList<ArtistSummary>> {
-    state.tidal.favorite_artists().await.map_err(err)
+pub async fn library_artists(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<LibraryList<ArtistSummary>> {
+    let artists = state.tidal.favorite_artists().await.map_err(err)?;
+    super::collection::emit_likes(&app, &state).await;
+    Ok(artists)
 }
 
 #[tauri::command]
 pub async fn library_playlists(
+    app: AppHandle,
     state: State<'_, AppState>,
 ) -> CmdResult<LibraryList<PlaylistSummary>> {
-    state.tidal.library_playlists().await.map_err(err)
+    let playlists = state.tidal.library_playlists().await.map_err(err)?;
+    super::collection::emit_likes(&app, &state).await;
+    Ok(playlists)
 }
 
 /// Lignes de l'accueil dans l'ordre choisi, masquées comprises (marquées `hidden`).

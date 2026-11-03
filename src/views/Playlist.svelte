@@ -89,6 +89,7 @@
       trackIds={sorted.map((l) => l.track.id)}
       queueable
       pin={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
+      favorite={playlist.mine ? undefined : { kind: "playlist", uuid: playlist.uuid }}
     >
       {#snippet meta()}
         {playlistSubtitle(playlist)}

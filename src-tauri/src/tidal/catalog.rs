@@ -10,6 +10,7 @@
 use serde::de::DeserializeOwned;
 
 use super::api::{API_V2, TidalClient};
+use super::likes::LikedKind;
 use super::mix::RawMix;
 use super::models::{
     AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, LibraryList, MediaItem,
@@ -124,23 +125,34 @@ impl TidalClient {
         });
         // Liste complète : elle fait foi pour les cœurs (likes faits sur un autre appareil).
         if !list.truncated {
-            self.likes.replace(list.items.iter().map(|e| e.track.id));
+            let ids = list.items.iter().map(|e| e.track.id).collect();
+            self.likes.replace(LikedKind::Tracks(ids));
         }
         Ok(list)
     }
 
     pub async fn favorite_albums(&self) -> Result<LibraryList<AlbumSummary>> {
         let raw: LibraryList<RawFavorite<RawAlbumFull>> = self.favorites("albums").await?;
-        Ok(map_list(raw, |items| {
+        let list: LibraryList<AlbumSummary> = map_list(raw, |items| {
             items.into_iter().map(|f| f.item.into()).collect()
-        }))
+        });
+        if !list.truncated {
+            let ids = list.items.iter().map(|a| a.id).collect();
+            self.likes.replace(LikedKind::Albums(ids));
+        }
+        Ok(list)
     }
 
     pub async fn favorite_artists(&self) -> Result<LibraryList<ArtistSummary>> {
         let raw: LibraryList<RawFavorite<RawArtistFull>> = self.favorites("artists").await?;
-        Ok(map_list(raw, |items| {
+        let list: LibraryList<ArtistSummary> = map_list(raw, |items| {
             items.into_iter().map(|f| f.item.into()).collect()
-        }))
+        });
+        if !list.truncated {
+            let ids = list.items.iter().map(|a| a.id).collect();
+            self.likes.replace(LikedKind::Artists(ids));
+        }
+        Ok(list)
     }
 
     /// Playlists créées par l'utilisateur et playlists suivies.
@@ -154,12 +166,20 @@ impl TidalClient {
                 LIBRARY_MAX,
             )
             .await?;
-        Ok(map_list(raw, |items| {
+        let list: LibraryList<PlaylistSummary> = map_list(raw, |items| {
             items
                 .into_iter()
                 .map(|e| e.playlist.into_summary(Some(user)))
                 .collect()
-        }))
+        });
+        // Seules les playlists des autres se suivent ; les vôtres n'ont pas de bouton.
+        if !list.truncated {
+            let followed = list.items.iter().filter(|p| !p.mine);
+            self.likes.replace(LikedKind::Playlists(
+                followed.map(|p| p.uuid.clone()).collect(),
+            ));
+        }
+        Ok(list)
     }
 
     /// Lignes de l'accueil personnalisé. Seuls albums, artistes, playlists et mixes sont
