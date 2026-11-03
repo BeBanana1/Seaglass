@@ -14,6 +14,24 @@ pub struct MpvEngine {
     handle: MpvHandle,
 }
 
+/// Ce qu'il faut pour lancer mpv : sa config dédiée et la garde du processus (arrêté à la
+/// sortie de l'app et avant une mise à jour).
+pub struct Launch {
+    pub conf: std::path::PathBuf,
+    pub process: std::sync::Arc<ProcessGuard>,
+}
+
+impl Launch {
+    pub async fn start(
+        &self,
+        cache: CacheSize,
+        audio_device: Option<&str>,
+        events: mpsc::Sender<Event>,
+    ) -> Result<MpvEngine, String> {
+        MpvEngine::start(&self.conf, cache, audio_device, &self.process, events).await
+    }
+}
+
 impl MpvEngine {
     /// Lance mpv (processus gardé par `process`), s'y connecte et transmet ses événements
     /// traduits à `events`.

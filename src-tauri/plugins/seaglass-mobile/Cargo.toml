@@ -1,0 +1,15 @@
+[package]
+name = "tauri-plugin-seaglass-mobile"
+version = "0.1.0"
+description = "Pont natif Android de Seaglass (#24) : connexion TIDAL, puis lecture Media3"
+edition = "2024"
+license = "GPL-3.0-only"
+publish = false
+links = "tauri-plugin-seaglass-mobile"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+tauri = "2"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }

@@ -7,6 +7,7 @@
 
 #[cfg(windows)]
 pub mod smtc;
+#[cfg(desktop)]
 pub mod tray;
 
 use crate::player::PlayerState;
@@ -16,6 +17,7 @@ use crate::player::PlayerState;
 pub struct Observers {
     #[cfg(windows)]
     pub smtc: Option<smtc::SmtcHandle>,
+    #[cfg(desktop)]
     pub tray: Option<tray::TrayHandle>,
 }
 
@@ -25,9 +27,12 @@ impl Observers {
         if let Some(smtc) = &self.smtc {
             smtc.update(NowPlaying::from_player(state));
         }
+        #[cfg(desktop)]
         if let Some(tray) = &self.tray {
             tray.update(state);
         }
+        #[cfg(mobile)]
+        let _ = state;
     }
 }
 

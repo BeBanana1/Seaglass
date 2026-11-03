@@ -1,0 +1,4 @@
+# Générés par tauri-plugin au build
+/permissions/
+/android/.tauri/
+/android/build/

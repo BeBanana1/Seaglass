@@ -7,6 +7,7 @@ pub mod sorts;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
+#[cfg(desktop)]
 use tauri_plugin_autostart::ManagerExt;
 
 use super::{AppState, CmdResult, err};
@@ -83,6 +84,7 @@ pub enum CloseAction {
 impl UiSettings {
     /// Reporte les réglages lus par le backend hors des commandes (fermeture de la fenêtre).
     pub(crate) fn apply_to_backend(&self) {
+        #[cfg(desktop)]
         crate::integrations::tray::set_close_to_tray(self.close_action == CloseAction::Tray);
     }
 }
@@ -251,12 +253,20 @@ pub async fn audio_devices(state: State<'_, AppState>) -> CmdResult<AudioDevices
 
 /// État réel du lancement au démarrage, lu dans le système à chaque appel : il peut avoir
 /// été changé ailleurs (Gestionnaire des tâches), donc rien n'est gardé en base.
+/// Toujours faux sur Android, qui n'a pas de lancement au démarrage.
 #[tauri::command]
 pub async fn autostart_enabled(app: AppHandle) -> CmdResult<bool> {
-    app.autolaunch().is_enabled().map_err(err)
+    #[cfg(desktop)]
+    return app.autolaunch().is_enabled().map_err(err);
+    #[cfg(mobile)]
+    {
+        let _ = app;
+        Ok(false)
+    }
 }
 
 /// Active ou désactive le lancement au démarrage, puis renvoie l'état relu.
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<bool> {
     let manager = app.autolaunch();
@@ -270,6 +280,7 @@ pub async fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<bool> {
 
 /// Une entrée `Run` créée par une version antérieure à #83 n'a pas `--minimized` : réécrite au lancement si
 /// elle est active (désactivée dans le Gestionnaire des tâches, elle n'est pas touchée).
+#[cfg(desktop)]
 pub(crate) fn refresh_autostart(app: &AppHandle) {
     let manager = app.autolaunch();
     if manager.is_enabled().unwrap_or(false)

@@ -2,7 +2,6 @@
 //! La gestion de la fenêtre du moteur (gapless, erreurs) est dans `playback.rs`.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -19,10 +18,9 @@ use super::radio::AutoRadio;
 use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::sleep::SleepRequest;
 use super::state::{PlayerState, QueueView};
-use crate::engine::Event;
+use crate::engine::{self, ActiveEngine, Event, Launch};
 use crate::integrations::Observers;
-use crate::mpv::process::ProcessGuard;
-use crate::mpv::{MpvEngine, MpvIssue, serve::ManifestServer};
+use crate::mpv::{MpvIssue, serve::ManifestServer};
 use crate::store::Store;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{Stream, StreamFormat, Track, TrackId};
@@ -120,7 +118,7 @@ pub(super) struct Player {
     pub(super) tidal: Arc<TidalClient>,
     pub(super) store: Option<Arc<Store>>,
     pub(super) tx: mpsc::Sender<Cmd>,
-    pub(super) engine: Result<MpvEngine, String>,
+    pub(super) engine: Result<ActiveEngine, String>,
     pub(super) server: Option<ManifestServer>,
     pub(super) rng: StdRng,
     pub(super) queue: Queue,
@@ -165,8 +163,7 @@ pub fn spawn(
     app: AppHandle,
     tidal: Arc<TidalClient>,
     store: Option<Arc<Store>>,
-    mpv_conf: PathBuf,
-    mpv_process: Arc<ProcessGuard>,
+    launch: Launch,
 ) -> mpsc::Sender<Cmd> {
     let (tx, rx) = mpsc::channel(64);
     let actor_tx = tx.clone();
@@ -174,23 +171,17 @@ pub fn spawn(
         let (events_tx, events_rx) = mpsc::channel(256);
         let settings = PlaybackSettings::load(store.as_deref());
         let output = Output::new(settings.audio_device.clone());
-        let mut engine = MpvEngine::start(
-            &mpv_conf,
-            settings.cache_size,
-            output.launch_device(),
-            &mpv_process,
-            events_tx,
-        )
-        .await;
+        let mut engine = launch
+            .start(settings.cache_size, output.launch_device(), events_tx)
+            .await;
         let mut mpv_issue = None;
         if let Err(e) = &engine {
             tracing::error!("{e}");
-            let issue = MpvIssue::diagnose();
-            if issue == MpvIssue::CpuUnsupported {
+            mpv_issue = engine::diagnose();
+            if mpv_issue == Some(MpvIssue::CpuUnsupported) {
                 tracing::error!("processeur sans AVX2 : le mpv embarqué ne peut pas tourner");
-                engine = Err(issue.message().into());
+                engine = Err(MpvIssue::CpuUnsupported.message().into());
             }
-            mpv_issue = Some(issue);
         }
         let server = ManifestServer::start()
             .await
@@ -409,7 +400,7 @@ impl Player {
             Event::Loaded => self.failures = 0,
             Event::Ended(end) => self.on_end_file(end).await,
             Event::Stopped => {
-                let issue = MpvIssue::diagnose();
+                let issue = engine::diagnose().unwrap_or(MpvIssue::Stopped);
                 self.engine = Err(issue.message().into());
                 self.state.mpv_issue = Some(issue);
                 self.loaded = false;

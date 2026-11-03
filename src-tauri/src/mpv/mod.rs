@@ -1,6 +1,10 @@
 //! Pilotage de mpv : processus dédié, JSON IPC sur named pipe, événements typés, et
 //! petit serveur HTTP local qui sert les manifestes DASH depuis la mémoire.
 
+// Sur Android (#24), seuls le serveur de manifestes et les types de réglages servent :
+// mpv n'y est jamais lancé.
+#![cfg_attr(mobile, allow(dead_code))]
+
 pub mod cache;
 pub mod cpu;
 pub mod device;
@@ -17,7 +21,6 @@ use serde::Serialize;
 use crate::i18n::{tr, trf};
 pub use cache::CacheSize;
 pub use device::AudioDevice;
-pub use engine::MpvEngine;
 
 pub use ipc::MpvHandle;
 
