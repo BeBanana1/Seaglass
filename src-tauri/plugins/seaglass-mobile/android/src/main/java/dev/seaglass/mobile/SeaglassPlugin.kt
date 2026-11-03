@@ -183,6 +183,10 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
 
             webView.settings.javaScriptEnabled = true
             webView.settings.domStorageEnabled = true
+            // Pages web seulement (#145) : ni fichiers de l'appareil (vrai par défaut avant
+            // Android 11) ni fournisseurs de contenu.
+            webView.settings.allowFileAccess = false
+            webView.settings.allowContentAccess = false
             webView.webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     val url = request.url.toString()
@@ -190,7 +194,8 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
                         finish(url)
                         return true
                     }
-                    return false
+                    // Tout autre schéma (`intent:`, `file:`, `javascript:`…) est bloqué.
+                    return request.url.scheme != "https"
                 }
 
                 // Filet : une redirection qui ne passe pas par shouldOverrideUrlLoading.

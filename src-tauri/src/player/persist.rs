@@ -8,6 +8,13 @@ use super::actor::Player;
 use crate::tidal::models::TrackId;
 
 const PERSIST_INTERVAL: Duration = Duration::from_secs(2);
+/// Position seule pendant la lecture : sur Android, une écriture toutes les 10 s suffit
+/// (des heures d'écoute écran éteint, #147). En pause, la cadence normale reprend pour que
+/// la position soit gardée si le système tue l'app.
+#[cfg(desktop)]
+const POSITION_INTERVAL: Duration = PERSIST_INTERVAL;
+#[cfg(mobile)]
+const POSITION_INTERVAL: Duration = Duration::from_secs(10);
 
 impl Player {
     /// Restaure la file en pause ; le titre n'est chargé dans mpv qu'à la reprise.
@@ -49,8 +56,14 @@ impl Player {
     }
 
     pub(super) fn persist_if_due(&mut self) {
+        let only_position = !(self.persist_queue || self.persist_volume);
+        let interval = if only_position && !self.state.paused {
+            POSITION_INTERVAL
+        } else {
+            PERSIST_INTERVAL
+        };
         if !(self.persist_queue || self.persist_position || self.persist_volume)
-            || self.last_persist.elapsed() < PERSIST_INTERVAL
+            || self.last_persist.elapsed() < interval
         {
             return;
         }

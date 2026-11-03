@@ -59,10 +59,11 @@
   $effect(() => {
     const lines = synced;
     if (!lines) return;
+    // 10 Hz sur Android : la ligne change au plus 100 ms après son horodatage.
     return followPosition((p) => {
       const next = lineAt(lines, p * 1000);
       if (next !== active) active = next;
-    });
+    }, 10);
   });
 
   // Garde la ligne courante au centre, sauf si l'utilisateur fait défiler lui-même.
