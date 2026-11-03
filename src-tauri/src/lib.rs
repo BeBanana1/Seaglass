@@ -6,19 +6,26 @@ mod mpv;
 mod player;
 mod store;
 mod tidal;
+#[cfg(desktop)]
 mod updater;
 
 use std::sync::Arc;
 
+use tauri::Manager;
+#[cfg(desktop)]
 use tauri::path::BaseDirectory;
-use tauri::{Manager, RunEvent, WindowEvent};
+#[cfg(desktop)]
+use tauri::{RunEvent, WindowEvent};
 use tracing_subscriber::EnvFilter;
 
 use commands::AppState;
+#[cfg(desktop)]
 use integrations::tray;
+#[cfg(desktop)]
 use mpv::process::ProcessGuard;
 use store::Store;
 use tidal::TidalClient;
+#[cfg(desktop)]
 use updater::UpdateState;
 
 const DB_FILE: &str = "seaglass.db";
@@ -32,57 +39,37 @@ pub fn run() {
         )
         .init();
 
-    tauri::Builder::default()
-        // Une seule instance (#83) : relancer Seaglass, par exemple pendant qu'il est réduit
-        // dans la zone de notification, réaffiche la fenêtre existante au lieu d'ouvrir un
-        // second lecteur. Enregistré en premier, comme le demande le plugin.
-        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            if tray::show_on_second_launch(args) {
-                tray::show_main(app);
-            }
-        }))
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        // Lancement au démarrage (clé `Run` de l'utilisateur, exe courant). Piloté
-        // seulement par les commandes `settings` : aucune permission côté UI. L'app lancée
-        // ainsi démarre cachée dans la zone de notification (#83).
-        .plugin(
-            tauri_plugin_autostart::Builder::new()
-                .arg(tray::MINIMIZED_ARG)
-                .build(),
-        )
-        .manage(UpdateState::default())
-        // Réglage « Fermer la fenêtre » sur « Réduire » : la fenêtre principale est cachée.
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event
-                && window.label() == "main"
-                && tray::hide_on_close()
-            {
-                api.prevent_close();
-                let _ = window.hide();
-            }
-        })
+    desktop_builder(tauri::Builder::default())
         .setup(|app| {
             let tidal = Arc::new(TidalClient::new()?);
-            let mpv_conf = app
-                .path()
-                .resolve("mpv/seaglass.conf", BaseDirectory::Resource)?;
             let store = open_store(app);
             // Avant le lecteur : ses toasts et les requêtes TIDAL suivent la langue.
             let ui_settings = commands::settings::load_from(store.as_deref());
             i18n::set(ui_settings.language.resolve());
             ui_settings.apply_to_backend();
+            #[cfg(desktop)]
             commands::settings::refresh_autostart(app.handle());
+            #[cfg(desktop)]
             let mpv_process = Arc::new(ProcessGuard::default());
+            #[cfg(desktop)]
+            let launch = engine::Launch {
+                conf: app
+                    .path()
+                    .resolve("mpv/seaglass.conf", BaseDirectory::Resource)?,
+                process: Arc::clone(&mpv_process),
+            };
+            #[cfg(mobile)]
+            let launch = engine::Launch;
             let player = player::spawn(
                 app.handle().clone(),
                 Arc::clone(&tidal),
                 store.clone(),
-                mpv_conf,
-                Arc::clone(&mpv_process),
+                launch,
             );
             attach_integrations(app, &player);
             // La fenêtre est créée cachée (`visible: false`) : affichée ici, sauf au
             // lancement au démarrage si l'icône de la zone de notification existe.
+            #[cfg(desktop)]
             if !tray::start_hidden(std::env::args()) {
                 tray::show_main(app.handle());
             }
@@ -91,8 +78,11 @@ pub fn run() {
                 player,
                 store,
             });
-            updater::spawn(app.handle().clone(), Arc::clone(&mpv_process));
-            app.manage(mpv_process);
+            #[cfg(desktop)]
+            {
+                updater::spawn(app.handle().clone(), Arc::clone(&mpv_process));
+                app.manage(mpv_process);
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -152,27 +142,74 @@ pub fn run() {
             commands::settings::set_playback_settings,
             commands::settings::audio_devices,
             commands::settings::autostart_enabled,
+            #[cfg(desktop)]
             commands::settings::set_autostart,
+            #[cfg(desktop)]
             updater::update_status,
+            #[cfg(desktop)]
             updater::install_update,
+            #[cfg(desktop)]
             updater::check_for_updates,
         ])
         .build(tauri::generate_context!())
         .expect("échec du lancement de l'application")
-        .run(|app, event| {
+        .run(|_app, _event| {
             // Tauri quitte sans exécuter les destructeurs : mpv doit être arrêté ici.
             // Une mise à jour reportée (« Plus tard ») s'installe à ce moment-là.
-            if let RunEvent::Exit = event {
-                app.state::<Arc<ProcessGuard>>().kill();
-                app.state::<UpdateState>().install_on_exit();
+            #[cfg(desktop)]
+            if let RunEvent::Exit = _event {
+                _app.state::<Arc<ProcessGuard>>().kill();
+                _app.state::<UpdateState>().install_on_exit();
             }
         });
+}
+
+/// Plugins et comportement de fenêtre du bureau.
+#[cfg(desktop)]
+fn desktop_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+    builder
+        // Une seule instance (#83) : relancer Seaglass, par exemple pendant qu'il est réduit
+        // dans la zone de notification, réaffiche la fenêtre existante au lieu d'ouvrir un
+        // second lecteur. Enregistré en premier, comme le demande le plugin.
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if tray::show_on_second_launch(args) {
+                tray::show_main(app);
+            }
+        }))
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        // Lancement au démarrage (clé `Run` de l'utilisateur, exe courant). Piloté
+        // seulement par les commandes `settings` : aucune permission côté UI. L'app lancée
+        // ainsi démarre cachée dans la zone de notification (#83).
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .arg(tray::MINIMIZED_ARG)
+                .build(),
+        )
+        .manage(UpdateState::default())
+        // Réglage « Fermer la fenêtre » sur « Réduire » : la fenêtre principale est cachée.
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event
+                && window.label() == "main"
+                && tray::hide_on_close()
+            {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
+}
+
+/// Android : ni zone de notification, ni démarrage auto, ni mises à jour par le plugin.
+#[cfg(mobile)]
+fn desktop_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+    builder
 }
 
 /// SMTC (touches média, panneau Windows), branché sur la fenêtre principale, et icône de
 /// la zone de notification. Un échec est journalisé sans empêcher l'app de démarrer.
 fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<player::Cmd>) {
+    #[cfg_attr(mobile, allow(unused_mut))]
     let mut observers = integrations::Observers::default();
+    #[cfg(desktop)]
     match tray::create(app.handle(), player.clone()) {
         Ok(handle) => observers.tray = Some(handle),
         Err(e) => tracing::warn!("zone de notification indisponible : {e}"),
