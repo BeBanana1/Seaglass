@@ -1,12 +1,14 @@
 // Miroir de l'état du lecteur envoyé par le backend. Aucune logique métier ici.
 
-import { commands, events, type PlayerState } from "../ipc";
+import { untrack } from "svelte";
+import { commands, events, type PlayerState, type Track, type TrackId } from "../ipc";
 
 const initial: PlayerState = {
   track: null,
   stream: null,
   output: null,
   outputDriver: null,
+  outputDevice: null,
   loading: false,
   paused: false,
   buffering: false,
@@ -19,17 +21,56 @@ const initial: PlayerState = {
   hasNext: false,
   volume: { level: 100, muted: false },
   hiresOffer: null,
+  sleep: null,
+  mpvIssue: null,
 };
 
-export const player = $state({
-  state: initial,
+/** L'état est remplacé à chaque `player-state` (~4 Hz pendant la lecture) : `$state.raw`, sans
+ *  proxy profond. Tout lecteur de `state` est réveillé à chaque position reçue : ce qui ne
+ *  change qu'au changement de titre ou d'état vit dans des champs à part, écrits seulement par
+ *  `apply` et qui ne préviennent leurs lecteurs que si leur valeur change. Une liste de
+ *  10 000 titres lit `currentTrackId` (#88). Un `$derived` ne suffirait pas : Svelte vérifie
+ *  quand même chacun de ses lecteurs à chaque changement de sa source. */
+class PlayerStore {
+  state = $state.raw<PlayerState>(initial);
   /** `performance.now()` à la réception du dernier état, pour interpoler la position. */
-  receivedAt: 0,
-});
+  receivedAt = 0;
+  /** Titre en cours, même référence tant qu'il ne change pas. */
+  currentTrack = $state.raw<Track | null>(null);
+  currentTrackId = $state<TrackId | null>(null);
+  /** Un titre est en lecture (ni en pause, ni arrêté) : fonds animés, mise à jour différée. */
+  playing = $state(false);
+  /** La position avance : ni pause, ni chargement, ni attente du cache, ni arrêt. */
+  advancing = $state(false);
+}
+
+export const player = new PlayerStore();
+
+/** Champs objets gardés par référence s'ils n'ont pas changé : `currentTrack`, ou un `$derived`
+ *  qui lit `player.state.stream`, ne réveillent alors pas leurs lecteurs à chaque position. */
+const SHARED = ["track", "stream", "output", "volume", "hiresOffer", "sleep"] as const;
+
+function share(prev: PlayerState, next: PlayerState): PlayerState {
+  const out = { ...next };
+  for (const key of SHARED) {
+    const a = prev[key];
+    const b = next[key];
+    if (a && b && a !== b && JSON.stringify(a) === JSON.stringify(b)) {
+      (out as Record<string, unknown>)[key] = a;
+    }
+  }
+  return out;
+}
 
 function apply(s: PlayerState) {
-  player.state = s;
+  const next = share(player.state, s);
   player.receivedAt = performance.now();
+  player.state = next;
+  // Une valeur égale à la précédente ne réveille personne.
+  player.currentTrack = next.track;
+  player.currentTrackId = next.track?.id ?? null;
+  player.playing = !!next.track && !next.paused && !next.idle;
+  player.advancing = !next.paused && !next.buffering && !next.loading && !next.idle;
 }
 
 export async function initPlayer() {
@@ -58,7 +99,22 @@ export function stepVolume(direction: 1 | -1) {
 /** Position estimée à l'instant `now`, entre deux événements (~4 Hz). */
 export function estimatedPosition(now: number): number {
   const s = player.state;
-  const running = !s.paused && !s.buffering && !s.loading && !s.idle;
-  const elapsed = running ? (now - player.receivedAt) / 1000 : 0;
+  const elapsed = player.advancing ? (now - player.receivedAt) / 1000 : 0;
   return Math.min(s.timePos + elapsed, s.duration || Infinity);
+}
+
+/** Suit la position estimée : `cb` à chaque image tant que la lecture avance, une seule fois
+ *  par état reçu sinon (pause, chargement, arrêt : aucune boucle d'animation). À appeler dans
+ *  un `$effect`, qui la relance à chaque état ; renvoie le nettoyage de la boucle. */
+export function followPosition(cb: (position: number) => void): (() => void) | undefined {
+  void player.state;
+  const position = estimatedPosition(performance.now());
+  // Ce que lit `cb` (ligne de paroles courante…) ne doit pas relancer la boucle.
+  untrack(() => cb(position));
+  if (!player.advancing) return;
+  let frame = requestAnimationFrame(function tick(now) {
+    cb(estimatedPosition(now));
+    frame = requestAnimationFrame(tick);
+  });
+  return () => cancelAnimationFrame(frame);
 }

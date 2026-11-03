@@ -4,7 +4,7 @@
 
   let { intensity = 1 }: { intensity?: number } = $props();
 
-  const cover = $derived(player.state.track?.album.coverUrl ?? null);
+  const cover = $derived(player.currentTrack?.album.coverUrl ?? null);
 </script>
 
 <div class="ambient" aria-hidden="true" style:--intensity={intensity}>

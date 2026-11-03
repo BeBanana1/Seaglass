@@ -63,6 +63,19 @@ pub struct TrackEntry {
     pub added_at: Option<i64>,
 }
 
+/// Une catégorie de la bibliothèque (titres, albums, artistes, playlists), du plus récent au
+/// plus ancien, éventuellement coupée au plafond de chargement (#91).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryList<T> {
+    pub items: Vec<T>,
+    /// Coupée au plafond : seuls les plus récents sont là, d'autres suivent.
+    pub truncated: bool,
+    /// Nombre annoncé par l'API (`totalNumberOfItems`, éléments indisponibles compris),
+    /// s'il est connu : il peut dépasser `items.len()` sans que la liste soit coupée.
+    pub total: Option<u32>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AudioQuality {

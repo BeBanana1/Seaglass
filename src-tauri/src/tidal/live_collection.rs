@@ -149,15 +149,15 @@ async fn library_position(
             .iter()
             .position(|t| t == id),
         LikeTarget::Album { id } => {
-            let albums = client.favorite_albums().await.map_err(err)?;
+            let albums = client.favorite_albums().await.map_err(err)?.items;
             albums.iter().position(|a| a.id == *id)
         }
         LikeTarget::Artist { id } => {
-            let artists = client.favorite_artists().await.map_err(err)?;
+            let artists = client.favorite_artists().await.map_err(err)?.items;
             artists.iter().position(|a| a.id == *id)
         }
         LikeTarget::Playlist { uuid } => {
-            let playlists = client.library_playlists().await.map_err(err)?;
+            let playlists = client.library_playlists().await.map_err(err)?.items;
             playlists.iter().position(|p| p.uuid == *uuid)
         }
     })
@@ -195,7 +195,7 @@ async fn check_absent(client: &TidalClient, target: &LikeTarget) -> Check {
 }
 
 async fn favorite_track_ids(client: &TidalClient) -> Vec<TrackId> {
-    let favorites = client.favorite_tracks().await.unwrap();
+    let favorites = client.favorite_tracks().await.unwrap().items;
     favorites.into_iter().map(|t| t.track.id).collect()
 }
 

@@ -60,7 +60,7 @@ impl TidalClient {
 
     /// Playlists de l'utilisateur, les seules qu'il peut modifier.
     pub async fn own_playlists(&self) -> Result<Vec<PlaylistSummary>> {
-        let mut playlists = self.library_playlists().await?;
+        let mut playlists = self.library_playlists().await?.items;
         playlists.retain(|p| p.mine);
         Ok(playlists)
     }

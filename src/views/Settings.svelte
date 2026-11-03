@@ -2,6 +2,7 @@
 <script lang="ts">
   import {
     commands,
+    type AudioDevice,
     type CacheSize,
     type HiresUpgrade,
     type LanguagePref,
@@ -13,6 +14,7 @@
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
+  import OutputDevicePicker from "../components/OutputDevicePicker.svelte";
 
   let { section }: { section: SettingsSection } = $props();
 
@@ -69,8 +71,16 @@
     if (playback && size !== playback.cacheSize) savePlayback({ ...playback, cacheSize: size });
   }
 
+  function setAudioDevice(device: AudioDevice | null) {
+    if (playback) savePlayback({ ...playback, audioDevice: device });
+  }
+
   function setHiresUpgrade(mode: HiresUpgrade) {
     if (playback && mode !== playback.hiresUpgrade) savePlayback({ ...playback, hiresUpgrade: mode });
+  }
+
+  function toggleAutoRadio() {
+    if (playback) savePlayback({ ...playback, autoRadio: !playback.autoRadio });
   }
 
   async function loadAutostart() {
@@ -155,6 +165,11 @@
     </div>
   {:else if section === "playback"}
     <div class="group">
+      <h2>{t.settings.outputDevice}</h2>
+      <p class="hint">{t.settings.outputDeviceHint}</p>
+      <OutputDevicePicker value={playback ? playback.audioDevice : undefined} onchange={setAudioDevice} />
+    </div>
+    <div class="group">
       <h2>{t.settings.cache}</h2>
       <p class="hint">{t.settings.cacheHint}</p>
       <div class="cache-sizes" role="radiogroup" aria-label={t.settings.cacheSize}>
@@ -191,6 +206,26 @@
         {/each}
       </div>
       <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
+    </div>
+    <div class="group">
+      <h2>{t.settings.queueEnd}</h2>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.autoRadio}</span>
+          <span class="hint">{t.settings.autoRadioHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={playback?.autoRadio === true}
+          role="switch"
+          aria-checked={playback?.autoRadio === true}
+          aria-label={t.settings.autoRadio}
+          disabled={playback === null}
+          onclick={toggleAutoRadio}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
     </div>
   {:else}
     <div class="group">

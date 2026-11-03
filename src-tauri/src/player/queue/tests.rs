@@ -116,6 +116,58 @@ fn remove_manual_entry() {
     assert_eq!(q.manual().collect::<Vec<_>>(), vec![TrackId(101)]);
 }
 
+fn manual_ids(q: &Queue) -> Vec<u64> {
+    q.manual().map(|t| t.0).collect()
+}
+
+#[test]
+fn move_manual_down_and_up() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..2), 0, &mut rng());
+    q.enqueue(&ids(10..14), false);
+    // Vers le bas : l'entrée finit à l'index `to`.
+    assert!(q.move_manual(0, 2));
+    assert_eq!(manual_ids(&q), vec![11, 12, 10, 13]);
+    // Vers le haut, jusqu'en tête.
+    assert!(q.move_manual(3, 0));
+    assert_eq!(manual_ids(&q), vec![13, 11, 12, 10]);
+    // Monter / Descendre d'un cran.
+    assert!(q.move_manual(2, 1));
+    assert_eq!(manual_ids(&q), vec![13, 12, 11, 10]);
+    assert!(q.move_manual(2, 3));
+    assert_eq!(manual_ids(&q), vec![13, 12, 10, 11]);
+    // Le contexte n'est pas touché.
+    assert_eq!(drain(&mut q), vec![13, 12, 10, 11, 1]);
+}
+
+#[test]
+fn move_manual_rejects_no_op_and_out_of_range() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..2), 0, &mut rng());
+    q.enqueue(&ids(10..13), false);
+    let before = q.clone();
+    assert!(!q.move_manual(1, 1));
+    assert!(!q.move_manual(3, 0));
+    assert!(!q.move_manual(0, 3));
+    assert_eq!(q, before);
+    let mut empty = Queue::default();
+    assert!(!empty.move_manual(0, 0));
+}
+
+#[test]
+fn move_manual_changes_next_only_through_the_head() {
+    // L'acteur ne retire le préchargé que si `peek_next` change.
+    let mut q = Queue::default();
+    q.set_context(ids(0..2), 0, &mut rng());
+    q.enqueue(&ids(10..14), false);
+    q.move_manual(1, 3);
+    assert_eq!(q.peek_next(), Some(TrackId(10)));
+    q.move_manual(2, 0);
+    assert_eq!(q.peek_next(), Some(TrackId(13)));
+    q.move_manual(0, 3);
+    assert_eq!(q.peek_next(), Some(TrackId(10)));
+}
+
 #[test]
 fn shuffle_keeps_current_first_and_is_a_permutation() {
     let mut q = Queue::default();
@@ -235,4 +287,96 @@ fn clear_upcoming_then_new_items_play_normally() {
     assert_eq!(drain(&mut q), vec![7]);
     assert_eq!(q.set_context(ids(10..12), 0, &mut rng()), Some(TrackId(10)));
     assert_eq!(drain(&mut q), vec![11]);
+}
+
+// --- Radio automatique (#78) ---------------------------------------------------------
+
+/// Album de 3 titres joué jusqu'au dernier.
+fn finished_album() -> Queue {
+    let mut q = Queue::default();
+    q.set_context(ids(0..3), 0, &mut rng());
+    drain(&mut q);
+    q
+}
+
+#[test]
+fn radio_extends_an_exhausted_queue_without_recent_tracks() {
+    let mut q = finished_album();
+    assert!(q.wants_radio());
+    // Titre courant, historique et doublons écartés.
+    let radio = [2, 20, 0, 21, 20, 1, 22].map(TrackId);
+    assert!(q.extend_with_radio(TrackId(2), &radio));
+    assert_eq!(q.radio(), Some(TrackId(2)));
+    assert_eq!(q.current(), Some(TrackId(2)));
+    assert_eq!(q.peek_next(), Some(TrackId(20)));
+    assert_eq!(q.upcoming_context(10), ids(20..23));
+    assert!(!q.wants_radio());
+    assert_eq!(drain(&mut q), vec![20, 21, 22]);
+    // Fin de la radio : elle peut à son tour être prolongée.
+    assert!(q.wants_radio());
+}
+
+#[test]
+fn radio_keeps_previous_coherent() {
+    let mut q = finished_album();
+    assert!(q.extend_with_radio(TrackId(2), &ids(20..22)));
+    assert_eq!(q.advance(), Some(TrackId(20)));
+    // Retour au titre de départ, puis « Suivant » repart sur la radio.
+    assert_eq!(q.previous(), Some(TrackId(2)));
+    assert_eq!(q.advance(), Some(TrackId(20)));
+    assert_eq!(q.previous(), Some(TrackId(2)));
+    assert_eq!(q.previous(), Some(TrackId(1)));
+}
+
+#[test]
+fn radio_is_refused_when_the_queue_moved_on() {
+    // Titre courant changé pendant la requête.
+    let mut q = finished_album();
+    assert!(!q.extend_with_radio(TrackId(1), &ids(20..22)));
+    // Un titre ajouté à la file entre-temps.
+    q.add_to_queue(TrackId(9));
+    assert!(!q.wants_radio());
+    assert!(!q.extend_with_radio(TrackId(2), &ids(20..22)));
+    // Rien de neuf dans la radio.
+    let mut q = finished_album();
+    assert!(!q.extend_with_radio(TrackId(2), &ids(0..3)));
+    assert_eq!(q.radio(), None);
+    assert_eq!(q.peek_next(), None);
+}
+
+#[test]
+fn repeat_takes_priority_over_radio() {
+    let mut q = finished_album();
+    q.set_repeat(Repeat::All);
+    assert!(!q.wants_radio());
+    assert!(!q.extend_with_radio(TrackId(2), &ids(20..22)));
+    q.set_repeat(Repeat::One);
+    assert!(!q.wants_radio());
+    // Repeat All après un « Vider la file » : rien ne suit, mais pas de radio.
+    q.set_repeat(Repeat::All);
+    q.clear_upcoming();
+    assert_eq!(q.peek_next(), None);
+    assert!(!q.wants_radio());
+}
+
+#[test]
+fn new_context_or_clear_ends_the_radio() {
+    let mut q = finished_album();
+    assert!(q.extend_with_radio(TrackId(2), &ids(20..22)));
+    assert!(q.clear_upcoming());
+    assert_eq!(q.radio(), None);
+    let mut q = finished_album();
+    assert!(q.extend_with_radio(TrackId(2), &ids(20..22)));
+    q.set_context(ids(10..12), 0, &mut rng());
+    assert_eq!(q.radio(), None);
+    assert_eq!(drain(&mut q), vec![11]);
+}
+
+#[test]
+fn saved_queue_without_radio_field_is_read() {
+    let q = finished_album();
+    let mut json = serde_json::to_value(&q).unwrap();
+    json.as_object_mut().unwrap().remove("radio");
+    let back: Queue = serde_json::from_value(json).unwrap();
+    assert_eq!(back, q);
 }

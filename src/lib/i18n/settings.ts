@@ -76,6 +76,15 @@ export const fr = {
     "Appliqué tout de suite, sans interrompre la lecture. Le cache reste en mémoire : rien " +
     "n'est écrit sur disque.",
 
+  outputDevice: "Sortie audio",
+  outputDeviceHint:
+    "Périphérique sur lequel Seaglass joue, sans changer celui des autres applications. " +
+    "S'il est débranché, la lecture passe sur le périphérique par défaut et y revient au " +
+    "rebranchement.",
+  systemDefault: "Par défaut du système",
+  deviceUnplugged: "débranché",
+  devicesLoading: "Recherche des périphériques…",
+
   quality: "Qualité",
   qualityHint:
     "Un titre qui n'existe qu'en qualité CD a souvent une autre édition en hi-res (album " +
@@ -94,6 +103,12 @@ export const fr = {
     },
     off: { label: "Désactivé", note: "Le titre est toujours lu depuis l'édition affichée." },
   },
+
+  queueEnd: "Fin de la file",
+  autoRadio: "Continuer avec une radio",
+  autoRadioHint:
+    "Quand la file se termine, enchaîner sur la radio du dernier titre, sans blanc. " +
+    "Sans effet en mode répétition.",
 
   startup: "Démarrage",
   autostart: "Lancer Seaglass à l'ouverture de session",
@@ -196,6 +211,14 @@ export const en: typeof fr = {
   megabytes: (n: number) => `${num(n)} MB`,
   cacheNote: "Applied right away, without interrupting playback. The cache stays in memory: nothing is written to disk.",
 
+  outputDevice: "Audio output",
+  outputDeviceHint:
+    "Device Seaglass plays on, without changing the one used by other apps. If it is " +
+    "unplugged, playback moves to the default device and comes back when it is plugged in again.",
+  systemDefault: "System default",
+  deviceUnplugged: "unplugged",
+  devicesLoading: "Looking for devices…",
+
   quality: "Quality",
   qualityHint:
     "A track only available in CD quality often has another edition in hi-res (original " +
@@ -212,6 +235,12 @@ export const en: typeof fr = {
     },
     off: { label: "Off", note: "The track always plays from the edition shown." },
   },
+
+  queueEnd: "End of queue",
+  autoRadio: "Continue with a radio",
+  autoRadioHint:
+    "When the queue ends, carry on with the last track's radio, without a gap. " +
+    "No effect while repeat is on.",
 
   startup: "Startup",
   autostart: "Launch Seaglass when you sign in",

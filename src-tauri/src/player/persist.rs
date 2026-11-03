@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use super::actor::Player;
+use crate::tidal::models::TrackId;
 
 const PERSIST_INTERVAL: Duration = Duration::from_secs(2);
 
@@ -27,8 +28,9 @@ impl Player {
                 return;
             }
         };
-        self.tidal.cache.insert_all(&saved.tracks);
         self.queue = saved.queue;
+        self.pin_queue_tracks();
+        self.tidal.cache.insert_all(&saved.tracks);
         self.state.track = self.queue.current().and_then(|id| self.tidal.cache.get(id));
         self.state.time_pos = saved.position;
         self.state.duration = self
@@ -55,10 +57,10 @@ impl Player {
         let Some(store) = self.store.as_ref().map(Arc::clone) else {
             return;
         };
-        let queue = self.persist_queue.then(|| {
-            let tracks = self.tidal.cache.get_many(self.queue.referenced_ids());
-            (self.queue.clone(), tracks)
-        });
+        // Seule la file est copiée : le store ne demande au cache que les titres qui ne
+        // sont pas encore en base (#90).
+        let queue = self.persist_queue.then(|| self.queue.clone());
+        let tidal = Arc::clone(&self.tidal);
         let position = self.state.time_pos;
         let volume = self.persist_volume.then_some(self.state.volume);
         self.persist_queue = false;
@@ -67,8 +69,8 @@ impl Player {
         self.last_persist = Instant::now();
 
         tokio::task::spawn_blocking(move || {
-            let queue = queue.as_ref().map(|(q, t)| (q, t.as_slice()));
-            if let Err(e) = store.save_player(queue, position) {
+            let lookup = |ids: &[TrackId]| tidal.cache.get_many(ids.iter().copied());
+            if let Err(e) = store.save_player(queue.as_ref(), position, lookup) {
                 tracing::warn!("sauvegarde de la file impossible : {e}");
             }
             if let Some(volume) = volume

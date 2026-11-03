@@ -2,6 +2,8 @@
 //! petit serveur HTTP local qui sert les manifestes DASH depuis la mémoire.
 
 pub mod cache;
+pub mod cpu;
+pub mod device;
 pub mod events;
 pub mod ipc;
 #[cfg(windows)]
@@ -9,10 +11,52 @@ mod job;
 pub mod process;
 pub mod serve;
 
+use serde::Serialize;
+
 use crate::i18n::{tr, trf};
 pub use cache::CacheSize;
+pub use device::AudioDevice;
 pub use events::{AudioParams, EndReason, MpvEvent, Property};
 pub use ipc::MpvHandle;
+
+/// Pourquoi mpv ne tourne pas : affiché en bandeau par l'UI tant que l'app tourne (#92).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MpvIssue {
+    /// mpv n'a pas démarré, ou s'est arrêté.
+    Stopped,
+    /// mpv de l'installeur (x86-64-v3) sur un processeur sans AVX2 : il ne peut pas tourner.
+    CpuUnsupported,
+}
+
+impl MpvIssue {
+    /// Cause probable d'un échec de mpv sur cette machine.
+    pub fn diagnose() -> Self {
+        Self::classify(process::is_bundled(), cpu::lacks_avx2())
+    }
+
+    fn classify(bundled: bool, lacks_avx2: bool) -> Self {
+        if bundled && lacks_avx2 {
+            Self::CpuUnsupported
+        } else {
+            Self::Stopped
+        }
+    }
+
+    /// Message des toasts (lecture demandée alors que mpv ne tourne pas).
+    pub fn message(self) -> &'static str {
+        match self {
+            Self::Stopped => tr(
+                "mpv s'est arrêté, redémarrer l'app",
+                "mpv stopped, restart the app",
+            ),
+            Self::CpuUnsupported => tr(
+                "lecture impossible : ce processeur n'a pas l'AVX2, exigé par le mpv livré avec Seaglass",
+                "playback unavailable: this processor lacks AVX2, which the mpv bundled with Seaglass requires",
+            ),
+        }
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum MpvError {
@@ -33,3 +77,24 @@ pub enum MpvError {
 }
 
 pub type Result<T> = std::result::Result<T, MpvError>;
+
+#[cfg(test)]
+mod tests {
+    use super::MpvIssue;
+
+    #[test]
+    fn avx2_is_blamed_only_for_the_bundled_mpv() {
+        assert_eq!(MpvIssue::classify(true, true), MpvIssue::CpuUnsupported);
+        // mpv choisi par l'utilisateur (SEAGLASS_MPV_PATH, PATH) : peut-être une build v1.
+        assert_eq!(MpvIssue::classify(false, true), MpvIssue::Stopped);
+        assert_eq!(MpvIssue::classify(true, false), MpvIssue::Stopped);
+    }
+
+    #[test]
+    fn issue_is_serialized_in_camel_case() {
+        assert_eq!(
+            serde_json::to_string(&MpvIssue::CpuUnsupported).unwrap(),
+            "\"cpuUnsupported\""
+        );
+    }
+}
