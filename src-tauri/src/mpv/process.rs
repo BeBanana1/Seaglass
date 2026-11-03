@@ -46,11 +46,20 @@ fn executable() -> PathBuf {
     if let Some(path) = std::env::var_os("SEAGLASS_MPV_PATH") {
         return PathBuf::from(path);
     }
+    bundled().unwrap_or_else(|| PathBuf::from("mpv"))
+}
+
+/// Le mpv installé avec l'app, s'il existe.
+fn bundled() -> Option<PathBuf> {
     std::env::current_exe()
         .ok()
         .and_then(|exe| exe.parent().map(|dir| dir.join(BUNDLED_MPV)))
         .filter(|bundled| bundled.is_file())
-        .unwrap_or_else(|| PathBuf::from("mpv"))
+}
+
+/// Vrai si `spawn` lance le mpv de l'installeur (build x86-64-v3, voir `cpu.rs`).
+pub fn is_bundled() -> bool {
+    std::env::var_os("SEAGLASS_MPV_PATH").is_none() && bundled().is_some()
 }
 
 /// Lance mpv en mode idle, avec la taille de cache choisie dans les réglages.
