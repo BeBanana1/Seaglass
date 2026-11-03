@@ -15,6 +15,7 @@
   import { listSort, refreshPinTitle, saveListSort } from "../lib/stores/ui.svelte";
   import { notePlaylistChange, playlistChanges } from "../lib/stores/playlistPicker.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { listSearch } from "../lib/stores/listSearch.svelte";
   import { t } from "../lib/i18n.svelte";
 
   const SORT_KEYS: SortKey[] = ["position", "added", "title", "artist", "album", "duration"];
@@ -87,22 +88,25 @@
     <p class="muted">{t.common.loading}</p>
   {:else}
     {@const playlist = page.playlist}
-    <PageHeader
-      image={playlist.imageUrl}
-      eyebrow={t.format.playlist}
-      title={playlist.title}
-      description={playlist.description}
-      trackIds={sorted.map((l) => l.track.id)}
-      source={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
-      queueable
-      pin={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
-      favorite={playlist.mine ? undefined : { kind: "playlist", uuid: playlist.uuid }}
-    >
-      {#snippet meta()}
-        {playlistSubtitle(playlist)}
-        {#if formatLongDuration(playlist.duration)} · {formatLongDuration(playlist.duration)}{/if}
-      {/snippet}
-    </PageHeader>
+    <!-- Android : en-tête masqué pendant une recherche dans la playlist (#151). -->
+    {#if !listSearch.active}
+      <PageHeader
+        image={playlist.imageUrl}
+        eyebrow={t.format.playlist}
+        title={playlist.title}
+        description={playlist.description}
+        trackIds={sorted.map((l) => l.track.id)}
+        source={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
+        queueable
+        pin={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
+        favorite={playlist.mine ? undefined : { kind: "playlist", uuid: playlist.uuid }}
+      >
+        {#snippet meta()}
+          {playlistSubtitle(playlist)}
+          {#if formatLongDuration(playlist.duration)} · {formatLongDuration(playlist.duration)}{/if}
+        {/snippet}
+      </PageHeader>
+    {/if}
     {#if page.tracks.length > 1}
       <TrackTools
         bind:query
