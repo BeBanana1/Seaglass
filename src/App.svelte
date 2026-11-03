@@ -252,7 +252,7 @@
   <NowPlaying onClose={() => (nowPlayingOpen = false)} />
 {/if}
 <Toasts />
-{#if !platform.mobile}<UpdatePrompt />{/if}
+<UpdatePrompt />
 <ContextMenu />
 <PlaylistPicker />
 <TrackInfo />

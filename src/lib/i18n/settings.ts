@@ -144,6 +144,7 @@ export const fr = {
   checkUpdates: "Vérifier les mises à jour",
   upToDate: "Seaglass est à jour.",
   updateReady: "Une nouvelle version est prête à être installée.",
+  updateAvailable: "Une nouvelle version est disponible.",
   updateAuto: "Vérification automatique au démarrage puis toutes les 6 heures.",
   checking: "Vérification…",
   check: "Vérifier",
@@ -157,6 +158,9 @@ export const fr = {
 
   update: {
     ready: "Mise à jour prête",
+    available: "Mise à jour disponible",
+    download: (mb: string | null) => (mb ? `Télécharger et installer (${mb} Mo)` : "Télécharger et installer"),
+    downloading: "Téléchargement…",
     current: (version: string) => `Version actuelle : ${version}`,
     playbackStops: "La lecture s'arrêtera le temps de l'installation (quelques secondes).",
     installing: "Installation…",
@@ -303,6 +307,7 @@ export const en: typeof fr = {
   checkUpdates: "Check for updates",
   upToDate: "Seaglass is up to date.",
   updateReady: "A new version is ready to install.",
+  updateAvailable: "A new version is available.",
   updateAuto: "Checked automatically at startup, then every 6 hours.",
   checking: "Checking…",
   check: "Check",
@@ -316,6 +321,9 @@ export const en: typeof fr = {
 
   update: {
     ready: "Update ready",
+    available: "Update available",
+    download: (mb: string | null) => (mb ? `Download and install (${mb} MB)` : "Download and install"),
+    downloading: "Downloading…",
     current: (version: string) => `Current version: ${version}`,
     playbackStops: "Playback will stop during the installation (a few seconds).",
     installing: "Installing…",

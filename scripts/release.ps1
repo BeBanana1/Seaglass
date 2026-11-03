@@ -13,7 +13,7 @@
        release/index.html                        page de téléchargement (lien stable)
        release/<version>/Seaglass_<version>_x64-setup.exe
   5. Avec -Publish : copie `release/` vers SEAGLASS_RELEASE_DEST, pose et pousse le tag
-     git `v<version>`, puis crée la release Gitea du tag (`gitea-release.ps1`).
+     git `v<version>` (sauf s'il est déjà sur HEAD : release Android), puis crée la release Gitea du tag (`gitea-release.ps1`).
 
   Variables d'environnement :
     SEAGLASS_UPDATE_BASE_URL  URL publique du dossier de mises à jour
@@ -56,8 +56,12 @@ $dirty = git status --porcelain
 if ($dirty -and ($Publish -or -not $AllowDirty)) {
     Fail "des modifications ne sont pas commitées (utiliser -AllowDirty pour un build de test)"
 }
+# Le tag peut déjà avoir été posé sur ce commit par la release Android (release-android.ps1).
+$tagExists = [bool](git tag --list $tag)
 if ($Publish) {
-    if (git tag --list $tag) { Fail "le tag $tag existe déjà : monter VERSION avant de publier" }
+    if ($tagExists -and (git rev-parse "$tag^{commit}") -ne (git rev-parse HEAD)) {
+        Fail "le tag $tag existe sur un autre commit : monter VERSION avant de publier"
+    }
     if (-not $env:SEAGLASS_RELEASE_DEST) { Fail "SEAGLASS_RELEASE_DEST n'est pas défini" }
 }
 if (-not (Test-Path .env)) { Fail ".env absent : l'identifiant client est injecté à la compilation" }
@@ -253,10 +257,14 @@ if ($dest -match '^[^\\/:]{2,}:') {
     Copy-Item $manifestPath (Join-Path $dest 'latest.json') -Force
 }
 
-Step "tag $tag"
-git tag -a $tag -m "Seaglass $version"
-git push origin $tag
-if ($LASTEXITCODE -ne 0) { Fail "échec du push du tag" }
+if ($tagExists) {
+    Write-Host "    tag $tag déjà posé sur HEAD (release Android)"
+} else {
+    Step "tag $tag"
+    git tag -a $tag -m "Seaglass $version"
+    git push origin $tag
+    if ($LASTEXITCODE -ne 0) { Fail "échec du push du tag" }
+}
 Write-Host "Seaglass $version publiée." -ForegroundColor Green
 
 # La mise à jour est déjà en ligne : un échec ici n'est qu'un avertissement (#108).

@@ -315,6 +315,7 @@
         </button>
       </label>
     </div>
+    {/if}
 
     <div class="group">
       <h2>{t.settings.updates}</h2>
@@ -325,7 +326,7 @@
             {#if updateCheck === "uptodate"}
               {t.settings.upToDate}
             {:else if updateCheck === "ready"}
-              {t.settings.updateReady}
+              {desktop ? t.settings.updateReady : t.settings.updateAvailable}
             {:else}
               {t.settings.updateAuto}
             {/if}
@@ -336,7 +337,7 @@
         </button>
       </div>
     </div>
-    {:else if onLogout}
+    {#if !desktop && onLogout}
     <div class="group">
       <h2>{t.settings.account}</h2>
       <button class="update-check logout" onclick={onLogout}>{t.common.logout}</button>

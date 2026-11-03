@@ -14,6 +14,10 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// Clé de release (#24) : keystore PKCS12 hors du dépôt, chemin et mot de passe passés
+// par l'environnement (scripts/release-android.ps1). Sans eux, la release n'est pas signée.
+val releaseKeystore: String? = System.getenv("SEAGLASS_ANDROID_KEYSTORE")
+
 android {
     compileSdk = 37
     namespace = "dev.seaglass.app"
@@ -24,6 +28,17 @@ android {
         targetSdk = 37
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
+    }
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                // PKCS12 : un seul mot de passe pour le magasin et la clé.
+                storePassword = System.getenv("SEAGLASS_ANDROID_KEY_PASSWORD")
+                keyPassword = System.getenv("SEAGLASS_ANDROID_KEY_PASSWORD")
+                keyAlias = System.getenv("SEAGLASS_ANDROID_KEY_ALIAS") ?: "seaglass"
+            }
+        }
     }
     buildTypes {
         getByName("debug") {
@@ -39,6 +54,7 @@ android {
             }
         }
         getByName("release") {
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
             optimization {
                enable = true
             }

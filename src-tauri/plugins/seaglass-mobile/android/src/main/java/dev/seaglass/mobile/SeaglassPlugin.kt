@@ -55,8 +55,24 @@ class SecretArgs {
     var value: String? = null
 }
 
+@InvokeArg
+class InstallArgs {
+    lateinit var path: String
+}
+
 @TauriPlugin
 class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
+    /** Installe l'APK de mise à jour déjà vérifié par Rust (`apk_update.rs`). */
+    @Command
+    fun installApk(invoke: Invoke) {
+        val args = invoke.parseArgs(InstallArgs::class.java)
+        Playback.onMain {
+            ApkInstaller.install(activity, args.path) { error ->
+                if (error == null) invoke.resolve() else invoke.reject(error)
+            }
+        }
+    }
+
     private val secrets by lazy { SecretStore(activity.applicationContext) }
 
     /** Secret chiffré par le Keystore ; `value` absente s'il n'existe pas. */

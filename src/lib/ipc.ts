@@ -419,6 +419,8 @@ export interface UpdateInfo {
   version: string;
   currentVersion: string;
   notes: string | null;
+  /** Android seulement : taille de l'APK en octets, proposé avant d'être téléchargé. */
+  size?: number;
 }
 
 export interface SessionInfo {

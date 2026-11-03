@@ -1,11 +1,14 @@
 <script lang="ts">
   // Mise à jour téléchargée et vérifiée par le backend : on propose, on n'impose jamais.
-  // « Plus tard » laisse le backend l'installer à la fermeture de l'app.
+  // « Plus tard » laisse le backend l'installer à la fermeture de l'app. Sur Android, rien
+  // n'est téléchargé d'avance (données mobiles) : « Télécharger et installer » le fait, puis
+  // Android affiche sa boîte d'installation.
   import { onMount } from "svelte";
   import { commands, events, type UpdateInfo } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
-  import { t } from "../lib/i18n.svelte";
+  import { num, t } from "../lib/i18n.svelte";
+  import { platform } from "../lib/platform.svelte";
 
   let update = $state<UpdateInfo | null>(null);
   let dismissed = $state(false);
@@ -24,11 +27,15 @@
   });
 
   const playing = $derived(player.playing);
+  const mobile = $derived(platform.mobile);
+  const sizeMb = $derived(update?.size ? num(update.size / 1e6, { maximumFractionDigits: 0 }) : null);
 
   async function install() {
     installing = true;
     try {
       await commands.installUpdate();
+      // Android : la boîte d'installation du système est ouverte, l'app sera remplacée.
+      if (mobile) installing = false;
     } catch (e) {
       installing = false;
       pushToast({ level: "error", message: String(e) });
@@ -37,17 +44,21 @@
 </script>
 
 {#if update && !dismissed}
-  <div class="prompt" role="alertdialog" aria-labelledby="update-title">
-    <span class="label">{t.settings.update.ready}</span>
+  <div class="prompt" class:mobile role="alertdialog" aria-labelledby="update-title">
+    <span class="label">{mobile ? t.settings.update.available : t.settings.update.ready}</span>
     <h3 id="update-title" class="display">Seaglass {update.version}</h3>
     <p class="sub">{t.settings.update.current(update.currentVersion)}</p>
     {#if update.notes}<pre class="notes">{update.notes}</pre>{/if}
     {#if playing}<p class="sub">{t.settings.update.playbackStops}</p>{/if}
     <div class="actions">
       <button class="primary" onclick={install} disabled={installing}>
-        {installing ? t.settings.update.installing : t.settings.update.install}
+        {#if mobile}
+          {installing ? t.settings.update.downloading : t.settings.update.download(sizeMb)}
+        {:else}
+          {installing ? t.settings.update.installing : t.settings.update.install}
+        {/if}
       </button>
-      <button class="later" onclick={() => (dismissed = true)} title={t.settings.update.laterHint}>
+      <button class="later" onclick={() => (dismissed = true)} title={mobile ? undefined : t.settings.update.laterHint}>
         {t.settings.update.later}
       </button>
     </div>
@@ -71,6 +82,14 @@
     background: var(--dialog-surface);
     backdrop-filter: var(--dialog-blur);
     box-shadow: var(--dialog-shadow);
+  }
+
+  /* Au-dessus du mini-lecteur et de la navigation du bas. */
+  .prompt.mobile {
+    right: 12px;
+    left: 12px;
+    bottom: calc(var(--safe-bottom) + 136px);
+    width: auto;
   }
 
   h3 {
