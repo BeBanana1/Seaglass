@@ -7,6 +7,9 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.annotation.OptIn
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -35,7 +38,14 @@ import kotlin.math.pow
 @OptIn(UnstableApi::class)
 internal object Playback {
     private const val TAG = "SeaglassPlayback"
-    private const val POSITION_INTERVAL_MS = 250L
+    /**
+     * Position envoyée pendant la lecture (#147) : l'UI interpole entre deux envois et Rust
+     * n'en a besoin que pour le préchargement (30 s avant la fin) et la sauvegarde. Plus
+     * espacée quand aucune activité n'est visible (écran éteint, autre app au premier plan).
+     * Un saut, une pause ou un changement de titre l'envoient toujours aussitôt.
+     */
+    private const val FOREGROUND_POSITION_MS = 1_000L
+    private const val BACKGROUND_POSITION_MS = 5_000L
 
     private val main = Handler(Looper.getMainLooper())
     private var context: Context? = null
@@ -55,6 +65,8 @@ internal object Playback {
     private var metadata: MediaMetadata = MediaMetadata.EMPTY
     private var idle: Boolean? = null
     private var buffering: Boolean? = null
+    private var foreground = true
+    private var observing = false
 
     fun onMain(block: () -> Unit) = main.post(block)
 
@@ -68,6 +80,10 @@ internal object Playback {
         send("driver") { put("value", "audiotrack") }
         updateIdle(player)
         startService()
+        if (!observing) {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycle)
+            observing = true
+        }
     }
 
     fun attachSession(channel: Channel) {
@@ -219,7 +235,22 @@ internal object Playback {
         override fun run() {
             val p = exo ?: return
             sendPosition()
-            if (p.isPlaying) main.postDelayed(this, POSITION_INTERVAL_MS)
+            if (p.isPlaying) {
+                main.postDelayed(this, if (foreground) FOREGROUND_POSITION_MS else BACKGROUND_POSITION_MS)
+            }
+        }
+    }
+
+    /** Retour au premier plan : position aussitôt, puis à la cadence du premier plan. */
+    private val appLifecycle = object : DefaultLifecycleObserver {
+        override fun onStart(owner: LifecycleOwner) {
+            foreground = true
+            main.removeCallbacks(tick)
+            if (exo?.isPlaying == true) main.post(tick) else sendPosition()
+        }
+
+        override fun onStop(owner: LifecycleOwner) {
+            foreground = false
         }
     }
 

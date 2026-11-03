@@ -51,13 +51,17 @@ pub struct PlayerState {
 }
 
 impl PlayerState {
-    /// Vrai si seul `time_pos` diffère : ces changements sont limités à ~4 Hz.
-    pub fn differs_only_by_time(&self, other: &Self) -> bool {
-        self.time_pos != other.time_pos
-            && Self {
-                time_pos: other.time_pos,
-                ..self.clone()
-            } == *other
+    /// Vrai si seul `time_pos` diffère : ces changements sont limités à ~4 Hz. Sans copie
+    /// de l'état (appelé à chaque position reçue, #147) : `time_pos` est échangé le temps de
+    /// la comparaison.
+    pub fn differs_only_by_time(&mut self, other: &Self) -> bool {
+        if self.time_pos == other.time_pos {
+            return false;
+        }
+        let own = std::mem::replace(&mut self.time_pos, other.time_pos);
+        let same = *self == *other;
+        self.time_pos = own;
+        same
     }
 
     /// Applique `audio-params`. mpv le passe à `null` à chaque fin de fichier, mais ne renvoie
@@ -98,7 +102,7 @@ mod tests {
 
     #[test]
     fn time_only_difference() {
-        let a = PlayerState::default();
+        let mut a = PlayerState::default();
         let b = PlayerState {
             time_pos: 1.0,
             ..a.clone()
@@ -110,7 +114,10 @@ mod tests {
         };
         assert!(a.differs_only_by_time(&b));
         assert!(!a.differs_only_by_time(&c));
-        assert!(!a.differs_only_by_time(&a));
+        let same = a.clone();
+        assert!(!a.differs_only_by_time(&same));
+        // L'état comparé est rendu intact.
+        assert_eq!(a, PlayerState::default());
     }
 
     fn params(samplerate: u32) -> Option<AudioParams> {
