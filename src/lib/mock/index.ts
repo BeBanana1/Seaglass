@@ -9,7 +9,9 @@
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
 // `?trackinfo=1` (ouvre les infos du titre en cours), `?autoradio=1` (la suite de la file est
-// une radio automatique, réglage activé).
+// une radio automatique, réglage activé), `?long=5000` (playlist de démonstration et titres likés
+// remplacés par n titres synthétiques, 10 000 au plus), `?ticks=1` (`player-state` émis à 4 Hz
+// pendant la lecture, comme le vrai backend) : mesure des longues listes (#88).
 
 import type {
   AlbumPage,
@@ -281,6 +283,33 @@ function addToOwn(uuid: string, trackIds: number[]): number {
   return added;
 }
 
+/** `?long=<n>` : n titres synthétiques (les titres connus répétés, identifiants uniques). */
+const longCount = Math.min(10_000, Math.max(0, Number(params.get("long")) || 0));
+const longTracks: TrackEntry[] = (() => {
+  const base = [...allTracks.values()];
+  if (!longCount || base.length === 0) return [];
+  const now = Date.now();
+  return Array.from({ length: longCount }, (_, i) => {
+    const t = base[i % base.length];
+    // Le premier passage garde les vrais identifiants : le titre en cours y figure.
+    const entry = { ...t, id: i < base.length ? t.id : t.id * 100_000 + i, addedAt: now - i * 3_600_000 };
+    allTracks.set(entry.id, entry);
+    return entry;
+  });
+})();
+const longPlaylist: PlaylistPage | null = longCount
+  ? { playlist: { ...fx.playlist.playlist, numberOfTracks: longCount }, tracks: longTracks }
+  : null;
+
+/** 250 ms de lecture : `?ticks=1`, ou appelée directement par une mesure (les minuteries d'une
+ *  page masquée sont ralenties). */
+export function playbackTick() {
+  if (state.paused || state.idle || state.loading || !state.track) return;
+  state.timePos = Math.min(state.timePos + 0.25, state.duration);
+  emit("player-state", state);
+}
+if (params.has("ticks")) setInterval(playbackTick, 250);
+
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => (params.has("loggedout") ? null : { userId: 1, countryCode: "CH" }),
   login: () => ({ userId: 1, countryCode: "CH" }),
@@ -295,7 +324,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   hires_twin_album: () =>
     hiresTwin ? { ...fx.album.album, id: fx.album.album.id + 1, title: `${fx.album.album.title} (Hi-Res)`, hires: true } : null,
   artist: () => fx.artist,
-  playlist: ({ uuid }) => ownPage(String(uuid)) ?? fx.playlist,
+  playlist: ({ uuid }) => ownPage(String(uuid)) ?? longPlaylist ?? fx.playlist,
   liked_tracks: () => [...liked],
   set_track_liked: ({ trackId, liked: on }) => {
     if (on) liked.add(Number(trackId));
@@ -333,7 +362,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // La radio factice garde ses titres, mais reprend le point de départ demandé.
   radio: ({ seed, id }) => ({ ...radioPage, seed, id }),
   library_mixes: () => libraryMixes,
-  library_tracks: () => libraryList(fx.library.tracks),
+  library_tracks: () => libraryList(longCount ? longTracks : fx.library.tracks),
   library_albums: () => libraryList(fx.library.albums),
   library_artists: () => libraryList(fx.library.artists),
   library_playlists: () => libraryList(fx.library.playlists),

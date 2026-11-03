@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { commands } from "../lib/ipc";
-  import { estimatedPosition, player } from "../lib/stores/player.svelte";
+  import { followPosition, player } from "../lib/stores/player.svelte";
   import { formatTime } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
 
@@ -11,17 +10,15 @@
   /** Valeur en cours de glissement : la barre ne suit plus la lecture tant qu'on la tient. */
   let dragging = $state<number | null>(null);
 
-  onMount(() => {
-    let frame = requestAnimationFrame(function tick(now) {
-      position = estimatedPosition(now);
-      frame = requestAnimationFrame(tick);
-    });
-    return () => cancelAnimationFrame(frame);
-  });
+  // Boucle d'images seulement pendant la lecture (#88).
+  $effect(() => followPosition((p) => (position = p)));
 
   const s = $derived(player.state);
+  const duration = $derived(s.duration);
   const shown = $derived(dragging ?? position);
-  const ratio = $derived(s.duration ? Math.min(shown / s.duration, 1) : 0);
+  const ratio = $derived(duration ? Math.min(shown / duration, 1) : 0);
+  /** Le texte du temps ne change qu'à la seconde : pas de recalcul à chaque image. */
+  const shownText = $derived(formatTime(Math.floor(shown)));
 
   async function seekTo(value: number) {
     dragging = null;
@@ -30,7 +27,7 @@
 </script>
 
 <div class="progress" class:large>
-  <span class="time mono">{formatTime(shown)}</span>
+  <span class="time mono">{shownText}</span>
   <div class="track" style:--ratio={ratio}>
     <div class="fill"></div>
     <input

@@ -42,7 +42,7 @@
       number={numbering === "index" ? (positions?.[i] ?? i + 1) : undefined}
       compact={!showAlbum}
       {showCover}
-      active={player.state.track?.id === track.id}
+      active={player.currentTrackId === track.id}
       onPlay={() => play(i)}
       onRemoveFromPlaylist={onRemoveFromPlaylist && (() => onRemoveFromPlaylist(i))}
     />
