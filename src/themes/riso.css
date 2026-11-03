@@ -1,6 +1,6 @@
 /* Thème Risographie (#69) : fanzine imprimé en deux encres.
    Jetons (papier, encres, aplats décalés, cadres épais) dans app.css ; ici, l'impression :
-   décalage de repérage des titres, surligneur, pochettes en bichromie, cartes de travers.
+   décalage de repérage des titres, surligneur, cartes de travers.
    Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
 
 /* Titres : seconde encre décalée de quelques pixels. */
@@ -28,21 +28,7 @@
   background: var(--riso-blue);
 }
 
-/* Pochettes en bichromie (gris sur dégradé rose → bleu, en multiplication) dans les grilles
-   et l'en-tête ; en couleur au survol et dans « En lecture ». */
-:root[data-theme="riso"] :is(.card .image, header .image) {
-  background: linear-gradient(135deg, var(--accent), var(--riso-blue));
-}
-
-:root[data-theme="riso"] :is(.card .image, header .image) img {
-  filter: grayscale(1) contrast(1.25) brightness(1.05);
-  mix-blend-mode: multiply;
-}
-
-:root[data-theme="riso"] .card:hover .image img {
-  filter: none;
-  mix-blend-mode: normal;
-}
+/* Pochettes et photos toujours en couleur (#110) : le thème n'en teinte aucune. */
 
 /* Cartes posées un peu de travers, redressées au survol. */
 :root[data-theme="riso"] .card .image {
