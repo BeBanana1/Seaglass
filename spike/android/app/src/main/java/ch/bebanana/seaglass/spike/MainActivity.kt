@@ -32,12 +32,14 @@ import androidx.media3.ui.PlayerControlView
  * Lancement depuis le PC (voir `spike/android/README.md`) :
  *   adb shell am start -a android.intent.action.VIEW -n ch.bebanana.seaglass.spike/.MainActivity -d <url du MPD>
  * Extras : `--ez append true` (ajoute à la file au lieu de remplacer, pour la transition),
- * `--ez float true` (sortie PCM flottante, pour garder les 24 bits).
+ * `--ez float true` (sortie PCM flottante, pour garder les 24 bits). Sans URL,
+ * `--el seek <ms>` saute dans le titre en cours.
  */
 @OptIn(UnstableApi::class)
 class MainActivity : Activity() {
     private var player: ExoPlayer? = null
     private var floatOutput = false
+    private var seekStarted: Long? = null
     private lateinit var log: TextView
     private lateinit var controls: PlayerControlView
 
@@ -73,6 +75,12 @@ class MainActivity : Activity() {
     }
 
     private fun handle(intent: Intent) {
+        val seek = intent.getLongExtra("seek", -1)
+        if (seek >= 0 && intent.data == null) {
+            seekStarted = System.nanoTime()
+            player?.seekTo(seek)
+            return say("Saut à $seek ms")
+        }
         val uri = intent.data ?: return say("En attente d'une URL (adb shell am start … -d <mpd>)")
         val wantFloat = intent.getBooleanExtra("float", false)
         if (player == null || wantFloat != floatOutput) {
@@ -114,7 +122,10 @@ class MainActivity : Activity() {
                             Player.STATE_ENDED -> "ENDED"
                             else -> "$state"
                         }
-                        say("État : $name")
+                        val sinceSeek = seekStarted?.takeIf { state == Player.STATE_READY }
+                            ?.let { " (${(System.nanoTime() - it) / 1_000_000} ms après le saut)" }
+                        if (sinceSeek != null) seekStarted = null
+                        say("État : $name${sinceSeek.orEmpty()}")
                     }
                 },
             )

@@ -30,6 +30,7 @@ adb shell am start -a android.intent.action.VIEW -n ch.bebanana.seaglass.spike/.
 
 Extras de `am start` :
 - `--ez float true` : sortie PCM flottante (sinon Android décode le FLAC 24 bits en 16 bits).
+- `--el seek <ms>`, sans `-d` : saut dans le titre en cours (temps jusqu'à `READY` affiché).
 - `--ez append true` : ajoute le titre à la file au lieu de remplacer (test de transition). Le second titre a besoin de son propre port : `serve <id2> --port 8766`, `adb reverse tcp:8766 tcp:8766`, URL en `:8766`.
 
 ## Lire les résultats
@@ -46,3 +47,18 @@ L'écran et `adb logcat -s SeaglassSpike` affichent : format d'entrée (`audio/f
 | Saut dans la barre | reprise rapide, sans erreur |
 | `append` d'un second titre | transition sans coupure audible |
 | Écran éteint | sans service de lecture, la lecture peut s'arrêter : normal pour le spike |
+
+## Résultats (2026-11-03, Samsung S21 SM-G991B, Android 15, Media3 1.5.1, haut-parleur)
+
+| Demandé | Décodeur | Entrée | AudioTrack |
+|---|---|---|---|
+| `lossless` (Billie Jean, 1632061) | `c2.sec.flac.decoder` (Samsung, matériel) | `audio/flac` 44100 Hz, 1 026 kbps | `s16` 44100 |
+| `hires` + `float` (97320484, 24/96) | `c2.sec.flac.decoder` | `audio/flac`, fréquence **0** dans le `Format` (déclarée nulle part avant décodage), 3 079 kbps | `float` 96000 |
+| `high` (AAC-LC 320) | `c2.android.aac.decoder` | `mp4a.40.2` 320 kbps | `s16` 44100 |
+| `low` (HE-AAC 96) | `c2.android.aac.decoder` | `mp4a.40.5` 96 kbps | `s16` 44100 |
+
+- **Le MPD de TIDAL est lu tel quel** par le module DASH de Media3 : aucune extension (`libflac`), aucun transcodage, aucune adaptation du manifeste. Rien ne justifie libmpv.
+- Saut : `READY` 240–400 ms après `seekTo` (24/96 et 16/44,1).
+- File : passage FLAC → HE-AAC en fin de titre, transition automatique (raison `AUTO`), sans erreur. La coupure audible n'a pas été évaluée (test à l'écoute à faire).
+- Un MPD servi deux minutes plus tôt se lit encore : les signatures tiennent au moins ce temps.
+- Pour l'app : le format réel se lit sur `onAudioTrackInitialized` (ou `playbackinfopostpaywall`), pas sur le `Format` d'entrée.
