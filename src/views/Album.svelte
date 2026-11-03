@@ -52,6 +52,7 @@
       eyebrow={albumKind(album)}
       title={album.title}
       trackIds={page.tracks.map((track) => track.id)}
+      source={{ kind: "album", id: album.id, title: album.title }}
       queueable
       favorite={{ kind: "album", id: album.id }}
     >
@@ -71,7 +72,13 @@
         <button class="hires-twin-open" onclick={() => go({ name: "album", id: target.id })}>{t.views.album.open}</button>
       </p>
     {/if}
-    <TrackList tracks={page.tracks} numbering="index" showAlbum={false} showCover={false} />
+    <TrackList
+      tracks={page.tracks}
+      source={{ kind: "album", id: page.album.id, title: page.album.title }}
+      numbering="index"
+      showAlbum={false}
+      showCover={false}
+    />
     {#if page.copyright}<p class="copyright">{page.copyright}</p>{/if}
   {/if}
 </section>

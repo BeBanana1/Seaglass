@@ -78,7 +78,7 @@ pub fn normalize(pins: Vec<Pin>) -> Result<Vec<Pin>, PinError> {
 
 /// Forme `8-4-4-4-12` en hexadécimal, celle des uuid de playlists TIDAL. L'uuid finit
 /// dans une URL d'API : rien d'autre n'est accepté.
-pub(super) fn is_uuid(s: &str) -> bool {
+pub(crate) fn is_uuid(s: &str) -> bool {
     let groups: Vec<&str> = s.split('-').collect();
     groups.len() == 5
         && groups

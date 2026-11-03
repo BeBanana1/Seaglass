@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { commands, type LikeTarget, type Pin, type TrackId } from "../lib/ipc";
+  import { commands, type LikeTarget, type Pin, type PlaySource, type TrackId } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import Icon from "./Icon.svelte";
@@ -14,6 +14,7 @@
     title,
     round = false,
     trackIds = [],
+    source,
     queueable = false,
     pin,
     favorite,
@@ -28,6 +29,8 @@
     round?: boolean;
     /** Contexte lancé par les boutons Lecture / Aléatoire. */
     trackIds?: TrackId[];
+    /** Origine de ce contexte, affichée dans « Joué depuis » (#124). */
+    source?: PlaySource;
     /** Affiche « Lire ensuite » / « Ajouter à la file » pour tous les titres (album, playlist). */
     queueable?: boolean;
     /** Bouton Épingler dans la barre latérale (playlist). */
@@ -42,7 +45,7 @@
 
   async function play(shuffle: boolean) {
     try {
-      await commands.playTracks(trackIds, 0, shuffle);
+      await commands.playTracks(trackIds, 0, shuffle, source ?? null);
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
