@@ -5,6 +5,8 @@ pub mod catalog;
 pub mod collection;
 pub mod player;
 pub mod settings;
+#[cfg(desktop)]
+pub mod window;
 
 use std::sync::Arc;
 

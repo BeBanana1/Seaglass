@@ -19,6 +19,7 @@
 // active).
 
 import type {
+  PlaySource,
   AlbumPage,
   AlbumSummary,
   ArtistPage,
@@ -119,6 +120,10 @@ if (params.has("autoradio") && context[index]) {
   context = [radioSeed, ...radioPage.tracks.filter((t) => t.id !== radioSeed?.id)];
   index = 0;
 }
+/** « Joué depuis » (#124) : l'album de démonstration, sauf sur le titre de départ d'une radio. */
+let playSource: PlaySource | null = radioSeed
+  ? null
+  : { kind: "album", id: fx.album.album.id, title: fx.album.album.title };
 /** `?manual=1` : quelques titres dans la file manuelle, pour la réorganiser (#80). */
 const manual: Track[] = params.has("manual") ? fx.playlist.tracks.slice(0, 4) : [];
 /** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
@@ -238,6 +243,7 @@ function mockGain(): number | null {
 }
 state.normalization = mockGain();
 let autostart = params.has("autostart");
+let fullscreen = params.has("fullscreen");
 
 type Listener = (e: { payload: unknown }) => void;
 const listeners = new Map<string, Set<Listener>>();
@@ -259,7 +265,12 @@ function mockUpdate() {
 }
 
 function queueView(): QueueView {
-  return { manual: [...manual], upcoming: context.slice(index + 1, index + 51), radio: radioSeed };
+  return {
+    manual: [...manual],
+    upcoming: context.slice(index + 1, index + 51),
+    radio: radioSeed,
+    source: playSource,
+  };
 }
 
 function setCurrent(track: Track | undefined) {
@@ -517,13 +528,21 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // `?platform=android` : mise en page tactile.
   platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
   autostart_enabled: () => autostart,
+  // Le navigateur garde sa taille : seul l'état change (le bouton suit).
+  fullscreen: () => fullscreen,
+  set_fullscreen: ({ fullscreen: on }) => {
+    fullscreen = Boolean(on);
+    emit("fullscreen", fullscreen);
+    return fullscreen;
+  },
   set_autostart: ({ enabled }) => {
     autostart = Boolean(enabled);
     return autostart;
   },
-  play_tracks: ({ trackIds, startIndex, shuffle }) => {
+  play_tracks: ({ trackIds, startIndex, shuffle, source }) => {
     context = (trackIds as number[]).map((id) => allTracks.get(id)).filter((t): t is Track => !!t);
     radioSeed = null;
+    playSource = source ? (JSON.parse(JSON.stringify(source)) as PlaySource) : null;
     index = shuffle ? Math.floor(Math.random() * context.length) : Number(startIndex);
     state.shuffle = state.shuffle || Boolean(shuffle);
     setCurrent(context[index]);
@@ -575,6 +594,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   clear_queue: () => {
     manual.length = 0;
     radioSeed = null;
+    playSource = null;
     context = context.slice(index, index + 1);
     index = 0;
     state.hasNext = false;

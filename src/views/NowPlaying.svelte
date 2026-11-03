@@ -9,6 +9,7 @@
   import { go, nav } from "../lib/stores/nav.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
   import { openTrackInfo } from "../lib/stores/trackInfo.svelte";
+  import { playedFrom } from "../lib/playSource";
   import Backdrop from "../components/backdrops/Backdrop.svelte";
   import Icon from "../components/Icon.svelte";
   import LikeButton from "../components/LikeButton.svelte";
@@ -21,6 +22,7 @@
   import Volume from "../components/Volume.svelte";
   import TrackRow from "../components/TrackRow.svelte";
   import { platform } from "../lib/platform.svelte";
+  import { appWindow, toggleFullscreen } from "../lib/stores/window.svelte";
   import { t } from "../lib/i18n.svelte";
 
   let { onClose }: { onClose: () => void } = $props();
@@ -28,6 +30,7 @@
   const current = $derived(player.currentTrack);
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
   const panel = $derived(ui.nowPlayingPanel);
+  const from = $derived(playedFrom(queue.view.source));
 
   // Fenêtre large (#119) : paroles et file côte à côte, boutons indépendants. Ailleurs, un seul
   // panneau à la fois ; « both » (fenêtre rétrécie) garde les paroles, avec la bande « À suivre ».
@@ -95,6 +98,17 @@
     >
       <Icon name="queue" size={20} />
     </button>
+    {#if !platform.mobile}
+      <button
+        class="fullscreen-toggle"
+        onclick={toggleFullscreen}
+        aria-pressed={appWindow.fullscreen}
+        title={appWindow.fullscreen ? t.views.nowPlaying.exitFullscreen : t.views.nowPlaying.fullscreen}
+        aria-label={appWindow.fullscreen ? t.views.nowPlaying.exitFullscreen : t.views.nowPlaying.fullscreen}
+      >
+        <Icon name={appWindow.fullscreen ? "fullscreenExit" : "fullscreen"} size={20} />
+      </button>
+    {/if}
     <button class="close" onclick={onClose} title={t.views.nowPlaying.close}>
       <Icon name="close" size={20} />
     </button>
@@ -121,6 +135,12 @@
               {/each}
             </div>
             <button class="link album" onclick={() => go({ name: "album", id: track.album.id })}>{track.album.title}</button>
+            {#if from}
+              <div class="played-from">
+                <span class="played-from-label">{t.views.nowPlaying.playedFrom}</span>
+                <button class="link played-from-link" onclick={() => go(from.route)}>{from.label}</button>
+              </div>
+            {/if}
             <div class="now-actions">
               <LikeButton {track} size={20} />
               <button
@@ -232,6 +252,7 @@
   }
 
   .close,
+  .fullscreen-toggle,
   .queue-toggle,
   .lyrics-toggle {
     display: grid;
@@ -244,6 +265,7 @@
   }
 
   .close:hover,
+  .fullscreen-toggle:hover,
   .queue-toggle:hover,
   .lyrics-toggle:hover {
     background: var(--bg-hover);
@@ -344,6 +366,26 @@
 
   .link:hover {
     text-decoration: underline;
+  }
+
+  /* « Joué depuis » (#124) : libellé discret, nom cliquable. */
+  .played-from {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .played-from-label {
+    flex: none;
+    color: var(--text-muted);
+  }
+
+  .played-from-link {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .controls {
@@ -534,6 +576,7 @@
   }
 
   :global([data-theme="studio"]) .close,
+  :global([data-theme="studio"]) .fullscreen-toggle,
   :global([data-theme="studio"]) .queue-toggle,
   :global([data-theme="studio"]) .lyrics-toggle {
     border-radius: 0;
