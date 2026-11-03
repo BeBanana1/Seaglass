@@ -60,7 +60,8 @@ impl Player {
             return;
         }
         let Some(id) = self.queue.peek_next() else {
-            return;
+            // Fin de file : la radio, si elle est activée, sera préchargée à son arrivée.
+            return self.maybe_request_radio();
         };
         self.preload_req += 1;
         self.preloading = true;
@@ -201,6 +202,8 @@ impl Player {
                 } else if let Some(id) = self.queue.advance() {
                     self.mark_queue_dirty();
                     self.load_current(id, 0.0);
+                } else {
+                    self.on_queue_end();
                 }
             }
             EndReason::Error => self.on_playback_error(error).await,

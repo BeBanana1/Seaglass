@@ -4,6 +4,7 @@ pub mod actor;
 mod persist;
 mod playback;
 pub mod queue;
+mod radio;
 pub mod settings;
 pub mod sleep;
 pub mod state;
