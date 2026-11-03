@@ -2,7 +2,7 @@
 
 import { commands, events, type QueueView } from "../ipc";
 
-export const queue = $state<{ view: QueueView }>({ view: { manual: [], upcoming: [], radio: null } });
+export const queue = $state<{ view: QueueView }>({ view: { manual: [], upcoming: [], radio: null, source: null } });
 
 export async function initQueue() {
   await events.onQueueState((v) => (queue.view = v));

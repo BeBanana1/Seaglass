@@ -93,6 +93,7 @@
       title={playlist.title}
       description={playlist.description}
       trackIds={sorted.map((l) => l.track.id)}
+      source={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
       queueable
       pin={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
       favorite={playlist.mine ? undefined : { kind: "playlist", uuid: playlist.uuid }}
@@ -117,6 +118,7 @@
       <TrackList
         tracks={shown.map((l) => l.track)}
         positions={shown.map((l) => l.position)}
+        source={{ kind: "playlist", uuid: page.playlist.uuid, title: page.playlist.title }}
         numbering="index"
         onRemoveFromPlaylist={page.playlist.mine ? removeAt : undefined}
       />

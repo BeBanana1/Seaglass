@@ -2,8 +2,15 @@
   import type { SearchResults } from "../lib/ipc";
 
   // Conservé au niveau du module : revenir sur la recherche retrouve la dernière requête.
-  const saved = $state<{ query: string; results: SearchResults | null; allTracks: boolean }>({
+  const saved = $state<{
+    query: string;
+    /** Requête des résultats affichés (le champ a pu changer depuis). */
+    searched: string;
+    results: SearchResults | null;
+    allTracks: boolean;
+  }>({
     query: "",
+    searched: "",
     results: null,
     allTracks: false,
   });
@@ -25,7 +32,9 @@
     searching = true;
     error = null;
     try {
-      saved.results = await commands.search(saved.query);
+      const query = saved.query;
+      saved.results = await commands.search(query);
+      saved.searched = query;
       saved.allTracks = false;
     } catch (err) {
       error = String(err);
@@ -73,7 +82,7 @@
     <div class="tracks">
       <h2>{t.views.search.tracks}</h2>
       <!-- Le contexte de lecture est la liste affichée. -->
-      <TrackList {tracks} />
+      <TrackList {tracks} source={{ kind: "search", query: saved.searched }} />
       {#if r.tracks.length > COLLAPSED_TRACKS}
         <button class="more" onclick={() => (saved.allTracks = !saved.allTracks)}>
           {saved.allTracks ? t.views.search.showLess : t.views.search.showAll(r.tracks.length)}

@@ -9,6 +9,7 @@
   import { go, nav } from "../lib/stores/nav.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
   import { openTrackInfo } from "../lib/stores/trackInfo.svelte";
+  import { playedFrom } from "../lib/playSource";
   import Backdrop from "../components/backdrops/Backdrop.svelte";
   import Icon from "../components/Icon.svelte";
   import LikeButton from "../components/LikeButton.svelte";
@@ -26,6 +27,7 @@
   const current = $derived(player.currentTrack);
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
   const panel = $derived(ui.nowPlayingPanel);
+  const from = $derived(playedFrom(queue.view.source));
   const queueOpen = $derived(panel === "queue");
 
   function toggle(p: Exclude<NowPlayingPanel, null>) {
@@ -87,6 +89,12 @@
               {/each}
             </div>
             <button class="link album" onclick={() => go({ name: "album", id: track.album.id })}>{track.album.title}</button>
+            {#if from}
+              <div class="played-from">
+                <span class="played-from-label">{t.views.nowPlaying.playedFrom}</span>
+                <button class="link played-from-link" onclick={() => go(from.route)}>{from.label}</button>
+              </div>
+            {/if}
             <div class="now-actions">
               <LikeButton {track} size={20} />
               <button
@@ -290,6 +298,26 @@
 
   .link:hover {
     text-decoration: underline;
+  }
+
+  /* « Joué depuis » (#124) : libellé discret, nom cliquable. */
+  .played-from {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .played-from-label {
+    flex: none;
+    color: var(--text-muted);
+  }
+
+  .played-from-link {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .controls {

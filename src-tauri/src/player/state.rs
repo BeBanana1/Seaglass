@@ -6,6 +6,7 @@ use serde::Serialize;
 use super::output::OutputDevice;
 use super::queue::Repeat;
 use super::sleep::SleepState;
+use super::source::PlaySource;
 use super::volume::Volume;
 use crate::engine::AudioParams;
 use crate::mpv::MpvIssue;
@@ -87,6 +88,8 @@ pub struct QueueView {
     pub upcoming: Vec<Track>,
     /// Titre de départ quand le contexte est une radio qui prolonge la file (#78).
     pub radio: Option<Track>,
+    /// D'où vient le titre en cours (« Joué depuis », #124), s'il vient du contexte.
+    pub source: Option<PlaySource>,
 }
 
 #[cfg(test)]

@@ -190,7 +190,19 @@ export interface QueueView {
   upcoming: Track[];
   /** Titre de départ quand la suite est une radio qui prolonge la file (#78). */
   radio: Track | null;
+  /** D'où vient le titre en cours (« Joué depuis », #124), s'il vient du contexte. */
+  source: PlaySource | null;
 }
+
+/** Origine d'un contexte de lecture (#124), passée à `playTracks`. */
+export type PlaySource =
+  | { kind: "album"; id: number; title: string }
+  | { kind: "playlist"; uuid: string; title: string }
+  | { kind: "mix"; id: string; title: string }
+  | { kind: "radio"; seed: RadioSeed; id: number; title: string }
+  | { kind: "artist"; id: number; name: string }
+  | { kind: "likedTracks" }
+  | { kind: "search"; query: string };
 
 export interface AlbumSummary {
   id: number;
@@ -472,8 +484,8 @@ export const commands = {
   removeFromPlaylist: (uuid: string, index: number, trackId: TrackId) =>
     invoke<void>("remove_from_playlist", { uuid, index, trackId }),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
-  playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false) =>
-    invoke<void>("play_tracks", { trackIds, startIndex, shuffle }),
+  playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false, source: PlaySource | null = null) =>
+    invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
   playNext: (trackId: TrackId) => invoke<void>("play_next", { trackId }),
   addToQueue: (trackId: TrackId) => invoke<void>("add_to_queue", { trackId }),
   /** Plusieurs titres dans l'ordre : en tête de la file avec `next` (« Lire ensuite »), sinon à la fin. */
