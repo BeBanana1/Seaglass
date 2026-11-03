@@ -17,8 +17,13 @@
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
   import OutputDevicePicker from "../components/OutputDevicePicker.svelte";
+  import { platform } from "../lib/platform.svelte";
 
-  let { section }: { section: SettingsSection } = $props();
+  let { section, onLogout }: { section: SettingsSection; onLogout?: () => void } = $props();
+
+  // Android (#24) : ni sortie audio ni cache (réglages de mpv), qualité fixée à Lossless (pas
+  // d'édition hi-res), ni fenêtre, démarrage auto ou mises à jour (réglages du bureau).
+  const desktop = $derived(!platform.mobile);
 
   const sections: SettingsSection[] = ["appearance", "playback", "app"];
 
@@ -40,7 +45,7 @@
 
   $effect(() => {
     if (section === "playback" && playback === null) loadPlayback();
-    if (section === "app" && autostart === null) loadAutostart();
+    if (section === "app" && autostart === null && desktop) loadAutostart();
   });
 
   function fail(e: unknown) {
@@ -184,6 +189,7 @@
       <AccentPicker />
     </div>
   {:else if section === "playback"}
+    {#if desktop}
     <div class="group">
       <h2>{t.settings.outputDevice}</h2>
       <p class="hint">{t.settings.outputDeviceHint}</p>
@@ -227,6 +233,7 @@
       </div>
       <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
     </div>
+    {/if}
     <div class="group">
       <h2>{t.settings.normalization}</h2>
       <p class="hint">{t.settings.normalizationHint}</p>
@@ -268,6 +275,7 @@
       </label>
     </div>
   {:else}
+    {#if desktop}
     <div class="group">
       <h2>{t.settings.window}</h2>
       <p class="hint">{t.settings.closeActionHint}</p>
@@ -328,6 +336,12 @@
         </button>
       </div>
     </div>
+    {:else if onLogout}
+    <div class="group">
+      <h2>{t.settings.account}</h2>
+      <button class="update-check logout" onclick={onLogout}>{t.common.logout}</button>
+    </div>
+    {/if}
 
     <div class="group about">
       <h2>{t.settings.about}</h2>

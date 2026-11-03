@@ -153,6 +153,7 @@ pub fn run() {
             commands::settings::playback_settings,
             commands::settings::set_playback_settings,
             commands::settings::audio_devices,
+            commands::settings::platform,
             commands::settings::autostart_enabled,
             #[cfg(desktop)]
             commands::settings::set_autostart,

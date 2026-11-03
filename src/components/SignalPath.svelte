@@ -1,7 +1,9 @@
 <script lang="ts">
-  // Chaîne audio : ce que le service envoie → ce que mpv décode → ce qui part vers Windows.
+  // Chaîne audio : ce que le service envoie → ce que le moteur décode (mpv, ou Media3 sur
+  // Android) → ce qui part vers la sortie du système.
   import { player } from "../lib/stores/player.svelte";
   import {
+    engineName,
     formatStream,
     gainLabel,
     kbps,
@@ -25,7 +27,7 @@
 
   const s = $derived(player.state);
   const verdict = $derived(signalVerdict(s.stream, s.output, s.volume, s.normalization));
-  /** Sous-titre du nœud mpv : format de sortie, et le volume s'il modifie le signal. */
+  /** Sous-titre du nœud du moteur : format de sortie, et le volume s'il modifie le signal. */
   const decodeSub = $derived(
     [
       s.output ? outputFormat(s.output.format) : "—",
@@ -88,7 +90,7 @@
     <span class="wire" aria-hidden="true"></span>
     <div class="node">
       <span class="label">{t.player.decoding}</span>
-      <span class="value mono">mpv</span>
+      <span class="value mono">{engineName()}</span>
       <span class="sub">{decodeSub}</span>
     </div>
     <span class="wire" aria-hidden="true"></span>

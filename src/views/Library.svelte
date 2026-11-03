@@ -198,4 +198,15 @@
     color: var(--text-muted);
     background: color-mix(in srgb, var(--accent) 10%, transparent);
   }
+
+  /* Android (#24) : onglets sur une ligne, qui défile au doigt. */
+  :global(:root[data-platform="android"]) .tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  :global(:root[data-platform="android"]) .tabs button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 </style>

@@ -23,7 +23,7 @@ export const fr = {
       `volume ${level} % : gain appliqué par mpv, plus bit-perfect (100 % pour le rétablir)`,
     withVolume: (detail: string, volume: string) => `${detail} ; volume ${volume}`,
     normalizedLabel: "Volume normalisé",
-    normalizedDetail: (gain: string) => `ReplayGain ${gain} appliqué par mpv, plus bit-perfect`,
+    normalizedDetail: (gain: string, engine: string) => `ReplayGain ${gain} appliqué par ${engine}, plus bit-perfect`,
     withNormalization: (detail: string, gain: string) => `${detail} ; ReplayGain ${gain}`,
     noStream: "Aucun flux",
     lossyLabel: "Compressé",
@@ -35,6 +35,7 @@ export const fr = {
     reducedDetail: "24 → 16 bits",
     nativeLabel: "Fréquence native",
     nativeDetail: "mpv transmet sans conversion ; en mode partagé, Windows peut encore mixer",
+    nativeDetailAndroid: "Media3 transmet sans conversion ; Android peut encore mixer ou réencoder (Bluetooth)",
   },
 
   /** Noms des notes, de Do à Si (C à B). */
@@ -66,7 +67,7 @@ export const en: typeof fr = {
       `volume ${level}%: gain applied by mpv, no longer bit-perfect (set 100% to restore)`,
     withVolume: (detail: string, volume: string) => `${detail}; volume ${volume}`,
     normalizedLabel: "Normalized volume",
-    normalizedDetail: (gain: string) => `ReplayGain ${gain} applied by mpv, no longer bit-perfect`,
+    normalizedDetail: (gain: string, engine: string) => `ReplayGain ${gain} applied by ${engine}, no longer bit-perfect`,
     withNormalization: (detail: string, gain: string) => `${detail}; ReplayGain ${gain}`,
     noStream: "No stream",
     lossyLabel: "Compressed",
@@ -78,6 +79,7 @@ export const en: typeof fr = {
     reducedDetail: "24 → 16 bits",
     nativeLabel: "Native rate",
     nativeDetail: "mpv passes it through unchanged; in shared mode, Windows may still mix",
+    nativeDetailAndroid: "Media3 passes it through unchanged; Android may still mix or re-encode (Bluetooth)",
   },
 
   notes: { C: "C", D: "D", E: "E", F: "F", G: "G", A: "A", B: "B" },

@@ -11,6 +11,7 @@ import type {
   Volume,
 } from "./ipc";
 import { num, t } from "./i18n.svelte";
+import { platform } from "./platform.svelte";
 
 export function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -139,7 +140,7 @@ export function signalVerdict(
   const v = t.format.verdict;
   // Normalisation (#82) : gain appliqué par mpv, comme le volume ; la coupure reste prioritaire.
   if (normalization !== null && !volume.muted && verdict.tone === "ok") {
-    const detail = v.normalizedDetail(gainLabel(normalization));
+    const detail = v.normalizedDetail(gainLabel(normalization), engineName());
     return {
       label: v.normalizedLabel,
       tone: "warn",
@@ -163,6 +164,11 @@ export function signalVerdict(
   return verdict;
 }
 
+/** Moteur de lecture affiché dans la chaîne audio : mpv sur le bureau, Media3 sur Android. */
+export function engineName(): string {
+  return platform.mobile ? "Media3" : "mpv";
+}
+
 function streamVerdict(stream: StreamFormat | null, output: AudioParams | null): SignalVerdict {
   const v = t.format.verdict;
   if (!stream) return { label: v.noStream, tone: "idle", detail: "" };
@@ -180,7 +186,7 @@ function streamVerdict(stream: StreamFormat | null, output: AudioParams | null):
   if (output.format === "s16" && (stream.bitDepth ?? 16) > 16) {
     return { label: v.reducedLabel, tone: "warn", detail: v.reducedDetail };
   }
-  return { label: v.nativeLabel, tone: "ok", detail: v.nativeDetail };
+  return { label: v.nativeLabel, tone: "ok", detail: platform.mobile ? v.nativeDetailAndroid : v.nativeDetail };
 }
 
 /** Gain en dB signé : « −6,5 dB », « +2 dB ». */

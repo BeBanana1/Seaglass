@@ -10,6 +10,14 @@ export const fr = {
     library: "Bibliothèque",
     settings: "Réglages",
   },
+  /** Libellés courts de la navigation du bas (Android). */
+  tabs: {
+    home: "Accueil",
+    feed: "Actualité",
+    search: "Recherche",
+    library: "Bibliothèque",
+    settings: "Réglages",
+  },
   back: "Retour",
   backHint: "Retour (Alt+←)",
   searchHint: "Rechercher",
@@ -30,6 +38,13 @@ export const fr = {
 
 export const en: typeof fr = {
   nav: {
+    home: "Home",
+    feed: "Feed",
+    search: "Search",
+    library: "Library",
+    settings: "Settings",
+  },
+  tabs: {
     home: "Home",
     feed: "Feed",
     search: "Search",
