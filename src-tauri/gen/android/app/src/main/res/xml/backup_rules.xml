@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sauvegarde jusqu'à Android 11 (#145) : tout sauf les secrets chiffrés, illisibles sur un
+     autre appareil (la clé du Keystore ne le quitte pas). -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="seaglass-secrets.xml" />
+</full-backup-content>
