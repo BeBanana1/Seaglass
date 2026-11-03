@@ -1,8 +1,11 @@
 //! Initialisation propre à Android (#24).
 
+use std::any::Any;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use keyring::credential::{Credential, CredentialApi, CredentialBuilderApi};
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, RunEvent, WebviewWindowBuilder};
 
 /// Donne à `rustls-platform-verifier` la JVM et le contexte de l'activité : sans cela, toute
@@ -70,5 +73,109 @@ pub fn keep_alive(app: &AppHandle, event: &RunEvent) {
             }
         }
         _ => {}
+    }
+}
+
+/// Range les secrets de `keyring` (refresh token) dans l'Android Keystore, par le plugin
+/// Kotlin (`SecretStore.kt`) : sans cela, `keyring` n'a sur Android qu'un magasin en
+/// mémoire et la connexion est perdue à chaque lancement. À appeler avant le premier accès.
+pub fn install_keystore(app: &AppHandle) {
+    keyring::set_default_credential_builder(Box::new(KeystoreBuilder(app.clone())));
+}
+
+#[derive(Debug)]
+struct KeystoreBuilder(AppHandle);
+
+impl CredentialBuilderApi for KeystoreBuilder {
+    fn build(
+        &self,
+        _target: Option<&str>,
+        service: &str,
+        user: &str,
+    ) -> keyring::Result<Box<Credential>> {
+        Ok(Box::new(KeystoreCredential {
+            app: self.0.clone(),
+            name: format!("{service}/{user}"),
+        }))
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl std::fmt::Debug for KeystoreCredential {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("KeystoreCredential")
+            .field("name", &self.name)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Un secret du Keystore. Les appels bloquent : `keyring` est synchrone, et ses appelants
+/// (`tidal::auth`) tournent sur tokio, jamais sur le thread principal d'Android.
+struct KeystoreCredential {
+    app: AppHandle,
+    name: String,
+}
+
+#[derive(Serialize)]
+struct SecretArgs<'a> {
+    name: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    value: Option<&'a str>,
+}
+
+#[derive(Deserialize)]
+struct SecretValue {
+    value: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct SecretDeleted {
+    existed: bool,
+}
+
+impl KeystoreCredential {
+    fn call<T: serde::de::DeserializeOwned>(
+        &self,
+        command: &str,
+        value: Option<&str>,
+    ) -> keyring::Result<T> {
+        let args = SecretArgs {
+            name: &self.name,
+            value,
+        };
+        tauri_plugin_seaglass_mobile::native(&self.app)
+            .call_blocking(command, args)
+            .map_err(|e| keyring::Error::PlatformFailure(e.into()))
+    }
+}
+
+impl CredentialApi for KeystoreCredential {
+    fn set_secret(&self, secret: &[u8]) -> keyring::Result<()> {
+        let value = std::str::from_utf8(secret)
+            .map_err(|_| keyring::Error::BadEncoding(secret.to_vec()))?;
+        self.call::<serde::de::IgnoredAny>("secretSet", Some(value))
+            .map(drop)
+    }
+
+    fn get_secret(&self) -> keyring::Result<Vec<u8>> {
+        self.call::<SecretValue>("secretGet", None)?
+            .value
+            .map(String::into_bytes)
+            .ok_or(keyring::Error::NoEntry)
+    }
+
+    fn delete_credential(&self) -> keyring::Result<()> {
+        if self.call::<SecretDeleted>("secretDelete", None)?.existed {
+            Ok(())
+        } else {
+            Err(keyring::Error::NoEntry)
+        }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

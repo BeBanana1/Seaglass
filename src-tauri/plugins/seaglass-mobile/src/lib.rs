@@ -69,6 +69,19 @@ impl<R: Runtime> Native<R> {
             .map(|_| ())
             .map_err(|e| e.to_string())
     }
+
+    /// Appel bloquant, pour du code synchrone (secrets du Keystore : `secretGet`,
+    /// `secretSet`, `secretDelete`). Jamais depuis le thread principal d'Android, qui doit
+    /// exécuter la commande.
+    pub fn call_blocking<T: serde::de::DeserializeOwned>(
+        &self,
+        command: &str,
+        args: impl Serialize,
+    ) -> Result<T, String> {
+        self.0
+            .run_mobile_plugin::<T>(command, args)
+            .map_err(|e| e.to_string())
+    }
 }
 
 /// Raccourci : le pont natif de l'app.

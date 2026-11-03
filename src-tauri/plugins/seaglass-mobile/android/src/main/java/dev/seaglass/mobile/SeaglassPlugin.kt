@@ -49,8 +49,49 @@ class NowPlayingArgs {
     var artworkUrl: String? = null
 }
 
+@InvokeArg
+class SecretArgs {
+    lateinit var name: String
+    var value: String? = null
+}
+
 @TauriPlugin
 class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
+    private val secrets by lazy { SecretStore(activity.applicationContext) }
+
+    /** Secret chiffré par le Keystore ; `value` absente s'il n'existe pas. */
+    @Command
+    fun secretGet(invoke: Invoke) {
+        val args = invoke.parseArgs(SecretArgs::class.java)
+        try {
+            val result = JSObject()
+            secrets.get(args.name)?.let { result.put("value", it) }
+            invoke.resolve(result)
+        } catch (e: Exception) {
+            invoke.reject("lecture du secret impossible : ${e.javaClass.simpleName}")
+        }
+    }
+
+    @Command
+    fun secretSet(invoke: Invoke) {
+        val args = invoke.parseArgs(SecretArgs::class.java)
+        try {
+            secrets.set(args.name, args.value ?: throw IllegalArgumentException("valeur manquante"))
+            invoke.resolve()
+        } catch (e: Exception) {
+            invoke.reject("écriture du secret impossible : ${e.javaClass.simpleName}")
+        }
+    }
+
+    /** `existed` : faux si le secret n'existait pas. */
+    @Command
+    fun secretDelete(invoke: Invoke) {
+        val args = invoke.parseArgs(SecretArgs::class.java)
+        val result = JSObject()
+        result.put("existed", secrets.delete(args.name))
+        invoke.resolve(result)
+    }
+
     /** Crée le lecteur (une fois par processus) et renvoie ses événements sur `channel`. */
     @Command
     fun engineStart(invoke: Invoke) {
