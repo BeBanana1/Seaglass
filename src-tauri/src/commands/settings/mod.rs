@@ -47,6 +47,8 @@ pub enum Theme {
     Riso,
     /// Affiche Bauhaus : grille, primaires, formes géométriques (#70).
     Bauhaus,
+    /// Fiche technique de livrée d'avion : bleu glacier, ardoise, jaune signal (#101).
+    Aero,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -259,6 +261,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Riso);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"bauhaus"}"#).unwrap();
         assert_eq!(s.theme, Theme::Bauhaus);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"aero"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Aero);
     }
 
     #[test]

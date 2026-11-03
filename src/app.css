@@ -568,6 +568,54 @@
   --label-tracking: 0.1em;
 }
 
+/* --- Aéro : fiche technique de livrée d'avion (voir themes/aero.css) ------------------ */
+/* Bleu glacier, encre ardoise. Le jaune signal est fixe et sert au décor : sur le fond, il
+   est invisible (1:1), donc toujours cerné d'ardoise et ne porte que du texte ardoise.
+   L'accent (rouge-orangé des marquages) est celui que la couleur d'accent remplace. */
+:root[data-theme="aero"] {
+  color-scheme: light;
+  --aero-yellow: #f2ee1d;
+  --aero-ink: #1f2f35;
+  --aero-block: #bcdde2;
+  --bg: #d3eaee;
+  --surface: #e3f2f4;
+  --dialog-bg: #e3f2f4;
+  --bg-raised: rgb(31 47 53 / 0.06);
+  --bg-hover: rgb(31 47 53 / 0.09);
+  --border: rgb(31 47 53 / 0.28);
+  --text: var(--aero-ink);
+  --text-muted: #465b62;
+  --accent: #b8381c;
+  --accent-strong: #962c15;
+  --accent-contrast: #ffffff;
+  --danger: #a8331a;
+  --ok: #1d6640;
+  --warn: #7a5800;
+  --radius: 0;
+  --radius-pill: 0;
+  --radius-card: 0;
+  --radius-cover: 0;
+  --panel-radius: 0;
+  --dialog-radius: 0;
+  --popover-radius: 0;
+  --panel-blur: none;
+  --panel-border: none;
+  --panel-shadow: none;
+  --dialog-border: 1px solid var(--aero-ink);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow: 0 0 0 1px var(--aero-ink), 8px 8px 0 var(--aero-block);
+  --popover-shadow: 6px 6px 0 var(--aero-block);
+  --control-bg: transparent;
+  --focus-ring: 2px solid var(--aero-ink);
+  --shell-gap: 10px;
+  --display-weight: 500;
+  --display-tracking: -0.01em;
+  --display-family: Bahnschrift, "Segoe UI Variable Display", sans-serif;
+  --label-transform: uppercase;
+  --label-tracking: 0.12em;
+  --meta-family: Bahnschrift, var(--font-ui);
+}
+
 * {
   box-sizing: border-box;
 }
