@@ -11,8 +11,12 @@ use crate::i18n::{tr, trf};
 use crate::mpv::CacheSize;
 use crate::tidal::models::{AudioQuality, Stream, StreamSource, Track, TrackId};
 
-/// Qualité demandée ; deviendra un réglage utilisateur.
+/// Qualité demandée ; deviendra un réglage utilisateur. Sur Android, Lossless 16/44,1 :
+/// l'écoute passe par le Bluetooth, qui réencode le son (#24).
+#[cfg(desktop)]
 pub(super) const QUALITY: AudioQuality = AudioQuality::HiResLossless;
+#[cfg(mobile)]
+pub(super) const QUALITY: AudioQuality = AudioQuality::Lossless;
 /// Préchargement du suivant quand il reste moins que ça sur le titre courant.
 const PRELOAD_BEFORE_END: f64 = 30.0;
 /// En deçà, « Précédent » revient au titre précédent plutôt qu'au début du titre.
@@ -347,6 +351,11 @@ impl Player {
     }
 
     fn stream_url(&self, track: &Track, stream: &Stream) -> Option<String> {
+        // Android : le MPD part en URL `data:`, sans serveur local.
+        #[cfg(mobile)]
+        if let StreamSource::Dash(mpd) = &stream.source {
+            return Some(crate::media3::data_url(mpd));
+        }
         match (&stream.source, &self.server) {
             (StreamSource::Direct(url), _) => Some(url.clone()),
             (StreamSource::Dash(mpd), Some(server)) => {

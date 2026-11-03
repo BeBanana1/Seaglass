@@ -58,6 +58,17 @@ impl<R: Runtime> Native<R> {
             .map(|r| r.url)
             .map_err(|e| e.to_string())
     }
+
+    /// Appelle une commande Kotlin qui ne renvoie rien : lecteur Media3 (`engineStart`,
+    /// `engine`) et session média (`sessionStart`, `nowPlaying`). Les arguments suivent les
+    /// classes `@InvokeArg` de `SeaglassPlugin.kt`.
+    pub async fn call(&self, command: &str, args: impl Serialize) -> Result<(), String> {
+        self.0
+            .run_mobile_plugin_async::<serde::de::IgnoredAny>(command, args)
+            .await
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
 }
 
 /// Raccourci : le pont natif de l'app.
