@@ -171,6 +171,8 @@ pub fn run() {
                 _app.state::<Arc<ProcessGuard>>().kill();
                 _app.state::<UpdateState>().install_on_exit();
             }
+            #[cfg(target_os = "android")]
+            android::keep_alive(_app, &_event);
         });
 }
 
