@@ -15,9 +15,9 @@ use tokio::sync::{OnceCell, RwLock};
 use super::auth::{self, ClientCredentials, PkceChallenge, Tokens};
 use super::cache::TrackCache;
 use super::hires::HiresCache;
-use super::likes::LikedTracks;
+use super::likes::Likes;
 use super::manifest;
-use super::models::{AudioQuality, SessionInfo, Stream, StreamFormat, Track, TrackId};
+use super::models::{AudioQuality, ReplayGain, SessionInfo, Stream, StreamFormat, Track, TrackId};
 use super::raw::RawTrack;
 use super::{Result, TidalError};
 
@@ -44,7 +44,7 @@ pub struct TidalClient {
     restored: OnceCell<()>,
     pub cache: TrackCache,
     pub(super) hires: HiresCache,
-    pub(super) likes: LikedTracks,
+    pub(super) likes: Likes,
 }
 
 impl TidalClient {
@@ -60,7 +60,7 @@ impl TidalClient {
             restored: OnceCell::new(),
             cache: TrackCache::default(),
             hires: HiresCache::default(),
-            likes: LikedTracks::default(),
+            likes: Likes::default(),
         })
     }
 
@@ -139,6 +139,12 @@ impl TidalClient {
         Ok(Stream {
             format: stream_format(&raw, &decoded),
             source: decoded.source,
+            gain: ReplayGain {
+                track_gain: raw.track_replay_gain,
+                track_peak: raw.track_peak_amplitude,
+                album_gain: raw.album_replay_gain,
+                album_peak: raw.album_peak_amplitude,
+            },
         })
     }
 

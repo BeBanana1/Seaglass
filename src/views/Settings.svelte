@@ -2,9 +2,11 @@
 <script lang="ts">
   import {
     commands,
+    type AudioDevice,
     type CacheSize,
     type HiresUpgrade,
     type LanguagePref,
+    type Normalization,
     type PlaybackSettings,
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
@@ -13,6 +15,7 @@
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
+  import OutputDevicePicker from "../components/OutputDevicePicker.svelte";
 
   let { section }: { section: SettingsSection } = $props();
 
@@ -23,9 +26,12 @@
   const CACHE_SIZES: CacheSize[] = [32, 64, 128, 256];
 
   const HIRES_MODES: HiresUpgrade[] = ["auto", "ask", "off"];
+
+  const NORMALIZATION_MODES: Normalization[] = ["off", "track", "album"];
   let playback = $state<PlaybackSettings | null>(null);
   const cacheSize = $derived(playback?.cacheSize ?? null);
   const hiresUpgrade = $derived(playback?.hiresUpgrade ?? null);
+  const normalization = $derived(playback?.normalization ?? null);
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
 
@@ -69,8 +75,20 @@
     if (playback && size !== playback.cacheSize) savePlayback({ ...playback, cacheSize: size });
   }
 
+  function setNormalization(mode: Normalization) {
+    if (playback && mode !== playback.normalization) savePlayback({ ...playback, normalization: mode });
+  }
+
+  function setAudioDevice(device: AudioDevice | null) {
+    if (playback) savePlayback({ ...playback, audioDevice: device });
+  }
+
   function setHiresUpgrade(mode: HiresUpgrade) {
     if (playback && mode !== playback.hiresUpgrade) savePlayback({ ...playback, hiresUpgrade: mode });
+  }
+
+  function toggleAutoRadio() {
+    if (playback) savePlayback({ ...playback, autoRadio: !playback.autoRadio });
   }
 
   async function loadAutostart() {
@@ -155,6 +173,11 @@
     </div>
   {:else if section === "playback"}
     <div class="group">
+      <h2>{t.settings.outputDevice}</h2>
+      <p class="hint">{t.settings.outputDeviceHint}</p>
+      <OutputDevicePicker value={playback ? playback.audioDevice : undefined} onchange={setAudioDevice} />
+    </div>
+    <div class="group">
       <h2>{t.settings.cache}</h2>
       <p class="hint">{t.settings.cacheHint}</p>
       <div class="cache-sizes" role="radiogroup" aria-label={t.settings.cacheSize}>
@@ -191,6 +214,46 @@
         {/each}
       </div>
       <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
+    </div>
+    <div class="group">
+      <h2>{t.settings.normalization}</h2>
+      <p class="hint">{t.settings.normalizationHint}</p>
+      <!-- Le mode exclusif / bit-perfect (phase 5) devra griser ces choix. -->
+      <div class="cache-sizes normalization-modes" role="radiogroup" aria-label={t.settings.normalization}>
+        {#each NORMALIZATION_MODES as mode (mode)}
+          <button
+            class="cache-size hires-mode normalization-mode"
+            class:selected={normalization === mode}
+            role="radio"
+            aria-checked={normalization === mode}
+            disabled={normalization === null}
+            onclick={() => setNormalization(mode)}
+          >
+            {t.settings.normalizationModes[mode].label}
+          </button>
+        {/each}
+      </div>
+      <p class="note">{normalization ? t.settings.normalizationModes[normalization].note : ""}</p>
+    </div>
+    <div class="group">
+      <h2>{t.settings.queueEnd}</h2>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.autoRadio}</span>
+          <span class="hint">{t.settings.autoRadioHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={playback?.autoRadio === true}
+          role="switch"
+          aria-checked={playback?.autoRadio === true}
+          aria-label={t.settings.autoRadio}
+          disabled={playback === null}
+          onclick={toggleAutoRadio}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
     </div>
   {:else}
     <div class="group">

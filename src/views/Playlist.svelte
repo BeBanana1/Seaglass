@@ -12,7 +12,7 @@
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
-  import { refreshPinTitle } from "../lib/stores/ui.svelte";
+  import { listSort, refreshPinTitle, saveListSort } from "../lib/stores/ui.svelte";
   import { notePlaylistChange, playlistChanges } from "../lib/stores/playlistPicker.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -32,7 +32,8 @@
     page = null;
     error = null;
     query = "";
-    sort = DEFAULT_SORT;
+    // Tri mémorisé pour cette playlist (#93) ; le filtre repart vide.
+    sort = untrack(() => listSort(target, DEFAULT_SORT));
     load(target);
   });
 
@@ -41,6 +42,11 @@
     void playlistChanges.revision;
     if (playlistChanges.uuid === untrack(() => uuid)) untrack(() => load(uuid));
   });
+
+  function setSort(next: TrackSort) {
+    sort = next;
+    saveListSort(uuid, next).catch((e) => pushToast({ level: "error", message: String(e) }));
+  }
 
   function load(target: string) {
     commands
@@ -89,6 +95,7 @@
       trackIds={sorted.map((l) => l.track.id)}
       queueable
       pin={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
+      favorite={playlist.mine ? undefined : { kind: "playlist", uuid: playlist.uuid }}
     >
       {#snippet meta()}
         {playlistSubtitle(playlist)}
@@ -98,7 +105,7 @@
     {#if page.tracks.length > 1}
       <TrackTools
         bind:query
-        bind:sort
+        bind:sort={() => sort, setSort}
         keys={SORT_KEYS}
         shown={shown.length}
         total={page.tracks.length}

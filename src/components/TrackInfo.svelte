@@ -6,6 +6,7 @@
   import { commands, type StreamFormat, type TrackInfo } from "../lib/ipc";
   import {
     artistNames,
+    coverSmall,
     creditRole,
     decibels,
     formatStream,
@@ -115,7 +116,7 @@
     >
       <header>
         <span class="cover">
-          {#if track.album.coverUrl}<img src={track.album.coverUrl} alt="" />{/if}
+          {#if track.album.coverUrl}<img src={coverSmall(track.album)} alt="" />{/if}
         </span>
         <div class="heading">
           <span class="label">{t.info.title}</span>

@@ -53,6 +53,7 @@
       title={album.title}
       trackIds={page.tracks.map((track) => track.id)}
       queueable
+      favorite={{ kind: "album", id: album.id }}
     >
       {#snippet meta()}
         {#each album.artists as artist, i (artist.id)}

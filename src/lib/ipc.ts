@@ -13,7 +13,12 @@ export interface ArtistRef {
 export interface AlbumRef {
   id: number;
   title: string;
+  /** Pochette 320×320. */
   coverUrl: string | null;
+  /** 160×160 et 640×640 (#89). Toujours envoyées par le backend (déduites de la 320 pour un titre
+   *  enregistré avant 0.4.36), absentes des anciennes fixtures : voir `coverSmall`. */
+  coverSmallUrl?: string | null;
+  coverLargeUrl?: string | null;
   /** Couleur dominante de la pochette (`#rrggbb`). */
   color: string | null;
 }
@@ -36,6 +41,15 @@ export interface Track {
 export interface TrackEntry extends Track {
   /** Millisecondes depuis l'epoch Unix (UTC) ; `null` si l'API ne la donne pas. */
   addedAt: number | null;
+}
+
+/** Une catégorie de la bibliothèque, du plus récent au plus ancien (#91). */
+export interface LibraryList<T> {
+  items: T[];
+  /** Coupée au plafond de chargement : seuls les plus récents sont là. */
+  truncated: boolean;
+  /** Nombre annoncé par TIDAL (indisponibles compris), s'il est connu. */
+  total: number | null;
 }
 
 export type AudioQuality = "LOW" | "HIGH" | "LOSSLESS" | "HI_RES_LOSSLESS";
@@ -104,11 +118,35 @@ export interface AudioParams {
 
 export type Repeat = "off" | "all" | "one";
 
+/** Périphérique de sortie WASAPI (#79) : identifiant mpv (`wasapi/{guid}`) et nom Windows. */
+export interface AudioDevice {
+  id: string;
+  name: string;
+}
+
+/** Périphériques connus de mpv (commande `audio_devices`, événement `audio-devices`). */
+export interface AudioDevices {
+  devices: AudioDevice[];
+  /** Identifiant du périphérique par défaut de Windows, s'il est connu. */
+  systemDefault: string | null;
+}
+
+/** Sortie réellement utilisée, pour la chaîne audio (#79). */
+export interface OutputDevice {
+  /** Nom Windows du périphérique ouvert ; `null` si inconnu. */
+  name: string | null;
+  /** Périphérique par défaut du système (aucun choix, ou repli). */
+  systemDefault: boolean;
+  /** Périphérique choisi mais indisponible : nom enregistré. */
+  missing: string | null;
+}
+
 export interface PlayerState {
   track: Track | null;
   stream: StreamFormat | null;
   output: AudioParams | null;
   outputDriver: string | null;
+  outputDevice: OutputDevice | null;
   loading: boolean;
   paused: boolean;
   buffering: boolean;
@@ -123,7 +161,22 @@ export interface PlayerState {
   /** Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son format,
    *  l'album dans `hiresEdition`. */
   hiresOffer: StreamFormat | null;
+  /** Gain de normalisation appliqué au titre courant, en dB (#82) ; `null` si le signal
+   *  n'est pas modifié. */
+  normalization: number | null;
+  /** Minuteur de mise en veille actif (#85). */
+  sleep: SleepState | null;
+  /** mpv ne tourne pas, avec sa cause probable (#92) ; `null` quand tout va bien. */
+  mpvIssue: MpvIssue | null;
 }
+
+/** `cpuUnsupported` : mpv embarqué (x86-64-v3) sur un processeur sans AVX2. */
+export type MpvIssue = "stopped" | "cpuUnsupported";
+
+/** Minuteur actif : échéance en ms epoch (l'UI calcule le temps restant), ou fin du titre. */
+export type SleepState = { kind: "minutes"; endsAt: number } | { kind: "endOfTrack" };
+
+export type SleepRequest = { kind: "minutes"; minutes: number } | { kind: "endOfTrack" };
 
 /** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
 export interface Volume {
@@ -135,6 +188,8 @@ export interface Volume {
 export interface QueueView {
   manual: Track[];
   upcoming: Track[];
+  /** Titre de départ quand la suite est une radio qui prolonge la file (#78). */
+  radio: Track | null;
 }
 
 export interface AlbumSummary {
@@ -142,6 +197,8 @@ export interface AlbumSummary {
   title: string;
   artists: ArtistRef[];
   coverUrl: string | null;
+  /** 640×640 (#89). */
+  coverLargeUrl?: string | null;
   color: string | null;
   /** `AAAA-MM-JJ`. */
   releaseDate: string | null;
@@ -184,6 +241,22 @@ export type MediaItem =
   | ({ kind: "artist" } & ArtistSummary)
   | ({ kind: "playlist" } & PlaylistSummary)
   | ({ kind: "mix" } & MixSummary);
+
+/** Ce qu'on peut ajouter aux favoris (#4, #81). */
+export type LikeTarget =
+  | { kind: "track"; id: TrackId }
+  | { kind: "album"; id: number }
+  | { kind: "artist"; id: number }
+  | { kind: "playlist"; uuid: string };
+
+/** Tous les favoris, en identifiants (événement `likes`). */
+export interface LikedIds {
+  tracks: TrackId[];
+  albums: number[];
+  artists: number[];
+  /** Playlists suivies. */
+  playlists: string[];
+}
 
 export interface HomeRow {
   /** Identifiant stable de la section (`moduleId` de l'API), indépendant du titre. */
@@ -282,6 +355,19 @@ export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal" |
 /** Raccourci de la barre latérale ; le titre d'une playlist est gardé pour l'afficher sans requête. */
 export type Pin = { kind: "playlist"; uuid: string; title: string } | { kind: "likedTracks" };
 
+/** Critères de tri d'une liste de titres (#1, #2). */
+export type SortKey = "position" | "added" | "title" | "artist" | "album" | "duration";
+
+export interface TrackSort {
+  key: SortKey;
+  descending: boolean;
+}
+
+/** Tri mémorisé d'une liste (#93) : uuid de playlist, ou `likedTracks`. */
+export interface ListSort extends TrackSort {
+  list: string;
+}
+
 export interface UiSettings {
   theme: Theme;
   home: HomeLayout;
@@ -290,6 +376,8 @@ export interface UiSettings {
   accent: string | null;
   /** Langue choisie (#7) ; `system` suit la langue d'affichage de Windows. */
   language: LanguagePref;
+  /** Tris mémorisés, le plus récent en tête (#93). */
+  sorts: ListSort[];
 }
 
 /** Langue effective de l'app, décidée par le backend. */
@@ -302,12 +390,22 @@ export type CacheSize = 32 | 64 | 128 | 256;
 
 export type HiresUpgrade = "auto" | "ask" | "off";
 
+/** Normalisation du volume par ReplayGain (#82). */
+export type Normalization = "off" | "track" | "album";
+
 /** Réglages de lecture, stockés à part des réglages d'UI. */
 export interface PlaybackSettings {
   cacheSize: CacheSize;
   /** Édition hi-res d'un titre qui n'en a pas (même enregistrement) : la lire à sa place,
    *  la proposer (#59) ou l'ignorer. */
   hiresUpgrade: HiresUpgrade;
+  /** Désactivée par défaut : seul mode qui laisse le signal intact. */
+  normalization: Normalization;
+  /** Périphérique de sortie choisi (#79) ; `null` = périphérique par défaut du système.
+   *  Gardé même débranché : le lecteur se replie sur le défaut puis y revient. */
+  audioDevice: AudioDevice | null;
+  /** Fin de file : enchaîner sur la radio du dernier titre (#78). */
+  autoRadio: boolean;
 }
 
 export interface UpdateInfo {
@@ -337,10 +435,10 @@ export const commands = {
   mix: (id: string) => invoke<MixPage>("mix", { id }),
   radio: (seed: RadioSeed, id: number) => invoke<RadioPage>("radio", { seed, id }),
   libraryMixes: () => invoke<MixSummary[]>("library_mixes"),
-  libraryTracks: () => invoke<TrackEntry[]>("library_tracks"),
-  libraryAlbums: () => invoke<AlbumSummary[]>("library_albums"),
-  libraryArtists: () => invoke<ArtistSummary[]>("library_artists"),
-  libraryPlaylists: () => invoke<PlaylistSummary[]>("library_playlists"),
+  libraryTracks: () => invoke<LibraryList<TrackEntry>>("library_tracks"),
+  libraryAlbums: () => invoke<LibraryList<AlbumSummary>>("library_albums"),
+  libraryArtists: () => invoke<LibraryList<ArtistSummary>>("library_artists"),
+  libraryPlaylists: () => invoke<LibraryList<PlaylistSummary>>("library_playlists"),
   home: () => invoke<HomeSection[]>("home"),
   feed: () => invoke<FeedItem[]>("feed"),
   /** `null` si TIDAL n'a pas de paroles pour ce titre. */
@@ -349,10 +447,10 @@ export const commands = {
   trackInfo: (trackId: TrackId) => invoke<TrackInfo>("track_info", { trackId }),
   /** Album hi-res au même titre, pour un album qui ne l'est pas (#59). */
   hiresTwinAlbum: (albumId: number) => invoke<AlbumSummary | null>("hires_twin_album", { albumId }),
-  /** Identifiants des titres likés (mis à jour ensuite par l'événement `liked-tracks`). */
-  likedTracks: () => invoke<TrackId[]>("liked_tracks"),
-  setTrackLiked: (trackId: TrackId, liked: boolean) =>
-    invoke<void>("set_track_liked", { trackId, liked }),
+  /** Identifiants de tous les favoris (mis à jour ensuite par l'événement `likes`). */
+  likes: () => invoke<LikedIds>("likes"),
+  /** Ajoute aux favoris ou retire ; l'événement `likes` suit la confirmation. */
+  setLiked: (target: LikeTarget, liked: boolean) => invoke<void>("set_liked", { target, liked }),
   /** Playlists créées par l'utilisateur, les seules modifiables. */
   ownPlaylists: () => invoke<PlaylistSummary[]>("own_playlists"),
   /** Ajoute à la fin, sans doublon ; renvoie le nombre de titres réellement ajoutés. */
@@ -373,9 +471,13 @@ export const commands = {
   enqueueTracks: (trackIds: TrackId[], next: boolean) =>
     invoke<void>("enqueue_tracks", { trackIds, next }),
   removeFromQueue: (index: number) => invoke<void>("remove_from_queue", { index }),
+  /** Déplace l'entrée `from` de la file manuelle pour qu'elle finisse à l'index `to`. */
+  moveInQueue: (from: number, to: number) => invoke<void>("move_in_queue", { from, to }),
   clearQueue: () => invoke<void>("clear_queue"),
   /** Réponse au bandeau « Édition hi-res disponible », valable pour tout l'album (#59). */
   answerHiresOffer: (accept: boolean) => invoke<void>("answer_hires_offer", { accept }),
+  /** Pause après une durée ou à la fin du titre en cours ; `null` annule (#85). */
+  setSleepTimer: (timer: SleepRequest | null) => invoke<void>("set_sleep_timer", { timer }),
   next: () => invoke<void>("next"),
   previous: () => invoke<void>("previous"),
   togglePause: () => invoke<void>("toggle_pause"),
@@ -399,10 +501,15 @@ export const commands = {
   resetHomeLayout: () => invoke<HomeLayout>("reset_home_layout"),
   /** Remplace les épingles ; renvoie la liste enregistrée (validée, sans doublons). */
   setPins: (pins: Pin[]) => invoke<Pin[]>("set_pins", { pins }),
+  /** Mémorise le tri d'une liste (`null` : l'oublie) ; renvoie les tris enregistrés. */
+  setListSort: (list: string, sort: TrackSort | null) =>
+    invoke<ListSort[]>("set_list_sort", { list, sort }),
   playbackSettings: () => invoke<PlaybackSettings>("playback_settings"),
   /** Enregistre et applique à chaud (sans recharger le titre en cours). */
   setPlaybackSettings: (settings: PlaybackSettings) =>
     invoke<void>("set_playback_settings", { settings }),
+  /** Périphériques de sortie connus de mpv ; la suite arrive par `audio-devices`. */
+  audioDevices: () => invoke<AudioDevices>("audio_devices"),
   /** État réel du lancement au démarrage, lu dans le système. */
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
   /** Renvoie l'état relu après changement. */
@@ -421,8 +528,10 @@ export const events = {
     listen<QueueView>("queue-state", (e) => cb(e.payload)),
   onUpdateReady: (cb: (u: UpdateInfo) => void): Promise<UnlistenFn> =>
     listen<UpdateInfo>("update-ready", (e) => cb(e.payload)),
-  onLikedTracks: (cb: (ids: TrackId[]) => void): Promise<UnlistenFn> =>
-    listen<TrackId[]>("liked-tracks", (e) => cb(e.payload)),
+  onLikes: (cb: (ids: LikedIds) => void): Promise<UnlistenFn> =>
+    listen<LikedIds>("likes", (e) => cb(e.payload)),
+  onAudioDevices: (cb: (d: AudioDevices) => void): Promise<UnlistenFn> =>
+    listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>
     listen<Toast>("toast", (e) => cb(e.payload)),
 };

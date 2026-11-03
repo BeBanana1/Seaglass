@@ -5,7 +5,7 @@
   import { player } from "../lib/stores/player.svelte";
   import { queue } from "../lib/stores/queue.svelte";
   import { ui, type NowPlayingPanel } from "../lib/stores/ui.svelte";
-  import { fullTitle } from "../lib/format";
+  import { coverLarge, coverSmall, fullTitle } from "../lib/format";
   import { go, nav } from "../lib/stores/nav.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
   import { openTrackInfo } from "../lib/stores/trackInfo.svelte";
@@ -16,13 +16,14 @@
   import Progress from "../components/Progress.svelte";
   import QueueList from "../components/QueueList.svelte";
   import SignalPath from "../components/SignalPath.svelte";
+  import SleepTimer from "../components/SleepTimer.svelte";
   import Transport from "../components/Transport.svelte";
   import Volume from "../components/Volume.svelte";
   import { t } from "../lib/i18n.svelte";
 
   let { onClose }: { onClose: () => void } = $props();
 
-  const s = $derived(player.state);
+  const current = $derived(player.currentTrack);
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
   const panel = $derived(ui.nowPlayingPanel);
   const queueOpen = $derived(panel === "queue");
@@ -67,12 +68,12 @@
 
   <div class="scroller" class:with-panel={panel}>
     <div class="stage">
-      {#if s.track}
-        {@const track = s.track}
+      {#if current}
+        {@const track = current}
         <div class="layout">
           <div class="art">
             {#if track.album.coverUrl}
-              <img src={track.album.coverUrl.replace("320x320", "640x640")} alt="" />
+              <img src={coverLarge(track.album)} alt="" />
             {/if}
           </div>
           <div class="info">
@@ -99,6 +100,7 @@
               <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
                 <Icon name="info" size={20} />
               </button>
+              <SleepTimer size={20} />
             </div>
 
             <div class="controls">
@@ -115,7 +117,7 @@
                 <ol>
                   {#each upNext as next, i (`${i}-${next.id}`)}
                     <li>
-                      {#if next.album.coverUrl}<img src={next.album.coverUrl} alt="" />{/if}
+                      {#if next.album.coverUrl}<img src={coverSmall(next.album)} alt="" />{/if}
                       <span class="t">{fullTitle(next)}</span>
                       <span class="a">{next.artists.map((a) => a.name).join(", ")}</span>
                     </li>

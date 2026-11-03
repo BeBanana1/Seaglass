@@ -5,6 +5,7 @@
 use serde_json::{Value, json};
 
 use super::actor::{Cmd, Player, Slot};
+use super::normalize::file_options;
 use super::queue::Repeat;
 use super::settings::HiresUpgrade;
 use super::upgrade;
@@ -41,12 +42,14 @@ impl Player {
         self.state.track = self.tidal.cache.get(id);
         self.state.stream = None;
         self.state.hires_offer = None;
+        self.state.normalization = None;
         self.offer_req += 1;
         self.state.time_pos = start;
         self.resolve(id, Slot::Current { start }, self.load_req);
     }
 
-    /// Précharge le titre suivant à moins de 30 s de la fin (sauf repeat One : `loop-file`).
+    /// Précharge le titre suivant à moins de 30 s de la fin (sauf repeat One : `loop-file`,
+    /// et minuteur « Fin du titre » : rien ne doit suivre en gapless).
     pub(super) fn maybe_preload(&mut self) {
         let remaining = self.state.duration - self.state.time_pos;
         if self.next_loaded.is_some()
@@ -54,11 +57,13 @@ impl Player {
             || self.state.duration <= 0.0
             || remaining >= PRELOAD_BEFORE_END
             || self.queue.repeat() == Repeat::One
+            || self.sleeps_at_end_of_track()
         {
             return;
         }
         let Some(id) = self.queue.peek_next() else {
-            return;
+            // Fin de file : la radio, si elle est activée, sera préchargée à son arrivée.
+            return self.maybe_request_radio();
         };
         self.preload_req += 1;
         self.preloading = true;
@@ -129,10 +134,14 @@ impl Player {
                     return;
                 };
                 log_stream("lecture", &track, &stream);
+                // Gain de normalisation en option du fichier (#82) : il ne touche pas le
+                // titre qui sera préchargé ensuite.
+                let gain = self.normalizer.loaded(stream.gain);
                 let mut cmd = vec![json!("loadfile"), json!(url), json!("replace")];
-                if start > 0.0 {
-                    cmd.extend([json!(-1), json!(format!("start={start}"))]);
+                if let Some(options) = file_options(start, gain) {
+                    cmd.extend([json!(-1), json!(options)]);
                 }
+                self.state.normalization = gain;
                 self.mpv_command(cmd).await;
                 self.mpv_command(vec![json!("set_property"), json!("pause"), json!(false)])
                     .await;
@@ -152,8 +161,12 @@ impl Player {
                             return;
                         };
                         log_stream("préchargement", &track, &stream);
-                        self.mpv_command(vec![json!("loadfile"), json!(url), json!("append")])
-                            .await;
+                        let gain = self.normalizer.preloaded(stream.gain);
+                        let mut cmd = vec![json!("loadfile"), json!(url), json!("append")];
+                        if let Some(options) = file_options(0.0, gain) {
+                            cmd.extend([json!(-1), json!(options)]);
+                        }
+                        self.mpv_command(cmd).await;
                         self.next_loaded = Some((track, stream.format));
                     }
                     // Sans préchargement, la fin du titre déclenchera un chargement classique.
@@ -180,6 +193,7 @@ impl Player {
             self.retried = None;
             self.state.track = Some(track);
             self.state.stream = Some(format);
+            self.state.normalization = self.normalizer.advance();
             self.state.time_pos = 0.0;
             self.maybe_offer_hires();
         } else if let Some(id) = advanced {
@@ -194,9 +208,13 @@ impl Player {
             // Fin naturelle sans suivant préchargé (préchargement absent ou en échec).
             EndReason::Eof if self.loaded && self.next_loaded.is_none() => {
                 self.loaded = false;
-                if let Some(id) = self.queue.advance() {
+                if self.sleeps_at_end_of_track() {
+                    self.sleep_after_track().await;
+                } else if let Some(id) = self.queue.advance() {
                     self.mark_queue_dirty();
                     self.load_current(id, 0.0);
+                } else {
+                    self.on_queue_end();
                 }
             }
             EndReason::Error => self.on_playback_error(error).await,
@@ -206,6 +224,10 @@ impl Player {
 
     /// Erreur mpv : une nouvelle URL une fois (signature expirée ?), puis titre suivant.
     async fn on_playback_error(&mut self, error: Option<String>) {
+        // Périphérique de sortie choisi qui ne s'ouvre pas : repli, pas une erreur du flux.
+        if self.on_output_init_failed(error.as_deref()).await {
+            return;
+        }
         let Some(id) = self.queue.current() else {
             return;
         };
@@ -296,12 +318,13 @@ impl Player {
         }
     }
 
-    /// Repeat One = `loop-file=inf` côté mpv, sans rechargement.
+    /// Repeat One = `loop-file=inf` côté mpv, sans rechargement ; levé tant que le
+    /// minuteur vise la fin du titre (#85).
     pub(super) async fn apply_loop_file(&mut self) {
         if self.mpv.is_err() {
             return;
         }
-        let value = if self.queue.repeat() == Repeat::One {
+        let value = if self.queue.repeat() == Repeat::One && !self.sleeps_at_end_of_track() {
             "inf"
         } else {
             "no"

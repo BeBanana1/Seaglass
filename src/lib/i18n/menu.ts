@@ -1,8 +1,10 @@
-// Menu contextuel d'un titre et boutons d'action sur un titre (cœur, épingle).
+// Menus contextuels (titres, cartes) et boutons d'action (cœur, épingle, Suivre).
 
 export const fr = {
   play: "Lire",
   removeFromQueue: "Retirer de la file",
+  moveUp: "Monter",
+  moveDown: "Descendre",
   playNext: "Lire ensuite",
   addToQueue: "Ajouter à la file",
   unlike: "Retirer des titres likés",
@@ -17,11 +19,21 @@ export const fr = {
   copyLink: "Copier le lien",
   pin: "Épingler dans la barre latérale",
   unpin: "Désépingler de la barre latérale",
+  // Favoris des albums, artistes et playlists (#81), en-têtes et menu des cartes.
+  open: "Ouvrir",
+  addToLibrary: "Ajouter à la bibliothèque",
+  removeFromLibrary: "Retirer de la bibliothèque",
+  follow: "Suivre",
+  following: "Suivi",
+  unfollow: "Ne plus suivre",
+  artistRadio: "Radio de l'artiste",
 };
 
 export const en: typeof fr = {
   play: "Play",
   removeFromQueue: "Remove from queue",
+  moveUp: "Move up",
+  moveDown: "Move down",
   playNext: "Play next",
   addToQueue: "Add to queue",
   unlike: "Remove from liked tracks",
@@ -36,4 +48,11 @@ export const en: typeof fr = {
   copyLink: "Copy link",
   pin: "Pin to sidebar",
   unpin: "Unpin from sidebar",
+  open: "Open",
+  addToLibrary: "Add to library",
+  removeFromLibrary: "Remove from library",
+  follow: "Follow",
+  following: "Following",
+  unfollow: "Unfollow",
+  artistRadio: "Artist radio",
 };

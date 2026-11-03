@@ -1,36 +1,35 @@
-//! Commandes d'écriture dans la bibliothèque (#4) : likes et playlists de l'utilisateur.
+//! Commandes d'écriture dans la bibliothèque : favoris (#4, #81) et playlists de l'utilisateur.
 
 use tauri::{AppHandle, Emitter, State};
 
 use super::catalog::is_uuid;
 use super::{AppState, CmdResult, err};
 use crate::i18n::{tr, trf};
-use crate::tidal::models::{PlaylistSummary, TrackId};
+use crate::tidal::models::{LikeTarget, LikedIds, PlaylistSummary, TrackId};
 
 const MAX_TITLE_LEN: usize = 200;
 /// Titres ajoutés en une fois (un album, une playlist affichée).
 const MAX_ADD: usize = 10_000;
 
-/// Événement émis à chaque changement des titres likés, avec la liste complète.
-pub const LIKED_TRACKS_EVENT: &str = "liked-tracks";
+/// Événement émis à chaque changement des favoris, avec toutes les listes.
+pub const LIKES_EVENT: &str = "likes";
 
+/// Identifiants de tous les favoris : titres, albums, artistes, playlists suivies.
 #[tauri::command]
-pub async fn liked_tracks(state: State<'_, AppState>) -> CmdResult<Vec<TrackId>> {
-    state.tidal.liked_track_ids().await.map_err(err)
+pub async fn likes(state: State<'_, AppState>) -> CmdResult<LikedIds> {
+    state.tidal.liked_ids().await.map_err(err)
 }
 
+/// Ajoute aux favoris ou retire (titre, album, artiste, playlist d'un autre utilisateur).
 #[tauri::command]
-pub async fn set_track_liked(
+pub async fn set_liked(
     app: AppHandle,
     state: State<'_, AppState>,
-    track_id: TrackId,
+    target: LikeTarget,
     liked: bool,
 ) -> CmdResult<()> {
-    state
-        .tidal
-        .set_track_liked(track_id, liked)
-        .await
-        .map_err(err)?;
+    validate_target(&target)?;
+    state.tidal.set_liked(&target, liked).await.map_err(err)?;
     emit_likes(&app, &state).await;
     Ok(())
 }
@@ -112,15 +111,26 @@ pub async fn remove_from_playlist(
         .map_err(err)
 }
 
-/// Après une lecture complète des favoris, les cœurs peuvent avoir changé.
+/// Après une écriture ou une lecture complète d'une catégorie de la bibliothèque, les
+/// favoris affichés peuvent avoir changé.
 pub(super) async fn emit_likes(app: &AppHandle, state: &AppState) {
-    match state.tidal.liked_track_ids().await {
+    match state.tidal.liked_ids().await {
         Ok(ids) => {
-            if let Err(e) = app.emit(LIKED_TRACKS_EVENT, ids) {
-                tracing::warn!("émission de {LIKED_TRACKS_EVENT} impossible : {e}");
+            if let Err(e) = app.emit(LIKES_EVENT, ids) {
+                tracing::warn!("émission de {LIKES_EVENT} impossible : {e}");
             }
         }
-        Err(e) => tracing::warn!("likes illisibles : {e}"),
+        Err(e) => tracing::warn!("favoris illisibles : {e}"),
+    }
+}
+
+/// L'uuid finit dans le chemin de la requête : il est vérifié.
+fn validate_target(target: &LikeTarget) -> Result<(), String> {
+    match target {
+        LikeTarget::Playlist { uuid } if !is_uuid(uuid) => {
+            Err("identifiant de playlist invalide".into())
+        }
+        _ => Ok(()),
     }
 }
 
@@ -142,6 +152,18 @@ mod tests {
     use super::*;
 
     const UUID: &str = "4ba30155-d807-446f-9e53-b67520ccfe83";
+
+    #[test]
+    fn target_validation() {
+        assert!(validate_target(&LikeTarget::Album { id: 1 }).is_ok());
+        let playlist = |uuid: &str| LikeTarget::Playlist {
+            uuid: uuid.to_owned(),
+        };
+        assert!(validate_target(&playlist(UUID)).is_ok());
+        assert!(validate_target(&playlist("../../sessions")).is_err());
+        let target: LikeTarget = serde_json::from_str(r#"{"kind":"artist","id":12979}"#).unwrap();
+        assert_eq!(target, LikeTarget::Artist { id: 12_979 });
+    }
 
     #[test]
     fn track_validation() {
