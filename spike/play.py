@@ -9,6 +9,7 @@ Usage :
     python spike/play.py search "<requête>"
     python spike/play.py probe <id ou URL de titre>
     python spike/play.py play <id ou URL de titre> [--quality ...] [--exclusive]
+    python spike/play.py serve <id ou URL de titre> [--quality ...] [--port 8765]   (spike Android, #24)
 
 Le refresh token est stocké dans le Gestionnaire d'identifiants Windows (keyring),
 jamais affiché ni écrit sur disque. Aucun flux audio n'est écrit sur disque : le
@@ -57,6 +58,9 @@ DRM_MARKERS = (
 )
 # Boîtes MP4 révélant un contenu chiffré dans le segment d'initialisation.
 ENCRYPTED_BOXES = (b"pssh", b"tenc", b"sinf", b"enca")
+
+# Activité de l'app de test `spike/android/` (#24).
+ANDROID_SPIKE_ACTIVITY = "ch.bebanana.seaglass.spike/.MainActivity"
 
 
 # --- Configuration -------------------------------------------------------------------
@@ -270,10 +274,10 @@ class _ManifestHandler(http.server.BaseHTTPRequestHandler):
         pass
 
 
-def serve_manifest(mpd: str) -> tuple[http.server.ThreadingHTTPServer, str]:
+def serve_manifest(mpd: str, port: int = 0) -> tuple[http.server.ThreadingHTTPServer, str]:
     """Sert le MPD depuis la mémoire sur 127.0.0.1, pour que mpv/ffmpeg le lise sans fichier."""
     handler = type("Handler", (_ManifestHandler,), {"manifest": mpd.encode("utf-8")})
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server, f"http://127.0.0.1:{server.server_port}/manifest.mpd"
 
@@ -328,6 +332,38 @@ def cmd_play(args: argparse.Namespace) -> None:
             server.shutdown()
 
 
+def cmd_serve(args: argparse.Namespace) -> None:
+    """Sert le MPD d'un titre pour le spike Android (#24).
+
+    Le serveur reste sur 127.0.0.1 du PC ; `adb reverse` le rend joignable au même
+    `127.0.0.1:<port>` sur le téléphone, sans rien ouvrir sur le réseau local.
+    """
+    track_id = parse_track_id(args.track)
+    session = require_session(QUALITIES[args.quality])
+    track = session.track(track_id)
+    info = describe_stream(track.get_stream())
+    print(f"{track.artist.name} – {track.full_name}")
+    print(f"Reçu : {info['quality']} {info['codec']} {info['bit_depth']}/{info['sample_rate']} ({info['manifest']})")
+
+    if is_drm(info):
+        sys.exit(f"Flux protégé ({info['encryption']}) : lecture refusée.")
+    if not info["manifest"].startswith("application/dash+xml"):
+        sys.exit("Manifeste non DASH (BTS) : connecte-toi avec --pkce.")
+
+    server, url = serve_manifest(info["raw"], args.port)
+    print("\nSur le téléphone (débogage USB activé) :")
+    print(f"  adb reverse tcp:{args.port} tcp:{args.port}")
+    print(f"  adb shell am start -a android.intent.action.VIEW -n {ANDROID_SPIKE_ACTIVITY} -d {url}")
+    print("\nLes URLs des segments sont signées et expirent : relancer la commande si la lecture échoue.")
+    print("Ctrl+C pour arrêter.")
+    try:
+        threading.Event().wait()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.shutdown()
+
+
 # --- Point d'entrée ------------------------------------------------------------------
 
 
@@ -361,6 +397,12 @@ def main() -> None:
     p.add_argument("--quality", choices=QUALITIES, default="hires")
     p.add_argument("--exclusive", action="store_true", help="WASAPI exclusif (bit-perfect)")
     p.set_defaults(func=cmd_play)
+
+    p = sub.add_parser("serve", help="servir le MPD d'un titre au spike Android (adb reverse)")
+    p.add_argument("track", help="identifiant ou URL du titre")
+    p.add_argument("--quality", choices=QUALITIES, default="lossless")
+    p.add_argument("--port", type=int, default=8765)
+    p.set_defaults(func=cmd_serve)
 
     args = parser.parse_args()
     args.func(args)
