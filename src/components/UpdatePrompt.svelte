@@ -23,7 +23,7 @@
     return () => unlisten?.();
   });
 
-  const playing = $derived(!!player.state.track && !player.state.paused && !player.state.idle);
+  const playing = $derived(player.playing);
 
   async function install() {
     installing = true;

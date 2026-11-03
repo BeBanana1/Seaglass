@@ -16,13 +16,14 @@
   import Progress from "../components/Progress.svelte";
   import QueueList from "../components/QueueList.svelte";
   import SignalPath from "../components/SignalPath.svelte";
+  import SleepTimer from "../components/SleepTimer.svelte";
   import Transport from "../components/Transport.svelte";
   import Volume from "../components/Volume.svelte";
   import { t } from "../lib/i18n.svelte";
 
   let { onClose }: { onClose: () => void } = $props();
 
-  const s = $derived(player.state);
+  const current = $derived(player.currentTrack);
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
   const panel = $derived(ui.nowPlayingPanel);
   const queueOpen = $derived(panel === "queue");
@@ -67,8 +68,8 @@
 
   <div class="scroller" class:with-panel={panel}>
     <div class="stage">
-      {#if s.track}
-        {@const track = s.track}
+      {#if current}
+        {@const track = current}
         <div class="layout">
           <div class="art">
             {#if track.album.coverUrl}
@@ -99,6 +100,7 @@
               <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
                 <Icon name="info" size={20} />
               </button>
+              <SleepTimer size={20} />
             </div>
 
             <div class="controls">

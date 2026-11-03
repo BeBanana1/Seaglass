@@ -21,6 +21,8 @@ pub struct PlaybackSettings {
     /// Gardé même débranché : le lecteur se replie sur le défaut et y revient au
     /// rebranchement.
     pub audio_device: Option<AudioDevice>,
+    /// Fin de file : enchaîner sur la radio du dernier titre (#78). Désactivé par défaut.
+    pub auto_radio: bool,
 }
 
 /// Que faire d'une édition hi-res trouvée pour un titre qui n'en a pas.
@@ -96,8 +98,9 @@ mod tests {
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto","audioDevice":null}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","audioDevice":null,"autoRadio":false}"#
         );
+        assert!(!s.auto_radio, "radio automatique désactivée par défaut");
     }
 
     #[test]

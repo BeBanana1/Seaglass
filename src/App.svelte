@@ -61,15 +61,15 @@
   });
 
   // Couleur de la pochette en cours, reprise par les thèmes (`--album`).
+  const albumColor = $derived(player.currentTrack?.album.color);
   $effect(() => {
-    const color = player.state.track?.album.color;
+    const color = albumColor;
     if (color) document.documentElement.style.setProperty("--album", color);
   });
 
   // Les fonds animés (Acidwave) ne bougent que pendant la lecture.
   $effect(() => {
-    const s = player.state;
-    document.documentElement.dataset.playing = String(!!s.track && !s.paused && !s.idle);
+    document.documentElement.dataset.playing = String(player.playing);
   });
 
   // Chaque changement de page repart du haut.

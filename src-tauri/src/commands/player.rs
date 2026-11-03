@@ -5,11 +5,14 @@ use tokio::sync::oneshot;
 
 use super::{AppState, CmdResult};
 use crate::i18n::{tr, trf};
+use crate::player::sleep::SleepRequest;
 use crate::player::volume::Volume;
 use crate::player::{Cmd, PlayerState, QueueView, Repeat};
 use crate::tidal::models::TrackId;
 
 const MAX_CONTEXT_LEN: usize = 10_000;
+// Lire ou mélanger toute une catégorie de la bibliothèque doit rester accepté (#91).
+const _: () = assert!(crate::tidal::LIBRARY_MAX <= MAX_CONTEXT_LEN);
 
 /// Lit `track_ids` comme contexte (album, playlist, résultats de recherche) à partir de
 /// `start_index`. Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard.
@@ -79,6 +82,13 @@ pub async fn remove_from_queue(state: State<'_, AppState>, index: usize) -> CmdR
     send_cmd(&state, Cmd::RemoveFromQueue(index)).await
 }
 
+/// Déplace l'entrée `from` de la file manuelle à l'index `to` (glisser-déposer, Monter /
+/// Descendre). Un index hors de la file est ignoré par l'acteur.
+#[tauri::command]
+pub async fn move_in_queue(state: State<'_, AppState>, from: usize, to: usize) -> CmdResult<()> {
+    send_cmd(&state, Cmd::MoveInQueue { from, to }).await
+}
+
 /// Vide la file (manuelle et suite du contexte) sans arrêter le titre en cours.
 #[tauri::command]
 pub async fn clear_queue(state: State<'_, AppState>) -> CmdResult<()> {
@@ -89,6 +99,17 @@ pub async fn clear_queue(state: State<'_, AppState>) -> CmdResult<()> {
 #[tauri::command]
 pub async fn answer_hires_offer(state: State<'_, AppState>, accept: bool) -> CmdResult<()> {
     send_cmd(&state, Cmd::AnswerHiresOffer(accept)).await
+}
+
+/// Minuteur de mise en veille (#85) : pause après `minutes` ou à la fin du titre en cours ;
+/// `null` l'annule.
+#[tauri::command]
+pub async fn set_sleep_timer(
+    state: State<'_, AppState>,
+    timer: Option<SleepRequest>,
+) -> CmdResult<()> {
+    let timer = timer.map(SleepRequest::validate).transpose()?;
+    send_cmd(&state, Cmd::SetSleepTimer(timer)).await
 }
 
 #[tauri::command]

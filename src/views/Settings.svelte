@@ -79,6 +79,10 @@
     if (playback && mode !== playback.hiresUpgrade) savePlayback({ ...playback, hiresUpgrade: mode });
   }
 
+  function toggleAutoRadio() {
+    if (playback) savePlayback({ ...playback, autoRadio: !playback.autoRadio });
+  }
+
   async function loadAutostart() {
     try {
       autostart = await commands.autostartEnabled();
@@ -202,6 +206,26 @@
         {/each}
       </div>
       <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
+    </div>
+    <div class="group">
+      <h2>{t.settings.queueEnd}</h2>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.autoRadio}</span>
+          <span class="hint">{t.settings.autoRadioHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={playback?.autoRadio === true}
+          role="switch"
+          aria-checked={playback?.autoRadio === true}
+          aria-label={t.settings.autoRadio}
+          disabled={playback === null}
+          onclick={toggleAutoRadio}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
     </div>
   {:else}
     <div class="group">

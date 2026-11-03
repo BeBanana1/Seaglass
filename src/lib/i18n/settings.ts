@@ -104,6 +104,12 @@ export const fr = {
     off: { label: "Désactivé", note: "Le titre est toujours lu depuis l'édition affichée." },
   },
 
+  queueEnd: "Fin de la file",
+  autoRadio: "Continuer avec une radio",
+  autoRadioHint:
+    "Quand la file se termine, enchaîner sur la radio du dernier titre, sans blanc. " +
+    "Sans effet en mode répétition.",
+
   startup: "Démarrage",
   autostart: "Lancer Seaglass à l'ouverture de session",
   autostartHint: "Réglage de Windows : il peut aussi être changé dans le Gestionnaire des tâches.",
@@ -229,6 +235,12 @@ export const en: typeof fr = {
     },
     off: { label: "Off", note: "The track always plays from the edition shown." },
   },
+
+  queueEnd: "End of queue",
+  autoRadio: "Continue with a radio",
+  autoRadioHint:
+    "When the queue ends, carry on with the last track's radio, without a gap. " +
+    "No effect while repeat is on.",
 
   startup: "Startup",
   autostart: "Launch Seaglass when you sign in",

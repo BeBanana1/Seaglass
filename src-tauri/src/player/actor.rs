@@ -14,12 +14,13 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::output::{AudioDevices, Output};
 use super::queue::{Queue, Repeat};
+use super::radio::AutoRadio;
 use super::settings::{HiresUpgrade, PlaybackSettings};
+use super::sleep::SleepRequest;
 use super::state::{PlayerState, QueueView};
-use crate::i18n::tr;
 use crate::integrations::Observers;
 use crate::mpv::process::ProcessGuard;
-use crate::mpv::{self, CacheSize, MpvEvent, MpvHandle, Property, serve::ManifestServer};
+use crate::mpv::{self, CacheSize, MpvEvent, MpvHandle, MpvIssue, Property, serve::ManifestServer};
 use crate::store::Store;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{Stream, StreamFormat, Track, TrackId};
@@ -44,6 +45,11 @@ pub enum Cmd {
         next: bool,
     },
     RemoveFromQueue(usize),
+    /// Déplace une entrée de la file manuelle (`from` finit à l'index `to`).
+    MoveInQueue {
+        from: usize,
+        to: usize,
+    },
     /// Vide la file manuelle et la suite du contexte ; le titre courant continue.
     ClearQueue,
     Next,
@@ -60,6 +66,8 @@ pub enum Cmd {
     SetPlaybackSettings(PlaybackSettings),
     /// Réponse au bandeau qui propose l'édition hi-res du titre courant (#59).
     AnswerHiresOffer(bool),
+    /// Minuteur de mise en veille (#85), déjà validé ; `None` l'annule.
+    SetSleepTimer(Option<SleepRequest>),
     GetState(oneshot::Sender<PlayerState>),
     GetQueue(oneshot::Sender<QueueView>),
     /// Périphériques de sortie connus de mpv, pour les Réglages (#79).
@@ -80,6 +88,12 @@ pub enum Cmd {
     HiresOffer {
         request: u64,
         offer: StreamFormat,
+    },
+    /// Radio du titre `seed`, demandée quand la file s'épuise (#78).
+    RadioResolved {
+        request: u64,
+        seed: TrackId,
+        result: Result<Vec<TrackId>, String>,
     },
 }
 
@@ -134,6 +148,10 @@ pub(super) struct Player {
     pub(super) offer_req: u64,
     /// Périphérique de sortie choisi, liste de mpv et repli (#79).
     pub(super) output: Output,
+    /// Échéance du minuteur de mise en veille en durée (#85, état dans `state.sleep`).
+    pub(super) sleep_deadline: Option<Instant>,
+    /// Radio automatique en fin de file (#78).
+    pub(super) radio: AutoRadio,
     pub(super) queue_dirty: bool,
     pub(super) persist_queue: bool,
     pub(super) persist_position: bool,
@@ -155,7 +173,7 @@ pub fn spawn(
         let (events_tx, events_rx) = mpsc::channel(256);
         let settings = PlaybackSettings::load(store.as_deref());
         let output = Output::new(settings.audio_device.clone());
-        let mpv = start_mpv(
+        let mut mpv = start_mpv(
             &mpv_conf,
             settings.cache_size,
             output.launch_device(),
@@ -163,8 +181,15 @@ pub fn spawn(
             &mpv_process,
         )
         .await;
+        let mut mpv_issue = None;
         if let Err(e) = &mpv {
             tracing::error!("{e}");
+            let issue = MpvIssue::diagnose();
+            if issue == MpvIssue::CpuUnsupported {
+                tracing::error!("processeur sans AVX2 : le mpv embarqué ne peut pas tourner");
+                mpv = Err(issue.message().into());
+            }
+            mpv_issue = Some(issue);
         }
         let server = ManifestServer::start()
             .await
@@ -181,6 +206,7 @@ pub fn spawn(
             queue: Queue::default(),
             state: PlayerState {
                 idle: true,
+                mpv_issue,
                 ..PlayerState::default()
             },
             emitted: PlayerState::default(),
@@ -196,6 +222,8 @@ pub fn spawn(
             hires_answers: HashMap::new(),
             offer_req: 0,
             output,
+            sleep_deadline: None,
+            radio: AutoRadio::new(settings.auto_radio),
             queue_dirty: true,
             persist_queue: false,
             persist_position: false,
@@ -233,7 +261,10 @@ impl Player {
                     None => break,
                 },
                 Some(ev) = events.recv() => self.handle_event(ev).await,
-                _ = tick.tick() => self.persist_if_due(),
+                _ = tick.tick() => {
+                    self.persist_if_due();
+                    self.check_sleep_timer().await;
+                }
             }
             self.emit();
         }
@@ -277,6 +308,18 @@ impl Player {
                     self.on_queue_changed().await;
                 }
             }
+            Cmd::MoveInQueue { from, to } => {
+                // Le préchargé est toujours `peek_next` : réordonner le milieu de la file ne
+                // le retire pas de mpv (gapless intact, pas de nouvelle résolution).
+                let next = self.queue.peek_next();
+                if self.queue.move_manual(from, to) {
+                    if self.queue.peek_next() == next {
+                        self.mark_queue_dirty();
+                    } else {
+                        self.on_queue_changed().await;
+                    }
+                }
+            }
             Cmd::ClearQueue => {
                 if self.queue.clear_upcoming() {
                     self.on_queue_changed().await;
@@ -315,10 +358,12 @@ impl Player {
                     self.hires_upgrade = settings.hires_upgrade;
                     self.maybe_offer_hires();
                 }
+                self.radio.enabled = settings.auto_radio;
                 self.apply_cache_size(settings.cache_size).await;
                 self.set_audio_device(settings.audio_device).await;
             }
             Cmd::AnswerHiresOffer(accept) => self.answer_hires_offer(accept).await,
+            Cmd::SetSleepTimer(request) => self.set_sleep_timer(request).await,
             Cmd::HiresOffer { request, offer } => {
                 if request == self.offer_req {
                     self.state.hires_offer = Some(offer);
@@ -338,6 +383,11 @@ impl Player {
                 slot,
                 result,
             } => self.on_resolved(request, slot, result).await,
+            Cmd::RadioResolved {
+                request,
+                seed,
+                result,
+            } => self.on_radio_resolved(request, seed, result).await,
         }
     }
 
@@ -370,14 +420,12 @@ impl Player {
             MpvEvent::FileLoaded => self.failures = 0,
             MpvEvent::EndFile { reason, error } => self.on_end_file(reason, error).await,
             MpvEvent::Disconnected => {
-                self.mpv = Err(tr(
-                    "mpv s'est arrêté, redémarrer l'app",
-                    "mpv stopped, restart the app",
-                )
-                .into());
+                let issue = MpvIssue::diagnose();
+                self.mpv = Err(issue.message().into());
+                self.state.mpv_issue = Some(issue);
                 self.loaded = false;
                 self.next_loaded = None;
-                self.toast("error", tr("mpv s'est arrêté", "mpv stopped").into());
+                self.toast("error", issue.message().into());
             }
             MpvEvent::StartFile => {}
         }
@@ -392,6 +440,15 @@ impl Player {
     pub(super) fn mark_queue_dirty(&mut self) {
         self.queue_dirty = true;
         self.persist_queue = true;
+        self.pin_queue_tracks();
+        // File changée : une radio peut de nouveau être demandée.
+        self.radio.asked = None;
+    }
+
+    /// Protège de l'éviction du cache borné les titres de la file (#90) : `queue_view` et
+    /// la sauvegarde les y relisent.
+    pub(super) fn pin_queue_tracks(&self) {
+        self.tidal.cache.set_pinned(self.queue.referenced_ids());
     }
 
     fn queue_view(&self) -> QueueView {
@@ -401,6 +458,7 @@ impl Player {
                 .tidal
                 .cache
                 .get_many(self.queue.upcoming_context(UPCOMING_LIMIT)),
+            radio: self.queue.radio().and_then(|id| self.tidal.cache.get(id)),
         }
     }
 
