@@ -8,7 +8,8 @@
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
-// `?trackinfo=1` (ouvre les infos du titre en cours).
+// `?trackinfo=1` (ouvre les infos du titre en cours), `?autoradio=1` (la suite de la file est
+// une radio automatique, réglage activé).
 
 import type {
   AlbumPage,
@@ -19,6 +20,7 @@ import type {
   HomeSection,
   Lang,
   LanguagePref,
+  LibraryList,
   Lyrics,
   MixPage,
   MixSummary,
@@ -94,7 +96,15 @@ for (const t of [
 
 let context: Track[] = fx.album.tracks;
 let index = Math.min(1, context.length - 1);
-const manual: Track[] = [];
+/** `?autoradio=1` : la suite de la file est la radio du titre en cours (#78). */
+let radioSeed: Track | null = null;
+if (params.has("autoradio") && context[index]) {
+  radioSeed = context[index];
+  context = [radioSeed, ...radioPage.tracks.filter((t) => t.id !== radioSeed?.id)];
+  index = 0;
+}
+/** `?manual=1` : quelques titres dans la file manuelle, pour la réorganiser (#80). */
+const manual: Track[] = params.has("manual") ? fx.playlist.tracks.slice(0, 4) : [];
 /** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
 const volumeParam = params.get("volume");
 /** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18). */
@@ -128,6 +138,8 @@ const state: PlayerState = {
     muted: volumeParam === "muted",
   },
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
+  /** `?mpv=cpu` ou `?mpv=stopped` : bandeau « mpv ne tourne pas » (#92). */
+  mpvIssue: params.get("mpv") === "cpu" ? "cpuUnsupported" : params.get("mpv") === "stopped" ? "stopped" : null,
 };
 
 let ui: UiSettings = {
@@ -163,7 +175,11 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
     .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
     .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
 }
-let playback: PlaybackSettings = { cacheSize: 64, hiresUpgrade: hiresOfferParam ? "ask" : "auto" };
+let playback: PlaybackSettings = {
+  cacheSize: 64,
+  hiresUpgrade: hiresOfferParam ? "ask" : "auto",
+  autoRadio: radioSeed !== null,
+};
 let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
@@ -184,7 +200,7 @@ function mockUpdate() {
 }
 
 function queueView(): QueueView {
-  return { manual: [...manual], upcoming: context.slice(index + 1, index + 51) };
+  return { manual: [...manual], upcoming: context.slice(index + 1, index + 51), radio: radioSeed };
 }
 
 function setCurrent(track: Track | undefined) {
@@ -223,6 +239,14 @@ function setCurrent(track: Track | undefined) {
 }
 
 // Écritures (#4) : likes et playlists de l'utilisateur, gardés en mémoire.
+// `?truncated=1` : chaque catégorie se présente comme coupée au plafond (#91), avec un
+// total annoncé de 12 345 (`?truncated=nototal` : total inconnu).
+function libraryList<T>(items: T[]): LibraryList<T> {
+  const mode = params.get("truncated");
+  if (!mode) return { items, truncated: false, total: items.length };
+  return { items, truncated: true, total: mode === "nototal" ? null : 12345 };
+}
+
 const liked = new Set<number>(fx.library.tracks.map((t) => t.id));
 const own: PlaylistSummary[] = fx.library.playlists.filter((p) => p.mine);
 if (params.has("mine") && !own.some((p) => p.uuid === fx.playlist.playlist.uuid)) {
@@ -309,10 +333,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // La radio factice garde ses titres, mais reprend le point de départ demandé.
   radio: ({ seed, id }) => ({ ...radioPage, seed, id }),
   library_mixes: () => libraryMixes,
-  library_tracks: () => fx.library.tracks,
-  library_albums: () => fx.library.albums,
-  library_artists: () => fx.library.artists,
-  library_playlists: () => fx.library.playlists,
+  library_tracks: () => libraryList(fx.library.tracks),
+  library_albums: () => libraryList(fx.library.albums),
+  library_artists: () => libraryList(fx.library.artists),
+  library_playlists: () => libraryList(fx.library.playlists),
   player_state: () => state,
   queue_state: () => queueView(),
   ui_settings: () => ui,
@@ -357,6 +381,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   play_tracks: ({ trackIds, startIndex, shuffle }) => {
     context = (trackIds as number[]).map((id) => allTracks.get(id)).filter((t): t is Track => !!t);
+    radioSeed = null;
     index = shuffle ? Math.floor(Math.random() * context.length) : Number(startIndex);
     state.shuffle = state.shuffle || Boolean(shuffle);
     setCurrent(context[index]);
@@ -381,6 +406,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     manual.splice(Number(i), 1);
     emit("queue-state", queueView());
   },
+  move_in_queue: ({ from, to }) => {
+    const [f, t] = [Number(from), Number(to)];
+    if (f === t || f >= manual.length || t >= manual.length) return;
+    manual.splice(t, 0, ...manual.splice(f, 1));
+    emit("queue-state", queueView());
+  },
   answer_hires_offer: ({ accept }) => {
     if (!state.hiresOffer) return;
     if (accept) state.stream = state.hiresOffer;
@@ -389,6 +420,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   clear_queue: () => {
     manual.length = 0;
+    radioSeed = null;
     context = context.slice(index, index + 1);
     index = 0;
     state.hasNext = false;

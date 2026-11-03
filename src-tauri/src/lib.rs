@@ -97,6 +97,7 @@ pub fn run() {
             commands::player::add_to_queue,
             commands::player::enqueue_tracks,
             commands::player::remove_from_queue,
+            commands::player::move_in_queue,
             commands::player::clear_queue,
             commands::player::answer_hires_offer,
             commands::player::next,

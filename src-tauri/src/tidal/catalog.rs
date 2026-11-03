@@ -5,15 +5,15 @@
 //! `artists/{id}/albums[?filter=EPSANDSINGLES]`, `playlists/{uuid}`,
 //! `playlists/{uuid}/tracks`, `users/{id}/favorites/{tracks,albums,artists}`,
 //! `users/{id}/playlistsAndFavoritePlaylists`, v2 `home/feed/static`.
-//! Mixes et radios : `mix.rs`.
+//! Mixes et radios : `mix.rs` ; pagination (`get_all`) : `paging.rs`.
 
 use serde::de::DeserializeOwned;
 
 use super::api::{API_V2, TidalClient};
 use super::mix::RawMix;
 use super::models::{
-    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, MediaItem, PlaylistPage,
-    PlaylistSummary, SearchResults, Track, TrackEntry,
+    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, LibraryList, MediaItem,
+    PlaylistPage, PlaylistSummary, SearchResults, Track, TrackEntry,
 };
 use super::raw::{
     self, RawAlbumFull, RawArtistFull, RawFavorite, RawHome, RawPage, RawPlaylist,
@@ -27,8 +27,9 @@ const PAGE_SIZE: u32 = 100;
 const PLAYLISTS_PAGE_SIZE: u32 = 50;
 /// Plafond des titres chargés pour un album ou une playlist.
 const MAX_TRACKS: usize = 10_000;
-/// Plafond de chaque catégorie de la bibliothèque.
-const LIBRARY_MAX: usize = 2_000;
+/// Plafond de chaque catégorie de la bibliothèque (#91 : 2 000 avant la pagination
+/// parallèle). Lire toute la liste doit rester sous `MAX_CONTEXT_LEN` (`commands/player.rs`).
+pub const LIBRARY_MAX: usize = 10_000;
 const TOP_TRACKS: u32 = 10;
 const ARTIST_ALBUMS: u32 = 50;
 
@@ -116,41 +117,49 @@ impl TidalClient {
     }
 
     /// Titres favoris, du plus récent au plus ancien, avec la date du like.
-    pub async fn favorite_tracks(&self) -> Result<Vec<TrackEntry>> {
-        let raw: Vec<RawFavorite<RawTrack>> = self.favorites("tracks").await?;
-        let entries = self.remember_entries(raw::favorite_entries(raw));
+    pub async fn favorite_tracks(&self) -> Result<LibraryList<TrackEntry>> {
+        let raw: LibraryList<RawFavorite<RawTrack>> = self.favorites("tracks").await?;
+        let list = map_list(raw, |items| {
+            self.remember_entries(raw::favorite_entries(items))
+        });
         // Liste complète : elle fait foi pour les cœurs (likes faits sur un autre appareil).
-        if entries.len() < LIBRARY_MAX {
-            self.likes.replace(entries.iter().map(|e| e.track.id));
+        if !list.truncated {
+            self.likes.replace(list.items.iter().map(|e| e.track.id));
         }
-        Ok(entries)
+        Ok(list)
     }
 
-    pub async fn favorite_albums(&self) -> Result<Vec<AlbumSummary>> {
-        let raw: Vec<RawFavorite<RawAlbumFull>> = self.favorites("albums").await?;
-        Ok(raw.into_iter().map(|f| f.item.into()).collect())
+    pub async fn favorite_albums(&self) -> Result<LibraryList<AlbumSummary>> {
+        let raw: LibraryList<RawFavorite<RawAlbumFull>> = self.favorites("albums").await?;
+        Ok(map_list(raw, |items| {
+            items.into_iter().map(|f| f.item.into()).collect()
+        }))
     }
 
-    pub async fn favorite_artists(&self) -> Result<Vec<ArtistSummary>> {
-        let raw: Vec<RawFavorite<RawArtistFull>> = self.favorites("artists").await?;
-        Ok(raw.into_iter().map(|f| f.item.into()).collect())
+    pub async fn favorite_artists(&self) -> Result<LibraryList<ArtistSummary>> {
+        let raw: LibraryList<RawFavorite<RawArtistFull>> = self.favorites("artists").await?;
+        Ok(map_list(raw, |items| {
+            items.into_iter().map(|f| f.item.into()).collect()
+        }))
     }
 
     /// Playlists créées par l'utilisateur et playlists suivies.
-    pub async fn library_playlists(&self) -> Result<Vec<PlaylistSummary>> {
+    pub async fn library_playlists(&self) -> Result<LibraryList<PlaylistSummary>> {
         let user = self.user_id().await?;
-        let raw: Vec<RawPlaylistEntry> = self
-            .get_all(
+        let raw: LibraryList<RawPlaylistEntry> = self
+            .get_list(
                 &format!("users/{user}/playlistsAndFavoritePlaylists"),
                 &[],
                 PLAYLISTS_PAGE_SIZE,
                 LIBRARY_MAX,
             )
             .await?;
-        Ok(raw
-            .into_iter()
-            .map(|e| e.playlist.into_summary(Some(user)))
-            .collect())
+        Ok(map_list(raw, |items| {
+            items
+                .into_iter()
+                .map(|e| e.playlist.into_summary(Some(user)))
+                .collect()
+        }))
     }
 
     /// Lignes de l'accueil personnalisé. Seuls albums, artistes, playlists et mixes sont
@@ -187,9 +196,9 @@ impl TidalClient {
             .collect())
     }
 
-    async fn favorites<T: DeserializeOwned>(&self, kind: &str) -> Result<Vec<T>> {
+    async fn favorites<T: DeserializeOwned>(&self, kind: &str) -> Result<LibraryList<T>> {
         let user = self.user_id().await?;
-        self.get_all(
+        self.get_list(
             &format!("users/{user}/favorites/{kind}"),
             &[
                 ("order", "DATE".to_owned()),
@@ -199,37 +208,6 @@ impl TidalClient {
             LIBRARY_MAX,
         )
         .await
-    }
-
-    /// Parcourt une liste paginée. On avance selon `totalNumberOfItems` : une page peut
-    /// contenir moins d'éléments que demandé (titres indisponibles filtrés par l'API).
-    pub(super) async fn get_all<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        params: &[(&str, String)],
-        page_size: u32,
-        max: usize,
-    ) -> Result<Vec<T>> {
-        let mut out = Vec::new();
-        let mut offset: u32 = 0;
-        loop {
-            let mut query = params.to_vec();
-            query.push(("limit", page_size.to_string()));
-            query.push(("offset", offset.to_string()));
-            let page: RawPage<T> = self.get(path, &query).await?;
-            let received = page.items.len();
-            out.extend(page.items);
-            offset += page_size;
-            let done = match page.total_number_of_items {
-                Some(total) => offset >= total,
-                None => received < page_size as usize,
-            };
-            if done || out.len() >= max {
-                break;
-            }
-        }
-        out.truncate(max);
-        Ok(out)
     }
 
     pub(super) async fn user_id(&self) -> Result<u64> {
@@ -249,6 +227,15 @@ impl TidalClient {
     fn remember_entries(&self, entries: Vec<TrackEntry>) -> Vec<TrackEntry> {
         self.cache.insert_all(entries.iter().map(|e| &e.track));
         entries
+    }
+}
+
+/// Convertit les éléments d'une liste en gardant ce qu'elle dit de sa troncature.
+fn map_list<A, B>(list: LibraryList<A>, convert: impl FnOnce(Vec<A>) -> Vec<B>) -> LibraryList<B> {
+    LibraryList {
+        items: convert(list.items),
+        truncated: list.truncated,
+        total: list.total,
     }
 }
 

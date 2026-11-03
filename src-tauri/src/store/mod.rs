@@ -1,5 +1,12 @@
-//! Persistance SQLite : file d'attente, position de lecture et métadonnées des titres en file.
+//! Persistance SQLite : file d'attente, position de lecture, réglages et métadonnées des
+//! titres en file.
+//!
+//! La table `tracks` ne contient que les titres référencés par la file sauvegardée : chaque
+//! sauvegarde de la file n'écrit que les titres absents et supprime ceux qui ne sont plus
+//! référencés, dans la même transaction (#90). L'ensemble des ids présents est tenu en
+//! mémoire sous le même verrou que la connexion, et mis à jour seulement après le commit.
 
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -8,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::player::queue::Queue;
 use crate::player::volume::Volume;
-use crate::tidal::models::Track;
+use crate::tidal::models::{Track, TrackId};
 
 const SCHEMA: &str = "
     PRAGMA journal_mode = WAL;
@@ -49,8 +56,18 @@ pub struct SavedPlayer {
     pub tracks: Vec<Track>,
 }
 
+struct Db {
+    conn: Connection,
+    /// Ids présents dans la table `tracks`.
+    saved: HashSet<u64>,
+}
+
 pub struct Store {
-    conn: Mutex<Connection>,
+    db: Mutex<Db>,
+    /// Valeurs JSON de `kv` déjà lues (`None` : absente de la base). Verrou distinct de la
+    /// connexion : relire un réglage n'attend jamais une sauvegarde de la file. N'est
+    /// modifié que sous le verrou de `db`, pour rester dans l'ordre des écritures.
+    settings: Mutex<HashMap<String, Option<String>>>,
 }
 
 impl Store {
@@ -65,48 +82,114 @@ impl Store {
 
     fn init(conn: Connection) -> Result<Self> {
         conn.execute_batch(SCHEMA)?;
+        let saved = conn
+            .prepare("SELECT id FROM tracks")?
+            .query_map([], |r| r.get::<_, i64>(0))?
+            .map(|id| id.map(|id| id as u64))
+            .collect::<rusqlite::Result<_>>()?;
         Ok(Self {
-            conn: Mutex::new(conn),
+            db: Mutex::new(Db { conn, saved }),
+            settings: Mutex::default(),
         })
     }
 
-    /// Sauvegarde la position ; la file et les titres seulement si `queue` est fourni.
-    pub fn save_player(&self, queue: Option<(&Queue, &[Track])>, position: f64) -> Result<()> {
-        let mut conn = self.conn.lock().map_err(|_| StoreError::Poisoned)?;
+    /// Sauvegarde la position, et la file si elle est fournie. `lookup` donne les
+    /// métadonnées des titres à ajouter à la table : il n'est appelé que pour les titres
+    /// référencés qui n'y sont pas encore (un titre inconnu sera retenté à la sauvegarde
+    /// suivante). Les titres qui ne sont plus référencés sont supprimés.
+    pub fn save_player(
+        &self,
+        queue: Option<&Queue>,
+        position: f64,
+        lookup: impl FnOnce(&[TrackId]) -> Vec<Track>,
+    ) -> Result<()> {
+        let mut db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
+        let Db { conn, saved } = &mut *db;
         let tx = conn.transaction()?;
         let upsert = "INSERT INTO kv (key, value) VALUES (?1, ?2)
                       ON CONFLICT(key) DO UPDATE SET value = excluded.value";
         tx.execute(upsert, params![KEY_POSITION, position.to_string()])?;
-        if let Some((queue, tracks)) = queue {
+        let mut added = Vec::new();
+        let mut stale = Vec::new();
+        if let Some(queue) = queue {
             tx.execute(upsert, params![KEY_QUEUE, serde_json::to_string(queue)?])?;
-            let mut stmt = tx.prepare(
+            let referenced = queue.referenced_ids();
+            let missing: Vec<TrackId> = referenced
+                .iter()
+                .copied()
+                .filter(|id| !saved.contains(&id.0))
+                .collect();
+            let tracks = if missing.is_empty() {
+                Vec::new()
+            } else {
+                lookup(&missing)
+            };
+            let mut insert = tx.prepare(
                 "INSERT INTO tracks (id, json) VALUES (?1, ?2)
                  ON CONFLICT(id) DO UPDATE SET json = excluded.json",
             )?;
-            for t in tracks {
-                stmt.execute(params![t.id.0 as i64, serde_json::to_string(t)?])?;
+            for t in &tracks {
+                insert.execute(params![t.id.0 as i64, serde_json::to_string(t)?])?;
+                added.push(t.id.0);
+            }
+            let referenced: HashSet<u64> = referenced.iter().map(|id| id.0).collect();
+            stale.extend(saved.iter().copied().filter(|id| !referenced.contains(id)));
+            let mut delete = tx.prepare("DELETE FROM tracks WHERE id = ?1")?;
+            for id in &stale {
+                delete.execute([*id as i64])?;
             }
         }
         tx.commit()?;
+        for id in stale {
+            saved.remove(&id);
+        }
+        saved.extend(added);
+        if let Ok(mut settings) = self.settings.lock() {
+            settings.remove(KEY_POSITION);
+            settings.remove(KEY_QUEUE);
+        }
         Ok(())
     }
 
-    /// Valeur JSON d'un réglage (`None` s'il n'a jamais été enregistré).
+    /// Valeur JSON d'un réglage (`None` s'il n'a jamais été enregistré). Lue une fois en
+    /// base, puis en mémoire.
     pub fn get_setting<T: serde::de::DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Poisoned)?;
-        let json: Option<String> = conn
-            .query_row("SELECT value FROM kv WHERE key = ?1", [key], |r| r.get(0))
-            .optional()?;
+        let cached = self
+            .settings
+            .lock()
+            .map_err(|_| StoreError::Poisoned)?
+            .get(key)
+            .cloned();
+        let json = match cached {
+            Some(json) => json,
+            None => {
+                let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
+                let json: Option<String> = db
+                    .conn
+                    .query_row("SELECT value FROM kv WHERE key = ?1", [key], |r| r.get(0))
+                    .optional()?;
+                self.settings
+                    .lock()
+                    .map_err(|_| StoreError::Poisoned)?
+                    .insert(key.to_owned(), json.clone());
+                json
+            }
+        };
         Ok(json.map(|j| serde_json::from_str(&j)).transpose()?)
     }
 
     pub fn set_setting<T: Serialize>(&self, key: &str, value: &T) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Poisoned)?;
-        conn.execute(
+        let json = serde_json::to_string(value)?;
+        let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
+        db.conn.execute(
             "INSERT INTO kv (key, value) VALUES (?1, ?2)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-            params![key, serde_json::to_string(value)?],
+            params![key, json],
         )?;
+        self.settings
+            .lock()
+            .map_err(|_| StoreError::Poisoned)?
+            .insert(key.to_owned(), Some(json));
         Ok(())
     }
 
@@ -122,7 +205,8 @@ impl Store {
     }
 
     pub fn load_player(&self) -> Result<Option<SavedPlayer>> {
-        let conn = self.conn.lock().map_err(|_| StoreError::Poisoned)?;
+        let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
+        let conn = &db.conn;
         let get = |key: &str| -> Result<Option<String>> {
             Ok(conn
                 .query_row("SELECT value FROM kv WHERE key = ?1", [key], |r| r.get(0))
@@ -153,83 +237,4 @@ impl Store {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::tidal::models::{AlbumRef, TrackId};
-    use rand::SeedableRng;
-
-    fn track(id: u64) -> Track {
-        Track {
-            id: TrackId(id),
-            title: format!("t{id}"),
-            version: None,
-            duration: 100,
-            artists: Vec::new(),
-            album: AlbumRef {
-                id: 1,
-                title: "a".into(),
-                cover_url: None,
-                color: None,
-            },
-            explicit: false,
-            hires: true,
-            isrc: None,
-        }
-    }
-
-    #[test]
-    fn settings_roundtrip() {
-        let store = Store::in_memory().unwrap();
-        assert_eq!(store.get_setting::<String>("ui").unwrap(), None);
-        store.set_setting("ui", &"studio").unwrap();
-        store.set_setting("ui", &"atelier").unwrap();
-        assert_eq!(
-            store.get_setting::<String>("ui").unwrap().as_deref(),
-            Some("atelier")
-        );
-    }
-
-    #[test]
-    fn empty_store_has_nothing() {
-        let store = Store::in_memory().unwrap();
-        assert_eq!(store.load_player().unwrap(), None);
-        assert_eq!(store.load_volume().unwrap(), None);
-    }
-
-    #[test]
-    fn volume_roundtrip_and_clamp() {
-        let store = Store::in_memory().unwrap();
-        let v = Volume {
-            level: 35,
-            muted: true,
-        };
-        store.save_volume(v).unwrap();
-        assert_eq!(store.load_volume().unwrap(), Some(v));
-
-        // Valeur hors limites écrite à la main dans la base : ramenée à 100.
-        store
-            .set_setting(
-                KEY_VOLUME,
-                &serde_json::json!({ "level": 250, "muted": false }),
-            )
-            .unwrap();
-        assert_eq!(store.load_volume().unwrap(), Some(Volume::default()));
-    }
-
-    #[test]
-    fn roundtrip_queue_position_and_tracks() {
-        let store = Store::in_memory().unwrap();
-        let mut q = Queue::default();
-        let mut rng = rand::rngs::StdRng::seed_from_u64(1);
-        q.set_context(vec![TrackId(1), TrackId(2)], 0, &mut rng);
-        let tracks = vec![track(1), track(2)];
-
-        store.save_player(Some((&q, &tracks)), 12.5).unwrap();
-        store.save_player(None, 42.0).unwrap();
-
-        let saved = store.load_player().unwrap().unwrap();
-        assert_eq!(saved.queue, q);
-        assert_eq!(saved.position, 42.0);
-        assert_eq!(saved.tracks, tracks);
-    }
-}
+mod tests;

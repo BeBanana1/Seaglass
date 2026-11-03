@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use super::queue::Repeat;
 use super::volume::Volume;
-use crate::mpv::AudioParams;
+use crate::mpv::{AudioParams, MpvIssue};
 use crate::tidal::models::{StreamFormat, Track};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -34,6 +34,9 @@ pub struct PlayerState {
     /// Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son
     /// format, l'album dans `hires_edition`.
     pub hires_offer: Option<StreamFormat>,
+    /// mpv ne tourne pas (lancement raté ou arrêt), avec sa cause probable (#92). Dans
+    /// l'état plutôt qu'en toast : l'échec au lancement précède l'écoute de la webview.
+    pub mpv_issue: Option<MpvIssue>,
 }
 
 impl PlayerState {
@@ -72,6 +75,8 @@ pub struct QueueView {
     pub manual: Vec<Track>,
     /// Prochains titres du contexte.
     pub upcoming: Vec<Track>,
+    /// Titre de départ quand le contexte est une radio qui prolonge la file (#78).
+    pub radio: Option<Track>,
 }
 
 #[cfg(test)]
