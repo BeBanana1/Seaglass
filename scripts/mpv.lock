@@ -1,0 +1,7 @@
+# mpv embarqué par l'installeur (#87). `release.ps1` refuse tout autre binaire.
+# Mettre à jour mpv = remplacer ces deux valeurs dans un commit, après avoir vérifié le nouveau mpv :
+#   (Get-FileHash <mpv.exe> -Algorithm SHA256).Hash
+#   & <mpv.exe> --version | Select-Object -First 1     (deux premiers mots)
+# Build x86-64-v3 (AVX2 exigé, #92) de zhongfly, relevée le 2026-10-30.
+version=mpv v0.41.0-1372-g8e5a96fc4
+sha256=5A04C4317757464D9B3CD9A1C9B62A30D2CCE4407544AFDFAE4B2B7B145F91D9
