@@ -65,15 +65,23 @@
 <body>
 <main>
   <h1>Seaglass</h1>
-  <p class="tagline">Client de streaming musical lossless pour Windows.</p>
+  <p class="tagline">Client de streaming musical lossless pour Windows et Android.</p>
 
   <section class="card">
     <a class="download" href="{{URL}}">Télécharger pour Windows</a>
     <p class="meta">Version {{VERSION}} · {{DATE}} · {{SIZE}} Mo</p>
   </section>
 
+  <!-- Rempli par le script en bas de page depuis android.json (release-android.ps1),
+       publié indépendamment de cette page. -->
+  <section class="card" id="android" hidden>
+    <a class="download" id="android-link" href="#">Télécharger pour Android</a>
+    <p class="meta" id="android-meta"></p>
+    <p class="meta">Android 7 ou plus récent, processeur 64 bits (ARM). Au premier téléchargement, autoriser le navigateur à installer des applications ; ensuite, l'app propose elle-même ses mises à jour.</p>
+  </section>
+
   <section class="card">
-    <h2>Installation</h2>
+    <h2>Installation sous Windows</h2>
     <ol>
       <li>Lancer le fichier téléchargé. L'installation se fait pour l'utilisateur courant, sans droits administrateur.</li>
       <li>Si Windows affiche « Windows a protégé votre ordinateur », cliquer sur « Informations complémentaires » puis « Exécuter quand même » : l'installeur n'a pas de certificat de signature Windows.</li>
@@ -99,5 +107,17 @@
 
   <footer>Client non officiel, non affilié à TIDAL. Licence GPL-3.0.</footer>
 </main>
+<script>
+  fetch("android.json", { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((m) => {
+      if (!m || typeof m.url !== "string" || !m.url.startsWith("https://")) return;
+      document.getElementById("android-link").href = m.url;
+      const size = (m.size / 1048576).toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+      document.getElementById("android-meta").textContent = `Version ${m.version} · ${size} Mo`;
+      document.getElementById("android").hidden = false;
+    })
+    .catch(() => {});
+</script>
 </body>
 </html>

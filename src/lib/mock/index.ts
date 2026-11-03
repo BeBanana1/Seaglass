@@ -251,6 +251,8 @@ function mockUpdate() {
         version: "0.5.0",
         currentVersion: "0.4.4",
         notes: ["- Installeur Windows", "- Mises à jour automatiques"].join("\n"),
+        // Android : proposée avant d'être téléchargée, avec la taille de l'APK.
+        ...(params.get("platform") === "android" ? { size: 41_200_000 } : {}),
       }
     : null;
 }

@@ -1,5 +1,7 @@
 #[cfg(target_os = "android")]
 mod android;
+#[cfg(any(target_os = "android", test))]
+mod apk_update;
 mod commands;
 mod engine;
 mod i18n;
@@ -95,6 +97,8 @@ pub fn run() {
                 updater::spawn(app.handle().clone(), Arc::clone(&mpv_process));
                 app.manage(mpv_process);
             }
+            #[cfg(target_os = "android")]
+            apk_update::spawn(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -163,6 +167,12 @@ pub fn run() {
             updater::install_update,
             #[cfg(desktop)]
             updater::check_for_updates,
+            #[cfg(target_os = "android")]
+            apk_update::update_status,
+            #[cfg(target_os = "android")]
+            apk_update::install_update,
+            #[cfg(target_os = "android")]
+            apk_update::check_for_updates,
         ])
         .build(tauri::generate_context!())
         .expect("échec du lancement de l'application")
@@ -213,12 +223,14 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
         })
 }
 
-/// Android : ni zone de notification, ni démarrage auto, ni mises à jour par le plugin ;
-/// le pont natif Kotlin à la place.
+/// Android : ni zone de notification, ni démarrage auto, ni updater de Tauri (mises à
+/// jour par `apk_update`) ; le pont natif Kotlin à la place.
 #[cfg(mobile)]
 fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     #[cfg(target_os = "android")]
-    let builder = builder.plugin(tauri_plugin_seaglass_mobile::init());
+    let builder = builder
+        .plugin(tauri_plugin_seaglass_mobile::init())
+        .manage(apk_update::UpdateState::default());
     builder
 }
 
