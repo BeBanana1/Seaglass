@@ -37,12 +37,17 @@
       title={page.artist.name}
       round
       trackIds={page.topTracks.map((track) => track.id)}
+      source={{ kind: "artist", id: page.artist.id, name: page.artist.name }}
       favorite={{ kind: "artist", id: page.artist.id }}
       onRadio={() => go({ name: "radio", seed: "artist", id })}
     />
     {#if page.topTracks.length > 0}
       <h2>{t.views.artist.popular}</h2>
-      <TrackList tracks={page.topTracks} numbering="index" />
+      <TrackList
+        tracks={page.topTracks}
+        source={{ kind: "artist", id: page.artist.id, name: page.artist.name }}
+        numbering="index"
+      />
     {/if}
     <div class="grids">
       <CardGrid title={t.views.artist.albums} items={asItems(page.albums)} />

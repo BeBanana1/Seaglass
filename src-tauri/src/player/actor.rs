@@ -17,13 +17,15 @@ use super::queue::{Queue, Repeat};
 use super::radio::AutoRadio;
 use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::sleep::SleepRequest;
+use super::source::PlaySource;
 use super::state::{PlayerState, QueueView};
 use crate::engine::{self, ActiveEngine, Event, Launch};
+use crate::i18n::trf;
 use crate::integrations::Observers;
 use crate::mpv::{MpvIssue, serve::ManifestServer};
 use crate::store::Store;
 use crate::tidal::TidalClient;
-use crate::tidal::models::{Stream, StreamFormat, Track, TrackId};
+use crate::tidal::models::{RadioSeed, Stream, StreamFormat, Track, TrackId};
 
 /// Intervalle minimal entre deux événements qui ne changent que `time_pos` (~4 Hz).
 const TIME_EMIT_INTERVAL: Duration = Duration::from_millis(250);
@@ -36,6 +38,8 @@ pub enum Cmd {
         start: usize,
         /// Active la lecture aléatoire et part d'un titre au hasard (`start` est ignoré).
         shuffle: bool,
+        /// Album, playlist… d'où vient le contexte (« Joué depuis », #124).
+        source: Option<PlaySource>,
     },
     PlayNext(TrackId),
     AddToQueue(TrackId),
@@ -261,6 +265,7 @@ impl Player {
                 ids,
                 start,
                 shuffle,
+                source,
             } => {
                 let start = if shuffle && !ids.is_empty() {
                     self.queue.set_shuffle(true, &mut self.rng);
@@ -268,7 +273,7 @@ impl Player {
                 } else {
                     start
                 };
-                let started = self.queue.set_context(ids, start, &mut self.rng);
+                let started = self.queue.set_context(ids, start, source, &mut self.rng);
                 if let Some(id) = started {
                     self.on_queue_changed().await;
                     self.load_current(id, 0.0);
@@ -442,6 +447,20 @@ impl Player {
                 .cache
                 .get_many(self.queue.upcoming_context(UPCOMING_LIMIT)),
             radio: self.queue.radio().and_then(|id| self.tidal.cache.get(id)),
+            source: self.play_source(),
+        }
+    }
+
+    /// « Joué depuis » (#124) : la radio automatique si le titre courant en vient, sinon la
+    /// source donnée avec le contexte.
+    fn play_source(&self) -> Option<PlaySource> {
+        match self.queue.radio_playing() {
+            Some(seed) => self.tidal.cache.get(seed).map(|track| PlaySource::Radio {
+                seed: RadioSeed::Track,
+                id: seed.0,
+                title: trf!("Radio de {}", "{} radio", track.title),
+            }),
+            None => self.queue.source().cloned(),
         }
     }
 

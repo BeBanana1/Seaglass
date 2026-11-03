@@ -17,7 +17,10 @@ fn drain(q: &mut Queue) -> Vec<u64> {
 #[test]
 fn plays_context_in_order_then_stops() {
     let mut q = Queue::default();
-    assert_eq!(q.set_context(ids(0..4), 1, &mut rng()), Some(TrackId(1)));
+    assert_eq!(
+        q.set_context(ids(0..4), 1, None, &mut rng()),
+        Some(TrackId(1))
+    );
     assert_eq!(drain(&mut q), vec![2, 3]);
     assert_eq!(q.current(), Some(TrackId(3)));
     assert_eq!(q.peek_next(), None);
@@ -26,15 +29,15 @@ fn plays_context_in_order_then_stops() {
 #[test]
 fn invalid_start_is_rejected() {
     let mut q = Queue::default();
-    assert_eq!(q.set_context(ids(0..2), 5, &mut rng()), None);
-    assert_eq!(q.set_context(Vec::new(), 0, &mut rng()), None);
+    assert_eq!(q.set_context(ids(0..2), 5, None, &mut rng()), None);
+    assert_eq!(q.set_context(Vec::new(), 0, None, &mut rng()), None);
     assert_eq!(q.current(), None);
 }
 
 #[test]
 fn repeat_all_wraps_around() {
     let mut q = Queue::default();
-    q.set_context(ids(0..3), 1, &mut rng());
+    q.set_context(ids(0..3), 1, None, &mut rng());
     q.set_repeat(Repeat::All);
     let played: Vec<u64> = (0..5).filter_map(|_| q.advance()).map(|t| t.0).collect();
     assert_eq!(played, vec![2, 0, 1, 2, 0]);
@@ -47,7 +50,7 @@ fn repeat_all_wraps_around() {
 #[test]
 fn repeat_one_is_left_to_mpv() {
     let mut q = Queue::default();
-    q.set_context(ids(0..2), 0, &mut rng());
+    q.set_context(ids(0..2), 0, None, &mut rng());
     q.set_repeat(Repeat::One);
     assert_eq!(q.peek_next(), Some(TrackId(1)));
     assert_eq!(q.advance(), Some(TrackId(1)));
@@ -56,7 +59,7 @@ fn repeat_one_is_left_to_mpv() {
 #[test]
 fn manual_queue_has_priority_and_play_next_goes_first() {
     let mut q = Queue::default();
-    q.set_context(ids(0..3), 0, &mut rng());
+    q.set_context(ids(0..3), 0, None, &mut rng());
     q.add_to_queue(TrackId(100));
     q.add_to_queue(TrackId(101));
     q.play_next(TrackId(99));
@@ -67,7 +70,7 @@ fn manual_queue_has_priority_and_play_next_goes_first() {
 #[test]
 fn enqueue_next_keeps_album_order_ahead_of_manual_queue() {
     let mut q = Queue::default();
-    q.set_context(ids(0..3), 0, &mut rng());
+    q.set_context(ids(0..3), 0, None, &mut rng());
     q.add_to_queue(TrackId(100));
     q.enqueue(&ids(10..13), true);
     assert_eq!(drain(&mut q), vec![10, 11, 12, 100, 1, 2]);
@@ -76,7 +79,7 @@ fn enqueue_next_keeps_album_order_ahead_of_manual_queue() {
 #[test]
 fn enqueue_appends_album_in_order_after_manual_queue() {
     let mut q = Queue::default();
-    q.set_context(ids(0..3), 0, &mut rng());
+    q.set_context(ids(0..3), 0, None, &mut rng());
     q.add_to_queue(TrackId(100));
     q.enqueue(&ids(10..13), false);
     assert_eq!(drain(&mut q), vec![100, 10, 11, 12, 1, 2]);
@@ -86,7 +89,7 @@ fn enqueue_appends_album_in_order_after_manual_queue() {
 fn enqueue_changes_the_preloaded_next_track() {
     // Le titre suivant préchargé dans mpv n'est plus le bon : l'acteur doit le retirer.
     let mut q = Queue::default();
-    q.set_context(ids(0..3), 0, &mut rng());
+    q.set_context(ids(0..3), 0, None, &mut rng());
     assert_eq!(q.peek_next(), Some(TrackId(1)));
     q.enqueue(&ids(10..12), false);
     assert_eq!(q.peek_next(), Some(TrackId(10)));
@@ -98,7 +101,7 @@ fn enqueue_changes_the_preloaded_next_track() {
 #[test]
 fn enqueue_nothing_is_a_no_op() {
     let mut q = Queue::default();
-    q.set_context(ids(0..2), 0, &mut rng());
+    q.set_context(ids(0..2), 0, None, &mut rng());
     let before = q.clone();
     q.enqueue(&[], true);
     q.enqueue(&[], false);
@@ -108,7 +111,7 @@ fn enqueue_nothing_is_a_no_op() {
 #[test]
 fn remove_manual_entry() {
     let mut q = Queue::default();
-    q.set_context(ids(0..2), 0, &mut rng());
+    q.set_context(ids(0..2), 0, None, &mut rng());
     q.add_to_queue(TrackId(100));
     q.add_to_queue(TrackId(101));
     assert!(q.remove_manual(0));
@@ -123,7 +126,7 @@ fn manual_ids(q: &Queue) -> Vec<u64> {
 #[test]
 fn move_manual_down_and_up() {
     let mut q = Queue::default();
-    q.set_context(ids(0..2), 0, &mut rng());
+    q.set_context(ids(0..2), 0, None, &mut rng());
     q.enqueue(&ids(10..14), false);
     // Vers le bas : l'entrée finit à l'index `to`.
     assert!(q.move_manual(0, 2));
@@ -143,7 +146,7 @@ fn move_manual_down_and_up() {
 #[test]
 fn move_manual_rejects_no_op_and_out_of_range() {
     let mut q = Queue::default();
-    q.set_context(ids(0..2), 0, &mut rng());
+    q.set_context(ids(0..2), 0, None, &mut rng());
     q.enqueue(&ids(10..13), false);
     let before = q.clone();
     assert!(!q.move_manual(1, 1));
@@ -158,7 +161,7 @@ fn move_manual_rejects_no_op_and_out_of_range() {
 fn move_manual_changes_next_only_through_the_head() {
     // L'acteur ne retire le préchargé que si `peek_next` change.
     let mut q = Queue::default();
-    q.set_context(ids(0..2), 0, &mut rng());
+    q.set_context(ids(0..2), 0, None, &mut rng());
     q.enqueue(&ids(10..14), false);
     q.move_manual(1, 3);
     assert_eq!(q.peek_next(), Some(TrackId(10)));
@@ -171,7 +174,7 @@ fn move_manual_changes_next_only_through_the_head() {
 #[test]
 fn shuffle_keeps_current_first_and_is_a_permutation() {
     let mut q = Queue::default();
-    q.set_context(ids(0..20), 7, &mut rng());
+    q.set_context(ids(0..20), 7, None, &mut rng());
     q.set_shuffle(true, &mut rng());
     assert_eq!(q.current(), Some(TrackId(7)));
     let mut rest = drain(&mut q);
@@ -184,7 +187,7 @@ fn shuffle_keeps_current_first_and_is_a_permutation() {
 #[test]
 fn unshuffle_restores_original_order_at_current_track() {
     let mut q = Queue::default();
-    q.set_context(ids(0..10), 0, &mut rng());
+    q.set_context(ids(0..10), 0, None, &mut rng());
     q.set_shuffle(true, &mut rng());
     q.advance();
     q.advance();
@@ -198,14 +201,17 @@ fn unshuffle_restores_original_order_at_current_track() {
 fn shuffled_context_starts_on_requested_track() {
     let mut q = Queue::default();
     q.set_shuffle(true, &mut rng());
-    assert_eq!(q.set_context(ids(0..10), 4, &mut rng()), Some(TrackId(4)));
+    assert_eq!(
+        q.set_context(ids(0..10), 4, None, &mut rng()),
+        Some(TrackId(4))
+    );
     assert_eq!(drain(&mut q).len(), 9);
 }
 
 #[test]
 fn previous_then_next_returns_to_left_track() {
     let mut q = Queue::default();
-    q.set_context(ids(0..5), 0, &mut rng());
+    q.set_context(ids(0..5), 0, None, &mut rng());
     q.advance();
     q.advance(); // courant : 2
     assert_eq!(q.previous(), Some(TrackId(1)));
@@ -218,7 +224,7 @@ fn previous_then_next_returns_to_left_track() {
 #[test]
 fn previous_is_independent_of_shuffle() {
     let mut q = Queue::default();
-    q.set_context(ids(0..10), 0, &mut rng());
+    q.set_context(ids(0..10), 0, None, &mut rng());
     q.advance();
     q.advance(); // historique : 0, 1 ; courant : 2
     q.set_shuffle(true, &mut rng());
@@ -229,7 +235,7 @@ fn previous_is_independent_of_shuffle() {
 #[test]
 fn previous_from_manual_track_requeues_it() {
     let mut q = Queue::default();
-    q.set_context(ids(0..3), 0, &mut rng());
+    q.set_context(ids(0..3), 0, None, &mut rng());
     q.play_next(TrackId(50));
     assert_eq!(q.advance(), Some(TrackId(50)));
     assert_eq!(q.previous(), Some(TrackId(0)));
@@ -239,8 +245,8 @@ fn previous_from_manual_track_requeues_it() {
 #[test]
 fn previous_into_replaced_context_keeps_cursor() {
     let mut q = Queue::default();
-    q.set_context(ids(0..3), 2, &mut rng());
-    q.set_context(ids(10..13), 0, &mut rng());
+    q.set_context(ids(0..3), 2, None, &mut rng());
+    q.set_context(ids(10..13), 0, None, &mut rng());
     assert_eq!(q.previous(), Some(TrackId(2)));
     assert_eq!(q.advance(), Some(TrackId(11)));
 }
@@ -248,7 +254,7 @@ fn previous_into_replaced_context_keeps_cursor() {
 #[test]
 fn serde_roundtrip() {
     let mut q = Queue::default();
-    q.set_context(ids(0..5), 1, &mut rng());
+    q.set_context(ids(0..5), 1, None, &mut rng());
     q.add_to_queue(TrackId(9));
     q.set_repeat(Repeat::All);
     let json = serde_json::to_string(&q).unwrap();
@@ -259,7 +265,7 @@ fn serde_roundtrip() {
 #[test]
 fn clear_upcoming_keeps_current_and_history() {
     let mut q = Queue::default();
-    q.set_context(ids(0..5), 0, &mut rng());
+    q.set_context(ids(0..5), 0, None, &mut rng());
     q.advance();
     q.add_to_queue(TrackId(100));
     q.set_repeat(Repeat::All);
@@ -279,13 +285,16 @@ fn clear_upcoming_keeps_current_and_history() {
 #[test]
 fn clear_upcoming_then_new_items_play_normally() {
     let mut q = Queue::default();
-    q.set_context(ids(0..3), 0, &mut rng());
+    q.set_context(ids(0..3), 0, None, &mut rng());
     q.set_shuffle(true, &mut rng());
     assert!(q.clear_upcoming());
     q.set_shuffle(false, &mut rng());
     q.add_to_queue(TrackId(7));
     assert_eq!(drain(&mut q), vec![7]);
-    assert_eq!(q.set_context(ids(10..12), 0, &mut rng()), Some(TrackId(10)));
+    assert_eq!(
+        q.set_context(ids(10..12), 0, None, &mut rng()),
+        Some(TrackId(10))
+    );
     assert_eq!(drain(&mut q), vec![11]);
 }
 
@@ -294,7 +303,7 @@ fn clear_upcoming_then_new_items_play_normally() {
 /// Album de 3 titres joué jusqu'au dernier.
 fn finished_album() -> Queue {
     let mut q = Queue::default();
-    q.set_context(ids(0..3), 0, &mut rng());
+    q.set_context(ids(0..3), 0, None, &mut rng());
     drain(&mut q);
     q
 }
@@ -367,7 +376,7 @@ fn new_context_or_clear_ends_the_radio() {
     assert_eq!(q.radio(), None);
     let mut q = finished_album();
     assert!(q.extend_with_radio(TrackId(2), &ids(20..22)));
-    q.set_context(ids(10..12), 0, &mut rng());
+    q.set_context(ids(10..12), 0, None, &mut rng());
     assert_eq!(q.radio(), None);
     assert_eq!(drain(&mut q), vec![11]);
 }
@@ -379,4 +388,51 @@ fn saved_queue_without_radio_field_is_read() {
     json.as_object_mut().unwrap().remove("radio");
     let back: Queue = serde_json::from_value(json).unwrap();
     assert_eq!(back, q);
+}
+
+#[test]
+fn source_follows_the_current_track() {
+    let album = PlaySource::Album {
+        id: 1,
+        title: "Discovery".into(),
+    };
+    let mut q = Queue::default();
+    q.set_context(ids(0..3), 0, Some(album.clone()), &mut rng());
+    assert_eq!(q.source(), Some(&album));
+
+    // Un titre de la file manuelle ne vient pas de l'album.
+    q.play_next(TrackId(9));
+    q.advance();
+    assert_eq!(q.source(), None);
+    q.advance();
+    assert_eq!(q.source(), Some(&album));
+
+    // « Vider la file » détache le titre courant du contexte.
+    q.clear_upcoming();
+    assert_eq!(q.source(), None);
+
+    // Un nouveau contexte sans source n'hérite pas de l'ancienne.
+    q.set_context(ids(0..3), 0, Some(album), &mut rng());
+    q.set_context(ids(5..7), 0, None, &mut rng());
+    assert_eq!(q.source(), None);
+}
+
+#[test]
+fn source_is_dropped_by_radio_and_restored_from_disk() {
+    let source = PlaySource::LikedTracks;
+    let mut q = Queue::default();
+    q.set_context(ids(0..1), 0, Some(source.clone()), &mut rng());
+    let saved = serde_json::to_string(&q).unwrap();
+    let restored: Queue = serde_json::from_str(&saved).unwrap();
+    assert_eq!(restored.source(), Some(&source));
+
+    assert!(q.extend_with_radio(TrackId(0), &ids(10..12)));
+    assert_eq!(q.source(), None);
+    // Le titre de départ vient encore de l'ancien contexte ; la suite vient de la radio.
+    assert_eq!(q.radio_playing(), None);
+    q.advance();
+    assert_eq!(q.radio_playing(), Some(TrackId(0)));
+    q.play_next(TrackId(20));
+    q.advance();
+    assert_eq!(q.radio_playing(), None);
 }

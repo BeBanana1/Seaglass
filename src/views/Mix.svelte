@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { commands, type RadioSeed, type Track } from "../lib/ipc";
+  import { commands, type PlaySource, type RadioSeed, type Track } from "../lib/ipc";
   import { formatLongDuration } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
   import PageHeader from "../components/PageHeader.svelte";
@@ -54,6 +54,14 @@
       .catch((e) => (error = String(e)));
   });
 
+  const playSource = $derived<PlaySource | undefined>(
+    !view
+      ? undefined
+      : "mix" in source
+        ? { kind: "mix", id: source.mix, title: view.title }
+        : { kind: "radio", seed: source.seed, id: source.id, title: view.title },
+  );
+
   const duration = $derived(view ? view.tracks.reduce((sum, track) => sum + track.duration, 0) : 0);
 </script>
 
@@ -70,6 +78,7 @@
       description={view.description}
       round={view.round}
       trackIds={view.tracks.map((track) => track.id)}
+      source={playSource}
       queueable
     >
       {#snippet meta()}
@@ -80,7 +89,7 @@
     {#if view.tracks.length === 0}
       <p class="muted">{t.views.mix.empty}</p>
     {:else}
-      <TrackList tracks={view.tracks} numbering="index" />
+      <TrackList tracks={view.tracks} source={playSource} numbering="index" />
     {/if}
   {/if}
 </section>
