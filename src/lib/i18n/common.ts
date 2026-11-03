@@ -13,10 +13,10 @@ export const fr = {
   /** Libellés courts de la navigation du bas (Android). */
   tabs: {
     home: "Accueil",
-    feed: "Actualité",
+    likes: "Titres likés",
     search: "Recherche",
     library: "Bibliothèque",
-    settings: "Réglages",
+    feed: "Actualité",
   },
   back: "Retour",
   backHint: "Retour (Alt+←)",
@@ -46,10 +46,10 @@ export const en: typeof fr = {
   },
   tabs: {
     home: "Home",
-    feed: "Feed",
+    likes: "Likes",
     search: "Search",
     library: "Library",
-    settings: "Settings",
+    feed: "Feed",
   },
   back: "Back",
   backHint: "Back (Alt+←)",

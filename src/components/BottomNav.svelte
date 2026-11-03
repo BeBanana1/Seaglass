@@ -1,5 +1,6 @@
 <script lang="ts">
   // Navigation du bas sur Android (#24) : remplace la barre latérale du bureau.
+  // Les titres likés y ont leur onglet (#143), les réglages sont dans l'en-tête.
   import { current, replace, type Route } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
   import Icon, { type IconName } from "./Icon.svelte";
@@ -8,22 +9,29 @@
 
   const tabs: { key: TabKey; icon: IconName; route: Route }[] = [
     { key: "home", icon: "home", route: { name: "home" } },
-    { key: "feed", icon: "feed", route: { name: "feed" } },
+    { key: "likes", icon: "heart", route: { name: "library", tab: "tracks" } },
     { key: "search", icon: "search", route: { name: "search" } },
     { key: "library", icon: "library", route: { name: "library", tab: "playlists" } },
-    { key: "settings", icon: "settings", route: { name: "settings", section: "appearance" } },
+    { key: "feed", icon: "feed", route: { name: "feed" } },
   ];
 
   // Les pages ouvertes depuis un onglet (album, artiste…) n'en allument aucun.
-  const active = $derived(current().name);
+  // Bibliothèque › Titres est l'onglet Likes, les autres onglets de la bibliothèque l'onglet Bibliothèque.
+  function isActive(route: Route): boolean {
+    const here = current();
+    if (here.name !== route.name) return false;
+    if (here.name === "library" && route.name === "library") return (here.tab === "tracks") === (route.tab === "tracks");
+    return true;
+  }
 </script>
 
 <nav class="bottom-nav">
   {#each tabs as tab (tab.key)}
+    {@const active = isActive(tab.route)}
     <button
       class="tab"
-      class:active={active === tab.route.name}
-      aria-current={active === tab.route.name ? "page" : undefined}
+      class:active
+      aria-current={active ? "page" : undefined}
       onclick={() => replace(tab.route)}
     >
       <Icon name={tab.icon} size={22} />
