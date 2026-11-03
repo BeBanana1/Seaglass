@@ -1,6 +1,6 @@
 <script lang="ts">
   import { commands, type Track } from "../lib/ipc";
-  import { formatTime, fullTitle } from "../lib/format";
+  import { coverSmall, formatTime, fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
   import { closeMenu, menu, menuPosition, openMenu } from "../lib/stores/menu.svelte";
   import { trackMenu } from "../lib/trackMenu";
@@ -79,7 +79,7 @@
   {#if number !== undefined}<span class="number">{number}</span>{/if}
   <div class="cover" class:hidden={!showCover}>
     {#if track.album.coverUrl}
-      <img src={track.album.coverUrl} alt="" loading="lazy" />
+      <img src={coverSmall(track.album)} alt="" loading="lazy" />
     {/if}
     {#if onPlay}
       <button class="cover-play" onclick={onPlay} aria-label={t.views.row.play(track.title)}>
