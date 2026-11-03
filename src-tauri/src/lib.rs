@@ -109,6 +109,7 @@ pub fn run() {
             commands::catalog::album,
             commands::catalog::artist,
             commands::catalog::playlist,
+            commands::catalog::cached_playlist,
             commands::catalog::mix,
             commands::catalog::radio,
             commands::catalog::library_mixes,
