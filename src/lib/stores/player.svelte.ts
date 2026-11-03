@@ -2,6 +2,7 @@
 
 import { untrack } from "svelte";
 import { commands, events, type PlayerState, type Track, type TrackId } from "../ipc";
+import { platform } from "../platform.svelte";
 
 const initial: PlayerState = {
   track: null,
@@ -106,13 +107,22 @@ export function estimatedPosition(now: number): number {
 
 /** Suit la position estimée : `cb` à chaque image tant que la lecture avance, une seule fois
  *  par état reçu sinon (pause, chargement, arrêt : aucune boucle d'animation). À appeler dans
- *  un `$effect`, qui la relance à chaque état ; renvoie le nettoyage de la boucle. */
-export function followPosition(cb: (position: number) => void): (() => void) | undefined {
+ *  un `$effect`, qui la relance à chaque état ; renvoie le nettoyage de la boucle.
+ *  Sur Android, `mobileHz` fois par seconde plutôt qu'à chaque image (#146) : une barre qui
+ *  avance de 2 px/s n'a pas besoin de 120 mises à jour par seconde sur un écran à 120 Hz. */
+export function followPosition(
+  cb: (position: number) => void,
+  mobileHz = 4,
+): (() => void) | undefined {
   void player.state;
   const position = estimatedPosition(performance.now());
   // Ce que lit `cb` (ligne de paroles courante…) ne doit pas relancer la boucle.
   untrack(() => cb(position));
   if (!player.advancing) return;
+  if (platform.mobile) {
+    const timer = setInterval(() => cb(estimatedPosition(performance.now())), 1000 / mobileHz);
+    return () => clearInterval(timer);
+  }
   let frame = requestAnimationFrame(function tick(now) {
     cb(estimatedPosition(now));
     frame = requestAnimationFrame(tick);

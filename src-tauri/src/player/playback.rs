@@ -96,6 +96,12 @@ impl Player {
         let current = matches!(slot, Slot::Current { .. });
         tauri::async_runtime::spawn(async move {
             let result = async {
+                // Sans édition hi-res possible (Android, réglage « Non »), le flux ne dépend
+                // pas des métadonnées : les deux requêtes partent ensemble (#148).
+                if QUALITY != AudioQuality::HiResLossless || mode == HiresUpgrade::Off {
+                    let (track, stream) = tokio::join!(tidal.track(id), tidal.stream(id, QUALITY));
+                    return Ok(Box::new((track?, stream?)));
+                }
                 let track = tidal.track(id).await?;
                 let upgrade = match mode {
                     HiresUpgrade::Auto => true,

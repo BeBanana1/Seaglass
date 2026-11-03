@@ -214,17 +214,23 @@ impl TidalClient {
         Ok(session)
     }
 
-    /// Access token valide et code pays, en rafraîchissant si besoin (ou si `force`).
-    async fn credentials(&self, force: bool) -> Result<(String, String)> {
+    /// Access token valide et code pays, en rafraîchissant s'il expire ou si `rejected`
+    /// (token refusé par un 401) est encore le token courant.
+    async fn credentials(&self, rejected: Option<&str>) -> Result<(String, String)> {
         {
             let guard = self.auth.read().await;
             let state = guard.as_ref().ok_or(TidalError::NotLoggedIn)?;
-            if !force && state.expires_at > Instant::now() + REFRESH_MARGIN {
+            if usable(state, rejected, Instant::now()) {
                 return Ok((state.access.clone(), state.session.country_code.clone()));
             }
         }
         let mut guard = self.auth.write().await;
         let state = guard.as_mut().ok_or(TidalError::NotLoggedIn)?;
+        // Les requêtes qui attendaient ce verrou trouvent le token déjà rafraîchi par la
+        // première : un seul rafraîchissement par expiration ou par 401 (#148).
+        if usable(state, rejected, Instant::now()) {
+            return Ok((state.access.clone(), state.session.country_code.clone()));
+        }
         let tokens = auth::refresh(&self.http, &self.creds, &state.refresh).await?;
         state.access = tokens.access;
         state.expires_at = tokens.expires_at;
@@ -255,9 +261,9 @@ impl TidalClient {
 
     /// Requête authentifiée avec `countryCode`, en rafraîchissant le token sur 401.
     pub(super) async fn call(&self, call: &Call<'_>) -> Result<reqwest::Response> {
-        let mut force_refresh = false;
+        let mut rejected: Option<String> = None;
         loop {
-            let (access, country) = self.credentials(force_refresh).await?;
+            let (access, country) = self.credentials(rejected.as_deref()).await?;
             let mut query: Vec<(&str, String)> = vec![("countryCode", country)];
             query.extend(call.query.iter().cloned());
             let resp = self
@@ -270,8 +276,8 @@ impl TidalClient {
                 )
                 .await;
             match resp {
-                Err(TidalError::Api { status: 401, .. }) if !force_refresh => {
-                    force_refresh = true;
+                Err(TidalError::Api { status: 401, .. }) if rejected.is_none() => {
+                    rejected = Some(access);
                 }
                 other => return other,
             }
@@ -312,6 +318,12 @@ impl TidalClient {
             },
         })
     }
+}
+
+/// Le token courant peut servir : il n'expire pas avant la marge et n'est pas celui qu'un
+/// 401 vient de refuser (sinon, déjà remplacé par une autre requête).
+fn usable(state: &AuthState, rejected: Option<&str>, now: Instant) -> bool {
+    rejected != Some(state.access.as_str()) && state.expires_at > now + REFRESH_MARGIN
 }
 
 /// Une requête vers l'API : GET par défaut, ou écriture avec formulaire et ETag.
@@ -394,5 +406,43 @@ pub(super) fn stream_format(raw: &RawPlayback, decoded: &manifest::Decoded) -> S
         sample_rate: raw.sample_rate,
         bitrate: decoded.bitrate,
         hires_edition: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use super::{AuthState, usable};
+    use crate::tidal::models::SessionInfo;
+
+    fn state(access: &str, expires_in: Duration, now: Instant) -> AuthState {
+        AuthState {
+            access: access.into(),
+            expires_at: now + expires_in,
+            refresh: "r".into(),
+            session: SessionInfo {
+                user_id: 1,
+                country_code: "CH".into(),
+            },
+        }
+    }
+
+    /// Une requête qui attendait le verrou réutilise le token rafraîchi par une autre (#148).
+    #[test]
+    fn a_refreshed_token_is_reused() {
+        let now = Instant::now();
+        let fresh = state("new", Duration::from_secs(4 * 3600), now);
+        assert!(usable(&fresh, None, now));
+        // 401 sur l'ancien token, déjà remplacé : pas de nouveau rafraîchissement.
+        assert!(usable(&fresh, Some("old"), now));
+        // 401 sur le token courant : il faut rafraîchir.
+        assert!(!usable(&fresh, Some("new"), now));
+        // Expiré ou dans la marge de 60 s : il faut rafraîchir.
+        assert!(!usable(
+            &state("new", Duration::from_secs(30), now),
+            None,
+            now
+        ));
     }
 }

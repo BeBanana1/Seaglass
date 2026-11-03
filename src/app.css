@@ -690,6 +690,24 @@ input {
   box-shadow: var(--panel-shadow);
 }
 
+/* Android (#146) : pas de flou d'arrière-plan sous les panneaux. Le fond animé le faisait
+   recalculer à chaque image (120 Hz sur le S21). Dans Seaglass, le fond est déjà flouté à
+   90 px : rien ne change à l'œil. Dans les autres thèmes à panneaux flous, un peu de `--bg`
+   dans la surface garde le décor discret sous le contenu. */
+:root[data-platform="android"] .panel {
+  backdrop-filter: none;
+}
+
+:root[data-platform="android"]:is(
+    [data-theme="acidwave"],
+    [data-theme="surreal"],
+    [data-theme="solarpunk"],
+    [data-theme="cyberpunk"]
+  )
+  .panel {
+  background-color: color-mix(in srgb, var(--surface) 70%, var(--bg));
+}
+
 /* Titres de page et de section. */
 .display {
   font-family: var(--display-family);
