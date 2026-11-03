@@ -48,6 +48,7 @@ import type {
   Track,
   TrackEntry,
   TrackInfo,
+  TrackSort,
   UiSettings,
 } from "../ipc";
 import type { LibraryTab, Route, SettingsSection } from "../stores/nav.svelte";
@@ -176,6 +177,7 @@ let ui: UiSettings = {
   accent: params.get("accent") ? `#${params.get("accent")}` : null,
   // `?lang=en` : interface en anglais.
   language: (params.get("lang") as LanguagePref) ?? "system",
+  sorts: [],
 };
 
 /** « Système » du backend factice : la langue du navigateur. */
@@ -470,6 +472,17 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   reset_home_layout: () => (ui.home = { order: [], hidden: [] }),
   // Copie JSON : l'UI envoie des proxys Svelte, que `structuredClone` refuse.
   set_pins: ({ pins }) => (ui.pins = JSON.parse(JSON.stringify(pins))),
+  // Comme le backend : le plus récent en tête, le tri par défaut de la liste est oublié.
+  set_list_sort: ({ list, sort }) => {
+    const id = list as string;
+    const next = sort as TrackSort | null;
+    const fallback = id === "likedTracks" ? "added:true" : "position:false";
+    ui.sorts = (ui.sorts ?? []).filter((s) => s.list !== id);
+    if (next && `${next.key}:${next.descending}` !== fallback) {
+      ui.sorts.unshift({ list: id, key: next.key, descending: next.descending });
+    }
+    return ui.sorts;
+  },
   playback_settings: () => playback,
   // Même validation que le backend : seules les tailles proposées sont acceptées.
   set_playback_settings: ({ settings }) => {

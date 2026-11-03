@@ -13,15 +13,24 @@
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
   import PinButton from "../components/PinButton.svelte";
+  import { listSort, saveListSort } from "../lib/stores/ui.svelte";
+  import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
 
   // Titres likés : l'API les renvoie du plus récent au plus ancien (date du like).
   const TRACK_SORT_KEYS: SortKey[] = ["added", "title", "artist", "album", "duration"];
+  const TRACK_DEFAULT_SORT: TrackSort = { key: "added", descending: true };
 
   let { tab }: { tab: LibraryTab } = $props();
 
   let query = $state("");
-  let sort = $state<TrackSort>({ key: "added", descending: true });
+  // Tri mémorisé (#93), lu à l'ouverture de la bibliothèque.
+  let sort = $state<TrackSort>(listSort("likedTracks", TRACK_DEFAULT_SORT));
+
+  function setSort(next: TrackSort) {
+    sort = next;
+    saveListSort("likedTracks", next).catch((e) => pushToast({ level: "error", message: String(e) }));
+  }
 
   const allTracks = $derived(library.tracks.items ?? []);
   // Le contexte de lecture est la liste affichée, dans l'ordre affiché.
@@ -98,7 +107,7 @@
   {#if tab === "tracks"}
     <TrackTools
       bind:query
-      bind:sort
+      bind:sort={() => sort, setSort}
       keys={TRACK_SORT_KEYS}
       shown={shownTracks.length}
       total={allTracks.length}

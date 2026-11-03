@@ -1,7 +1,7 @@
 // Réglages d'interface (thème, couleur d'accent, disposition de l'accueil, épingles),
 // enregistrés côté backend.
 
-import { commands, type HomeSection, type Pin, type Theme, type UiSettings } from "../ipc";
+import { commands, type HomeSection, type Pin, type Theme, type TrackSort, type UiSettings } from "../ipc";
 
 /** Thèmes dans l'ordre du sélecteur ; noms et descriptions dans `i18n/settings.ts`. */
 export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal", "solarpunk", "cyberpunk", "neumorph", "neumorph-dark", "terminal", "riso", "bauhaus"];
@@ -14,7 +14,7 @@ export const ui = $state<{
   /** Panneau ouvert dans la vue « En lecture » (mémorisé pour la session). */
   nowPlayingPanel: NowPlayingPanel;
 }>({
-  settings: { theme: "seaglass", home: { order: [], hidden: [] }, pins: [], accent: null, language: "system" },
+  settings: { theme: "seaglass", home: { order: [], hidden: [] }, pins: [], accent: null, language: "system", sorts: [] },
   nowPlayingPanel: null,
 });
 
@@ -117,4 +117,15 @@ export async function refreshPinTitle(uuid: string, title: string) {
   const stale = pins.some((p) => p.kind === "playlist" && p.uuid === uuid && p.title !== title);
   if (!stale) return;
   await savePins(pins.map((p) => (p.kind === "playlist" && p.uuid === uuid ? { ...p, title } : p)));
+}
+
+/** Tri mémorisé d'une liste (uuid de playlist ou `likedTracks`, #93), sinon `fallback`. */
+export function listSort(list: string, fallback: TrackSort): TrackSort {
+  const saved = ui.settings.sorts.find((s) => s.list === list);
+  return saved ? { key: saved.key, descending: saved.descending } : fallback;
+}
+
+/** Mémorise le tri choisi ; le backend oublie le tri par défaut. */
+export async function saveListSort(list: string, sort: TrackSort) {
+  ui.settings.sorts = await commands.setListSort(list, sort);
 }
