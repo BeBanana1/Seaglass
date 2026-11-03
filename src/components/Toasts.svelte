@@ -11,25 +11,64 @@
 </div>
 
 <style>
+  /* Centrée juste au-dessus de la barre de lecture (#150), au-dessus de « En lecture »
+     (z-index 50) et de la mise à jour (55), sous le menu contextuel (100). */
   .stack {
     position: fixed;
-    right: 20px;
-    bottom: calc(var(--player-height) + 16px);
+    left: 50%;
+    bottom: calc(var(--player-height) + var(--shell-gap) + 12px);
+    z-index: 60;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 8px;
-    max-width: 360px;
+    width: min(420px, calc(100vw - 40px));
+    transform: translateX(-50%);
+    pointer-events: none;
   }
 
+  /* Au-dessus du mini-lecteur et de la navigation du bas (comme la mise à jour). */
+  :global(:root[data-platform="android"]) .stack {
+    bottom: calc(var(--safe-bottom) + 140px);
+    width: calc(100vw - 24px);
+  }
+
+  /* « En lecture » couvre la barre de lecture : en bas de l'écran, pour ne pas
+     recouvrir la progression ni les commandes. */
+  :global(:root:has(.now-playing)) .stack {
+    bottom: calc(var(--safe-bottom) + 20px);
+  }
+
+  /* Surface pleine du menu contextuel : lisible sur n'importe quel contenu, dans chaque thème. */
   .toast {
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-hover);
-    text-align: left;
+    max-width: 100%;
+    padding: 10px 16px;
+    border: var(--dialog-border);
+    border-radius: var(--popover-radius);
+    color: var(--text);
+    background: var(--dialog-surface);
+    backdrop-filter: var(--dialog-blur);
+    box-shadow: var(--popover-shadow);
+    font-size: 13px;
+    text-align: center;
+    pointer-events: auto;
+    animation: toast-in 0.18s ease-out;
   }
 
   .toast.error {
-    border-color: var(--danger);
+    border: 1px solid var(--danger);
+  }
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .toast {
+      animation: none;
+    }
   }
 </style>
