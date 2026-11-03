@@ -457,4 +457,25 @@
   :global([data-theme="atelier"]) h1 {
     font-size: clamp(32px, 5vw, 64px);
   }
+
+  /* Android (#24) : plein écran sous les barres système ; le volume passe par les touches du
+     téléphone. */
+  :global(:root[data-platform="android"]) .top-actions {
+    top: calc(var(--safe-top) + 8px);
+    right: 12px;
+  }
+
+  :global(:root[data-platform="android"]) .layout {
+    gap: 24px;
+    padding: calc(var(--safe-top) + 64px) 20px calc(var(--safe-bottom) + 24px);
+  }
+
+  :global(:root[data-platform="android"]) .controls :global(.volume) {
+    display: none;
+  }
+
+  :global(:root[data-platform="android"]) .np-panel {
+    width: calc(100% - 24px);
+    margin-bottom: calc(var(--safe-bottom) + 16px);
+  }
 </style>

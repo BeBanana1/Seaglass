@@ -6,6 +6,7 @@
 // mix|radio|library|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
 // `?queue=1`, `?update=1`, `?autostart=1`, `?tray=1`, `?volume=60|muted`, `?accent=ff5c8a`,
+// `?platform=android` (mise en page tactile, à regarder en largeur de téléphone),
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
 // `?trackinfo=1` (ouvre les infos du titre en cours), `?autoradio=1` (la suite de la file est
@@ -510,6 +511,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     emit("player-state", state);
   },
   audio_devices: () => audioDevices,
+  // `?platform=android` : mise en page tactile.
+  platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
   autostart_enabled: () => autostart,
   set_autostart: ({ enabled }) => {
     autostart = Boolean(enabled);

@@ -150,6 +150,7 @@ export const fr = {
   checkFailed: (e: string) => `Vérification des mises à jour impossible : ${e}`,
 
   about: "À propos",
+  account: "Compte",
   disclaimer: "Client non officiel, non affilié à TIDAL.",
   streamingOnly: "Streaming uniquement : aucun flux n'est téléchargé ni enregistré sur disque.",
   license: "Licence GPL-3.0. Lecture assurée par mpv.",
@@ -308,6 +309,7 @@ export const en: typeof fr = {
   checkFailed: (e: string) => `Could not check for updates: ${e}`,
 
   about: "About",
+  account: "Account",
   disclaimer: "Unofficial client, not affiliated with TIDAL.",
   streamingOnly: "Streaming only: no stream is downloaded or saved to disk.",
   license: "Licensed under GPL-3.0. Playback by mpv.",

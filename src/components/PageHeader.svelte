@@ -234,4 +234,24 @@
   :global([data-theme="atelier"]) h1 {
     font-size: 40px;
   }
+
+  /* Android (#24) : image au-dessus du titre, boutons sur plusieurs lignes au besoin. */
+  :global(:root[data-platform="android"]) header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  :global(:root[data-platform="android"]) .image {
+    width: min(220px, 60vw);
+    height: min(220px, 60vw);
+  }
+
+  :global(:root[data-platform="android"]) h1 {
+    font-size: 24px;
+  }
+
+  :global(:root[data-platform="android"]) .actions {
+    flex-wrap: wrap;
+  }
 </style>

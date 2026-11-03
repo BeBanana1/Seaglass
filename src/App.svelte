@@ -7,7 +7,11 @@
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
   import { initUi, ui } from "./lib/stores/ui.svelte";
   import { initLanguage, t } from "./lib/i18n.svelte";
-  import { openTrackInfo } from "./lib/stores/trackInfo.svelte";
+  import { closeTrackInfo, openTrackInfo, trackInfo } from "./lib/stores/trackInfo.svelte";
+  import { closeMenu, menu } from "./lib/stores/menu.svelte";
+  import { closePlaylistPicker, picker } from "./lib/stores/playlistPicker.svelte";
+  import { platform } from "./lib/platform.svelte";
+  import { initBackButton, syncBackButton } from "./lib/backButton";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
@@ -24,6 +28,8 @@
   import Backdrop from "./components/backdrops/Backdrop.svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import PlayerBar from "./components/PlayerBar.svelte";
+  import BottomNav from "./components/BottomNav.svelte";
+  import MiniPlayer from "./components/MiniPlayer.svelte";
   import Toasts from "./components/Toasts.svelte";
   import UpdatePrompt from "./components/UpdatePrompt.svelte";
   import ContextMenu from "./components/ContextMenu.svelte";
@@ -38,6 +44,7 @@
   let main = $state<HTMLElement>();
 
   onMount(async () => {
+    if (platform.mobile) initBackButton(canClose, closeTop);
     await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes()]);
     try {
       session = await commands.authStatus();
@@ -77,6 +84,26 @@
     void nav.stack.length;
     void current();
     main?.scrollTo({ top: 0 });
+  });
+
+  // Retour d'Android : ferme ce qui est au-dessus (menu, dialogue, « En lecture »), puis
+  // revient à la page précédente.
+  function canClose(): boolean {
+    return !!menu.open || !!picker.request || !!trackInfo.track || nowPlayingOpen || canGoBack();
+  }
+
+  function closeTop() {
+    if (menu.open) closeMenu();
+    else if (picker.request) closePlaylistPicker();
+    else if (trackInfo.track) closeTrackInfo();
+    else if (nowPlayingOpen) nowPlayingOpen = false;
+    else back();
+  }
+
+  $effect(() => {
+    if (!platform.mobile) return;
+    void canClose();
+    syncBackButton();
   });
 
   function onKeydown(e: KeyboardEvent) {
@@ -135,7 +162,7 @@
 
 <div class="backdrop-layer"><Backdrop /></div>
 
-<div class="shell">
+<div class="shell" class:mobile={platform.mobile}>
   <header>
     <div class="left">
       {#if session || route.name === "settings"}
@@ -146,6 +173,16 @@
       <span class="brand display">Seaglass</span>
       <span class="version mono">v{__APP_VERSION__}</span>
     </div>
+    {#if platform.mobile}
+      <!-- Android : navigation en bas, déconnexion dans Réglages › Application. -->
+      {#if !session && route.name !== "settings"}
+        <div class="actions">
+          <button class="icon-action" onclick={() => openSettings()} aria-label={t.common.nav.settings}>
+            <Icon name="settings" size={22} />
+          </button>
+        </div>
+      {/if}
+    {:else}
     <div class="actions">
       {#if session}
         <button class="search-hint" onclick={() => replace({ name: "search" })}>
@@ -158,15 +195,16 @@
         <button onclick={logout}>{t.common.logout}</button>
       {/if}
     </div>
+    {/if}
   </header>
 
-  <div class="body" class:with-nav={session} class:with-queue={queueOpen && session}>
-    {#if session}<div class="panel nav"><Sidebar /></div>{/if}
+  <div class="body" class:with-nav={session && !platform.mobile} class:with-queue={queueOpen && session && !platform.mobile}>
+    {#if session && !platform.mobile}<div class="panel nav"><Sidebar /></div>{/if}
     <main class="panel" bind:this={main}>
       {#if !ready}
         <p class="muted">{t.common.loading}</p>
       {:else if route.name === "settings"}
-        <Settings section={route.section} />
+        <Settings section={route.section} onLogout={session ? logout : undefined} />
       {:else if !session}
         <Login onLogin={(s) => (session = s)} />
       {:else if route.name === "home"}
@@ -189,25 +227,32 @@
         <Mix source={{ seed: route.seed, id: route.id }} />
       {/if}
     </main>
-    {#if queueOpen && session}
+    {#if queueOpen && session && !platform.mobile}
       <div class="panel queue"><Queue /></div>
     {/if}
   </div>
 
-  <div class="player">
-    <PlayerBar
-      {queueOpen}
-      onToggleQueue={() => (queueOpen = !queueOpen)}
-      onOpenNowPlaying={() => (nowPlayingOpen = true)}
-    />
-  </div>
+  {#if platform.mobile}
+    {#if session}
+      <MiniPlayer onOpenNowPlaying={() => (nowPlayingOpen = true)} />
+      <div class="panel bottom"><BottomNav /></div>
+    {/if}
+  {:else}
+    <div class="player">
+      <PlayerBar
+        {queueOpen}
+        onToggleQueue={() => (queueOpen = !queueOpen)}
+        onOpenNowPlaying={() => (nowPlayingOpen = true)}
+      />
+    </div>
+  {/if}
 </div>
 
 {#if nowPlayingOpen}
   <NowPlaying onClose={() => (nowPlayingOpen = false)} />
 {/if}
 <Toasts />
-<UpdatePrompt />
+{#if !platform.mobile}<UpdatePrompt />{/if}
 <ContextMenu />
 <PlaylistPicker />
 <TrackInfo />
@@ -226,6 +271,50 @@
     gap: var(--shell-gap);
     height: 100%;
     padding: var(--shell-gap);
+  }
+
+  /* Android : la page passe sous les barres système, l'en-tête et la navigation les évitent.
+     Lignes : en-tête, page, mini-lecteur (absent sans titre), navigation. */
+  .shell.mobile {
+    --mobile-gap: min(var(--shell-gap), 6px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--mobile-gap);
+    padding: calc(var(--safe-top) + var(--mobile-gap)) var(--mobile-gap) 0;
+  }
+
+  .shell.mobile .body {
+    flex: 1;
+  }
+
+  .shell.mobile header {
+    min-height: 44px;
+    padding: 0 8px;
+  }
+
+  .shell.mobile .back {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Marges des pages (24 px sur le bureau) ramenées à une largeur de téléphone. */
+  .shell.mobile main > :global(*) {
+    padding: 16px 12px;
+  }
+
+  .shell.mobile .bottom {
+    margin: 0 calc(-1 * var(--mobile-gap));
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+    border-radius: var(--panel-radius) var(--panel-radius) 0 0;
+  }
+
+  .icon-action {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
   }
 
   header {

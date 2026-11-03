@@ -132,4 +132,26 @@
     box-shadow: 12px 12px 0 color-mix(in oklab, var(--tint) 45%, var(--bg));
     transform: none;
   }
+
+  /* Android (#24) : pochette au-dessus du texte, qui prend toute la largeur. */
+  :global(:root[data-platform="android"]) .hero {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 18px;
+    min-height: 0;
+    padding: 20px;
+  }
+
+  :global(:root[data-platform="android"]) .content {
+    max-width: 100%;
+  }
+
+  :global(:root[data-platform="android"]) .title {
+    font-size: 24px;
+  }
+
+  :global(:root[data-platform="android"]) .cover {
+    width: 140px;
+    height: 140px;
+  }
 </style>

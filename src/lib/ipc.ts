@@ -387,6 +387,9 @@ export type CloseAction = "quit" | "tray";
 /** Langue effective de l'app, décidée par le backend. */
 export type Lang = "fr" | "en";
 
+/** Plateforme de l'app, décidée à la compilation côté Rust. */
+export type Platform = "desktop" | "android";
+
 export type LanguagePref = "system" | Lang;
 
 /** Taille du cache mpv en Mio : seules ces valeurs sont acceptées par le backend. */
@@ -514,6 +517,8 @@ export const commands = {
     invoke<void>("set_playback_settings", { settings }),
   /** Périphériques de sortie connus de mpv ; la suite arrive par `audio-devices`. */
   audioDevices: () => invoke<AudioDevices>("audio_devices"),
+  /** Plateforme de l'app : choisit la mise en page (tactile sur Android). */
+  platform: () => invoke<Platform>("platform"),
   /** État réel du lancement au démarrage, lu dans le système. */
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
   /** Renvoie l'état relu après changement. */

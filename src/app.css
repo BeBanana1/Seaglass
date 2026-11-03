@@ -640,6 +640,20 @@ body {
   transition: background-color 0.4s;
 }
 
+/* Android (#24) : la page passe sous les barres système (`viewport-fit=cover`), le shell et
+   « En lecture » s'en écartent de ces marges. Ni surbrillance au toucher, ni menu natif ou
+   rebond sur appui long et défilement. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+:root[data-platform="android"] body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
 button {
   font: inherit;
   color: inherit;

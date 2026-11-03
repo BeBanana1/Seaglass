@@ -7,6 +7,7 @@
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { platform } from "../lib/platform.svelte";
 
   let {
     track,
@@ -56,6 +57,14 @@
     openMenu({ ...menuPosition(e, focused ?? row), entries: entries(), from: focused, owner: row });
   }
 
+  // Android (#24) : un appui sur la ligne lance le titre (double-clic sur le bureau), hors
+  // boutons et liens. L'appui long émet `contextmenu` et ouvre le menu.
+  function onTap(e: MouseEvent) {
+    if (!platform.mobile || !onPlay) return;
+    if ((e.target as HTMLElement).closest("button, a, input")) return;
+    onPlay();
+  }
+
   function toggleMore() {
     if (!moreButton) return;
     if (menu.open?.from === moreButton) return closeMenu();
@@ -64,6 +73,8 @@
   }
 </script>
 
+<!-- L'appui sur la ligne (Android) double le bouton de lecture de la pochette, accessible au clavier. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <div
   class="row"
   class:active
@@ -73,7 +84,8 @@
   class:menu-open={menuOpen}
   bind:this={rowEl}
   role="listitem"
-  ondblclick={onPlay}
+  ondblclick={platform.mobile ? undefined : onPlay}
+  onclick={onTap}
   oncontextmenu={onContextmenu}
 >
   {#if number !== undefined}<span class="number">{number}</span>{/if}
@@ -111,13 +123,13 @@
     {:else if onRemove}
       <button onclick={onRemove} title={t.menu.removeFromQueue}><Icon name="close" size={16} /></button>
     {:else}
-      <button onclick={() => commands.playNext(track.id)} title={t.menu.playNext}>
+      <button class="queue-action" onclick={() => commands.playNext(track.id)} title={t.menu.playNext}>
         <Icon name="playNext" size={16} />
       </button>
-      <button onclick={() => commands.addToQueue(track.id)} title={t.menu.addToQueue}>
+      <button class="queue-action" onclick={() => commands.addToQueue(track.id)} title={t.menu.addToQueue}>
         <Icon name="add" size={16} />
       </button>
-      <button onclick={() => go({ name: "radio", seed: "track", id: track.id })} title={t.menu.trackRadio}>
+      <button class="queue-action" onclick={() => go({ name: "radio", seed: "track", id: track.id })} title={t.menu.trackRadio}>
         <Icon name="radio" size={16} />
       </button>
     {/if}
@@ -280,5 +292,51 @@
   .duration {
     text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Android (#24) : pas de survol. « … » et le cœur restent affichés ; les boutons de file
+     (aussi dans le menu), l'album et la durée laissent la place au titre. */
+  :global(:root[data-platform="android"]) .row,
+  :global(:root[data-platform="android"]) .row.compact {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 6px 4px;
+  }
+
+  :global(:root[data-platform="android"]) .row.numbered,
+  :global(:root[data-platform="android"]) .row.compact.numbered {
+    grid-template-columns: 22px 40px minmax(0, 1fr) auto;
+  }
+
+  /* Page d'album : pas de colonne de pochette vide. */
+  :global(:root[data-platform="android"]) .row.no-cover {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  :global(:root[data-platform="android"]) .row.no-cover.numbered {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+  }
+
+  :global(:root[data-platform="android"]) .row.no-cover .cover {
+    display: none;
+  }
+
+  :global(:root[data-platform="android"]) .row:hover:not(.menu-open) {
+    background: none;
+  }
+
+  :global(:root[data-platform="android"]) .album,
+  :global(:root[data-platform="android"]) .duration,
+  :global(:root[data-platform="android"]) .queue-action,
+  :global(:root[data-platform="android"]) .cover-play {
+    display: none;
+  }
+
+  :global(:root[data-platform="android"]) .actions > :global(*) {
+    opacity: 1;
+  }
+
+  :global(:root[data-platform="android"]) .actions button {
+    padding: 8px;
   }
 </style>

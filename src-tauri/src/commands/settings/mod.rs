@@ -251,6 +251,25 @@ pub async fn audio_devices(state: State<'_, AppState>) -> CmdResult<AudioDevices
     rx.await.map_err(|_| stopped())
 }
 
+/// Plateforme de l'app, pour que l'UI choisisse sa mise en page (tactile sur Android) et
+/// masque les réglages sans objet. Décidée à la compilation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Platform {
+    #[cfg(desktop)]
+    Desktop,
+    #[cfg(mobile)]
+    Android,
+}
+
+#[tauri::command]
+pub async fn platform() -> CmdResult<Platform> {
+    #[cfg(desktop)]
+    return Ok(Platform::Desktop);
+    #[cfg(mobile)]
+    Ok(Platform::Android)
+}
+
 /// État réel du lancement au démarrage, lu dans le système à chaque appel : il peut avoir
 /// été changé ailleurs (Gestionnaire des tâches), donc rien n'est gardé en base.
 /// Toujours faux sur Android, qui n'a pas de lancement au démarrage.
