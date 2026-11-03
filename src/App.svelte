@@ -57,7 +57,8 @@
       if (view.route) go(view.route);
       nowPlayingOpen = view.nowPlaying;
       queueOpen = view.queue;
-      ui.nowPlayingPanel = view.lyrics ? "lyrics" : view.queue ? "queue" : null;
+      ui.nowPlayingPanel =
+        view.lyrics && view.queue ? "both" : view.lyrics ? "lyrics" : view.queue ? "queue" : null;
       if (view.trackInfo && player.state.track) openTrackInfo(player.state.track);
     }
   });

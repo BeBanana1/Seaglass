@@ -92,6 +92,7 @@ export const fr = {
     lyrics: "Paroles",
     close: "Fermer (Échap)",
     upNext: "À suivre",
+    fullQueue: "Toute la file",
     empty: "Rien en lecture.",
   },
 };
@@ -184,6 +185,7 @@ export const en: typeof fr = {
     lyrics: "Lyrics",
     close: "Close (Esc)",
     upNext: "Up next",
+    fullQueue: "Full queue",
     empty: "Nothing playing.",
   },
 };
