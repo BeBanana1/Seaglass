@@ -16,6 +16,7 @@ mod lyrics;
 mod manifest;
 mod mix;
 pub mod models;
+mod paging;
 mod raw;
 mod twin;
 

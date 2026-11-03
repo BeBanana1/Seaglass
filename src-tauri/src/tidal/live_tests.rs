@@ -98,8 +98,39 @@ async fn live_catalog() {
     );
     // `dateAdded` est fourni pour chaque titre de playlist (vérifié le 2026-10-30).
     assert!(playlist.tracks.iter().all(|t| t.added_at.is_some()));
+    // Pagination (#90) : temps de chargement d'une grosse playlist et des favoris.
+    let mut found = client.library_playlists().await.unwrap();
+    for query in [
+        "1000 songs",
+        "top 1000",
+        "every song",
+        "complete discography",
+    ] {
+        found.extend(client.search(query, 50).await.unwrap().playlists);
+    }
+    let big = found
+        .into_iter()
+        .max_by_key(|p| p.number_of_tracks.unwrap_or(0))
+        .unwrap();
+    let started = std::time::Instant::now();
+    let page = client.playlist(&big.uuid).await.unwrap();
+    println!(
+        "grosse playlist : {} ({} titres sur {:?}) en {:?}",
+        page.playlist.title,
+        page.tracks.len(),
+        big.number_of_tracks,
+        started.elapsed()
+    );
+    let started = std::time::Instant::now();
     let favorites = client.favorite_tracks().await.unwrap();
+    println!(
+        "titres likés : {} en {:?}",
+        favorites.len(),
+        started.elapsed()
+    );
     assert!(favorites.iter().all(|t| t.added_at.is_some()));
+    // Pages demandées en parallèle, remises dans l'ordre : toujours du plus récent au plus ancien.
+    assert!(favorites.windows(2).all(|w| w[0].added_at >= w[1].added_at));
     println!(
         "bibliothèque : {} titres, {} albums, {} artistes, {} playlists",
         favorites.len(),
