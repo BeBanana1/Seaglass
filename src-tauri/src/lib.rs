@@ -1,4 +1,5 @@
 mod commands;
+mod engine;
 mod i18n;
 mod integrations;
 mod mpv;

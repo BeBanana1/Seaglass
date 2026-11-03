@@ -1,16 +1,14 @@
-//! Fenêtre mpv de 2 entrées au maximum : titre courant (0) + suivant préchargé (1).
+//! Fenêtre du moteur de 2 entrées au maximum : titre courant (0) + suivant préchargé (1).
 //!
 //! Les URLs de flux sont signées et expirent : on ne charge jamais plus loin.
 
-use serde_json::{Value, json};
-
 use super::actor::{Cmd, Player, Slot};
-use super::normalize::file_options;
 use super::queue::Repeat;
 use super::settings::HiresUpgrade;
 use super::upgrade;
+use crate::engine::{End, Engine, Op};
 use crate::i18n::{tr, trf};
-use crate::mpv::{CacheSize, EndReason};
+use crate::mpv::CacheSize;
 use crate::tidal::models::{AudioQuality, Stream, StreamSource, Track, TrackId};
 
 /// Qualité demandée ; deviendra un réglage utilisateur.
@@ -23,9 +21,9 @@ const RESTART_THRESHOLD: f64 = 3.0;
 const MAX_FAILURES: u32 = 3;
 
 impl Player {
-    /// Charge `id` en entrée 0 (remplace toute la fenêtre mpv) à partir de `start`.
+    /// Charge `id` en entrée 0 (remplace toute la fenêtre du moteur) à partir de `start`.
     pub(super) fn load_current(&mut self, id: TrackId, start: f64) {
-        if let Err(e) = &self.mpv {
+        if let Err(e) = &self.engine {
             let message = e.clone();
             self.toast("error", message);
             return;
@@ -70,13 +68,12 @@ impl Player {
         self.resolve(id, Slot::Next(id), self.preload_req);
     }
 
-    /// Retire le titre préchargé de mpv et annule un préchargement en cours.
+    /// Retire le titre préchargé du moteur et annule un préchargement en cours.
     pub(super) async fn invalidate_next(&mut self) {
         self.preload_req += 1;
         self.preloading = false;
         if self.next_loaded.take().is_some() {
-            self.mpv_command(vec![json!("playlist-remove"), json!(1)])
-                .await;
+            self.engine_op(Op::RemoveNext).await;
         }
     }
 
@@ -137,16 +134,10 @@ impl Player {
                 // Gain de normalisation en option du fichier (#82) : il ne touche pas le
                 // titre qui sera préchargé ensuite.
                 let gain = self.normalizer.loaded(stream.gain);
-                let mut cmd = vec![json!("loadfile"), json!(url), json!("replace")];
-                if let Some(options) = file_options(start, gain) {
-                    cmd.extend([json!(-1), json!(options)]);
-                }
                 self.state.normalization = gain;
-                self.mpv_command(cmd).await;
-                self.mpv_command(vec![json!("set_property"), json!("pause"), json!(false)])
-                    .await;
+                self.engine_op(Op::Play { url, start, gain }).await;
                 self.loaded = true;
-                // mpv n'émet rien si `pause` valait déjà `false` : l'état est fixé ici.
+                // Le moteur n'émet rien si la pause était déjà levée : l'état est fixé ici.
                 self.state.paused = false;
                 self.state.track = Some(track);
                 self.state.stream = Some(stream.format);
@@ -162,11 +153,7 @@ impl Player {
                         };
                         log_stream("préchargement", &track, &stream);
                         let gain = self.normalizer.preloaded(stream.gain);
-                        let mut cmd = vec![json!("loadfile"), json!(url), json!("append")];
-                        if let Some(options) = file_options(0.0, gain) {
-                            cmd.extend([json!(-1), json!(options)]);
-                        }
-                        self.mpv_command(cmd).await;
+                        self.engine_op(Op::Preload { url, gain }).await;
                         self.next_loaded = Some((track, stream.format));
                     }
                     // Sans préchargement, la fin du titre déclenchera un chargement classique.
@@ -177,18 +164,15 @@ impl Player {
         }
     }
 
-    /// mpv est passé sur l'entrée préchargée : on avance la file et on retire l'ancienne.
-    pub(super) async fn on_playlist_pos(&mut self, pos: Option<i64>) {
-        if pos != Some(1) {
-            return;
-        }
+    /// Le moteur est passé sur l'entrée préchargée : on avance la file et on retire
+    /// l'ancienne.
+    pub(super) async fn on_advanced(&mut self) {
         let Some((track, format)) = self.next_loaded.take() else {
             return;
         };
         let advanced = self.queue.advance();
         self.mark_queue_dirty();
-        self.mpv_command(vec![json!("playlist-remove"), json!(0)])
-            .await;
+        self.engine_op(Op::DropPrevious).await;
         if advanced == Some(track.id) {
             self.retried = None;
             self.state.track = Some(track);
@@ -203,10 +187,10 @@ impl Player {
         }
     }
 
-    pub(super) async fn on_end_file(&mut self, reason: EndReason, error: Option<String>) {
-        match reason {
+    pub(super) async fn on_end_file(&mut self, end: End) {
+        match end {
             // Fin naturelle sans suivant préchargé (préchargement absent ou en échec).
-            EndReason::Eof if self.loaded && self.next_loaded.is_none() => {
+            End::Eof if self.loaded && self.next_loaded.is_none() => {
                 self.loaded = false;
                 if self.sleeps_at_end_of_track() {
                     self.sleep_after_track().await;
@@ -217,17 +201,24 @@ impl Player {
                     self.on_queue_end();
                 }
             }
-            EndReason::Error => self.on_playback_error(error).await,
-            _ => {}
+            End::Eof => {}
+            // Périphérique de sortie choisi qui ne s'ouvre pas : repli, pas une erreur du flux.
+            End::OutputFailed => {
+                if !self.on_output_init_failed().await {
+                    let detail = tr(
+                        "ouverture de la sortie audio impossible",
+                        "audio output initialization failed",
+                    );
+                    self.on_playback_error(Some(detail.into())).await;
+                }
+            }
+            End::Error(error) => self.on_playback_error(error).await,
         }
     }
 
-    /// Erreur mpv : une nouvelle URL une fois (signature expirée ?), puis titre suivant.
+    /// Erreur du moteur : une nouvelle URL une fois (signature expirée ?), puis titre
+    /// suivant.
     async fn on_playback_error(&mut self, error: Option<String>) {
-        // Périphérique de sortie choisi qui ne s'ouvre pas : repli, pas une erreur du flux.
-        if self.on_output_init_failed(error.as_deref()).await {
-            return;
-        }
         let Some(id) = self.queue.current() else {
             return;
         };
@@ -260,7 +251,7 @@ impl Player {
                 )
                 .into(),
             );
-            self.mpv_command(vec![json!("stop")]).await;
+            self.engine_op(Op::Stop).await;
             return;
         }
         if let Some(id) = self.queue.advance() {
@@ -287,11 +278,11 @@ impl Player {
         }
     }
 
-    /// Après une restauration, le titre n'est pas encore dans mpv : on le charge à la
+    /// Après une restauration, le titre n'est pas encore dans le moteur : on le charge à la
     /// position sauvegardée.
     pub(super) async fn toggle_pause(&mut self) {
         if self.loaded {
-            self.mpv_command(vec![json!("cycle"), json!("pause")]).await;
+            self.engine_op(Op::TogglePause).await;
         } else if let Some(id) = self.queue.current() {
             self.load_current(id, self.state.time_pos);
         }
@@ -301,8 +292,7 @@ impl Player {
     /// rien de chargé.
     pub(super) async fn set_paused(&mut self, paused: bool) {
         if self.loaded {
-            self.mpv_command(vec![json!("set_property"), json!("pause"), json!(paused)])
-                .await;
+            self.engine_op(Op::SetPaused(paused)).await;
         } else if !paused && let Some(id) = self.queue.current() {
             self.load_current(id, self.state.time_pos);
         }
@@ -310,31 +300,21 @@ impl Player {
 
     pub(super) async fn seek(&mut self, secs: f64) {
         if self.loaded {
-            self.mpv_command(vec![json!("seek"), json!(secs), json!("absolute")])
-                .await;
+            self.engine_op(Op::Seek(secs)).await;
         } else {
             self.state.time_pos = secs;
             self.persist_position = true;
         }
     }
 
-    /// Repeat One = `loop-file=inf` côté mpv, sans rechargement ; levé tant que le
-    /// minuteur vise la fin du titre (#85).
+    /// Repeat One = boucle du titre dans le moteur (`loop-file=inf` sous mpv), sans
+    /// rechargement ; levée tant que le minuteur vise la fin du titre (#85).
     pub(super) async fn apply_loop_file(&mut self) {
-        if self.mpv.is_err() {
+        if self.engine.is_err() {
             return;
         }
-        let value = if self.queue.repeat() == Repeat::One && !self.sleeps_at_end_of_track() {
-            "inf"
-        } else {
-            "no"
-        };
-        self.mpv_command(vec![
-            json!("set_property"),
-            json!("loop-file"),
-            json!(value),
-        ])
-        .await;
+        let on = self.queue.repeat() == Repeat::One && !self.sleeps_at_end_of_track();
+        self.engine_op(Op::LoopCurrent(on)).await;
     }
 
     pub(super) async fn on_volume_changed(&mut self) {
@@ -342,16 +322,17 @@ impl Player {
         self.apply_volume().await;
     }
 
-    /// Volume logiciel de mpv (`volume`, courbe cubique, 100 = gain unitaire) et coupure.
+    /// Volume logiciel du moteur (mpv : courbe cubique, 100 = gain unitaire) et coupure.
     pub(super) async fn apply_volume(&mut self) {
-        if self.mpv.is_err() {
+        if self.engine.is_err() {
             return;
         }
         let v = self.state.volume;
-        self.mpv_command(vec![json!("set_property"), json!("volume"), json!(v.level)])
-            .await;
-        self.mpv_command(vec![json!("set_property"), json!("mute"), json!(v.muted)])
-            .await;
+        self.engine_op(Op::Volume {
+            level: v.level,
+            muted: v.muted,
+        })
+        .await;
     }
 
     /// Nouvelle taille de cache : mpv l'applique aussi au démuxeur déjà ouvert, sans
@@ -359,12 +340,10 @@ impl Player {
     /// `mpv::cache::tests::live_cache_resize`). Sans mpv, elle servira au prochain
     /// lancement (lue dans les réglages).
     pub(super) async fn apply_cache_size(&mut self, size: CacheSize) {
-        if self.mpv.is_err() {
+        if self.engine.is_err() {
             return;
         }
-        for command in size.set_property_commands() {
-            self.mpv_command(command).await;
-        }
+        self.engine_op(Op::CacheSize(size)).await;
     }
 
     fn stream_url(&self, track: &Track, stream: &Stream) -> Option<String> {
@@ -387,14 +366,10 @@ impl Player {
         }
     }
 
-    pub(super) async fn mpv_command(&mut self, command: Vec<Value>) {
-        let result = match &self.mpv {
-            Ok(mpv) => mpv
-                .handle
-                .command(command)
-                .await
-                .map(drop)
-                .map_err(|e| e.to_string()),
+    /// Envoie une opération au moteur ; une erreur (moteur absent compris) part en toast.
+    pub(super) async fn engine_op(&mut self, op: Op) {
+        let result = match &self.engine {
+            Ok(engine) => engine.apply(op).await,
             Err(e) => Err(e.clone()),
         };
         if let Err(e) = result {

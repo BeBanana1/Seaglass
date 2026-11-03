@@ -7,7 +7,8 @@ use super::output::OutputDevice;
 use super::queue::Repeat;
 use super::sleep::SleepState;
 use super::volume::Volume;
-use crate::mpv::{AudioParams, MpvIssue};
+use crate::engine::AudioParams;
+use crate::mpv::MpvIssue;
 use crate::tidal::models::{StreamFormat, Track};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]

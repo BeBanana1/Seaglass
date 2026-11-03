@@ -1,17 +1,17 @@
 //! Normalisation du volume (#82) : gain ReplayGain de l'API (pas les tags du FLAC),
-//! limité par la crête pour ne jamais écrêter, appliqué par mpv avec un filtre `volume`
-//! **propre à chaque fichier**.
+//! limité par la crête pour ne jamais écrêter, appliqué par le moteur **à chaque fichier**
+//! séparément (`Op::Play`, `Op::Preload`, `Op::CurrentGain`).
 //!
-//! Vérifié avec mpv 0.41 (`live_per_file_af`) : `loadfile <url> append -1 af=…` pose le
+//! Sous mpv (`mpv::engine`), vérifié avec mpv 0.41 (`live_per_file_af`) : `loadfile <url> append -1 af=…` pose le
 //! filtre en option locale du fichier préchargé ; le titre en cours garde le sien jusqu'au
 //! passage gapless, et un fichier chargé sans option revient à `af=[]`. Pour le titre en
 //! cours, `file-local-options/af` change le filtre à chaud ; la valeur d'avant est remise
 //! à la fin du fichier (`options/af` montre la valeur en vigueur, pas celle-là).
 
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 use super::actor::Player;
+use crate::engine::Op;
 use crate::tidal::models::ReplayGain;
 
 /// Bornes du gain appliqué, en dB : au-delà, une valeur de l'API serait suspecte.
@@ -49,25 +49,6 @@ pub fn gain_db(mode: Normalization, rg: &ReplayGain) -> Option<f64> {
     let gain = gain.min(ceiling).clamp(MIN_GAIN, MAX_GAIN);
     let rounded = (gain * 100.0).round() / 100.0;
     (rounded != 0.0).then_some(rounded)
-}
-
-/// Valeur de `af` pour un gain (`volume=volume=-6.53dB`, filtre `volume` de libavfilter).
-pub fn af_value(gain: Option<f64>) -> String {
-    gain.map(|g| format!("volume=volume={g:.2}dB"))
-        .unwrap_or_default()
-}
-
-/// Options de fichier du `loadfile` (4ᵉ argument, séparées par des virgules) : position de
-/// départ et filtre de gain. `None` s'il n'y en a aucune.
-pub fn file_options(start: f64, gain: Option<f64>) -> Option<String> {
-    let mut options = Vec::new();
-    if start > 0.0 {
-        options.push(format!("start={start}"));
-    }
-    if gain.is_some() {
-        options.push(format!("af={}", af_value(gain)));
-    }
-    (!options.is_empty()).then(|| options.join(","))
 }
 
 /// État de la normalisation tenu par l'acteur : ReplayGain du titre courant et du suivant
@@ -111,8 +92,8 @@ impl Normalizer {
 }
 
 impl Player {
-    /// Nouveau réglage : appliqué tout de suite au titre en cours (option locale du
-    /// fichier), et le suivant préchargé est retiré pour être rechargé avec son gain.
+    /// Nouveau réglage : appliqué tout de suite au titre en cours, et le suivant préchargé
+    /// est retiré pour être rechargé avec son gain.
     pub(super) async fn set_normalization(&mut self, mode: Normalization) {
         if mode == self.normalizer.mode {
             return;
@@ -120,12 +101,7 @@ impl Player {
         self.normalizer.mode = mode;
         let gain = self.normalizer.current_gain();
         if self.loaded {
-            self.mpv_command(vec![
-                json!("set_property"),
-                json!("file-local-options/af"),
-                json!(af_value(gain)),
-            ])
-            .await;
+            self.engine_op(Op::CurrentGain(gain)).await;
             self.state.normalization = gain;
         }
         self.invalidate_next().await;
@@ -133,7 +109,7 @@ impl Player {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     fn rg(track: (f64, f64), album: Option<(f64, f64)>) -> ReplayGain {
@@ -185,22 +161,6 @@ mod tests {
     }
 
     #[test]
-    fn mpv_options() {
-        assert_eq!(af_value(Some(-6.5)), "volume=volume=-6.50dB");
-        assert_eq!(af_value(None), "");
-        assert_eq!(file_options(0.0, None), None);
-        assert_eq!(file_options(12.5, None).as_deref(), Some("start=12.5"));
-        assert_eq!(
-            file_options(12.5, Some(3.1)).as_deref(),
-            Some("start=12.5,af=volume=volume=3.10dB")
-        );
-        assert_eq!(
-            file_options(0.0, Some(-1.0)).as_deref(),
-            Some("af=volume=volume=-1.00dB")
-        );
-    }
-
-    #[test]
     fn normalizer_tracks_current_and_next() {
         let mut n = Normalizer::new(Normalization::Track);
         assert_eq!(n.loaded(rg((-5.0, 0.5), None)), Some(-5.0));
@@ -224,7 +184,7 @@ mod tests {
     }
 
     /// WAV PCM 16 bits stéréo 44,1 kHz : sinus à −40 dBFS (volume bas), fichier de test.
-    fn quiet_wav(name: &str, secs: u32, freq: f64) -> std::path::PathBuf {
+    pub(crate) fn quiet_wav(name: &str, secs: u32, freq: f64) -> std::path::PathBuf {
         let rate = 44_100u32;
         let frames = rate * secs;
         let data_len = frames * 4;
@@ -267,8 +227,10 @@ mod tests {
     #[tokio::test]
     #[ignore = "lance un vrai mpv sur la sortie audio"]
     async fn live_per_file_af() {
-        use crate::mpv::{CacheSize, MpvEvent, Property};
-        use serde_json::Value;
+        use crate::mpv::CacheSize;
+        use crate::mpv::engine::{af_value, file_options};
+        use crate::mpv::events::{MpvEvent, Property};
+        use serde_json::{Value, json};
         use std::time::Duration;
 
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
