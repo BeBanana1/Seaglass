@@ -78,7 +78,8 @@ pub enum Cmd {
     #[cfg_attr(not(windows), allow(dead_code))]
     SetPaused(bool),
     /// Branche les intégrations système (SMTC…), créées après l'acteur.
-    AttachObservers(Observers),
+    /// En boîte : les poignées des intégrations alourdiraient toutes les commandes.
+    AttachObservers(Box<Observers>),
     /// Résultat d'une résolution réseau (métadonnées + flux) lancée par l'acteur.
     Resolved {
         request: u64,
@@ -335,7 +336,7 @@ impl Player {
             Cmd::SetPaused(paused) => self.set_paused(paused).await,
             Cmd::AttachObservers(observers) => {
                 observers.notify(&self.state);
-                self.observers = observers;
+                self.observers = *observers;
             }
             Cmd::Seek(secs) => self.seek(secs).await,
             Cmd::SetShuffle(on) => {

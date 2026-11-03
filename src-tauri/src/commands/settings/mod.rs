@@ -66,6 +66,23 @@ pub struct UiSettings {
     pub language: LanguagePref,
     /// Tri mémorisé par playlist et pour les titres likés, le plus récent en tête (#93).
     pub sorts: Vec<ListSort>,
+    /// Fermer la fenêtre principale : quitter, ou réduire dans la zone de notification (#83).
+    pub close_action: CloseAction,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CloseAction {
+    #[default]
+    Quit,
+    Tray,
+}
+
+impl UiSettings {
+    /// Reporte les réglages lus par le backend hors des commandes (fermeture de la fenêtre).
+    pub(crate) fn apply_to_backend(&self) {
+        crate::integrations::tray::set_close_to_tray(self.close_action == CloseAction::Tray);
+    }
 }
 
 /// N'accepte que `#rrggbb` (mis en minuscules) : la valeur part telle quelle dans le CSS.
@@ -120,6 +137,7 @@ pub async fn ui_settings(state: State<'_, AppState>) -> CmdResult<UiSettings> {
 pub async fn set_ui_settings(state: State<'_, AppState>, settings: UiSettings) -> CmdResult<()> {
     save(&state, &settings)?;
     i18n::set(settings.language.resolve());
+    settings.apply_to_backend();
     Ok(())
 }
 
@@ -248,6 +266,17 @@ pub async fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<bool> {
     manager.is_enabled().map_err(err)
 }
 
+/// Une entrée `Run` créée par une version antérieure à #83 n'a pas `--minimized` : réécrite au lancement si
+/// elle est active (désactivée dans le Gestionnaire des tâches, elle n'est pas touchée).
+pub(crate) fn refresh_autostart(app: &AppHandle) {
+    let manager = app.autolaunch();
+    if manager.is_enabled().unwrap_or(false)
+        && let Err(e) = manager.enable()
+    {
+        tracing::warn!("lancement au démarrage non mis à jour : {e}");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -296,6 +325,15 @@ mod tests {
             let json = format!(r#"{{"accent":{bad}}}"#);
             assert!(serde_json::from_str::<UiSettings>(&json).is_err(), "{bad}");
         }
+    }
+
+    #[test]
+    fn close_action_defaults_to_quit() {
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"studio"}"#).unwrap();
+        assert_eq!(s.close_action, CloseAction::Quit);
+        let s: UiSettings = serde_json::from_str(r#"{"closeAction":"tray"}"#).unwrap();
+        assert_eq!(s.close_action, CloseAction::Tray);
+        assert!(serde_json::from_str::<UiSettings>(r#"{"closeAction":"hide"}"#).is_err());
     }
 
     /// Les réglages enregistrés avant l'accueil personnalisable restent lisibles.

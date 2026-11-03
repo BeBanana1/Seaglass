@@ -4,6 +4,7 @@
     commands,
     type AudioDevice,
     type CacheSize,
+    type CloseAction,
     type HiresUpgrade,
     type LanguagePref,
     type Normalization,
@@ -11,7 +12,7 @@
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
-  import { ui } from "../lib/stores/ui.svelte";
+  import { setCloseAction, ui } from "../lib/stores/ui.svelte";
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
@@ -22,6 +23,8 @@
   const sections: SettingsSection[] = ["appearance", "playback", "app"];
 
   const LANGUAGES: LanguagePref[] = ["system", "fr", "en"];
+
+  const CLOSE_ACTIONS: CloseAction[] = ["quit", "tray"];
 
   const CACHE_SIZES: CacheSize[] = [32, 64, 128, 256];
 
@@ -66,6 +69,15 @@
     try {
       await setLanguage(pref);
       ui.settings = { ...ui.settings, language: pref };
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  async function chooseCloseAction(action: CloseAction) {
+    if (action === ui.settings.closeAction) return;
+    try {
+      await setCloseAction(action);
     } catch (e) {
       fail(e);
     }
@@ -256,6 +268,25 @@
       </label>
     </div>
   {:else}
+    <div class="group">
+      <h2>{t.settings.window}</h2>
+      <p class="hint">{t.settings.closeActionHint}</p>
+      <div class="cache-sizes close-actions" role="radiogroup" aria-label={t.settings.closeAction}>
+        {#each CLOSE_ACTIONS as action (action)}
+          <button
+            class="cache-size close-action"
+            class:selected={ui.settings.closeAction === action}
+            role="radio"
+            aria-checked={ui.settings.closeAction === action}
+            onclick={() => chooseCloseAction(action)}
+          >
+            {t.settings.closeActions[action]}
+          </button>
+        {/each}
+      </div>
+      <p class="note">{t.settings.closeActionNotes[ui.settings.closeAction]}</p>
+    </div>
+
     <div class="group">
       <h2>{t.settings.startup}</h2>
       <label class="setting-row">

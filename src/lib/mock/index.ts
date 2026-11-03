@@ -5,7 +5,7 @@
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
 // mix|radio|library|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
-// `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
+// `?queue=1`, `?update=1`, `?autostart=1`, `?tray=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
 // `?trackinfo=1` (ouvre les infos du titre en cours), `?autoradio=1` (la suite de la file est
@@ -180,6 +180,8 @@ let ui: UiSettings = {
   accent: params.get("accent") ? `#${params.get("accent")}` : null,
   // `?lang=en` : interface en anglais.
   language: (params.get("lang") as LanguagePref) ?? "system",
+  // `?tray=1` : fermer la fenêtre la réduit dans la zone de notification (#83).
+  closeAction: params.has("tray") ? "tray" : "quit",
   sorts: [],
 };
 
@@ -468,7 +470,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return u;
   },
   set_ui_settings: ({ settings }) => {
-    ui = settings as UiSettings;
+    // Proxy Svelte : copie en JSON (voir les épingles dans CLAUDE.md).
+    ui = JSON.parse(JSON.stringify(settings)) as UiSettings;
   },
   language: () => effectiveLanguage(ui.language),
   set_language: ({ language }) => {
