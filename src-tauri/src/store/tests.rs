@@ -28,7 +28,7 @@ fn track(id: u64) -> Track {
 fn queue_of(ids: impl IntoIterator<Item = u64>) -> Queue {
     let mut q = Queue::default();
     let mut rng = rand::rngs::StdRng::seed_from_u64(1);
-    q.set_context(ids.into_iter().map(TrackId).collect(), 0, &mut rng);
+    q.set_context(ids.into_iter().map(TrackId).collect(), 0, None, &mut rng);
     q
 }
 
@@ -156,7 +156,7 @@ fn queue_tracks_are_written_once_and_purged() {
     asked.borrow_mut().clear();
     let mut q = queue_of([1, 2, 3]);
     let mut rng = rand::rngs::StdRng::seed_from_u64(1);
-    q.set_context(vec![TrackId(4), TrackId(5)], 0, &mut rng);
+    q.set_context(vec![TrackId(4), TrackId(5)], 0, None, &mut rng);
     save(&store, &q, &asked);
     assert_eq!(*asked.borrow(), [4, 5]);
     let mut expected = q.referenced_ids().iter().map(|id| id.0).collect::<Vec<_>>();

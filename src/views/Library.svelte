@@ -115,7 +115,7 @@
     {#if shownTracks.length === 0}
       <p class="muted">{t.library.noMatch(query.trim())}</p>
     {:else}
-      <TrackList tracks={shownTracks.map((l) => l.track)} />
+      <TrackList tracks={shownTracks.map((l) => l.track)} source={{ kind: "likedTracks" }} />
     {/if}
   {:else}
     <CardGrid items={cards} />

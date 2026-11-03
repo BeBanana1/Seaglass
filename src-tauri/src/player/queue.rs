@@ -12,6 +12,7 @@ use rand::Rng;
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 
+use super::source::PlaySource;
 use crate::tidal::models::TrackId;
 
 const HISTORY_MAX: usize = 500;
@@ -47,6 +48,9 @@ pub struct Queue {
     /// Titre dont la radio prolonge la file épuisée (#78) ; effacé par un nouveau contexte.
     #[serde(default)]
     radio: Option<TrackId>,
+    /// D'où vient le contexte (#124) ; effacé avec lui.
+    #[serde(default)]
+    source: Option<PlaySource>,
 }
 
 impl Queue {
@@ -71,11 +75,13 @@ impl Queue {
         &mut self,
         tracks: Vec<TrackId>,
         start: usize,
+        source: Option<PlaySource>,
         rng: &mut impl Rng,
     ) -> Option<TrackId> {
         let id = *tracks.get(start)?;
         self.push_history();
         self.radio = None;
+        self.source = source;
         self.order = (0..tracks.len()).collect();
         self.context = tracks;
         if self.shuffle {
@@ -164,6 +170,7 @@ impl Queue {
         self.order.clear();
         self.pos = 0;
         self.radio = None;
+        self.source = None;
         if let Some(cur) = &mut self.current {
             cur.from_context = false;
         }
@@ -173,6 +180,20 @@ impl Queue {
     /// Titre dont la radio prolonge la file, s'il y en a une (séparateur de l'UI).
     pub fn radio(&self) -> Option<TrackId> {
         self.radio
+    }
+
+    /// Source du contexte, seulement si le titre courant en vient (pas d'un titre de la file
+    /// manuelle, ni d'un titre de l'historique dont le contexte a été remplacé).
+    pub fn source(&self) -> Option<&PlaySource> {
+        self.current
+            .filter(|c| c.from_context)
+            .and(self.source.as_ref())
+    }
+
+    /// Titre de départ de la radio automatique quand le titre courant en vient (#78, #124).
+    pub fn radio_playing(&self) -> Option<TrackId> {
+        let cur = self.current.filter(|c| c.from_context)?;
+        self.radio.filter(|&seed| seed != cur.id)
     }
 
     /// Une radio peut prolonger la file : rien ne suit le titre courant, sans répétition
@@ -211,6 +232,7 @@ impl Queue {
         self.order = (0..self.context.len()).collect();
         self.pos = 0;
         self.radio = Some(seed);
+        self.source = None;
         if let Some(cur) = &mut self.current {
             cur.from_context = true;
         }

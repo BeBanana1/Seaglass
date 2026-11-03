@@ -3,11 +3,12 @@
 use tauri::State;
 use tokio::sync::oneshot;
 
+use super::settings::pins::is_uuid;
 use super::{AppState, CmdResult};
 use crate::i18n::{tr, trf};
 use crate::player::sleep::SleepRequest;
 use crate::player::volume::Volume;
-use crate::player::{Cmd, PlayerState, QueueView, Repeat};
+use crate::player::{Cmd, PlaySource, PlayerState, QueueView, Repeat};
 use crate::tidal::models::TrackId;
 
 const MAX_CONTEXT_LEN: usize = 10_000;
@@ -16,12 +17,14 @@ const _: () = assert!(crate::tidal::LIBRARY_MAX <= MAX_CONTEXT_LEN);
 
 /// Lit `track_ids` comme contexte (album, playlist, résultats de recherche) à partir de
 /// `start_index`. Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard.
+/// `source` (#124) n'est qu'affichée : invalide, elle est ignorée sans refuser la lecture.
 #[tauri::command]
 pub async fn play_tracks(
     state: State<'_, AppState>,
     track_ids: Vec<u64>,
     start_index: usize,
     shuffle: Option<bool>,
+    source: Option<PlaySource>,
 ) -> CmdResult<()> {
     if track_ids.is_empty() || track_ids.len() > MAX_CONTEXT_LEN {
         return Err(trf!(
@@ -43,6 +46,7 @@ pub async fn play_tracks(
             ids,
             start: start_index,
             shuffle: shuffle.unwrap_or(false),
+            source: source.and_then(|s| s.sanitize(is_uuid)),
         },
     )
     .await
