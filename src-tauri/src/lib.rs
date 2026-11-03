@@ -1,3 +1,5 @@
+#[cfg(target_os = "android")]
+mod android;
 mod commands;
 mod engine;
 mod i18n;
@@ -39,8 +41,12 @@ pub fn run() {
         )
         .init();
 
-    desktop_builder(tauri::Builder::default())
+    platform_builder(tauri::Builder::default())
         .setup(|app| {
+            #[cfg(target_os = "android")]
+            if let Err(e) = android::init_tls() {
+                tracing::error!("vérification HTTPS d'Android indisponible : {e}");
+            }
             let tidal = Arc::new(TidalClient::new()?);
             let store = open_store(app);
             // Avant le lecteur : ses toasts et les requêtes TIDAL suivent la langue.
@@ -166,7 +172,7 @@ pub fn run() {
 
 /// Plugins et comportement de fenêtre du bureau.
 #[cfg(desktop)]
-fn desktop_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     builder
         // Une seule instance (#83) : relancer Seaglass, par exemple pendant qu'il est réduit
         // dans la zone de notification, réaffiche la fenêtre existante au lieu d'ouvrir un
@@ -198,9 +204,12 @@ fn desktop_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri:
         })
 }
 
-/// Android : ni zone de notification, ni démarrage auto, ni mises à jour par le plugin.
+/// Android : ni zone de notification, ni démarrage auto, ni mises à jour par le plugin ;
+/// le pont natif Kotlin à la place.
 #[cfg(mobile)]
-fn desktop_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(tauri_plugin_seaglass_mobile::init());
     builder
 }
 

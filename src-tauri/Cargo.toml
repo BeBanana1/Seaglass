@@ -38,6 +38,15 @@ tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
 
+# Android : vérification HTTPS par le magasin de certificats du système (#24), initialisée au
+# démarrage avec la JVM et le contexte posés par tao. Déjà tirées par reqwest et tauri.
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.22"
+ndk-context = "0.1"
+rustls-platform-verifier = "0.7"
+# Pont natif (Kotlin) : connexion TIDAL dans sa propre WebView, puis Media3.
+tauri-plugin-seaglass-mobile = { path = "plugins/seaglass-mobile" }
+
 [target.'cfg(windows)'.dependencies]
 # Même version que celle tirée par Tauri : aucune compilation supplémentaire.
 windows = { version = "0.62", features = [
