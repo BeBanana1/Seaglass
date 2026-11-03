@@ -257,6 +257,12 @@
     font-size: 0;
   }
 
+  /* Android (#146) : le signal ne circule que pendant la lecture (`background-position`
+     animé repeint l'élément à chaque image). */
+  :global(:root[data-platform="android"]:not([data-playing="true"])) .wire {
+    animation: none;
+  }
+
   @keyframes flow {
     to {
       background-position: -200% 0;

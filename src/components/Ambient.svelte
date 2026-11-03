@@ -39,6 +39,12 @@
       drift 40s ease-in-out infinite alternate;
   }
 
+  /* Android (#146) : pas de dérive. Ce calque flouté à 90 px, animé sans fin (même en
+     pause), faisait recomposer l'écran à chaque image ; le fondu entre deux pochettes reste. */
+  :global(:root[data-platform="android"]) img {
+    animation: fade 1.2s ease-out;
+  }
+
   .veil {
     position: absolute;
     inset: 0;

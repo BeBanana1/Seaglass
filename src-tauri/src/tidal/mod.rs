@@ -55,8 +55,9 @@ pub enum TidalError {
     Auth(String),
     #[error("{}", trf!("erreur API TIDAL {} : {}", "TIDAL API error {}: {}", .status, .message))]
     Api { status: u16, message: String },
+    /// Toujours sans URL (voir `From<reqwest::Error>`).
     #[error("{}", trf!("réseau : {}", "network: {}", .0))]
-    Http(#[from] reqwest::Error),
+    Http(reqwest::Error),
     #[error("{}", trf!("réponse inattendue : {}", "unexpected response: {}", .0))]
     Decode(String),
     /// La ressource a changé depuis sa lecture (ETag périmé, titre déplacé). Message déjà
@@ -76,3 +77,33 @@ pub enum TidalError {
 }
 
 pub type Result<T> = std::result::Result<T, TidalError>;
+
+/// L'URL est retirée de l'erreur : celles des segments sont signées (`?token=…`) et le
+/// message finit dans les journaux et dans les toasts (#144).
+impl From<reqwest::Error> for TidalError {
+    fn from(e: reqwest::Error) -> Self {
+        Self::Http(e.without_url())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::TidalError;
+
+    /// Une erreur réseau sur une URL signée ne garde ni l'URL ni sa signature (#144).
+    #[tokio::test]
+    async fn network_errors_drop_the_signed_url() {
+        let raw = reqwest::Client::new()
+            .get("http://127.0.0.1:9/segment.mp4?token=secret-signature")
+            .timeout(Duration::from_millis(1))
+            .send()
+            .await
+            .expect_err("délai de 1 ms");
+        assert!(raw.to_string().contains("secret-signature"), "{raw}");
+        let message = TidalError::from(raw).to_string();
+        assert!(!message.contains("secret-signature"), "{message}");
+        assert!(!message.contains("127.0.0.1"), "{message}");
+    }
+}

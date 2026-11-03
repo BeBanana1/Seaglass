@@ -17,6 +17,7 @@
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
   import { platform } from "../lib/platform.svelte";
+  import { listSearch } from "../lib/stores/listSearch.svelte";
 
   // Titres likés : l'API les renvoie du plus récent au plus ancien (date du like).
   const TRACK_SORT_KEYS: SortKey[] = ["added", "title", "artist", "album", "duration"];
@@ -67,33 +68,36 @@
 </script>
 
 <section>
-  <div class="top">
-    <h1>{likesPage ? t.library.likedTracks : t.library.title}</h1>
-    <div class="top-actions">
-      {#if tab === "tracks"}<PinButton pin={{ kind: "likedTracks" }} />{/if}
-      <button class="refresh" onclick={() => loadLibrary(tab, true)} disabled={slot.loading}>
-        {t.library.refresh}
-      </button>
-    </div>
-  </div>
-  {#if likesPage}
-    <div class="likes-gap"></div>
-  {:else}
-    <div class="tabs" role="tablist">
-      {#each tabs as id (id)}
-        <button
-          role="tab"
-          aria-selected={id === tab}
-          class:active={id === tab}
-          onclick={() => replace({ name: "library", tab: id })}
-        >
-          {t.library.tabs[id]}
-          {#if library[id].items}<span class="count"
-              >{library[id].items?.length}{library[id].truncated ? "+" : ""}</span
-            >{/if}
+  <!-- Android : titre et onglets masqués pendant une recherche dans les titres likés (#151). -->
+  {#if !listSearch.active}
+    <div class="top">
+      <h1>{likesPage ? t.library.likedTracks : t.library.title}</h1>
+      <div class="top-actions">
+        {#if tab === "tracks"}<PinButton pin={{ kind: "likedTracks" }} />{/if}
+        <button class="refresh" onclick={() => loadLibrary(tab, true)} disabled={slot.loading}>
+          {t.library.refresh}
         </button>
-      {/each}
+      </div>
     </div>
+    {#if likesPage}
+      <div class="likes-gap"></div>
+    {:else}
+      <div class="tabs" role="tablist">
+        {#each tabs as id (id)}
+          <button
+            role="tab"
+            aria-selected={id === tab}
+            class:active={id === tab}
+            onclick={() => replace({ name: "library", tab: id })}
+          >
+            {t.library.tabs[id]}
+            {#if library[id].items}<span class="count"
+                >{library[id].items?.length}{library[id].truncated ? "+" : ""}</span
+              >{/if}
+          </button>
+        {/each}
+      </div>
+    {/if}
   {/if}
 
   {#if slot.error}

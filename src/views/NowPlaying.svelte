@@ -575,6 +575,11 @@
     backdrop-filter: none;
   }
 
+  /* Android (#146) : pas de flou recalculé à chaque image sous la chaîne audio animée. */
+  :global(:root[data-platform="android"]) .signal {
+    backdrop-filter: none;
+  }
+
   :global([data-theme="studio"]) .close,
   :global([data-theme="studio"]) .fullscreen-toggle,
   :global([data-theme="studio"]) .queue-toggle,

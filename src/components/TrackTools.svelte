@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { num, t } from "../lib/i18n.svelte";
+  import { tick } from "svelte";
+  import { t } from "../lib/i18n.svelte";
+  import { platform } from "../lib/platform.svelte";
+  import { setListSearch } from "../lib/stores/listSearch.svelte";
   import type { SortKey, TrackSort } from "../lib/trackOrder";
 
   let {
@@ -19,12 +22,38 @@
     total: number;
   } = $props();
 
+  let root = $state<HTMLElement>();
+  let input = $state<HTMLInputElement>();
+
+  // Android (#151) : mode recherche dès le focus du champ (le clavier va s'ouvrir), quitté
+  // seulement par Annuler ou Retour. Le quitter sur la perte du focus déplacerait la page
+  // sous le doigt entre l'appui et le clic : le clic tomberait sur l'en-tête revenu.
+  let searching = $state(false);
+
+  function enter() {
+    if (!platform.mobile || searching) return;
+    searching = true;
+    // La page masque son en-tête au rendu suivant : le champ remonte alors en haut.
+    tick().then(() => root?.scrollIntoView({ block: "start" }));
+  }
+
+  function leave() {
+    query = "";
+    searching = false;
+    input?.blur();
+  }
+
+  $effect(() => {
+    setListSearch(searching, leave);
+    return () => setListSearch(false, null);
+  });
+
   function setKey(e: Event) {
     sort = { ...sort, key: (e.currentTarget as HTMLSelectElement).value as SortKey };
   }
 </script>
 
-<div class="track-tools">
+<div class="track-tools" class:searching bind:this={root}>
   <!-- Échap vide le champ (comportement natif d'un champ de recherche). -->
   <input
     type="search"
@@ -32,26 +61,36 @@
     placeholder={t.library.filter}
     aria-label={t.library.filter}
     bind:value={query}
+    bind:this={input}
+    onfocus={enter}
     autocomplete="off"
     spellcheck="false"
   />
+  {#if searching}
+    <!-- `mousedown` sans effet : le champ garde le focus jusqu'au clic. -->
+    <button class="search-cancel" onmousedown={(e) => e.preventDefault()} onclick={leave}>
+      {t.common.cancel}
+    </button>
+  {/if}
   {#if query.trim()}
     <span class="count">{t.common.tracksOf(shown, total)}</span>
   {/if}
-  <div class="sort">
-    <select value={sort.key} onchange={setKey} aria-label={t.library.sortBy}>
-      {#each keys as key (key)}
-        <option value={key}>{t.library.sort[key]}</option>
-      {/each}
-    </select>
-    <button
-      class="direction"
-      onclick={() => (sort = { ...sort, descending: !sort.descending })}
-      title={sort.descending ? t.library.descending : t.library.ascending}
-      aria-label={sort.descending ? t.library.descending : t.library.ascending}
-      >{sort.descending ? "↓" : "↑"}</button
-    >
-  </div>
+  {#if !searching}
+    <div class="sort">
+      <select value={sort.key} onchange={setKey} aria-label={t.library.sortBy}>
+        {#each keys as key (key)}
+          <option value={key}>{t.library.sort[key]}</option>
+        {/each}
+      </select>
+      <button
+        class="direction"
+        onclick={() => (sort = { ...sort, descending: !sort.descending })}
+        title={sort.descending ? t.library.descending : t.library.ascending}
+        aria-label={sort.descending ? t.library.descending : t.library.ascending}
+        >{sort.descending ? "↓" : "↑"}</button
+      >
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -120,6 +159,27 @@
   .direction:hover {
     color: var(--text);
     background: var(--bg-hover);
+  }
+
+  /* Android (#151) : champ et Annuler sur la première ligne, compteur en dessous. */
+  .searching .filter {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .searching .count {
+    flex-basis: 100%;
+    padding-left: 14px;
+  }
+
+  .search-cancel {
+    padding: 6px 4px;
+    border: none;
+    color: var(--accent);
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
   }
 
   :global([data-theme="studio"]) .filter {
