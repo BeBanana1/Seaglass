@@ -17,6 +17,8 @@
     actions = true,
     onPlay,
     onRemove,
+    onMoveUp,
+    onMoveDown,
     onRemoveFromPlaylist,
   }: {
     track: Track;
@@ -31,6 +33,9 @@
     actions?: boolean;
     onPlay?: () => void;
     onRemove?: () => void;
+    /** Ligne de la file manuelle : « Monter » / « Descendre » dans le menu (#80). */
+    onMoveUp?: () => void;
+    onMoveDown?: () => void;
     /** Ligne d'une de vos playlists : « Retirer de cette playlist » dans le menu. */
     onRemoveFromPlaylist?: () => void;
   } = $props();
@@ -41,7 +46,7 @@
 
   // Les mêmes entrées au clic droit et sur le bouton « … » (#52).
   function entries() {
-    return trackMenu(track, { onPlay, onRemove, queueable: actions, onRemoveFromPlaylist });
+    return trackMenu(track, { onPlay, onRemove, onMoveUp, onMoveDown, queueable: actions, onRemoveFromPlaylist });
   }
 
   function onContextmenu(e: MouseEvent) {

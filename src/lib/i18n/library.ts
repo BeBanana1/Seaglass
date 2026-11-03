@@ -2,12 +2,23 @@
 
 import { num } from "./state.svelte";
 
+/** Catégories de la bibliothèque chargées avec un plafond (#91). */
+export type LimitedTab = "playlists" | "albums" | "artists" | "tracks";
+
 export const fr = {
   title: "Bibliothèque",
   refresh: "Actualiser",
   tabs: { playlists: "Playlists", mixes: "Mixes", albums: "Albums", artists: "Artistes", tracks: "Titres" },
   empty: "Rien ici pour l'instant.",
   noMatch: (query: string) => `Aucun titre ne correspond à « ${query} ».`,
+  // Catégorie coupée au plafond de chargement (#91) ; `total` inconnu : `null`.
+  truncated: (tab: LimitedTab, shown: number, total: number | null) => {
+    const of = total !== null && total > shown ? ` sur ${num(total)}` : "";
+    if (tab === "playlists") return `Les ${num(shown)} playlists les plus récentes${of} sont affichées.`;
+    const noun = { tracks: "titres likés", albums: "albums", artists: "artistes" }[tab];
+    const text = `Les ${num(shown)} ${noun} les plus récents${of} sont affichés.`;
+    return tab === "tracks" ? `${text} Le filtre, le tri et la lecture ne portent que sur eux.` : text;
+  },
   likedTracks: "Titres likés",
   pinned: "Épinglés",
   unpin: "Désépingler",
@@ -50,6 +61,12 @@ export const en: typeof fr = {
   tabs: { playlists: "Playlists", mixes: "Mixes", albums: "Albums", artists: "Artists", tracks: "Tracks" },
   empty: "Nothing here yet.",
   noMatch: (query: string) => `No tracks match “${query}”.`,
+  truncated: (tab: LimitedTab, shown: number, total: number | null) => {
+    const of = total !== null && total > shown ? ` out of ${num(total)}` : "";
+    const noun = { tracks: "liked tracks", albums: "albums", artists: "artists", playlists: "playlists" }[tab];
+    const text = `Showing the ${num(shown)} most recent ${noun}${of}.`;
+    return tab === "tracks" ? `${text} Filtering, sorting and playback only cover these.` : text;
+  },
   likedTracks: "Liked tracks",
   pinned: "Pinned",
   unpin: "Unpin",

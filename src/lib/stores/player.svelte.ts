@@ -20,6 +20,7 @@ const initial: PlayerState = {
   hasNext: false,
   volume: { level: 100, muted: false },
   hiresOffer: null,
+  mpvIssue: null,
 };
 
 /** L'état est remplacé à chaque `player-state` (~4 Hz pendant la lecture) : `$state.raw`, sans
