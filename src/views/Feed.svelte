@@ -172,4 +172,9 @@
     margin: 0 10px;
     color: var(--danger);
   }
+
+  /* Android (#24) : deux cartes par ligne, comme `CardGrid`. */
+  :global(:root[data-platform="android"]) .items {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
 </style>

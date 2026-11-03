@@ -48,4 +48,14 @@
     overflow-x: auto;
     scrollbar-width: thin;
   }
+
+  /* Android (#24) : deux cartes par ligne sur un téléphone (170 px n'en laissait qu'une). */
+  :global(:root[data-platform="android"]) .items {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  :global(:root[data-platform="android"]) .items.row {
+    grid-auto-columns: 148px;
+    grid-template-columns: none;
+  }
 </style>
