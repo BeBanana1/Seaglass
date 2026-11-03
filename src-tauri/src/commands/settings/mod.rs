@@ -3,6 +3,7 @@
 
 pub mod home_layout;
 pub mod pins;
+pub mod sorts;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
@@ -15,6 +16,7 @@ use crate::player::{Cmd, PlaybackSettings};
 use crate::store::Store;
 use home_layout::{HomeLayout, SectionPref};
 use pins::Pin;
+use sorts::{ListSort, TrackSort};
 
 const KEY_UI: &str = "ui.settings";
 
@@ -64,6 +66,25 @@ pub struct UiSettings {
     pub accent: Option<String>,
     /// Langue de l'app (#7) ; `system` suit la langue d'affichage de Windows.
     pub language: LanguagePref,
+    /// Tri mémorisé par playlist et pour les titres likés, le plus récent en tête (#93).
+    pub sorts: Vec<ListSort>,
+    /// Fermer la fenêtre principale : quitter, ou réduire dans la zone de notification (#83).
+    pub close_action: CloseAction,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CloseAction {
+    #[default]
+    Quit,
+    Tray,
+}
+
+impl UiSettings {
+    /// Reporte les réglages lus par le backend hors des commandes (fermeture de la fenêtre).
+    pub(crate) fn apply_to_backend(&self) {
+        crate::integrations::tray::set_close_to_tray(self.close_action == CloseAction::Tray);
+    }
 }
 
 /// N'accepte que `#rrggbb` (mis en minuscules) : la valeur part telle quelle dans le CSS.
@@ -118,6 +139,7 @@ pub async fn ui_settings(state: State<'_, AppState>) -> CmdResult<UiSettings> {
 pub async fn set_ui_settings(state: State<'_, AppState>, settings: UiSettings) -> CmdResult<()> {
     save(&state, &settings)?;
     i18n::set(settings.language.resolve());
+    settings.apply_to_backend();
     Ok(())
 }
 
@@ -170,6 +192,20 @@ pub async fn set_pins(state: State<'_, AppState>, pins: Vec<Pin>) -> CmdResult<V
     settings.pins = pins::normalize(pins).map_err(err)?;
     save(&state, &settings)?;
     Ok(settings.pins)
+}
+
+/// Mémorise le tri d'une liste (uuid de playlist ou `likedTracks`), ou l'oublie avec
+/// `null` ; renvoie les tris enregistrés, que l'UI reporte dans sa copie des réglages.
+#[tauri::command]
+pub async fn set_list_sort(
+    state: State<'_, AppState>,
+    list: String,
+    sort: Option<TrackSort>,
+) -> CmdResult<Vec<ListSort>> {
+    let mut settings = load(&state);
+    sorts::update(&mut settings.sorts, &list, sort).map_err(err)?;
+    save(&state, &settings)?;
+    Ok(settings.sorts)
 }
 
 #[tauri::command]
@@ -232,6 +268,17 @@ pub async fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<bool> {
     manager.is_enabled().map_err(err)
 }
 
+/// Une entrée `Run` créée par une version antérieure à #83 n'a pas `--minimized` : réécrite au lancement si
+/// elle est active (désactivée dans le Gestionnaire des tâches, elle n'est pas touchée).
+pub(crate) fn refresh_autostart(app: &AppHandle) {
+    let manager = app.autolaunch();
+    if manager.is_enabled().unwrap_or(false)
+        && let Err(e) = manager.enable()
+    {
+        tracing::warn!("lancement au démarrage non mis à jour : {e}");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,12 +331,22 @@ mod tests {
         }
     }
 
+    #[test]
+    fn close_action_defaults_to_quit() {
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"studio"}"#).unwrap();
+        assert_eq!(s.close_action, CloseAction::Quit);
+        let s: UiSettings = serde_json::from_str(r#"{"closeAction":"tray"}"#).unwrap();
+        assert_eq!(s.close_action, CloseAction::Tray);
+        assert!(serde_json::from_str::<UiSettings>(r#"{"closeAction":"hide"}"#).is_err());
+    }
+
     /// Les réglages enregistrés avant l'accueil personnalisable restent lisibles.
     #[test]
     fn home_layout_defaults_and_round_trips() {
         let s: UiSettings = serde_json::from_str(r#"{"theme":"atelier"}"#).unwrap();
         assert_eq!(s.home, HomeLayout::default());
         assert!(s.pins.is_empty());
+        assert!(s.sorts.is_empty());
         assert_eq!(s.accent, None);
         let s: UiSettings =
             serde_json::from_str(r#"{"theme":"studio","home":{"order":["A","B"],"hidden":["B"]}}"#)

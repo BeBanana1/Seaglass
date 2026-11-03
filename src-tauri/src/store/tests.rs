@@ -15,6 +15,8 @@ fn track(id: u64) -> Track {
             id: 1,
             title: "a".into(),
             cover_url: None,
+            cover_small_url: None,
+            cover_large_url: None,
             color: None,
         },
         explicit: false,

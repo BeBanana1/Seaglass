@@ -1,6 +1,7 @@
 //! Infos détaillées d'un titre (#3), à la demande : métadonnées de `tracks/{id}` (BPM,
 //! tonalité, copyright, position) et format réel de `playbackinfopostpaywall`
-//! (profondeur, fréquence, débit du MPD, ReplayGain). Vérifié le 2026-10-30.
+//! (profondeur, fréquence, débit du MPD, ReplayGain). Vérifié le 2026-10-30. Crédits :
+//! `credits.rs` (#84).
 //!
 //! Le format exige une requête de lecture par titre : on ne le demande qu'à l'ouverture
 //! du panneau, jamais pour une liste. Le segment d'initialisation n'est pas téléchargé.
@@ -39,8 +40,16 @@ impl TidalClient {
             .ok_or_else(|| TidalError::Decode(format!("titre {id} sans album")))?;
         self.cache.insert_all([&track]);
 
-        let (playback, edition) =
-            tokio::join!(self.playback(id, QUALITY), self.hires_edition(&track));
+        let (playback, edition, credits) = tokio::join!(
+            self.playback(id, QUALITY),
+            self.hires_edition(&track),
+            self.track_credits(id)
+        );
+        // Les crédits sont un complément : une erreur ne bloque pas le panneau.
+        let credits = credits.unwrap_or_else(|e| {
+            tracing::warn!("crédits de {id} illisibles : {e}");
+            Vec::new()
+        });
         let (stream, stream_error, gains) = match playback {
             Ok((raw, decoded)) => (
                 Some(stream_format(&raw, &decoded)),
@@ -92,6 +101,7 @@ impl TidalClient {
             track_number: raw.track_number,
             volume_number: raw.volume_number,
             hires_edition,
+            credits,
         })
     }
 }

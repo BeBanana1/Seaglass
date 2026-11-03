@@ -5,7 +5,7 @@
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
 // mix|radio|library|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
-// `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
+// `?queue=1`, `?update=1`, `?autostart=1`, `?tray=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
 // `?trackinfo=1` (ouvre les infos du titre en cours), `?autoradio=1` (la suite de la file est
@@ -13,7 +13,8 @@
 // remplacés par n titres synthétiques, 10 000 au plus), `?ticks=1` (`player-state` émis à 4 Hz
 // pendant la lecture, comme le vrai backend) : mesure des longues listes (#88), `?sleep=30|track`
 // (minuteur de mise en veille actif), `?device=dac|missing` (périphérique de sortie choisi, branché ou
-// débranché).
+// débranché), `?normalization=track|album` (normalisation du volume
+// active).
 
 import type {
   AlbumPage,
@@ -48,6 +49,7 @@ import type {
   Track,
   TrackEntry,
   TrackInfo,
+  TrackSort,
   UiSettings,
 } from "../ipc";
 import type { LibraryTab, Route, SettingsSection } from "../stores/nav.svelte";
@@ -159,6 +161,8 @@ const state: PlayerState = {
     muted: volumeParam === "muted",
   },
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
+  // Calculé plus bas, après les réglages de lecture factices.
+  normalization: null,
   sleep: mockSleep(params.get("sleep")),
   /** `?mpv=cpu` ou `?mpv=stopped` : bandeau « mpv ne tourne pas » (#92). */
   mpvIssue: params.get("mpv") === "cpu" ? "cpuUnsupported" : params.get("mpv") === "stopped" ? "stopped" : null,
@@ -176,6 +180,9 @@ let ui: UiSettings = {
   accent: params.get("accent") ? `#${params.get("accent")}` : null,
   // `?lang=en` : interface en anglais.
   language: (params.get("lang") as LanguagePref) ?? "system",
+  // `?tray=1` : fermer la fenêtre la réduit dans la zone de notification (#83).
+  closeAction: params.has("tray") ? "tray" : "quit",
+  sorts: [],
 };
 
 /** « Système » du backend factice : la langue du navigateur. */
@@ -197,6 +204,8 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
     .sort((a, b) => rank(a.r.key) - rank(b.r.key) || a.i - b.i)
     .map(({ r }) => ({ ...r, hidden: layout.hidden.includes(r.key) }));
 }
+// `?normalization=track|album` : normalisation active (gain factice de −6,5 dB).
+const normalizationParam = params.get("normalization") as PlaybackSettings["normalization"] | null;
 // `?device=missing` : le périphérique choisi est débranché ; `?device=dac` : il est branché.
 const DAC = { id: "wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}", name: "Haut-parleurs (Focusrite USB Audio)" };
 const SPEAKERS = { id: "wasapi/{0d7e4c2b-58a1-4c5e-9f1e-3b2a9c1d7e44}", name: "Haut-parleurs (Realtek(R) Audio)" };
@@ -206,6 +215,7 @@ let playback: PlaybackSettings = {
   hiresUpgrade: hiresOfferParam ? "ask" : "auto",
   audioDevice: deviceParam ? DAC : null,
   autoRadio: radioSeed !== null,
+  normalization: normalizationParam ?? "off",
 };
 const audioDevices: AudioDevices = {
   devices: deviceParam === "missing" ? [SPEAKERS] : [SPEAKERS, DAC],
@@ -220,6 +230,11 @@ function outputDevice(): OutputDevice {
   return { name: SPEAKERS.name, systemDefault: true, missing: chosen ? chosen.name : null };
 }
 state.outputDevice = outputDevice();
+/** Gain factice : −6,5 dB par titre, −4 dB par album. */
+function mockGain(): number | null {
+  return playback.normalization === "off" ? null : playback.normalization === "track" ? -6.5 : -4;
+}
+state.normalization = mockGain();
 let autostart = params.has("autostart");
 
 type Listener = (e: { payload: unknown }) => void;
@@ -455,7 +470,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return u;
   },
   set_ui_settings: ({ settings }) => {
-    ui = settings as UiSettings;
+    // Proxy Svelte : copie en JSON (voir les épingles dans CLAUDE.md).
+    ui = JSON.parse(JSON.stringify(settings)) as UiSettings;
   },
   language: () => effectiveLanguage(ui.language),
   set_language: ({ language }) => {
@@ -470,6 +486,17 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   reset_home_layout: () => (ui.home = { order: [], hidden: [] }),
   // Copie JSON : l'UI envoie des proxys Svelte, que `structuredClone` refuse.
   set_pins: ({ pins }) => (ui.pins = JSON.parse(JSON.stringify(pins))),
+  // Comme le backend : le plus récent en tête, le tri par défaut de la liste est oublié.
+  set_list_sort: ({ list, sort }) => {
+    const id = list as string;
+    const next = sort as TrackSort | null;
+    const fallback = id === "likedTracks" ? "added:true" : "position:false";
+    ui.sorts = (ui.sorts ?? []).filter((s) => s.list !== id);
+    if (next && `${next.key}:${next.descending}` !== fallback) {
+      ui.sorts.unshift({ list: id, key: next.key, descending: next.descending });
+    }
+    return ui.sorts;
+  },
   playback_settings: () => playback,
   // Même validation que le backend : seules les tailles proposées sont acceptées.
   set_playback_settings: ({ settings }) => {
@@ -479,6 +506,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     }
     playback = JSON.parse(JSON.stringify(next));
     state.outputDevice = outputDevice();
+    state.normalization = mockGain();
     emit("player-state", state);
   },
   audio_devices: () => audioDevices,
@@ -666,6 +694,20 @@ function mockTrackInfo(trackId: number): TrackInfo {
             played: playback.hiresUpgrade === "auto",
           }
         : null,
+    credits: [
+      { role: "Composer", contributors: track.artists.map((a) => ({ name: a.name, artistId: a.id })) },
+      { role: "Lyricist", contributors: [{ name: "Ann Demo", artistId: null }] },
+      {
+        role: "Electric Guitar",
+        contributors: [
+          { name: track.artists[0]?.name ?? "Demo", artistId: track.artists[0]?.id ?? null },
+          { name: "Bob Session", artistId: null },
+        ],
+      },
+      { role: "Producer", contributors: [{ name: "Carla Studio", artistId: null }] },
+      { role: "Mastering Engineer", contributors: [{ name: "Dan Lathe", artistId: null }] },
+      { role: "Theremin Wrangler", contributors: [{ name: "Eve Unknown", artistId: null }] },
+    ],
   };
 }
 

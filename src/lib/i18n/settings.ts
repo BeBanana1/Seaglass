@@ -80,6 +80,18 @@ export const fr = {
     "Appliqué tout de suite, sans interrompre la lecture. Le cache reste en mémoire : rien " +
     "n'est écrit sur disque.",
 
+  normalization: "Normalisation du volume",
+  normalizationHint:
+    "Ramène les titres au même volume perçu avec le ReplayGain fourni par le service, sans " +
+    "jamais écrêter. Le signal n'est alors plus bit-perfect.",
+  normalizationModes: {
+    off: { label: "Désactivée", note: "Le signal est transmis tel quel." },
+    track: { label: "Par titre", note: "Chaque titre au même volume : idéal en lecture aléatoire." },
+    album: {
+      label: "Par album",
+      note: "Les écarts voulus entre les titres d'un album sont gardés (gain du titre s'il manque).",
+    },
+  },
   outputDevice: "Sortie audio",
   outputDeviceHint:
     "Périphérique sur lequel Seaglass joue, sans changer celui des autres applications. " +
@@ -116,7 +128,17 @@ export const fr = {
 
   startup: "Démarrage",
   autostart: "Lancer Seaglass à l'ouverture de session",
-  autostartHint: "Réglage de Windows : il peut aussi être changé dans le Gestionnaire des tâches.",
+  autostartHint:
+    "Seaglass démarre alors réduit dans la zone de notification. Réglage de Windows : il peut aussi être changé dans le Gestionnaire des tâches.",
+
+  window: "Fenêtre",
+  closeAction: "Fermer la fenêtre",
+  closeActionHint: "Ce que fait le bouton de fermeture. L'icône de la zone de notification affiche la fenêtre et pilote la lecture.",
+  closeActions: { quit: "Quitter Seaglass", tray: "Réduire dans la zone de notification" },
+  closeActionNotes: {
+    quit: "La lecture s'arrête avec l'app.",
+    tray: "La musique continue ; « Quitter » dans le menu de l'icône ferme l'app.",
+  },
 
   updates: "Mises à jour",
   checkUpdates: "Vérifier les mises à jour",
@@ -219,6 +241,18 @@ export const en: typeof fr = {
   megabytes: (n: number) => `${num(n)} MB`,
   cacheNote: "Applied right away, without interrupting playback. The cache stays in memory: nothing is written to disk.",
 
+  normalization: "Volume normalization",
+  normalizationHint:
+    "Brings tracks to the same perceived loudness using the ReplayGain provided by the " +
+    "service, without ever clipping. The signal is then no longer bit-perfect.",
+  normalizationModes: {
+    off: { label: "Off", note: "The signal is passed through untouched." },
+    track: { label: "Per track", note: "Every track at the same loudness: best for shuffle." },
+    album: {
+      label: "Per album",
+      note: "Keeps the intended differences between an album's tracks (track gain if missing).",
+    },
+  },
   outputDevice: "Audio output",
   outputDeviceHint:
     "Device Seaglass plays on, without changing the one used by other apps. If it is " +
@@ -252,7 +286,17 @@ export const en: typeof fr = {
 
   startup: "Startup",
   autostart: "Launch Seaglass when you sign in",
-  autostartHint: "A Windows setting: it can also be changed in Task Manager.",
+  autostartHint:
+    "Seaglass then starts minimized to the notification area. A Windows setting: it can also be changed in Task Manager.",
+
+  window: "Window",
+  closeAction: "Close the window",
+  closeActionHint: "What the close button does. The notification area icon shows the window and controls playback.",
+  closeActions: { quit: "Quit Seaglass", tray: "Minimize to the notification area" },
+  closeActionNotes: {
+    quit: "Playback stops with the app.",
+    tray: "The music keeps playing; “Quit” in the icon's menu closes the app.",
+  },
 
   updates: "Updates",
   checkUpdates: "Check for updates",

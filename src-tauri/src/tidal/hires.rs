@@ -127,6 +127,8 @@ mod tests {
                 id,
                 title: album.into(),
                 cover_url: None,
+                cover_small_url: None,
+                cover_large_url: None,
                 color: None,
             },
             explicit: false,

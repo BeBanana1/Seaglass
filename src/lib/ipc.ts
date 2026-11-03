@@ -13,7 +13,12 @@ export interface ArtistRef {
 export interface AlbumRef {
   id: number;
   title: string;
+  /** Pochette 320×320. */
   coverUrl: string | null;
+  /** 160×160 et 640×640 (#89). Toujours envoyées par le backend (déduites de la 320 pour un titre
+   *  enregistré avant 0.4.36), absentes des anciennes fixtures : voir `coverSmall`. */
+  coverSmallUrl?: string | null;
+  coverLargeUrl?: string | null;
   /** Couleur dominante de la pochette (`#rrggbb`). */
   color: string | null;
 }
@@ -82,6 +87,20 @@ export interface TrackInfo {
   volumeNumber: number | null;
   /** Autre édition hi-res du même enregistrement, si le titre n'est pas hi-res. */
   hiresEdition: HiresEdition | null;
+  /** Crédits groupés par rôle, rangés par le backend ; vide si TIDAL n'en a pas (#84). */
+  credits: CreditGroup[];
+}
+
+export interface CreditGroup {
+  /** Texte libre en anglais (`Composer`, `Bass guitar`…), traduit par `creditRole`. */
+  role: string;
+  contributors: Contributor[];
+}
+
+export interface Contributor {
+  name: string;
+  /** Artiste TIDAL (page artiste), s'il y en a un. */
+  artistId: number | null;
 }
 
 export interface HiresEdition {
@@ -142,6 +161,9 @@ export interface PlayerState {
   /** Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son format,
    *  l'album dans `hiresEdition`. */
   hiresOffer: StreamFormat | null;
+  /** Gain de normalisation appliqué au titre courant, en dB (#82) ; `null` si le signal
+   *  n'est pas modifié. */
+  normalization: number | null;
   /** Minuteur de mise en veille actif (#85). */
   sleep: SleepState | null;
   /** mpv ne tourne pas, avec sa cause probable (#92) ; `null` quand tout va bien. */
@@ -175,6 +197,8 @@ export interface AlbumSummary {
   title: string;
   artists: ArtistRef[];
   coverUrl: string | null;
+  /** 640×640 (#89). */
+  coverLargeUrl?: string | null;
   color: string | null;
   /** `AAAA-MM-JJ`. */
   releaseDate: string | null;
@@ -331,6 +355,19 @@ export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal" |
 /** Raccourci de la barre latérale ; le titre d'une playlist est gardé pour l'afficher sans requête. */
 export type Pin = { kind: "playlist"; uuid: string; title: string } | { kind: "likedTracks" };
 
+/** Critères de tri d'une liste de titres (#1, #2). */
+export type SortKey = "position" | "added" | "title" | "artist" | "album" | "duration";
+
+export interface TrackSort {
+  key: SortKey;
+  descending: boolean;
+}
+
+/** Tri mémorisé d'une liste (#93) : uuid de playlist, ou `likedTracks`. */
+export interface ListSort extends TrackSort {
+  list: string;
+}
+
 export interface UiSettings {
   theme: Theme;
   home: HomeLayout;
@@ -339,7 +376,13 @@ export interface UiSettings {
   accent: string | null;
   /** Langue choisie (#7) ; `system` suit la langue d'affichage de Windows. */
   language: LanguagePref;
+  /** Fermer la fenêtre : quitter, ou réduire dans la zone de notification (#83). */
+  closeAction: CloseAction;
+  /** Tris mémorisés, le plus récent en tête (#93). */
+  sorts: ListSort[];
 }
+
+export type CloseAction = "quit" | "tray";
 
 /** Langue effective de l'app, décidée par le backend. */
 export type Lang = "fr" | "en";
@@ -351,12 +394,17 @@ export type CacheSize = 32 | 64 | 128 | 256;
 
 export type HiresUpgrade = "auto" | "ask" | "off";
 
+/** Normalisation du volume par ReplayGain (#82). */
+export type Normalization = "off" | "track" | "album";
+
 /** Réglages de lecture, stockés à part des réglages d'UI. */
 export interface PlaybackSettings {
   cacheSize: CacheSize;
   /** Édition hi-res d'un titre qui n'en a pas (même enregistrement) : la lire à sa place,
    *  la proposer (#59) ou l'ignorer. */
   hiresUpgrade: HiresUpgrade;
+  /** Désactivée par défaut : seul mode qui laisse le signal intact. */
+  normalization: Normalization;
   /** Périphérique de sortie choisi (#79) ; `null` = périphérique par défaut du système.
    *  Gardé même débranché : le lecteur se replie sur le défaut puis y revient. */
   audioDevice: AudioDevice | null;
@@ -457,6 +505,9 @@ export const commands = {
   resetHomeLayout: () => invoke<HomeLayout>("reset_home_layout"),
   /** Remplace les épingles ; renvoie la liste enregistrée (validée, sans doublons). */
   setPins: (pins: Pin[]) => invoke<Pin[]>("set_pins", { pins }),
+  /** Mémorise le tri d'une liste (`null` : l'oublie) ; renvoie les tris enregistrés. */
+  setListSort: (list: string, sort: TrackSort | null) =>
+    invoke<ListSort[]>("set_list_sort", { list, sort }),
   playbackSettings: () => invoke<PlaybackSettings>("playback_settings"),
   /** Enregistre et applique à chaud (sans recharger le titre en cours). */
   setPlaybackSettings: (settings: PlaybackSettings) =>

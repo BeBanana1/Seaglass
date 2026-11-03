@@ -4,6 +4,7 @@
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
+use super::normalize::Normalization;
 use crate::mpv::{AudioDevice, CacheSize};
 use crate::store::Store;
 
@@ -17,6 +18,8 @@ pub struct PlaybackSettings {
     /// Titre sans version hi-res : lire l'édition hi-res du même enregistrement si elle
     /// existe (#18), ou la proposer (#59).
     pub hires_upgrade: HiresUpgrade,
+    /// Normalisation du volume par ReplayGain (#82), désactivée par défaut.
+    pub normalization: Normalization,
     /// Périphérique de sortie choisi (#79) ; `None` = périphérique par défaut du système.
     /// Gardé même débranché : le lecteur se replie sur le défaut et y revient au
     /// rebranchement.
@@ -93,12 +96,13 @@ mod tests {
             HiresUpgrade::Auto,
             "automatique par défaut, y compris depuis une 0.4.7"
         );
+        assert_eq!(s.normalization, Normalization::Off, "désactivée par défaut");
         let s: PlaybackSettings = serde_json::from_str(r#"{"cacheSize":256}"#).unwrap();
         assert_eq!(s.cache_size, CacheSize::Mib256);
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto","audioDevice":null,"autoRadio":false}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"autoRadio":false}"#
         );
         assert!(!s.auto_radio, "radio automatique désactivée par défaut");
     }

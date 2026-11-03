@@ -3,6 +3,7 @@
   import { player } from "../lib/stores/player.svelte";
   import {
     formatStream,
+    gainLabel,
     kbps,
     khz,
     outputFormat,
@@ -23,10 +24,14 @@
   } = $props();
 
   const s = $derived(player.state);
-  const verdict = $derived(signalVerdict(s.stream, s.output, s.volume));
+  const verdict = $derived(signalVerdict(s.stream, s.output, s.volume, s.normalization));
   /** Sous-titre du nœud mpv : format de sortie, et le volume s'il modifie le signal. */
   const decodeSub = $derived(
-    [s.output ? outputFormat(s.output.format) : "—", softwareGain(s.volume) ? t.player.volumeShort(volumeLabel(s.volume)) : ""]
+    [
+      s.output ? outputFormat(s.output.format) : "—",
+      s.normalization !== null ? `RG ${gainLabel(s.normalization)}` : "",
+      softwareGain(s.volume) ? t.player.volumeShort(volumeLabel(s.volume)) : "",
+    ]
       .filter(Boolean)
       .join(" · "),
   );

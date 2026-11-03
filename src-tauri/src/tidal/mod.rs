@@ -5,6 +5,7 @@ pub mod auth;
 pub mod cache;
 mod catalog;
 mod collection;
+mod credits;
 mod date;
 mod feed;
 mod hires;

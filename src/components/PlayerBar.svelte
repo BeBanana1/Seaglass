@@ -1,6 +1,6 @@
 <script lang="ts">
   import { player } from "../lib/stores/player.svelte";
-  import { fullTitle } from "../lib/format";
+  import { coverSmall, fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
   import HiresOffer from "./HiresOffer.svelte";
@@ -28,7 +28,7 @@
   <div class="now">
     {#if track}
       <button class="cover" onclick={onOpenNowPlaying} title={t.player.openNowPlaying}>
-        {#if track.album.coverUrl}<img src={track.album.coverUrl} alt="" />{/if}
+        {#if track.album.coverUrl}<img src={coverSmall(track.album)} alt="" />{/if}
         <span class="expand"><Icon name="add" size={14} /></span>
       </button>
       <div class="meta">

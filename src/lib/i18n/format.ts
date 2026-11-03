@@ -22,6 +22,9 @@ export const fr = {
     gainDetail: (level: number) =>
       `volume ${level} % : gain appliqué par mpv, plus bit-perfect (100 % pour le rétablir)`,
     withVolume: (detail: string, volume: string) => `${detail} ; volume ${volume}`,
+    normalizedLabel: "Volume normalisé",
+    normalizedDetail: (gain: string) => `ReplayGain ${gain} appliqué par mpv, plus bit-perfect`,
+    withNormalization: (detail: string, gain: string) => `${detail} ; ReplayGain ${gain}`,
     noStream: "Aucun flux",
     lossyLabel: "Compressé",
     lossyDetail: "flux AAC avec perte",
@@ -62,6 +65,9 @@ export const en: typeof fr = {
     gainDetail: (level: number) =>
       `volume ${level}%: gain applied by mpv, no longer bit-perfect (set 100% to restore)`,
     withVolume: (detail: string, volume: string) => `${detail}; volume ${volume}`,
+    normalizedLabel: "Normalized volume",
+    normalizedDetail: (gain: string) => `ReplayGain ${gain} applied by mpv, no longer bit-perfect`,
+    withNormalization: (detail: string, gain: string) => `${detail}; ReplayGain ${gain}`,
     noStream: "No stream",
     lossyLabel: "Compressed",
     lossyDetail: "lossy AAC stream",

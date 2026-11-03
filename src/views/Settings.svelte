@@ -4,13 +4,15 @@
     commands,
     type AudioDevice,
     type CacheSize,
+    type CloseAction,
     type HiresUpgrade,
     type LanguagePref,
+    type Normalization,
     type PlaybackSettings,
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
-  import { ui } from "../lib/stores/ui.svelte";
+  import { setCloseAction, ui } from "../lib/stores/ui.svelte";
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
@@ -22,12 +24,17 @@
 
   const LANGUAGES: LanguagePref[] = ["system", "fr", "en"];
 
+  const CLOSE_ACTIONS: CloseAction[] = ["quit", "tray"];
+
   const CACHE_SIZES: CacheSize[] = [32, 64, 128, 256];
 
   const HIRES_MODES: HiresUpgrade[] = ["auto", "ask", "off"];
+
+  const NORMALIZATION_MODES: Normalization[] = ["off", "track", "album"];
   let playback = $state<PlaybackSettings | null>(null);
   const cacheSize = $derived(playback?.cacheSize ?? null);
   const hiresUpgrade = $derived(playback?.hiresUpgrade ?? null);
+  const normalization = $derived(playback?.normalization ?? null);
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
 
@@ -67,8 +74,21 @@
     }
   }
 
+  async function chooseCloseAction(action: CloseAction) {
+    if (action === ui.settings.closeAction) return;
+    try {
+      await setCloseAction(action);
+    } catch (e) {
+      fail(e);
+    }
+  }
+
   function setCacheSize(size: CacheSize) {
     if (playback && size !== playback.cacheSize) savePlayback({ ...playback, cacheSize: size });
+  }
+
+  function setNormalization(mode: Normalization) {
+    if (playback && mode !== playback.normalization) savePlayback({ ...playback, normalization: mode });
   }
 
   function setAudioDevice(device: AudioDevice | null) {
@@ -208,6 +228,26 @@
       <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
     </div>
     <div class="group">
+      <h2>{t.settings.normalization}</h2>
+      <p class="hint">{t.settings.normalizationHint}</p>
+      <!-- Le mode exclusif / bit-perfect (phase 5) devra griser ces choix. -->
+      <div class="cache-sizes normalization-modes" role="radiogroup" aria-label={t.settings.normalization}>
+        {#each NORMALIZATION_MODES as mode (mode)}
+          <button
+            class="cache-size hires-mode normalization-mode"
+            class:selected={normalization === mode}
+            role="radio"
+            aria-checked={normalization === mode}
+            disabled={normalization === null}
+            onclick={() => setNormalization(mode)}
+          >
+            {t.settings.normalizationModes[mode].label}
+          </button>
+        {/each}
+      </div>
+      <p class="note">{normalization ? t.settings.normalizationModes[normalization].note : ""}</p>
+    </div>
+    <div class="group">
       <h2>{t.settings.queueEnd}</h2>
       <label class="setting-row">
         <span class="text">
@@ -228,6 +268,25 @@
       </label>
     </div>
   {:else}
+    <div class="group">
+      <h2>{t.settings.window}</h2>
+      <p class="hint">{t.settings.closeActionHint}</p>
+      <div class="cache-sizes close-actions" role="radiogroup" aria-label={t.settings.closeAction}>
+        {#each CLOSE_ACTIONS as action (action)}
+          <button
+            class="cache-size close-action"
+            class:selected={ui.settings.closeAction === action}
+            role="radio"
+            aria-checked={ui.settings.closeAction === action}
+            onclick={() => chooseCloseAction(action)}
+          >
+            {t.settings.closeActions[action]}
+          </button>
+        {/each}
+      </div>
+      <p class="note">{t.settings.closeActionNotes[ui.settings.closeAction]}</p>
+    </div>
+
     <div class="group">
       <h2>{t.settings.startup}</h2>
       <label class="setting-row">
