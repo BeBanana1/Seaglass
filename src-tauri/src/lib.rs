@@ -10,10 +10,11 @@ mod updater;
 use std::sync::Arc;
 
 use tauri::path::BaseDirectory;
-use tauri::{Manager, RunEvent};
+use tauri::{Manager, RunEvent, WindowEvent};
 use tracing_subscriber::EnvFilter;
 
 use commands::AppState;
+use integrations::tray;
 use mpv::process::ProcessGuard;
 use store::Store;
 use tidal::TidalClient;
@@ -31,11 +32,34 @@ pub fn run() {
         .init();
 
     tauri::Builder::default()
+        // Une seule instance (#83) : relancer Seaglass, par exemple pendant qu'il est réduit
+        // dans la zone de notification, réaffiche la fenêtre existante au lieu d'ouvrir un
+        // second lecteur. Enregistré en premier, comme le demande le plugin.
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if tray::show_on_second_launch(args) {
+                tray::show_main(app);
+            }
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         // Lancement au démarrage (clé `Run` de l'utilisateur, exe courant). Piloté
-        // seulement par les commandes `settings` : aucune permission côté UI.
-        .plugin(tauri_plugin_autostart::Builder::new().build())
+        // seulement par les commandes `settings` : aucune permission côté UI. L'app lancée
+        // ainsi démarre cachée dans la zone de notification (#83).
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .arg(tray::MINIMIZED_ARG)
+                .build(),
+        )
         .manage(UpdateState::default())
+        // Réglage « Fermer la fenêtre » sur « Réduire » : la fenêtre principale est cachée.
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event
+                && window.label() == "main"
+                && tray::hide_on_close()
+            {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .setup(|app| {
             let tidal = Arc::new(TidalClient::new()?);
             let mpv_conf = app
@@ -43,11 +67,10 @@ pub fn run() {
                 .resolve("mpv/seaglass.conf", BaseDirectory::Resource)?;
             let store = open_store(app);
             // Avant le lecteur : ses toasts et les requêtes TIDAL suivent la langue.
-            i18n::set(
-                commands::settings::load_from(store.as_deref())
-                    .language
-                    .resolve(),
-            );
+            let ui_settings = commands::settings::load_from(store.as_deref());
+            i18n::set(ui_settings.language.resolve());
+            ui_settings.apply_to_backend();
+            commands::settings::refresh_autostart(app.handle());
             let mpv_process = Arc::new(ProcessGuard::default());
             let player = player::spawn(
                 app.handle().clone(),
@@ -57,6 +80,11 @@ pub fn run() {
                 Arc::clone(&mpv_process),
             );
             attach_integrations(app, &player);
+            // La fenêtre est créée cachée (`visible: false`) : affichée ici, sauf au
+            // lancement au démarrage si l'icône de la zone de notification existe.
+            if !tray::start_hidden(std::env::args()) {
+                tray::show_main(app.handle());
+            }
             app.manage(AppState {
                 tidal,
                 player,
@@ -140,11 +168,14 @@ pub fn run() {
         });
 }
 
-/// SMTC (touches média, panneau Windows), branché sur la fenêtre principale. Un échec
-/// est journalisé sans empêcher l'app de démarrer.
+/// SMTC (touches média, panneau Windows), branché sur la fenêtre principale, et icône de
+/// la zone de notification. Un échec est journalisé sans empêcher l'app de démarrer.
 fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<player::Cmd>) {
-    #[allow(unused_mut)]
     let mut observers = integrations::Observers::default();
+    match tray::create(app.handle(), player.clone()) {
+        Ok(handle) => observers.tray = Some(handle),
+        Err(e) => tracing::warn!("zone de notification indisponible : {e}"),
+    }
     #[cfg(windows)]
     {
         let hwnd = app
@@ -159,7 +190,7 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
     #[cfg(not(windows))]
     let _ = app;
     if player
-        .try_send(player::Cmd::AttachObservers(observers))
+        .try_send(player::Cmd::AttachObservers(Box::new(observers)))
         .is_err()
     {
         tracing::warn!("intégrations non branchées : lecteur indisponible");

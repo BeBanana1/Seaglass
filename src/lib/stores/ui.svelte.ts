@@ -1,7 +1,15 @@
 // Réglages d'interface (thème, couleur d'accent, disposition de l'accueil, épingles),
 // enregistrés côté backend.
 
-import { commands, type HomeSection, type Pin, type Theme, type TrackSort, type UiSettings } from "../ipc";
+import {
+  commands,
+  type CloseAction,
+  type HomeSection,
+  type Pin,
+  type Theme,
+  type TrackSort,
+  type UiSettings,
+} from "../ipc";
 
 /** Thèmes dans l'ordre du sélecteur ; noms et descriptions dans `i18n/settings.ts`. */
 export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal", "solarpunk", "cyberpunk", "neumorph", "neumorph-dark", "terminal", "riso", "bauhaus"];
@@ -14,7 +22,15 @@ export const ui = $state<{
   /** Panneau ouvert dans la vue « En lecture » (mémorisé pour la session). */
   nowPlayingPanel: NowPlayingPanel;
 }>({
-  settings: { theme: "seaglass", home: { order: [], hidden: [] }, pins: [], accent: null, language: "system", sorts: [] },
+  settings: {
+    theme: "seaglass",
+    home: { order: [], hidden: [] },
+    pins: [],
+    accent: null,
+    language: "system",
+    closeAction: "quit",
+    sorts: [],
+  },
   nowPlayingPanel: null,
 });
 
@@ -80,6 +96,18 @@ export async function setAccent(accent: string | null) {
   ui.settings = { ...ui.settings, accent };
   apply();
   await commands.setUiSettings(ui.settings);
+}
+
+/** Réglage « Fermer la fenêtre » (#83), appliqué par le backend à la fermeture. */
+export async function setCloseAction(closeAction: CloseAction) {
+  const previous = ui.settings;
+  ui.settings = { ...ui.settings, closeAction };
+  try {
+    await commands.setUiSettings(ui.settings);
+  } catch (e) {
+    ui.settings = previous;
+    throw e;
+  }
 }
 
 /** Enregistre l'ordre et le masquage des sections de l'accueil, tels qu'affichés. */

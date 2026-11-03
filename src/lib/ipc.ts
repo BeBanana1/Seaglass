@@ -376,9 +376,13 @@ export interface UiSettings {
   accent: string | null;
   /** Langue choisie (#7) ; `system` suit la langue d'affichage de Windows. */
   language: LanguagePref;
+  /** Fermer la fenêtre : quitter, ou réduire dans la zone de notification (#83). */
+  closeAction: CloseAction;
   /** Tris mémorisés, le plus récent en tête (#93). */
   sorts: ListSort[];
 }
+
+export type CloseAction = "quit" | "tray";
 
 /** Langue effective de l'app, décidée par le backend. */
 export type Lang = "fr" | "en";

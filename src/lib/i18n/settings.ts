@@ -124,7 +124,17 @@ export const fr = {
 
   startup: "Démarrage",
   autostart: "Lancer Seaglass à l'ouverture de session",
-  autostartHint: "Réglage de Windows : il peut aussi être changé dans le Gestionnaire des tâches.",
+  autostartHint:
+    "Seaglass démarre alors réduit dans la zone de notification. Réglage de Windows : il peut aussi être changé dans le Gestionnaire des tâches.",
+
+  window: "Fenêtre",
+  closeAction: "Fermer la fenêtre",
+  closeActionHint: "Ce que fait le bouton de fermeture. L'icône de la zone de notification affiche la fenêtre et pilote la lecture.",
+  closeActions: { quit: "Quitter Seaglass", tray: "Réduire dans la zone de notification" },
+  closeActionNotes: {
+    quit: "La lecture s'arrête avec l'app.",
+    tray: "La musique continue ; « Quitter » dans le menu de l'icône ferme l'app.",
+  },
 
   updates: "Mises à jour",
   checkUpdates: "Vérifier les mises à jour",
@@ -268,7 +278,17 @@ export const en: typeof fr = {
 
   startup: "Startup",
   autostart: "Launch Seaglass when you sign in",
-  autostartHint: "A Windows setting: it can also be changed in Task Manager.",
+  autostartHint:
+    "Seaglass then starts minimized to the notification area. A Windows setting: it can also be changed in Task Manager.",
+
+  window: "Window",
+  closeAction: "Close the window",
+  closeActionHint: "What the close button does. The notification area icon shows the window and controls playback.",
+  closeActions: { quit: "Quit Seaglass", tray: "Minimize to the notification area" },
+  closeActionNotes: {
+    quit: "Playback stops with the app.",
+    tray: "The music keeps playing; “Quit” in the icon's menu closes the app.",
+  },
 
   updates: "Updates",
   checkUpdates: "Check for updates",
