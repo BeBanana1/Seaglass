@@ -1,43 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Seaglass : un galet de verre de mer poli, traversé par une onde sonore.
-       Source des icônes : `pnpm tauri icon src-tauri/icons/app-icon.svg`. -->
+  <!-- Seaglass : un vinyle dont l'étiquette est un soleil au-dessus de la mer (#126).
+       Source des icônes : `pnpm tauri icon src-tauri/icons/icon.json`. -->
   <defs>
-    <linearGradient id="glass" x1="0.12" y1="0.08" x2="0.88" y2="0.96">
-      <stop offset="0" stop-color="#b9f5e2" />
-      <stop offset="0.45" stop-color="#4fc2ac" />
-      <stop offset="1" stop-color="#1b5966" />
-    </linearGradient>
-    <radialGradient id="frost" cx="0.3" cy="0.24" r="0.5">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.7" />
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
-    </radialGradient>
-    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55" />
-      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0" />
-      <stop offset="1" stop-color="#0b2e35" stop-opacity="0.45" />
-    </linearGradient>
+    <clipPath id="sky"><path d="M300 300 H724 V488 C 660 568 580 572 512 516 S 380 456 300 540 Z" /></clipPath>
   </defs>
-
-  <!-- Galet, légèrement asymétrique comme un vrai morceau de verre roulé. -->
-  <path
-    id="pebble"
-    d="M530 92 C 770 98 944 262 934 512 C 924 770 744 938 492 930 C 246 922 84 752 92 506 C 100 266 280 86 530 92 Z"
-    fill="url(#glass)"
-  />
-  <path d="M530 92 C 770 98 944 262 934 512 C 924 770 744 938 492 930 C 246 922 84 752 92 506 C 100 266 280 86 530 92 Z" fill="url(#frost)" />
-  <path
-    d="M530 92 C 770 98 944 262 934 512 C 924 770 744 938 492 930 C 246 922 84 752 92 506 C 100 266 280 86 530 92 Z"
-    fill="none"
-    stroke="url(#rim)"
-    stroke-width="22"
-  />
-
-  <!-- Onde sonore. -->
-  <path
-    d="M262 548 C 344 396 430 396 512 532 S 680 668 762 516"
-    fill="none"
-    stroke="#f2fffb"
-    stroke-width="76"
-    stroke-linecap="round"
-  />
+  <circle cx="512" cy="512" r="420" fill="#111417" />
+  <!-- Sillons. -->
+  <g fill="none" stroke="#ffffff" stroke-width="7" opacity="0.12">
+    <circle cx="512" cy="512" r="200" />
+    <circle cx="512" cy="512" r="234" />
+    <circle cx="512" cy="512" r="268" />
+    <circle cx="512" cy="512" r="302" />
+    <circle cx="512" cy="512" r="336" />
+    <circle cx="512" cy="512" r="370" />
+  </g>
+  <!-- Étiquette : la mer, puis le soleil au-dessus de la vague. -->
+  <circle cx="512" cy="512" r="168" fill="#13a89e" />
+  <circle cx="512" cy="512" r="168" fill="#ffb547" clip-path="url(#sky)" />
+  <circle cx="512" cy="512" r="22" fill="#111417" />
 </svg>

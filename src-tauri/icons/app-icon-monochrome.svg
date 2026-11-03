@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Icône thématique d'Android 13+ : silhouette du disque, soleil au-dessus de la vague,
+       à la taille du premier plan adaptatif. -->
+  <defs>
+    <mask id="cut">
+      <rect width="1024" height="1024" fill="#fff" />
+      <circle cx="512" cy="512" r="168" fill="#000" />
+      <path d="M300 300 H724 V488 C 660 568 580 572 512 516 S 380 456 300 540 Z" fill="#fff" />
+      <circle cx="512" cy="512" r="168" fill="none" stroke="#000" stroke-width="48" />
+    </mask>
+  </defs>
+  <g transform="translate(512 512) scale(0.68) translate(-512 -512)">
+    <circle cx="512" cy="512" r="420" fill="#000" mask="url(#cut)" />
+  </g>
+</svg>
