@@ -13,6 +13,7 @@
   import { platform } from "./lib/platform.svelte";
   import { appWindow, initWindow, setFullscreen, toggleFullscreen } from "./lib/stores/window.svelte";
   import { initBackButton, syncBackButton } from "./lib/backButton";
+  import { exitListSearch, listSearch } from "./lib/stores/listSearch.svelte";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
@@ -43,6 +44,8 @@
   let queueOpen = $state(false);
   let nowPlayingOpen = $state(false);
   let main = $state<HTMLElement>();
+  // Android : un champ de texte a le focus, donc le clavier est ouvert (#151).
+  let typing = $state(false);
 
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
@@ -88,10 +91,12 @@
     main?.scrollTo({ top: 0 });
   });
 
-  // Retour d'Android : ferme ce qui est au-dessus (menu, dialogue, « En lecture »), puis
-  // revient à la page précédente.
+  // Retour d'Android : ferme ce qui est au-dessus (menu, dialogue, « En lecture »), quitte
+  // la recherche dans une liste, puis revient à la page précédente.
   function canClose(): boolean {
-    return !!menu.open || !!picker.request || !!trackInfo.track || nowPlayingOpen || canGoBack();
+    return (
+      !!menu.open || !!picker.request || !!trackInfo.track || nowPlayingOpen || listSearch.active || canGoBack()
+    );
   }
 
   function closeTop() {
@@ -99,7 +104,22 @@
     else if (picker.request) closePlaylistPicker();
     else if (trackInfo.track) closeTrackInfo();
     else if (nowPlayingOpen) nowPlayingOpen = false;
+    else if (listSearch.active) exitListSearch();
     else back();
+  }
+
+  // Android : mini-lecteur et navigation masqués pendant la saisie, comme dans les apps
+  // natives ; ils prendraient sinon la place des résultats au-dessus du clavier (#151).
+  const NOT_TEXT = new Set(["button", "checkbox", "color", "file", "radio", "range", "reset", "submit"]);
+
+  function isTextField(el: EventTarget | null): boolean {
+    if (el instanceof HTMLTextAreaElement) return true;
+    return el instanceof HTMLInputElement && !NOT_TEXT.has(el.type);
+  }
+
+  function onFocusChange(e: FocusEvent) {
+    if (!platform.mobile) return;
+    typing = isTextField(e.type === "focusin" ? e.target : e.relatedTarget);
   }
 
   $effect(() => {
@@ -168,7 +188,12 @@
   const route = $derived(current());
 </script>
 
-<svelte:window onkeydown={onKeydown} oncontextmenu={onContextmenu} />
+<svelte:window
+  onkeydown={onKeydown}
+  oncontextmenu={onContextmenu}
+  onfocusin={onFocusChange}
+  onfocusout={onFocusChange}
+/>
 
 <div class="backdrop-layer"><Backdrop /></div>
 
@@ -243,7 +268,7 @@
   </div>
 
   {#if platform.mobile}
-    {#if session}
+    {#if session && !typing}
       <MiniPlayer onOpenNowPlaying={() => (nowPlayingOpen = true)} />
       <div class="panel bottom"><BottomNav /></div>
     {/if}
