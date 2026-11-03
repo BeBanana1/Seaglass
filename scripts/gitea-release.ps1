@@ -3,13 +3,16 @@
   Crée (ou complète) la release Gitea d'une version déjà publiée (#108).
 
 .DESCRIPTION
-  Appelé par `release.ps1 -Publish` une fois le tag poussé, ou seul si cette étape a
-  échoué ou pour une version publiée avant #108. Rien n'est reconstruit : les pièces
-  jointes sont exactement les fichiers publiés sur le serveur de mises à jour, pris dans
-  `release/` :
+  Appelé par `release.ps1 -Publish`, `release-android.ps1 -Publish` ou `release-all.ps1`
+  une fois le tag poussé, ou seul si cette étape a échoué ou pour une version publiée
+  avant #108. Rien n'est reconstruit : les pièces jointes sont exactement les fichiers
+  publiés sur le serveur de mises à jour, pris dans `release/` (ceux qui existent ; au
+  moins l'installeur ou l'APK) :
     release/<version>/Seaglass_<version>_x64-setup.exe
     release/<version>/Seaglass_<version>_x64-setup.exe.sig   (s'il existe)
     release/latest.json                       (seulement s'il décrit cette version)
+    release/<version>/Seaglass_<version>_arm64.apk
+    release/android.json                      (seulement s'il décrit cette version)
 
   La release porte le tag `v<version>` (qui doit déjà exister sur Gitea), le titre
   « Seaglass <version> » et les notes du manifeste (sinon le journal git depuis le tag
@@ -47,22 +50,42 @@ $api = "$giteaUrl/api/v1/repos/$repo"
 Step "release Gitea $tag"
 
 # --- Fichiers ---------------------------------------------------------------------------
-$setupName = "Seaglass_${Version}_x64-setup.exe"
-$setup = Join-Path $root "release\$Version\$setupName"
-if (-not (Test-Path $setup)) { Fail "installeur absent : $setup" }
-$files = @($setup)
-# Les versions antérieures à #108 n'ont pas gardé la signature dans release/.
-if (Test-Path "$setup.sig") { $files += "$setup.sig" }
+# Un manifeste n'est joint qu'à la version qu'il décrit (la dernière construite) ; ses
+# notes servent à la release. Pour une version plus ancienne, notes tirées du journal git.
+function Read-Manifest([string]$name) {
+    $path = Join-Path $root "release\$name"
+    if (-not (Test-Path $path)) { return $null }
+    $manifest = Get-Content $path -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($manifest.version -ne $Version) {
+        Write-Host "    release\$name ne décrit pas la $Version : non joint"
+        return $null
+    }
+    @{ path = $path; notes = $manifest.notes }
+}
 
-# latest.json n'est joint qu'à la version qu'il décrit (la dernière construite) ; pour une
-# version plus ancienne, les notes sont reprises du journal git entre les deux tags.
-$manifestPath = Join-Path $root 'release\latest.json'
-$manifest = if (Test-Path $manifestPath) { Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json }
-if ($manifest -and $manifest.version -eq $Version) {
-    $files += $manifestPath
-    $notes = $manifest.notes
-} else {
-    Write-Host "    release\latest.json ne décrit pas la $Version : non joint, notes tirées de git"
+$files = @()
+$notes = $null
+$setup = Join-Path $root "release\$Version\Seaglass_${Version}_x64-setup.exe"
+if (Test-Path $setup) {
+    $files += $setup
+    # Les versions antérieures à #108 n'ont pas gardé la signature dans release/.
+    if (Test-Path "$setup.sig") { $files += "$setup.sig" }
+    $desktop = Read-Manifest 'latest.json'
+    if ($desktop) { $files += $desktop.path; $notes = $desktop.notes }
+}
+$apk = Join-Path $root "release\$Version\Seaglass_${Version}_arm64.apk"
+if (Test-Path $apk) {
+    $files += $apk
+    $android = Read-Manifest 'android.json'
+    if ($android) {
+        $files += $android.path
+        if (-not $notes) { $notes = $android.notes }
+    }
+}
+if (-not $files) { Fail "ni installeur ni APK de la $Version dans release\" }
+
+if (-not $notes) {
+    Write-Host "    notes tirées de git"
     $tags = @(git tag --list 'v*' --sort=v:refname)
     $index = [array]::IndexOf($tags, $tag)
     $range = if ($index -gt 0) { "$($tags[$index - 1])..$tag" } else { $tag }

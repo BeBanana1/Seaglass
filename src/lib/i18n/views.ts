@@ -95,6 +95,7 @@ export const fr = {
     playedFrom: "Joué depuis",
     popularBy: (name: string) => `Titres populaires de ${name}`,
     searchFor: (query: string) => `Recherche « ${query} »`,
+    fullQueue: "Toute la file",
     empty: "Rien en lecture.",
   },
 };
@@ -190,6 +191,7 @@ export const en: typeof fr = {
     playedFrom: "Playing from",
     popularBy: (name: string) => `Popular tracks by ${name}`,
     searchFor: (query: string) => `Search “${query}”`,
+    fullQueue: "Full queue",
     empty: "Nothing playing.",
   },
 };

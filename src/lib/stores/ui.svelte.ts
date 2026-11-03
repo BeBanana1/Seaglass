@@ -14,8 +14,9 @@ import {
 /** Thèmes dans l'ordre du sélecteur ; noms et descriptions dans `i18n/settings.ts`. */
 export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal", "solarpunk", "cyberpunk", "neumorph", "neumorph-dark", "terminal", "riso", "bauhaus", "aero"];
 
-/** Panneau latéral de la vue « En lecture » : file d'attente ou paroles, un seul à la fois. */
-export type NowPlayingPanel = "queue" | "lyrics" | null;
+/** Panneaux latéraux de la vue « En lecture » : file d'attente, paroles, ou les deux côte à côte
+ *  (fenêtre large seulement, #119 ; ailleurs « both » montre les paroles). */
+export type NowPlayingPanel = "queue" | "lyrics" | "both" | null;
 
 export const ui = $state<{
   settings: UiSettings;

@@ -13,7 +13,11 @@
        release/index.html                        page de téléchargement (lien stable)
        release/<version>/Seaglass_<version>_x64-setup.exe
   5. Avec -Publish : copie `release/` vers SEAGLASS_RELEASE_DEST, pose et pousse le tag
-     git `v<version>` (sauf s'il est déjà sur HEAD : release Android), puis crée la release Gitea du tag (`gitea-release.ps1`).
+     git `v<version>` (sauf s'il est déjà sur HEAD : release Android), puis crée la release
+     Gitea du tag (`gitea-release.ps1`, sauf avec -SkipGiteaRelease).
+
+  -PublishOnly saute les étapes 2 à 4 et publie le dernier build, s'il a été fait sur ce
+  commit, arbre propre (`release-all.ps1` construit Windows et Android avant de publier).
 
   Variables d'environnement :
     SEAGLASS_UPDATE_BASE_URL  URL publique du dossier de mises à jour
@@ -31,13 +35,18 @@
 .EXAMPLE
   pnpm release                      # construit dans release/, ne publie rien
   pnpm release -Publish             # construit, publie et tague
+  pnpm release -PublishOnly         # publie le dernier build (fait sur ce commit)
   pnpm release -Notes "- Correctif lecture"
 #>
 param(
     [switch]$Publish,
     [string]$Notes,
     # Pour tester un build avec des modifications non commitées (refusé avec -Publish).
-    [switch]$AllowDirty
+    [switch]$AllowDirty,
+    # Publie le dernier build au lieu d'en refaire un (implique -Publish).
+    [switch]$PublishOnly,
+    # La release Gitea est faite par l'appelant (release-all.ps1).
+    [switch]$SkipGiteaRelease
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,6 +55,8 @@ Set-Location $root
 
 function Fail($message) { Write-Host "ERREUR : $message" -ForegroundColor Red; exit 1 }
 function Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
+. (Join-Path $PSScriptRoot 'build-stamp.ps1')
+if ($PublishOnly) { $Publish = $true }
 
 # --- 1. Vérifications -------------------------------------------------------------------
 $version = (Get-Content VERSION -Raw).Trim()
@@ -71,160 +82,173 @@ if (-not (Test-Path $keyPath)) { Fail "clé de signature introuvable : $keyPath"
 
 $baseUrl = if ($env:SEAGLASS_UPDATE_BASE_URL) { $env:SEAGLASS_UPDATE_BASE_URL.TrimEnd('/') } else { 'https://updates.bebanana.ch/seaglass' }
 
-# --- 2. mpv embarqué --------------------------------------------------------------------
-# Seul le mpv décrit par scripts/mpv.lock (version + SHA-256, versionnés) part dans
-# l'installeur : un mpv remplacé ou mis à jour sur ce PC serait sinon distribué signé.
-Step "mpv"
-$lock = @{}
-Get-Content (Join-Path $PSScriptRoot 'mpv.lock') -Encoding UTF8 | Where-Object { $_ -match '^\s*[^#\s]' } | ForEach-Object {
-    $name, $value = $_ -split '=', 2
-    $lock[$name.Trim()] = "$value".Trim()
-}
-if (-not $lock.sha256 -or -not $lock.version) { Fail "scripts/mpv.lock incomplet (version et sha256 attendus)" }
-$mpvSource = if ($env:SEAGLASS_MPV_PATH) { $env:SEAGLASS_MPV_PATH } else { (Get-Command mpv.exe -ErrorAction SilentlyContinue).Source }
-if (-not $mpvSource -or -not (Test-Path $mpvSource)) { Fail "mpv.exe introuvable (PATH ou SEAGLASS_MPV_PATH)" }
-# Empreinte vérifiée avant d'exécuter quoi que ce soit de ce binaire.
-$mpvHash = (Get-FileHash $mpvSource -Algorithm SHA256).Hash
-if ($mpvHash -ne $lock.sha256.ToUpperInvariant()) {
-    Fail ("mpv.exe ne correspond pas à scripts/mpv.lock`n    fichier  : $mpvSource`n    SHA-256  : $mpvHash`n" +
-        "    attendu  : $($lock.sha256)`n    mpv a changé (mise à jour, remplacement ?) : vérifier ce binaire, puis mettre à jour mpv.lock dans un commit")
-}
-$mpvVersion = ((& $mpvSource --version | Select-Object -First 1) -split '\s+' | Select-Object -First 2) -join ' '
-if ($mpvVersion -ne $lock.version) { Fail "version de mpv inattendue : '$mpvVersion' (mpv.lock : '$($lock.version)')" }
-$sidecar = 'src-tauri\binaries\mpv-x86_64-pc-windows-msvc.exe'
-New-Item -ItemType Directory -Force (Split-Path $sidecar) | Out-Null
-Copy-Item $mpvSource $sidecar -Force
-if ((Get-FileHash $sidecar -Algorithm SHA256).Hash -ne $mpvHash) { Fail "copie de mpv altérée : $sidecar" }
-Write-Host "    $mpvVersion, SHA-256 conforme à mpv.lock"
-
-# --- 3. Build signé ---------------------------------------------------------------------
-# Mot de passe de la clé (#87) : TAURI_SIGNING_PRIVATE_KEY_PASSWORD (session), sinon entrée
-# générique « seaglass-signing-key » du Gestionnaire d'identifiants, sinon saisi au clavier.
-# Il ne passe que par l'environnement du build, jamais par un fichier, et il est vérifié
-# avant le build (scripts/protect-signing-key.py --check, mot de passe sur l'entrée standard).
-Step "clé de signature"
-$credentialTarget = 'seaglass-signing-key'
-$keyHelp = "procédure : issue #87 / CLAUDE.md, « Signature »"
-
-. (Join-Path $PSScriptRoot 'credentials.ps1')
-
-# Code de sortie de --check : 0 = le mot de passe ouvre la clé, 1 = non, 2 = clé illisible.
-$python = Get-Command python -ErrorAction SilentlyContinue
-function Test-KeyPassword([string]$password) {
-    # UTF-8 pour les mots de passe non ASCII (le BOM ajouté par PowerShell 5.1 est retiré).
-    $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-    $password | & $python.Source -I (Join-Path $PSScriptRoot 'protect-signing-key.py') --check $keyPath | Out-Null
-    $LASTEXITCODE
-}
-
-$keyPassword = $null
-if (-not $python) {
-    Write-Host "    python introuvable : mot de passe non vérifié avant le build" -ForegroundColor Yellow
-} else {
-    switch (Test-KeyPassword '') {
-        0 {
-            # Clé encore chiffrée avec un mot de passe vide : la release passe, avec un rappel.
-            Write-Host "    ATTENTION : la clé de signature n'a pas de mot de passe ($keyHelp)" -ForegroundColor Yellow
-            $keyPassword = ''
-        }
-        1 { }
-        default { Fail "clé de signature illisible : $keyPath" }
+if (-not $PublishOnly) {
+    # --- 2. mpv embarqué --------------------------------------------------------------------
+    # Seul le mpv décrit par scripts/mpv.lock (version + SHA-256, versionnés) part dans
+    # l'installeur : un mpv remplacé ou mis à jour sur ce PC serait sinon distribué signé.
+    Step "mpv"
+    $lock = @{}
+    Get-Content (Join-Path $PSScriptRoot 'mpv.lock') -Encoding UTF8 | Where-Object { $_ -match '^\s*[^#\s]' } | ForEach-Object {
+        $name, $value = $_ -split '=', 2
+        $lock[$name.Trim()] = "$value".Trim()
     }
-}
-if ($null -eq $keyPassword) {
-    if ($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
-        $keyPassword = $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD
-        $origin = 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD'
+    if (-not $lock.sha256 -or -not $lock.version) { Fail "scripts/mpv.lock incomplet (version et sha256 attendus)" }
+    $mpvSource = if ($env:SEAGLASS_MPV_PATH) { $env:SEAGLASS_MPV_PATH } else { (Get-Command mpv.exe -ErrorAction SilentlyContinue).Source }
+    if (-not $mpvSource -or -not (Test-Path $mpvSource)) { Fail "mpv.exe introuvable (PATH ou SEAGLASS_MPV_PATH)" }
+    # Empreinte vérifiée avant d'exécuter quoi que ce soit de ce binaire.
+    $mpvHash = (Get-FileHash $mpvSource -Algorithm SHA256).Hash
+    if ($mpvHash -ne $lock.sha256.ToUpperInvariant()) {
+        Fail ("mpv.exe ne correspond pas à scripts/mpv.lock`n    fichier  : $mpvSource`n    SHA-256  : $mpvHash`n" +
+            "    attendu  : $($lock.sha256)`n    mpv a changé (mise à jour, remplacement ?) : vérifier ce binaire, puis mettre à jour mpv.lock dans un commit")
+    }
+    $mpvVersion = ((& $mpvSource --version | Select-Object -First 1) -split '\s+' | Select-Object -First 2) -join ' '
+    if ($mpvVersion -ne $lock.version) { Fail "version de mpv inattendue : '$mpvVersion' (mpv.lock : '$($lock.version)')" }
+    $sidecar = 'src-tauri\binaries\mpv-x86_64-pc-windows-msvc.exe'
+    New-Item -ItemType Directory -Force (Split-Path $sidecar) | Out-Null
+    Copy-Item $mpvSource $sidecar -Force
+    if ((Get-FileHash $sidecar -Algorithm SHA256).Hash -ne $mpvHash) { Fail "copie de mpv altérée : $sidecar" }
+    Write-Host "    $mpvVersion, SHA-256 conforme à mpv.lock"
+
+    # --- 3. Build signé ---------------------------------------------------------------------
+    # Mot de passe de la clé (#87) : TAURI_SIGNING_PRIVATE_KEY_PASSWORD (session), sinon entrée
+    # générique « seaglass-signing-key » du Gestionnaire d'identifiants, sinon saisi au clavier.
+    # Il ne passe que par l'environnement du build, jamais par un fichier, et il est vérifié
+    # avant le build (scripts/protect-signing-key.py --check, mot de passe sur l'entrée standard).
+    Step "clé de signature"
+    $credentialTarget = 'seaglass-signing-key'
+    $keyHelp = "procédure : issue #87 / CLAUDE.md, « Signature »"
+
+    . (Join-Path $PSScriptRoot 'credentials.ps1')
+
+    # Code de sortie de --check : 0 = le mot de passe ouvre la clé, 1 = non, 2 = clé illisible.
+    $python = Get-Command python -ErrorAction SilentlyContinue
+    function Test-KeyPassword([string]$password) {
+        # UTF-8 pour les mots de passe non ASCII (le BOM ajouté par PowerShell 5.1 est retiré).
+        $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+        $password | & $python.Source -I (Join-Path $PSScriptRoot 'protect-signing-key.py') --check $keyPath | Out-Null
+        $LASTEXITCODE
+    }
+
+    $keyPassword = $null
+    if (-not $python) {
+        Write-Host "    python introuvable : mot de passe non vérifié avant le build" -ForegroundColor Yellow
     } else {
-        $keyPassword = Read-StoredSecret $credentialTarget
-        $origin = "Gestionnaire d'identifiants ($credentialTarget)"
+        switch (Test-KeyPassword '') {
+            0 {
+                # Clé encore chiffrée avec un mot de passe vide : la release passe, avec un rappel.
+                Write-Host "    ATTENTION : la clé de signature n'a pas de mot de passe ($keyHelp)" -ForegroundColor Yellow
+                $keyPassword = ''
+            }
+            1 { }
+            default { Fail "clé de signature illisible : $keyPath" }
+        }
     }
     if ($null -eq $keyPassword) {
-        $origin = 'saisie'
-        try { $secure = Read-Host "    Mot de passe de la clé de signature" -AsSecureString }
-        catch { Fail "mot de passe de la clé absent (session non interactive) : définir TAURI_SIGNING_PRIVATE_KEY_PASSWORD ($keyHelp)" }
-        $keyPassword = [System.Net.NetworkCredential]::new('', $secure).Password
-    }
-    if ($python) {
-        if (-not $keyPassword) { Fail "mot de passe de la clé vide ($origin)" }
-        if ((Test-KeyPassword $keyPassword) -ne 0) { Fail "mot de passe de la clé incorrect ($origin)" }
-        Write-Host "    mot de passe vérifié ($origin)"
-    } elseif (-not $keyPassword) {
-        # Sans python, rien ne distingue une clé sans mot de passe : Tauri dira s'il est faux.
-        Write-Host "    mot de passe vide : clé supposée sans mot de passe ($keyHelp)" -ForegroundColor Yellow
-    }
-}
-
-Step "build de Seaglass $version"
-$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content $keyPath -Raw
-# Vide = variable absente sous PowerShell 5.1 : Tauri suppose alors un mot de passe vide.
-$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = $keyPassword
-try {
-    pnpm tauri build --config (Join-Path $root 'src-tauri\tauri.release.conf.json')
-    $buildExit = $LASTEXITCODE
-} finally {
-    Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY, Env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue
-    $keyPassword = $null
-}
-if ($buildExit -ne 0) { Fail "échec du build" }
-
-$bundle = 'src-tauri\target\release\bundle\nsis'
-$setupName = "Seaglass_${version}_x64-setup.exe"
-$setup = Join-Path $bundle $setupName
-if (-not (Test-Path $setup) -or -not (Test-Path "$setup.sig")) { Fail "installeur ou signature absents dans $bundle" }
-
-# --- 4. Fichiers à publier --------------------------------------------------------------
-Step "manifeste"
-$out = Join-Path $root "release\$version"
-New-Item -ItemType Directory -Force $out | Out-Null
-Copy-Item $setup, "$setup.sig" $out -Force
-
-if (-not $Notes) {
-    # Pas de `git describe` : sans tag, il écrit sur stderr, ce que PowerShell 5.1 traite
-    # comme une erreur fatale avec $ErrorActionPreference = 'Stop'.
-    $previous = git tag --list 'v*' --sort=-v:refname | Select-Object -First 1
-    $range = if ($previous) { "$previous..HEAD" } else { 'HEAD' }
-    $Notes = (git log $range --no-merges --pretty=format:'- %s' -n 30) -join "`n"
-}
-$manifest = [ordered]@{
-    version   = $version
-    notes     = $Notes
-    pub_date  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-    platforms = [ordered]@{
-        'windows-x86_64' = [ordered]@{
-            signature = (Get-Content "$setup.sig" -Raw).Trim()
-            url       = "$baseUrl/$version/$setupName"
+        if ($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
+            $keyPassword = $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+            $origin = 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD'
+        } else {
+            $keyPassword = Read-StoredSecret $credentialTarget
+            $origin = "Gestionnaire d'identifiants ($credentialTarget)"
+        }
+        if ($null -eq $keyPassword) {
+            $origin = 'saisie'
+            try { $secure = Read-Host "    Mot de passe de la clé de signature" -AsSecureString }
+            catch { Fail "mot de passe de la clé absent (session non interactive) : définir TAURI_SIGNING_PRIVATE_KEY_PASSWORD ($keyHelp)" }
+            $keyPassword = [System.Net.NetworkCredential]::new('', $secure).Password
+        }
+        if ($python) {
+            if (-not $keyPassword) { Fail "mot de passe de la clé vide ($origin)" }
+            if ((Test-KeyPassword $keyPassword) -ne 0) { Fail "mot de passe de la clé incorrect ($origin)" }
+            Write-Host "    mot de passe vérifié ($origin)"
+        } elseif (-not $keyPassword) {
+            # Sans python, rien ne distingue une clé sans mot de passe : Tauri dira s'il est faux.
+            Write-Host "    mot de passe vide : clé supposée sans mot de passe ($keyHelp)" -ForegroundColor Yellow
         }
     }
+
+    Step "build de Seaglass $version"
+    $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content $keyPath -Raw
+    # Vide = variable absente sous PowerShell 5.1 : Tauri suppose alors un mot de passe vide.
+    $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = $keyPassword
+    try {
+        pnpm tauri build --config (Join-Path $root 'src-tauri\tauri.release.conf.json')
+        $buildExit = $LASTEXITCODE
+    } finally {
+        Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY, Env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue
+        $keyPassword = $null
+    }
+    if ($buildExit -ne 0) { Fail "échec du build" }
+
+    $bundle = 'src-tauri\target\release\bundle\nsis'
+    $setupName = "Seaglass_${version}_x64-setup.exe"
+    $setup = Join-Path $bundle $setupName
+    if (-not (Test-Path $setup) -or -not (Test-Path "$setup.sig")) { Fail "installeur ou signature absents dans $bundle" }
+
+    # --- 4. Fichiers à publier --------------------------------------------------------------
+    Step "manifeste"
+    $out = Join-Path $root "release\$version"
+    New-Item -ItemType Directory -Force $out | Out-Null
+    Copy-Item $setup, "$setup.sig" $out -Force
+
+    if (-not $Notes) {
+        # Pas de `git describe` : sans tag, il écrit sur stderr, ce que PowerShell 5.1 traite
+        # comme une erreur fatale avec $ErrorActionPreference = 'Stop'.
+        $previous = git tag --list 'v*' --sort=-v:refname | Select-Object -First 1
+        $range = if ($previous) { "$previous..HEAD" } else { 'HEAD' }
+        $Notes = (git log $range --no-merges --pretty=format:'- %s' -n 30) -join "`n"
+    }
+    $manifest = [ordered]@{
+        version   = $version
+        notes     = $Notes
+        pub_date  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        platforms = [ordered]@{
+            'windows-x86_64' = [ordered]@{
+                signature = (Get-Content "$setup.sig" -Raw).Trim()
+                url       = "$baseUrl/$version/$setupName"
+            }
+        }
+    }
+    $manifestPath = Join-Path $root 'release\latest.json'
+    # UTF-8 sans BOM : l'updater lit du JSON strict.
+    [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
+
+    $size = [math]::Round((Get-Item $setup).Length / 1MB, 1)
+
+    # Page de téléchargement : l'adresse du dossier ($baseUrl/) mène toujours à la dernière version.
+    Step "page de téléchargement"
+    function Html($text) { [System.Net.WebUtility]::HtmlEncode($text) }
+    $fr = [System.Globalization.CultureInfo]::GetCultureInfo('fr-FR')
+    $noteItems = ($Notes -split "`r?`n" | Where-Object { $_.Trim() } | ForEach-Object {
+        '      <li>' + (Html ($_ -replace '^\s*-\s*', '')) + '</li>'
+    }) -join "`n"
+    $fields = [ordered]@{
+        '{{VERSION}}' = Html $version
+        '{{DATE}}'    = Html (Get-Date).ToString('d MMMM yyyy', $fr)
+        '{{SIZE}}'    = Html $size.ToString($fr)
+        '{{URL}}'     = Html "$baseUrl/$version/$setupName"
+        '{{NOTES}}'   = $noteItems
+    }
+    $page = Get-Content (Join-Path $PSScriptRoot 'download-page.html') -Raw -Encoding UTF8
+    foreach ($field in $fields.GetEnumerator()) { $page = $page.Replace($field.Key, $field.Value) }
+    $pagePath = Join-Path $root 'release\index.html'
+    [System.IO.File]::WriteAllText($pagePath, $page, [System.Text.UTF8Encoding]::new($false))
+
+    Write-Host "    installeur : release\$version\$setupName ($size Mo)"
+    Write-Host "    manifeste  : release\latest.json -> $baseUrl/latest.json"
+    Write-Host "    page       : release\index.html -> $baseUrl/"
+    Write-BuildStamp 'windows' $version
+} else {
+    $setupName = "Seaglass_${version}_x64-setup.exe"
+    $out = Join-Path $root "release\$version"
+    $manifestPath = Join-Path $root 'release\latest.json'
+    $pagePath = Join-Path $root 'release\index.html'
+    Assert-BuildStamp 'windows' $version @((Join-Path $out $setupName), (Join-Path $out "$setupName.sig"), $manifestPath, $pagePath)
+    if ((Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json).version -ne $version) {
+        Fail "release\latest.json ne décrit pas la $version"
+    }
+    Write-Host "    build $version de ce commit repris"
 }
-$manifestPath = Join-Path $root 'release\latest.json'
-# UTF-8 sans BOM : l'updater lit du JSON strict.
-[System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
-
-$size = [math]::Round((Get-Item $setup).Length / 1MB, 1)
-
-# Page de téléchargement : l'adresse du dossier ($baseUrl/) mène toujours à la dernière version.
-Step "page de téléchargement"
-function Html($text) { [System.Net.WebUtility]::HtmlEncode($text) }
-$fr = [System.Globalization.CultureInfo]::GetCultureInfo('fr-FR')
-$noteItems = ($Notes -split "`r?`n" | Where-Object { $_.Trim() } | ForEach-Object {
-    '      <li>' + (Html ($_ -replace '^\s*-\s*', '')) + '</li>'
-}) -join "`n"
-$fields = [ordered]@{
-    '{{VERSION}}' = Html $version
-    '{{DATE}}'    = Html (Get-Date).ToString('d MMMM yyyy', $fr)
-    '{{SIZE}}'    = Html $size.ToString($fr)
-    '{{URL}}'     = Html "$baseUrl/$version/$setupName"
-    '{{NOTES}}'   = $noteItems
-}
-$page = Get-Content (Join-Path $PSScriptRoot 'download-page.html') -Raw -Encoding UTF8
-foreach ($field in $fields.GetEnumerator()) { $page = $page.Replace($field.Key, $field.Value) }
-$pagePath = Join-Path $root 'release\index.html'
-[System.IO.File]::WriteAllText($pagePath, $page, [System.Text.UTF8Encoding]::new($false))
-
-Write-Host "    installeur : release\$version\$setupName ($size Mo)"
-Write-Host "    manifeste  : release\latest.json -> $baseUrl/latest.json"
-Write-Host "    page       : release\index.html -> $baseUrl/"
 
 # --- 5. Publication ---------------------------------------------------------------------
 if (-not $Publish) {
@@ -239,7 +263,10 @@ $dest = $env:SEAGLASS_RELEASE_DEST
 # pour ne pas confondre avec une lettre de lecteur comme « D: »).
 if ($dest -match '^[^\\/:]{2,}:') {
     $sshHost, $remotePath = $dest -split ':', 2
-    scp -r $out "$dest/"
+    # Seulement les fichiers Windows : release/<version>/ peut aussi contenir l'APK.
+    ssh $sshHost "mkdir -p '$remotePath/$version'"
+    if ($LASTEXITCODE -ne 0) { Fail "échec de la création du dossier de version" }
+    scp (Join-Path $out $setupName) (Join-Path $out "$setupName.sig") "$dest/$version/"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (installeur)" }
     # scp reprend des droits Windows trop larges (dossier en écriture pour tous) : on les
     # remet à 755 / 644 avant de rendre la version visible.
@@ -252,7 +279,8 @@ if ($dest -match '^[^\\/:]{2,}:') {
     ssh $sshHost "chmod 644 '$remotePath/index.html' '$remotePath/latest.json'"
 } else {
     New-Item -ItemType Directory -Force $dest | Out-Null
-    Copy-Item $out (Join-Path $dest $version) -Recurse -Force
+    New-Item -ItemType Directory -Force (Join-Path $dest $version) | Out-Null
+    Copy-Item (Join-Path $out $setupName), (Join-Path $out "$setupName.sig") (Join-Path $dest $version) -Force
     Copy-Item $pagePath (Join-Path $dest 'index.html') -Force
     Copy-Item $manifestPath (Join-Path $dest 'latest.json') -Force
 }
@@ -266,6 +294,7 @@ if ($tagExists) {
     if ($LASTEXITCODE -ne 0) { Fail "échec du push du tag" }
 }
 Write-Host "Seaglass $version publiée." -ForegroundColor Green
+if ($SkipGiteaRelease) { exit 0 }
 
 # La mise à jour est déjà en ligne : un échec ici n'est qu'un avertissement (#108).
 try {

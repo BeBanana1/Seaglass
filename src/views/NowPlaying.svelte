@@ -4,7 +4,7 @@
   import { untrack } from "svelte";
   import { player } from "../lib/stores/player.svelte";
   import { queue } from "../lib/stores/queue.svelte";
-  import { ui, type NowPlayingPanel } from "../lib/stores/ui.svelte";
+  import { ui } from "../lib/stores/ui.svelte";
   import { coverLarge, coverSmall, fullTitle } from "../lib/format";
   import { go, nav } from "../lib/stores/nav.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
@@ -20,6 +20,8 @@
   import SleepTimer from "../components/SleepTimer.svelte";
   import Transport from "../components/Transport.svelte";
   import Volume from "../components/Volume.svelte";
+  import TrackRow from "../components/TrackRow.svelte";
+  import { platform } from "../lib/platform.svelte";
   import { t } from "../lib/i18n.svelte";
 
   let { onClose }: { onClose: () => void } = $props();
@@ -28,10 +30,35 @@
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
   const panel = $derived(ui.nowPlayingPanel);
   const from = $derived(playedFrom(queue.view.source));
-  const queueOpen = $derived(panel === "queue");
 
-  function toggle(p: Exclude<NowPlayingPanel, null>) {
-    ui.nowPlayingPanel = ui.nowPlayingPanel === p ? null : p;
+  // Fenêtre large (#119) : paroles et file côte à côte, boutons indépendants. Ailleurs, un seul
+  // panneau à la fois ; « both » (fenêtre rétrécie) garde les paroles, avec la bande « À suivre ».
+  const WIDE = "(min-width: 1400px)";
+  let wide = $state(!platform.mobile && matchMedia(WIDE).matches);
+  $effect(() => {
+    if (platform.mobile) return;
+    const query = matchMedia(WIDE);
+    const onChange = () => (wide = query.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  });
+
+  const lyricsOpen = $derived(panel === "lyrics" || panel === "both");
+  const queueOpen = $derived(panel === "queue" || (panel === "both" && wide));
+  const bothOpen = $derived(lyricsOpen && queueOpen);
+  const anyOpen = $derived(lyricsOpen || queueOpen);
+
+  function toggle(p: "queue" | "lyrics") {
+    let lyrics = lyricsOpen;
+    let queueShown = queueOpen;
+    if (p === "lyrics") lyrics = !lyrics;
+    else queueShown = !queueShown;
+    // Fenêtre étroite : ouvrir un panneau ferme l'autre.
+    if (!wide && lyrics && queueShown) {
+      if (p === "lyrics") queueShown = false;
+      else lyrics = false;
+    }
+    ui.nowPlayingPanel = lyrics && queueShown ? "both" : lyrics ? "lyrics" : queueShown ? "queue" : null;
   }
 
   // Toute navigation (lien d'artiste ou d'album, ici ou dans la file) ferme la vue,
@@ -42,14 +69,21 @@
   });
 </script>
 
-<div class="now-playing" class:lyrics-open={panel === "lyrics"} role="dialog" aria-modal="true" aria-label={t.views.nowPlaying.title}>
+<div
+  class="now-playing"
+  class:lyrics-open={lyricsOpen && !queueOpen}
+  class:both-open={bothOpen}
+  role="dialog"
+  aria-modal="true"
+  aria-label={t.views.nowPlaying.title}
+>
   <Backdrop context="nowplaying" />
-  <div class="top-actions" class:with-panel={panel}>
+  <div class="top-actions" class:with-panel={anyOpen}>
     <button
       class="lyrics-toggle"
-      class:on={panel === "lyrics"}
+      class:on={lyricsOpen}
       onclick={() => toggle("lyrics")}
-      aria-pressed={panel === "lyrics"}
+      aria-pressed={lyricsOpen}
       title={t.views.nowPlaying.lyrics}
     >
       <Icon name="lyrics" size={20} />
@@ -68,7 +102,7 @@
     </button>
   </div>
 
-  <div class="scroller" class:with-panel={panel}>
+  <div class="scroller" class:with-panel={anyOpen} class:two-panels={bothOpen}>
     <div class="stage">
       {#if current}
         {@const track = current}
@@ -119,7 +153,7 @@
 
             <div class="signal"><SignalPath /></div>
 
-            {#if upNext.length > 0 && !panel}
+            {#if upNext.length > 0 && !anyOpen}
               <div class="next">
                 <span class="label">{t.views.nowPlaying.upNext}</span>
                 <ol>
@@ -140,15 +174,30 @@
       {/if}
     </div>
 
+    {#if lyricsOpen}
+      <aside class="panel np-panel np-lyrics" aria-label={t.views.nowPlaying.lyrics}>
+        <h2>{t.views.nowPlaying.lyrics}</h2>
+        <Lyrics />
+        {#if !queueOpen && upNext.length > 0}
+          <!-- Sans la file à côté, les prochains titres restent visibles sous les paroles (#119). -->
+          <section class="np-next" aria-label={t.views.nowPlaying.upNext}>
+            <div class="np-next-head">
+              <h3>{t.views.nowPlaying.upNext}</h3>
+              <button class="np-next-all" onclick={() => toggle("queue")}>{t.views.nowPlaying.fullQueue}</button>
+            </div>
+            <div role="list">
+              {#each upNext.slice(0, 3) as next, i (`${i}-${next.id}`)}
+                <TrackRow track={next} compact actions={false} />
+              {/each}
+            </div>
+          </section>
+        {/if}
+      </aside>
+    {/if}
     {#if queueOpen}
       <aside class="panel np-panel np-queue" aria-label={t.player.queue}>
         <h2>{t.player.queue}</h2>
         <QueueList current={false} />
-      </aside>
-    {:else if panel === "lyrics"}
-      <aside class="panel np-panel np-lyrics" aria-label={t.views.nowPlaying.lyrics}>
-        <h2>{t.views.nowPlaying.lyrics}</h2>
-        <Lyrics />
       </aside>
     {/if}
   </div>
@@ -167,6 +216,11 @@
 
   .now-playing.lyrics-open {
     --np-panel-width: 460px;
+  }
+
+  /* Paroles + file (#119) : les deux colonnes et la marge entre elles. */
+  .now-playing.both-open {
+    --np-panel-width: calc(460px + 16px + 380px);
   }
 
   @keyframes rise {
@@ -398,6 +452,41 @@
     font-weight: 600;
   }
 
+  /* Bande « À suivre » sous les paroles (#119). */
+  .np-next {
+    flex: none;
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .np-next-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 8px 4px;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .np-next-all {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .np-next-all:hover {
+    color: var(--text);
+    text-decoration: underline;
+  }
+
   @media (max-width: 900px) {
     .layout {
       grid-template-columns: minmax(0, 420px);
@@ -410,6 +499,10 @@
       grid-template-columns: minmax(0, 1fr) var(--np-panel-width);
       grid-template-rows: minmax(0, 1fr);
       overflow: hidden;
+    }
+
+    .scroller.two-panels {
+      grid-template-columns: minmax(0, 1fr) 460px 380px;
     }
 
     .with-panel .stage {
@@ -444,6 +537,14 @@
   /* Entre les deux : file à droite, pochette au-dessus des commandes. */
   @media (min-width: 901px) and (max-width: 1280px) {
     .with-panel .layout {
+      grid-template-columns: minmax(0, 420px);
+      padding: 72px 32px 32px;
+    }
+  }
+
+  /* Deux panneaux : pochette au-dessus des commandes tant que la place manque à côté. */
+  @media (max-width: 1799px) {
+    .two-panels .layout {
       grid-template-columns: minmax(0, 420px);
       padding: 72px 32px 32px;
     }
