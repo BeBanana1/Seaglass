@@ -49,6 +49,8 @@ pub fn run() {
             if let Err(e) = android::init_tls() {
                 tracing::error!("vérification HTTPS d'Android indisponible : {e}");
             }
+            #[cfg(target_os = "android")]
+            android::install_keystore(app.handle());
             let tidal = Arc::new(TidalClient::new()?);
             let store = open_store(app);
             // Avant le lecteur : ses toasts et les requêtes TIDAL suivent la langue.
