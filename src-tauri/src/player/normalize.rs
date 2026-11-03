@@ -272,7 +272,7 @@ mod tests {
         use std::time::Duration;
 
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
-        let mut child = crate::mpv::process::spawn(&conf, CacheSize::Mib32).unwrap();
+        let mut child = crate::mpv::process::spawn(&conf, CacheSize::Mib32, None).unwrap();
         let (events_tx, mut events) = tokio::sync::mpsc::channel(256);
         let handle = crate::mpv::ipc::connect(events_tx).await.unwrap();
         let cmd = |c: Vec<Value>| {

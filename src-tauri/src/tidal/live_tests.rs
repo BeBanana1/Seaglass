@@ -5,20 +5,22 @@
 //! - `cargo test live_track_info -- --ignored --nocapture` : infos détaillées d'un titre (#3).
 //! - `cargo test live_hires_twin_album -- --ignored --nocapture` : album jumeau hi-res (#59).
 //! - `cargo test live_locale -- --ignored --nocapture` : titres de l'accueil en anglais (#7).
+//! - `cargo test live_collection -- --ignored --nocapture` : écritures dans la bibliothèque,
+//!   dans `live_collection.rs` (**modifie le compte**).
 //! - `cargo test dump_ui_fixtures -- --ignored` : écrit `src/lib/mock/fixtures.json`
 //!   (gitignoré, contient la bibliothèque du compte) pour prévisualiser l'UI hors Tauri.
 
 use super::TidalClient;
 use super::models::{LyricsText, MediaItem, RadioSeed, TrackId};
 
-const ALBUM_ID: u64 = 156_749_593;
+pub(super) const ALBUM_ID: u64 = 156_749_593;
 const ARTIST_ID: u64 = 12_979;
 /// « Bohemian Rhapsody » : paroles horodatées (Musixmatch).
 const LYRICS_TRACK: TrackId = TrackId(534_050_211);
 /// « Clair de lune » : instrumental, `tracks/{id}/lyrics` répond 404.
 const NO_LYRICS_TRACK: TrackId = TrackId(5_940_831);
 
-async fn client() -> TidalClient {
+pub(super) async fn client() -> TidalClient {
     let client = TidalClient::new().unwrap();
     assert!(
         client.current_session().await.unwrap().is_some(),
@@ -98,14 +100,49 @@ async fn live_catalog() {
     );
     // `dateAdded` est fourni pour chaque titre de playlist (vérifié le 2026-10-30).
     assert!(playlist.tracks.iter().all(|t| t.added_at.is_some()));
-    let favorites = client.favorite_tracks().await.unwrap();
+    // Pagination (#90) : temps de chargement d'une grosse playlist et des favoris.
+    let mut found = client.library_playlists().await.unwrap().items;
+    for query in [
+        "1000 songs",
+        "top 1000",
+        "every song",
+        "complete discography",
+    ] {
+        found.extend(client.search(query, 50).await.unwrap().playlists);
+    }
+    let big = found
+        .into_iter()
+        .max_by_key(|p| p.number_of_tracks.unwrap_or(0))
+        .unwrap();
+    let started = std::time::Instant::now();
+    let page = client.playlist(&big.uuid).await.unwrap();
+    println!(
+        "grosse playlist : {} ({} titres sur {:?}) en {:?}",
+        page.playlist.title,
+        page.tracks.len(),
+        big.number_of_tracks,
+        started.elapsed()
+    );
+    let started = std::time::Instant::now();
+    let liked = client.favorite_tracks().await.unwrap();
+    // 424 titres sur le compte de test : liste complète (le total compte aussi les indisponibles).
+    assert!(!liked.truncated);
+    println!("total annoncé : {:?}", liked.total);
+    let favorites = liked.items;
+    println!(
+        "titres likés : {} en {:?}",
+        favorites.len(),
+        started.elapsed()
+    );
     assert!(favorites.iter().all(|t| t.added_at.is_some()));
+    // Pages demandées en parallèle, remises dans l'ordre : toujours du plus récent au plus ancien.
+    assert!(favorites.windows(2).all(|w| w[0].added_at >= w[1].added_at));
     println!(
         "bibliothèque : {} titres, {} albums, {} artistes, {} playlists",
         favorites.len(),
-        client.favorite_albums().await.unwrap().len(),
-        client.favorite_artists().await.unwrap().len(),
-        client.library_playlists().await.unwrap().len()
+        client.favorite_albums().await.unwrap().items.len(),
+        client.favorite_artists().await.unwrap().items.len(),
+        client.library_playlists().await.unwrap().items.len()
     );
     let home = client.home().await.unwrap();
     for row in &home {
@@ -170,7 +207,7 @@ async fn dump_ui_fixtures() {
     let client = client().await;
     let search = client.search("interstellar", 20).await.unwrap();
     let playlist = client.playlist(&search.playlists[0].uuid).await.unwrap();
-    let mut tracks = client.favorite_tracks().await.unwrap();
+    let mut tracks = client.favorite_tracks().await.unwrap().items;
     tracks.truncate(100);
     let album = client.album(ALBUM_ID).await.unwrap();
     let mixes = client.favorite_mixes().await.unwrap();
@@ -193,9 +230,9 @@ async fn dump_ui_fixtures() {
         "feed": client.feed().await.unwrap(),
         "library": {
             "tracks": tracks,
-            "albums": client.favorite_albums().await.unwrap(),
-            "artists": client.favorite_artists().await.unwrap(),
-            "playlists": client.library_playlists().await.unwrap(),
+            "albums": client.favorite_albums().await.unwrap().items,
+            "artists": client.favorite_artists().await.unwrap().items,
+            "playlists": client.library_playlists().await.unwrap().items,
             "mixes": mixes,
         },
     });
@@ -308,159 +345,6 @@ async fn live_lyrics() {
     );
     assert!(lines.windows(2).all(|w| w[0].time_ms <= w[1].time_ms));
     assert!(client.lyrics(NO_LYRICS_TRACK).await.unwrap().is_none());
-}
-
-/// `cargo test live_collection -- --ignored --nocapture` : **modifie le compte**. Like puis
-/// retrait d'un titre absent des favoris, puis playlist jetable créée, remplie, vidée et
-/// supprimée. Le nettoyage a lieu même si une vérification échoue.
-#[tokio::test]
-#[ignore = "réseau et session TIDAL requis, modifie la bibliothèque"]
-async fn live_collection() {
-    let client = client().await;
-    let album = client.album(ALBUM_ID).await.unwrap();
-    // `favorites/ids` contient tous les titres likés, indisponibles compris (451 contre 426
-    // affichés le 2026-10-30) : la liste des favoris en est un sous-ensemble.
-    let liked = client.liked_track_ids().await.unwrap();
-    let favorites = favorite_ids(&client).await;
-    println!(
-        "likes : {} identifiants, {} favoris",
-        liked.len(),
-        favorites.len()
-    );
-    assert!(favorites.iter().all(|id| liked.contains(id)));
-    let fresh: Vec<TrackId> = album
-        .tracks
-        .iter()
-        .map(|t| t.id)
-        .filter(|id| !liked.contains(id))
-        .take(4)
-        .collect();
-    assert_eq!(fresh.len(), 4, "pas assez de titres hors favoris");
-
-    let likes = check_likes(&client, fresh[0]).await;
-    // Retrait systématique : le titre n'était pas liké avant le test.
-    let unliked = client.set_track_liked(fresh[0], false).await;
-
-    let uuid = client
-        .create_playlist(
-            "Seaglass test (à supprimer)",
-            "Créée par un test, supprimée aussitôt",
-        )
-        .await
-        .unwrap();
-    println!("playlist créée : {uuid}");
-    let playlist = check_playlist(&client, &uuid, &fresh).await;
-    let deleted = client.delete_playlist(&uuid).await;
-    let gone = client.playlist(&uuid).await;
-    println!(
-        "après suppression : {:?}",
-        gone.as_ref().map(|p| &p.playlist.title)
-    );
-
-    likes.unwrap();
-    unliked.unwrap();
-    playlist.unwrap();
-    deleted.unwrap();
-    assert!(gone.is_err(), "playlist encore lisible après suppression");
-}
-
-async fn favorite_ids(client: &TidalClient) -> Vec<TrackId> {
-    let favorites = client.favorite_tracks().await.unwrap();
-    favorites.into_iter().map(|t| t.track.id).collect()
-}
-
-async fn check_likes(client: &TidalClient, id: TrackId) -> Result<(), String> {
-    let err = |e: super::TidalError| e.to_string();
-    client.set_track_liked(id, true).await.map_err(err)?;
-    if !client.liked_track_ids().await.map_err(err)?.contains(&id) {
-        return Err(format!("{id} absent des likes en mémoire"));
-    }
-    let after = favorite_ids(client).await;
-    println!("like {id} : premier favori = {:?}", after.first());
-    if after.first() != Some(&id) {
-        return Err(format!("{id} absent de la tête des favoris"));
-    }
-    client.set_track_liked(id, false).await.map_err(err)?;
-    if favorite_ids(client).await.contains(&id)
-        || client.liked_track_ids().await.map_err(err)?.contains(&id)
-    {
-        return Err(format!("{id} encore liké"));
-    }
-    println!("like retiré");
-    Ok(())
-}
-
-async fn check_playlist(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Result<(), String> {
-    let err = |e: super::TidalError| e.to_string();
-    let tracks = async |uuid: &str| -> Result<Vec<TrackId>, String> {
-        let page = client.playlist(uuid).await.map_err(err)?;
-        Ok(page.tracks.into_iter().map(|t| t.track.id).collect())
-    };
-    let own = client.own_playlists().await.map_err(err)?;
-    if !own.iter().any(|p| p.uuid == uuid) {
-        return Err("playlist créée absente de own_playlists".into());
-    }
-
-    let added = client.add_to_playlist(uuid, &ids[..2]).await.map_err(err)?;
-    let after_add = tracks(uuid).await?;
-    println!("ajout de {added} titres : {after_add:?}");
-    if added != 2 || after_add != ids[..2] {
-        return Err(format!("ajout : {added}, {after_add:?}"));
-    }
-
-    // Doublon (onDupes=SKIP) : ignoré sans erreur, `addedItemIds` vide.
-    let dupe = client.add_to_playlist(uuid, &ids[..1]).await;
-    let after_dupe = tracks(uuid).await?;
-    println!("doublon : {dupe:?}, titres {after_dupe:?}");
-    if !matches!(dupe, Ok(0)) || after_dupe != ids[..2] {
-        return Err(format!("doublon : {dupe:?}"));
-    }
-
-    // ETag périmé : une modification faite entre-temps doit être refusée (412).
-    let stale = client.playlist_etag(uuid).await.map_err(err)?;
-    client
-        .add_to_playlist(uuid, &ids[2..3])
-        .await
-        .map_err(err)?;
-    let form = [
-        ("trackIds", ids[3].to_string()),
-        ("onArtifactNotFound", "FAIL".to_owned()),
-    ];
-    let path = format!("playlists/{uuid}/items");
-    let stale_write = client
-        .write(
-            reqwest::Method::POST,
-            super::api::API_V1,
-            &path,
-            &[],
-            Some(&form),
-            Some(&stale),
-        )
-        .await;
-    println!(
-        "ETag périmé : {:?}",
-        stale_write.as_ref().map(|r| r.status())
-    );
-    if !matches!(stale_write, Err(super::TidalError::Conflict(_))) {
-        return Err("ETag périmé accepté".into());
-    }
-
-    let before = tracks(uuid).await?;
-    // Mauvais titre attendu à cette position : refusé sans rien retirer.
-    let wrong = client.remove_from_playlist(uuid, 0, before[1]).await;
-    if !matches!(wrong, Err(super::TidalError::Conflict(_))) {
-        return Err(format!("retrait non vérifié : {wrong:?}"));
-    }
-    client
-        .remove_from_playlist(uuid, 0, before[0])
-        .await
-        .map_err(err)?;
-    let after = tracks(uuid).await?;
-    println!("avant retrait : {before:?}, après retrait de l'index 0 : {after:?}");
-    if after != before[1..] {
-        return Err(format!("retrait : {after:?}"));
-    }
-    Ok(())
 }
 
 /// Infos d'un titre (#3) : *Hotel California* hi-res (24/192, ~5 071 kbps) et *Billie Jean*

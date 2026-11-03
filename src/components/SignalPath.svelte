@@ -50,6 +50,23 @@
     // Débit moyen du manifeste (#3) ; la version resserrée garde la ligne courte.
     return s.stream.bitrate && !dense ? `${kind} · ${kbps(s.stream.bitrate)}` : kind;
   });
+  /** Périphérique réellement ouvert (#79), en repli si le choix est débranché. */
+  const device = $derived(s.outputDevice);
+  /** La version resserrée garde « WASAPI · partagé » : le nom passe dans l'info-bulle. */
+  const outputSub = $derived(
+    [(dense ? null : device?.name) ?? s.outputDriver?.toUpperCase() ?? "", s.outputDriver ? t.player.shared : ""]
+      .filter(Boolean)
+      .join(" · "),
+  );
+  const outputTitle = $derived(
+    [
+      s.outputDriver ? `${s.outputDriver.toUpperCase()} · ${t.player.shared}` : "",
+      device?.name ? (device.systemDefault ? `${device.name} (${t.player.systemDevice})` : device.name) : "",
+      device?.missing ? t.player.deviceFallback(device.missing) : "",
+    ]
+      .filter(Boolean)
+      .join(" — ") || undefined,
+  );
   const sourceTitle = $derived(
     [editionHint, s.stream?.bitrate ? t.player.averageBitrate(kbps(s.stream.bitrate)) : ""].filter(Boolean).join(" — ") ||
       undefined,
@@ -75,10 +92,10 @@
       <span class="sub">{decodeSub}</span>
     </div>
     <span class="wire" aria-hidden="true"></span>
-    <div class="node">
+    <div class="node" title={outputTitle}>
       <span class="label">{t.player.output}</span>
       <span class="value mono">{s.output ? `${khz(s.output.samplerate)} kHz` : "—"}</span>
-      <span class="sub">{s.outputDriver ? `${s.outputDriver.toUpperCase()} · ${t.player.shared}` : ""}</span>
+      <span class="sub output-device" class:device-fallback={!!device?.missing}>{outputSub}</span>
     </div>
     <div class="verdict" title={verdict.detail}>
       <span class="dot"></span>{verdict.label}
@@ -156,6 +173,18 @@
     min-height: 1em;
     font-size: 11px;
     color: var(--text-muted);
+  }
+
+  /* Nom du périphérique Windows, souvent long (« Haut-parleurs (… USB Audio) »). */
+  .output-device {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .device-fallback {
+    color: var(--warn);
   }
 
   .wire {

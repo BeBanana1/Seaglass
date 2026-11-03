@@ -48,7 +48,8 @@ impl Player {
         self.resolve(id, Slot::Current { start }, self.load_req);
     }
 
-    /// Précharge le titre suivant à moins de 30 s de la fin (sauf repeat One : `loop-file`).
+    /// Précharge le titre suivant à moins de 30 s de la fin (sauf repeat One : `loop-file`,
+    /// et minuteur « Fin du titre » : rien ne doit suivre en gapless).
     pub(super) fn maybe_preload(&mut self) {
         let remaining = self.state.duration - self.state.time_pos;
         if self.next_loaded.is_some()
@@ -56,11 +57,13 @@ impl Player {
             || self.state.duration <= 0.0
             || remaining >= PRELOAD_BEFORE_END
             || self.queue.repeat() == Repeat::One
+            || self.sleeps_at_end_of_track()
         {
             return;
         }
         let Some(id) = self.queue.peek_next() else {
-            return;
+            // Fin de file : la radio, si elle est activée, sera préchargée à son arrivée.
+            return self.maybe_request_radio();
         };
         self.preload_req += 1;
         self.preloading = true;
@@ -205,9 +208,13 @@ impl Player {
             // Fin naturelle sans suivant préchargé (préchargement absent ou en échec).
             EndReason::Eof if self.loaded && self.next_loaded.is_none() => {
                 self.loaded = false;
-                if let Some(id) = self.queue.advance() {
+                if self.sleeps_at_end_of_track() {
+                    self.sleep_after_track().await;
+                } else if let Some(id) = self.queue.advance() {
                     self.mark_queue_dirty();
                     self.load_current(id, 0.0);
+                } else {
+                    self.on_queue_end();
                 }
             }
             EndReason::Error => self.on_playback_error(error).await,
@@ -217,6 +224,10 @@ impl Player {
 
     /// Erreur mpv : une nouvelle URL une fois (signature expirée ?), puis titre suivant.
     async fn on_playback_error(&mut self, error: Option<String>) {
+        // Périphérique de sortie choisi qui ne s'ouvre pas : repli, pas une erreur du flux.
+        if self.on_output_init_failed(error.as_deref()).await {
+            return;
+        }
         let Some(id) = self.queue.current() else {
             return;
         };
@@ -307,12 +318,13 @@ impl Player {
         }
     }
 
-    /// Repeat One = `loop-file=inf` côté mpv, sans rechargement.
+    /// Repeat One = `loop-file=inf` côté mpv, sans rechargement ; levé tant que le
+    /// minuteur vise la fin du titre (#85).
     pub(super) async fn apply_loop_file(&mut self) {
         if self.mpv.is_err() {
             return;
         }
-        let value = if self.queue.repeat() == Repeat::One {
+        let value = if self.queue.repeat() == Repeat::One && !self.sleeps_at_end_of_track() {
             "inf"
         } else {
             "no"

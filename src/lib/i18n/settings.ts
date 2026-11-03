@@ -88,6 +88,14 @@ export const fr = {
       note: "Les écarts voulus entre les titres d'un album sont gardés (gain du titre s'il manque).",
     },
   },
+  outputDevice: "Sortie audio",
+  outputDeviceHint:
+    "Périphérique sur lequel Seaglass joue, sans changer celui des autres applications. " +
+    "S'il est débranché, la lecture passe sur le périphérique par défaut et y revient au " +
+    "rebranchement.",
+  systemDefault: "Par défaut du système",
+  deviceUnplugged: "débranché",
+  devicesLoading: "Recherche des périphériques…",
 
   quality: "Qualité",
   qualityHint:
@@ -107,6 +115,12 @@ export const fr = {
     },
     off: { label: "Désactivé", note: "Le titre est toujours lu depuis l'édition affichée." },
   },
+
+  queueEnd: "Fin de la file",
+  autoRadio: "Continuer avec une radio",
+  autoRadioHint:
+    "Quand la file se termine, enchaîner sur la radio du dernier titre, sans blanc. " +
+    "Sans effet en mode répétition.",
 
   startup: "Démarrage",
   autostart: "Lancer Seaglass à l'ouverture de session",
@@ -221,6 +235,13 @@ export const en: typeof fr = {
       note: "Keeps the intended differences between an album's tracks (track gain if missing).",
     },
   },
+  outputDevice: "Audio output",
+  outputDeviceHint:
+    "Device Seaglass plays on, without changing the one used by other apps. If it is " +
+    "unplugged, playback moves to the default device and comes back when it is plugged in again.",
+  systemDefault: "System default",
+  deviceUnplugged: "unplugged",
+  devicesLoading: "Looking for devices…",
 
   quality: "Quality",
   qualityHint:
@@ -238,6 +259,12 @@ export const en: typeof fr = {
     },
     off: { label: "Off", note: "The track always plays from the edition shown." },
   },
+
+  queueEnd: "End of queue",
+  autoRadio: "Continue with a radio",
+  autoRadioHint:
+    "When the queue ends, carry on with the last track's radio, without a gap. " +
+    "No effect while repeat is on.",
 
   startup: "Startup",
   autostart: "Launch Seaglass when you sign in",

@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { commands, type Pin, type TrackId } from "../lib/ipc";
+  import { commands, type LikeTarget, type Pin, type TrackId } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import Icon from "./Icon.svelte";
   import PinButton from "./PinButton.svelte";
+  import FavoriteButton from "./FavoriteButton.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
 
   let {
@@ -15,6 +16,7 @@
     trackIds = [],
     queueable = false,
     pin,
+    favorite,
     meta,
     description,
     onRadio,
@@ -30,6 +32,8 @@
     queueable?: boolean;
     /** Bouton Épingler dans la barre latérale (playlist). */
     pin?: Pin;
+    /** Ajout aux favoris (album, playlist d'un autre) ou « Suivre » (artiste), #81. */
+    favorite?: LikeTarget;
     meta?: Snippet;
     description?: string | null;
     /** Bouton « Radio » (page d'artiste). */
@@ -63,15 +67,18 @@
     <h1>{title}</h1>
     {#if meta}<div class="meta">{@render meta()}</div>{/if}
     {#if description}<p class="description">{description}</p>{/if}
-    {#if trackIds.length > 0}
+    {#if trackIds.length > 0 || favorite}
       <div class="actions">
-        <button class="primary" onclick={() => play(false)}>
-          <Icon name="play" size={16} /> {t.common.play}
-        </button>
-        <button class="secondary" onclick={() => play(true)}>
-          <Icon name="shuffle" size={16} /> {t.common.shuffle}
-        </button>
-        {#if queueable}
+        {#if trackIds.length > 0}
+          <button class="primary" onclick={() => play(false)}>
+            <Icon name="play" size={16} /> {t.common.play}
+          </button>
+          <button class="secondary" onclick={() => play(true)}>
+            <Icon name="shuffle" size={16} /> {t.common.shuffle}
+          </button>
+        {/if}
+        {#if favorite}<FavoriteButton target={favorite} />{/if}
+        {#if queueable && trackIds.length > 0}
           <button class="secondary icon" onclick={() => enqueue(true)} title={t.views.header.playNext} aria-label={t.views.header.playNext}>
             <Icon name="playNext" size={18} />
           </button>
@@ -176,7 +183,8 @@
   }
 
   .actions button,
-  .actions :global(.pin-button) {
+  .actions :global(.pin-button),
+  .actions :global(.favorite-button) {
     clip-path: var(--control-clip);
   }
 

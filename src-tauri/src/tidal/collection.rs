@@ -1,8 +1,9 @@
-//! Écritures dans la bibliothèque de l'utilisateur (#4) : titres likés et playlists.
+//! Écritures dans la bibliothèque de l'utilisateur : favoris (#4, #81) et playlists.
 //! Vérifiées sur un vrai compte par `cargo test live_collection -- --ignored --nocapture`.
 //!
-//! - Likes : GET v1 `users/{id}/favorites/ids` (tous les identifiants, en chaînes),
-//!   POST `users/{id}/favorites/tracks` (`trackIds`), DELETE `…/tracks/{id}`.
+//! - Favoris (#4, #81) : GET v1 `users/{id}/favorites/ids` (tous les identifiants, en
+//!   chaînes), POST `users/{id}/favorites/{tracks,albums,artists,playlists}` (`trackIds`,
+//!   `albumIds`, `artistIds`, `uuids`), DELETE `…/<type>/{id}`.
 //! - Playlist : création PUT v2 `my-collection/playlists/folders/create-playlist`,
 //!   suppression PUT v2 `my-collection/playlists/folders/remove` (`trns=trn:playlist:<uuid>`).
 //! - Titres d'une playlist : POST v1 `playlists/{uuid}/items` (réponse `addedItemIds`),
@@ -12,7 +13,7 @@ use reqwest::Method;
 use serde::Deserialize;
 
 use super::api::{API_V1, API_V2, Call};
-use super::models::{PlaylistSummary, TrackId};
+use super::models::{LikeTarget, LikedIds, PlaylistSummary, TrackId};
 use super::raw::RawPage;
 use super::{Result, TidalClient, TidalError};
 
@@ -20,8 +21,8 @@ use super::{Result, TidalClient, TidalError};
 const ADD_CHUNK: usize = 100;
 
 impl TidalClient {
-    /// Identifiants des titres likés, chargés au premier appel puis tenus à jour.
-    pub async fn liked_track_ids(&self) -> Result<Vec<TrackId>> {
+    /// Identifiants de tous les favoris, chargés au premier appel puis tenus à jour.
+    pub async fn liked_ids(&self) -> Result<LikedIds> {
         if let Some(ids) = self.likes.get() {
             return Ok(ids);
         }
@@ -29,37 +30,37 @@ impl TidalClient {
         let raw: RawFavoriteIds = self
             .get(&format!("users/{user}/favorites/ids"), &[])
             .await?;
-        let ids = raw
-            .track
-            .iter()
-            .filter_map(|id| id.parse().ok())
-            .map(TrackId);
-        self.likes.replace(ids);
+        self.likes.load(raw.into_ids());
         Ok(self.likes.get().unwrap_or_default())
     }
 
-    pub async fn set_track_liked(&self, id: TrackId, liked: bool) -> Result<()> {
+    /// Ajoute aux favoris ou retire : POST `users/{id}/favorites/<type>` (formulaire
+    /// `trackIds`, `albumIds`, `artistIds` ou `uuids`), DELETE `…/<type>/<id>`.
+    pub async fn set_liked(&self, target: &LikeTarget, liked: bool) -> Result<()> {
         let user = self.user_id().await?;
+        let (kind, field, id) = match target {
+            LikeTarget::Track { id } => ("tracks", "trackIds", id.to_string()),
+            LikeTarget::Album { id } => ("albums", "albumIds", id.to_string()),
+            LikeTarget::Artist { id } => ("artists", "artistIds", id.to_string()),
+            LikeTarget::Playlist { uuid } => ("playlists", "uuids", uuid.clone()),
+        };
         if liked {
-            let form = [
-                ("trackIds", id.to_string()),
-                ("onArtifactNotFound", "FAIL".to_owned()),
-            ];
-            let path = format!("users/{user}/favorites/tracks");
+            let form = [(field, id), ("onArtifactNotFound", "FAIL".to_owned())];
+            let path = format!("users/{user}/favorites/{kind}");
             self.write(Method::POST, API_V1, &path, &[], Some(&form), None)
                 .await?;
         } else {
-            let path = format!("users/{user}/favorites/tracks/{id}");
+            let path = format!("users/{user}/favorites/{kind}/{id}");
             self.write(Method::DELETE, API_V1, &path, &[], None, None)
                 .await?;
         }
-        self.likes.set(id, liked);
+        self.likes.set(target, liked);
         Ok(())
     }
 
     /// Playlists de l'utilisateur, les seules qu'il peut modifier.
     pub async fn own_playlists(&self) -> Result<Vec<PlaylistSummary>> {
-        let mut playlists = self.library_playlists().await?;
+        let mut playlists = self.library_playlists().await?.items;
         playlists.retain(|p| p.mine);
         Ok(playlists)
     }
@@ -187,9 +188,31 @@ impl TidalClient {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct RawFavoriteIds {
-    #[serde(rename = "TRACK", default)]
+    #[serde(default)]
     track: Vec<String>,
+    #[serde(default)]
+    album: Vec<String>,
+    #[serde(default)]
+    artist: Vec<String>,
+    #[serde(default)]
+    playlist: Vec<String>,
+}
+
+impl RawFavoriteIds {
+    /// Identifiants en chaînes ; un identifiant numérique illisible est ignoré.
+    fn into_ids(self) -> LikedIds {
+        let numbers = |ids: Vec<String>| -> Vec<u64> {
+            ids.iter().filter_map(|id| id.parse().ok()).collect()
+        };
+        LikedIds {
+            tracks: numbers(self.track).into_iter().map(TrackId).collect(),
+            albums: numbers(self.album),
+            artists: numbers(self.artist),
+            playlists: self.playlist,
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -225,15 +248,15 @@ mod tests {
 
     #[test]
     fn favorite_ids_are_strings() {
-        let raw: RawFavoriteIds =
-            serde_json::from_str(r#"{"ARTIST":["1134"],"TRACK":["156749594","x"]}"#).unwrap();
-        let ids: Vec<TrackId> = raw
-            .track
-            .iter()
-            .filter_map(|id| id.parse().ok())
-            .map(TrackId)
-            .collect();
-        assert_eq!(ids, [TrackId(156_749_594)]);
+        let raw: RawFavoriteIds = serde_json::from_str(
+            r#"{"ARTIST":["1134"],"TRACK":["156749594","x"],"PLAYLIST":["4ba30155-d807-446f-9e53-b67520ccfe83"],"VIDEO":[]}"#,
+        )
+        .unwrap();
+        let ids = raw.into_ids();
+        assert_eq!(ids.tracks, [TrackId(156_749_594)]);
+        assert_eq!(ids.artists, [1134]);
+        assert!(ids.albums.is_empty());
+        assert_eq!(ids.playlists, ["4ba30155-d807-446f-9e53-b67520ccfe83"]);
     }
 
     #[test]

@@ -15,6 +15,12 @@ pub(super) fn image_url(id: &str, size: u32) -> String {
     format!("{IMAGE_URL}/{}/{size}x{size}.jpg", id.replace('-', "/"))
 }
 
+/// Même image en une autre taille, pour une URL construite par `image_url` en 320.
+pub(super) fn resized(url: &str, size: u32) -> Option<String> {
+    let base = url.strip_prefix(IMAGE_URL)?.strip_suffix("/320x320.jpg")?;
+    Some(format!("{IMAGE_URL}{base}/{size}x{size}.jpg"))
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct RawPage<T> {
@@ -204,6 +210,8 @@ impl RawTrack {
                 id: album.id,
                 title: album.title,
                 cover_url: album.cover.as_deref().map(|c| image_url(c, 320)),
+                cover_small_url: album.cover.as_deref().map(|c| image_url(c, 160)),
+                cover_large_url: album.cover.as_deref().map(|c| image_url(c, 640)),
                 color: hex_color(album.vibrant_color),
             },
             explicit: self.explicit,
@@ -259,6 +267,7 @@ impl From<RawAlbumFull> for AlbumSummary {
             title: raw.title,
             artists: artist_refs(raw.artists),
             cover_url: raw.cover.as_deref().map(|c| image_url(c, 320)),
+            cover_large_url: raw.cover.as_deref().map(|c| image_url(c, 640)),
             color: hex_color(raw.vibrant_color),
             release_date: raw.release_date,
             number_of_tracks: raw.number_of_tracks,
@@ -340,6 +349,46 @@ mod tests {
         let t = tracks(raw);
         assert_eq!(t.len(), 1);
         assert_eq!(t[0].id, TrackId(2));
+    }
+
+    #[test]
+    fn album_cover_in_three_sizes() {
+        let raw: RawTrack = serde_json::from_str(
+            r#"{"id":1,"title":"a","duration":10,"album":{"id":3,"title":"c","cover":"ab-cd"}}"#,
+        )
+        .unwrap();
+        let album = raw.into_track().unwrap().album;
+        let url = |n| {
+            Some(format!(
+                "https://resources.tidal.com/images/ab/cd/{n}x{n}.jpg"
+            ))
+        };
+        assert_eq!(album.cover_small_url, url(160));
+        assert_eq!(album.cover_url, url(320));
+        assert_eq!(album.cover_large_url, url(640));
+    }
+
+    #[test]
+    fn stored_album_ref_without_sizes_is_read() {
+        // Titre enregistré en SQLite avant #89 : seule la pochette 320 existe.
+        let url = |n| format!("https://resources.tidal.com/images/ab/cd/{n}x{n}.jpg");
+        let json = format!(
+            r#"{{"id":3,"title":"c","coverUrl":"{}","color":null}}"#,
+            url(320)
+        );
+        let album: AlbumRef = serde_json::from_str(&json).unwrap();
+        assert_eq!(album.cover_small_url, Some(url(160)));
+        assert_eq!(album.cover_large_url, Some(url(640)));
+
+        // URL d'un autre format : rien n'est deviné.
+        let album: AlbumRef =
+            serde_json::from_str(r#"{"id":3,"title":"c","coverUrl":"https://x/y.jpg"}"#).unwrap();
+        assert_eq!(album.cover_small_url, None);
+        assert_eq!(album.cover_large_url, None);
+
+        // Aller-retour sans perte.
+        let back: AlbumRef = serde_json::from_value(serde_json::to_value(&album).unwrap()).unwrap();
+        assert_eq!(back, album);
     }
 
     #[test]

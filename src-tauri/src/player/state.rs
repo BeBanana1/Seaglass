@@ -3,9 +3,11 @@
 
 use serde::Serialize;
 
+use super::output::OutputDevice;
 use super::queue::Repeat;
+use super::sleep::SleepState;
 use super::volume::Volume;
-use crate::mpv::AudioParams;
+use crate::mpv::{AudioParams, MpvIssue};
 use crate::tidal::models::{StreamFormat, Track};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -17,6 +19,8 @@ pub struct PlayerState {
     /// Format réellement envoyé à la sortie audio par mpv.
     pub output: Option<AudioParams>,
     pub output_driver: Option<String>,
+    /// Périphérique de sortie réellement utilisé (#79).
+    pub output_device: Option<OutputDevice>,
     /// Un titre est en cours de résolution (métadonnées + manifeste).
     pub loading: bool,
     pub paused: bool,
@@ -37,6 +41,11 @@ pub struct PlayerState {
     /// Gain de normalisation appliqué au titre courant, en dB (#82) ; `None` si le signal
     /// n'est pas modifié (réglage désactivé, gain inconnu ou nul).
     pub normalization: Option<f64>,
+    /// Minuteur de mise en veille actif (#85).
+    pub sleep: Option<SleepState>,
+    /// mpv ne tourne pas (lancement raté ou arrêt), avec sa cause probable (#92). Dans
+    /// l'état plutôt qu'en toast : l'échec au lancement précède l'écoute de la webview.
+    pub mpv_issue: Option<MpvIssue>,
 }
 
 impl PlayerState {
@@ -75,6 +84,8 @@ pub struct QueueView {
     pub manual: Vec<Track>,
     /// Prochains titres du contexte.
     pub upcoming: Vec<Track>,
+    /// Titre de départ quand le contexte est une radio qui prolonge la file (#78).
+    pub radio: Option<Track>,
 }
 
 #[cfg(test)]

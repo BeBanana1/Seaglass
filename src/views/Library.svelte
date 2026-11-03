@@ -13,15 +13,24 @@
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
   import PinButton from "../components/PinButton.svelte";
+  import { listSort, saveListSort } from "../lib/stores/ui.svelte";
+  import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
 
   // Titres likés : l'API les renvoie du plus récent au plus ancien (date du like).
   const TRACK_SORT_KEYS: SortKey[] = ["added", "title", "artist", "album", "duration"];
+  const TRACK_DEFAULT_SORT: TrackSort = { key: "added", descending: true };
 
   let { tab }: { tab: LibraryTab } = $props();
 
   let query = $state("");
-  let sort = $state<TrackSort>({ key: "added", descending: true });
+  // Tri mémorisé (#93), lu à l'ouverture de la bibliothèque.
+  let sort = $state<TrackSort>(listSort("likedTracks", TRACK_DEFAULT_SORT));
+
+  function setSort(next: TrackSort) {
+    sort = next;
+    saveListSort("likedTracks", next).catch((e) => pushToast({ level: "error", message: String(e) }));
+  }
 
   const allTracks = $derived(library.tracks.items ?? []);
   // Le contexte de lecture est la liste affichée, dans l'ordre affiché.
@@ -70,7 +79,9 @@
         onclick={() => replace({ name: "library", tab: id })}
       >
         {t.library.tabs[id]}
-        {#if library[id].items}<span class="count">{library[id].items?.length}</span>{/if}
+        {#if library[id].items}<span class="count"
+            >{library[id].items?.length}{library[id].truncated ? "+" : ""}</span
+          >{/if}
       </button>
     {/each}
   </div>
@@ -81,10 +92,22 @@
     <p class="muted">{t.common.loading}</p>
   {:else if slot.items.length === 0}
     <p class="muted">{t.library.empty}</p>
-  {:else if tab === "tracks"}
+  {:else}
+    {#if slot.truncated && tab !== "mixes"}
+      <!-- Plafond de chargement atteint (#91) : on le dit plutôt que de tronquer en silence. -->
+      <p class="library-truncated" role="status">
+        {t.library.truncated(tab, slot.items.length, slot.total)}
+      </p>
+    {/if}
+    {@render content()}
+  {/if}
+</section>
+
+{#snippet content()}
+  {#if tab === "tracks"}
     <TrackTools
       bind:query
-      bind:sort
+      bind:sort={() => sort, setSort}
       keys={TRACK_SORT_KEYS}
       shown={shownTracks.length}
       total={allTracks.length}
@@ -97,7 +120,7 @@
   {:else}
     <CardGrid items={cards} />
   {/if}
-</section>
+{/snippet}
 
 <style>
   section {
@@ -164,5 +187,15 @@
   .error {
     margin: 0 10px;
     color: var(--danger);
+  }
+
+  .library-truncated {
+    margin: 0 10px 14px;
+    padding: 8px 12px;
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
   }
 </style>

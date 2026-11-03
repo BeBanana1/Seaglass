@@ -20,15 +20,52 @@ pub struct ArtistRef {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", from = "StoredAlbumRef")]
 pub struct AlbumRef {
     pub id: u64,
     pub title: String,
     /// URL d'une pochette 320×320, si disponible.
     pub cover_url: Option<String>,
+    /// Même pochette en 160×160, pour les vignettes des listes (#89).
+    pub cover_small_url: Option<String>,
+    /// Même pochette en 640×640, pour « En lecture ».
+    pub cover_large_url: Option<String>,
     /// Couleur dominante de la pochette (`#rrggbb`), pour accorder l'interface.
-    #[serde(default)]
     pub color: Option<String>,
+}
+
+/// `AlbumRef` relu (SQLite) : les titres enregistrés avant 0.4.36 n'ont que la pochette 320,
+/// les autres tailles en sont déduites.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StoredAlbumRef {
+    id: u64,
+    title: String,
+    cover_url: Option<String>,
+    #[serde(default)]
+    cover_small_url: Option<String>,
+    #[serde(default)]
+    cover_large_url: Option<String>,
+    #[serde(default)]
+    color: Option<String>,
+}
+
+impl From<StoredAlbumRef> for AlbumRef {
+    fn from(s: StoredAlbumRef) -> Self {
+        let resized = |size| {
+            s.cover_url
+                .as_deref()
+                .and_then(|u| super::raw::resized(u, size))
+        };
+        AlbumRef {
+            cover_small_url: s.cover_small_url.or_else(|| resized(160)),
+            cover_large_url: s.cover_large_url.or_else(|| resized(640)),
+            id: s.id,
+            title: s.title,
+            cover_url: s.cover_url,
+            color: s.color,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -61,6 +98,19 @@ pub struct TrackEntry {
     /// Millisecondes depuis l'epoch Unix (UTC) : `dateAdded` d'un titre de playlist,
     /// `created` d'un favori. `None` si l'API ne la donne pas ou si elle est illisible.
     pub added_at: Option<i64>,
+}
+
+/// Une catégorie de la bibliothèque (titres, albums, artistes, playlists), du plus récent au
+/// plus ancien, éventuellement coupée au plafond de chargement (#91).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryList<T> {
+    pub items: Vec<T>,
+    /// Coupée au plafond : seuls les plus récents sont là, d'autres suivent.
+    pub truncated: bool,
+    /// Nombre annoncé par l'API (`totalNumberOfItems`, éléments indisponibles compris),
+    /// s'il est connu : il peut dépasser `items.len()` sans que la liste soit coupée.
+    pub total: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -131,6 +181,8 @@ pub struct AlbumSummary {
     pub title: String,
     pub artists: Vec<ArtistRef>,
     pub cover_url: Option<String>,
+    /// Même pochette en 640×640, pour le bandeau de l'accueil (#89).
+    pub cover_large_url: Option<String>,
     /// Couleur dominante de la pochette (`#rrggbb`).
     pub color: Option<String>,
     /// `AAAA-MM-JJ`.
@@ -253,6 +305,28 @@ pub struct MixPage {
 pub enum RadioSeed {
     Track,
     Artist,
+}
+
+/// Ce qu'on peut ajouter aux favoris (#4, #81). Pas de mix : les enregistrer n'est pas
+/// encore proposé.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum LikeTarget {
+    Track { id: TrackId },
+    Album { id: u64 },
+    Artist { id: u64 },
+    Playlist { uuid: String },
+}
+
+/// Tous les favoris, en identifiants (événement `likes`). Chaque liste est triée.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LikedIds {
+    pub tracks: Vec<TrackId>,
+    pub albums: Vec<u64>,
+    pub artists: Vec<u64>,
+    /// Playlists suivies (et parfois les vôtres : `favorites/ids` en mêle).
+    pub playlists: Vec<String>,
 }
 
 /// Radio d'un titre ou d'un artiste : une liste de titres proches, calculée par le service.

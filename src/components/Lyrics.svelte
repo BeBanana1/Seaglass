@@ -2,9 +2,8 @@
   // Paroles du titre en cours (#5). Horodatées : la ligne courante suit la position
   // interpolée (comme la barre de progression) et reste centrée ; clic = aller à la ligne.
   // Sans horodatage : texte simple.
-  import { onMount } from "svelte";
   import { commands, type Lyrics, type TrackId } from "../lib/ipc";
-  import { estimatedPosition, player } from "../lib/stores/player.svelte";
+  import { followPosition, player } from "../lib/stores/player.svelte";
   import { t } from "../lib/i18n.svelte";
 
   /** Délai pendant lequel le suivi automatique s'arrête après un défilement manuel. */
@@ -16,7 +15,7 @@
   let scroller = $state<HTMLElement>();
   let manualUntil = 0;
 
-  const trackId = $derived(player.state.track?.id ?? null);
+  const trackId = $derived(player.currentTrackId);
   const synced = $derived(lyrics?.text.kind === "synced" ? lyrics.text.lines : null);
 
   // Requête par titre ; une réponse arrivée après un changement de titre est ignorée.
@@ -56,15 +55,14 @@
     return found;
   }
 
-  onMount(() => {
-    let frame = requestAnimationFrame(function tick(now) {
-      if (synced) {
-        const next = lineAt(synced, estimatedPosition(now) * 1000);
-        if (next !== active) active = next;
-      }
-      frame = requestAnimationFrame(tick);
+  // Boucle d'images seulement pendant la lecture (#88) ; relancée quand les paroles arrivent.
+  $effect(() => {
+    const lines = synced;
+    if (!lines) return;
+    return followPosition((p) => {
+      const next = lineAt(lines, p * 1000);
+      if (next !== active) active = next;
     });
-    return () => cancelAnimationFrame(frame);
   });
 
   // Garde la ligne courante au centre, sauf si l'utilisateur fait défiler lui-même.

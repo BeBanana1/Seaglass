@@ -1,6 +1,7 @@
 // Mise en forme pour l'affichage uniquement.
 
 import type {
+  AlbumRef,
   AlbumSummary,
   AudioParams,
   MediaItem,
@@ -73,6 +74,16 @@ export function mediaSubtitle(item: MediaItem): string {
     case "mix":
       return item.subtitle ?? t.format.mix;
   }
+}
+
+/** Pochette des vignettes (160), repli sur la 320 (fixtures générées avant #89). */
+export function coverSmall(album: AlbumRef): string | null {
+  return album.coverSmallUrl ?? album.coverUrl;
+}
+
+/** Grande pochette (640), même repli. */
+export function coverLarge(album: AlbumRef | AlbumSummary): string | null {
+  return album.coverLargeUrl ?? album.coverUrl;
 }
 
 export function mediaImage(item: MediaItem): string | null {

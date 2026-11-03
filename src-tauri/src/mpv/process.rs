@@ -2,10 +2,11 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 
 use tokio::process::{Child, Command};
 
+use super::device::AUTO;
 use super::{CacheSize, MpvError, Result};
 
 /// `CREATE_NO_WINDOW` : pas de console qui s'ouvre à côté de l'app.
@@ -18,18 +19,25 @@ const BUNDLED_MPV: &str = "mpv.exe";
 #[cfg(not(windows))]
 const BUNDLED_MPV: &str = "mpv";
 
-/// Pipe IPC propre à ce lancement : un mpv orphelin d'un lancement précédent ne peut
-/// jamais être pris pour le nôtre.
+/// `<pid>-<128 bits aléatoires>`, tiré une fois par lancement : le pid écarte un mpv
+/// orphelin d'un lancement précédent, la partie aléatoire empêche un autre processus de
+/// créer le pipe avant mpv pour recevoir la connexion de l'app.
+fn pipe_id() -> &'static str {
+    static ID: OnceLock<String> = OnceLock::new();
+    ID.get_or_init(|| format!("{}-{}", std::process::id(), super::serve::random_token()))
+}
+
+/// Pipe IPC propre à ce lancement, partagé par `spawn` et `ipc::connect`.
 #[cfg(windows)]
 pub fn pipe_name() -> String {
-    format!(r"\\.\pipe\seaglass-mpv-{}", std::process::id())
+    format!(r"\\.\pipe\seaglass-mpv-{}", pipe_id())
 }
 
 /// Hors Windows, mpv attend le chemin d'un socket Unix.
 #[cfg(not(windows))]
 pub fn pipe_name() -> String {
     std::env::temp_dir()
-        .join(format!("seaglass-mpv-{}.sock", std::process::id()))
+        .join(format!("seaglass-mpv-{}.sock", pipe_id()))
         .to_string_lossy()
         .into_owned()
 }
@@ -39,15 +47,26 @@ fn executable() -> PathBuf {
     if let Some(path) = std::env::var_os("SEAGLASS_MPV_PATH") {
         return PathBuf::from(path);
     }
+    bundled().unwrap_or_else(|| PathBuf::from("mpv"))
+}
+
+/// Le mpv installé avec l'app, s'il existe.
+fn bundled() -> Option<PathBuf> {
     std::env::current_exe()
         .ok()
         .and_then(|exe| exe.parent().map(|dir| dir.join(BUNDLED_MPV)))
         .filter(|bundled| bundled.is_file())
-        .unwrap_or_else(|| PathBuf::from("mpv"))
 }
 
-/// Lance mpv en mode idle, avec la taille de cache choisie dans les réglages.
-pub fn spawn(conf: &Path, cache: CacheSize) -> Result<Child> {
+/// Vrai si `spawn` lance le mpv de l'installeur (build x86-64-v3, voir `cpu.rs`).
+pub fn is_bundled() -> bool {
+    std::env::var_os("SEAGLASS_MPV_PATH").is_none() && bundled().is_some()
+}
+
+/// Lance mpv en mode idle, avec la taille de cache et le périphérique de sortie choisis
+/// dans les réglages (`None` = périphérique par défaut du système). Un périphérique absent
+/// est corrigé par le lecteur dès la première liste reçue, avant toute lecture.
+pub fn spawn(conf: &Path, cache: CacheSize, audio_device: Option<&str>) -> Result<Child> {
     let exe = executable();
     tracing::info!("mpv : {}", exe.display());
     let mut cmd = Command::new(exe);
@@ -62,6 +81,7 @@ pub fn spawn(conf: &Path, cache: CacheSize) -> Result<Child> {
             "--prefetch-playlist=yes",
         ])
         .args(cache.args())
+        .arg(format!("--audio-device={}", audio_device.unwrap_or(AUTO)))
         .arg(format!("--input-ipc-server={}", pipe_name()))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -101,5 +121,19 @@ impl ProcessGuard {
         {
             tracing::warn!("arrêt de mpv impossible : {e}");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pipe_name_is_stable_and_unguessable() {
+        let name = pipe_name();
+        assert_eq!(name, pipe_name());
+        let pid = std::process::id().to_string();
+        let suffix = name.split(&format!("seaglass-mpv-{pid}-")).nth(1).unwrap();
+        assert!(suffix.len() >= 32, "{name}");
     }
 }

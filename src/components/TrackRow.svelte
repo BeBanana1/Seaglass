@@ -1,6 +1,6 @@
 <script lang="ts">
   import { commands, type Track } from "../lib/ipc";
-  import { formatTime, fullTitle } from "../lib/format";
+  import { coverSmall, formatTime, fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
   import { closeMenu, menu, menuPosition, openMenu } from "../lib/stores/menu.svelte";
   import { trackMenu } from "../lib/trackMenu";
@@ -17,6 +17,8 @@
     actions = true,
     onPlay,
     onRemove,
+    onMoveUp,
+    onMoveDown,
     onRemoveFromPlaylist,
   }: {
     track: Track;
@@ -31,6 +33,9 @@
     actions?: boolean;
     onPlay?: () => void;
     onRemove?: () => void;
+    /** Ligne de la file manuelle : « Monter » / « Descendre » dans le menu (#80). */
+    onMoveUp?: () => void;
+    onMoveDown?: () => void;
     /** Ligne d'une de vos playlists : « Retirer de cette playlist » dans le menu. */
     onRemoveFromPlaylist?: () => void;
   } = $props();
@@ -41,7 +46,7 @@
 
   // Les mêmes entrées au clic droit et sur le bouton « … » (#52).
   function entries() {
-    return trackMenu(track, { onPlay, onRemove, queueable: actions, onRemoveFromPlaylist });
+    return trackMenu(track, { onPlay, onRemove, onMoveUp, onMoveDown, queueable: actions, onRemoveFromPlaylist });
   }
 
   function onContextmenu(e: MouseEvent) {
@@ -74,7 +79,7 @@
   {#if number !== undefined}<span class="number">{number}</span>{/if}
   <div class="cover" class:hidden={!showCover}>
     {#if track.album.coverUrl}
-      <img src={track.album.coverUrl} alt="" loading="lazy" />
+      <img src={coverSmall(track.album)} alt="" loading="lazy" />
     {/if}
     {#if onPlay}
       <button class="cover-play" onclick={onPlay} aria-label={t.views.row.play(track.title)}>
@@ -140,6 +145,11 @@
     gap: 12px;
     padding: 6px 10px;
     border-radius: var(--radius);
+    /* Lignes hors écran ni mises en page ni peintes (listes de milliers de titres, #88). La
+       hauteur réservée est celle d'une ligne (pochette 40 px + marges), `auto` garde ensuite la
+       hauteur mesurée. Contient la peinture : rien d'une ligne ne doit déborder de son cadre. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 52px;
   }
 
   .row.numbered {

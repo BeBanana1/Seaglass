@@ -2,10 +2,13 @@
 
 pub mod actor;
 pub mod normalize;
+pub mod output;
 mod persist;
 mod playback;
 pub mod queue;
+mod radio;
 pub mod settings;
+pub mod sleep;
 pub mod state;
 mod upgrade;
 pub mod volume;

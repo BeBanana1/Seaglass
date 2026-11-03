@@ -1,14 +1,14 @@
 <script lang="ts">
   // Cœur d'un titre (#4) : l'état vient du backend (lib/stores/likes.svelte.ts).
   import type { Track } from "../lib/ipc";
-  import { isLiked, likes, toggleLike } from "../lib/stores/likes.svelte";
+  import { isLiked, isPending, toggleLike } from "../lib/stores/likes.svelte";
   import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
 
   let { track, size = 16 }: { track: Track; size?: number } = $props();
 
   const liked = $derived(isLiked(track.id));
-  const pending = $derived(likes.pending.has(track.id));
+  const pending = $derived(isPending({ kind: "track", id: track.id }));
 </script>
 
 <button

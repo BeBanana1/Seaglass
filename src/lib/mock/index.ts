@@ -8,21 +8,33 @@
 // `?queue=1`, `?update=1`, `?autostart=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
-// `?trackinfo=1` (ouvre les infos du titre en cours), `?normalization=track|album`
-// (normalisation du volume active).
+// `?trackinfo=1` (ouvre les infos du titre en cours), `?autoradio=1` (la suite de la file est
+// une radio automatique, réglage activé), `?long=5000` (playlist de démonstration et titres likés
+// remplacés par n titres synthétiques, 10 000 au plus), `?ticks=1` (`player-state` émis à 4 Hz
+// pendant la lecture, comme le vrai backend) : mesure des longues listes (#88), `?sleep=30|track`
+// (minuteur de mise en veille actif), `?device=dac|missing` (périphérique de sortie choisi, branché ou
+// débranché), `?normalization=track|album` (normalisation du volume
+// active).
 
 import type {
   AlbumPage,
+  AlbumSummary,
   ArtistPage,
+  ArtistSummary,
   FeedItem,
   HomeLayout,
   HomeRow,
   HomeSection,
   Lang,
   LanguagePref,
+  LibraryList,
+  LikedIds,
+  LikeTarget,
   Lyrics,
   MixPage,
   MixSummary,
+  AudioDevices,
+  OutputDevice,
   PlaybackSettings,
   PlayerState,
   PlaylistPage,
@@ -30,11 +42,14 @@ import type {
   QueueView,
   RadioPage,
   SearchResults,
+  SleepRequest,
+  SleepState,
   StreamFormat,
   Theme,
   Track,
   TrackEntry,
   TrackInfo,
+  TrackSort,
   UiSettings,
 } from "../ipc";
 import type { LibraryTab, Route, SettingsSection } from "../stores/nav.svelte";
@@ -95,7 +110,15 @@ for (const t of [
 
 let context: Track[] = fx.album.tracks;
 let index = Math.min(1, context.length - 1);
-const manual: Track[] = [];
+/** `?autoradio=1` : la suite de la file est la radio du titre en cours (#78). */
+let radioSeed: Track | null = null;
+if (params.has("autoradio") && context[index]) {
+  radioSeed = context[index];
+  context = [radioSeed, ...radioPage.tracks.filter((t) => t.id !== radioSeed?.id)];
+  index = 0;
+}
+/** `?manual=1` : quelques titres dans la file manuelle, pour la réorganiser (#80). */
+const manual: Track[] = params.has("manual") ? fx.playlist.tracks.slice(0, 4) : [];
 /** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
 const volumeParam = params.get("volume");
 /** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18). */
@@ -104,6 +127,13 @@ const hiresEdition = params.get("hiresedition");
 const hiresOfferParam = params.get("hiresoffer");
 /** `?hirestwin=1` : la page album propose un album jumeau hi-res (#59). */
 const hiresTwin = params.has("hirestwin");
+
+/** `?sleep=30` (minuteur de 30 min) ou `?sleep=track` (fin du titre), #85. */
+function mockSleep(param: string | null): SleepState | null {
+  if (param === "track") return { kind: "endOfTrack" };
+  const minutes = Number(param);
+  return param && minutes > 0 ? { kind: "minutes", endsAt: Date.now() + minutes * 60_000 } : null;
+}
 
 function offerFormat(album: string): StreamFormat {
   return { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 192000, bitrate: 5071, hiresEdition: album };
@@ -114,6 +144,8 @@ const state: PlayerState = {
   stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100, bitrate: 1854, hiresEdition },
   output: { format: "s32", samplerate: 44100, channelCount: 2 },
   outputDriver: "wasapi",
+  // Calculé plus bas, après les réglages de lecture factices.
+  outputDevice: null,
   loading: false,
   paused: params.has("paused"),
   buffering: false,
@@ -131,6 +163,9 @@ const state: PlayerState = {
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
   // Calculé plus bas, après les réglages de lecture factices.
   normalization: null,
+  sleep: mockSleep(params.get("sleep")),
+  /** `?mpv=cpu` ou `?mpv=stopped` : bandeau « mpv ne tourne pas » (#92). */
+  mpvIssue: params.get("mpv") === "cpu" ? "cpuUnsupported" : params.get("mpv") === "stopped" ? "stopped" : null,
 };
 
 let ui: UiSettings = {
@@ -145,6 +180,7 @@ let ui: UiSettings = {
   accent: params.get("accent") ? `#${params.get("accent")}` : null,
   // `?lang=en` : interface en anglais.
   language: (params.get("lang") as LanguagePref) ?? "system",
+  sorts: [],
 };
 
 /** « Système » du backend factice : la langue du navigateur. */
@@ -168,11 +204,30 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
 }
 // `?normalization=track|album` : normalisation active (gain factice de −6,5 dB).
 const normalizationParam = params.get("normalization") as PlaybackSettings["normalization"] | null;
+// `?device=missing` : le périphérique choisi est débranché ; `?device=dac` : il est branché.
+const DAC = { id: "wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}", name: "Haut-parleurs (Focusrite USB Audio)" };
+const SPEAKERS = { id: "wasapi/{0d7e4c2b-58a1-4c5e-9f1e-3b2a9c1d7e44}", name: "Haut-parleurs (Realtek(R) Audio)" };
+const deviceParam = params.get("device");
 let playback: PlaybackSettings = {
   cacheSize: 64,
   hiresUpgrade: hiresOfferParam ? "ask" : "auto",
+  audioDevice: deviceParam ? DAC : null,
+  autoRadio: radioSeed !== null,
   normalization: normalizationParam ?? "off",
 };
+const audioDevices: AudioDevices = {
+  devices: deviceParam === "missing" ? [SPEAKERS] : [SPEAKERS, DAC],
+  systemDefault: SPEAKERS.id,
+};
+
+/** Même logique que `player/output.rs` : choix s'il est branché, sinon défaut du système. */
+function outputDevice(): OutputDevice {
+  const chosen = playback.audioDevice;
+  const present = chosen && audioDevices.devices.some((d) => d.id === chosen.id);
+  if (chosen && present) return { name: chosen.name, systemDefault: false, missing: null };
+  return { name: SPEAKERS.name, systemDefault: true, missing: chosen ? chosen.name : null };
+}
+state.outputDevice = outputDevice();
 /** Gain factice : −6,5 dB par titre, −4 dB par album. */
 function mockGain(): number | null {
   return playback.normalization === "off" ? null : playback.normalization === "track" ? -6.5 : -4;
@@ -198,7 +253,7 @@ function mockUpdate() {
 }
 
 function queueView(): QueueView {
-  return { manual: [...manual], upcoming: context.slice(index + 1, index + 51) };
+  return { manual: [...manual], upcoming: context.slice(index + 1, index + 51), radio: radioSeed };
 }
 
 function setCurrent(track: Track | undefined) {
@@ -236,8 +291,57 @@ function setCurrent(track: Track | undefined) {
   emit("queue-state", queueView());
 }
 
-// Écritures (#4) : likes et playlists de l'utilisateur, gardés en mémoire.
+// Écritures (#4, #81) : favoris et playlists de l'utilisateur, gardés en mémoire.
+// `?truncated=1` : chaque catégorie se présente comme coupée au plafond (#91), avec un
+// total annoncé de 12 345 (`?truncated=nototal` : total inconnu).
+function libraryList<T>(items: T[]): LibraryList<T> {
+  const mode = params.get("truncated");
+  if (!mode) return { items, truncated: false, total: items.length };
+  return { items, truncated: true, total: mode === "nototal" ? null : 12345 };
+}
+
 const liked = new Set<number>(fx.library.tracks.map((t) => t.id));
+const favAlbums = [...(fx.library.albums as AlbumSummary[])];
+const favArtists = [...(fx.library.artists as ArtistSummary[])];
+const libPlaylists = [...fx.library.playlists];
+
+function likedIds(): LikedIds {
+  return {
+    tracks: [...liked],
+    albums: favAlbums.map((a) => a.id),
+    artists: favArtists.map((a) => a.id),
+    playlists: libPlaylists.filter((p) => !p.mine).map((p) => p.uuid),
+  };
+}
+
+/** Ajoute en tête (comme le tri par date du service) ou retire un favori de la liste. */
+function toggleIn<T>(list: T[], known: T[], match: (x: T) => boolean, on: boolean) {
+  const i = list.findIndex(match);
+  if (i >= 0 && !on) list.splice(i, 1);
+  const found = known.find(match);
+  if (i < 0 && on && found) list.unshift(found);
+}
+
+function setLiked(target: LikeTarget, on: boolean) {
+  switch (target.kind) {
+    case "track":
+      if (on) liked.add(Number(target.id));
+      else liked.delete(Number(target.id));
+      break;
+    case "album": {
+      const known = [fx.album.album, ...fx.search.albums, ...fx.artist.albums, ...fx.artist.singles];
+      toggleIn(favAlbums, known, (a) => a.id === Number(target.id), on);
+      break;
+    }
+    case "artist":
+      toggleIn(favArtists, [fx.artist.artist, ...fx.search.artists], (a) => a.id === Number(target.id), on);
+      break;
+    case "playlist":
+      toggleIn(libPlaylists, [fx.playlist.playlist, ...fx.search.playlists], (p) => p.uuid === target.uuid, on);
+      break;
+  }
+  emit("likes", likedIds());
+}
 const own: PlaylistSummary[] = fx.library.playlists.filter((p) => p.mine);
 if (params.has("mine") && !own.some((p) => p.uuid === fx.playlist.playlist.uuid)) {
   own.unshift({ ...fx.playlist.playlist, mine: true, editorial: false });
@@ -271,6 +375,33 @@ function addToOwn(uuid: string, trackIds: number[]): number {
   return added;
 }
 
+/** `?long=<n>` : n titres synthétiques (les titres connus répétés, identifiants uniques). */
+const longCount = Math.min(10_000, Math.max(0, Number(params.get("long")) || 0));
+const longTracks: TrackEntry[] = (() => {
+  const base = [...allTracks.values()];
+  if (!longCount || base.length === 0) return [];
+  const now = Date.now();
+  return Array.from({ length: longCount }, (_, i) => {
+    const t = base[i % base.length];
+    // Le premier passage garde les vrais identifiants : le titre en cours y figure.
+    const entry = { ...t, id: i < base.length ? t.id : t.id * 100_000 + i, addedAt: now - i * 3_600_000 };
+    allTracks.set(entry.id, entry);
+    return entry;
+  });
+})();
+const longPlaylist: PlaylistPage | null = longCount
+  ? { playlist: { ...fx.playlist.playlist, numberOfTracks: longCount }, tracks: longTracks }
+  : null;
+
+/** 250 ms de lecture : `?ticks=1`, ou appelée directement par une mesure (les minuteries d'une
+ *  page masquée sont ralenties). */
+export function playbackTick() {
+  if (state.paused || state.idle || state.loading || !state.track) return;
+  state.timePos = Math.min(state.timePos + 0.25, state.duration);
+  emit("player-state", state);
+}
+if (params.has("ticks")) setInterval(playbackTick, 250);
+
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => (params.has("loggedout") ? null : { userId: 1, countryCode: "CH" }),
   login: () => ({ userId: 1, countryCode: "CH" }),
@@ -285,13 +416,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   hires_twin_album: () =>
     hiresTwin ? { ...fx.album.album, id: fx.album.album.id + 1, title: `${fx.album.album.title} (Hi-Res)`, hires: true } : null,
   artist: () => fx.artist,
-  playlist: ({ uuid }) => ownPage(String(uuid)) ?? fx.playlist,
-  liked_tracks: () => [...liked],
-  set_track_liked: ({ trackId, liked: on }) => {
-    if (on) liked.add(Number(trackId));
-    else liked.delete(Number(trackId));
-    emit("liked-tracks", [...liked]);
-  },
+  playlist: ({ uuid }) => ownPage(String(uuid)) ?? longPlaylist ?? fx.playlist,
+  likes: () => likedIds(),
+  // Les arguments sont des proxys Svelte : copiés en JSON avant d'être gardés.
+  set_liked: ({ target, liked: on }) => setLiked(JSON.parse(JSON.stringify(target)), Boolean(on)),
   own_playlists: () => own.map((p) => ownPage(p.uuid)?.playlist ?? p),
   add_to_playlist: ({ uuid, trackIds }) => addToOwn(String(uuid), [...(trackIds as number[])]),
   create_playlist: ({ title, trackIds }) => {
@@ -323,10 +451,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // La radio factice garde ses titres, mais reprend le point de départ demandé.
   radio: ({ seed, id }) => ({ ...radioPage, seed, id }),
   library_mixes: () => libraryMixes,
-  library_tracks: () => fx.library.tracks,
-  library_albums: () => fx.library.albums,
-  library_artists: () => fx.library.artists,
-  library_playlists: () => fx.library.playlists,
+  library_tracks: () => libraryList(longCount ? longTracks : fx.library.tracks),
+  library_albums: () => libraryList([...favAlbums]),
+  library_artists: () => libraryList([...favArtists]),
+  library_playlists: () => libraryList([...libPlaylists]),
   player_state: () => state,
   queue_state: () => queueView(),
   ui_settings: () => ui,
@@ -355,6 +483,17 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   reset_home_layout: () => (ui.home = { order: [], hidden: [] }),
   // Copie JSON : l'UI envoie des proxys Svelte, que `structuredClone` refuse.
   set_pins: ({ pins }) => (ui.pins = JSON.parse(JSON.stringify(pins))),
+  // Comme le backend : le plus récent en tête, le tri par défaut de la liste est oublié.
+  set_list_sort: ({ list, sort }) => {
+    const id = list as string;
+    const next = sort as TrackSort | null;
+    const fallback = id === "likedTracks" ? "added:true" : "position:false";
+    ui.sorts = (ui.sorts ?? []).filter((s) => s.list !== id);
+    if (next && `${next.key}:${next.descending}` !== fallback) {
+      ui.sorts.unshift({ list: id, key: next.key, descending: next.descending });
+    }
+    return ui.sorts;
+  },
   playback_settings: () => playback,
   // Même validation que le backend : seules les tailles proposées sont acceptées.
   set_playback_settings: ({ settings }) => {
@@ -362,10 +501,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (![32, 64, 128, 256].includes(next.cacheSize)) {
       throw new Error(`taille de cache non prise en charge : ${next.cacheSize} Mio`);
     }
-    playback = { ...next };
+    playback = JSON.parse(JSON.stringify(next));
+    state.outputDevice = outputDevice();
     state.normalization = mockGain();
     emit("player-state", state);
   },
+  audio_devices: () => audioDevices,
   autostart_enabled: () => autostart,
   set_autostart: ({ enabled }) => {
     autostart = Boolean(enabled);
@@ -373,6 +514,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   play_tracks: ({ trackIds, startIndex, shuffle }) => {
     context = (trackIds as number[]).map((id) => allTracks.get(id)).filter((t): t is Track => !!t);
+    radioSeed = null;
     index = shuffle ? Math.floor(Math.random() * context.length) : Number(startIndex);
     state.shuffle = state.shuffle || Boolean(shuffle);
     setCurrent(context[index]);
@@ -397,14 +539,33 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     manual.splice(Number(i), 1);
     emit("queue-state", queueView());
   },
+  move_in_queue: ({ from, to }) => {
+    const [f, t] = [Number(from), Number(to)];
+    if (f === t || f >= manual.length || t >= manual.length) return;
+    manual.splice(t, 0, ...manual.splice(f, 1));
+    emit("queue-state", queueView());
+  },
   answer_hires_offer: ({ accept }) => {
     if (!state.hiresOffer) return;
     if (accept) state.stream = state.hiresOffer;
     state.hiresOffer = null;
     emit("player-state", state);
   },
+  set_sleep_timer: ({ timer }) => {
+    const req = timer as SleepRequest | null;
+    if (req?.kind === "minutes" && (req.minutes < 1 || req.minutes > 600)) {
+      throw new Error(`durée du minuteur invalide : ${req.minutes} min (1 à 600)`);
+    }
+    state.sleep = !req
+      ? null
+      : req.kind === "minutes"
+        ? { kind: "minutes", endsAt: Date.now() + req.minutes * 60_000 }
+        : { kind: "endOfTrack" };
+    emit("player-state", state);
+  },
   clear_queue: () => {
     manual.length = 0;
+    radioSeed = null;
     context = context.slice(index, index + 1);
     index = 0;
     state.hasNext = false;
