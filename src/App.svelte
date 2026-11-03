@@ -11,6 +11,7 @@
   import { closeMenu, menu } from "./lib/stores/menu.svelte";
   import { closePlaylistPicker, picker } from "./lib/stores/playlistPicker.svelte";
   import { platform } from "./lib/platform.svelte";
+  import { appWindow, initWindow, setFullscreen, toggleFullscreen } from "./lib/stores/window.svelte";
   import { initBackButton, syncBackButton } from "./lib/backButton";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
@@ -45,7 +46,7 @@
 
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
-    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes()]);
+    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initWindow()]);
     try {
       session = await commands.authStatus();
     } catch (e) {
@@ -110,8 +111,16 @@
   function onKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement;
     const typing = target.closest("input, textarea, [contenteditable]") !== null;
+    // Plein écran de la fenêtre (#131), indépendant de « En lecture » ; Échap en sort
+    // d'abord, comme une vidéo, puis ferme la vue au second appui.
+    if (e.key === "F11" && !platform.mobile) {
+      e.preventDefault();
+      toggleFullscreen();
+      return;
+    }
     if (e.key === "Escape") {
-      if (nowPlayingOpen) nowPlayingOpen = false;
+      if (appWindow.fullscreen) setFullscreen(false);
+      else if (nowPlayingOpen) nowPlayingOpen = false;
       return;
     }
     // Les réglages restent accessibles déconnecté (thème, cache).

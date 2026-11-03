@@ -208,6 +208,7 @@
     .setting-row,
     .signal,
     .now-playing .close,
+    .now-playing .fullscreen-toggle,
     .now-playing .queue-toggle,
     .now-playing .lyrics-toggle
   ) {

@@ -221,6 +221,7 @@
 }
 
 :root[data-theme="acidwave"] .now-playing .close,
+:root[data-theme="acidwave"] .now-playing .fullscreen-toggle,
 :root[data-theme="acidwave"] .now-playing .queue-toggle,
 :root[data-theme="acidwave"] .now-playing .lyrics-toggle {
   border-radius: 0;
