@@ -8,6 +8,7 @@
   import CyberScene from "./CyberScene.svelte";
   import RisoPaper from "./RisoPaper.svelte";
   import BauhausComposition from "./BauhausComposition.svelte";
+  import AeroLivery from "./AeroLivery.svelte";
 
   let { context = "shell" }: { context?: "shell" | "nowplaying" } = $props();
 
@@ -29,4 +30,6 @@
   <RisoPaper {intense} />
 {:else if theme === "bauhaus"}
   <BauhausComposition {intense} />
+{:else if theme === "aero"}
+  <AeroLivery {intense} />
 {/if}

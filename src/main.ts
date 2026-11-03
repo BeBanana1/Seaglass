@@ -9,6 +9,7 @@ import "./themes/neumorph.css";
 import "./themes/terminal.css";
 import "./themes/riso.css";
 import "./themes/bauhaus.css";
+import "./themes/aero.css";
 
 const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");

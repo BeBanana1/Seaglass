@@ -415,6 +415,33 @@
     background: #1d4fa0;
   }
 
+  .preview.aero {
+    gap: 4px;
+    border-radius: 0;
+    background:
+      linear-gradient(90deg, transparent 88%, #f2ee1d 88%),
+      radial-gradient(circle, rgb(31 47 53 / 0.25) 0.8px, transparent 1.2px) 0 0 / 6px 6px,
+      #d3eaee;
+  }
+
+  .aero :is(.side, .main, .bar) {
+    border-radius: 0;
+    background: #e3f2f4;
+  }
+
+  .aero .h {
+    background: #1f2f35;
+    box-shadow: 0 4px 0 -1px #e3f2f4, 0 6px 0 -1px #1f2f35;
+  }
+
+  .aero .l {
+    background: #465b62;
+  }
+
+  .aero .bar {
+    box-shadow: inset 4px 0 0 #f2ee1d, inset 6px 0 0 #1f2f35;
+  }
+
   .terminal .l {
     background: repeating-linear-gradient(90deg, rgb(65 255 122 / 0.6) 0 4px, transparent 4px 6px);
   }

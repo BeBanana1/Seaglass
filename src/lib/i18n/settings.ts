@@ -55,6 +55,10 @@ export const fr = {
       name: "Bauhaus",
       description: "Affiche géométrique : grille stricte, rouge, jaune, bleu, cercles et carrés.",
     },
+    aero: {
+      name: "Aéro",
+      description: "Fiche technique de livrée d'avion : bleu glacier, encre ardoise, jaune signal, repères.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -213,6 +217,10 @@ export const en: typeof fr = {
     bauhaus: {
       name: "Bauhaus",
       description: "A geometric poster: strict grid, red, yellow, blue, circles and squares.",
+    },
+    aero: {
+      name: "Aero",
+      description: "An aircraft livery spec sheet: ice blue, slate ink, signal yellow, registration marks.",
     },
   },
 
