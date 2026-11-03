@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.4.52"
+version = "0.4.53"
 description = "Seaglass, client de streaming non officiel"
 authors = ["bebanana"]
 edition = "2024"
@@ -9,7 +9,9 @@ edition = "2024"
 # Le suffixe `_lib` évite un conflit de nom entre lib et bin sous Windows
 # (https://github.com/rust-lang/cargo/issues/8519).
 name = "seaglass_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# `cdylib` pour Android, `rlib` pour le binaire du bureau. Pas de `staticlib` (iOS seulement) :
+# chaque type de bibliothèque refait l'optimisation à l'édition de liens en release.
+crate-type = ["cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -63,9 +65,10 @@ windows = { version = "0.62", features = [
     "Win32_System_WinRT",
 ] }
 
+# ThinLTO sur les 16 unités par défaut : parallèle, là où une LTO complète sur une seule unité
+# tournait sur un cœur. Différence de performance invisible pour l'app (réseau et mpv).
 [profile.release]
-codegen-units = 1
-lto = true
+lto = "thin"
 opt-level = 3
 panic = "abort"
 strip = true
