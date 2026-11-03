@@ -1,9 +1,9 @@
 //! Traduction des messages JSON de mpv en événements typés.
 
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::device::{self, AudioDevice};
+use crate::engine::AudioParams;
 
 /// Propriétés observées (`observe_property`), dans l'ordre des identifiants 1..=N.
 pub const OBSERVED: [&str; 9] = [
@@ -17,15 +17,6 @@ pub const OBSERVED: [&str; 9] = [
     "idle-active",
     "audio-device-list",
 ];
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AudioParams {
-    pub format: String,
-    pub samplerate: u32,
-    #[serde(rename(deserialize = "channel-count"))]
-    pub channel_count: u32,
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Property {

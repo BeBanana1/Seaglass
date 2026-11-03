@@ -1,5 +1,5 @@
-//! Acteur lecteur : seule tâche qui possède la file, `PlayerState` et le handle mpv.
-//! La gestion de la fenêtre mpv (gapless, erreurs) est dans `playback.rs`.
+//! Acteur lecteur : seule tâche qui possède la file, `PlayerState` et le moteur de lecture.
+//! La gestion de la fenêtre du moteur (gapless, erreurs) est dans `playback.rs`.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -19,9 +19,10 @@ use super::radio::AutoRadio;
 use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::sleep::SleepRequest;
 use super::state::{PlayerState, QueueView};
+use crate::engine::Event;
 use crate::integrations::Observers;
 use crate::mpv::process::ProcessGuard;
-use crate::mpv::{self, CacheSize, MpvEvent, MpvHandle, MpvIssue, Property, serve::ManifestServer};
+use crate::mpv::{MpvEngine, MpvIssue, serve::ManifestServer};
 use crate::store::Store;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{Stream, StreamFormat, Track, TrackId};
@@ -99,12 +100,12 @@ pub enum Cmd {
     },
 }
 
-/// Destination d'un flux résolu dans la fenêtre mpv.
+/// Destination d'un flux résolu dans la fenêtre du moteur.
 #[derive(Debug, Clone, Copy)]
 pub enum Slot {
-    /// Entrée 0, chargée en `replace` à partir de `start` secondes.
+    /// Entrée 0, qui remplace la fenêtre, à partir de `start` secondes.
     Current { start: f64 },
-    /// Entrée 1, préchargée en `append` pour le gapless.
+    /// Entrée 1, préchargée à la suite pour le gapless.
     Next(TrackId),
 }
 
@@ -114,16 +115,12 @@ struct Toast {
     message: String,
 }
 
-pub(super) struct Mpv {
-    pub(super) handle: MpvHandle,
-}
-
 pub(super) struct Player {
     pub(super) app: AppHandle,
     pub(super) tidal: Arc<TidalClient>,
     pub(super) store: Option<Arc<Store>>,
     pub(super) tx: mpsc::Sender<Cmd>,
-    pub(super) mpv: Result<Mpv, String>,
+    pub(super) engine: Result<MpvEngine, String>,
     pub(super) server: Option<ManifestServer>,
     pub(super) rng: StdRng,
     pub(super) queue: Queue,
@@ -133,10 +130,10 @@ pub(super) struct Player {
     /// Compteurs qui invalident les résolutions devenues obsolètes.
     pub(super) load_req: u64,
     pub(super) preload_req: u64,
-    /// mpv a le titre courant en entrée 0 (faux après restauration, avant lecture).
+    /// Le moteur a le titre courant en entrée 0 (faux après restauration, avant lecture).
     pub(super) loaded: bool,
     pub(super) preloading: bool,
-    /// Titre préchargé en entrée 1 de mpv.
+    /// Titre préchargé en entrée 1 du moteur.
     pub(super) next_loaded: Option<(Track, StreamFormat)>,
     /// Titre pour lequel une nouvelle URL a déjà été demandée après une erreur.
     pub(super) retried: Option<TrackId>,
@@ -177,21 +174,21 @@ pub fn spawn(
         let (events_tx, events_rx) = mpsc::channel(256);
         let settings = PlaybackSettings::load(store.as_deref());
         let output = Output::new(settings.audio_device.clone());
-        let mut mpv = start_mpv(
+        let mut engine = MpvEngine::start(
             &mpv_conf,
             settings.cache_size,
             output.launch_device(),
-            events_tx,
             &mpv_process,
+            events_tx,
         )
         .await;
         let mut mpv_issue = None;
-        if let Err(e) = &mpv {
+        if let Err(e) = &engine {
             tracing::error!("{e}");
             let issue = MpvIssue::diagnose();
             if issue == MpvIssue::CpuUnsupported {
                 tracing::error!("processeur sans AVX2 : le mpv embarqué ne peut pas tourner");
-                mpv = Err(issue.message().into());
+                engine = Err(issue.message().into());
             }
             mpv_issue = Some(issue);
         }
@@ -204,7 +201,7 @@ pub fn spawn(
             tidal,
             store,
             tx: actor_tx,
-            mpv,
+            engine,
             server,
             rng: StdRng::from_os_rng(),
             queue: Queue::default(),
@@ -244,20 +241,8 @@ pub fn spawn(
     tx
 }
 
-async fn start_mpv(
-    conf: &std::path::Path,
-    cache: CacheSize,
-    audio_device: Option<&str>,
-    events: mpsc::Sender<MpvEvent>,
-    process: &ProcessGuard,
-) -> Result<Mpv, String> {
-    process.set(mpv::process::spawn(conf, cache, audio_device).map_err(|e| e.to_string())?);
-    let handle = mpv::ipc::connect(events).await.map_err(|e| e.to_string())?;
-    Ok(Mpv { handle })
-}
-
 impl Player {
-    async fn run(mut self, mut cmds: mpsc::Receiver<Cmd>, mut events: mpsc::Receiver<MpvEvent>) {
+    async fn run(mut self, mut cmds: mpsc::Receiver<Cmd>, mut events: mpsc::Receiver<Event>) {
         let mut tick = tokio::time::interval(Duration::from_secs(1));
         loop {
             tokio::select! {
@@ -397,47 +382,44 @@ impl Player {
         }
     }
 
-    async fn handle_event(&mut self, ev: MpvEvent) {
+    async fn handle_event(&mut self, ev: Event) {
         let s = &mut self.state;
         match ev {
             // Position et durée ne valent que pour un titre chargé : avant, elles écraseraient
             // la position restaurée ou celle du titre en cours de résolution.
-            MpvEvent::Property(p) => match p {
-                Property::TimePos(t) if self.loaded => {
-                    s.time_pos = t.unwrap_or(0.0);
-                    self.persist_position = true;
-                    self.maybe_preload();
-                }
-                Property::Duration(d) if self.loaded => s.duration = d.unwrap_or(0.0),
-                Property::TimePos(_) | Property::Duration(_) => {}
-                // Sans titre chargé, `pause` reste celui de l'état restauré.
-                Property::Pause(p) if self.loaded => {
-                    s.paused = p;
-                    self.persist_position = true;
-                }
-                Property::Pause(_) => {}
-                Property::PausedForCache(b) => s.buffering = b,
-                Property::AudioParams(a) => s.set_output(a),
-                Property::CurrentAo(ao) => s.output_driver = ao,
-                Property::IdleActive(i) => s.set_idle(i),
-                Property::PlaylistPos(pos) => self.on_playlist_pos(pos).await,
-                Property::AudioDeviceList(list) => self.on_device_list(list).await,
-            },
-            MpvEvent::FileLoaded => self.failures = 0,
-            MpvEvent::EndFile { reason, error } => self.on_end_file(reason, error).await,
-            MpvEvent::Disconnected => {
+            Event::Position(t) if self.loaded => {
+                s.time_pos = t.unwrap_or(0.0);
+                self.persist_position = true;
+                self.maybe_preload();
+            }
+            Event::Duration(d) if self.loaded => s.duration = d.unwrap_or(0.0),
+            Event::Position(_) | Event::Duration(_) => {}
+            // Sans titre chargé, la pause reste celle de l'état restauré.
+            Event::Paused(p) if self.loaded => {
+                s.paused = p;
+                self.persist_position = true;
+            }
+            Event::Paused(_) => {}
+            Event::Buffering(b) => s.buffering = b,
+            Event::Format(a) => s.set_output(a),
+            Event::Driver(ao) => s.output_driver = ao,
+            Event::Idle(i) => s.set_idle(i),
+            Event::Advanced => self.on_advanced().await,
+            Event::Devices(list) => self.on_device_list(list).await,
+            Event::Loaded => self.failures = 0,
+            Event::Ended(end) => self.on_end_file(end).await,
+            Event::Stopped => {
                 let issue = MpvIssue::diagnose();
-                self.mpv = Err(issue.message().into());
+                self.engine = Err(issue.message().into());
                 self.state.mpv_issue = Some(issue);
                 self.loaded = false;
                 self.next_loaded = None;
                 self.toast("error", issue.message().into());
             }
-            MpvEvent::StartFile => {}
         }
     }
 
-    /// Toute modification de la file invalide le titre préchargé (fenêtre mpv de 2 entrées).
+    /// Toute modification de la file invalide le titre préchargé (fenêtre de 2 entrées).
     pub(super) async fn on_queue_changed(&mut self) {
         self.invalidate_next().await;
         self.mark_queue_dirty();

@@ -2,12 +2,12 @@
 //! périphérique par défaut du système quand le choix est débranché, sans perdre ce choix.
 
 use serde::Serialize;
-use serde_json::json;
 use tauri::Emitter;
 
 use super::actor::Player;
+use crate::engine::Op;
 use crate::i18n::trf;
-use crate::mpv::device::{self, AUTO, AudioDevice, INIT_FAILED};
+use crate::mpv::device::{self, AUTO, AudioDevice};
 
 /// Liste envoyée aux Réglages (`audio_devices`, événement `audio-devices`).
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -31,8 +31,8 @@ pub struct OutputDevice {
     pub missing: Option<String>,
 }
 
-/// État de la sortie, tenu par l'acteur. Logique pure : les commandes mpv sont envoyées
-/// par les méthodes de `Player` plus bas.
+/// État de la sortie, tenu par l'acteur. Logique pure : les opérations du moteur sont
+/// envoyées par les méthodes de `Player` plus bas.
 #[derive(Debug, Clone)]
 pub(super) struct Output {
     chosen: Option<AudioDevice>,
@@ -151,11 +151,11 @@ impl Player {
         self.apply_output_device(false).await;
     }
 
-    /// mpv n'a pas pu ouvrir la sortie : si c'est le périphérique choisi, repli sur celui
-    /// du système et reprise du titre à la même position. Renvoie `true` si l'erreur est
-    /// traitée ici (la nouvelle tentative d'URL n'est pas consommée).
-    pub(super) async fn on_output_init_failed(&mut self, error: Option<&str>) -> bool {
-        if error != Some(INIT_FAILED) || self.output.applied == AUTO {
+    /// Le moteur n'a pas pu ouvrir la sortie : si c'est le périphérique choisi, repli sur
+    /// celui du système et reprise du titre à la même position. Renvoie `true` si l'erreur
+    /// est traitée ici (la nouvelle tentative d'URL n'est pas consommée).
+    pub(super) async fn on_output_init_failed(&mut self) -> bool {
+        if self.output.applied == AUTO {
             return false;
         }
         self.output.unusable = Some(self.output.applied.clone());
@@ -173,12 +173,7 @@ impl Player {
         let (changed, transition) = self.output.update();
         if let Some(value) = changed {
             tracing::info!("sortie audio : {value}");
-            self.mpv_command(vec![
-                json!("set_property"),
-                json!("audio-device"),
-                json!(value),
-            ])
-            .await;
+            self.engine_op(Op::OutputDevice(value)).await;
         }
         if announce && let Some(fallback) = transition {
             let name = self.output.chosen_name();

@@ -303,7 +303,8 @@ mod tests {
     #[tokio::test]
     #[ignore = "lance un vrai mpv sur la sortie audio"]
     async fn live_audio_devices() {
-        use crate::mpv::{CacheSize, EndReason, MpvEvent, Property};
+        use crate::mpv::CacheSize;
+        use crate::mpv::events::{EndReason, MpvEvent, Property};
         use std::time::Duration;
 
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");

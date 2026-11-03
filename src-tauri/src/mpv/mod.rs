@@ -4,6 +4,7 @@
 pub mod cache;
 pub mod cpu;
 pub mod device;
+pub mod engine;
 pub mod events;
 pub mod ipc;
 #[cfg(windows)]
@@ -16,7 +17,8 @@ use serde::Serialize;
 use crate::i18n::{tr, trf};
 pub use cache::CacheSize;
 pub use device::AudioDevice;
-pub use events::{AudioParams, EndReason, MpvEvent, Property};
+pub use engine::MpvEngine;
+
 pub use ipc::MpvHandle;
 
 /// Pourquoi mpv ne tourne pas : affiché en bandeau par l'UI tant que l'app tourne (#92).
