@@ -86,6 +86,7 @@ export const fr = {
   row: {
     play: (title: string) => `Lire ${title}`,
     more: "Plus d'actions",
+    queued: (title: string) => `« ${title} » ajouté à la file`,
   },
   nowPlaying: {
     title: "En lecture",
@@ -184,6 +185,7 @@ export const en: typeof fr = {
   row: {
     play: (title: string) => `Play ${title}`,
     more: "More actions",
+    queued: (title: string) => `Added “${title}” to the queue`,
   },
   nowPlaying: {
     title: "Now playing",

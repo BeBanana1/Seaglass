@@ -8,6 +8,8 @@
   import LikeButton from "./LikeButton.svelte";
   import { t } from "../lib/i18n.svelte";
   import { platform } from "../lib/platform.svelte";
+  import { pushToast } from "../lib/stores/toasts.svelte";
+  import { swipeRight } from "../lib/swipe";
 
   let {
     track,
@@ -65,6 +67,19 @@
     onPlay();
   }
 
+  // Android (#174) : glisser vers la droite ajoute le titre à la file. Pas sur les lignes de la
+  // file elle-même ni de « À suivre » (sans actions de file).
+  const swipeable = $derived(platform.mobile && actions && !onRemove);
+
+  async function swipeToQueue() {
+    try {
+      await commands.addToQueue(track.id);
+      pushToast({ level: "info", message: t.views.row.queued(fullTitle(track)) });
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
+
   function toggleMore() {
     if (!moreButton) return;
     if (menu.open?.from === moreButton) return closeMenu();
@@ -82,7 +97,9 @@
   class:numbered={number !== undefined}
   class:no-cover={!showCover}
   class:menu-open={menuOpen}
+  class:swipeable
   bind:this={rowEl}
+  use:swipeRight={{ enabled: swipeable, onSwipe: swipeToQueue }}
   role="listitem"
   ondblclick={platform.mobile ? undefined : onPlay}
   onclick={onTap}
@@ -338,5 +355,44 @@
 
   :global(:root[data-platform="android"]) .actions button {
     padding: 8px;
+  }
+
+  /* Glisser vers la droite = ajouter à la file (#174). Le défilement vertical reste au
+     navigateur ; le contenu de la ligne suit le doigt (`--swipe-x`, posé par `swipeRight`) et
+     découvre un « + », à l'accent une fois le seuil franchi. Rien n'est transformé hors du
+     geste : pas de contexte d'empilement ajouté aux lignes au repos. */
+  .row.swipeable {
+    position: relative;
+    touch-action: pan-y;
+  }
+
+  .row:is(:global(.swiping), :global(.swipe-release)) > * {
+    transform: translateX(var(--swipe-x, 0px));
+  }
+
+  .row:global(.swipe-release) > * {
+    transition: transform 180ms ease;
+  }
+
+  .row:is(:global(.swiping), :global(.swipe-release))::before {
+    content: "+";
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    translate: 0 -50%;
+    font-size: 28px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--text-muted);
+    opacity: var(--swipe-fade, 0);
+  }
+
+  .row:global(.swipe-armed)::before {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .row:global(.swipe-armed) {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 </style>
