@@ -4,6 +4,7 @@
   import { t } from "../lib/i18n.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
+  import { platform } from "../lib/platform.svelte";
 
   /** Un mix du service, ou la radio d'un titre ou d'un artiste : même présentation. */
   type Source = { mix: string } | { seed: RadioSeed; id: number };
@@ -89,7 +90,8 @@
     {#if view.tracks.length === 0}
       <p class="muted">{t.views.mix.empty}</p>
     {:else}
-      <TrackList tracks={view.tracks} source={playSource} numbering="index" />
+      <!-- Android : pas de numéros, ils encombrent plus qu'ils n'aident (#162). -->
+      <TrackList tracks={view.tracks} source={playSource} numbering={platform.mobile ? "none" : "index"} />
     {/if}
   {/if}
 </section>
