@@ -61,6 +61,8 @@
   const queueOpen = $derived(panel === "queue" || (panel === "both" && wide));
   const bothOpen = $derived(lyricsOpen && queueOpen);
   const anyOpen = $derived(lyricsOpen || queueOpen);
+  /** Android (#173) : un panneau ouvert remplace toute la vue au lieu de s'ajouter dessous. */
+  const sheet = $derived(platform.mobile && anyOpen);
 
   function toggle(p: "queue" | "lyrics") {
     let lyrics = lyricsOpen;
@@ -78,6 +80,12 @@
   // Toute navigation (lien d'artiste ou d'album, ici ou dans la file) ferme la vue,
   // sinon la page ouverte resterait cachée derrière.
   const stackAtOpen = untrack(() => nav.stack);
+
+  // Android (#173) : rouvrir « En lecture » (mini-lecteur, notification) montre la pochette et
+  // les commandes, pas le dernier panneau plein écran.
+  $effect(() => () => {
+    if (platform.mobile) ui.nowPlayingPanel = null;
+  });
   $effect(() => {
     if (nav.stack !== stackAtOpen) onClose();
   });
@@ -127,111 +135,139 @@
     </button>
   </div>
 
-  <div class="scroller" class:with-panel={anyOpen} class:two-panels={bothOpen}>
-    <div class="stage">
-      {#if current}
-        {@const track = current}
-        <div class="layout">
-          <div class="art">
-            {#if track.album.coverUrl}
-              <img src={coverLarge(track.album)} alt="" />
-            {/if}
+  {#if sheet}
+    <!-- Android (#173) : paroles ou file en plein écran, avec de quoi piloter la lecture. -->
+    <div class="np-sheet">
+      <div class="np-sheet-head">
+        {#if current}
+          {#if current.album.coverUrl}<img src={coverSmall(current.album)} alt="" />{/if}
+          <div class="np-sheet-meta">
+            <span class="np-sheet-title">{fullTitle(current)}</span>
+            <span class="np-sheet-artist">{current.artists.map((a) => a.name).join(", ")}</span>
           </div>
-          <div class="info">
-            <span class="label">{t.views.nowPlaying.title}</span>
-            <h1 class="display">{fullTitle(track)}</h1>
-            <div class="who">
-              {#each track.artists as artist, i (artist.id)}
-                {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}
-                  >{artist.name}</button
-                >
-              {/each}
-            </div>
-            <button class="link album" onclick={() => go({ name: "album", id: track.album.id })}>{track.album.title}</button>
-            {#if from}
-              <div class="played-from">
-                <span class="played-from-label">{t.views.nowPlaying.playedFrom}</span>
-                <button class="link played-from-link" onclick={() => go(from.route)}>{from.label}</button>
-              </div>
-            {/if}
-            <div class="now-actions">
-              <LikeButton {track} size={20} />
-              <button
-                class="now-add"
-                onclick={() => openPlaylistPicker({ trackIds: [track.id], label: fullTitle(track) })}
-                title={t.views.header.addToPlaylist}
-                aria-label={t.views.header.addToPlaylist}
-              >
-                <Icon name="playlistAdd" size={20} />
-              </button>
-              <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
-                <Icon name="info" size={20} />
-              </button>
-              <SleepTimer size={20} />
-            </div>
-
-            <div class="controls">
-              <Progress large />
-              <Transport large />
-              <Volume />
-            </div>
-
-            <div class="signal"><SignalPath /></div>
-
-            {#if upNext.length > 0 && !anyOpen}
-              <div class="next">
-                <span class="label">{t.views.nowPlaying.upNext}</span>
-                <ol>
-                  {#each upNext as next, i (`${i}-${next.id}`)}
-                    <li>
-                      <button
-                        class="next-item"
-                        onclick={() => playUpNext(i, next)}
-                        aria-label={t.views.row.play(fullTitle(next))}
-                      >
-                        {#if next.album.coverUrl}<img src={coverSmall(next.album)} alt="" />{/if}
-                        <span class="t">{fullTitle(next)}</span>
-                        <span class="a">{next.artists.map((a) => a.name).join(", ")}</span>
-                      </button>
-                    </li>
-                  {/each}
-                </ol>
-              </div>
-            {/if}
-          </div>
-        </div>
+        {/if}
+      </div>
+      {#if lyricsOpen}
+        <section class="panel np-panel np-lyrics np-sheet-body" aria-label={t.views.nowPlaying.lyrics}>
+          <Lyrics />
+        </section>
       {:else}
-        <p class="empty">{t.views.nowPlaying.empty}</p>
+        <section class="panel np-panel np-queue np-sheet-body" aria-label={t.player.queue}>
+          <QueueList current={false} />
+        </section>
+      {/if}
+      <div class="controls np-sheet-controls">
+        <Progress />
+        <Transport />
+      </div>
+    </div>
+  {:else}
+    <div class="scroller" class:with-panel={anyOpen} class:two-panels={bothOpen}>
+      <div class="stage">
+        {#if current}
+          {@const track = current}
+          <div class="layout">
+            <div class="art">
+              {#if track.album.coverUrl}
+                <img src={coverLarge(track.album)} alt="" />
+              {/if}
+            </div>
+            <div class="info">
+              <span class="label">{t.views.nowPlaying.title}</span>
+              <h1 class="display">{fullTitle(track)}</h1>
+              <div class="who">
+                {#each track.artists as artist, i (artist.id)}
+                  {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}
+                    >{artist.name}</button
+                  >
+                {/each}
+              </div>
+              <button class="link album" onclick={() => go({ name: "album", id: track.album.id })}>{track.album.title}</button>
+              {#if from}
+                <div class="played-from">
+                  <span class="played-from-label">{t.views.nowPlaying.playedFrom}</span>
+                  <button class="link played-from-link" onclick={() => go(from.route)}>{from.label}</button>
+                </div>
+              {/if}
+              <div class="now-actions">
+                <LikeButton {track} size={20} />
+                <button
+                  class="now-add"
+                  onclick={() => openPlaylistPicker({ trackIds: [track.id], label: fullTitle(track) })}
+                  title={t.views.header.addToPlaylist}
+                  aria-label={t.views.header.addToPlaylist}
+                >
+                  <Icon name="playlistAdd" size={20} />
+                </button>
+                <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
+                  <Icon name="info" size={20} />
+                </button>
+                <SleepTimer size={20} />
+              </div>
+
+              <div class="controls">
+                <Progress large />
+                <Transport large />
+                <Volume />
+              </div>
+
+              <div class="signal"><SignalPath /></div>
+
+              {#if upNext.length > 0 && !anyOpen}
+                <div class="next">
+                  <span class="label">{t.views.nowPlaying.upNext}</span>
+                  <ol>
+                    {#each upNext as next, i (`${i}-${next.id}`)}
+                      <li>
+                        <button
+                          class="next-item"
+                          onclick={() => playUpNext(i, next)}
+                          aria-label={t.views.row.play(fullTitle(next))}
+                        >
+                          {#if next.album.coverUrl}<img src={coverSmall(next.album)} alt="" />{/if}
+                          <span class="t">{fullTitle(next)}</span>
+                          <span class="a">{next.artists.map((a) => a.name).join(", ")}</span>
+                        </button>
+                      </li>
+                    {/each}
+                  </ol>
+                </div>
+              {/if}
+            </div>
+          </div>
+        {:else}
+          <p class="empty">{t.views.nowPlaying.empty}</p>
+        {/if}
+      </div>
+
+      {#if lyricsOpen}
+        <aside class="panel np-panel np-lyrics" aria-label={t.views.nowPlaying.lyrics}>
+          <h2>{t.views.nowPlaying.lyrics}</h2>
+          <Lyrics />
+          {#if !queueOpen && upNext.length > 0}
+            <!-- Sans la file à côté, les prochains titres restent visibles sous les paroles (#119). -->
+            <section class="np-next" aria-label={t.views.nowPlaying.upNext}>
+              <div class="np-next-head">
+                <h3>{t.views.nowPlaying.upNext}</h3>
+                <button class="np-next-all" onclick={() => toggle("queue")}>{t.views.nowPlaying.fullQueue}</button>
+              </div>
+              <div role="list">
+                {#each upNext.slice(0, 3) as next, i (`${i}-${next.id}`)}
+                  <TrackRow track={next} compact actions={false} onPlay={() => playUpNext(i, next)} />
+                {/each}
+              </div>
+            </section>
+          {/if}
+        </aside>
+      {/if}
+      {#if queueOpen}
+        <aside class="panel np-panel np-queue" aria-label={t.player.queue}>
+          <h2>{t.player.queue}</h2>
+          <QueueList current={false} />
+        </aside>
       {/if}
     </div>
-
-    {#if lyricsOpen}
-      <aside class="panel np-panel np-lyrics" aria-label={t.views.nowPlaying.lyrics}>
-        <h2>{t.views.nowPlaying.lyrics}</h2>
-        <Lyrics />
-        {#if !queueOpen && upNext.length > 0}
-          <!-- Sans la file à côté, les prochains titres restent visibles sous les paroles (#119). -->
-          <section class="np-next" aria-label={t.views.nowPlaying.upNext}>
-            <div class="np-next-head">
-              <h3>{t.views.nowPlaying.upNext}</h3>
-              <button class="np-next-all" onclick={() => toggle("queue")}>{t.views.nowPlaying.fullQueue}</button>
-            </div>
-            <div role="list">
-              {#each upNext.slice(0, 3) as next, i (`${i}-${next.id}`)}
-                <TrackRow track={next} compact actions={false} onPlay={() => playUpNext(i, next)} />
-              {/each}
-            </div>
-          </section>
-        {/if}
-      </aside>
-    {/if}
-    {#if queueOpen}
-      <aside class="panel np-panel np-queue" aria-label={t.player.queue}>
-        <h2>{t.player.queue}</h2>
-        <QueueList current={false} />
-      </aside>
-    {/if}
-  </div>
+  {/if}
 </div>
 
 <style>
@@ -658,5 +694,79 @@
   :global(:root[data-platform="android"]) .np-panel {
     width: calc(100% - 24px);
     margin-bottom: calc(var(--safe-bottom) + 16px);
+  }
+
+  /* Android (#173) : paroles ou file en plein écran. En-tête réduit à côté des boutons du haut,
+     panneau sur toute la hauteur restante, progression et commandes en bas. */
+  .np-sheet {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    padding: calc(var(--safe-top) + 8px) 12px calc(var(--safe-bottom) + 12px);
+  }
+
+  .np-sheet-head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    /* Place des trois boutons du haut (Paroles, File, Fermer). */
+    padding-right: 140px;
+  }
+
+  .np-sheet-head img {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-cover, 6px);
+    object-fit: cover;
+  }
+
+  .np-sheet-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .np-sheet-title,
+  .np-sheet-artist {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .np-sheet-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .np-sheet-artist {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .np-sheet .np-sheet-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 12px 8px;
+    overflow: hidden;
+  }
+
+  .np-sheet .np-queue {
+    overflow: auto;
+  }
+
+  .np-sheet-controls {
+    flex: none;
+    gap: 10px;
+    margin: 0;
   }
 </style>
