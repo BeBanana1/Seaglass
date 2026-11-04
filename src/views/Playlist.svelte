@@ -17,6 +17,7 @@
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { listSearch } from "../lib/stores/listSearch.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { platform } from "../lib/platform.svelte";
 
   const SORT_KEYS: SortKey[] = ["position", "added", "title", "artist", "album", "duration"];
   const DEFAULT_SORT: TrackSort = { key: "position", descending: false };
@@ -134,6 +135,7 @@
         total={page.tracks.length}
       />
     {/if}
+    <!-- Android : pas de numéros, ils encombrent plus qu'ils n'aident (#162). -->
     {#if shown.length === 0 && query.trim()}
       <p class="muted empty">{t.library.noMatch(query.trim())}</p>
     {:else}
@@ -141,7 +143,7 @@
         tracks={shown.map((l) => l.track)}
         positions={shown.map((l) => l.position)}
         source={{ kind: "playlist", uuid: page.playlist.uuid, title: page.playlist.title }}
-        numbering="index"
+        numbering={platform.mobile ? "none" : "index"}
         onRemoveFromPlaylist={page.playlist.mine ? removeAt : undefined}
       />
     {/if}
