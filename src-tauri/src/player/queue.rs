@@ -2,7 +2,8 @@
 //!
 //! - `context` : titres de l'album / playlist / recherche d'origine ;
 //!   `order` : ordre de lecture (indices dans `context`) ; `pos` : curseur dans `order`.
-//! - `manual` : file manuelle, prioritaire sur le contexte.
+//! - `manual` : file manuelle, prioritaire sur le contexte ; « Précédent » y remet aussi en
+//!   tête le titre quitté quand le curseur ne peut pas y ramener (voir `Entry`).
 //! - `history` : titres précédents, indépendant du shuffle.
 //! - `Repeat::One` est géré par mpv (`loop-file=inf`) : la file l'ignore.
 
@@ -14,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use super::source::PlaySource;
 use crate::tidal::models::TrackId;
+use entry::{Entry, Origin};
 
 const HISTORY_MAX: usize = 500;
 /// Titres récents de l'historique écartés d'une radio automatique (#78).
@@ -28,19 +30,12 @@ pub enum Repeat {
     One,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-struct Entry {
-    id: TrackId,
-    /// Vrai si le titre vient du contexte (et non de la file manuelle).
-    from_context: bool,
-}
-
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Queue {
     context: Vec<TrackId>,
     order: Vec<usize>,
     pos: usize,
-    manual: VecDeque<TrackId>,
+    manual: VecDeque<Entry>,
     history: Vec<Entry>,
     current: Option<Entry>,
     repeat: Repeat,
@@ -70,7 +65,8 @@ impl Queue {
         !self.history.is_empty()
     }
 
-    /// Remplace le contexte et démarre sur `start`. La file manuelle est conservée.
+    /// Remplace le contexte et démarre sur `start`. La file manuelle est conservée, sauf les
+    /// titres rappelés par « Précédent ».
     pub fn set_context(
         &mut self,
         tracks: Vec<TrackId>,
@@ -89,10 +85,9 @@ impl Queue {
         } else {
             self.pos = start;
         }
-        self.current = Some(Entry {
-            id,
-            from_context: true,
-        });
+        // Les titres rappelés par « Précédent » appartenaient à la navigation précédente.
+        self.manual.retain(|e| e.queued_by_user());
+        self.current = Some(Entry::new(id, Origin::Context));
         Some(id)
     }
 
@@ -134,10 +129,11 @@ impl Queue {
         if next {
             // `push_front` titre par titre inverserait l'ordre : on part du dernier.
             for &id in ids.iter().rev() {
-                self.manual.push_front(id);
+                self.manual.push_front(Entry::new(id, Origin::Manual));
             }
         } else {
-            self.manual.extend(ids.iter().copied());
+            self.manual
+                .extend(ids.iter().map(|&id| Entry::new(id, Origin::Manual)));
         }
     }
 
@@ -152,8 +148,8 @@ impl Queue {
         if from == to || from >= len || to >= len {
             return false;
         }
-        if let Some(id) = self.manual.remove(from) {
-            self.manual.insert(to, id);
+        if let Some(entry) = self.manual.remove(from) {
+            self.manual.insert(to, entry);
         }
         true
     }
@@ -172,7 +168,7 @@ impl Queue {
         self.radio = None;
         self.source = None;
         if let Some(cur) = &mut self.current {
-            cur.from_context = false;
+            cur.origin = Origin::Detached;
         }
         true
     }
@@ -186,13 +182,13 @@ impl Queue {
     /// manuelle, ni d'un titre de l'historique dont le contexte a été remplacé).
     pub fn source(&self) -> Option<&PlaySource> {
         self.current
-            .filter(|c| c.from_context)
+            .filter(|c| c.in_context())
             .and(self.source.as_ref())
     }
 
     /// Titre de départ de la radio automatique quand le titre courant en vient (#78, #124).
     pub fn radio_playing(&self) -> Option<TrackId> {
-        let cur = self.current.filter(|c| c.from_context)?;
+        let cur = self.current.filter(|c| c.in_context())?;
         self.radio.filter(|&seed| seed != cur.id)
     }
 
@@ -234,7 +230,7 @@ impl Queue {
         self.radio = Some(seed);
         self.source = None;
         if let Some(cur) = &mut self.current {
-            cur.from_context = true;
+            cur.origin = Origin::Context;
         }
         true
     }
@@ -243,47 +239,49 @@ impl Queue {
     pub fn peek_next(&self) -> Option<TrackId> {
         self.manual
             .front()
-            .copied()
+            .map(|e| e.id)
             .or_else(|| self.next_pos().map(|p| self.context[self.order[p]]))
     }
 
     /// Passe au titre suivant ; `None` en fin de file (l'état reste inchangé).
     pub fn advance(&mut self) -> Option<TrackId> {
-        if let Some(id) = self.manual.pop_front() {
+        if let Some(mut entry) = self.manual.pop_front() {
             self.push_history();
-            self.current = Some(Entry {
-                id,
-                from_context: false,
-            });
-            return Some(id);
+            // Titre du contexte rappelé par « Précédent » : le curseur n'a pas bougé et le
+            // désigne encore, sauf si le contexte a changé depuis.
+            if entry.in_context() && self.context_at_cursor() != Some(entry.id) {
+                entry.origin = Origin::Detached;
+            }
+            self.current = Some(entry);
+            return Some(entry.id);
         }
         let p = self.next_pos()?;
         self.push_history();
         self.pos = p;
         let id = self.context[self.order[p]];
-        self.current = Some(Entry {
-            id,
-            from_context: true,
-        });
+        self.current = Some(Entry::new(id, Origin::Context));
         Some(id)
     }
 
     /// Revient au dernier titre de l'historique.
     ///
-    /// Un titre courant venant de la file manuelle y est remis en tête ; un titre du
-    /// contexte replace le curseur, pour que « Suivant » ramène au titre quitté.
+    /// Un titre du contexte replace le curseur, pour que « Suivant » ramène au titre quitté.
+    /// Sinon, le titre quitté est remis en tête de la file manuelle : à sa place s'il venait
+    /// de la file, rappelé (écarté par un nouveau contexte) s'il venait d'ailleurs (#166).
     pub fn previous(&mut self) -> Option<TrackId> {
         let mut entry = self.history.pop()?;
-        if let Some(cur) = self.current
-            && !cur.from_context
-        {
-            self.manual.push_front(cur.id);
-        }
-        if entry.from_context {
+        if entry.in_context() {
             match self.order.iter().position(|&i| self.context[i] == entry.id) {
                 Some(p) => self.pos = p,
                 // Contexte remplacé depuis : on rejoue le titre sans bouger le curseur.
-                None => entry.from_context = false,
+                None => entry.origin = Origin::Detached,
+            }
+        }
+        if let Some(cur) = self.current {
+            // Entre deux titres du contexte, le curseur suffit à ramener au titre quitté.
+            let cursor_returns = cur.in_context() && entry.in_context();
+            if !cursor_returns {
+                self.manual.push_front(cur);
             }
         }
         self.current = Some(entry);
@@ -291,7 +289,7 @@ impl Queue {
     }
 
     pub fn manual(&self) -> impl Iterator<Item = TrackId> + '_ {
-        self.manual.iter().copied()
+        self.manual.iter().map(|e| e.id)
     }
 
     /// Prochains titres du contexte (après le curseur, puis le début si repeat All).
@@ -311,12 +309,16 @@ impl Queue {
     /// Tous les identifiants référencés (pour persister leurs métadonnées).
     pub fn referenced_ids(&self) -> Vec<TrackId> {
         let mut ids: Vec<TrackId> = self.context.clone();
-        ids.extend(self.manual.iter().copied());
+        ids.extend(self.manual.iter().map(|e| e.id));
         ids.extend(self.history.iter().map(|e| e.id));
         ids.extend(self.current.map(|e| e.id));
         ids.sort_unstable_by_key(|id| id.0);
         ids.dedup();
         ids
+    }
+
+    fn context_at_cursor(&self) -> Option<TrackId> {
+        self.order.get(self.pos).map(|&i| self.context[i])
     }
 
     fn next_pos(&self) -> Option<usize> {
@@ -349,5 +351,6 @@ impl Queue {
     }
 }
 
+mod entry;
 #[cfg(test)]
 mod tests;
