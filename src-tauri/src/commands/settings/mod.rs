@@ -52,6 +52,11 @@ pub enum Theme {
     Bauhaus,
     /// Fiche technique de livrée d'avion : bleu glacier, ardoise, jaune signal (#101).
     Aero,
+    /// Carrosserie néo-rétro en aluminium satiné, feux en pixels ambre, clair (#175).
+    Alloy,
+    /// Alliage en version sombre, gunmetal (#175).
+    #[serde(rename = "alloy-dark")]
+    AlloyDark,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -340,6 +345,10 @@ mod tests {
         assert_eq!(s.theme, Theme::Bauhaus);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"aero"}"#).unwrap();
         assert_eq!(s.theme, Theme::Aero);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"alloy"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Alloy);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"alloy-dark"}"#).unwrap();
+        assert_eq!(s.theme, Theme::AlloyDark);
     }
 
     #[test]

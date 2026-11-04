@@ -9,6 +9,7 @@
   import RisoPaper from "./RisoPaper.svelte";
   import BauhausComposition from "./BauhausComposition.svelte";
   import AeroLivery from "./AeroLivery.svelte";
+  import AlloyBody from "./AlloyBody.svelte";
 
   let { context = "shell" }: { context?: "shell" | "nowplaying" } = $props();
 
@@ -33,6 +34,8 @@
     <BauhausComposition {intense} />
   {:else if theme === "aero"}
     <AeroLivery {intense} />
+  {:else if theme === "alloy" || theme === "alloy-dark"}
+    <AlloyBody {intense} />
   {/if}
 </div>
 

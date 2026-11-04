@@ -59,6 +59,14 @@ export const fr = {
       name: "Aéro",
       description: "Fiche technique de livrée d'avion : bleu glacier, encre ardoise, jaune signal, repères.",
     },
+    alloy: {
+      name: "Alliage",
+      description: "Carrosserie néo-rétro : aluminium satiné, lignes cassées, feux en pixels ambre.",
+    },
+    "alloy-dark": {
+      name: "Alliage sombre",
+      description: "La même carrosserie en gunmetal, calandre en grille, pour le soir.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -226,6 +234,14 @@ export const en: typeof fr = {
     aero: {
       name: "Aero",
       description: "An aircraft livery spec sheet: ice blue, slate ink, signal yellow, registration marks.",
+    },
+    alloy: {
+      name: "Alloy",
+      description: "Neo-retro bodywork: satin aluminium, folded lines, amber pixel lights.",
+    },
+    "alloy-dark": {
+      name: "Alloy dark",
+      description: "The same bodywork in gunmetal, with a mesh grille, for the evening.",
     },
   },
 

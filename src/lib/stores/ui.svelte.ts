@@ -12,7 +12,7 @@ import {
 } from "../ipc";
 
 /** Thèmes dans l'ordre du sélecteur ; noms et descriptions dans `i18n/settings.ts`. */
-export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal", "solarpunk", "cyberpunk", "neumorph", "neumorph-dark", "terminal", "riso", "bauhaus", "aero"];
+export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal", "solarpunk", "cyberpunk", "neumorph", "neumorph-dark", "terminal", "riso", "bauhaus", "aero", "alloy", "alloy-dark"];
 
 /** Panneaux latéraux de la vue « En lecture » : file d'attente, paroles, ou les deux côte à côte
  *  (fenêtre large seulement, #119 ; ailleurs « both » montre les paroles). */

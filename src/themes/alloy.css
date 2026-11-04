@@ -1,0 +1,270 @@
+/* Thèmes Alliage clair et sombre (#175) : carrosserie néo-rétro en aluminium.
+   Jetons (métal, lignes de carrosserie, chanfreins, feux `--al-led`, étrier `--al-red`) dans
+   app.css, fond `backdrops/AlloyBody.svelte` ; ici, le décor : panneaux chanfreinés, barre
+   de lecture en jupe noire avec ouïes, temps et page active en pixels ambre, bouton de
+   lecture rouge, numéros de titres encadrés comme un numéro de course.
+   Pixels : le texte est masqué par une trame de points (`mask`), pas de police à ajouter.
+   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+
+/* Trame des feux : un point de 1 px tous les 2 px. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) {
+  --al-pixels: radial-gradient(circle, #000 0.7px, transparent 0.95px) 0 0 / 2px 2px;
+}
+
+/* Panneaux : chanfrein en haut à droite et en bas à gauche, ligne claire sur l'arête haute. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .panel {
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+
+/* Barre de lecture : la jupe noire. Les jetons de texte y sont redéfinis, les composants
+   qu'elle contient (titre, temps, volume, chaîne audio) suivent sans autre surcharge. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) footer.panel {
+  --text: var(--al-skirt-text);
+  --text-muted: var(--al-skirt-muted);
+  --border: rgb(255 255 255 / 0.12);
+  --bg-hover: rgb(255 255 255 / 0.08);
+  --bg-raised: rgb(255 255 255 / 0.05);
+  --surface: #1b1e22;
+  --al-hi: rgb(255 255 255 / 0.08);
+  --al-lo: rgb(0 0 0 / 0.6);
+  color: var(--text);
+  border: none;
+  clip-path: polygon(22px 0, 100% 0, 100% 100%, 0 100%, 0 22px);
+  background:
+    linear-gradient(rgb(255 255 255 / 0.07), transparent 40%),
+    var(--al-skirt);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+/* Temps : feux en pixels ambre. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) footer .progress .time,
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .now-playing .progress .time {
+  font-family: Bahnschrift, var(--font-mono);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--al-led);
+  -webkit-mask: var(--al-pixels);
+  mask: var(--al-pixels);
+}
+
+/* Hors de la jupe (« En lecture »), les feux sont posés sur une plaque noire. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .now-playing .progress .time {
+  padding: 3px 6px;
+  background: var(--al-skirt);
+  -webkit-mask: none;
+  mask: none;
+  position: relative;
+  clip-path: var(--al-cut);
+}
+
+/* La trame passe au-dessus du texte : des trous dans une plaque de la couleur du fond. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .now-playing .progress .time::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, transparent 0.7px, var(--al-skirt) 0.95px) 0 0 / 2px 2px;
+  pointer-events: none;
+}
+
+/* Lecture : étrier rouge, chanfreiné, icône blanche. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .transport .play {
+  border-radius: 0;
+  color: #ffffff;
+  background: var(--al-red);
+  clip-path: var(--al-cut);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .transport .play:hover:not(:disabled) {
+  color: #ffffff;
+  background: color-mix(in srgb, var(--al-red) 85%, white);
+}
+
+/* Progression : rainure sombre, remplissage métal (clair) ou ambre (sombre). */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(.progress .track, .volume .track) {
+  border-radius: 0;
+  background: rgb(0 0 0 / 0.35);
+  box-shadow: var(--shadow-inset);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(.progress .fill, .volume .fill) {
+  border-radius: 0;
+  background: var(--text);
+}
+
+:root[data-theme="alloy"] footer :is(.progress .fill, .volume .fill) {
+  background: linear-gradient(#ffffff, #b9c0c7);
+}
+
+:root[data-theme="alloy-dark"] :is(.progress .fill, .volume .fill) {
+  background: var(--al-led);
+}
+
+/* Titres : Bahnschrift. Titre de page condensé ; titres de section précédés d'ouïes. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(h1, .hero .title, .now-playing h1) {
+  font-stretch: 87.5%;
+  font-variation-settings: "wdth" 87.5;
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) h2::before {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  height: 12px;
+  margin-right: 10px;
+  vertical-align: 1px;
+  background: repeating-linear-gradient(-55deg, currentColor 0 2px, transparent 2px 5px);
+  clip-path: polygon(4px 0, 100% 0, 100% 100%, 0 100%, 0 4px);
+  opacity: 0.55;
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .brand {
+  font-family: var(--display-family);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Pastilles : HI-RES en feu ambre sur noir ; les autres en métal. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .badge {
+  border-radius: 0;
+  font-family: var(--meta-family);
+  color: var(--al-led);
+  background: var(--al-skirt);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .badge.muted {
+  color: var(--text-muted);
+  background: var(--bg-hover);
+}
+
+/* Navigation : page active éclairée par un feu à gauche. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(nav button.active, nav .pin.active) {
+  border-radius: 0;
+  box-shadow: inset 3px 0 0 var(--al-led);
+}
+
+/* Cartes : pochettes chanfreinées (les photos d'artistes restent rondes). */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .card .image:not(.round) {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(.card:hover, .card.menu-open) {
+  background: var(--bg-hover);
+}
+
+/* Lignes de titres : numéro encadré comme un numéro de course. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .row .number {
+  justify-self: center;
+  min-width: 22px;
+  padding: 0 3px;
+  font-family: var(--display-family);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border: 1.5px solid currentColor;
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .row.active {
+  box-shadow: inset 3px 0 0 var(--al-led);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .row.active .title {
+  color: var(--accent);
+}
+
+/* Boutons d'en-tête de page : chanfreinés ; l'action principale en noir, texte en feu. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .info .actions button {
+  border-radius: 0;
+  clip-path: var(--al-cut);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .info .actions .primary {
+  color: var(--al-led);
+  background: var(--al-skirt);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(
+    .tabs button,
+    .search-hint,
+    .update-check,
+    .queue-clear,
+    .home-editor-toggle,
+    .home-editor-icon,
+    .info-tag,
+    .accent-theme,
+    .accent-custom,
+    .hires-offer-accept,
+    .hires-twin-open,
+    .picker-new-form .primary,
+    .context-menu-item,
+    .picker-item,
+    .theme-card,
+    .setting-row,
+    .now-playing .close,
+    .now-playing .fullscreen-toggle,
+    .now-playing .queue-toggle,
+    .now-playing .lyrics-toggle
+  ) {
+  border-radius: 0;
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .tabs button.active {
+  color: var(--al-led);
+  background: var(--al-skirt);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .theme-card.selected {
+  border-color: var(--text);
+  box-shadow: inset 3px 0 0 var(--al-led);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .setting-switch.on {
+  background: var(--al-skirt);
+  box-shadow: inset 0 0 0 1px var(--al-led);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .setting-switch.on .knob {
+  background: var(--al-led);
+}
+
+/* Chaîne audio : plaque chanfreinée, sans flou. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .signal {
+  border-radius: 0;
+  backdrop-filter: none;
+  clip-path: var(--al-cut);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(input[type="search"], .filter, .playlist-picker input) {
+  border-radius: 0;
+  box-shadow: var(--shadow-inset);
+}
+
+/* Bandeau d'accueil : vitre teintée (la pochette floutée reste), cadre métal, chanfreins. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .hero {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 28px 100%, 0 calc(100% - 28px));
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .hero .cover {
+  border-radius: 0;
+  clip-path: var(--al-cut);
+}
+
+/* « En lecture » : grande pochette chanfreinée. */
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .now-playing .art {
+  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .lyrics-line.active {
+  color: var(--accent);
+}
+
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .like-button.liked {
+  color: var(--al-red);
+}
+
+:root[data-theme="alloy-dark"] .like-button.liked {
+  color: color-mix(in srgb, var(--al-red) 70%, white);
+}
