@@ -11,6 +11,7 @@ import "./themes/terminal.css";
 import "./themes/riso.css";
 import "./themes/bauhaus.css";
 import "./themes/aero.css";
+import "./themes/alloy.css";
 
 const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");

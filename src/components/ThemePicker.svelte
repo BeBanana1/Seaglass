@@ -446,6 +446,54 @@
     background: repeating-linear-gradient(90deg, rgb(65 255 122 / 0.6) 0 4px, transparent 4px 6px);
   }
 
+  .preview.alloy,
+  .preview.alloy-dark {
+    gap: 4px;
+    border-radius: 0;
+    background: linear-gradient(172deg, #eef1f3, #c6ccd2 45%, #dde1e5 55%, #b3bac2);
+  }
+
+  .preview.alloy-dark {
+    background: linear-gradient(172deg, #3c4148, #22262b 45%, #30353b 55%, #191c20);
+  }
+
+  :is(.alloy, .alloy-dark) :is(.side, .main) {
+    border-radius: 0;
+    background: rgb(234 237 240 / 0.6);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+  }
+
+  .alloy-dark :is(.side, .main) {
+    background: rgb(38 42 48 / 0.85);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  }
+
+  :is(.alloy, .alloy-dark) .bar {
+    border-radius: 0;
+    background:
+      linear-gradient(90deg, #c3261f 0 10px, transparent 10px),
+      repeating-linear-gradient(-55deg, rgb(255 255 255 / 0.18) 0 1px, transparent 1px 4px) right 4px center / 18px 70% no-repeat,
+      #121417;
+    clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px);
+  }
+
+  .alloy .h {
+    background: #15181c;
+  }
+
+  .alloy .l {
+    background: #4a5159;
+  }
+
+  .alloy-dark .h {
+    background: #e6e9ec;
+  }
+
+  .alloy-dark .l {
+    background: #ffb21e;
+  }
+
   :global([data-theme="studio"]) .theme-card {
     border-radius: 0;
   }
