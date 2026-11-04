@@ -1,7 +1,7 @@
 <script lang="ts">
   // Contenu de la file d'attente (en cours, file manuelle, suite du contexte).
   // Partagé par le panneau File du shell et par la vue « En lecture ».
-  import { commands } from "../lib/ipc";
+  import { commands, type QueuePart, type Track } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
   import { queue } from "../lib/stores/queue.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
@@ -24,6 +24,15 @@
   }
 
   const currentTrack = $derived(player.currentTrack);
+
+  /** Lit un titre de la file (#167) : ceux qui le précèdent sont sautés. */
+  async function play(part: QueuePart, index: number, track: Track) {
+    try {
+      await commands.playFromQueue(part, index, track.id);
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
 
   // Réorganisation de la file manuelle (#80) : glisser-déposer, Alt+↑ / Alt+↓, menu.
   // Pas d'affichage optimiste : la liste change au `queue-state` du backend.
@@ -144,6 +153,7 @@
           <TrackRow
             {track}
             compact
+            onPlay={() => play("manual", i, track)}
             onRemove={() => commands.removeFromQueue(i)}
             onMoveUp={i > 0 ? () => move(i, i - 1) : undefined}
             onMoveDown={i < last ? () => move(i, i + 1) : undefined}
@@ -165,7 +175,7 @@
     {/if}
     <div role="list">
       {#each queue.view.upcoming as track, i (`${i}-${track.id}`)}
-        <TrackRow {track} compact actions={false} />
+        <TrackRow {track} compact actions={false} onPlay={() => play("upcoming", i, track)} />
       {/each}
     </div>
   {/if}

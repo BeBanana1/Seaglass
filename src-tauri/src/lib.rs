@@ -136,6 +136,7 @@ pub fn run() {
             commands::player::remove_from_queue,
             commands::player::move_in_queue,
             commands::player::clear_queue,
+            commands::player::play_from_queue,
             commands::player::answer_hires_offer,
             commands::player::set_sleep_timer,
             commands::player::next,

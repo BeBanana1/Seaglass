@@ -15,7 +15,7 @@ mod upgrade;
 pub mod volume;
 
 pub use actor::{Cmd, spawn};
-pub use queue::Repeat;
+pub use queue::{QueuePart, Repeat};
 pub use settings::{HiresUpgrade, PlaybackSettings};
 pub use source::PlaySource;
 pub use state::{PlayerState, QueueView};

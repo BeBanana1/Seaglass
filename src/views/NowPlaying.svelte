@@ -4,6 +4,8 @@
   import { untrack } from "svelte";
   import { player } from "../lib/stores/player.svelte";
   import { queue } from "../lib/stores/queue.svelte";
+  import { pushToast } from "../lib/stores/toasts.svelte";
+  import { commands, type Track } from "../lib/ipc";
   import { ui } from "../lib/stores/ui.svelte";
   import { coverLarge, coverSmall, fullTitle } from "../lib/format";
   import { go, nav } from "../lib/stores/nav.svelte";
@@ -29,6 +31,17 @@
 
   const current = $derived(player.currentTrack);
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
+
+  /** Lit le titre `i` de `upNext` (#167) : file manuelle d'abord, puis suite du contexte. */
+  async function playUpNext(i: number, track: Track) {
+    const manual = queue.view.manual.length;
+    try {
+      if (i < manual) await commands.playFromQueue("manual", i, track.id);
+      else await commands.playFromQueue("upcoming", i - manual, track.id);
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
   const panel = $derived(ui.nowPlayingPanel);
   const from = $derived(playedFrom(queue.view.source));
 
@@ -171,9 +184,15 @@
                 <ol>
                   {#each upNext as next, i (`${i}-${next.id}`)}
                     <li>
-                      {#if next.album.coverUrl}<img src={coverSmall(next.album)} alt="" />{/if}
-                      <span class="t">{fullTitle(next)}</span>
-                      <span class="a">{next.artists.map((a) => a.name).join(", ")}</span>
+                      <button
+                        class="next-item"
+                        onclick={() => playUpNext(i, next)}
+                        aria-label={t.views.row.play(fullTitle(next))}
+                      >
+                        {#if next.album.coverUrl}<img src={coverSmall(next.album)} alt="" />{/if}
+                        <span class="t">{fullTitle(next)}</span>
+                        <span class="a">{next.artists.map((a) => a.name).join(", ")}</span>
+                      </button>
                     </li>
                   {/each}
                 </ol>
@@ -199,7 +218,7 @@
             </div>
             <div role="list">
               {#each upNext.slice(0, 3) as next, i (`${i}-${next.id}`)}
-                <TrackRow track={next} compact actions={false} />
+                <TrackRow track={next} compact actions={false} onPlay={() => playUpNext(i, next)} />
               {/each}
             </div>
           </section>
@@ -414,13 +433,26 @@
     list-style: none;
   }
 
-  li {
+  /* Un titre « À suivre » se lit d'un clic (#167). */
+  .next-item {
     display: grid;
     grid-template-columns: 32px minmax(0, 1fr) minmax(0, 0.8fr);
     align-items: center;
     gap: 10px;
-    padding: 5px 0;
+    width: 100%;
+    margin: 0 -6px;
+    padding: 5px 6px;
+    box-sizing: content-box;
+    border-radius: 6px;
+    font: inherit;
     font-size: 13px;
+    color: inherit;
+    text-align: left;
+    background: none;
+  }
+
+  .next-item:hover {
+    background: var(--bg-hover);
   }
 
   li img {

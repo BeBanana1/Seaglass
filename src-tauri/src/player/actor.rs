@@ -13,7 +13,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::normalize::Normalizer;
 use super::output::{AudioDevices, Output};
-use super::queue::{Queue, Repeat};
+use super::queue::{Queue, QueuePart, Repeat};
 use super::radio::AutoRadio;
 use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::sleep::SleepRequest;
@@ -56,6 +56,12 @@ pub enum Cmd {
     },
     /// Vide la file manuelle et la suite du contexte ; le titre courant continue.
     ClearQueue,
+    /// Lit un titre de la file tel que l'UI l'affiche (#167) ; ignoré si ce n'est plus `id`.
+    PlayFromQueue {
+        part: QueuePart,
+        index: usize,
+        id: TrackId,
+    },
     Next,
     Previous,
     TogglePause,
@@ -315,6 +321,13 @@ impl Player {
                     self.on_queue_changed().await;
                 }
             }
+            Cmd::PlayFromQueue { part, index, id } => match self.queue.jump_to(part, index, id) {
+                Some(id) => {
+                    self.on_queue_changed().await;
+                    self.load_current(id, 0.0);
+                }
+                None => tracing::debug!("file modifiée depuis l'affichage : titre {} ignoré", id.0),
+            },
             Cmd::Next => self.skip_next().await,
             Cmd::Previous => self.previous().await,
             Cmd::TogglePause => self.toggle_pause().await,

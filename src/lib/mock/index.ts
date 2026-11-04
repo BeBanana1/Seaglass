@@ -626,6 +626,17 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     emit("player-state", state);
     emit("queue-state", queueView());
   },
+  play_from_queue: ({ part, index: i, trackId }) => {
+    const at = Number(i);
+    if (part === "manual") {
+      if (manual[at]?.id !== Number(trackId)) return;
+      manual.splice(0, at);
+      return setCurrent(manual.shift());
+    }
+    if (context[index + 1 + at]?.id !== Number(trackId)) return;
+    index += 1 + at;
+    setCurrent(context[index]);
+  },
   next: () => {
     if (manual.length) return setCurrent(manual.shift());
     if (index + 1 < context.length) setCurrent(context[++index]);

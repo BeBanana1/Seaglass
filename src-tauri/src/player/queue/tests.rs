@@ -490,3 +490,75 @@ fn source_is_dropped_by_radio_and_restored_from_disk() {
     q.advance();
     assert_eq!(q.radio_playing(), None);
 }
+
+#[test]
+fn jump_to_manual_entry_drops_the_ones_before_it() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..3), 0, None, &mut rng());
+    q.enqueue(&ids(50..54), false);
+    assert_eq!(
+        q.jump_to(QueuePart::Manual, 2, TrackId(52)),
+        Some(TrackId(52))
+    );
+    assert_eq!(drain(&mut q), vec![53, 1, 2]);
+    // Les titres sautés ne sont pas dans l'historique.
+    let mut back = Vec::new();
+    while let Some(t) = q.previous() {
+        back.push(t.0);
+    }
+    assert_eq!(back, vec![1, 53, 52, 0]);
+}
+
+#[test]
+fn jump_to_upcoming_keeps_manual_queue_and_skips_history() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..6), 1, None, &mut rng());
+    q.add_to_queue(TrackId(50));
+    // Suite du contexte : 2, 3, 4, 5.
+    assert_eq!(
+        q.jump_to(QueuePart::Upcoming, 2, TrackId(4)),
+        Some(TrackId(4))
+    );
+    assert_eq!(q.current(), Some(TrackId(4)));
+    assert_eq!(q.upcoming_context(10), ids(5..6));
+    assert_eq!(drain(&mut q), vec![50, 5]);
+    assert_eq!(q.previous(), Some(TrackId(50)));
+    assert_eq!(q.previous(), Some(TrackId(4)));
+    assert_eq!(q.previous(), Some(TrackId(1)));
+}
+
+#[test]
+fn jump_to_upcoming_follows_shuffle_and_repeat_all() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..8), 3, None, &mut rng());
+    q.set_shuffle(true, &mut rng());
+    let upcoming = q.upcoming_context(10);
+    assert_eq!(
+        q.jump_to(QueuePart::Upcoming, 4, upcoming[4]),
+        Some(upcoming[4])
+    );
+    assert_eq!(q.upcoming_context(10), upcoming[5..].to_vec());
+
+    let mut q = Queue::default();
+    q.set_context(ids(0..4), 2, None, &mut rng());
+    q.set_repeat(Repeat::All);
+    // Suite : 3, puis 0, 1, 2 après le retour au début.
+    assert_eq!(
+        q.jump_to(QueuePart::Upcoming, 2, TrackId(1)),
+        Some(TrackId(1))
+    );
+    assert_eq!(q.peek_next(), Some(TrackId(2)));
+}
+
+#[test]
+fn jump_to_a_moved_entry_does_nothing() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..4), 0, None, &mut rng());
+    q.enqueue(&ids(50..52), false);
+    assert_eq!(q.jump_to(QueuePart::Manual, 0, TrackId(51)), None);
+    assert_eq!(q.jump_to(QueuePart::Manual, 5, TrackId(50)), None);
+    assert_eq!(q.jump_to(QueuePart::Upcoming, 0, TrackId(2)), None);
+    assert_eq!(q.jump_to(QueuePart::Upcoming, 3, TrackId(3)), None);
+    assert_eq!(q.current(), Some(TrackId(0)));
+    assert_eq!(drain(&mut q), vec![50, 51, 1, 2, 3]);
+}
