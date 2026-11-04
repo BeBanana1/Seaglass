@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { MediaItem } from "../lib/ipc";
+  import { commands, type MediaItem } from "../lib/ipc";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
   import { replace, type LibraryTab } from "../lib/stores/nav.svelte";
   import {
@@ -13,6 +13,7 @@
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
   import PinButton from "../components/PinButton.svelte";
+  import Icon from "../components/Icon.svelte";
   import { listSort, saveListSort } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -36,7 +37,23 @@
 
   const allTracks = $derived(library.tracks.items ?? []);
   // Le contexte de lecture est la liste affichée, dans l'ordre affiché.
-  const shownTracks = $derived(filterTracks(sortTracks(listTracks(allTracks), sort), query));
+  const sortedTracks = $derived(sortTracks(listTracks(allTracks), sort));
+  const shownTracks = $derived(filterTracks(sortedTracks, query));
+
+  // Lecture / Aléatoire (#161) : comme l'en-tête d'une playlist, ils suivent le tri mais
+  // pas le filtre.
+  async function playAll(shuffle: boolean) {
+    try {
+      await commands.playTracks(
+        sortedTracks.map((l) => l.track.id),
+        0,
+        shuffle,
+        { kind: "likedTracks" },
+      );
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
 
   // Sur Android, les titres likés ont leur onglet dans la navigation du bas (#143) : page à
   // part, sans les onglets de la bibliothèque, et sans onglet « Titres » en doublon.
@@ -119,6 +136,22 @@
 
 {#snippet content()}
   {#if tab === "tracks"}
+    {#if !listSearch.active}
+      <!-- Mêmes classes que l'en-tête d'une page (`header .info .actions`) : les thèmes
+           habillent ces boutons comme ceux d'une playlist. -->
+      <header class="liked-header">
+        <div class="info">
+          <div class="actions">
+            <button class="primary" onclick={() => playAll(false)}>
+              <Icon name="play" size={16} /> {t.common.play}
+            </button>
+            <button class="secondary" onclick={() => playAll(true)}>
+              <Icon name="shuffle" size={16} /> {t.common.shuffle}
+            </button>
+          </div>
+        </div>
+      </header>
+    {/if}
     <TrackTools
       bind:query
       bind:sort={() => sort, setSort}
@@ -196,6 +229,43 @@
     margin-left: 4px;
     font-size: 11px;
     opacity: 0.7;
+  }
+
+  /* Lecture / Aléatoire des titres likés : styles des boutons de `PageHeader`. */
+  .liked-header {
+    margin: 0 10px 18px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .actions button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    clip-path: var(--control-clip);
+  }
+
+  .primary {
+    color: var(--accent-contrast);
+    background: var(--accent);
+  }
+
+  .primary:hover {
+    background: var(--accent-strong);
+  }
+
+  .secondary {
+    border: 1px solid var(--border) !important;
+  }
+
+  .secondary:hover {
+    background: var(--bg-hover);
   }
 
   .muted {
