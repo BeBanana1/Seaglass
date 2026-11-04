@@ -181,6 +181,14 @@
   animation: surreal-float 7s ease-in-out infinite alternate;
 }
 
+/* Android (#158) : pochettes immobiles, aucun décor animé en boucle. */
+:root[data-platform="android"][data-theme="surreal"] header .image,
+:root[data-platform="android"][data-theme="surreal"] .now-playing .art,
+:root[data-platform="android"][data-theme="surreal"] .now-playing .art::after,
+:root[data-platform="android"][data-theme="surreal"] .hero .cover {
+  animation: none;
+}
+
 @keyframes surreal-float {
   to {
     transform: translateY(-14px);

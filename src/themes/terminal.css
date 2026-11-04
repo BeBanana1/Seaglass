@@ -46,6 +46,11 @@
   animation: term-caret 1.1s steps(1) infinite;
 }
 
+/* Android (#158) : curseur fixe, aucun décor animé en boucle. */
+:root[data-platform="android"][data-theme="terminal"] .brand::after {
+  animation: none;
+}
+
 @keyframes term-caret {
   50% {
     opacity: 0;

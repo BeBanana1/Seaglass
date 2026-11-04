@@ -16,20 +16,38 @@
   const intense = $derived(context === "nowplaying");
 </script>
 
-{#if theme === "seaglass" || (theme === "studio" && intense)}
-  <Ambient intensity={intense ? 1.4 : 1} />
-{:else if theme === "acidwave"}
-  <AcidField {intense} />
-{:else if theme === "surreal"}
-  <SurrealScene {intense} />
-{:else if theme === "solarpunk"}
-  <SolarScene {intense} />
-{:else if theme === "cyberpunk"}
-  <CyberScene {intense} />
-{:else if theme === "riso"}
-  <RisoPaper {intense} />
-{:else if theme === "bauhaus"}
-  <BauhausComposition {intense} />
-{:else if theme === "aero"}
-  <AeroLivery {intense} />
-{/if}
+<div class="backdrop">
+  {#if theme === "seaglass" || (theme === "studio" && intense)}
+    <Ambient intensity={intense ? 1.4 : 1} />
+  {:else if theme === "acidwave"}
+    <AcidField {intense} />
+  {:else if theme === "surreal"}
+    <SurrealScene {intense} />
+  {:else if theme === "solarpunk"}
+    <SolarScene {intense} />
+  {:else if theme === "cyberpunk"}
+    <CyberScene {intense} />
+  {:else if theme === "riso"}
+    <RisoPaper {intense} />
+  {:else if theme === "bauhaus"}
+    <BauhausComposition {intense} />
+  {:else if theme === "aero"}
+    <AeroLivery {intense} />
+  {/if}
+</div>
+
+<style>
+  /* Sans boîte : les fonds se placent comme avant par rapport au shell. */
+  .backdrop {
+    display: contents;
+  }
+
+  /* Android (#158) : fonds figés. Leurs animations (nappes floutées, grilles, pluie…)
+     faisaient recomposer l'écran à chaque image pendant la lecture (140 % de CPU sur le
+     S21 en Acidwave) ; seule la progression bouge. Vaut aussi pour les fonds à venir. */
+  :global(:root[data-platform="android"]) .backdrop :global(*),
+  :global(:root[data-platform="android"]) .backdrop :global(*::before),
+  :global(:root[data-platform="android"]) .backdrop :global(*::after) {
+    animation: none !important;
+  }
+</style>
