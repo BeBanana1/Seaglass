@@ -50,6 +50,14 @@ class NowPlayingArgs {
 }
 
 @InvokeArg
+class SessionModesArgs {
+    var shuffle: Boolean = false
+    var repeat: String = "off"
+    var shuffleLabel: String? = null
+    var repeatLabel: String? = null
+}
+
+@InvokeArg
 class SecretArgs {
     lateinit var name: String
     var value: String? = null
@@ -153,6 +161,22 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
             .build()
         Playback.onMain {
             Playback.setNowPlaying(meta)
+            invoke.resolve()
+        }
+    }
+
+    /** Aléatoire et répétition, pour les boutons de la notification (#163). */
+    @Command
+    fun sessionModes(invoke: Invoke) {
+        val args = invoke.parseArgs(SessionModesArgs::class.java)
+        val modes = SessionModes(
+            shuffle = args.shuffle,
+            repeat = args.repeat,
+            shuffleLabel = args.shuffleLabel ?: "Shuffle",
+            repeatLabel = args.repeatLabel ?: "Repeat",
+        )
+        Playback.onMain {
+            Playback.setModes(modes)
             invoke.resolve()
         }
     }

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { commands, type SessionInfo } from "./lib/ipc";
+  import { commands, events, type SessionInfo } from "./lib/ipc";
   import { initPlayer, player, stepVolume } from "./lib/stores/player.svelte";
   import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
@@ -56,6 +56,10 @@
       pushToast({ level: "error", message: String(e) });
     }
     ready = true;
+    if (platform.mobile) {
+      void events.onOpenNowPlaying(openFromNotification);
+      void openFromNotification();
+    }
     if (import.meta.env.DEV && !("__TAURI_INTERNALS__" in window)) {
       const view = (await import("./lib/mock")).initialView();
       if (view.route) go(view.route);
@@ -111,6 +115,13 @@
   // Android : mini-lecteur et navigation masqués pendant la saisie, comme dans les apps
   // natives ; ils prendraient sinon la place des résultats au-dessus du clavier (#151).
   const NOT_TEXT = new Set(["button", "checkbox", "color", "file", "radio", "range", "reset", "submit"]);
+
+  // Appui sur la notification d'Android (#163) : demande gardée par Rust, prise une seule
+  // fois (aussi au démarrage, si l'app a été rouverte par la notification).
+  async function openFromNotification() {
+    if (!(await commands.takeNowPlayingRequest().catch(() => false))) return;
+    if (session && player.state.track) nowPlayingOpen = true;
+  }
 
   function isTextField(el: EventTarget | null): boolean {
     if (el instanceof HTMLTextAreaElement) return true;

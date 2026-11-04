@@ -130,6 +130,7 @@ pub fn run() {
             commands::collection::remove_from_playlist,
             commands::player::play_tracks,
             commands::player::play_next,
+            commands::player::take_now_playing_request,
             commands::player::add_to_queue,
             commands::player::enqueue_tracks,
             commands::player::remove_from_queue,

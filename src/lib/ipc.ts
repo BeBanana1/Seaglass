@@ -544,6 +544,8 @@ export const commands = {
   /** Renvoie l'état relu après changement. */
   setAutostart: (enabled: boolean) => invoke<boolean>("set_autostart", { enabled }),
   /** Bureau seulement : plein écran de la fenêtre principale (#131). */
+  /** Android : vrai une fois après un appui sur la notification (#163). */
+  takeNowPlayingRequest: () => invoke<boolean>("take_now_playing_request"),
   fullscreen: () => invoke<boolean>("fullscreen"),
   /** Renvoie l'état relu ; la suite arrive aussi par `fullscreen`. */
   setFullscreen: (fullscreen: boolean) => invoke<boolean>("set_fullscreen", { fullscreen }),
@@ -565,6 +567,8 @@ export const events = {
     listen<LikedIds>("likes", (e) => cb(e.payload)),
   onAudioDevices: (cb: (d: AudioDevices) => void): Promise<UnlistenFn> =>
     listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
+  /** Android : appui sur la notification (#163) ; la demande se prend par `takeNowPlayingRequest`. */
+  onOpenNowPlaying: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-now-playing", () => cb()),
   onFullscreen: (cb: (fullscreen: boolean) => void): Promise<UnlistenFn> =>
     listen<boolean>("fullscreen", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>
