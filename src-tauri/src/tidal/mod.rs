@@ -14,12 +14,15 @@ mod likes;
 #[cfg(test)]
 mod live_collection;
 #[cfg(test)]
+mod live_playlist_cache;
+#[cfg(test)]
 mod live_tests;
 mod lyrics;
 mod manifest;
 mod mix;
 pub mod models;
 mod paging;
+mod playlist;
 mod raw;
 mod twin;
 

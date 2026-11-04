@@ -41,12 +41,39 @@ pub async fn artist(state: State<'_, AppState>, id: u64) -> CmdResult<ArtistPage
     state.tidal.artist(id).await.map_err(err)
 }
 
+/// Page à jour de la playlist, ou `null` si elle n'a pas changé depuis `revision` (la
+/// `revision` de la page déjà affichée, #152).
 #[tauri::command]
-pub async fn playlist(state: State<'_, AppState>, uuid: String) -> CmdResult<PlaylistPage> {
-    if !is_uuid(&uuid) {
-        return Err(tr("identifiant de playlist invalide", "invalid playlist ID").into());
+pub async fn playlist(
+    state: State<'_, AppState>,
+    uuid: String,
+    revision: Option<String>,
+) -> CmdResult<Option<PlaylistPage>> {
+    check_playlist_uuid(&uuid)?;
+    // Un ETag de TIDAL fait quelques dizaines de caractères ; il n'est que comparé.
+    if revision.as_ref().is_some_and(|r| r.len() > 256) {
+        return Err(tr("révision de playlist invalide", "invalid playlist revision").into());
     }
-    state.tidal.playlist(&uuid).await.map_err(err)
+    let known = revision.as_deref();
+    state.tidal.playlist_since(&uuid, known).await.map_err(err)
+}
+
+/// Copie de la playlist gardée en mémoire, sans réseau : affichée en attendant `playlist`.
+#[tauri::command]
+pub fn cached_playlist(
+    state: State<'_, AppState>,
+    uuid: String,
+) -> CmdResult<Option<PlaylistPage>> {
+    check_playlist_uuid(&uuid)?;
+    Ok(state.tidal.cached_playlist(&uuid))
+}
+
+fn check_playlist_uuid(uuid: &str) -> CmdResult<()> {
+    if is_uuid(uuid) {
+        Ok(())
+    } else {
+        Err(tr("identifiant de playlist invalide", "invalid playlist ID").into())
+    }
 }
 
 #[tauri::command]

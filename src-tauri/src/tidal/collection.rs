@@ -85,6 +85,7 @@ impl TidalClient {
     // Pas encore proposé dans l'UI : sert au nettoyage du test réel.
     #[cfg_attr(not(test), allow(dead_code))]
     pub async fn delete_playlist(&self, uuid: &str) -> Result<()> {
+        self.playlists.remove(uuid);
         let query = [("trns", format!("trn:playlist:{uuid}"))];
         let path = "my-collection/playlists/folders/remove";
         self.write(Method::PUT, API_V2, path, &query, None, None)
@@ -95,6 +96,8 @@ impl TidalClient {
     /// Ajoute des titres à la fin d'une playlist, dans l'ordre, sans doublon.
     /// Renvoie le nombre de titres réellement ajoutés (0 s'ils y étaient tous).
     pub async fn add_to_playlist(&self, uuid: &str, ids: &[TrackId]) -> Result<usize> {
+        // Copie gardée effacée avant d'écrire : même un échec partiel la rend fausse.
+        self.playlists.remove(uuid);
         let path = format!("playlists/{uuid}/items");
         let mut added = 0;
         for chunk in ids.chunks(ADD_CHUNK) {
@@ -125,6 +128,7 @@ impl TidalClient {
         index: usize,
         expected: TrackId,
     ) -> Result<()> {
+        self.playlists.remove(uuid);
         // ETag lu avant la vérification : une modification entre les deux donne un 412.
         let etag = self.playlist_etag(uuid).await?;
         let query = [("offset", index.to_string()), ("limit", "1".to_owned())];

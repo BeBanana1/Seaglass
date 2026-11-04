@@ -316,6 +316,8 @@ export interface PlaylistPage {
   playlist: PlaylistSummary;
   /** Dans l'ordre de la playlist. */
   tracks: TrackEntry[];
+  /** Version de la playlist lue (#152) : à rendre à `playlist` pour savoir si elle a changé. */
+  revision: string | null;
 }
 
 /** Paroles (`tidal/models.rs` : `Lyrics`). */
@@ -452,7 +454,11 @@ export const commands = {
   search: (query: string) => invoke<SearchResults>("search", { query }),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
-  playlist: (uuid: string) => invoke<PlaylistPage>("playlist", { uuid }),
+  /** `null` si la playlist n'a pas changé depuis `revision` (#152). */
+  playlist: (uuid: string, revision: string | null = null) =>
+    invoke<PlaylistPage | null>("playlist", { uuid, revision }),
+  /** Copie gardée par le backend, sans réseau : affichée en attendant `playlist`. */
+  cachedPlaylist: (uuid: string) => invoke<PlaylistPage | null>("cached_playlist", { uuid }),
   mix: (id: string) => invoke<MixPage>("mix", { id }),
   radio: (seed: RadioSeed, id: number) => invoke<RadioPage>("radio", { seed, id }),
   libraryMixes: () => invoke<MixSummary[]>("library_mixes"),

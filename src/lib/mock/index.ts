@@ -16,7 +16,8 @@
 // pendant la lecture, comme le vrai backend) : mesure des longues listes (#88), `?sleep=30|track`
 // (minuteur de mise en veille actif), `?device=dac|missing` (périphérique de sortie choisi, branché ou
 // débranché), `?normalization=track|album` (normalisation du volume
-// active).
+// active), `?slow=<ms>` (ouverture d'une playlist ralentie : « Chargement… » après 300 ms,
+// copie gardée affichée aussitôt à la réouverture, #152).
 
 import type {
   PlaySource,
@@ -371,7 +372,7 @@ function ownPage(uuid: string): PlaylistPage | undefined {
   if (!page) {
     const summary = own.find((p) => p.uuid === uuid);
     if (!summary) return undefined;
-    page = { playlist: summary, tracks: fx.playlist.tracks.map((t) => ({ ...t })) };
+    page = { playlist: summary, tracks: fx.playlist.tracks.map((t) => ({ ...t })), revision: null };
     ownPages.set(uuid, page);
   }
   page.playlist.numberOfTracks = page.tracks.length;
@@ -407,8 +408,20 @@ const longTracks: TrackEntry[] = (() => {
   });
 })();
 const longPlaylist: PlaylistPage | null = longCount
-  ? { playlist: { ...fx.playlist.playlist, numberOfTracks: longCount }, tracks: longTracks }
+  ? { playlist: { ...fx.playlist.playlist, numberOfTracks: longCount }, tracks: longTracks, revision: null }
   : null;
+
+const cachedPlaylists = new Map<string, PlaylistPage>();
+/** `?slow=<ms>` : latence de la commande `playlist`, pour voir « Chargement… » (#152). */
+const slowPlaylist = Math.max(0, Number(params.get("slow")) || 0);
+
+/** Page actuelle, avec une révision tirée de ses titres (l'ETag du vrai backend). */
+function currentPlaylist(uuid: string): PlaylistPage {
+  const page = ownPage(uuid) ?? longPlaylist ?? fx.playlist;
+  let hash = 5381;
+  for (const t of page.tracks) hash = (Math.imul(hash, 33) ^ t.id) >>> 0;
+  return { ...page, revision: `"${hash}-${page.tracks.length}"` };
+}
 
 /** 250 ms de lecture : `?ticks=1`, ou appelée directement par une mesure (les minuteries d'une
  *  page masquée sont ralenties). */
@@ -433,12 +446,22 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   hires_twin_album: () =>
     hiresTwin ? { ...fx.album.album, id: fx.album.album.id + 1, title: `${fx.album.album.title} (Hi-Res)`, hires: true } : null,
   artist: () => fx.artist,
-  playlist: ({ uuid }) => ownPage(String(uuid)) ?? longPlaylist ?? fx.playlist,
+  // Comme le vrai backend (#152) : `null` si rien n'a changé depuis `revision`, et une copie
+  // gardée pour `cached_playlist` (effacée par les modifications faites dans l'app).
+  playlist: ({ uuid, revision }) => {
+    const page = currentPlaylist(String(uuid));
+    cachedPlaylists.set(String(uuid), structuredClone(page));
+    return page.revision === revision ? null : page;
+  },
+  cached_playlist: ({ uuid }) => cachedPlaylists.get(String(uuid)) ?? null,
   likes: () => likedIds(),
   // Les arguments sont des proxys Svelte : copiés en JSON avant d'être gardés.
   set_liked: ({ target, liked: on }) => setLiked(JSON.parse(JSON.stringify(target)), Boolean(on)),
   own_playlists: () => own.map((p) => ownPage(p.uuid)?.playlist ?? p),
-  add_to_playlist: ({ uuid, trackIds }) => addToOwn(String(uuid), [...(trackIds as number[])]),
+  add_to_playlist: ({ uuid, trackIds }) => {
+    cachedPlaylists.delete(String(uuid));
+    return addToOwn(String(uuid), [...(trackIds as number[])]);
+  },
   create_playlist: ({ title, trackIds }) => {
     const uuid = crypto.randomUUID();
     const summary: PlaylistSummary = {
@@ -452,11 +475,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       mine: true,
     };
     own.unshift(summary);
-    ownPages.set(uuid, { playlist: summary, tracks: [] });
+    ownPages.set(uuid, { playlist: summary, tracks: [], revision: null });
     addToOwn(uuid, [...(trackIds as number[])]);
     return uuid;
   },
   remove_from_playlist: ({ uuid, index, trackId }) => {
+    cachedPlaylists.delete(String(uuid));
     const page = ownPage(String(uuid));
     if (page?.tracks[Number(index)]?.id !== Number(trackId)) {
       throw new Error("la playlist a changé, rouvrez-la avant de retirer ce titre");
@@ -646,7 +670,7 @@ export async function invoke<T>(cmd: string, args: Record<string, unknown> = {})
   const handler = handlers[cmd];
   if (!handler) throw new Error(`commande factice inconnue : ${cmd}`);
   // Petite latence pour voir les états de chargement.
-  await new Promise((r) => setTimeout(r, 120));
+  await new Promise((r) => setTimeout(r, 120 + (cmd === "playlist" ? slowPlaylist : 0)));
   return structuredClone(handler(args)) as T;
 }
 
@@ -814,6 +838,7 @@ function synthetic(): Fixtures {
         mine: false,
       },
       tracks: playlistTracks,
+      revision: null,
     },
     home: [
       { key: "FOR_YOU", title: "Pour vous", items: [{ kind: "album", ...album }] },
