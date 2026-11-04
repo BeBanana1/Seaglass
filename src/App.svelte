@@ -107,6 +107,8 @@
     if (menu.open) closeMenu();
     else if (picker.request) closePlaylistPicker();
     else if (trackInfo.track) closeTrackInfo();
+    // Paroles ou file en plein écran (#173) : Retour revient d'abord à « En lecture ».
+    else if (nowPlayingOpen && ui.nowPlayingPanel) ui.nowPlayingPanel = null;
     else if (nowPlayingOpen) nowPlayingOpen = false;
     else if (listSearch.active) exitListSearch();
     else back();
