@@ -127,7 +127,6 @@ mod android {
     use crate::mpv::CacheSize;
 
     pub struct Media3Engine {
-        app: AppHandle,
         /// Gardé pour la durée du moteur : les événements Kotlin y arrivent.
         _events: Channel,
     }
@@ -172,10 +171,7 @@ mod android {
             tauri_plugin_seaglass_mobile::native(&self.app)
                 .call("engineStart", ChannelArgs { channel: &channel })
                 .await?;
-            Ok(Media3Engine {
-                app: self.app.clone(),
-                _events: channel,
-            })
+            Ok(Media3Engine { _events: channel })
         }
     }
 
@@ -184,9 +180,11 @@ mod android {
             let Some(args) = super::op_args(&op) else {
                 return Ok(());
             };
-            tauri_plugin_seaglass_mobile::native(&self.app)
-                .call("engine", args)
+            // En JNI direct : la lecture continue quand l'app est balayée des récents,
+            // sans activité pour les commandes du plugin (#169).
+            tauri_plugin_seaglass_mobile::direct::call::<serde::de::IgnoredAny>("engine", args)
                 .await
+                .map(drop)
         }
     }
 }

@@ -3,11 +3,9 @@ package dev.seaglass.mobile
 import android.app.Activity
 import android.app.Dialog
 import android.graphics.Bitmap
-import android.net.Uri
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.media3.common.MediaMetadata
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
@@ -27,8 +25,7 @@ class ChannelArgs {
     lateinit var channel: Channel
 }
 
-/** Une opération de `engine::Op` (champs selon `op`). */
-@InvokeArg
+/** Une opération de `engine::Op` (champs selon `op`), lue par `Bridge`. */
 class EngineArgs {
     lateinit var op: String
     var url: String? = null
@@ -42,32 +39,15 @@ class EngineArgs {
 }
 
 @InvokeArg
-class NowPlayingArgs {
-    var title: String? = null
-    var artist: String? = null
-    var album: String? = null
-    var artworkUrl: String? = null
-}
-
-@InvokeArg
-class SessionModesArgs {
-    var shuffle: Boolean = false
-    var repeat: String = "off"
-    var shuffleLabel: String? = null
-    var repeatLabel: String? = null
-}
-
-@InvokeArg
-class SecretArgs {
-    lateinit var name: String
-    var value: String? = null
-}
-
-@InvokeArg
 class InstallArgs {
     lateinit var path: String
 }
 
+/**
+ * Commandes qui ont besoin de l'activité, ou qui ne tournent qu'au lancement (canaux des
+ * événements). Celles que le lecteur, la session média et les secrets envoient en cours de
+ * route passent par `Bridge` (#169) : l'app peut alors avoir été balayée des récents.
+ */
 @TauriPlugin
 class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
     /** Installe l'APK de mise à jour déjà vérifié par Rust (`apk_update.rs`). */
@@ -81,41 +61,6 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    private val secrets by lazy { SecretStore(activity.applicationContext) }
-
-    /** Secret chiffré par le Keystore ; `value` absente s'il n'existe pas. */
-    @Command
-    fun secretGet(invoke: Invoke) {
-        val args = invoke.parseArgs(SecretArgs::class.java)
-        try {
-            val result = JSObject()
-            secrets.get(args.name)?.let { result.put("value", it) }
-            invoke.resolve(result)
-        } catch (e: Exception) {
-            invoke.reject("lecture du secret impossible : ${e.javaClass.simpleName}")
-        }
-    }
-
-    @Command
-    fun secretSet(invoke: Invoke) {
-        val args = invoke.parseArgs(SecretArgs::class.java)
-        try {
-            secrets.set(args.name, args.value ?: throw IllegalArgumentException("valeur manquante"))
-            invoke.resolve()
-        } catch (e: Exception) {
-            invoke.reject("écriture du secret impossible : ${e.javaClass.simpleName}")
-        }
-    }
-
-    /** `existed` : faux si le secret n'existait pas. */
-    @Command
-    fun secretDelete(invoke: Invoke) {
-        val args = invoke.parseArgs(SecretArgs::class.java)
-        val result = JSObject()
-        result.put("existed", secrets.delete(args.name))
-        invoke.resolve(result)
-    }
-
     /** Crée le lecteur (une fois par processus) et renvoie ses événements sur `channel`. */
     @Command
     fun engineStart(invoke: Invoke) {
@@ -127,56 +72,12 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    @Command
-    fun engine(invoke: Invoke) {
-        val args = invoke.parseArgs(EngineArgs::class.java)
-        Playback.onMain {
-            try {
-                Playback.apply(args)
-                invoke.resolve()
-            } catch (e: Exception) {
-                invoke.reject(e.message ?: e.toString())
-            }
-        }
-    }
-
     /** Actions de la session média (notification, écouteurs), renvoyées sur `channel`. */
     @Command
     fun sessionStart(invoke: Invoke) {
         val args = invoke.parseArgs(ChannelArgs::class.java)
         Playback.onMain {
             Playback.attachSession(args.channel)
-            invoke.resolve()
-        }
-    }
-
-    @Command
-    fun nowPlaying(invoke: Invoke) {
-        val args = invoke.parseArgs(NowPlayingArgs::class.java)
-        val meta = MediaMetadata.Builder()
-            .setTitle(args.title)
-            .setArtist(args.artist)
-            .setAlbumTitle(args.album)
-            .setArtworkUri(args.artworkUrl?.let(Uri::parse))
-            .build()
-        Playback.onMain {
-            Playback.setNowPlaying(meta)
-            invoke.resolve()
-        }
-    }
-
-    /** Aléatoire et répétition, pour les boutons de la notification (#163). */
-    @Command
-    fun sessionModes(invoke: Invoke) {
-        val args = invoke.parseArgs(SessionModesArgs::class.java)
-        val modes = SessionModes(
-            shuffle = args.shuffle,
-            repeat = args.repeat,
-            shuffleLabel = args.shuffleLabel ?: "Shuffle",
-            repeatLabel = args.repeatLabel ?: "Repeat",
-        )
-        Playback.onMain {
-            Playback.setModes(modes)
             invoke.resolve()
         }
     }

@@ -1,9 +1,14 @@
 //! Pont natif Android de Seaglass (#24). Le code Kotlin vit dans `android/` ; l'app
 //! l'appelle depuis Rust, jamais depuis l'UI (aucune commande ni permission exposée).
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use serde::{Deserialize, Serialize};
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::{Manager, Runtime};
+
+#[cfg(target_os = "android")]
+pub mod direct;
 
 #[cfg(target_os = "android")]
 const PLUGIN_IDENTIFIER: &str = "dev.seaglass.mobile";
@@ -20,6 +25,25 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             Ok(())
         })
         .build()
+}
+
+/// Faux entre la destruction de l'activité (app balayée des récents) et la reconstruction de
+/// la fenêtre : posé par l'app (`android::keep_alive`).
+static ACTIVITY: AtomicBool = AtomicBool::new(true);
+
+/// L'activité existe-t-elle ? Les commandes du plugin s'exécutent dans son
+/// `PluginManager` ; sans elle, wry panique (#169).
+pub fn set_activity(present: bool) {
+    ACTIVITY.store(present, Ordering::Release);
+}
+
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+fn require_activity() -> Result<(), String> {
+    if ACTIVITY.load(Ordering::Acquire) {
+        Ok(())
+    } else {
+        Err("aucune activité (app fermée) : commande native ignorée".into())
+    }
 }
 
 /// Accès au code Kotlin, géré par l'app (`app.state::<Native<R>>()`).
@@ -46,6 +70,7 @@ impl<R: Runtime> Native<R> {
     /// l'URL de la première navigation qui commence par `redirect_prefix` (bloquée).
     /// `None` si l'utilisateur ferme la page (bouton Retour).
     pub async fn login(&self, url: &str, redirect_prefix: &str) -> Result<Option<String>, String> {
+        require_activity()?;
         self.0
             .run_mobile_plugin_async::<LoginResult>(
                 "login",
@@ -59,27 +84,17 @@ impl<R: Runtime> Native<R> {
             .map_err(|e| e.to_string())
     }
 
-    /// Appelle une commande Kotlin qui ne renvoie rien : lecteur Media3 (`engineStart`,
-    /// `engine`) et session média (`sessionStart`, `nowPlaying`). Les arguments suivent les
-    /// classes `@InvokeArg` de `SeaglassPlugin.kt`.
+    /// Appelle une commande Kotlin du plugin qui ne renvoie rien : canaux des événements
+    /// (`engineStart`, `sessionStart`, au lancement) et installation d'une mise à jour
+    /// (`installApk`, depuis l'UI). Refusée sans activité ; tout ce qui peut partir en cours
+    /// de lecture passe par [`direct`]. Les arguments suivent les classes `@InvokeArg` de
+    /// `SeaglassPlugin.kt`.
     pub async fn call(&self, command: &str, args: impl Serialize) -> Result<(), String> {
+        require_activity()?;
         self.0
             .run_mobile_plugin_async::<serde::de::IgnoredAny>(command, args)
             .await
             .map(|_| ())
-            .map_err(|e| e.to_string())
-    }
-
-    /// Appel bloquant, pour du code synchrone (secrets du Keystore : `secretGet`,
-    /// `secretSet`, `secretDelete`). Jamais depuis le thread principal d'Android, qui doit
-    /// exécuter la commande.
-    pub fn call_blocking<T: serde::de::DeserializeOwned>(
-        &self,
-        command: &str,
-        args: impl Serialize,
-    ) -> Result<T, String> {
-        self.0
-            .run_mobile_plugin::<T>(command, args)
             .map_err(|e| e.to_string())
     }
 }

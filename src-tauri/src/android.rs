@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use keyring::credential::{Credential, CredentialApi, CredentialBuilderApi};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, RunEvent, WebviewWindowBuilder};
+use tauri_plugin_seaglass_mobile::{direct, set_activity};
 
 /// Donne à `rustls-platform-verifier` la JVM et le contexte de l'activité : sans cela, toute
 /// requête HTTPS de `reqwest` panique. À appeler avant la première requête.
@@ -42,6 +43,8 @@ pub fn keep_alive(app: &AppHandle, event: &RunEvent) {
             code: None, api, ..
         } => {
             tracing::info!("activité détruite : le lecteur reste actif");
+            // Plus aucune commande du plugin jusqu'à la nouvelle fenêtre : wry paniquerait.
+            set_activity(false);
             if let Ok(mut lost) = WINDOW_LOST.lock() {
                 *lost = Some(Instant::now());
             }
@@ -57,6 +60,7 @@ pub fn keep_alive(app: &AppHandle, event: &RunEvent) {
                 return;
             }
             if app.get_webview_window("main").is_some() {
+                set_activity(true);
                 *lost = None;
                 return;
             }
@@ -69,6 +73,7 @@ pub fn keep_alive(app: &AppHandle, event: &RunEvent) {
                 && builder.build().is_ok()
             {
                 tracing::info!("activité recréée : fenêtre principale reconstruite");
+                set_activity(true);
                 *lost = None;
             }
         }
@@ -79,12 +84,14 @@ pub fn keep_alive(app: &AppHandle, event: &RunEvent) {
 /// Range les secrets de `keyring` (refresh token) dans l'Android Keystore, par le plugin
 /// Kotlin (`SecretStore.kt`) : sans cela, `keyring` n'a sur Android qu'un magasin en
 /// mémoire et la connexion est perdue à chaque lancement. À appeler avant le premier accès.
-pub fn install_keystore(app: &AppHandle) {
-    keyring::set_default_credential_builder(Box::new(KeystoreBuilder(app.clone())));
+/// En JNI direct (#169) : un rafraîchissement du token peut tomber pendant que l'app est
+/// balayée des récents, sans activité pour les commandes du plugin.
+pub fn install_keystore() {
+    keyring::set_default_credential_builder(Box::new(KeystoreBuilder));
 }
 
 #[derive(Debug)]
-struct KeystoreBuilder(AppHandle);
+struct KeystoreBuilder;
 
 impl CredentialBuilderApi for KeystoreBuilder {
     fn build(
@@ -94,7 +101,6 @@ impl CredentialBuilderApi for KeystoreBuilder {
         user: &str,
     ) -> keyring::Result<Box<Credential>> {
         Ok(Box::new(KeystoreCredential {
-            app: self.0.clone(),
             name: format!("{service}/{user}"),
         }))
     }
@@ -115,7 +121,6 @@ impl std::fmt::Debug for KeystoreCredential {
 /// Un secret du Keystore. Les appels bloquent : `keyring` est synchrone, et ses appelants
 /// (`tidal::auth`) tournent sur tokio, jamais sur le thread principal d'Android.
 struct KeystoreCredential {
-    app: AppHandle,
     name: String,
 }
 
@@ -146,9 +151,7 @@ impl KeystoreCredential {
             name: &self.name,
             value,
         };
-        tauri_plugin_seaglass_mobile::native(&self.app)
-            .call_blocking(command, args)
-            .map_err(|e| keyring::Error::PlatformFailure(e.into()))
+        direct::call_blocking(command, args).map_err(|e| keyring::Error::PlatformFailure(e.into()))
     }
 }
 

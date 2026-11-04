@@ -135,7 +135,7 @@ mod android {
 
     use serde::Serialize;
     use tauri::ipc::{Channel, InvokeResponseBody};
-    use tauri::{AppHandle, Emitter, Runtime};
+    use tauri::{AppHandle, Emitter};
     use tokio::sync::mpsc;
 
     use super::super::{MediaInfo, NowPlaying};
@@ -143,7 +143,6 @@ mod android {
     use crate::player::Cmd;
 
     pub struct MediaSessionHandle {
-        app: AppHandle,
         /// Dernier titre envoyé : `NowPlaying` change à chaque position.
         last: Mutex<Option<Option<MediaInfo>>>,
         /// Derniers états des boutons envoyés, partagés avec les actions de la session :
@@ -196,7 +195,6 @@ mod android {
             }
         });
         MediaSessionHandle {
-            app: app.clone(),
             last: Mutex::new(None),
             modes,
             _actions: channel,
@@ -214,7 +212,7 @@ mod android {
                 && *last != Some(modes)
             {
                 *last = Some(modes);
-                send(self.app.clone(), "sessionModes", super::modes_args(modes));
+                send("sessionModes", super::modes_args(modes));
             }
             let Ok(mut last) = self.last.lock() else {
                 return;
@@ -224,15 +222,17 @@ mod android {
             }
             let args = super::now_playing_args(state.media.as_ref());
             *last = Some(state.media);
-            send(self.app.clone(), "nowPlaying", args);
+            send("nowPlaying", args);
         }
     }
 
-    fn send<R: Runtime>(app: AppHandle<R>, command: &'static str, args: serde_json::Value) {
+    /// En JNI direct : la notification se met à jour aussi quand l'app est balayée des
+    /// récents, sans activité pour les commandes du plugin (#169).
+    fn send(command: &'static str, args: serde_json::Value) {
         tauri::async_runtime::spawn(async move {
-            if let Err(e) = tauri_plugin_seaglass_mobile::native(&app)
-                .call(command, args)
-                .await
+            if let Err(e) =
+                tauri_plugin_seaglass_mobile::direct::call::<serde::de::IgnoredAny>(command, args)
+                    .await
             {
                 tracing::warn!("session média non mise à jour ({command}) : {e}");
             }
