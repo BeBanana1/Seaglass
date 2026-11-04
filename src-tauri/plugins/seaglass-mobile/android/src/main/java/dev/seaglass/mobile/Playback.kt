@@ -146,6 +146,16 @@ internal object Playback {
         }
     }
 
+    /** État des boutons aléatoire et répétition de la notification (#163), tenu par Rust. */
+    var modes = SessionModes()
+        private set
+
+    fun setModes(next: SessionModes) {
+        if (next == modes) return
+        modes = next
+        PlaybackService.current?.refreshLayout()
+    }
+
     /** Titre, artiste, album et pochette du titre courant, pour la notification. */
     fun setNowPlaying(meta: MediaMetadata) {
         metadata = meta
@@ -332,3 +342,11 @@ internal object Playback {
     // Les URLs de segments sont signées : jamais journalisées ni remontées avec leur signature.
     private fun redact(text: String): String = text.replace(Regex("""\?[^\s"'<>]*"""), "?<signature masquée>")
 }
+
+/** Aléatoire, répétition (`off`, `all`, `one`) et libellés des deux boutons. */
+internal data class SessionModes(
+    val shuffle: Boolean = false,
+    val repeat: String = "off",
+    val shuffleLabel: String = "Shuffle",
+    val repeatLabel: String = "Repeat",
+)

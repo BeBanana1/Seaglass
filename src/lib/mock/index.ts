@@ -552,6 +552,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // `?platform=android` : mise en page tactile.
   platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
   autostart_enabled: () => autostart,
+  take_now_playing_request: () => false,
   // Le navigateur garde sa taille : seul l'état change (le bouton suit).
   fullscreen: () => fullscreen,
   set_fullscreen: ({ fullscreen: on }) => {

@@ -52,6 +52,14 @@ pub async fn play_tracks(
     .await
 }
 
+/// Vrai si un appui sur la notification d'Android a demandé « En lecture » depuis le dernier
+/// appel (#163) ; toujours faux sur le bureau. Lu au démarrage de l'UI et à l'événement
+/// `open-now-playing`.
+#[tauri::command]
+pub async fn take_now_playing_request() -> CmdResult<bool> {
+    Ok(crate::integrations::take_now_playing_request())
+}
+
 #[tauri::command]
 pub async fn play_next(state: State<'_, AppState>, track_id: u64) -> CmdResult<()> {
     send_cmd(&state, Cmd::PlayNext(TrackId(track_id))).await

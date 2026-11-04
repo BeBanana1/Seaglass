@@ -2,12 +2,14 @@
 //!
 //! Le service Kotlin (`PlaybackService.kt`) publie la session ; ses boutons reviennent ici
 //! en `Cmd`, comme les touches média de SMTC sur le bureau. L'acteur lui envoie le titre
-//! courant, seulement quand il change. Traduction des actions testée sur le bureau.
+//! courant, seulement quand il change, et l'état de l'aléatoire et de la répétition pour
+//! les boutons de la notification (#163). Traduction des actions testée sur le bureau.
 
 use serde::Deserialize;
 
 use super::MediaInfo;
-use crate::player::Cmd;
+use crate::i18n::{Lang, tr};
+use crate::player::{Cmd, Repeat};
 
 /// Action de la session, envoyée par `Playback.command`.
 #[derive(Deserialize)]
@@ -26,6 +28,12 @@ enum Action {
     Next,
     Previous,
     Seek(f64),
+    /// Boutons de la notification (#163) : l'état suivant est décidé ici, d'après le
+    /// dernier état envoyé à la session.
+    ToggleShuffle,
+    CycleRepeat,
+    /// Appui sur la notification : l'app s'ouvre sur « En lecture » (#163).
+    OpenNowPlaying,
 }
 
 impl Action {
@@ -39,6 +47,9 @@ impl Action {
             "next" => Self::Next,
             "previous" => Self::Previous,
             "seek" => Self::Seek(raw.position?.max(0.0)),
+            "shuffle" => Self::ToggleShuffle,
+            "repeat" => Self::CycleRepeat,
+            "openNowPlaying" => Self::OpenNowPlaying,
             other => {
                 tracing::warn!("action de la session inconnue : {other}");
                 return None;
@@ -46,16 +57,60 @@ impl Action {
         })
     }
 
+    /// `None` : l'action ne concerne pas le lecteur (`OpenNowPlaying`).
     #[cfg_attr(not(target_os = "android"), allow(dead_code))]
-    fn into_cmd(self) -> Cmd {
-        match self {
+    fn into_cmd(self, modes: Modes) -> Option<Cmd> {
+        Some(match self {
             Self::Play => Cmd::SetPaused(false),
             Self::Pause => Cmd::SetPaused(true),
             Self::Next => Cmd::Next,
             Self::Previous => Cmd::Previous,
             Self::Seek(secs) => Cmd::Seek(secs),
-        }
+            Self::ToggleShuffle => Cmd::SetShuffle(!modes.shuffle),
+            Self::CycleRepeat => Cmd::SetRepeat(next_repeat(modes.repeat)),
+            Self::OpenNowPlaying => return None,
+        })
     }
+}
+
+/// Aléatoire et répétition tels qu'affichés par la notification, avec la langue de leurs
+/// libellés : renvoyés à la session seulement si l'un des trois change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+struct Modes {
+    shuffle: bool,
+    repeat: Repeat,
+    lang: Lang,
+}
+
+/// Même cycle que le bouton de la barre de lecture : Off → All → One → Off.
+fn next_repeat(repeat: Repeat) -> Repeat {
+    match repeat {
+        Repeat::Off => Repeat::All,
+        Repeat::All => Repeat::One,
+        Repeat::One => Repeat::Off,
+    }
+}
+
+/// Arguments de la commande Kotlin `sessionModes` : état des deux boutons et leurs libellés
+/// (lus par TalkBack et affichés par certains écrans).
+fn modes_args(modes: Modes) -> serde_json::Value {
+    let repeat_label = match modes.repeat {
+        Repeat::Off => tr("Répétition désactivée", "Repeat off"),
+        Repeat::All => tr("Répéter la file", "Repeat all"),
+        Repeat::One => tr("Répéter le titre", "Repeat one"),
+    };
+    let shuffle_label = if modes.shuffle {
+        tr("Lecture aléatoire activée", "Shuffle on")
+    } else {
+        tr("Lecture aléatoire désactivée", "Shuffle off")
+    };
+    serde_json::json!({
+        "shuffle": modes.shuffle,
+        "repeat": modes.repeat,
+        "shuffleLabel": shuffle_label,
+        "repeatLabel": repeat_label,
+    })
 }
 
 /// Arguments de la commande Kotlin `nowPlaying` (rien = notification vide).
@@ -76,20 +131,24 @@ pub use android::{MediaSessionHandle, start};
 
 #[cfg(target_os = "android")]
 mod android {
-    use std::sync::Mutex;
+    use std::sync::{Arc, Mutex};
 
     use serde::Serialize;
     use tauri::ipc::{Channel, InvokeResponseBody};
-    use tauri::{AppHandle, Runtime};
+    use tauri::{AppHandle, Emitter, Runtime};
     use tokio::sync::mpsc;
 
     use super::super::{MediaInfo, NowPlaying};
+    use super::{Action, Modes};
     use crate::player::Cmd;
 
     pub struct MediaSessionHandle {
         app: AppHandle,
         /// Dernier titre envoyé : `NowPlaying` change à chaque position.
         last: Mutex<Option<Option<MediaInfo>>>,
+        /// Derniers états des boutons envoyés, partagés avec les actions de la session :
+        /// un appui sur « aléatoire » inverse l'état affiché.
+        modes: Arc<Mutex<Option<Modes>>>,
         _actions: Channel,
     }
 
@@ -101,10 +160,26 @@ mod android {
     /// Branche les actions de la session sur `player`. La commande Kotlin part en tâche :
     /// le branchement se fait pendant `setup`.
     pub fn start(app: &AppHandle, player: mpsc::Sender<Cmd>) -> MediaSessionHandle {
+        let modes: Arc<Mutex<Option<Modes>>> = Arc::default();
+        let shared = modes.clone();
+        let ui = app.clone();
         let channel = Channel::new(move |body| {
-            if let InvokeResponseBody::Json(json) = body
-                && let Some(action) = super::Action::parse(&json)
-                && player.try_send(action.into_cmd()).is_err()
+            let InvokeResponseBody::Json(json) = body else {
+                return Ok(());
+            };
+            let Some(action) = Action::parse(&json) else {
+                return Ok(());
+            };
+            if action == Action::OpenNowPlaying {
+                super::super::request_now_playing();
+                if let Err(e) = ui.emit("open-now-playing", ()) {
+                    tracing::warn!("« En lecture » non demandé à l'UI : {e}");
+                }
+                return Ok(());
+            }
+            let current = shared.lock().ok().and_then(|m| *m).unwrap_or_default();
+            if let Some(cmd) = action.into_cmd(current)
+                && player.try_send(cmd).is_err()
             {
                 tracing::warn!("action de la session perdue : lecteur occupé");
             }
@@ -123,12 +198,24 @@ mod android {
         MediaSessionHandle {
             app: app.clone(),
             last: Mutex::new(None),
+            modes,
             _actions: channel,
         }
     }
 
     impl MediaSessionHandle {
         pub fn update(&self, state: NowPlaying) {
+            let modes = Modes {
+                shuffle: state.shuffle,
+                repeat: state.repeat,
+                lang: crate::i18n::current(),
+            };
+            if let Ok(mut last) = self.modes.lock()
+                && *last != Some(modes)
+            {
+                *last = Some(modes);
+                send(self.app.clone(), "sessionModes", super::modes_args(modes));
+            }
             let Ok(mut last) = self.last.lock() else {
                 return;
             };
@@ -137,17 +224,17 @@ mod android {
             }
             let args = super::now_playing_args(state.media.as_ref());
             *last = Some(state.media);
-            send(self.app.clone(), args);
+            send(self.app.clone(), "nowPlaying", args);
         }
     }
 
-    fn send<R: Runtime>(app: AppHandle<R>, args: serde_json::Value) {
+    fn send<R: Runtime>(app: AppHandle<R>, command: &'static str, args: serde_json::Value) {
         tauri::async_runtime::spawn(async move {
             if let Err(e) = tauri_plugin_seaglass_mobile::native(&app)
-                .call("nowPlaying", args)
+                .call(command, args)
                 .await
             {
-                tracing::warn!("titre de la session non mis à jour : {e}");
+                tracing::warn!("session média non mise à jour ({command}) : {e}");
             }
         });
     }
@@ -174,9 +261,46 @@ mod tests {
             Action::parse(r#"{"command":"seek","position":-2}"#),
             Some(Action::Seek(0.0))
         );
+        assert_eq!(
+            Action::parse(r#"{"command":"shuffle"}"#),
+            Some(Action::ToggleShuffle)
+        );
+        assert_eq!(
+            Action::parse(r#"{"command":"repeat"}"#),
+            Some(Action::CycleRepeat)
+        );
+        assert_eq!(
+            Action::parse(r#"{"command":"openNowPlaying"}"#),
+            Some(Action::OpenNowPlaying)
+        );
         assert_eq!(Action::parse(r#"{"command":"seek"}"#), None);
         assert_eq!(Action::parse(r#"{"command":"rewind"}"#), None);
         assert_eq!(Action::parse("pas du json"), None);
+    }
+
+    #[test]
+    fn repeat_cycles_like_the_player_bar() {
+        assert_eq!(next_repeat(Repeat::Off), Repeat::All);
+        assert_eq!(next_repeat(Repeat::All), Repeat::One);
+        assert_eq!(next_repeat(Repeat::One), Repeat::Off);
+    }
+
+    #[test]
+    fn modes_carry_state_and_labels() {
+        let modes = Modes {
+            shuffle: true,
+            repeat: Repeat::One,
+            lang: Lang::Fr,
+        };
+        assert_eq!(
+            modes_args(modes),
+            serde_json::json!({
+                "shuffle": true,
+                "repeat": "one",
+                "shuffleLabel": "Lecture aléatoire activée",
+                "repeatLabel": "Répéter le titre",
+            })
+        );
     }
 
     #[test]

@@ -12,7 +12,24 @@ pub mod smtc;
 #[cfg(desktop)]
 pub mod tray;
 
-use crate::player::PlayerState;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use crate::player::{PlayerState, Repeat};
+
+/// Un appui sur la notification d'Android demande « En lecture » (#163). Gardée jusqu'à ce
+/// que l'UI la prenne : rouverte après un balayage des récents, la WebView n'existe pas
+/// encore quand la demande arrive.
+static NOW_PLAYING_REQUEST: AtomicBool = AtomicBool::new(false);
+
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+pub fn request_now_playing() {
+    NOW_PLAYING_REQUEST.store(true, Ordering::Relaxed);
+}
+
+/// Vrai une seule fois par demande.
+pub fn take_now_playing_request() -> bool {
+    NOW_PLAYING_REQUEST.swap(false, Ordering::Relaxed)
+}
 
 /// Intégrations branchées sur le lecteur, notifiées à chaque changement d'état émis.
 #[derive(Default)]
@@ -67,6 +84,8 @@ pub struct NowPlaying {
     pub position: f64,
     pub has_next: bool,
     pub has_previous: bool,
+    pub shuffle: bool,
+    pub repeat: Repeat,
 }
 
 impl NowPlaying {
@@ -109,6 +128,8 @@ impl NowPlaying {
             position: s.time_pos,
             has_next: s.has_next,
             has_previous: s.has_previous || s.track.is_some(),
+            shuffle: s.shuffle,
+            repeat: s.repeat,
         }
     }
 }
