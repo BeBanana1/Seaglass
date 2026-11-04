@@ -248,7 +248,61 @@ fn previous_into_replaced_context_keeps_cursor() {
     q.set_context(ids(0..3), 2, None, &mut rng());
     q.set_context(ids(10..13), 0, None, &mut rng());
     assert_eq!(q.previous(), Some(TrackId(2)));
+    // « Suivant » ramène au titre quitté (le curseur est resté dessus), puis continue.
+    assert_eq!(q.advance(), Some(TrackId(10)));
     assert_eq!(q.advance(), Some(TrackId(11)));
+}
+
+/// #166 : remonter l'historique d'un contexte remplacé remettait chaque titre quitté dans
+/// la file manuelle, pour de bon : ils passaient ensuite avant toute nouvelle liste.
+#[test]
+fn titles_recalled_by_previous_return_with_next_then_drop_with_new_context() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..3), 0, None, &mut rng());
+    q.advance();
+    q.advance(); // historique : 0, 1 ; courant : 2
+    q.set_context(ids(10..13), 0, None, &mut rng());
+    assert_eq!(q.previous(), Some(TrackId(2)));
+    assert_eq!(q.previous(), Some(TrackId(1)));
+    assert_eq!(q.previous(), Some(TrackId(0)));
+    // « Suivant » ramène au point de départ, sans sauter le titre 10, puis suit le contexte.
+    assert_eq!(drain(&mut q), vec![1, 2, 10, 11, 12]);
+
+    q.set_context(ids(0..3), 0, None, &mut rng());
+    q.play_next(TrackId(50));
+    q.set_context(ids(10..13), 0, None, &mut rng());
+    assert_eq!(q.previous(), Some(TrackId(0)));
+    assert_eq!(q.manual().map(|t| t.0).collect::<Vec<_>>(), vec![10, 50]);
+    // Une nouvelle liste écarte les titres rappelés, pas ceux ajoutés par l'utilisateur.
+    q.set_context(ids(20..23), 0, None, &mut rng());
+    assert_eq!(q.manual().map(|t| t.0).collect::<Vec<_>>(), vec![50]);
+    assert_eq!(drain(&mut q), vec![50, 21, 22]);
+}
+
+#[test]
+fn previous_after_clear_then_new_list_plays_the_list() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..3), 0, None, &mut rng());
+    q.advance(); // courant : 1
+    assert!(q.clear_upcoming());
+    assert_eq!(q.previous(), Some(TrackId(0)));
+    q.set_context(ids(10..13), 1, None, &mut rng());
+    assert_eq!(q.peek_next(), Some(TrackId(12)));
+}
+
+#[test]
+fn reads_queue_saved_before_origin() {
+    let json = r#"{"context":[0,1,2],"order":[0,1,2],"pos":1,"manual":[60],
+        "history":[{"id":0,"from_context":true}],"current":{"id":50,"from_context":false},
+        "repeat":"off","shuffle":false}"#;
+    let mut q: Queue = serde_json::from_str(json).unwrap();
+    assert_eq!(q.current(), Some(TrackId(50)));
+    // Ancien format : faux = file manuelle, remis en tête par « Précédent » ; un identifiant
+    // seul dans la file manuelle = ajouté par l'utilisateur, gardé par une nouvelle liste.
+    assert_eq!(q.previous(), Some(TrackId(0)));
+    assert_eq!(q.manual().map(|t| t.0).collect::<Vec<_>>(), vec![50, 60]);
+    q.set_context(ids(10..12), 0, None, &mut rng());
+    assert_eq!(q.manual().map(|t| t.0).collect::<Vec<_>>(), vec![50, 60]);
 }
 
 #[test]
