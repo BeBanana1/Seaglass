@@ -185,6 +185,9 @@ export interface Volume {
   muted: boolean;
 }
 
+/** Partie de `QueueView` d'où lire un titre (#167). */
+export type QueuePart = "manual" | "upcoming";
+
 export interface QueueView {
   manual: Track[];
   upcoming: Track[];
@@ -501,6 +504,10 @@ export const commands = {
   /** Déplace l'entrée `from` de la file manuelle pour qu'elle finisse à l'index `to`. */
   moveInQueue: (from: number, to: number) => invoke<void>("move_in_queue", { from, to }),
   clearQueue: () => invoke<void>("clear_queue"),
+  /** Lit le titre `index` de `QueueView.manual` ou `.upcoming` (#167) ; sans effet si ce
+   *  n'est plus `trackId` (file changée depuis l'affichage). */
+  playFromQueue: (part: QueuePart, index: number, trackId: TrackId) =>
+    invoke<void>("play_from_queue", { part, index, trackId }),
   /** Réponse au bandeau « Édition hi-res disponible », valable pour tout l'album (#59). */
   answerHiresOffer: (accept: boolean) => invoke<void>("answer_hires_offer", { accept }),
   /** Pause après une durée ou à la fin du titre en cours ; `null` annule (#85). */

@@ -8,7 +8,7 @@ use super::{AppState, CmdResult};
 use crate::i18n::{tr, trf};
 use crate::player::sleep::SleepRequest;
 use crate::player::volume::Volume;
-use crate::player::{Cmd, PlaySource, PlayerState, QueueView, Repeat};
+use crate::player::{Cmd, PlaySource, PlayerState, QueuePart, QueueView, Repeat};
 use crate::tidal::models::TrackId;
 
 const MAX_CONTEXT_LEN: usize = 10_000;
@@ -99,6 +99,20 @@ pub async fn remove_from_queue(state: State<'_, AppState>, index: usize) -> CmdR
 #[tauri::command]
 pub async fn move_in_queue(state: State<'_, AppState>, from: usize, to: usize) -> CmdResult<()> {
     send_cmd(&state, Cmd::MoveInQueue { from, to }).await
+}
+
+/// Lit le titre `index` de la file manuelle ou de la suite du contexte, telles que
+/// `queue-state` les décrit (#167). `track_id` est le titre affiché : si la file a changé
+/// depuis, rien ne se passe.
+#[tauri::command]
+pub async fn play_from_queue(
+    state: State<'_, AppState>,
+    part: QueuePart,
+    index: usize,
+    track_id: u64,
+) -> CmdResult<()> {
+    let id = TrackId(track_id);
+    send_cmd(&state, Cmd::PlayFromQueue { part, index, id }).await
 }
 
 /// Vide la file (manuelle et suite du contexte) sans arrêter le titre en cours.

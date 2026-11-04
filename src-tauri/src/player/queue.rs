@@ -30,6 +30,16 @@ pub enum Repeat {
     One,
 }
 
+/// Partie de la file affichée par l'UI (`QueueView`), pour « Lire depuis la file » (#167).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum QueuePart {
+    /// `QueueView::manual` : la file manuelle.
+    Manual,
+    /// `QueueView::upcoming` : la suite du contexte (`upcoming_context`).
+    Upcoming,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Queue {
     context: Vec<TrackId>,
@@ -261,6 +271,49 @@ impl Queue {
         let id = self.context[self.order[p]];
         self.current = Some(Entry::new(id, Origin::Context));
         Some(id)
+    }
+
+    /// Lit le titre `index` de la partie `part` telle que l'UI l'affiche (#167), s'il s'agit
+    /// toujours de `id` (sinon la file a changé depuis l'affichage : `None`, rien ne bouge).
+    ///
+    /// - File manuelle : les titres avant lui sont retirés, ceux d'après restent.
+    /// - Suite du contexte : le curseur saute dessus, dans l'ordre de lecture courant (repeat
+    ///   All compris) ; la file manuelle est gardée et passe juste après lui.
+    ///
+    /// Les titres sautés ne vont pas dans l'historique ; le titre quitté, si.
+    pub fn jump_to(&mut self, part: QueuePart, index: usize, id: TrackId) -> Option<TrackId> {
+        match part {
+            QueuePart::Manual => {
+                if self.manual.get(index)?.id != id {
+                    return None;
+                }
+                self.manual.drain(..index);
+                self.advance()
+            }
+            QueuePart::Upcoming => {
+                let p = self.upcoming_pos(index)?;
+                if self.context[self.order[p]] != id {
+                    return None;
+                }
+                self.push_history();
+                self.pos = p;
+                self.current = Some(Entry::new(id, Origin::Context));
+                Some(id)
+            }
+        }
+    }
+
+    /// Position dans `order` du titre `offset` de `upcoming_context`.
+    fn upcoming_pos(&self, offset: usize) -> Option<usize> {
+        let len = self.order.len();
+        let p = self.pos.checked_add(1)?.checked_add(offset)?;
+        if p < len {
+            Some(p)
+        } else if self.repeat == Repeat::All && p - len <= self.pos {
+            Some(p - len)
+        } else {
+            None
+        }
     }
 
     /// Revient au dernier titre de l'historique.
