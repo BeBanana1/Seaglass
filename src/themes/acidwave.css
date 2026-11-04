@@ -126,6 +126,11 @@
   animation: acid-pulse 1.6s ease-in-out infinite;
 }
 
+/* Android (#158) : pas de pulsation, aucun décor animé en boucle. */
+:root[data-platform="android"][data-theme="acidwave"][data-playing="true"] .transport .play {
+  animation: none;
+}
+
 @keyframes acid-pulse {
   50% {
     box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 85%, transparent);
