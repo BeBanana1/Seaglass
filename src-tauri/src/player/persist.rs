@@ -1,11 +1,12 @@
 //! Sauvegarde (au plus toutes les 2 s) et restauration de la file, de la position et du
-//! volume.
+//! volume ; écoutes de l'historique local (#202).
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use super::actor::Player;
-use crate::tidal::models::TrackId;
+use crate::store::Play;
+use crate::tidal::models::{AlbumSummary, Track, TrackId};
 
 const PERSIST_INTERVAL: Duration = Duration::from_secs(2);
 /// Position seule pendant la lecture : sur Android, une écriture toutes les 10 s suffit
@@ -92,5 +93,64 @@ impl Player {
                 tracing::warn!("sauvegarde du volume impossible : {e}");
             }
         });
+    }
+
+    /// Position reçue : l'écoute est enregistrée une fois le seuil franchi (`listen.rs`),
+    /// hors de l'acteur.
+    pub(super) fn note_listen(&mut self) {
+        let Some(track) = &self.state.track else {
+            return;
+        };
+        let duration = if self.state.duration > 0.0 {
+            self.state.duration
+        } else {
+            f64::from(track.duration)
+        };
+        if self
+            .listen
+            .on_position(track.id, duration, self.state.time_pos)
+            .is_none()
+        {
+            return;
+        }
+        let Some(store) = self.store.clone() else {
+            return;
+        };
+        let album = album_of(track);
+        let source = self.queue.source().cloned();
+        let id = track.id;
+        let played_at = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_millis() as i64);
+        tokio::task::spawn_blocking(move || {
+            let play = Play {
+                track: id,
+                album: Some(&album),
+                source: source.as_ref(),
+                played_at,
+            };
+            if let Err(e) = store.add_play(&play) {
+                tracing::warn!("écoute non enregistrée : {e}");
+            }
+        });
+    }
+}
+
+/// Carte d'album tirée du titre : de quoi l'afficher sans requête. Les artistes sont ceux du
+/// titre (le plus souvent ceux de l'album).
+fn album_of(track: &Track) -> AlbumSummary {
+    let album = &track.album;
+    AlbumSummary {
+        id: album.id,
+        title: album.title.clone(),
+        artists: track.artists.clone(),
+        cover_url: album.cover_url.clone(),
+        cover_large_url: album.cover_large_url.clone(),
+        color: album.color.clone(),
+        release_date: None,
+        number_of_tracks: None,
+        album_type: None,
+        explicit: track.explicit,
+        hires: track.hires,
     }
 }

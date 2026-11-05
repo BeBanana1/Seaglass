@@ -346,6 +346,17 @@ export interface ArtistPage {
   singles: AlbumSummary[];
 }
 
+/** Historique d'écoute local (#202). */
+export interface PlayHistory {
+  /** Albums écoutés, du plus récent au plus ancien. */
+  recent: AlbumSummary[];
+  /** Albums les plus écoutés ces 30 derniers jours (au moins deux écoutes). */
+  top: AlbumSummary[];
+}
+
+/** Clé de la section d'accueil « Écoutés dans Seaglass ». */
+export const PLAY_HISTORY_KEY = "SEAGLASS_RECENT";
+
 /** Segment de biographie : texte ou lien interne (#205). */
 export type BioPart =
   | { kind: "text"; text: string }
@@ -505,6 +516,9 @@ export const commands = {
   searchHistory: () => invoke<string[]>("search_history"),
   removeSearchHistory: (query: string) => invoke<string[]>("remove_search_history", { query }),
   clearSearchHistory: () => invoke<string[]>("clear_search_history"),
+  /** Historique d'écoute local (#202) : albums récents et les plus écoutés. */
+  playHistory: () => invoke<PlayHistory>("play_history"),
+  clearPlayHistory: () => invoke<void>("clear_play_history"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
   /** Biographie, similaires, « Apparaît sur » (#205) : chaque partie peut être vide. */

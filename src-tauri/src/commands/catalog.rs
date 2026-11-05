@@ -11,8 +11,8 @@ use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
     AlbumCreditGroup, AlbumPage, AlbumSummary, ArtistExtra, ArtistPage, ArtistSummary, FeedItem,
-    LibraryList, Lyrics, MixPage, MixSummary, PlaylistPage, PlaylistSummary, RadioPage, RadioSeed,
-    SearchResults, TrackEntry, TrackId, TrackInfo,
+    HomeRow, LibraryList, Lyrics, MixPage, MixSummary, PlaylistPage, PlaylistSummary, RadioPage,
+    RadioSeed, SearchResults, TrackEntry, TrackId, TrackInfo,
 };
 
 const MAX_QUERY_LEN: usize = 200;
@@ -169,7 +169,9 @@ pub struct HomeFeed {
 pub async fn home(state: State<'_, AppState>) -> CmdResult<HomeFeed> {
     let start = state.tidal.home_start().await.map_err(err)?;
     Ok(HomeFeed {
-        sections: settings::load(&state).home.arrange(start.rows),
+        sections: settings::load(&state)
+            .home
+            .arrange(with_local_row(&state, start.rows)),
         more: start.more,
     })
 }
@@ -178,7 +180,18 @@ pub async fn home(state: State<'_, AppState>) -> CmdResult<HomeFeed> {
 #[tauri::command]
 pub async fn home_rest(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
     let rows = state.tidal.home_rest().await.map_err(err)?;
-    Ok(settings::load(&state).home.arrange(rows))
+    Ok(settings::load(&state)
+        .home
+        .arrange(with_local_row(&state, rows)))
+}
+
+/// « Écoutés dans Seaglass » (#202) en tête du flux : la disposition enregistrée s'applique
+/// ensuite comme aux lignes de TIDAL.
+fn with_local_row(state: &AppState, mut rows: Vec<HomeRow>) -> Vec<HomeRow> {
+    if let Some(row) = super::play_history::home_row(state) {
+        rows.insert(0, row);
+    }
+    rows
 }
 
 /// Paroles d'un titre ; `None` si TIDAL n'en a pas (ce n'est pas une erreur).

@@ -202,6 +202,16 @@ function effectiveLanguage(pref: LanguagePref): Lang {
 
 /** Version simplifiée de `HomeLayout::arrange` : sections connues dans l'ordre enregistré,
  *  les autres à leur place dans le flux. Le flux factice ne change pas. */
+/** Historique d'écoute factice (#202) : quelques albums des fixtures. */
+let playedAlbums: AlbumSummary[] = fx.search.albums.slice(0, 5);
+
+/** « Écoutés dans Seaglass » en tête du flux, comme le vrai backend. */
+function withPlayed(rows: HomeRow[]): HomeRow[] {
+  if (playedAlbums.length === 0) return rows;
+  const items = playedAlbums.map((a) => ({ kind: "album" as const, ...a }));
+  return [{ key: "SEAGLASS_RECENT", title: "Écoutés dans Seaglass", items }, ...rows];
+}
+
 function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
   const keyed = rows.map((r) => ({ ...r, key: r.key ?? `title:${r.title.toLowerCase()}` }));
   const rank = (k: string) => {
@@ -452,8 +462,11 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   login: () => ({ userId: 1, countryCode: "CH" }),
   logout: () => null,
   // Comme le backend (#207) : première page d'abord (la moitié des lignes), puis tout.
-  home: () => ({ sections: arrangeHome(fx.home.slice(0, homeFirstPage), ui.home), more: homeFirstPage < fx.home.length }),
-  home_rest: () => arrangeHome(fx.home, ui.home),
+  home: () => ({
+    sections: arrangeHome(withPlayed(fx.home.slice(0, homeFirstPage)), ui.home),
+    more: homeFirstPage < fx.home.length,
+  }),
+  home_rest: () => arrangeHome(withPlayed(fx.home), ui.home),
   feed: () => fx.feed ?? [],
   lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
   track_info: ({ trackId }) => mockTrackInfo(Number(trackId)),
@@ -481,6 +494,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return searchHistory;
   },
   clear_search_history: () => (searchHistory = []),
+  play_history: () => ({ recent: playedAlbums, top: playedAlbums.slice(0, 2) }),
+  clear_play_history: () => void (playedAlbums = []),
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
   album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
   hires_twin_album: () =>

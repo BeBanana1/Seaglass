@@ -11,6 +11,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
+use super::listen::ListenTracker;
 use super::normalize::Normalizer;
 use super::output::{AudioDevices, Output};
 use super::queue::{Queue, QueuePart, Repeat};
@@ -166,6 +167,8 @@ pub(super) struct Player {
     pub(super) persist_position: bool,
     pub(super) persist_volume: bool,
     pub(super) last_persist: Instant,
+    /// Temps réellement écouté du titre courant, pour l'historique local (#202).
+    pub(super) listen: ListenTracker,
     observers: Observers,
 }
 
@@ -236,6 +239,7 @@ pub fn spawn(
             persist_position: false,
             persist_volume: false,
             last_persist: Instant::now(),
+            listen: ListenTracker::default(),
             observers: Observers::default(),
         };
         player.restore();
@@ -403,6 +407,7 @@ impl Player {
             Event::Position(t) if self.loaded => {
                 s.time_pos = t.unwrap_or(0.0);
                 self.persist_position = true;
+                self.note_listen();
                 self.maybe_preload();
             }
             Event::Duration(d) if self.loaded => s.duration = d.unwrap_or(0.0),

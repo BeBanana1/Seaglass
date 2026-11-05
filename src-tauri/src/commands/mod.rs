@@ -4,6 +4,7 @@ pub mod auth;
 pub mod catalog;
 pub mod collection;
 pub mod link;
+pub mod play_history;
 pub mod player;
 pub mod project;
 pub mod search_history;

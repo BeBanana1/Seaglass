@@ -11,6 +11,7 @@ export const fr = {
     featured: (context: string) => `À la une · ${context}`,
     skipFeatured: "Passer",
     skipFeaturedHint: "Mettre un autre album à la une",
+    mostPlayed: "Vos plus écoutés",
   },
   homeEditor: {
     hint:
@@ -150,6 +151,7 @@ export const en: typeof fr = {
     featured: (context: string) => `Featured · ${context}`,
     skipFeatured: "Skip",
     skipFeaturedHint: "Feature another album",
+    mostPlayed: "Your most played",
   },
   homeEditor: {
     hint: "Hide the sections you don't use and choose their order. New sections appear in their usual place.",
