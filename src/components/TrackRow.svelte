@@ -122,11 +122,13 @@
       {#if track.explicit}<span class="badge muted">E</span>{/if}
       {#if track.hires}<span class="badge">HI-RES</span>{/if}
     </span>
+    <!-- Android (#180) : les artistes ne sont pas des liens, l'appui tombe sur la ligne et lance
+         le titre ; ils restent dans le menu (appui long ou « … ») et dans « En lecture ». -->
     <span class="sub"
-      >{#each track.artists as artist, i (artist.id)}{#if i > 0},&nbsp;{/if}<button
-          class="link"
-          onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button
-        >{/each}</span
+      >{#if platform.mobile}{track.artists.map((a) => a.name).join(", ")}{:else}{#each track.artists as artist, i (artist.id)}{#if i > 0},&nbsp;{/if}<button
+            class="link"
+            onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button
+          >{/each}{/if}</span
     >
   </div>
   {#if !compact}
