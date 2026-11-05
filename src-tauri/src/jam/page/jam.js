@@ -28,6 +28,8 @@ const TEXT = {
     errNetwork: "La Jam ne répond pas. Elle est peut-être terminée.",
     errBackend: "L'hôte n'a pas pu répondre. Réessayez.",
     errUnknown: "Ce titre n'est plus disponible : relancez la recherche.",
+    errOffline: "L'hôte a perdu le réseau. Il devrait revenir dans un instant.",
+    errEnded: "Cette Jam est terminée.",
   },
   en: {
     lead: "Add tracks to the host's queue.",
@@ -54,6 +56,8 @@ const TEXT = {
     errNetwork: "The Jam isn't responding. It may have ended.",
     errBackend: "The host couldn't answer. Try again.",
     errUnknown: "This track is no longer available: search again.",
+    errOffline: "The host lost their connection. They should be back shortly.",
+    errEnded: "This Jam has ended.",
   },
 };
 const lang = (navigator.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
@@ -82,7 +86,8 @@ class ApiError extends Error {
 async function api(path, body) {
   let res;
   try {
-    res = await fetch(`/api/${path}`, {
+    // Chemins relatifs : la page est servie à `/` (réseau local) ou à `/j/<id>/` (relais).
+    res = await fetch(`api/${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Jam-Code": code },
       body: body === undefined ? "" : JSON.stringify(body),
@@ -103,13 +108,16 @@ function message(kind) {
       slow: t.errSlow,
       network: t.errNetwork,
       unknown: t.errUnknown,
+      offline: t.errOffline,
+      busy: t.errOffline,
+      ended: t.errEnded,
     }[kind] || t.errBackend
   );
 }
 
-/** Code refusé ou adresse bloquée : retour à l'écran pour rejoindre. */
+/** Code refusé, adresse bloquée ou Jam terminée (relais) : retour à l'écran pour rejoindre. */
 function lostAccess(e) {
-  if (e.kind !== "code" && e.kind !== "blocked") return false;
+  if (e.kind !== "code" && e.kind !== "blocked" && e.kind !== "ended") return false;
   localStorage.removeItem(CODE_KEY);
   code = "";
   showJoin(message(e.kind));
@@ -210,7 +218,7 @@ function render(state) {
 
 function openEvents() {
   closeEvents();
-  events = new EventSource(`/api/events?code=${encodeURIComponent(code)}`);
+  events = new EventSource(`api/events?code=${encodeURIComponent(code)}`);
   events.onmessage = (event) => {
     try {
       render(JSON.parse(event.data));

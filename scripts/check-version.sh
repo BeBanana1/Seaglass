@@ -31,7 +31,7 @@ if [[ "$version" != "$released" ]]; then
 fi
 
 # Ce qui ne change pas l'app livrée : documentation, CI, outillage, backend factice
-# (éliminé du build de production).
+# (éliminé du build de production), relais de la Jam (déployé à part sur le serveur).
 changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude,glob)**/*.md' \
   ':(exclude)LICENSE' \
@@ -39,6 +39,7 @@ changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude)ci/' \
   ':(exclude)scripts/' \
   ':(exclude)spike/' \
+  ':(exclude)relay/' \
   ':(exclude).claude/' \
   ':(exclude).mcp.json' \
   ':(exclude).gitignore' \
