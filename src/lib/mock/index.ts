@@ -546,6 +546,34 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     page.tracks.splice(Number(index), 1);
     page.playlist.numberOfTracks = page.tracks.length;
   },
+  move_in_playlist: ({ uuid, from, to, trackId }) => {
+    cachedPlaylists.delete(String(uuid));
+    const page = ownPage(String(uuid));
+    if (page?.tracks[Number(from)]?.id !== Number(trackId)) {
+      throw new Error("la playlist a changé, rouvrez-la avant de la modifier");
+    }
+    const [moved] = page.tracks.splice(Number(from), 1);
+    page.tracks.splice(Number(to), 0, moved);
+  },
+  edit_playlist: ({ uuid, title, description }) => {
+    cachedPlaylists.delete(String(uuid));
+    const page = ownPage(String(uuid));
+    if (!page) throw new Error("playlist introuvable");
+    page.playlist.title = String(title);
+    page.playlist.description = String(description) || null;
+    for (const list of [own, libPlaylists]) {
+      const p = list.find((x) => x.uuid === uuid);
+      if (p) Object.assign(p, { title: page.playlist.title, description: page.playlist.description });
+    }
+  },
+  delete_playlist: ({ uuid }) => {
+    cachedPlaylists.delete(String(uuid));
+    ownPages.delete(String(uuid));
+    for (const list of [own, libPlaylists]) {
+      const i = list.findIndex((p) => p.uuid === uuid);
+      if (i >= 0) list.splice(i, 1);
+    }
+  },
   mix: () => mixPage,
   // La radio factice garde ses titres, mais reprend le point de départ demandé.
   radio: ({ seed, id }) => ({ ...radioPage, seed, id }),

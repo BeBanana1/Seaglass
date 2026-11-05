@@ -1,4 +1,4 @@
-//! Écritures dans la bibliothèque sur l'API réelle (#4, #81, #204), ignorées par défaut.
+//! Écritures dans la bibliothèque sur l'API réelle (#4, #81, #201, #204), ignorées par défaut.
 //!
 //! `cargo test live_collection -- --ignored --nocapture` : **modifie le compte**. Seuls des
 //! éléments absents des favoris sont ajoutés puis retirés : aucun favori existant n'est
@@ -15,8 +15,8 @@ fn err(e: super::TidalError) -> String {
 }
 
 /// Like puis retrait d'un titre, d'un album, d'un artiste, d'une playlist d'un autre
-/// utilisateur et d'un mix, absents des favoris ; puis playlist jetable créée, remplie, vidée et
-/// supprimée.
+/// utilisateur et d'un mix, absents des favoris ; puis playlist jetable créée, remplie,
+/// réordonnée, renommée, vidée et supprimée.
 #[tokio::test]
 #[ignore = "réseau et session TIDAL requis, modifie la bibliothèque"]
 async fn live_collection() {
@@ -284,6 +284,52 @@ async fn check_playlist(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Ch
     println!("avant retrait : {before:?}, après retrait de l'index 0 : {after:?}");
     if after != before[1..] {
         return Err(format!("retrait : {after:?}"));
+    }
+
+    // Déplacement (#201) : le premier titre finit en dernier ; vérification du titre attendu.
+    client.add_to_playlist(uuid, &ids[..1]).await.map_err(err)?;
+    let before = tracks(uuid).await?;
+    let wrong = client.move_in_playlist(uuid, 0, 2, before[1]).await;
+    if !matches!(wrong, Err(super::TidalError::Conflict(_))) {
+        return Err(format!("déplacement non vérifié : {wrong:?}"));
+    }
+    let last = before.len() - 1;
+    client
+        .move_in_playlist(uuid, 0, last, before[0])
+        .await
+        .map_err(err)?;
+    let moved = tracks(uuid).await?;
+    println!("avant déplacement : {before:?}, après 0 → {last} : {moved:?}");
+    let mut expected = before[1..].to_vec();
+    expected.push(before[0]);
+    if moved != expected {
+        return Err(format!("déplacement : {moved:?}"));
+    }
+    // Deux déplacements enchaînés (Alt+↓ répété) : l'ETag relu juste après une écriture
+    // est parfois l'ancien, `retry_stale` doit absorber le 412.
+    client
+        .move_in_playlist(uuid, 0, 1, moved[0])
+        .await
+        .map_err(err)?;
+    client
+        .move_in_playlist(uuid, 1, 2, moved[0])
+        .await
+        .map_err(err)?;
+
+    // Titre et description (#201).
+    client
+        .edit_playlist(uuid, "Seaglass test renommée", "Nouvelle description")
+        .await
+        .map_err(err)?;
+    let page = client.playlist(uuid).await.map_err(err)?;
+    println!(
+        "renommée : {} / {:?}",
+        page.playlist.title, page.playlist.description
+    );
+    if page.playlist.title != "Seaglass test renommée"
+        || page.playlist.description.as_deref() != Some("Nouvelle description")
+    {
+        return Err("renommage non appliqué".into());
     }
     Ok(())
 }

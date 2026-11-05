@@ -553,6 +553,13 @@ export const commands = {
   /** `index` : position dans la playlist (0 = premier) ; refusé si un autre titre s'y trouve. */
   removeFromPlaylist: (uuid: string, index: number, trackId: TrackId) =>
     invoke<void>("remove_from_playlist", { uuid, index, trackId }),
+  /** Déplace le titre de `from` à `to` (position finale, 0 = premier, #201). */
+  moveInPlaylist: (uuid: string, from: number, to: number, trackId: TrackId) =>
+    invoke<void>("move_in_playlist", { uuid, from, to, trackId }),
+  /** Renomme et change la description (#201). */
+  editPlaylist: (uuid: string, title: string, description: string) =>
+    invoke<void>("edit_playlist", { uuid, title, description }),
+  deletePlaylist: (uuid: string) => invoke<void>("delete_playlist", { uuid }),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false, source: PlaySource | null = null) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),

@@ -8,6 +8,7 @@ use crate::i18n::{tr, trf};
 use crate::tidal::models::{LikeTarget, LikedIds, PlaylistSummary, TrackId};
 
 const MAX_TITLE_LEN: usize = 200;
+const MAX_DESCRIPTION_LEN: usize = 2_000;
 /// Titres ajoutés en une fois (un album, une playlist affichée).
 const MAX_ADD: usize = 10_000;
 
@@ -64,16 +65,7 @@ pub async fn create_playlist(
     title: String,
     track_ids: Vec<TrackId>,
 ) -> CmdResult<String> {
-    let title = title.trim();
-    if title.is_empty() {
-        return Err(tr("titre de playlist vide", "empty playlist title").into());
-    }
-    if title.chars().count() > MAX_TITLE_LEN {
-        return Err(trf!(
-            "titre limité à {MAX_TITLE_LEN} caractères",
-            "title limited to {MAX_TITLE_LEN} characters"
-        ));
-    }
+    let title = clean_title(&title)?;
     if track_ids.len() > MAX_ADD {
         return Err(format!("{MAX_ADD} titres au plus"));
     }
@@ -111,6 +103,81 @@ pub async fn remove_from_playlist(
         .remove_from_playlist(&uuid, index, track_id)
         .await
         .map_err(err)
+}
+
+/// Déplace le titre `track_id` de la position `from` à la position `to` (0 = premier, #201) ;
+/// refusé si la playlist a changé depuis son affichage.
+#[tauri::command]
+pub async fn move_in_playlist(
+    state: State<'_, AppState>,
+    uuid: String,
+    from: usize,
+    to: usize,
+    track_id: TrackId,
+) -> CmdResult<()> {
+    if !is_uuid(&uuid) {
+        return Err("identifiant de playlist invalide".into());
+    }
+    if from == to {
+        return Ok(());
+    }
+    super::snapshots::forget_playlist(&state, &uuid);
+    state
+        .tidal
+        .move_in_playlist(&uuid, from, to, track_id)
+        .await
+        .map_err(err)
+}
+
+/// Renomme une playlist et change sa description (#201).
+#[tauri::command]
+pub async fn edit_playlist(
+    state: State<'_, AppState>,
+    uuid: String,
+    title: String,
+    description: String,
+) -> CmdResult<()> {
+    if !is_uuid(&uuid) {
+        return Err("identifiant de playlist invalide".into());
+    }
+    let title = clean_title(&title)?;
+    let description = description.trim();
+    if description.chars().count() > MAX_DESCRIPTION_LEN {
+        return Err(trf!(
+            "description limitée à {MAX_DESCRIPTION_LEN} caractères",
+            "description limited to {MAX_DESCRIPTION_LEN} characters"
+        ));
+    }
+    super::snapshots::forget_playlist(&state, &uuid);
+    state
+        .tidal
+        .edit_playlist(&uuid, title, description)
+        .await
+        .map_err(err)
+}
+
+/// Supprime une playlist de l'utilisateur (#201).
+#[tauri::command]
+pub async fn delete_playlist(state: State<'_, AppState>, uuid: String) -> CmdResult<()> {
+    if !is_uuid(&uuid) {
+        return Err("identifiant de playlist invalide".into());
+    }
+    super::snapshots::forget_playlist(&state, &uuid);
+    state.tidal.delete_playlist(&uuid).await.map_err(err)
+}
+
+fn clean_title(title: &str) -> Result<&str, String> {
+    let title = title.trim();
+    if title.is_empty() {
+        return Err(tr("titre de playlist vide", "empty playlist title").into());
+    }
+    if title.chars().count() > MAX_TITLE_LEN {
+        return Err(trf!(
+            "titre limité à {MAX_TITLE_LEN} caractères",
+            "title limited to {MAX_TITLE_LEN} characters"
+        ));
+    }
+    Ok(title)
 }
 
 /// Après une écriture ou une lecture complète d'une catégorie de la bibliothèque, les
@@ -169,6 +236,14 @@ mod tests {
         assert!(validate_target(&mix("../ids")).is_err());
         let target: LikeTarget = serde_json::from_str(r#"{"kind":"artist","id":12979}"#).unwrap();
         assert_eq!(target, LikeTarget::Artist { id: 12_979 });
+    }
+
+    #[test]
+    fn title_validation() {
+        assert_eq!(clean_title("  Road trip "), Ok("Road trip"));
+        assert!(clean_title("   ").is_err());
+        assert!(clean_title(&"é".repeat(MAX_TITLE_LEN)).is_ok());
+        assert!(clean_title(&"é".repeat(MAX_TITLE_LEN + 1)).is_err());
     }
 
     #[test]

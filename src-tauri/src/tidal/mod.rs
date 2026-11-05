@@ -27,6 +27,7 @@ mod paging;
 mod playlist;
 mod raw;
 mod twin;
+mod versions;
 
 pub use api::TidalClient;
 pub use catalog::LIBRARY_MAX;
