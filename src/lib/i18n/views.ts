@@ -56,6 +56,9 @@ export const fr = {
     artists: "Artistes",
     albums: "Albums",
     playlists: "Playlists",
+    recent: "Recherches récentes",
+    clearHistory: "Tout effacer",
+    removeEntry: (query: string) => `Retirer « ${query} » de l'historique`,
   },
   login: {
     welcome: "Bienvenue",
@@ -168,6 +171,9 @@ export const en: typeof fr = {
     artists: "Artists",
     albums: "Albums",
     playlists: "Playlists",
+    recent: "Recent searches",
+    clearHistory: "Clear all",
+    removeEntry: (query: string) => `Remove “${query}” from history`,
   },
   login: {
     welcome: "Welcome",

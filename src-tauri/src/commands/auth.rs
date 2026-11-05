@@ -96,5 +96,6 @@ async fn login_page(app: &AppHandle, url: Url) -> CmdResult<Option<String>> {
 pub async fn logout(state: State<'_, AppState>) -> CmdResult<()> {
     state.tidal.logout().await.map_err(err)?;
     super::snapshots::clear(&state).await;
+    super::search_history::clear(&state);
     Ok(())
 }

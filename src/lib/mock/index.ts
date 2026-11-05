@@ -435,6 +435,8 @@ export function playbackTick() {
 }
 if (params.has("ticks")) setInterval(playbackTick, 250);
 
+let searchHistory: string[] = ["Daft Punk", "Moon Safari", "Bohemian Rhapsody"];
+
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => (params.has("loggedout") ? null : { userId: 1, countryCode: "CH" }),
   login: () => ({ userId: 1, countryCode: "CH" }),
@@ -453,7 +455,20 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (kind === "playlist" || kind === "mix") return kind === "playlist" ? { kind, uuid: id } : { kind, id };
     return { kind, id: Number(id) };
   },
-  search: ({ query }) => (String(query).trim() ? fx.search : { tracks: [], albums: [], artists: [], playlists: [] }),
+  search: ({ query }) => {
+    const q = String(query).trim().replace(/\s+/g, " ");
+    if (!q) return { tracks: [], albums: [], artists: [], playlists: [] };
+    // Comme `search_history.rs` : en tête, sans doublon (casse ignorée), 20 au plus.
+    searchHistory = [q, ...searchHistory.filter((h) => h.toLowerCase() !== q.toLowerCase())].slice(0, 20);
+    return fx.search;
+  },
+  search_history: () => searchHistory,
+  remove_search_history: ({ query }) => {
+    const q = String(query).trim().replace(/\s+/g, " ").toLowerCase();
+    searchHistory = searchHistory.filter((h) => h.toLowerCase() !== q);
+    return searchHistory;
+  },
+  clear_search_history: () => (searchHistory = []),
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
   album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
   hires_twin_album: () =>

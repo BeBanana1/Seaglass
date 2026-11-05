@@ -29,7 +29,9 @@ pub async fn search(state: State<'_, AppState>, query: String) -> CmdResult<Sear
             "search limited to {MAX_QUERY_LEN} characters"
         ));
     }
-    state.tidal.search(query, SEARCH_LIMIT).await.map_err(err)
+    let results = state.tidal.search(query, SEARCH_LIMIT).await.map_err(err)?;
+    super::search_history::note(&state, query);
+    Ok(results)
 }
 
 #[tauri::command]
