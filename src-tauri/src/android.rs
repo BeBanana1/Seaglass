@@ -24,6 +24,37 @@ pub fn init_tls() -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
+/// Langue du système (#186), code ISO 639 de `Locale.getDefault().getLanguage()` (`fr`, `en`…).
+/// Classe système : trouvée par `FindClass` même depuis un thread natif.
+pub fn system_language() -> Result<String, String> {
+    use jni::objects::JString;
+    use jni::{jni_sig, jni_str};
+
+    let ctx = ndk_context::android_context();
+    // SAFETY : pointeur de la JVM posé par tao au lancement, valide toute la vie du processus.
+    let vm = unsafe { jni::JavaVM::from_raw(ctx.vm().cast()) };
+    vm.attach_current_thread(|env| -> jni::errors::Result<String> {
+        let locale = env
+            .call_static_method(
+                jni_str!("java/util/Locale"),
+                jni_str!("getDefault"),
+                jni_sig!("()Ljava/util/Locale;"),
+                &[],
+            )?
+            .l()?;
+        let language = env
+            .call_method(
+                &locale,
+                jni_str!("getLanguage"),
+                jni_sig!("()Ljava/lang/String;"),
+                &[],
+            )?
+            .l()?;
+        env.cast_local::<JString>(language)?.try_to_string(env)
+    })
+    .map_err(|e| e.to_string())
+}
+
 /// Moment où l'activité a été détruite (app balayée des récents) : la fenêtre est à
 /// recréer.
 static WINDOW_LOST: Mutex<Option<Instant>> = Mutex::new(None);
