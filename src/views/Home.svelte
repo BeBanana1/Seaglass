@@ -34,22 +34,40 @@
     return list;
   });
 
-  /** Album mis en avant : tiré au hasard une fois par lancement, puis « Passer » avance. */
+  /** Album mis en avant : tiré au hasard une fois par lancement, puis « Passer » avance.
+   * Une fois montré, il reste le même quand la suite de l'accueil arrive (`featuredId`). */
   const featured = $derived(
     ui.settings.home.featuredHidden || candidates.length === 0
       ? null
-      : candidates[featuredIndex % candidates.length],
+      : (candidates.find((c) => c.album.id === featuredId) ??
+          candidates[featuredIndex % candidates.length]),
   );
 
   function skipFeatured() {
-    featuredIndex = (featuredIndex + 1) % candidates.length;
+    const current = featured ? candidates.indexOf(featured) : -1;
+    featuredId = candidates[(current + 1) % candidates.length].album.id;
+  }
+
+  /** Première page, puis tout l'accueil s'il y a d'autres pages (#207). */
+  async function load() {
+    const feed = await commands.home();
+    rows = cached = feed.sections;
+    cachedLang = i18n.lang;
+    if (!feed.more) return;
+    try {
+      const all = await commands.homeRest();
+      featuredId = featured?.album.id ?? featuredId;
+      rows = cached = all;
+    } catch (e) {
+      // La première page reste affichée.
+      console.warn("suite de l'accueil", e);
+    }
   }
 
   onMount(async () => {
     if (rows) return;
     try {
-      rows = cached = await commands.home();
-      cachedLang = i18n.lang;
+      await load();
     } catch (e) {
       error = String(e);
     }
@@ -79,7 +97,7 @@
     try {
       await resetHomeLayout();
       // L'ordre du flux n'est connu que du backend : on recharge l'accueil.
-      rows = cached = await commands.home();
+      await load();
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
@@ -92,6 +110,8 @@
   // Gardé entre deux visites de l'accueil : le même album tant que l'app reste ouverte.
   // Hors de toute ligne (`$state` de module) pour que « Passer » rafraîchisse la vue.
   let featuredIndex = $state(Math.floor(Math.random() * 1000));
+  /** Album affiché, gardé quand la liste des candidats change. */
+  let featuredId = $state<number | null>(null);
 </script>
 
 <section>

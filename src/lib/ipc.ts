@@ -305,6 +305,12 @@ export interface HomeSection extends HomeRow {
   hidden: boolean;
 }
 
+/** Première page de l'accueil ; `more` : la suite vient de `homeRest` (#207). */
+export interface HomeFeed {
+  sections: HomeSection[];
+  more: boolean;
+}
+
 /** Élément du fil d'actualité : sortie d'un artiste suivi (album) ou mix mensuel (mix). */
 export interface FeedItem {
   /** Date de la sortie, en millisecondes UTC. */
@@ -500,7 +506,9 @@ export const commands = {
   libraryAlbums: () => invoke<LibraryList<AlbumSummary>>("library_albums"),
   libraryArtists: () => invoke<LibraryList<ArtistSummary>>("library_artists"),
   libraryPlaylists: () => invoke<LibraryList<PlaylistSummary>>("library_playlists"),
-  home: () => invoke<HomeSection[]>("home"),
+  home: () => invoke<HomeFeed>("home"),
+  /** Tout l'accueil, pages suivantes comprises : remplace la première page. */
+  homeRest: () => invoke<HomeSection[]>("home_rest"),
   feed: () => invoke<FeedItem[]>("feed"),
   /** `null` si TIDAL n'a pas de paroles pour ce titre. */
   lyrics: (trackId: TrackId) => invoke<Lyrics | null>("lyrics", { trackId }),

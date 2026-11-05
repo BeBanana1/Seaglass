@@ -7,6 +7,7 @@
 //! - `cargo test live_album_credits -- --ignored --nocapture` : crédits d'un album (#206).
 //! - `cargo test live_hires_twin_album -- --ignored --nocapture` : album jumeau hi-res (#59).
 //! - `cargo test live_locale -- --ignored --nocapture` : titres de l'accueil en anglais (#7).
+//! - `cargo test live_home_pages -- --ignored --nocapture` : toutes les pages de l'accueil (#207).
 //! - `cargo test live_collection -- --ignored --nocapture` : écritures dans la bibliothèque,
 //!   dans `live_collection.rs` (**modifie le compte**).
 //! - `cargo test dump_ui_fixtures -- --ignored` : écrit `src/lib/mock/fixtures.json`
@@ -29,6 +30,32 @@ pub(super) async fn client() -> TidalClient {
         "pas de session"
     );
     client
+}
+
+/// L'accueil suit `page.cursor` : plus de lignes que la première page (11 le 2026-11-05),
+/// clés uniques.
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_home_pages() {
+    let client = client().await;
+    // Premier appel : rafraîchissement du token compris ; le second mesure l'accueil seul.
+    client.home().await.unwrap();
+    let start = std::time::Instant::now();
+    let home = client.home().await.unwrap();
+    println!("{} lignes en {:?}", home.len(), start.elapsed());
+    for row in &home {
+        println!(
+            "  {} : {} ({} éléments)",
+            row.key,
+            row.title,
+            row.items.len()
+        );
+    }
+    let mut keys: Vec<&str> = home.iter().map(|r| r.key.as_str()).collect();
+    keys.sort_unstable();
+    keys.dedup();
+    assert_eq!(keys.len(), home.len(), "clés en double");
+    assert!(home.len() > 11, "seule la première page ?");
 }
 
 /// La `locale` suit la langue de l'app : mêmes lignes d'accueil (même `key`), titres traduits.
