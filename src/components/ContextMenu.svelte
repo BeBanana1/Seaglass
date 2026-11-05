@@ -20,7 +20,7 @@
     const below = open.y + height <= innerHeight - MARGIN;
     const y = Math.max(MARGIN, below ? open.y : open.y - height);
     pos = { x, y };
-    el.querySelector<HTMLElement>("[role=menuitem]")?.focus({ preventScroll: true });
+    el.querySelector<HTMLElement>("[role^=menuitem]")?.focus({ preventScroll: true });
   });
 
   $effect(() => {
@@ -40,7 +40,7 @@
   }
 
   function items(): HTMLElement[] {
-    return Array.from(el?.querySelectorAll<HTMLElement>("[role=menuitem]") ?? []);
+    return Array.from(el?.querySelectorAll<HTMLElement>("[role^=menuitem]") ?? []);
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -101,8 +101,17 @@
       {#if entry === "separator"}
         <div class="context-menu-sep" role="separator"></div>
       {:else}
-        <button class="context-menu-item" role="menuitem" tabindex="-1" onclick={() => run(entry)}>
-          {#if entry.icon}<Icon name={entry.icon} size={16} />{:else}<span class="no-icon"></span>{/if}
+        <button
+          class="context-menu-item"
+          role={entry.checked === undefined ? "menuitem" : "menuitemradio"}
+          aria-checked={entry.checked}
+          tabindex="-1"
+          onclick={() => run(entry)}
+        >
+          {#if entry.checked}<Icon name="check" size={16} />{:else if entry.icon}<Icon
+              name={entry.icon}
+              size={16}
+            />{:else}<span class="no-icon"></span>{/if}
           <span>{entry.label}</span>
         </button>
       {/if}

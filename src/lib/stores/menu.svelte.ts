@@ -5,6 +5,8 @@ import type { IconName } from "../../components/Icon.svelte";
 export interface MenuItem {
   label: string;
   icon?: IconName;
+  /** Choix d'une liste d'options (tri, #182) : coche à la place de l'icône si vrai. */
+  checked?: boolean;
   action: () => unknown;
 }
 
