@@ -17,8 +17,10 @@
 
       <section id="join" hidden>
         <form id="join-form" autocomplete="off">
+          <label for="name" data-t="nameLabel"></label>
+          <input id="name" maxlength="24" autocomplete="nickname" enterkeyhint="next" />
           <label for="code" data-t="codeLabel"></label>
-          <input id="code" maxlength="9" autocapitalize="characters" spellcheck="false" />
+          <input id="code" maxlength="9" autocapitalize="characters" spellcheck="false" enterkeyhint="go" />
           <button type="submit" data-t="join"></button>
           <p id="join-error" class="error" role="alert" hidden></p>
         </form>
@@ -29,13 +31,18 @@
 
         <form id="search-form" class="search" role="search" autocomplete="off">
           <input id="query" type="search" maxlength="100" enterkeyhint="search" />
-          <button type="submit" data-t="search"></button>
         </form>
+        <p id="search-status" class="muted status" aria-live="polite" hidden></p>
         <ul id="results" class="tracks"></ul>
 
         <h2 data-t="upNext"></h2>
         <ul id="queue" class="tracks"></ul>
         <p id="queue-empty" class="muted" data-t="queueEmpty" hidden></p>
+
+        <p class="who">
+          <span id="who"></span>
+          <button id="rename" type="button" class="link" data-t="rename"></button>
+        </p>
       </section>
     </main>
     <div id="toast" class="toast" role="status" hidden></div>

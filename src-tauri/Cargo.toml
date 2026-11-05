@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.4.80"
+version = "0.4.81"
 description = "Seaglass, client de streaming non officiel"
 authors = ["bebanana"]
 edition = "2024"
@@ -40,6 +40,8 @@ tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
+# QR code de la Jam locale (#25), rendu en SVG : sans la génération d'images par défaut.
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 
 # Android : vérification HTTPS par le magasin de certificats du système (#24), initialisée au
 # démarrage avec la JVM et le contexte posés par tao. Déjà tirées par reqwest et tauri.

@@ -10,10 +10,12 @@ export const fr = {
   code: "Code",
   copy: "Copier",
   copied: "Adresse copiée",
-  howTo: "Les invités ouvrent l'adresse dans leur navigateur et saisissent le code. Vous gardez la main sur la file : retirez un titre depuis la file habituelle.",
+  qr: "QR code de la Jam",
+  howTo: "Les invités scannent le QR code, ou ouvrent l'adresse dans leur navigateur et saisissent le code. Leur prénom s'affiche à côté de leurs titres dans la file. Vous gardez la main sur la file : retirez un titre depuis la file habituelle.",
   firewall: "Au premier démarrage, Windows demande d'autoriser Seaglass sur le réseau : acceptez pour les réseaux privés.",
   noLan: "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent rejoindre la Jam.",
   stopped: "Jam arrêtée",
+  addedBy: (name: string) => `ajouté par ${name}`,
 };
 
 export const en: typeof fr = {
@@ -26,8 +28,10 @@ export const en: typeof fr = {
   code: "Code",
   copy: "Copy",
   copied: "Address copied",
-  howTo: "Guests open the address in their browser and enter the code. You stay in control: remove a track from the usual queue.",
+  qr: "Jam QR code",
+  howTo: "Guests scan the QR code, or open the address in their browser and enter the code. Their first name appears next to their tracks in the queue. You stay in control: remove a track from the usual queue.",
   firewall: "The first time, Windows asks to allow Seaglass on the network: accept for private networks.",
   noLan: "No local network found: only browsers on this computer can join the Jam.",
   stopped: "Jam stopped",
+  addedBy: (name: string) => `added by ${name}`,
 };

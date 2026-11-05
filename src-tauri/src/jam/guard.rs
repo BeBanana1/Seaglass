@@ -12,7 +12,8 @@ pub const CODE_LEN: usize = 6;
 /// Essais ratés avant que l'adresse soit bloquée jusqu'à la fin de la Jam.
 pub const MAX_FAILURES: u32 = 10;
 pub const ADDS_PER_MINUTE: usize = 10;
-pub const SEARCHES_PER_MINUTE: usize = 30;
+/// Assez pour la recherche pendant la saisie (une requête par pause de la frappe).
+pub const SEARCHES_PER_MINUTE: usize = 60;
 /// Au-delà, une nouvelle adresse est refusée (réseau local : jamais atteint en pratique).
 const MAX_CLIENTS: usize = 1024;
 /// Titres proposés par les recherches de la Jam, les seuls que les invités peuvent ajouter.

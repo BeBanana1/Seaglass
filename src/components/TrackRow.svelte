@@ -24,6 +24,7 @@
     onMoveDown,
     onRemoveFromPlaylist,
     highlighted = false,
+    addedBy,
   }: {
     track: Track;
     /** Numéro affiché devant le titre (position dans l'album ou la playlist). */
@@ -44,6 +45,8 @@
     onRemoveFromPlaylist?: () => void;
     /** Titre désigné par un lien collé (#203) : marqué et amené au centre de l'écran. */
     highlighted?: boolean;
+    /** File manuelle pendant une Jam (#25) : invité qui a ajouté le titre. */
+    addedBy?: string;
   } = $props();
 
   $effect(() => {
@@ -138,6 +141,7 @@
             onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button
           >{/each}{/if}</span
     >
+    {#if addedBy}<span class="added-by">{t.jam.addedBy(addedBy)}</span>{/if}
   </div>
   {#if !compact}
     <span class="album">
@@ -280,6 +284,14 @@
   }
 
   .title,
+  .added-by {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
   .sub,
   .album {
     overflow: hidden;

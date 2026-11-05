@@ -5,6 +5,7 @@
   import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
+  import { initJam } from "./lib/stores/jam.svelte";
   import { clearLater, initLater, loadLater } from "./lib/stores/later.svelte";
   import { initUi, ui } from "./lib/stores/ui.svelte";
   import { initLanguage, t } from "./lib/i18n.svelte";
@@ -51,7 +52,7 @@
 
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
-    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initWindow()]);
+    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initWindow(), initJam()]);
     try {
       session = await commands.authStatus();
     } catch (e) {

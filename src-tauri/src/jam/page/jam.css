@@ -92,6 +92,10 @@ button:disabled {
   gap: 10px;
 }
 
+#join-form label + input {
+  margin-bottom: 8px;
+}
+
 #code {
   font-size: 1.6rem;
   letter-spacing: 0.3em;
@@ -188,6 +192,39 @@ button:disabled {
 .add.done {
   background: var(--raised);
   color: var(--accent);
+}
+
+.by {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.status {
+  margin: 10px 0 0;
+}
+
+.tracks.stale {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.who {
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.link {
+  min-height: 0;
+  padding: 0 4px;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.search input {
+  flex: 1;
 }
 
 .toast {
