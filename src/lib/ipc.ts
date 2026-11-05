@@ -639,6 +639,8 @@ export const commands = {
   /** Bureau seulement : plein écran de la fenêtre principale (#131). */
   /** Android : vrai une fois après un appui sur la notification (#163). */
   takeNowPlayingRequest: () => invoke<boolean>("take_now_playing_request"),
+  /** Android : lien reçu par le menu « Partager » (#203), une seule fois. */
+  takeSharedLink: () => invoke<LinkTarget | null>("take_shared_link"),
   fullscreen: () => invoke<boolean>("fullscreen"),
   /** Renvoie l'état relu ; la suite arrive aussi par `fullscreen`. */
   setFullscreen: (fullscreen: boolean) => invoke<boolean>("set_fullscreen", { fullscreen }),
@@ -666,6 +668,8 @@ export const events = {
     listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
   /** Android : appui sur la notification (#163) ; la demande se prend par `takeNowPlayingRequest`. */
   onOpenNowPlaying: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-now-playing", () => cb()),
+  /** Android : lien partagé prêt ; il se prend par `takeSharedLink` (#203). */
+  onSharedLink: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-link", () => cb()),
   onFullscreen: (cb: (fullscreen: boolean) => void): Promise<UnlistenFn> =>
     listen<boolean>("fullscreen", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>

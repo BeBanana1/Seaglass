@@ -17,6 +17,8 @@ struct Raw {
     command: String,
     /// Secondes, pour `seek`.
     position: Option<f64>,
+    /// Texte partagé, pour `openLink` (#203).
+    text: Option<String>,
 }
 
 /// Action reconnue. Pas directement un `Cmd` : en détruire un dans un test tirerait le code
@@ -34,6 +36,8 @@ enum Action {
     CycleRepeat,
     /// Appui sur la notification : l'app s'ouvre sur « En lecture » (#163).
     OpenNowPlaying,
+    /// Texte reçu par le menu « Partager » d'Android (#203).
+    OpenLink(String),
 }
 
 impl Action {
@@ -50,6 +54,7 @@ impl Action {
             "shuffle" => Self::ToggleShuffle,
             "repeat" => Self::CycleRepeat,
             "openNowPlaying" => Self::OpenNowPlaying,
+            "openLink" => Self::OpenLink(raw.text?),
             other => {
                 tracing::warn!("action de la session inconnue : {other}");
                 return None;
@@ -68,7 +73,7 @@ impl Action {
             Self::Seek(secs) => Cmd::Seek(secs),
             Self::ToggleShuffle => Cmd::SetShuffle(!modes.shuffle),
             Self::CycleRepeat => Cmd::SetRepeat(next_repeat(modes.repeat)),
-            Self::OpenNowPlaying => return None,
+            Self::OpenNowPlaying | Self::OpenLink(_) => return None,
         })
     }
 }
@@ -169,6 +174,10 @@ mod android {
             let Some(action) = Action::parse(&json) else {
                 return Ok(());
             };
+            if let Action::OpenLink(text) = action {
+                crate::commands::link::share(&ui, text);
+                return Ok(());
+            }
             if action == Action::OpenNowPlaying {
                 super::super::request_now_playing();
                 if let Err(e) = ui.emit("open-now-playing", ()) {
@@ -273,6 +282,11 @@ mod tests {
             Action::parse(r#"{"command":"openNowPlaying"}"#),
             Some(Action::OpenNowPlaying)
         );
+        assert_eq!(
+            Action::parse(r#"{"command":"openLink","text":"https://tidal.com/album/1"}"#),
+            Some(Action::OpenLink("https://tidal.com/album/1".into()))
+        );
+        assert_eq!(Action::parse(r#"{"command":"openLink"}"#), None);
         assert_eq!(Action::parse(r#"{"command":"seek"}"#), None);
         assert_eq!(Action::parse(r#"{"command":"rewind"}"#), None);
         assert_eq!(Action::parse("pas du json"), None);

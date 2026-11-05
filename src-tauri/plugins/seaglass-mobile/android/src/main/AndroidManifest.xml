@@ -27,5 +27,21 @@
             android:noHistory="true"
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!-- Menu « Partager » du système (#203) : un lien TIDAL partagé ouvre sa page dans
+             l'app. Même relais sans interface que ci-dessus ; exporté pour recevoir l'intent. -->
+        <activity
+            android:name="dev.seaglass.mobile.ShareActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:label="Seaglass"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

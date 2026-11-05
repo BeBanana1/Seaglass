@@ -679,6 +679,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
   autostart_enabled: () => autostart,
   take_now_playing_request: () => false,
+  take_shared_link: () => null,
   // Le navigateur garde sa taille : seul l'état change (le bouton suit).
   fullscreen: () => fullscreen,
   set_fullscreen: ({ fullscreen: on }) => {

@@ -123,6 +123,7 @@ pub fn run() {
             commands::catalog::library_mixes,
             commands::catalog::artist_extra,
             commands::play_history::play_history,
+            commands::link::take_shared_link,
             commands::play_history::clear_play_history,
             commands::catalog::library_tracks,
             commands::catalog::library_albums,

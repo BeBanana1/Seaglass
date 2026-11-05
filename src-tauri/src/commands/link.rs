@@ -1,13 +1,18 @@
 //! Liens TIDAL collés (#203) : `tidal.com/browse/<type>/<id>`, `tidal.com/<type>/<id>`,
 //! `listen.tidal.com/…`, avec ou sans schéma, `/u` final ou paramètres, éventuellement au
 //! milieu d'un texte de partage. Le texte n'est jamais envoyé tel quel : seuls le type et
-//! un identifiant validé (numérique, uuid ou id de mix) en sortent.
+//! un identifiant validé (numérique, uuid ou id de mix) en sortent. Sur Android, le même
+//! texte arrive aussi par le menu « Partager » du système (`share`).
+
+use std::sync::Mutex;
 
 use serde::Serialize;
-use tauri::State;
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use super::catalog::{is_mix_id, is_uuid};
 use super::{AppState, CmdResult, err};
+use crate::i18n::tr;
+use crate::tidal::TidalClient;
 use crate::tidal::models::TrackId;
 
 /// Un texte collé plus long n'est pas un lien.
@@ -47,12 +52,75 @@ enum Link {
 /// Page à ouvrir pour le texte collé, ou `null` s'il ne contient pas de lien TIDAL.
 #[tauri::command]
 pub async fn open_link(state: State<'_, AppState>, text: String) -> CmdResult<Option<LinkTarget>> {
-    let Some(link) = parse(&text) else {
+    resolve(&state.tidal, &text).await
+}
+
+/// Lien partagé vers l'app sur Android (menu « Partager », #203), gardé jusqu'à ce que l'UI
+/// le prenne : l'app peut démarrer avec, avant que la WebView n'écoute.
+static SHARED: Mutex<Option<LinkTarget>> = Mutex::new(None);
+
+/// Événement émis quand un lien partagé est prêt (`take_shared_link` le prend).
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+pub const SHARED_LINK_EVENT: &str = "open-link";
+
+/// Texte reçu par le menu « Partager » : résolu hors du thread appelant, gardé, puis
+/// annoncé à l'UI. Un texte sans lien TIDAL donne un toast.
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+pub fn share(app: &AppHandle, text: String) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let state = app.state::<AppState>();
+        match resolve(&state.tidal, &text).await {
+            Ok(Some(target)) => {
+                if let Ok(mut shared) = SHARED.lock() {
+                    *shared = Some(target);
+                }
+                if let Err(e) = app.emit(SHARED_LINK_EVENT, ()) {
+                    tracing::warn!("lien partagé non annoncé à l'UI : {e}");
+                }
+            }
+            Ok(None) => toast(
+                &app,
+                tr(
+                    "Aucun lien TIDAL dans le texte partagé",
+                    "No TIDAL link in the shared text",
+                )
+                .into(),
+            ),
+            Err(e) => toast(&app, e),
+        }
+    });
+}
+
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+fn toast(app: &AppHandle, message: String) {
+    #[derive(Clone, serde::Serialize)]
+    struct Toast {
+        level: &'static str,
+        message: String,
+    }
+    let toast = Toast {
+        level: "error",
+        message,
+    };
+    if let Err(e) = app.emit("toast", toast) {
+        tracing::warn!("toast non émis : {e}");
+    }
+}
+
+/// Lien partagé en attente, une seule fois.
+#[tauri::command]
+pub async fn take_shared_link() -> CmdResult<Option<LinkTarget>> {
+    Ok(SHARED.lock().ok().and_then(|mut s| s.take()))
+}
+
+async fn resolve(tidal: &TidalClient, text: &str) -> CmdResult<Option<LinkTarget>> {
+    let Some(link) = parse(text) else {
         return Ok(None);
     };
     Ok(Some(match link {
         Link::Track(id) => {
-            let track = state.tidal.track(TrackId(id)).await.map_err(err)?;
+            let track = tidal.track(TrackId(id)).await.map_err(err)?;
             LinkTarget::Album {
                 id: track.album.id,
                 track: Some(track.id),
