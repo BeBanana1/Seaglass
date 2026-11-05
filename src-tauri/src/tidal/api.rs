@@ -24,6 +24,10 @@ use super::{Result, TidalError};
 
 pub(super) const API_V1: &str = "https://api.tidal.com/v1/";
 pub(super) const API_V2: &str = "https://api.tidal.com/v2/";
+/// API officielle (JSON:API), acceptée avec le token du client PKCE (vérifié le
+/// 2026-11-05, #196).
+pub(super) const OPEN_API: &str = "https://openapi.tidal.com/v2/";
+const JSON_API: &str = "application/vnd.api+json";
 const USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 12; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/91.0.4472.114 Safari/537.36";
 const CLIENT_VERSION: &str = "2025.7.16";
 /// Marge avant expiration à partir de laquelle on rafraîchit l'access token.
@@ -46,6 +50,8 @@ pub struct TidalClient {
     pub cache: TrackCache,
     pub(super) hires: HiresCache,
     pub(super) likes: Likes,
+    /// Identifiants de « Plus tard » (#196), mêmes ensembles que les favoris.
+    pub(super) later: Likes,
     pub(super) playlists: PlaylistCache,
     pub(super) versions: super::versions::PlaylistVersions,
     pub(super) home: super::home::HomeCache,
@@ -65,6 +71,7 @@ impl TidalClient {
             cache: TrackCache::default(),
             hires: HiresCache::default(),
             likes: Likes::default(),
+            later: Likes::default(),
             playlists: PlaylistCache::default(),
             versions: Default::default(),
             home: Default::default(),
@@ -117,6 +124,7 @@ impl TidalClient {
     pub async fn logout(&self) -> Result<()> {
         *self.auth.write().await = None;
         self.likes.clear();
+        self.later.clear();
         self.playlists.clear();
         self.versions.clear();
         auth::clear_refresh_token()
@@ -303,6 +311,12 @@ impl TidalClient {
         if let Some(form) = call.form {
             req = req.form(form);
         }
+        if let Some(json) = call.json {
+            // JSON:API de `openapi.tidal.com` (#196) : un autre type de contenu y est refusé.
+            req = req
+                .header(reqwest::header::CONTENT_TYPE, JSON_API)
+                .body(json.to_string());
+        }
         if let Some(etag) = call.if_none_match {
             req = req.header("If-None-Match", etag);
         }
@@ -344,6 +358,8 @@ pub(super) struct Call<'a> {
     pub query: &'a [(&'a str, String)],
     /// Corps `application/x-www-form-urlencoded`.
     pub form: Option<&'a [(&'a str, String)]>,
+    /// Corps JSON:API (`application/vnd.api+json`), pour `openapi.tidal.com`.
+    pub json: Option<&'a serde_json::Value>,
     /// ETag de la ressource : TIDAL refuse une modification de playlist sans lui.
     pub if_none_match: Option<&'a str>,
 }
@@ -356,6 +372,7 @@ impl<'a> Call<'a> {
             path,
             query,
             form: None,
+            json: None,
             if_none_match: None,
         }
     }

@@ -2,7 +2,7 @@
 
 import type { RadioSeed } from "../ipc";
 
-export type LibraryTab = "playlists" | "mixes" | "albums" | "artists" | "tracks";
+export type LibraryTab = "playlists" | "mixes" | "albums" | "artists" | "tracks" | "later";
 
 export type SettingsSection = "appearance" | "playback" | "app";
 

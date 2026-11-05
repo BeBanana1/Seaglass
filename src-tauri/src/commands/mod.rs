@@ -5,6 +5,7 @@ pub mod catalog;
 pub mod collection;
 #[cfg(desktop)]
 pub mod jam;
+pub mod later;
 pub mod link;
 pub mod play_history;
 pub mod player;

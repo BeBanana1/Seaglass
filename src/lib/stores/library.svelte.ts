@@ -4,6 +4,7 @@ import {
   commands,
   type AlbumSummary,
   type ArtistSummary,
+  type LaterItem,
   type LibraryList,
   type MixSummary,
   type PlaylistSummary,
@@ -36,6 +37,7 @@ export const library = $state({
   albums: empty<AlbumSummary>(),
   artists: empty<ArtistSummary>(),
   tracks: empty<TrackEntry>(),
+  later: empty<LaterItem>(),
 });
 
 // Les mixes arrivent en simple liste (curseur, pas de plafond) ; le reste en `LibraryList`.
@@ -45,6 +47,7 @@ const loaders: Record<LibraryTab, () => Promise<unknown[] | LibraryList<unknown>
   albums: commands.libraryAlbums,
   artists: commands.libraryArtists,
   tracks: commands.libraryTracks,
+  later: commands.saveForLater,
 };
 
 /** Charge l'onglet s'il ne l'est pas déjà (`force` pour actualiser).
@@ -58,7 +61,8 @@ export async function loadLibrary(tab: LibraryTab, force = false) {
   slot.loading = true;
   slot.error = null;
   try {
-    if (!slot.items && tab !== "mixes") {
+    // Pas de copie sur disque pour les mixes ni pour « Plus tard ».
+    if (!slot.items && tab !== "mixes" && tab !== "later") {
       const cached = await commands.cachedLibrary(tab).catch(() => null);
       if (cached && !slot.items) apply(slot, cached);
     }

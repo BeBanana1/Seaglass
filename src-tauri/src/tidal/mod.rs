@@ -12,9 +12,12 @@ mod feed;
 mod hires;
 pub mod home;
 mod info;
+mod later;
 mod likes;
 #[cfg(test)]
 mod live_collection;
+#[cfg(test)]
+mod live_later;
 #[cfg(test)]
 mod live_playlist_cache;
 #[cfg(test)]
