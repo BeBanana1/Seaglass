@@ -133,10 +133,6 @@
   color: var(--text-muted);
 }
 
-:root[data-theme="riso"] .hero .cta {
-  color: var(--accent);
-}
-
 :root[data-theme="riso"] .like-button.liked {
   color: var(--accent);
 }

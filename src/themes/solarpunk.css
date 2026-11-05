@@ -86,10 +86,6 @@
   color: var(--text-muted);
 }
 
-:root[data-theme="solarpunk"] .hero .cta {
-  color: var(--accent);
-}
-
 /* « En lecture » : l'image garde l'arche de son cadre. */
 :root[data-theme="solarpunk"] .now-playing .art img {
   border-radius: var(--radius-cover);

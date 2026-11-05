@@ -9,7 +9,6 @@ export const fr = {
     done: "Terminé",
     allHidden: "Toutes les sections sont masquées. « Personnaliser » permet de les réafficher.",
     featured: (context: string) => `À la une · ${context}`,
-    openAlbum: "Ouvrir l'album →",
   },
   homeEditor: {
     hint:
@@ -110,7 +109,6 @@ export const en: typeof fr = {
     done: "Done",
     allHidden: "All sections are hidden. Use “Customize” to show them again.",
     featured: (context: string) => `Featured · ${context}`,
-    openAlbum: "Open album →",
   },
   homeEditor: {
     hint: "Hide the sections you don't use and choose their order. New sections appear in their usual place.",

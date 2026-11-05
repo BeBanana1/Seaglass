@@ -337,13 +337,6 @@
         </button>
       </div>
     </div>
-    {#if !desktop && onLogout}
-    <div class="group">
-      <h2>{t.settings.account}</h2>
-      <button class="update-check logout" onclick={onLogout}>{t.common.logout}</button>
-    </div>
-    {/if}
-
     <div class="group about">
       <h2>{t.settings.about}</h2>
       <p><span class="app-name">Seaglass</span> <span class="mono">v{__APP_VERSION__}</span></p>
@@ -351,6 +344,14 @@
       <p>{t.settings.streamingOnly}</p>
       <p>{t.settings.license}</p>
     </div>
+
+    <!-- #189 : sous À propos, sur les deux plateformes (plus dans l'en-tête du bureau). -->
+    {#if onLogout}
+    <div class="group">
+      <h2>{t.settings.account}</h2>
+      <button class="update-check logout" onclick={onLogout}>{t.common.logout}</button>
+    </div>
+    {/if}
   {/if}
 </section>
 
@@ -524,6 +525,17 @@
   .update-check:disabled {
     opacity: 0.6;
     cursor: default;
+  }
+
+  /* #189 : action destructrice en rouge, au rouge de chaque thème (`--danger`). `:root` passe
+     devant les surcharges de `.update-check` des fichiers de thème ; le fond reste le leur. */
+  :global(:root) .update-check.logout {
+    color: var(--danger);
+    border-color: var(--danger) !important;
+  }
+
+  :global(:root) .update-check.logout:hover {
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
   }
 
   .about p {

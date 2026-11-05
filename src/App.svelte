@@ -239,9 +239,6 @@
       {/if}
       <button onclick={() => openSettings()} title={t.common.settingsHint}>{t.common.nav.settings}</button>
       <button onclick={() => openSettings("app")}>{t.common.about}</button>
-      {#if session}
-        <button onclick={logout}>{t.common.logout}</button>
-      {/if}
     </div>
     {/if}
   </header>

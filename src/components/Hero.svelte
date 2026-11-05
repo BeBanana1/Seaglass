@@ -25,7 +25,6 @@
         .join(" · ")}
       {#if album.hires}<span class="badge">HI-RES</span>{/if}
     </span>
-    <span class="cta">{t.views.home.openAlbum}</span>
   </div>
   {#if large}<img class="cover" src={large} alt="" />{/if}
 </button>
@@ -84,11 +83,6 @@
     color: rgb(255 255 255 / 0.8);
   }
 
-  .cta {
-    margin-top: 10px;
-    font-weight: 600;
-  }
-
   .cover {
     width: 184px;
     height: 184px;
@@ -133,25 +127,34 @@
     transform: none;
   }
 
-  /* Android (#24) : pochette au-dessus du texte, qui prend toute la largeur. */
+  /* Android (#24, #184) : bandeau bas, pochette à droite du texte, pour voir aussi la première
+     ligne de l'accueil en entier. Titre limité à deux lignes. */
   :global(:root[data-platform="android"]) .hero {
-    flex-direction: column-reverse;
-    align-items: flex-start;
-    gap: 18px;
+    gap: 14px;
     min-height: 0;
-    padding: 20px;
+    margin-bottom: 24px;
+    padding: 16px;
   }
 
   :global(:root[data-platform="android"]) .content {
-    max-width: 100%;
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    gap: 6px;
   }
 
   :global(:root[data-platform="android"]) .title {
-    font-size: 24px;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    font-size: 21px;
   }
 
   :global(:root[data-platform="android"]) .cover {
-    width: 140px;
-    height: 140px;
+    width: 96px;
+    height: 96px;
+    transform: none;
   }
 </style>
