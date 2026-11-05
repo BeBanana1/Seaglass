@@ -49,6 +49,7 @@ pub async fn add_to_playlist(
     track_ids: Vec<TrackId>,
 ) -> CmdResult<usize> {
     validate_tracks(&uuid, &track_ids)?;
+    super::snapshots::forget_playlist(&state, &uuid);
     state
         .tidal
         .add_to_playlist(&uuid, &track_ids)
@@ -104,6 +105,7 @@ pub async fn remove_from_playlist(
     if !is_uuid(&uuid) {
         return Err("identifiant de playlist invalide".into());
     }
+    super::snapshots::forget_playlist(&state, &uuid);
     state
         .tidal
         .remove_from_playlist(&uuid, index, track_id)

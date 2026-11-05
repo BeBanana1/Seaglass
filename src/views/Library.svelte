@@ -62,8 +62,17 @@
     platform.mobile ? ["playlists", "mixes", "albums", "artists"] : ["playlists", "mixes", "albums", "artists", "tracks"],
   );
 
+  // « Chargement… » seulement si l'onglet tarde : la copie du lancement précédent arrive
+  // en quelques millisecondes et ne doit pas être précédée d'un clignotement (#181).
+  const LOADING_DELAY_MS = 300;
+  let slow = $state(false);
+
   $effect(() => {
+    void tab;
+    slow = false;
+    const timer = setTimeout(() => (slow = true), LOADING_DELAY_MS);
     loadLibrary(tab);
+    return () => clearTimeout(timer);
   });
 
   const slot = $derived(library[tab]);
@@ -120,7 +129,7 @@
   {#if slot.error}
     <p class="error">{slot.error}</p>
   {:else if !slot.items}
-    <p class="muted">{t.common.loading}</p>
+    {#if slow}<p class="muted">{t.common.loading}</p>{/if}
   {:else if slot.items.length === 0}
     <p class="muted">{t.library.empty}</p>
   {:else}

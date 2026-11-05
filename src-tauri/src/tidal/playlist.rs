@@ -5,7 +5,9 @@
 //! chaque modification (vérifié par `cargo test live_playlist_etag -- --ignored`) : une
 //! page déjà lue est revalidée par l'en-tête seul, et ses titres ne sont relus que si
 //! l'ETag a changé. L'UI affiche d'abord la copie gardée (`cached_playlist`), puis demande
-//! si la playlist a changé depuis (`playlist_since`).
+//! si la playlist a changé depuis (`playlist_since`). Les pages survivent aussi au
+//! redémarrage, dans la base (`commands::snapshots`, #181), et reviennent ici par
+//! `restore_playlist`.
 
 use std::sync::Mutex;
 
@@ -37,6 +39,16 @@ impl TidalClient {
         // avant la revalidation.
         self.cache.insert_all(page.tracks.iter().map(|e| &e.track));
         Some(page)
+    }
+
+    /// Copie relue sur le disque au lancement suivant (#181) : gardée comme une page lue,
+    /// pour que la revalidation par ETag reprenne ses titres s'ils n'ont pas changé.
+    pub fn restore_playlist(&self, uuid: &str, page: PlaylistPage) {
+        if page.revision.is_none() {
+            return;
+        }
+        self.cache.insert_all(page.tracks.iter().map(|e| &e.track));
+        self.playlists.put(uuid, page);
     }
 
     /// `None` si la playlist n'a pas changé depuis `known` (sa `revision` déjà affichée),

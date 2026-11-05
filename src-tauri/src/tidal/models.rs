@@ -90,7 +90,7 @@ pub struct Track {
 /// Titre d'une liste (playlist ou favoris) avec sa date d'ajout à cette liste.
 /// Sérialisé à plat : côté UI, c'est un `Track` avec un champ `addedAt` en plus.
 /// La date n'appartient qu'à la liste : elle ne va ni dans le cache ni dans la file.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackEntry {
     #[serde(flatten)]
@@ -102,7 +102,7 @@ pub struct TrackEntry {
 
 /// Une catégorie de la bibliothèque (titres, albums, artistes, playlists), du plus récent au
 /// plus ancien, éventuellement coupée au plafond de chargement (#91).
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryList<T> {
     pub items: Vec<T>,
@@ -174,7 +174,7 @@ pub struct ReplayGain {
     pub album_peak: Option<f64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlbumSummary {
     pub id: u64,
@@ -194,7 +194,7 @@ pub struct AlbumSummary {
     pub hires: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArtistSummary {
     pub id: u64,
@@ -202,7 +202,7 @@ pub struct ArtistSummary {
     pub picture_url: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistSummary {
     pub uuid: String,
@@ -282,7 +282,7 @@ pub struct ArtistPage {
     pub singles: Vec<AlbumSummary>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistPage {
     pub playlist: PlaylistSummary,

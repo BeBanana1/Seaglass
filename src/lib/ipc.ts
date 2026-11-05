@@ -466,6 +466,9 @@ export const commands = {
     invoke<PlaylistPage | null>("playlist", { uuid, revision }),
   /** Copie gardée par le backend, sans réseau : affichée en attendant `playlist`. */
   cachedPlaylist: (uuid: string) => invoke<PlaylistPage | null>("cached_playlist", { uuid }),
+  /** Copie de l'onglet enregistrée au dernier lancement (#181), sans réseau ; pas de mixes. */
+  cachedLibrary: (tab: "tracks" | "albums" | "artists" | "playlists") =>
+    invoke<LibraryList<unknown> | null>("cached_library", { tab }),
   mix: (id: string) => invoke<MixPage>("mix", { id }),
   radio: (seed: RadioSeed, id: number) => invoke<RadioPage>("radio", { seed, id }),
   libraryMixes: () => invoke<MixSummary[]>("library_mixes"),

@@ -1,5 +1,5 @@
 //! Persistance SQLite : file d'attente, position de lecture, réglages et métadonnées des
-//! titres en file.
+//! titres en file ; copies des listes affichées (`snapshots`, #181).
 //!
 //! La table `tracks` ne contient que les titres référencés par la file sauvegardée : chaque
 //! sauvegarde de la file n'écrit que les titres absents et supprime ceux qui ne sont plus
@@ -17,6 +17,10 @@ use crate::player::queue::Queue;
 use crate::player::volume::Volume;
 use crate::tidal::models::{Track, TrackId};
 
+mod snapshots;
+
+pub use snapshots::SnapshotLimit;
+
 const SCHEMA: &str = "
     PRAGMA journal_mode = WAL;
     PRAGMA synchronous = NORMAL;
@@ -27,6 +31,12 @@ const SCHEMA: &str = "
     CREATE TABLE IF NOT EXISTS tracks (
         id   INTEGER PRIMARY KEY,
         json TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS snapshots (
+        key     TEXT PRIMARY KEY,
+        used_at INTEGER NOT NULL,
+        size    INTEGER NOT NULL,
+        json    TEXT NOT NULL
     );
 ";
 
