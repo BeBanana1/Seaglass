@@ -415,6 +415,8 @@ const longPlaylist: PlaylistPage | null = longCount
   : null;
 
 const cachedPlaylists = new Map<string, PlaylistPage>();
+const homeFirstPage = Math.ceil(fx.home.length / 2);
+
 /** `?slow=<ms>` : latence de la commande `playlist`, pour voir « Chargement… » (#152). */
 const slowPlaylist = Math.max(0, Number(params.get("slow")) || 0);
 
@@ -441,7 +443,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => (params.has("loggedout") ? null : { userId: 1, countryCode: "CH" }),
   login: () => ({ userId: 1, countryCode: "CH" }),
   logout: () => null,
-  home: () => arrangeHome(fx.home, ui.home),
+  // Comme le backend (#207) : première page d'abord (la moitié des lignes), puis tout.
+  home: () => ({ sections: arrangeHome(fx.home.slice(0, homeFirstPage), ui.home), more: homeFirstPage < fx.home.length }),
+  home_rest: () => arrangeHome(fx.home, ui.home),
   feed: () => fx.feed ?? [],
   lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
   track_info: ({ trackId }) => mockTrackInfo(Number(trackId)),
@@ -735,7 +739,9 @@ export async function invoke<T>(cmd: string, args: Record<string, unknown> = {})
   const handler = handlers[cmd];
   if (!handler) throw new Error(`commande factice inconnue : ${cmd}`);
   // Petite latence pour voir les états de chargement.
-  await new Promise((r) => setTimeout(r, 120 + (cmd === "playlist" ? slowPlaylist : 0)));
+  // `home_rest` lit une page de plus (~0,5 s pour de vrai).
+  const delay = cmd === "playlist" ? slowPlaylist : cmd === "home_rest" ? 500 : 0;
+  await new Promise((r) => setTimeout(r, 120 + delay));
   return structuredClone(handler(args)) as T;
 }
 

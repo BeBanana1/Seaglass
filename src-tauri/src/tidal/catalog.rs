@@ -1,25 +1,24 @@
-//! Catalogue : recherche, albums, artistes, playlists, favoris et accueil.
+//! Catalogue : recherche, albums, artistes, playlists et favoris (accueil : `home.rs`).
 //!
 //! Endpoints vérifiés avec le spike : `search` (multi-types), `albums/{id}`,
 //! `albums/{id}/tracks`, `artists/{id}`, `artists/{id}/toptracks`,
 //! `artists/{id}/albums[?filter=EPSANDSINGLES]`, `playlists/{uuid}`,
 //! `playlists/{uuid}/tracks`, `users/{id}/favorites/{tracks,albums,artists}`,
-//! `users/{id}/playlistsAndFavoritePlaylists`, v2 `home/feed/static`.
+//! `users/{id}/playlistsAndFavoritePlaylists`.
 //! Mixes et radios : `mix.rs` ; pages de playlist : `playlist.rs` ; pagination (`get_all`) :
 //! `paging.rs`.
 
 use serde::de::DeserializeOwned;
 
-use super::api::{API_V2, TidalClient};
+use super::api::TidalClient;
 use super::likes::LikedKind;
-use super::mix::RawMix;
 use super::models::{
-    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, HomeRow, LibraryList, MediaItem,
-    PlaylistSummary, SearchResults, Track, TrackEntry,
+    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, LibraryList, PlaylistSummary,
+    SearchResults, Track, TrackEntry,
 };
 use super::raw::{
-    self, RawAlbumFull, RawArtistFull, RawFavorite, RawHome, RawPage, RawPlaylist,
-    RawPlaylistEntry, RawSearch, RawTrack, image_url,
+    self, RawAlbumFull, RawArtistFull, RawFavorite, RawPage, RawPlaylistEntry, RawSearch, RawTrack,
+    image_url,
 };
 use super::{Result, TidalError};
 
@@ -167,40 +166,6 @@ impl TidalClient {
         Ok(list)
     }
 
-    /// Lignes de l'accueil personnalisé. Seuls albums, artistes, playlists et mixes sont
-    /// gardés (`TRACK` sans album et `DEEP_LINK` sont ignorés).
-    pub async fn home(&self) -> Result<Vec<HomeRow>> {
-        let raw: RawHome = self
-            .get_at(
-                API_V2,
-                "home/feed/static",
-                &[
-                    ("deviceType", "BROWSER".to_owned()),
-                    ("locale", crate::i18n::tidal_locale().to_owned()),
-                    ("platform", "WEB".to_owned()),
-                ],
-            )
-            .await?;
-        let user = self.user_id().await.ok();
-        Ok(raw
-            .items
-            .into_iter()
-            .filter_map(|row| {
-                let items: Vec<MediaItem> = row
-                    .items
-                    .into_iter()
-                    .filter_map(|it| home_item(&it.kind, it.data, user))
-                    .collect();
-                let title = row.title.unwrap_or_default();
-                (!items.is_empty()).then(|| HomeRow {
-                    key: row_key(row.module_id.as_deref(), &title),
-                    title,
-                    items,
-                })
-            })
-            .collect())
-    }
-
     async fn favorites<T: DeserializeOwned>(&self, kind: &str) -> Result<LibraryList<T>> {
         let user = self.user_id().await?;
         self.get_list(
@@ -241,76 +206,5 @@ fn map_list<A, B>(list: LibraryList<A>, convert: impl FnOnce(Vec<A>) -> Vec<B>) 
         items: convert(list.items),
         truncated: list.truncated,
         total: list.total,
-    }
-}
-
-/// Clé stable d'une ligne de l'accueil : le `moduleId` de l'API (le titre est traduit et
-/// peut changer), sinon le titre normalisé, préfixé pour ne jamais croiser un `moduleId`.
-fn row_key(module_id: Option<&str>, title: &str) -> String {
-    match module_id.map(str::trim).filter(|m| !m.is_empty()) {
-        Some(id) => id.to_owned(),
-        None => format!("title:{}", title.trim().to_lowercase()),
-    }
-}
-
-fn home_item(kind: &str, data: serde_json::Value, user: Option<u64>) -> Option<MediaItem> {
-    match kind {
-        "ALBUM" => serde_json::from_value::<RawAlbumFull>(data)
-            .ok()
-            .map(|a| MediaItem::Album(a.into())),
-        "ARTIST" => serde_json::from_value::<RawArtistFull>(data)
-            .ok()
-            .map(|a| MediaItem::Artist(a.into())),
-        "PLAYLIST" => serde_json::from_value::<RawPlaylist>(data)
-            .ok()
-            .map(|p| MediaItem::Playlist(p.into_summary(user))),
-        "MIX" => serde_json::from_value::<RawMix>(data)
-            .ok()
-            .and_then(RawMix::into_summary)
-            .map(MediaItem::Mix),
-        _ => None,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn row_key_prefers_module_id() {
-        assert_eq!(
-            row_key(Some("YOUR_FAVORITE_ARTISTS"), "Vos artistes préférés"),
-            "YOUR_FAVORITE_ARTISTS"
-        );
-        assert_eq!(row_key(Some("  "), " Pour Vous "), "title:pour vous");
-        assert_eq!(row_key(None, "Pour vous"), "title:pour vous");
-    }
-
-    #[test]
-    fn home_items_by_kind() {
-        let album = json!({"id": 1, "title": "a", "cover": "x-y", "artists": [{"id": 2, "name": "b"}],
-                           "mediaMetadata": {"tags": ["HIRES_LOSSLESS"]}});
-        assert!(matches!(home_item("ALBUM", album, None), Some(MediaItem::Album(a)) if a.hires));
-        let mix = json!({"id": "m", "type": "DISCOVERY_MIX", "titleTextInfo": {"text": "My Daily Discovery"}});
-        assert!(
-            matches!(home_item("MIX", mix, None), Some(MediaItem::Mix(m)) if m.title == "My Daily Discovery")
-        );
-        let untitled = json!({"id": "m"});
-        assert_eq!(home_item("MIX", untitled, None), None);
-        let broken = json!({"title": "sans id"});
-        assert_eq!(home_item("ARTIST", broken, None), None);
-    }
-
-    /// L'étiquette `kind` de `MediaItem` ne doit entrer en conflit avec aucun champ.
-    #[test]
-    fn media_item_tag_is_unique() {
-        let album = json!({"id": 1, "title": "a", "type": "SINGLE"});
-        let item = home_item("ALBUM", album, None).unwrap();
-        let text = serde_json::to_string(&item).unwrap();
-        assert_eq!(text.matches("\"kind\"").count(), 1);
-        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
-        assert_eq!(value["kind"], "album");
-        assert_eq!(value["albumType"], "SINGLE");
     }
 }

@@ -9,6 +9,7 @@ mod credits;
 mod date;
 mod feed;
 mod hires;
+pub mod home;
 mod info;
 mod likes;
 #[cfg(test)]

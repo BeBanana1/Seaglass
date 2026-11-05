@@ -1,6 +1,7 @@
 //! Commandes de navigation : recherche, pages album / artiste / playlist / mix, radios,
 //! bibliothèque, accueil, fil d'actualité, paroles, infos d'un titre.
 
+use serde::Serialize;
 use tauri::{AppHandle, State};
 
 use super::settings::home_layout::HomeSection;
@@ -141,10 +142,31 @@ pub async fn library_playlists(
     Ok(playlists)
 }
 
-/// Lignes de l'accueil dans l'ordre choisi, masquées comprises (marquées `hidden`).
+/// Première page de l'accueil, déjà disposée.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HomeFeed {
+    pub sections: Vec<HomeSection>,
+    /// D'autres pages existent : l'UI appelle ensuite `home_rest` (#207).
+    pub more: bool,
+}
+
+/// Lignes de la première page de l'accueil dans l'ordre choisi, masquées comprises
+/// (marquées `hidden`). La suite du flux vient de `home_rest`, pour que l'accueil
+/// s'affiche sans attendre ses pages suivantes (~0,5 s chacune).
 #[tauri::command]
-pub async fn home(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
-    let rows = state.tidal.home().await.map_err(err)?;
+pub async fn home(state: State<'_, AppState>) -> CmdResult<HomeFeed> {
+    let start = state.tidal.home_start().await.map_err(err)?;
+    Ok(HomeFeed {
+        sections: settings::load(&state).home.arrange(start.rows),
+        more: start.more,
+    })
+}
+
+/// Tout l'accueil (première page et suivantes), disposé : remplace la première page.
+#[tauri::command]
+pub async fn home_rest(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
+    let rows = state.tidal.home_rest().await.map_err(err)?;
     Ok(settings::load(&state).home.arrange(rows))
 }
 

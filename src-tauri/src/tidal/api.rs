@@ -47,6 +47,7 @@ pub struct TidalClient {
     pub(super) hires: HiresCache,
     pub(super) likes: Likes,
     pub(super) playlists: PlaylistCache,
+    pub(super) home: super::home::HomeCache,
 }
 
 impl TidalClient {
@@ -64,6 +65,7 @@ impl TidalClient {
             hires: HiresCache::default(),
             likes: Likes::default(),
             playlists: PlaylistCache::default(),
+            home: Default::default(),
         })
     }
 

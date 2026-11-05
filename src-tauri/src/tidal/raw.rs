@@ -174,6 +174,14 @@ pub(super) struct RawHomeItem {
 pub(super) struct RawHome {
     #[serde(default)]
     pub items: Vec<RawHomeRow>,
+    /// `{cursor}` : à repasser en `cursor=` pour la page suivante ; `null` sur la dernière
+    /// (#207 : deux pages vues le 2026-11-05).
+    pub page: Option<RawHomePage>,
+}
+
+#[derive(Deserialize)]
+pub(super) struct RawHomePage {
+    pub cursor: Option<String>,
 }
 
 /// Garde uniquement une couleur `#rrggbb` : la valeur part telle quelle dans le CSS.

@@ -126,6 +126,7 @@ pub fn run() {
             commands::catalog::library_artists,
             commands::catalog::library_playlists,
             commands::catalog::home,
+            commands::catalog::home_rest,
             commands::catalog::feed,
             commands::catalog::lyrics,
             commands::catalog::track_info,
