@@ -257,7 +257,7 @@
   display: none;
 }
 
-:root[data-theme="aero"] :is(.hero .label, .hero .meta, .hero .cta) {
+:root[data-theme="aero"] :is(.hero .label, .hero .meta) {
   color: var(--aero-ink);
 }
 
