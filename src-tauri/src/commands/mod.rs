@@ -3,6 +3,7 @@
 pub mod auth;
 pub mod catalog;
 pub mod collection;
+pub mod link;
 pub mod player;
 pub mod project;
 pub mod settings;

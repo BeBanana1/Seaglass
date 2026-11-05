@@ -126,6 +126,8 @@ pub fn run() {
             commands::catalog::feed,
             commands::catalog::lyrics,
             commands::catalog::track_info,
+            commands::catalog::album_credits,
+            commands::link::open_link,
             commands::catalog::hires_twin_album,
             commands::collection::likes,
             commands::collection::set_liked,

@@ -21,6 +21,7 @@
   import CardGrid from "../components/CardGrid.svelte";
   import TrackList from "../components/TrackList.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { openTidalLink } from "../lib/links";
 
   const COLLAPSED_TRACKS = 8;
 
@@ -29,6 +30,8 @@
 
   async function submit(e: SubmitEvent) {
     e.preventDefault();
+    // Un lien TIDAL ouvre sa page au lieu d'être cherché (#203).
+    if (await openTidalLink(saved.query)) return;
     searching = true;
     error = null;
     try {
@@ -64,6 +67,10 @@
       type="search"
       placeholder={t.views.search.placeholder}
       bind:value={saved.query}
+      onpaste={(e) => {
+        const text = e.clipboardData?.getData("text/plain");
+        if (text) void openTidalLink(text);
+      }}
       autocomplete="off"
       spellcheck="false"
       autofocus

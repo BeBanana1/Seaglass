@@ -435,6 +435,25 @@ pub struct Contributor {
     pub artist_id: Option<u64>,
 }
 
+/// Crédits d'un album entier (#206) : un rôle et ses contributeurs, avec les titres où
+/// chacun apparaît.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumCreditGroup {
+    pub role: String,
+    pub contributors: Vec<AlbumContributor>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumContributor {
+    pub name: String,
+    pub artist_id: Option<u64>,
+    /// Titres où il apparaît, dans l'ordre de l'album ; vide = tous les titres. Des
+    /// identifiants plutôt que des numéros : l'UI les place dans la liste qu'elle affiche.
+    pub tracks: Vec<TrackId>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HiresEdition {

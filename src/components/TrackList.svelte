@@ -12,6 +12,7 @@
     showCover = true,
     onRemoveFromPlaylist,
     source,
+    highlight,
   }: {
     /** Contexte de lecture : lire un titre met toute la liste en file, dans cet ordre. */
     tracks: Track[];
@@ -24,6 +25,8 @@
     showCover?: boolean;
     /** Liste d'une de vos playlists : « Retirer de cette playlist » sur chaque titre. */
     onRemoveFromPlaylist?: (index: number) => void;
+    /** Titre mis en évidence et amené à l'écran (lien collé, #203). */
+    highlight?: number;
   } = $props();
 
   // Rendu par morceaux (#181) : une longue liste créait toutes ses lignes d'un bloc, et la
@@ -63,6 +66,7 @@
       compact={!showAlbum}
       {showCover}
       active={player.currentTrackId === track.id}
+      highlighted={highlight === track.id}
       onPlay={() => play(i)}
       onRemoveFromPlaylist={onRemoveFromPlaylist && (() => onRemoveFromPlaylist(i))}
     />

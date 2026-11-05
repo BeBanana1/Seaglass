@@ -5,8 +5,10 @@
   import { go } from "../lib/stores/nav.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
+  import AlbumCredits from "../components/AlbumCredits.svelte";
 
-  let { id }: { id: number } = $props();
+  /** `track` : titre à mettre en évidence (lien collé, #203). */
+  let { id, track }: { id: number; track?: number } = $props();
 
   let page = $state<AlbumPage | null>(null);
   let error = $state<string | null>(null);
@@ -76,9 +78,11 @@
       tracks={page.tracks}
       source={{ kind: "album", id: page.album.id, title: page.album.title }}
       numbering="index"
+      highlight={track}
       showAlbum={false}
       showCover={false}
     />
+    <AlbumCredits albumId={page.album.id} tracks={page.tracks} />
     {#if page.copyright}<p class="copyright">{page.copyright}</p>{/if}
   {/if}
 </section>

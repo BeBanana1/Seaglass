@@ -4,6 +4,7 @@
 //! - `cargo test live_lyrics -- --ignored --nocapture` : paroles synchronisées et absentes.
 //! - `cargo test live_track_info -- --ignored --nocapture` : infos détaillées d'un titre (#3).
 //! - `cargo test live_track_credits -- --ignored --nocapture` : crédits d'un titre (#84).
+//! - `cargo test live_album_credits -- --ignored --nocapture` : crédits d'un album (#206).
 //! - `cargo test live_hires_twin_album -- --ignored --nocapture` : album jumeau hi-res (#59).
 //! - `cargo test live_locale -- --ignored --nocapture` : titres de l'accueil en anglais (#7).
 //! - `cargo test live_collection -- --ignored --nocapture` : écritures dans la bibliothèque,
@@ -436,4 +437,27 @@ async fn live_track_credits() {
     // Sans crédits (et titre inexistant) : liste vide, pas d'erreur.
     assert!(roles(21_125_042).await.is_empty());
     assert!(roles(1).await.is_empty());
+}
+
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_album_credits() {
+    let client = client().await;
+    let tracks = client.album(ALBUM_ID).await.unwrap().tracks.len();
+    let credits = client.album_credits(ALBUM_ID).await.unwrap();
+    for group in &credits {
+        let names: Vec<String> = group
+            .contributors
+            .iter()
+            .map(|c| format!("{} {:?}", c.name, c.tracks.len()))
+            .collect();
+        println!("{} : {}", group.role, names.join(", "));
+    }
+    println!("{tracks} titres");
+    let zimmer = credits
+        .iter()
+        .flat_map(|g| &g.contributors)
+        .find(|c| c.name == "Hans Zimmer")
+        .expect("Hans Zimmer crédité");
+    assert_eq!(zimmer.artist_id, Some(ARTIST_ID));
 }
