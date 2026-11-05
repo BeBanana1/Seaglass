@@ -7,7 +7,6 @@
     type CacheSize,
     type CloseAction,
     type HiresUpgrade,
-    type JamInfo,
     type LanguagePref,
     type Normalization,
     type PlaybackSettings,
@@ -20,6 +19,7 @@
   import AccentPicker from "../components/AccentPicker.svelte";
   import OutputDevicePicker from "../components/OutputDevicePicker.svelte";
   import { platform } from "../lib/platform.svelte";
+  import { jam, startJam, stopJam } from "../lib/stores/jam.svelte";
 
   let { section, onLogout }: { section: SettingsSection; onLogout?: () => void } = $props();
 
@@ -44,41 +44,23 @@
   const normalization = $derived(playback?.normalization ?? null);
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
-  // Jam locale (#25), bureau seulement.
-  let jam = $state<JamInfo | null>(null);
-  let jamBusy = $state(false);
-  let jamLoaded = false;
 
   $effect(() => {
     if (section === "playback" && playback === null) loadPlayback();
     if (section === "app" && autostart === null && desktop) loadAutostart();
-    if (section === "app" && desktop && !jamLoaded) loadJam();
   });
 
-  async function loadJam() {
-    jamLoaded = true;
+  async function launchJam() {
     try {
-      jam = await commands.jamStatus();
+      await startJam();
     } catch (e) {
       fail(e);
     }
   }
 
-  async function startJam() {
-    jamBusy = true;
+  async function endJam() {
     try {
-      jam = await commands.startJam();
-    } catch (e) {
-      fail(e);
-    } finally {
-      jamBusy = false;
-    }
-  }
-
-  async function stopJam() {
-    try {
-      await commands.stopJam();
-      jam = null;
+      await stopJam();
       pushToast({ level: "info", message: t.jam.stopped });
     } catch (e) {
       fail(e);
@@ -86,9 +68,9 @@
   }
 
   async function copyJamUrl() {
-    if (!jam) return;
+    if (!jam.status) return;
     try {
-      await navigator.clipboard.writeText(jam.url);
+      await navigator.clipboard.writeText(jam.status.url);
       pushToast({ level: "info", message: t.jam.copied });
     } catch (e) {
       fail(e);
@@ -403,27 +385,31 @@
     <div class="group jam">
       <h2>{t.jam.title}</h2>
       <p class="hint">{t.jam.hint}</p>
-      {#if jam}
+      {#if jam.status}
         <div class="setting-row jam-info">
+          {#if jam.status.qrSvg}
+            <!-- SVG produit par le backend (crate qrcode) à partir de l'adresse et du code. -->
+            <div class="jam-qr" role="img" aria-label={t.jam.qr}>{@html jam.status.qrSvg}</div>
+          {/if}
           <dl class="jam-fields">
             <dt>{t.jam.address}</dt>
-            <dd class="mono jam-url">{jam.url}</dd>
+            <dd class="mono jam-url">{jam.status.url}</dd>
             <dt>{t.jam.code}</dt>
-            <dd class="mono jam-code">{jam.code}</dd>
+            <dd class="mono jam-code">{jam.status.code}</dd>
           </dl>
           <div class="jam-actions">
             <button class="update-check" onclick={copyJamUrl}>{t.jam.copy}</button>
-            <button class="update-check" onclick={stopJam}>{t.jam.stop}</button>
+            <button class="update-check" onclick={endJam}>{t.jam.stop}</button>
           </div>
         </div>
-        <p class="note">{jam.lan ? t.jam.howTo : t.jam.noLan}</p>
+        <p class="note">{jam.status.lan ? t.jam.howTo : t.jam.noLan}</p>
       {:else}
         <div class="setting-row">
           <span class="text">
             <span class="hint">{t.jam.firewall}</span>
           </span>
-          <button class="update-check" onclick={startJam} disabled={jamBusy}>
-            {jamBusy ? t.jam.starting : t.jam.start}
+          <button class="update-check" onclick={launchJam} disabled={jam.busy}>
+            {jam.busy ? t.jam.starting : t.jam.start}
           </button>
         </div>
       {/if}
@@ -682,6 +668,26 @@
     color: var(--text);
   }
 
+  .setting-row.jam-info {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .jam-qr {
+    flex: none;
+    width: 148px;
+    height: 148px;
+    padding: 6px;
+    border-radius: 10px;
+    background: #ffffff;
+  }
+
+  .jam-qr :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
   .jam-fields {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -689,7 +695,7 @@
     align-items: baseline;
     margin: 0;
     flex: 1;
-    min-width: 0;
+    min-width: 220px;
   }
 
   .jam-fields dt {

@@ -10,6 +10,7 @@
   import Icon from "./Icon.svelte";
   import TrackRow from "./TrackRow.svelte";
   import { keyboardMove, Reorder } from "../lib/reorder.svelte";
+  import { guestOf } from "../lib/stores/jam.svelte";
 
   /** `current` : afficher aussi le titre en cours (inutile si la vue l'affiche déjà en grand). */
   let { current = true }: { current?: boolean } = $props();
@@ -114,6 +115,7 @@
             onRemove={() => commands.removeFromQueue(i)}
             onMoveUp={i > 0 ? () => move(i, i - 1) : undefined}
             onMoveDown={i < last ? () => move(i, i + 1) : undefined}
+            addedBy={guestOf(track.id)}
           />
         </div>
       {/each}

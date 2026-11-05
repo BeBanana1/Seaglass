@@ -20,6 +20,8 @@ pub struct Head {
     pub method: Method,
     /// Chemin sans la query string.
     pub path: String,
+    /// Query string, sans le `?`.
+    pub query: String,
     /// En-tête `X-Jam-Code`.
     pub code: Option<String>,
     pub content_length: usize,
@@ -76,7 +78,8 @@ pub fn parse_head(raw: &[u8]) -> Option<Head> {
     if !target.starts_with('/') || !first.next()?.starts_with("HTTP/1.") {
         return None;
     }
-    let path = target.split('?').next()?.to_owned();
+    let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    let (path, query) = (path.to_owned(), query.to_owned());
     let mut code = None;
     let mut content_length = 0;
     for line in lines.take_while(|l| !l.is_empty()) {
@@ -94,9 +97,19 @@ pub fn parse_head(raw: &[u8]) -> Option<Head> {
     Some(Head {
         method,
         path,
+        query,
         code,
         content_length,
     })
+}
+
+/// Valeur d'un paramètre de la query string, sans décodage (codes alphanumériques).
+pub fn query_param<'a>(query: &'a str, name: &str) -> Option<&'a str> {
+    query
+        .split('&')
+        .filter_map(|pair| pair.split_once('='))
+        .find(|(k, _)| *k == name)
+        .map(|(_, v)| v)
 }
 
 pub struct Response {
@@ -182,6 +195,7 @@ mod tests {
             Head {
                 method: Method::Post,
                 path: "/api/search".into(),
+                query: "x=1".into(),
                 code: Some("AB12CD".into()),
                 content_length: 12,
             }
@@ -199,6 +213,13 @@ mod tests {
             parse_head(b"DELETE / HTTP/1.1\r\n\r\n").unwrap().method,
             Method::Other
         );
+    }
+
+    #[test]
+    fn finds_query_params() {
+        assert_eq!(query_param("a=1&code=AB23CD", "code"), Some("AB23CD"));
+        assert_eq!(query_param("codex=1", "code"), None);
+        assert_eq!(query_param("", "code"), None);
     }
 
     #[tokio::test]
