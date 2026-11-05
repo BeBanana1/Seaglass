@@ -218,8 +218,11 @@
           <Icon name="previous" size={13} />
         </button>
       {/if}
-      <span class="brand display">Seaglass</span>
-      <span class="version mono">v{__APP_VERSION__}</span>
+      <!-- Nom et version sur une même ligne de base, centrés ensemble sur les boutons (#183). -->
+      <span class="wordmark">
+        <span class="brand display">Seaglass</span>
+        <span class="version mono">v{__APP_VERSION__}</span>
+      </span>
     </div>
     {#if platform.mobile}
       <!-- Android : navigation en bas, réglages en haut à droite (#143), déconnexion dans Réglages › Application. -->
@@ -333,8 +336,27 @@
   }
 
   .shell.mobile header {
-    min-height: 44px;
+    position: relative;
+    min-height: 48px;
     padding: 0 8px;
+  }
+
+  /* Android (#183) : nom centré dans la barre, version dessous. Centré sur l'en-tête et non
+     entre ses voisins : Retour et Réglages font 36 px, et Réglages manque sur sa propre page. */
+  .shell.mobile .wordmark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    line-height: 1.15;
+    pointer-events: none;
+  }
+
+  .shell.mobile .version {
+    font-size: 10px;
   }
 
   .shell.mobile .back {
@@ -375,12 +397,18 @@
 
   .left {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 10px;
   }
 
+  .wordmark {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    white-space: nowrap;
+  }
+
   .back {
-    align-self: center;
     display: grid;
     place-items: center;
     width: 28px;
