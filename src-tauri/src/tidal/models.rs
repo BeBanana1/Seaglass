@@ -282,6 +282,34 @@ pub struct ArtistPage {
     pub singles: Vec<AlbumSummary>,
 }
 
+/// Compléments de la page d'artiste (#205), chargés après elle.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistExtra {
+    pub bio: Option<Bio>,
+    pub similar: Vec<ArtistSummary>,
+    /// Albums où l'artiste apparaît (compilations, collaborations).
+    pub appears_on: Vec<AlbumSummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Bio {
+    /// Fournisseur du texte (« TiVo »), à créditer.
+    pub source: Option<String>,
+    /// Paragraphes de segments.
+    pub paragraphs: Vec<Vec<BioPart>>,
+}
+
+/// Segment de biographie : texte, ou lien interne de TIDAL vers un artiste ou un album.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum BioPart {
+    Text { text: String },
+    Artist { text: String, id: u64 },
+    Album { text: String, id: u64 },
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistPage {
@@ -310,8 +338,7 @@ pub enum RadioSeed {
     Artist,
 }
 
-/// Ce qu'on peut ajouter aux favoris (#4, #81). Pas de mix : les enregistrer n'est pas
-/// encore proposé.
+/// Ce qu'on peut ajouter aux favoris (#4, #81), mixes compris (#204).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum LikeTarget {
@@ -319,6 +346,7 @@ pub enum LikeTarget {
     Album { id: u64 },
     Artist { id: u64 },
     Playlist { uuid: String },
+    Mix { id: String },
 }
 
 /// Tous les favoris, en identifiants (événement `likes`). Chaque liste est triée.
@@ -330,6 +358,8 @@ pub struct LikedIds {
     pub artists: Vec<u64>,
     /// Playlists suivies (et parfois les vôtres : `favorites/ids` en mêle).
     pub playlists: Vec<String>,
+    /// Mixes enregistrés (#204), lus à part : `favorites/ids` ne les contient pas.
+    pub mixes: Vec<String>,
 }
 
 /// Radio d'un titre ou d'un artiste : une liste de titres proches, calculée par le service.

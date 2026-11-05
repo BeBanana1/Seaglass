@@ -26,7 +26,7 @@ export function cardLink(item: MediaItem): string {
   return `https://tidal.com/browse/${item.kind}/${id}`;
 }
 
-/** Favori possible : pas pour un mix (pas encore proposé) ni pour vos propres playlists. */
+/** Favori possible, sauf pour vos propres playlists. */
 export function cardTarget(item: MediaItem): LikeTarget | null {
   switch (item.kind) {
     case "album":
@@ -36,7 +36,7 @@ export function cardTarget(item: MediaItem): LikeTarget | null {
     case "playlist":
       return item.mine ? null : { kind: "playlist", uuid: item.uuid };
     case "mix":
-      return null;
+      return { kind: "mix", id: item.id };
   }
 }
 

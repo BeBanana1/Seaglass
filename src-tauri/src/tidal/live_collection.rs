@@ -1,4 +1,4 @@
-//! Écritures dans la bibliothèque sur l'API réelle (#4, #81), ignorées par défaut.
+//! Écritures dans la bibliothèque sur l'API réelle (#4, #81, #204), ignorées par défaut.
 //!
 //! `cargo test live_collection -- --ignored --nocapture` : **modifie le compte**. Seuls des
 //! éléments absents des favoris sont ajoutés puis retirés : aucun favori existant n'est
@@ -6,7 +6,7 @@
 
 use super::TidalClient;
 use super::live_tests::{ALBUM_ID, client};
-use super::models::{LikeTarget, LikedIds, TrackId};
+use super::models::{LikeTarget, LikedIds, MediaItem, TrackId};
 
 type Check = Result<(), String>;
 
@@ -14,8 +14,8 @@ fn err(e: super::TidalError) -> String {
     e.to_string()
 }
 
-/// Like puis retrait d'un titre, d'un album, d'un artiste et d'une playlist d'un autre
-/// utilisateur, absents des favoris ; puis playlist jetable créée, remplie, vidée et
+/// Like puis retrait d'un titre, d'un album, d'un artiste, d'une playlist d'un autre
+/// utilisateur et d'un mix, absents des favoris ; puis playlist jetable créée, remplie, vidée et
 /// supprimée.
 #[tokio::test]
 #[ignore = "réseau et session TIDAL requis, modifie la bibliothèque"]
@@ -90,7 +90,7 @@ async fn live_collection() {
     assert!(gone.is_err(), "playlist encore lisible après suppression");
 }
 
-/// Un album, un artiste et une playlist d'un autre utilisateur absents des favoris.
+/// Un album, un artiste, une playlist d'un autre utilisateur et un mix absents des favoris.
 async fn fresh_targets(client: &TidalClient, liked: &LikedIds) -> Vec<LikeTarget> {
     let search = client.search("interstellar", 10).await.unwrap();
     let album = search
@@ -113,12 +113,24 @@ async fn fresh_targets(client: &TidalClient, liked: &LikedIds) -> Vec<LikeTarget
         "cibles : album {} « {} », artiste {} « {} », playlist {} « {} »",
         album.id, album.title, artist.id, artist.name, playlist.uuid, playlist.title
     );
+    // Un mix de l'accueil absent des favoris (#204).
+    let home = client.home().await.unwrap();
+    let mix = home
+        .iter()
+        .flat_map(|row| &row.items)
+        .find_map(|item| match item {
+            MediaItem::Mix(m) if !liked.mixes.contains(&m.id) => Some(m.clone()),
+            _ => None,
+        })
+        .expect("aucun mix hors favoris");
+    println!("mix {} « {} »", mix.id, mix.title);
     vec![
         LikeTarget::Album { id: album.id },
         LikeTarget::Artist { id: artist.id },
         LikeTarget::Playlist {
             uuid: playlist.uuid.clone(),
         },
+        LikeTarget::Mix { id: mix.id },
     ]
 }
 
@@ -134,6 +146,7 @@ fn contains(ids: &LikedIds, target: &LikeTarget) -> bool {
         LikeTarget::Album { id } => ids.albums.contains(id),
         LikeTarget::Artist { id } => ids.artists.contains(id),
         LikeTarget::Playlist { uuid } => ids.playlists.contains(uuid),
+        LikeTarget::Mix { id } => ids.mixes.contains(id),
     }
 }
 
@@ -160,6 +173,10 @@ async fn library_position(
             let playlists = client.library_playlists().await.map_err(err)?.items;
             playlists.iter().position(|p| p.uuid == *uuid)
         }
+        LikeTarget::Mix { id } => {
+            let mixes = client.favorite_mixes().await.map_err(err)?;
+            mixes.iter().position(|m| m.id == *id)
+        }
     })
 }
 
@@ -173,8 +190,8 @@ async fn check_added(client: &TidalClient, target: &LikeTarget) -> Check {
     }
     let position = library_position(client, target).await?;
     println!("ajouté : position {position:?} dans la bibliothèque");
-    // Titres, albums et artistes sont triés par date d'ajout ; les playlists non.
-    let expected = !matches!(target, LikeTarget::Playlist { .. });
+    // Titres, albums et artistes sont triés par date d'ajout ; les playlists et mixes non.
+    let expected = !matches!(target, LikeTarget::Playlist { .. } | LikeTarget::Mix { .. });
     match position {
         Some(0) => Ok(()),
         Some(_) if !expected => Ok(()),

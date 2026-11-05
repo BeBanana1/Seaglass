@@ -282,7 +282,8 @@ export type LikeTarget =
   | { kind: "track"; id: TrackId }
   | { kind: "album"; id: number }
   | { kind: "artist"; id: number }
-  | { kind: "playlist"; uuid: string };
+  | { kind: "playlist"; uuid: string }
+  | { kind: "mix"; id: string };
 
 /** Tous les favoris, en identifiants (événement `likes`). */
 export interface LikedIds {
@@ -291,6 +292,8 @@ export interface LikedIds {
   artists: number[];
   /** Playlists suivies. */
   playlists: string[];
+  /** Mixes enregistrés (#204). */
+  mixes: string[];
 }
 
 export interface HomeRow {
@@ -341,6 +344,19 @@ export interface ArtistPage {
   topTracks: Track[];
   albums: AlbumSummary[];
   singles: AlbumSummary[];
+}
+
+/** Segment de biographie : texte ou lien interne (#205). */
+export type BioPart =
+  | { kind: "text"; text: string }
+  | { kind: "artist"; text: string; id: number }
+  | { kind: "album"; text: string; id: number };
+
+/** Compléments de la page d'artiste (#205), chargés après elle. */
+export interface ArtistExtra {
+  bio: { source: string | null; paragraphs: BioPart[][] } | null;
+  similar: ArtistSummary[];
+  appearsOn: AlbumSummary[];
 }
 
 export interface PlaylistPage {
@@ -491,6 +507,8 @@ export const commands = {
   clearSearchHistory: () => invoke<string[]>("clear_search_history"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
+  /** Biographie, similaires, « Apparaît sur » (#205) : chaque partie peut être vide. */
+  artistExtra: (id: number) => invoke<ArtistExtra>("artist_extra", { id }),
   /** `null` si la playlist n'a pas changé depuis `revision` (#152). */
   playlist: (uuid: string, revision: string | null = null) =>
     invoke<PlaylistPage | null>("playlist", { uuid, revision }),

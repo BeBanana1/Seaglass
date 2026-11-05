@@ -3,7 +3,8 @@
 //!
 //! - Favoris (#4, #81) : GET v1 `users/{id}/favorites/ids` (tous les identifiants, en
 //!   chaînes), POST `users/{id}/favorites/{tracks,albums,artists,playlists}` (`trackIds`,
-//!   `albumIds`, `artistIds`, `uuids`), DELETE `…/<type>/{id}`.
+//!   `albumIds`, `artistIds`, `uuids`), DELETE `…/<type>/{id}`. Mixes (#204) : GET v2
+//!   `favorites/mixes/ids`, PUT v2 `favorites/mixes/add` / `remove` (`mixIds` en query).
 //! - Playlist : création PUT v2 `my-collection/playlists/folders/create-playlist`,
 //!   suppression PUT v2 `my-collection/playlists/folders/remove` (`trns=trn:playlist:<uuid>`).
 //! - Titres d'une playlist : POST v1 `playlists/{uuid}/items` (réponse `addedItemIds`),
@@ -27,10 +28,14 @@ impl TidalClient {
             return Ok(ids);
         }
         let user = self.user_id().await?;
-        let raw: RawFavoriteIds = self
-            .get(&format!("users/{user}/favorites/ids"), &[])
-            .await?;
-        self.likes.load(raw.into_ids());
+        let path = format!("users/{user}/favorites/ids");
+        let (raw, mixes) = tokio::try_join!(
+            self.get::<RawFavoriteIds>(&path, &[]),
+            self.favorite_mix_ids(),
+        )?;
+        let mut ids = raw.into_ids();
+        ids.mixes = mixes;
+        self.likes.load(ids);
         Ok(self.likes.get().unwrap_or_default())
     }
 
@@ -43,6 +48,7 @@ impl TidalClient {
             LikeTarget::Album { id } => ("albums", "albumIds", id.to_string()),
             LikeTarget::Artist { id } => ("artists", "artistIds", id.to_string()),
             LikeTarget::Playlist { uuid } => ("playlists", "uuids", uuid.clone()),
+            LikeTarget::Mix { id } => return self.set_mix_liked(id, liked).await,
         };
         if liked {
             let form = [(field, id), ("onArtifactNotFound", "FAIL".to_owned())];
@@ -55,6 +61,27 @@ impl TidalClient {
                 .await?;
         }
         self.likes.set(target, liked);
+        Ok(())
+    }
+
+    /// Mixes (#204) : PUT v2 `favorites/mixes/add?mixIds=…` ou `…/remove?mixIds=…`, paramètres
+    /// en query, sans corps. Le retrait d'un mix absent répond aussi 200.
+    async fn set_mix_liked(&self, id: &str, liked: bool) -> Result<()> {
+        let (path, query) = if liked {
+            (
+                "favorites/mixes/add",
+                vec![
+                    ("mixIds", id.to_owned()),
+                    ("onArtifactNotFound", "FAIL".to_owned()),
+                ],
+            )
+        } else {
+            ("favorites/mixes/remove", vec![("mixIds", id.to_owned())])
+        };
+        self.write(Method::PUT, API_V2, path, &query, None, None)
+            .await?;
+        self.likes
+            .set(&LikeTarget::Mix { id: id.to_owned() }, liked);
         Ok(())
     }
 
@@ -215,6 +242,7 @@ impl RawFavoriteIds {
             albums: numbers(self.album),
             artists: numbers(self.artist),
             playlists: self.playlist,
+            mixes: Vec::new(),
         }
     }
 }

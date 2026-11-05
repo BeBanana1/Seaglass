@@ -1,5 +1,5 @@
-// Favoris (#4, #81), miroir des ensembles tenus par le backend : cœurs des titres, des
-// albums et des playlists, bouton « Suivre » des artistes.
+// Favoris (#4, #81, #204), miroir des ensembles tenus par le backend : cœurs des titres, des
+// albums, des playlists et des mixes, bouton « Suivre » des artistes.
 
 import { commands, events, type LikedIds, type LikeTarget, type Track, type TrackId } from "../ipc";
 import { library, loadLibrary } from "./library.svelte";
@@ -11,6 +11,7 @@ export const likes = $state<{
   albums: Set<number>;
   artists: Set<number>;
   playlists: Set<string>;
+  mixes: Set<string>;
   /** Écritures en cours, par `targetKey`. */
   pending: Set<string>;
 }>({
@@ -18,6 +19,7 @@ export const likes = $state<{
   albums: new Set(),
   artists: new Set(),
   playlists: new Set(),
+  mixes: new Set(),
   pending: new Set(),
 });
 
@@ -26,6 +28,7 @@ function apply(ids: LikedIds) {
   likes.albums = new Set(ids.albums);
   likes.artists = new Set(ids.artists);
   likes.playlists = new Set(ids.playlists);
+  likes.mixes = new Set(ids.mixes);
 }
 
 export function targetKey(target: LikeTarget): string {
@@ -42,6 +45,8 @@ export function isFavorite(target: LikeTarget): boolean {
       return likes.artists.has(target.id);
     case "playlist":
       return likes.playlists.has(target.uuid);
+    case "mix":
+      return likes.mixes.has(target.id);
   }
 }
 
@@ -67,11 +72,11 @@ export async function loadLikes() {
 }
 
 export function clearLikes() {
-  apply({ tracks: [], albums: [], artists: [], playlists: [] });
+  apply({ tracks: [], albums: [], artists: [], playlists: [], mixes: [] });
 }
 
 /** Onglet de la bibliothèque qui liste ce type de favori. */
-const TABS = { album: "albums", artist: "artists", playlist: "playlists" } as const;
+const TABS = { album: "albums", artist: "artists", playlist: "playlists", mix: "mixes" } as const;
 
 /**
  * Ajout aux favoris ou retrait ; l'état change quand le backend confirme (événement

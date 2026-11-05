@@ -332,6 +332,7 @@ function likedIds(): LikedIds {
     albums: favAlbums.map((a) => a.id),
     artists: favArtists.map((a) => a.id),
     playlists: libPlaylists.filter((p) => !p.mine).map((p) => p.uuid),
+    mixes: libraryMixes.map((m) => m.id),
   };
 }
 
@@ -360,6 +361,13 @@ function setLiked(target: LikeTarget, on: boolean) {
     case "playlist":
       toggleIn(libPlaylists, [fx.playlist.playlist, ...fx.search.playlists], (p) => p.uuid === target.uuid, on);
       break;
+    case "mix": {
+      // Ajouté en fin de liste, comme le service (#204).
+      const i = libraryMixes.findIndex((m) => m.id === target.id);
+      if (i >= 0 && !on) libraryMixes.splice(i, 1);
+      if (i < 0 && on) libraryMixes.push(mixPage.mix.id === target.id ? mixPage.mix : { ...mixPage.mix, id: target.id });
+      break;
+    }
   }
   emit("likes", likedIds());
 }
@@ -478,6 +486,24 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   hires_twin_album: () =>
     hiresTwin ? { ...fx.album.album, id: fx.album.album.id + 1, title: `${fx.album.album.title} (Hi-Res)`, hires: true } : null,
   artist: () => fx.artist,
+  artist_extra: () => ({
+    bio: {
+      source: "TiVo",
+      paragraphs: [
+        [
+          { kind: "text", text: "Biographie de démonstration. Influencé par " },
+          { kind: "artist", text: fx.artist.artist.name, id: fx.artist.artist.id },
+          { kind: "text", text: ", il enregistre " },
+          { kind: "album", text: fx.album.album.title, id: fx.album.album.id },
+          { kind: "text", text: " après plusieurs années de tournée." },
+        ],
+        [{ kind: "text", text: "Second paragraphe, ".repeat(30) }],
+        [{ kind: "text", text: "Troisième paragraphe." }],
+      ],
+    },
+    similar: fx.search.artists.slice(0, 6),
+    appearsOn: fx.search.albums.slice(0, 6),
+  }),
   // Comme le vrai backend (#152) : `null` si rien n'a changé depuis `revision`, et une copie
   // gardée pour `cached_playlist` (effacée par les modifications faites dans l'app).
   playlist: ({ uuid, revision }) => {

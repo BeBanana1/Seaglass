@@ -2,7 +2,7 @@
 
 use tauri::{AppHandle, Emitter, State};
 
-use super::catalog::is_uuid;
+use super::catalog::{is_mix_id, is_uuid};
 use super::{AppState, CmdResult, err};
 use crate::i18n::{tr, trf};
 use crate::tidal::models::{LikeTarget, LikedIds, PlaylistSummary, TrackId};
@@ -20,7 +20,7 @@ pub async fn likes(state: State<'_, AppState>) -> CmdResult<LikedIds> {
     state.tidal.liked_ids().await.map_err(err)
 }
 
-/// Ajoute aux favoris ou retire (titre, album, artiste, playlist d'un autre utilisateur).
+/// Ajoute aux favoris ou retire (titre, album, artiste, playlist d'un autre utilisateur, mix).
 #[tauri::command]
 pub async fn set_liked(
     app: AppHandle,
@@ -132,6 +132,7 @@ fn validate_target(target: &LikeTarget) -> Result<(), String> {
         LikeTarget::Playlist { uuid } if !is_uuid(uuid) => {
             Err("identifiant de playlist invalide".into())
         }
+        LikeTarget::Mix { id } if !is_mix_id(id) => Err("identifiant de mix invalide".into()),
         _ => Ok(()),
     }
 }
@@ -163,6 +164,9 @@ mod tests {
         };
         assert!(validate_target(&playlist(UUID)).is_ok());
         assert!(validate_target(&playlist("../../sessions")).is_err());
+        let mix = |id: &str| LikeTarget::Mix { id: id.to_owned() };
+        assert!(validate_target(&mix("0006ae53cfa4f377b530de077266e3")).is_ok());
+        assert!(validate_target(&mix("../ids")).is_err());
         let target: LikeTarget = serde_json::from_str(r#"{"kind":"artist","id":12979}"#).unwrap();
         assert_eq!(target, LikeTarget::Artist { id: 12_979 });
     }

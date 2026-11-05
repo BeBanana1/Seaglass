@@ -10,8 +10,8 @@ use super::{AppState, CmdResult, err, settings};
 use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
-    AlbumCreditGroup, AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, LibraryList,
-    Lyrics, MixPage, MixSummary, PlaylistPage, PlaylistSummary, RadioPage, RadioSeed,
+    AlbumCreditGroup, AlbumPage, AlbumSummary, ArtistExtra, ArtistPage, ArtistSummary, FeedItem,
+    LibraryList, Lyrics, MixPage, MixSummary, PlaylistPage, PlaylistSummary, RadioPage, RadioSeed,
     SearchResults, TrackEntry, TrackId, TrackInfo,
 };
 
@@ -78,6 +78,12 @@ pub(super) fn check_playlist_uuid(uuid: &str) -> CmdResult<()> {
     }
 }
 
+/// Biographie, artistes similaires et « Apparaît sur » (#205), après la page elle-même.
+#[tauri::command]
+pub async fn artist_extra(state: State<'_, AppState>, id: u64) -> CmdResult<ArtistExtra> {
+    Ok(state.tidal.artist_extra(id).await)
+}
+
 #[tauri::command]
 pub async fn mix(state: State<'_, AppState>, id: String) -> CmdResult<MixPage> {
     if !is_mix_id(&id) {
@@ -92,8 +98,13 @@ pub async fn radio(state: State<'_, AppState>, seed: RadioSeed, id: u64) -> CmdR
 }
 
 #[tauri::command]
-pub async fn library_mixes(state: State<'_, AppState>) -> CmdResult<Vec<MixSummary>> {
-    state.tidal.favorite_mixes().await.map_err(err)
+pub async fn library_mixes(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<MixSummary>> {
+    let mixes = state.tidal.favorite_mixes().await.map_err(err)?;
+    super::collection::emit_likes(&app, &state).await;
+    Ok(mixes)
 }
 
 #[tauri::command]

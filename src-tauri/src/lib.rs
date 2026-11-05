@@ -121,6 +121,7 @@ pub fn run() {
             commands::catalog::mix,
             commands::catalog::radio,
             commands::catalog::library_mixes,
+            commands::catalog::artist_extra,
             commands::catalog::library_tracks,
             commands::catalog::library_albums,
             commands::catalog::library_artists,
