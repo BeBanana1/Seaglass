@@ -26,6 +26,21 @@
     onRemoveFromPlaylist?: (index: number) => void;
   } = $props();
 
+  // Rendu par morceaux (#181) : une longue liste créait toutes ses lignes d'un bloc, et la
+  // page restait vide jusque-là (près d'une seconde pour 500 titres sur le téléphone). Les
+  // premières lignes partent aussitôt, le reste suit tâche après tâche, ce qui laisse le
+  // navigateur peindre entre deux morceaux. La lecture garde toute la liste en contexte.
+  const FIRST_ROWS = 40;
+  const ROWS_PER_STEP = 80;
+  let rendered = $state(FIRST_ROWS);
+  const visible = $derived(tracks.length > rendered ? tracks.slice(0, rendered) : tracks);
+
+  $effect(() => {
+    if (rendered >= tracks.length) return;
+    const timer = setTimeout(() => (rendered += ROWS_PER_STEP), 0);
+    return () => clearTimeout(timer);
+  });
+
   async function play(index: number) {
     try {
       await commands.playTracks(
@@ -41,7 +56,7 @@
 </script>
 
 <div role="list">
-  {#each tracks as track, i (`${positions?.[i] ?? i}-${track.id}`)}
+  {#each visible as track, i (`${positions?.[i] ?? i}-${track.id}`)}
     <TrackRow
       {track}
       number={numbering === "index" ? (positions?.[i] ?? i + 1) : undefined}

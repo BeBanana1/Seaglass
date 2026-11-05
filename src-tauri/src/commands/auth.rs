@@ -28,11 +28,14 @@ pub async fn login(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Sess
     let (challenge, url) = state.tidal.begin_login().map_err(err)?;
     let code = login_page(&app, url).await?;
     let code = code.ok_or_else(|| err(TidalError::LoginCancelled))?;
-    state
+    let session = state
         .tidal
         .complete_login(&challenge, &code)
         .await
-        .map_err(err)
+        .map_err(err)?;
+    // Copies des listes d'un compte précédent (#181) : jamais montrées à celui-ci.
+    super::snapshots::clear(&state).await;
+    Ok(session)
 }
 
 /// Bureau : fenêtre dédiée, sans aucune capability Tauri. `None` si elle est fermée.
@@ -91,5 +94,7 @@ async fn login_page(app: &AppHandle, url: Url) -> CmdResult<Option<String>> {
 
 #[tauri::command]
 pub async fn logout(state: State<'_, AppState>) -> CmdResult<()> {
-    state.tidal.logout().await.map_err(err)
+    state.tidal.logout().await.map_err(err)?;
+    super::snapshots::clear(&state).await;
+    Ok(())
 }

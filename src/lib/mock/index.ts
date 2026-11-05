@@ -498,6 +498,14 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   library_albums: () => libraryList([...favAlbums]),
   library_artists: () => libraryList([...favArtists]),
   library_playlists: () => libraryList([...libPlaylists]),
+  // Copie « du lancement précédent » (#181) : la liste actuelle, comme si rien n'avait changé.
+  cached_library: ({ tab }) =>
+    (<Record<string, () => unknown>>{
+      tracks: () => libraryList(longCount ? longTracks : fx.library.tracks),
+      albums: () => libraryList([...favAlbums]),
+      artists: () => libraryList([...favArtists]),
+      playlists: () => libraryList([...libPlaylists]),
+    })[String(tab)]?.() ?? null,
   player_state: () => state,
   queue_state: () => queueView(),
   ui_settings: () => ui,

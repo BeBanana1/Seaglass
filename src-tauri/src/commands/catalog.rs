@@ -4,6 +4,7 @@
 use tauri::{AppHandle, State};
 
 use super::settings::home_layout::HomeSection;
+use super::snapshots::{self, LibraryTab};
 use super::{AppState, CmdResult, err, settings};
 use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
@@ -55,20 +56,18 @@ pub async fn playlist(
         return Err(tr("révision de playlist invalide", "invalid playlist revision").into());
     }
     let known = revision.as_deref();
-    state.tidal.playlist_since(&uuid, known).await.map_err(err)
+    let page = state
+        .tidal
+        .playlist_since(&uuid, known)
+        .await
+        .map_err(err)?;
+    if let Some(page) = &page {
+        snapshots::save_playlist(&state, page);
+    }
+    Ok(page)
 }
 
-/// Copie de la playlist gardée en mémoire, sans réseau : affichée en attendant `playlist`.
-#[tauri::command]
-pub fn cached_playlist(
-    state: State<'_, AppState>,
-    uuid: String,
-) -> CmdResult<Option<PlaylistPage>> {
-    check_playlist_uuid(&uuid)?;
-    Ok(state.tidal.cached_playlist(&uuid))
-}
-
-fn check_playlist_uuid(uuid: &str) -> CmdResult<()> {
+pub(super) fn check_playlist_uuid(uuid: &str) -> CmdResult<()> {
     if is_uuid(uuid) {
         Ok(())
     } else {
@@ -100,6 +99,7 @@ pub async fn library_tracks(
     state: State<'_, AppState>,
 ) -> CmdResult<LibraryList<TrackEntry>> {
     let tracks = state.tidal.favorite_tracks().await.map_err(err)?;
+    snapshots::save_library(&state, LibraryTab::Tracks, &tracks);
     // La liste complète met à jour les cœurs (likes faits sur un autre appareil).
     super::collection::emit_likes(&app, &state).await;
     Ok(tracks)
@@ -112,6 +112,7 @@ pub async fn library_albums(
     state: State<'_, AppState>,
 ) -> CmdResult<LibraryList<AlbumSummary>> {
     let albums = state.tidal.favorite_albums().await.map_err(err)?;
+    snapshots::save_library(&state, LibraryTab::Albums, &albums);
     super::collection::emit_likes(&app, &state).await;
     Ok(albums)
 }
@@ -122,6 +123,7 @@ pub async fn library_artists(
     state: State<'_, AppState>,
 ) -> CmdResult<LibraryList<ArtistSummary>> {
     let artists = state.tidal.favorite_artists().await.map_err(err)?;
+    snapshots::save_library(&state, LibraryTab::Artists, &artists);
     super::collection::emit_likes(&app, &state).await;
     Ok(artists)
 }
@@ -132,6 +134,7 @@ pub async fn library_playlists(
     state: State<'_, AppState>,
 ) -> CmdResult<LibraryList<PlaylistSummary>> {
     let playlists = state.tidal.library_playlists().await.map_err(err)?;
+    snapshots::save_library(&state, LibraryTab::Playlists, &playlists);
     super::collection::emit_likes(&app, &state).await;
     Ok(playlists)
 }

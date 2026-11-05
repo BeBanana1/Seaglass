@@ -6,6 +6,7 @@ pub mod collection;
 pub mod player;
 pub mod project;
 pub mod settings;
+pub mod snapshots;
 #[cfg(desktop)]
 pub mod window;
 
