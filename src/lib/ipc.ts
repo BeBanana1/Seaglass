@@ -507,6 +507,14 @@ export interface Toast {
   message: string;
 }
 
+/** Jam locale (#25) : adresse et code à donner aux invités. */
+export interface JamInfo {
+  url: string;
+  code: string;
+  /** Faux si aucune adresse du réseau local n'a été trouvée (`127.0.0.1`). */
+  lan: boolean;
+}
+
 export const commands = {
   authStatus: () => invoke<SessionInfo | null>("auth_status"),
   login: () => invoke<SessionInfo>("login"),
@@ -519,6 +527,10 @@ export const commands = {
   /** Historique d'écoute local (#202) : albums récents et les plus écoutés. */
   playHistory: () => invoke<PlayHistory>("play_history"),
   clearPlayHistory: () => invoke<void>("clear_play_history"),
+  /** Jam locale (#25), bureau seulement : `null` si aucune Jam ne tourne. */
+  jamStatus: () => invoke<JamInfo | null>("jam_status"),
+  startJam: () => invoke<JamInfo>("start_jam"),
+  stopJam: () => invoke<void>("stop_jam"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
   /** Biographie, similaires, « Apparaît sur » (#205) : chaque partie peut être vide. */

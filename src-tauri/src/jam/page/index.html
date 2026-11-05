@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="dark" />
+    <title>Seaglass Jam</title>
+    <link rel="stylesheet" href="/jam.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Seaglass <span>Jam</span></h1>
+        <p class="lead" data-t="lead"></p>
+      </header>
+
+      <section id="join" hidden>
+        <form id="join-form" autocomplete="off">
+          <label for="code" data-t="codeLabel"></label>
+          <input id="code" maxlength="9" autocapitalize="characters" spellcheck="false" />
+          <button type="submit" data-t="join"></button>
+          <p id="join-error" class="error" role="alert" hidden></p>
+        </form>
+      </section>
+
+      <section id="jam" hidden>
+        <div id="now" class="now" aria-live="polite"></div>
+
+        <form id="search-form" class="search" role="search" autocomplete="off">
+          <input id="query" type="search" maxlength="100" enterkeyhint="search" />
+          <button type="submit" data-t="search"></button>
+        </form>
+        <ul id="results" class="tracks"></ul>
+
+        <h2 data-t="upNext"></h2>
+        <ul id="queue" class="tracks"></ul>
+        <p id="queue-empty" class="muted" data-t="queueEmpty" hidden></p>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script src="/jam.js"></script>
+  </body>
+</html>
