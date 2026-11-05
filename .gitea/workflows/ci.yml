@@ -48,13 +48,23 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: |
+            src-tauri
+            relay
           # Garde le cache même si clippy ou un test échoue : le run suivant reste rapide.
           cache-on-failure: true
 
       # `pnpm build` d'abord : `tauri::generate_context!` exige que `dist/` existe.
       - name: Rust
         working-directory: src-tauri
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+
+      # Relais de la Jam (#25) : crate séparée, déployée sur le serveur (relay/README.md).
+      - name: Relais
+        working-directory: relay
         run: |
           cargo fmt --check
           cargo clippy --all-targets -- -D warnings

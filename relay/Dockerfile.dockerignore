@@ -1,0 +1,6 @@
+# Seuls le relais et la page des invités entrent dans le contexte de build.
+*
+!relay/
+!src-tauri/src/jam/page/
+relay/target/
+relay/.env
