@@ -12,15 +12,30 @@
   let {
     sections,
     canReset,
+    featuredHidden,
     onchange,
+    onfeatured,
     onreset,
   }: {
     sections: HomeSection[];
     /** Faux si la disposition est déjà celle par défaut. */
     canReset: boolean;
+    /** Bandeau « À la une » masqué (#185) : toujours en tête, il ne se déplace pas. */
+    featuredHidden: boolean;
     onchange: (next: HomeSection[]) => void;
+    onfeatured: (shown: boolean) => void;
     onreset: () => void;
   } = $props();
+
+  // Vignettes du bandeau : les premiers albums des sections affichées, d'où il est tiré.
+  const featuredImages = $derived(
+    sections
+      .filter((s) => !s.hidden)
+      .flatMap((s) => s.items.filter((i) => i.kind === "album"))
+      .map(mediaImage)
+      .filter((i): i is string => !!i)
+      .slice(0, 3),
+  );
 
   // Deux lignes peuvent partager une clé (backend : groupées) : une seule entrée ici.
   const groups = $derived.by(() => {
@@ -60,6 +75,11 @@
     btn?.focus();
   }
 
+  function toggleFeatured() {
+    announce = t.views.homeEditor.featuredToggled(!featuredHidden);
+    onfeatured(featuredHidden);
+  }
+
   function toggle(key: string) {
     const g = groups.find((g) => g.key === key);
     if (g) announce = t.views.homeEditor.toggled(g.title, !g.hidden);
@@ -70,6 +90,33 @@
 <div class="home-editor">
   <p class="home-editor-hint">{t.views.homeEditor.hint}</p>
   <ol class="home-editor-list" bind:this={list} aria-label={t.views.homeEditor.sections}>
+    <li class="home-editor-item" class:off={featuredHidden} data-key="featured">
+      <span class="home-editor-thumbs" aria-hidden="true">
+        {#each featuredImages as src (src)}<img {src} alt="" loading="lazy" />{/each}
+      </span>
+      <span class="home-editor-name">
+        <span class="home-editor-title">{t.views.homeEditor.featured}</span>
+        <span class="home-editor-meta">
+          {t.views.homeEditor.featuredMeta}{featuredHidden ? t.views.homeEditor.featuredHiddenSuffix : ""}
+        </span>
+      </span>
+      <span class="home-editor-actions">
+        <!-- Pas de Monter / Descendre : le bandeau reste en tête. Place gardée pour l'alignement. -->
+        <span class="home-editor-spacer" aria-hidden="true"></span>
+        <button
+          class="home-editor-toggle"
+          role="switch"
+          aria-checked={!featuredHidden}
+          aria-label={t.views.homeEditor.showItem(t.views.homeEditor.featured)}
+          onclick={toggleFeatured}
+        >
+          <Icon name={featuredHidden ? "eyeOff" : "eye"} size={16} />
+          <span class="home-editor-toggle-label">
+            {featuredHidden ? t.views.homeEditor.featuredHidden : t.views.homeEditor.featuredShown}
+          </span>
+        </button>
+      </span>
+    </li>
     {#each groups as g, i (g.key)}
       <li class="home-editor-item" class:off={g.hidden} data-key={g.key}>
         <span class="home-editor-thumbs" aria-hidden="true">
@@ -205,6 +252,10 @@
     gap: 4px;
   }
 
+  .home-editor-spacer {
+    width: 68px;
+  }
+
   .home-editor-icon {
     display: grid;
     place-items: center;
@@ -302,6 +353,10 @@
   :global(:root[data-platform="android"]) .home-editor-actions {
     flex-shrink: 0;
     gap: 2px;
+  }
+
+  :global(:root[data-platform="android"]) .home-editor-spacer {
+    width: 82px;
   }
 
   :global(:root[data-platform="android"]) .home-editor-icon {

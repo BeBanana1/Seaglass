@@ -25,7 +25,7 @@ export const ui = $state<{
 }>({
   settings: {
     theme: "seaglass",
-    home: { order: [], hidden: [] },
+    home: { order: [], hidden: [], featuredHidden: false },
     pins: [],
     accent: null,
     language: "system",
@@ -117,6 +117,10 @@ export async function saveHomeLayout(sections: Pick<HomeSection, "key" | "hidden
   ui.settings.home = await commands.setHomeLayout(
     sections.map(({ key, hidden }) => ({ key, hidden })),
   );
+}
+
+export async function setHomeFeatured(shown: boolean) {
+  ui.settings.home = await commands.setHomeFeatured(shown);
 }
 
 export async function resetHomeLayout() {

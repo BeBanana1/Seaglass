@@ -45,7 +45,11 @@ pub fn run() {
         )
         .init();
 
+    // L'instance unique du bureau doit être le premier plugin : celui-ci vient après.
+    // Ouverture de liens dans le navigateur du système (#188), appelée seulement depuis
+    // Rust (`commands::project`) : aucune permission du plugin côté UI.
     platform_builder(tauri::Builder::default())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             #[cfg(target_os = "android")]
             if let Err(e) = android::init_tls() {
@@ -128,6 +132,7 @@ pub fn run() {
             commands::collection::add_to_playlist,
             commands::collection::create_playlist,
             commands::collection::remove_from_playlist,
+            commands::project::open_project_page,
             commands::player::play_tracks,
             commands::player::play_next,
             commands::player::take_now_playing_request,
@@ -154,6 +159,7 @@ pub fn run() {
             commands::settings::language,
             commands::settings::set_language,
             commands::settings::set_home_layout,
+            commands::settings::set_home_featured,
             commands::settings::reset_home_layout,
             commands::settings::set_pins,
             commands::settings::set_list_sort,

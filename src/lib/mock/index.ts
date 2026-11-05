@@ -178,7 +178,7 @@ const state: PlayerState = {
 
 let ui: UiSettings = {
   theme: (params.get("theme") as Theme) ?? "seaglass",
-  home: { order: [], hidden: [] },
+  home: { order: [], hidden: [], featuredHidden: false },
   // La playlist des fixtures et les titres likés, pour voir la section « Épinglés ».
   pins: [
     { kind: "playlist", uuid: fx.playlist.playlist.uuid, title: fx.playlist.playlist.title },
@@ -252,6 +252,8 @@ const listeners = new Map<string, Set<Listener>>();
 function emit(event: string, payload: unknown) {
   listeners.get(event)?.forEach((cb) => cb({ payload: structuredClone(payload) }));
 }
+
+let mockDownloaded = params.get("update") !== "download";
 
 function mockUpdate() {
   return params.has("update")
@@ -500,11 +502,19 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   queue_state: () => queueView(),
   ui_settings: () => ui,
   // `?update=1` : simule une mise à jour prête.
-  update_status: () => mockUpdate(),
+  update_status: () => (mockDownloaded ? mockUpdate() : null),
   install_update: () => null,
-  // Sans `?update=1`, l'app est « à jour ».
+  // Sans `?update=1`, l'app est « à jour ». `?update=download` : comme le bureau (#187),
+  // la réponse arrive avant l'installeur, `update-ready` 2 s plus tard.
   check_for_updates: () => {
     const u = mockUpdate();
+    if (u && !mockDownloaded) {
+      setTimeout(() => {
+        mockDownloaded = true;
+        emit("update-ready", u);
+      }, 2000);
+      return { ...u, downloading: true };
+    }
     if (u) emit("update-ready", u);
     return u;
   },
@@ -519,10 +529,19 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   set_home_layout: ({ sections }) => {
     const list = sections as { key: string; hidden: boolean }[];
-    ui.home = { order: list.map((s) => s.key), hidden: list.filter((s) => s.hidden).map((s) => s.key) };
+    ui.home = {
+      ...ui.home,
+      order: list.map((s) => s.key),
+      hidden: list.filter((s) => s.hidden).map((s) => s.key),
+    };
     return ui.home;
   },
-  reset_home_layout: () => (ui.home = { order: [], hidden: [] }),
+  set_home_featured: ({ shown }) => (ui.home = { ...ui.home, featuredHidden: !shown }),
+  open_project_page: ({ page }) => {
+    console.info("open_project_page", page);
+    return null;
+  },
+  reset_home_layout: () => (ui.home = { order: [], hidden: [], featuredHidden: false }),
   // Copie JSON : l'UI envoie des proxys Svelte, que `structuredClone` refuse.
   set_pins: ({ pins }) => (ui.pins = JSON.parse(JSON.stringify(pins))),
   // Comme le backend : le plus récent en tête, le tri par défaut de la liste est oublié.

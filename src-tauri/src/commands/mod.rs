@@ -4,6 +4,7 @@ pub mod auth;
 pub mod catalog;
 pub mod collection;
 pub mod player;
+pub mod project;
 pub mod settings;
 #[cfg(desktop)]
 pub mod window;

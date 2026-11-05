@@ -25,6 +25,9 @@ pub struct HomeLayout {
     pub order: Vec<String>,
     /// Clés des sections masquées.
     pub hidden: BTreeSet<String>,
+    /// Bandeau « À la une » masqué (#185). Ce n'est pas une ligne du flux : l'UI le tire
+    /// des albums des sections affichées.
+    pub featured_hidden: bool,
 }
 
 /// Ligne de l'accueil telle qu'affichée : la ligne du flux et son état de masquage
@@ -193,6 +196,7 @@ mod tests {
         let layout = HomeLayout {
             order: vec!["C".into(), "A".into(), "B".into()],
             hidden: ["A".to_owned()].into(),
+            ..HomeLayout::default()
         };
         let out = layout.arrange(feed(&["A", "B", "C"]));
         assert_eq!(keys(&out), ["C", "A", "B"]);
@@ -207,6 +211,7 @@ mod tests {
         let layout = HomeLayout {
             order: vec!["C".into(), "A".into()],
             hidden: BTreeSet::new(),
+            ..HomeLayout::default()
         };
         // N1 suit A dans le flux, N0 est en tête, N2 suit N1.
         let out = layout.arrange(feed(&["N0", "A", "N1", "N2", "C"]));
@@ -218,6 +223,7 @@ mod tests {
         let layout = HomeLayout {
             order: vec!["GONE".into(), "B".into(), "A".into()],
             hidden: ["GONE".to_owned()].into(),
+            ..HomeLayout::default()
         };
         assert_eq!(keys(&layout.arrange(feed(&["A", "B"]))), ["B", "A"]);
     }
@@ -227,6 +233,7 @@ mod tests {
         let layout = HomeLayout {
             order: vec!["B".into(), "BECAUSE".into()],
             hidden: ["BECAUSE".to_owned()].into(),
+            ..HomeLayout::default()
         };
         let out = layout.arrange(feed(&["BECAUSE", "B", "BECAUSE"]));
         assert_eq!(keys(&out), ["B", "BECAUSE", "BECAUSE"]);
@@ -238,6 +245,7 @@ mod tests {
         let mut layout = HomeLayout {
             order: vec!["A".into(), "GONE".into(), "B".into(), "C".into()],
             hidden: ["GONE".to_owned(), "A".to_owned()].into(),
+            ..HomeLayout::default()
         };
         // Le flux du jour n'a pas GONE ; l'utilisateur remonte C et réaffiche A.
         layout
@@ -292,6 +300,10 @@ mod tests {
         let l: HomeLayout = serde_json::from_str(r#"{"order":["A"],"hidden":["B","B"]}"#).unwrap();
         assert_eq!(l.order, ["A"]);
         assert_eq!(l.hidden.len(), 1);
+        assert!(!l.featured_hidden);
+        let l: HomeLayout = serde_json::from_str(r#"{"featuredHidden":true}"#).unwrap();
+        assert!(l.featured_hidden);
+        assert_eq!(serde_json::to_value(&l).unwrap()["featuredHidden"], true);
         let section = HomeSection {
             row: row("A"),
             hidden: true,

@@ -153,6 +153,7 @@ export const fr = {
   upToDate: "Seaglass est à jour.",
   updateReady: "Une nouvelle version est prête à être installée.",
   updateAvailable: "Une nouvelle version est disponible.",
+  updateDownloading: (v: string) => `Version ${v} disponible, téléchargement en cours…`,
   updateAuto: "Vérification automatique au démarrage puis toutes les 6 heures.",
   checking: "Vérification…",
   check: "Vérifier",
@@ -163,6 +164,9 @@ export const fr = {
   disclaimer: "Client non officiel, non affilié à TIDAL.",
   streamingOnly: "Streaming uniquement : aucun flux n'est téléchargé ni enregistré sur disque.",
   license: "Licence GPL-3.0. Lecture assurée par mpv.",
+  sourceCode: "Code source",
+  reportIssue: "Signaler un bug ou proposer une idée",
+  reportIssueHint: "Un compte sur git.bebanana.ch est nécessaire pour ouvrir une issue.",
 
   update: {
     ready: "Mise à jour prête",
@@ -324,6 +328,7 @@ export const en: typeof fr = {
   upToDate: "Seaglass is up to date.",
   updateReady: "A new version is ready to install.",
   updateAvailable: "A new version is available.",
+  updateDownloading: (v: string) => `Version ${v} available, downloading…`,
   updateAuto: "Checked automatically at startup, then every 6 hours.",
   checking: "Checking…",
   check: "Check",
@@ -334,6 +339,9 @@ export const en: typeof fr = {
   disclaimer: "Unofficial client, not affiliated with TIDAL.",
   streamingOnly: "Streaming only: no stream is downloaded or saved to disk.",
   license: "Licensed under GPL-3.0. Playback by mpv.",
+  sourceCode: "Source code",
+  reportIssue: "Report a bug or suggest an idea",
+  reportIssueHint: "Opening an issue requires an account on git.bebanana.ch.",
 
   update: {
     ready: "Update ready",

@@ -9,6 +9,8 @@ export const fr = {
     done: "Terminé",
     allHidden: "Toutes les sections sont masquées. « Personnaliser » permet de les réafficher.",
     featured: (context: string) => `À la une · ${context}`,
+    skipFeatured: "Passer",
+    skipFeaturedHint: "Mettre un autre album à la une",
   },
   homeEditor: {
     hint:
@@ -27,6 +29,12 @@ export const fr = {
     reset: "Réinitialiser",
     moved: (title: string, position: number, total: number) => `« ${title} » en position ${position} sur ${total}`,
     toggled: (title: string, hidden: boolean) => `« ${title} » ${hidden ? "masquée" : "affichée"}`,
+    featured: "À la une",
+    featuredMeta: "Un album tiré des sections affichées",
+    featuredHiddenSuffix: " · masqué",
+    featuredHidden: "Masqué",
+    featuredShown: "Affiché",
+    featuredToggled: (hidden: boolean) => `« À la une » ${hidden ? "masqué" : "affiché"}`,
   },
   feed: {
     title: "Fil d'actualité",
@@ -109,6 +117,8 @@ export const en: typeof fr = {
     done: "Done",
     allHidden: "All sections are hidden. Use “Customize” to show them again.",
     featured: (context: string) => `Featured · ${context}`,
+    skipFeatured: "Skip",
+    skipFeaturedHint: "Feature another album",
   },
   homeEditor: {
     hint: "Hide the sections you don't use and choose their order. New sections appear in their usual place.",
@@ -125,6 +135,12 @@ export const en: typeof fr = {
     reset: "Reset",
     moved: (title: string, position: number, total: number) => `“${title}” moved to position ${position} of ${total}`,
     toggled: (title: string, hidden: boolean) => `“${title}” ${hidden ? "hidden" : "shown"}`,
+    featured: "Featured",
+    featuredMeta: "An album taken from the sections shown",
+    featuredHiddenSuffix: " · hidden",
+    featuredHidden: "Hidden",
+    featuredShown: "Shown",
+    featuredToggled: (hidden: boolean) => `“Featured” ${hidden ? "hidden" : "shown"}`,
   },
   feed: {
     title: "Feed",

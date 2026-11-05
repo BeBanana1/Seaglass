@@ -4,12 +4,24 @@
   import { albumKind, coverLarge, year } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
+  import Icon from "./Icon.svelte";
 
-  let { album, context }: { album: AlbumSummary; context: string } = $props();
+  let {
+    album,
+    context,
+    onskip,
+  }: {
+    album: AlbumSummary;
+    context: string;
+    /** Passer à un autre album (#185) ; absent s'il n'y en a pas d'autre. */
+    onskip?: () => void;
+  } = $props();
 
   const large = $derived(coverLarge(album));
 </script>
 
+<!-- Le bouton Passer est à côté du bandeau, pas dedans : un bouton ne peut pas en contenir un autre. -->
+<div class="hero-wrap">
 <button
   class="hero"
   style:--tint={album.color ?? "var(--album)"}
@@ -28,8 +40,61 @@
   </div>
   {#if large}<img class="cover" src={large} alt="" />{/if}
 </button>
+{#if onskip}
+  <button class="hero-skip" onclick={onskip} title={t.views.home.skipFeaturedHint}>
+    <Icon name="next" size={14} />
+    <span>{t.views.home.skipFeatured}</span>
+  </button>
+{/if}
+</div>
 
 <style>
+  .hero-wrap {
+    position: relative;
+  }
+
+  /* Par-dessus le bandeau, quel que soit le thème : texte clair sur voile sombre. Visible au
+     survol ou au focus sur le bureau, toujours sur Android (pas de survol). */
+  .hero-skip {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: var(--label-tracking);
+    text-transform: var(--label-transform);
+    color: #fff;
+    background: rgb(0 0 0 / 0.5);
+    opacity: 0;
+    transition: opacity var(--motion-fast, 0.15s);
+  }
+
+  .hero-wrap:hover .hero-skip,
+  .hero-skip:focus-visible {
+    opacity: 1;
+  }
+
+  .hero-skip:hover {
+    background: rgb(0 0 0 / 0.7);
+  }
+
+  :global(:root[data-platform="android"]) .hero-skip {
+    top: 6px;
+    right: 16px;
+    padding: 8px;
+    opacity: 1;
+  }
+
+  :global(:root[data-platform="android"]) .hero-skip span {
+    display: none;
+  }
+
   .hero {
     position: relative;
     display: flex;

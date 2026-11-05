@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { commands, type AlbumSummary, type HomeSection } from "../lib/ipc";
   import { pushToast } from "../lib/stores/toasts.svelte";
-  import { resetHomeLayout, saveHomeLayout, ui } from "../lib/stores/ui.svelte";
+  import { resetHomeLayout, saveHomeLayout, setHomeFeatured, ui } from "../lib/stores/ui.svelte";
   import CardGrid from "../components/CardGrid.svelte";
   import Hero from "../components/Hero.svelte";
   import HomeEditor from "../components/HomeEditor.svelte";
@@ -16,16 +16,34 @@
   let editing = $state(false);
 
   const visible = $derived((rows ?? []).filter((r) => !r.hidden));
-  const customized = $derived(ui.settings.home.order.length > 0 || ui.settings.home.hidden.length > 0);
+  const customized = $derived(
+    ui.settings.home.order.length > 0 || ui.settings.home.hidden.length > 0 || ui.settings.home.featuredHidden,
+  );
 
-  /** Premier album affiché, mis en avant avec le titre de sa ligne. */
-  const featured = $derived.by((): { album: AlbumSummary; context: string } | null => {
+  /** Albums des sections affichées, sans doublon, avec le titre de leur ligne (#185). */
+  const candidates = $derived.by(() => {
+    const seen = new Set<number>();
+    const list: { album: AlbumSummary; context: string }[] = [];
     for (const row of visible) {
-      const item = row.items.find((i) => i.kind === "album");
-      if (item?.kind === "album") return { album: item, context: row.title };
+      for (const item of row.items) {
+        if (item.kind !== "album" || seen.has(item.id)) continue;
+        seen.add(item.id);
+        list.push({ album: item, context: row.title });
+      }
     }
-    return null;
+    return list;
   });
+
+  /** Album mis en avant : tiré au hasard une fois par lancement, puis « Passer » avance. */
+  const featured = $derived(
+    ui.settings.home.featuredHidden || candidates.length === 0
+      ? null
+      : candidates[featuredIndex % candidates.length],
+  );
+
+  function skipFeatured() {
+    featuredIndex = (featuredIndex + 1) % candidates.length;
+  }
 
   onMount(async () => {
     if (rows) return;
@@ -49,6 +67,14 @@
     }
   }
 
+  async function toggleFeatured(shown: boolean) {
+    try {
+      await setHomeFeatured(shown);
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
+
   async function reset() {
     try {
       await resetHomeLayout();
@@ -63,6 +89,9 @@
 <script lang="ts" module>
   let cached: HomeSection[] | null = null;
   let cachedLang: string | null = null;
+  // Gardé entre deux visites de l'accueil : le même album tant que l'app reste ouverte.
+  // Hors de toute ligne (`$state` de module) pour que « Passer » rafraîchisse la vue.
+  let featuredIndex = $state(Math.floor(Math.random() * 1000));
 </script>
 
 <section>
@@ -84,9 +113,22 @@
   {:else if !rows}
     <p class="muted">{t.common.loading}</p>
   {:else if editing}
-    <HomeEditor sections={rows} canReset={customized} onchange={change} onreset={reset} />
+    <HomeEditor
+      sections={rows}
+      canReset={customized}
+      featuredHidden={ui.settings.home.featuredHidden}
+      onchange={change}
+      onfeatured={toggleFeatured}
+      onreset={reset}
+    />
   {:else}
-    {#if featured}<Hero album={featured.album} context={featured.context} />{/if}
+    {#if featured}
+      <Hero
+        album={featured.album}
+        context={featured.context}
+        onskip={candidates.length > 1 ? skipFeatured : undefined}
+      />
+    {/if}
     {#each visible as row, i (`${row.key}-${i}`)}
       <CardGrid title={row.title} items={row.items} row />
     {/each}
