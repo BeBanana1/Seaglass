@@ -199,6 +199,14 @@
                 >
                   <Icon name="playlistAdd" size={20} />
                 </button>
+                <button
+                  class="now-add"
+                  onclick={() => go({ name: "radio", seed: "track", id: track.id })}
+                  title={t.menu.trackRadio}
+                  aria-label={t.menu.trackRadio}
+                >
+                  <Icon name="radio" size={20} />
+                </button>
                 <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
                   <Icon name="info" size={20} />
                 </button>
@@ -683,8 +691,36 @@
   }
 
   :global(:root[data-platform="android"]) .layout {
-    gap: 24px;
-    padding: calc(var(--safe-top) + 64px) 20px calc(var(--safe-bottom) + 24px);
+    gap: 16px;
+    padding: calc(var(--safe-top) + 56px) 20px calc(var(--safe-bottom) + 24px);
+  }
+
+  /* #195 : tout jusqu'à la lecture / pause tient au-dessus des boutons du téléphone. Pas
+     d'étiquette « En lecture » (tout l'écran le dit), pochette bornée en hauteur sur les écrans
+     courts, album et « Joué depuis » sur une ligne, commandes resserrées. */
+  :global(:root[data-platform="android"]) .art {
+    width: min(100%, 40dvh);
+    justify-self: center;
+  }
+
+  :global(:root[data-platform="android"]) .info {
+    gap: 8px;
+  }
+
+  :global(:root[data-platform="android"]) .info > .label {
+    display: none;
+  }
+
+  :global(:root[data-platform="android"]) .link.album {
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  :global(:root[data-platform="android"]) .controls {
+    gap: 12px;
+    margin: 12px 0 8px;
   }
 
   :global(:root[data-platform="android"]) .controls :global(.volume) {

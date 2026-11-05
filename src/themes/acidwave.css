@@ -221,10 +221,6 @@
   transform: rotate(-4deg);
 }
 
-:root[data-theme="acidwave"] .hero .cta {
-  color: var(--accent);
-}
-
 :root[data-theme="acidwave"] .now-playing .close,
 :root[data-theme="acidwave"] .now-playing .fullscreen-toggle,
 :root[data-theme="acidwave"] .now-playing .queue-toggle,

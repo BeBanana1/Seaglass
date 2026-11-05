@@ -158,10 +158,6 @@
   color: var(--text-muted);
 }
 
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) .hero .cta {
-  color: var(--accent);
-}
-
 :root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) .hero .cover {
   transform: none;
 }

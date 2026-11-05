@@ -212,7 +212,7 @@
   display: none;
 }
 
-:root[data-theme="bauhaus"] :is(.hero .label, .hero .meta, .hero .cta) {
+:root[data-theme="bauhaus"] :is(.hero .label, .hero .meta) {
   color: var(--text);
 }
 
