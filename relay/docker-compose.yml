@@ -1,4 +1,7 @@
 # Relais de la Jam (#25), sur le serveur, derrière le Caddy existant (voir README.md).
+# Caddy tourne en `network_mode: host` : il joint le relais par 127.0.0.1. Le port n'est
+# publié que sur la boucle locale, donc personne ne contourne Caddy (le relais fait
+# confiance à `X-Forwarded-For`).
 name: seaglass-relay
 
 services:
@@ -11,16 +14,9 @@ services:
     environment:
       SEAGLASS_RELAY_KEY: ${SEAGLASS_RELAY_KEY:?à définir dans .env (voir .env.example)}
       RELAY_PUBLIC_URL: ${RELAY_PUBLIC_URL:-https://jam.bebanana.ch}
-    # Aucun port publié : seul Caddy le joint, par son réseau.
-    networks:
-      caddy:
-        aliases: [seaglass-relay]
+    ports:
+      - "127.0.0.1:${RELAY_PORT:-47880}:8080"
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     mem_limit: 128m
-
-networks:
-  caddy:
-    external: true
-    name: ${CADDY_NETWORK:?nom du réseau Docker de Caddy, dans .env}

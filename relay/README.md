@@ -21,7 +21,7 @@ Protocole : `src/protocol.rs`.
 
 1. **DNS** : `jam.bebanana.ch` en CNAME vers `bebanana.internet-box.ch` (comme `updates`).
 2. **Clé** : `openssl rand -hex 32`. La mettre dans `relay/.env` (copie de `.env.example`) et dans le `.env` de l'app (`SEAGLASS_RELAY_KEY`, utilisé à partir de l'étape 3b).
-3. **Réseau** : `CADDY_NETWORK` dans `relay/.env` = réseau Docker du conteneur Caddy (`docker network ls`). Le relais n'expose aucun port : seul Caddy le joint.
+3. **Port** : Caddy tourne en `network_mode: host`, il joint le relais par `127.0.0.1:47880` (`RELAY_PORT` dans `relay/.env` si ce port est pris : `ss -ltn | grep 47880`). Le port n'est publié que sur la boucle locale : personne ne contourne Caddy.
 4. **Construire et lancer**, depuis un clone du dépôt :
 
    ```sh
@@ -33,13 +33,13 @@ Protocole : `src/protocol.rs`.
 
    ```caddyfile
    jam.bebanana.ch {
-       reverse_proxy seaglass-relay:8080
+       reverse_proxy 127.0.0.1:47880
    }
    ```
 
    Caddy gère seul le WebSocket et le flux d'état (`text/event-stream`, envoyé sans tampon), et pose `X-Forwarded-For`, que le relais lit (`RELAY_TRUST_PROXY=1` dans l'image).
 
-6. **Vérifier** : `curl https://jam.bebanana.ch/healthz` répond `ok`. Journaux : `docker compose logs -f relay`.
+6. **Vérifier** : `curl http://127.0.0.1:47880/healthz` puis `curl https://jam.bebanana.ch/healthz` répondent `ok`. Journaux : `docker compose logs -f relay`.
 
 Mise à jour : `git pull` puis `docker compose up -d --build`.
 
