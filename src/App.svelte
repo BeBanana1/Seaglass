@@ -14,6 +14,7 @@
   import { appWindow, initWindow, setFullscreen, toggleFullscreen } from "./lib/stores/window.svelte";
   import { initBackButton, syncBackButton } from "./lib/backButton";
   import { exitListSearch, listSearch } from "./lib/stores/listSearch.svelte";
+  import { openTidalLink } from "./lib/links";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
@@ -199,10 +200,20 @@
   }
 
   const route = $derived(current());
+
+  // Lien TIDAL collé hors d'un champ de texte (#203) : ouvre sa page.
+  function onPaste(e: ClipboardEvent) {
+    if (!session) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest?.("input, textarea, [contenteditable]")) return;
+    const text = e.clipboardData?.getData("text/plain");
+    if (text) void openTidalLink(text);
+  }
 </script>
 
 <svelte:window
   onkeydown={onKeydown}
+  onpaste={onPaste}
   oncontextmenu={onContextmenu}
   onfocusin={onFocusChange}
   onfocusout={onFocusChange}
@@ -264,7 +275,7 @@
       {:else if route.name === "library"}
         <Library tab={route.tab} />
       {:else if route.name === "album"}
-        <Album id={route.id} />
+        <Album id={route.id} track={route.track} />
       {:else if route.name === "artist"}
         <Artist id={route.id} />
       {:else if route.name === "playlist"}

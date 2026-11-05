@@ -53,6 +53,7 @@ import type {
   Track,
   TrackEntry,
   TrackInfo,
+  AlbumCreditGroup,
   TrackSort,
   UiSettings,
 } from "../ipc";
@@ -442,6 +443,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   feed: () => fx.feed ?? [],
   lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
   track_info: ({ trackId }) => mockTrackInfo(Number(trackId)),
+  album_credits: () => mockAlbumCredits(),
+  // Approximation du parseur Rust : un titre ouvre toujours l'album de démonstration.
+  open_link: ({ text }) => {
+    const m = /tidal\.com\/(?:browse\/)?(track|album|artist|playlist|mix)\/([\w-]+)/i.exec(String(text));
+    if (!m) return null;
+    const [, kind, id] = m;
+    if (kind === "track") return { kind: "album", id: fx.album.album.id, track: Number(id) };
+    if (kind === "playlist" || kind === "mix") return kind === "playlist" ? { kind, uuid: id } : { kind, id };
+    return { kind, id: Number(id) };
+  },
   search: ({ query }) => (String(query).trim() ? fx.search : { tracks: [], albums: [], artists: [], playlists: [] }),
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
   album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
@@ -798,6 +809,23 @@ function mockTrackInfo(trackId: number): TrackInfo {
       { role: "Theremin Wrangler", contributors: [{ name: "Eve Unknown", artistId: null }] },
     ],
   };
+}
+
+function mockAlbumCredits(): AlbumCreditGroup[] {
+  const ids = fx.album.tracks.map((t) => t.id);
+  const main = fx.album.album.artists[0];
+  return [
+    { role: "Composer", contributors: [{ name: main?.name ?? "Demo", artistId: main?.id ?? null, tracks: [] }] },
+    {
+      role: "Drums",
+      contributors: [
+        { name: "Dee Kit", artistId: null, tracks: ids.filter((_, i) => i % 2 === 0) },
+        { name: "Ed Brush", artistId: null, tracks: ids.slice(1, 4) },
+      ],
+    },
+    { role: "Producer", contributors: [{ name: "Carla Studio", artistId: null, tracks: [] }] },
+    { role: "Mastering Engineer", contributors: [{ name: "Dan Lathe", artistId: null, tracks: ids.slice(-1) }] },
+  ];
 }
 
 /** Paramètres d'URL de navigation, appliqués une fois l'app montée. */

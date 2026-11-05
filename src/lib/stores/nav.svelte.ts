@@ -12,7 +12,8 @@ export type Route =
   | { name: "search" }
   | { name: "library"; tab: LibraryTab }
   | { name: "settings"; section: SettingsSection }
-  | { name: "album"; id: number }
+  /** `track` : titre mis en évidence (lien collé, #203). */
+  | { name: "album"; id: number; track?: number }
   | { name: "artist"; id: number }
   | { name: "playlist"; uuid: string }
   | { name: "mix"; id: string }

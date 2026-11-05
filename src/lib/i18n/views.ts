@@ -67,6 +67,12 @@ export const fr = {
   album: {
     hiresTwin: "Cet album existe en Hi-Res",
     open: "Ouvrir",
+    credits: "Crédits de l'album",
+    creditsLoading: "Chargement des crédits…",
+    creditsNone: "TIDAL n'a pas de crédits pour cet album.",
+    creditsError: "Crédits indisponibles pour le moment.",
+    creditsTracks: (list: string) => `titres ${list}`,
+    creditsTrack: (n: string) => `titre ${n}`,
   },
   artist: {
     popular: "Titres populaires",
@@ -173,6 +179,12 @@ export const en: typeof fr = {
   album: {
     hiresTwin: "This album is available in Hi-Res",
     open: "Open",
+    credits: "Album credits",
+    creditsLoading: "Loading credits…",
+    creditsNone: "TIDAL has no credits for this album.",
+    creditsError: "Credits are unavailable right now.",
+    creditsTracks: (list: string) => `tracks ${list}`,
+    creditsTrack: (n: string) => `track ${n}`,
   },
   artist: {
     popular: "Popular tracks",

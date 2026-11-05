@@ -9,9 +9,9 @@ use super::{AppState, CmdResult, err, settings};
 use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
-    AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, LibraryList, Lyrics, MixPage,
-    MixSummary, PlaylistPage, PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry,
-    TrackId, TrackInfo,
+    AlbumCreditGroup, AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, LibraryList,
+    Lyrics, MixPage, MixSummary, PlaylistPage, PlaylistSummary, RadioPage, RadioSeed,
+    SearchResults, TrackEntry, TrackId, TrackInfo,
 };
 
 const MAX_QUERY_LEN: usize = 200;
@@ -169,6 +169,15 @@ pub async fn track_info(state: State<'_, AppState>, track_id: TrackId) -> CmdRes
     Ok(info)
 }
 
+/// Crédits de l'album entier (#206), à la demande.
+#[tauri::command]
+pub async fn album_credits(
+    state: State<'_, AppState>,
+    album_id: u64,
+) -> CmdResult<Vec<AlbumCreditGroup>> {
+    state.tidal.album_credits(album_id).await.map_err(err)
+}
+
 /// Album hi-res au même titre de l'artiste principal, pour un album qui ne l'est pas (#59).
 #[tauri::command]
 pub async fn hires_twin_album(
@@ -195,7 +204,7 @@ pub(super) fn is_uuid(s: &str) -> bool {
 }
 
 /// Identifiant de mix : alphanumérique (30 caractères hexadécimaux observés), il part dans l'URL.
-fn is_mix_id(s: &str) -> bool {
+pub(super) fn is_mix_id(s: &str) -> bool {
     (1..=64).contains(&s.len()) && s.chars().all(|c| c.is_ascii_alphanumeric())
 }
 

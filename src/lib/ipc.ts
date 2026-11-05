@@ -103,6 +103,26 @@ export interface Contributor {
   artistId: number | null;
 }
 
+/** Page à ouvrir pour un lien TIDAL collé (#203). */
+export type LinkTarget =
+  | { kind: "album"; id: number; track: TrackId | null }
+  | { kind: "artist"; id: number }
+  | { kind: "playlist"; uuid: string }
+  | { kind: "mix"; id: string };
+
+/** Crédits d'un album entier (#206). */
+export interface AlbumCreditGroup {
+  role: string;
+  contributors: AlbumContributor[];
+}
+
+export interface AlbumContributor {
+  name: string;
+  artistId: number | null;
+  /** Titres où il apparaît, dans l'ordre de l'album ; vide = tous. */
+  tracks: TrackId[];
+}
+
 export interface HiresEdition {
   track: Track;
   stream: StreamFormat | null;
@@ -482,6 +502,10 @@ export const commands = {
   lyrics: (trackId: TrackId) => invoke<Lyrics | null>("lyrics", { trackId }),
   /** Format réel, ReplayGain, BPM… : une requête de lecture, à ne demander qu'à la demande. */
   trackInfo: (trackId: TrackId) => invoke<TrackInfo>("track_info", { trackId }),
+  /** Lien TIDAL contenu dans un texte collé, ou `null` (un titre est résolu en son album). */
+  openLink: (text: string) => invoke<LinkTarget | null>("open_link", { text }),
+  /** Crédits de tout l'album, à la demande (une requête par page de 100 titres). */
+  albumCredits: (albumId: number) => invoke<AlbumCreditGroup[]>("album_credits", { albumId }),
   /** Album hi-res au même titre, pour un album qui ne l'est pas (#59). */
   hiresTwinAlbum: (albumId: number) => invoke<AlbumSummary | null>("hires_twin_album", { albumId }),
   /** Identifiants de tous les favoris (mis à jour ensuite par l'événement `likes`). */

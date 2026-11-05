@@ -23,6 +23,7 @@
     onMoveUp,
     onMoveDown,
     onRemoveFromPlaylist,
+    highlighted = false,
   }: {
     track: Track;
     /** Numéro affiché devant le titre (position dans l'album ou la playlist). */
@@ -41,7 +42,13 @@
     onMoveDown?: () => void;
     /** Ligne d'une de vos playlists : « Retirer de cette playlist » dans le menu. */
     onRemoveFromPlaylist?: () => void;
+    /** Titre désigné par un lien collé (#203) : marqué et amené au centre de l'écran. */
+    highlighted?: boolean;
   } = $props();
+
+  $effect(() => {
+    if (highlighted) rowEl?.scrollIntoView({ block: "center" });
+  });
 
   let rowEl = $state<HTMLElement>();
   let moreButton = $state<HTMLButtonElement>();
@@ -93,6 +100,7 @@
 <div
   class="row"
   class:active
+  class:highlighted
   class:compact
   class:numbered={number !== undefined}
   class:no-cover={!showCover}
@@ -223,6 +231,11 @@
   .row:hover,
   .row.menu-open {
     background: var(--bg-hover);
+  }
+
+  .row.highlighted {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    box-shadow: inset 3px 0 0 var(--accent);
   }
 
   .row.active .title {
