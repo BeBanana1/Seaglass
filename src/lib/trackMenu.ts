@@ -3,6 +3,7 @@
 import { commands, type Track } from "./ipc";
 import { fullTitle } from "./format";
 import { isLiked, toggleLike } from "./stores/likes.svelte";
+import { isSavedForLater, toggleLater } from "./stores/later.svelte";
 import { go } from "./stores/nav.svelte";
 import { openPlaylistPicker } from "./stores/playlistPicker.svelte";
 import type { MenuEntry } from "./stores/menu.svelte";
@@ -74,6 +75,13 @@ export function trackMenu(
       action: () => openPlaylistPicker({ trackIds: [track.id], label: fullTitle(track) }),
     },
   );
+  const target = { kind: "track", id: track.id } as const;
+  const saved = isSavedForLater(target);
+  entries.push({
+    label: saved ? m.removeFromLater : m.saveForLater,
+    icon: saved ? "bookmarkFilled" : "bookmark",
+    action: () => toggleLater(target),
+  });
   if (onRemoveFromPlaylist) {
     entries.push({ label: m.removeFromPlaylist, icon: "remove", action: onRemoveFromPlaylist });
   }

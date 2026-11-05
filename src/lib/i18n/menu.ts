@@ -11,6 +11,9 @@ export const fr = {
   like: "Ajouter aux titres likés",
   addToPlaylist: "Ajouter à une playlist…",
   removeFromPlaylist: "Retirer de cette playlist",
+  // « Plus tard » (#196), titres et cartes.
+  saveForLater: "Enregistrer pour plus tard",
+  removeFromLater: "Retirer de « Plus tard »",
   trackRadio: "Radio du titre",
   goToAlbum: "Aller à l'album",
   goToArtist: "Aller à l'artiste",
@@ -40,6 +43,8 @@ export const en: typeof fr = {
   like: "Add to liked tracks",
   addToPlaylist: "Add to playlist…",
   removeFromPlaylist: "Remove from this playlist",
+  saveForLater: "Save for later",
+  removeFromLater: "Remove from Save for later",
   trackRadio: "Track radio",
   goToAlbum: "Go to album",
   goToArtist: "Go to artist",

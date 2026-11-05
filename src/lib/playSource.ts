@@ -23,6 +23,8 @@ function fromSource(s: PlaySource): PlayedFrom {
       return { label: t.views.nowPlaying.popularBy(s.name), route: { name: "artist", id: s.id } };
     case "likedTracks":
       return { label: t.library.likedTracks, route: { name: "library", tab: "tracks" } };
+    case "later":
+      return { label: t.library.tabs.later, route: { name: "library", tab: "later" } };
     case "search":
       return { label: t.views.nowPlaying.searchFor(s.query), route: { name: "search" } };
   }

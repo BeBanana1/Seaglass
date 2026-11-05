@@ -2,6 +2,7 @@
 
 import type { LikeTarget, MediaItem } from "./ipc";
 import { isFavorite, toggleFavorite } from "./stores/likes.svelte";
+import { isSavedForLater, toggleLater } from "./stores/later.svelte";
 import { go, type Route } from "./stores/nav.svelte";
 import type { MenuEntry } from "./stores/menu.svelte";
 import { pushToast } from "./stores/toasts.svelte";
@@ -40,6 +41,19 @@ export function cardTarget(item: MediaItem): LikeTarget | null {
   }
 }
 
+function laterTarget(item: MediaItem): LikeTarget | null {
+  switch (item.kind) {
+    case "album":
+      return { kind: "album", id: item.id };
+    case "artist":
+      return { kind: "artist", id: item.id };
+    case "playlist":
+      return { kind: "playlist", uuid: item.uuid };
+    case "mix":
+      return null;
+  }
+}
+
 async function copyLink(item: MediaItem) {
   try {
     await navigator.clipboard.writeText(cardLink(item));
@@ -61,6 +75,17 @@ export function cardMenu(item: MediaItem): MenuEntry[] {
     const label =
       target.kind === "artist" ? (liked ? m.unfollow : m.follow) : liked ? m.removeFromLibrary : m.addToLibrary;
     entries.push({ label, icon: liked ? "heartFilled" : "heart", action: () => toggleFavorite(target) });
+  }
+
+  // « Plus tard » (#196) : albums, artistes et playlists, les vôtres comprises ; pas les mixes.
+  const later = laterTarget(item);
+  if (later) {
+    const saved = isSavedForLater(later);
+    entries.push({
+      label: saved ? m.removeFromLater : m.saveForLater,
+      icon: saved ? "bookmarkFilled" : "bookmark",
+      action: () => toggleLater(later),
+    });
   }
 
   if (item.kind === "album") {

@@ -38,6 +38,8 @@ pub enum PlaySource {
         name: String,
     },
     LikedTracks,
+    /// Liste « Plus tard » (#196).
+    Later,
     Search {
         query: String,
     },
@@ -83,6 +85,7 @@ impl PlaySource {
                 name: label(name)?,
             },
             Self::LikedTracks => Self::LikedTracks,
+            Self::Later => Self::Later,
             Self::Search { query } => Self::Search {
                 query: label(query)?,
             },
@@ -114,6 +117,10 @@ mod tests {
         assert_eq!(
             serde_json::to_value(PlaySource::LikedTracks).unwrap(),
             serde_json::json!({"kind": "likedTracks"})
+        );
+        assert_eq!(
+            serde_json::to_value(PlaySource::Later).unwrap(),
+            serde_json::json!({"kind": "later"})
         );
     }
 

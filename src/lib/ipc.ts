@@ -225,6 +225,7 @@ export type PlaySource =
   | { kind: "radio"; seed: RadioSeed; id: number; title: string }
   | { kind: "artist"; id: number; name: string }
   | { kind: "likedTracks" }
+  | { kind: "later" }
   | { kind: "search"; query: string };
 
 export interface AlbumSummary {
@@ -276,6 +277,13 @@ export type MediaItem =
   | ({ kind: "artist" } & ArtistSummary)
   | ({ kind: "playlist" } & PlaylistSummary)
   | ({ kind: "mix" } & MixSummary);
+
+/** Élément de « Plus tard » (#196) : un titre avec sa date d'ajout, ou une carte. */
+export type LaterItem =
+  | ({ kind: "track" } & TrackEntry)
+  | ({ kind: "album" } & AlbumSummary)
+  | ({ kind: "artist" } & ArtistSummary)
+  | ({ kind: "playlist" } & PlaylistSummary);
 
 /** Ce qu'on peut ajouter aux favoris (#4, #81). */
 export type LikeTarget =
@@ -556,6 +564,13 @@ export const commands = {
   likes: () => invoke<LikedIds>("likes"),
   /** Ajoute aux favoris ou retire ; l'événement `likes` suit la confirmation. */
   setLiked: (target: LikeTarget, liked: boolean) => invoke<void>("set_liked", { target, liked }),
+  /** Identifiants de « Plus tard » (#196), mis à jour ensuite par l'événement `later`. */
+  laterIds: () => invoke<LikedIds>("later_ids"),
+  /** Toute la liste « Plus tard », du plus récent au plus ancien. */
+  saveForLater: () => invoke<LibraryList<LaterItem>>("save_for_later"),
+  /** Ajoute à « Plus tard » ou retire (pas de mix) ; l'événement `later` suit. */
+  setSavedForLater: (target: LikeTarget, saved: boolean) =>
+    invoke<void>("set_saved_for_later", { target, saved }),
   /** Playlists créées par l'utilisateur, les seules modifiables. */
   ownPlaylists: () => invoke<PlaylistSummary[]>("own_playlists"),
   /** Ajoute à la fin, sans doublon ; renvoie le nombre de titres réellement ajoutés. */
@@ -664,6 +679,8 @@ export const events = {
     listen<string>("update-failed", (e) => cb(e.payload)),
   onLikes: (cb: (ids: LikedIds) => void): Promise<UnlistenFn> =>
     listen<LikedIds>("likes", (e) => cb(e.payload)),
+  onLater: (cb: (ids: LikedIds) => void): Promise<UnlistenFn> =>
+    listen<LikedIds>("later", (e) => cb(e.payload)),
   onAudioDevices: (cb: (d: AudioDevices) => void): Promise<UnlistenFn> =>
     listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
   /** Android : appui sur la notification (#163) ; la demande se prend par `takeNowPlayingRequest`. */

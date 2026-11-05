@@ -5,6 +5,7 @@
   import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
+  import { clearLater, initLater, loadLater } from "./lib/stores/later.svelte";
   import { initUi, ui } from "./lib/stores/ui.svelte";
   import { initLanguage, t } from "./lib/i18n.svelte";
   import { closeTrackInfo, openTrackInfo, trackInfo } from "./lib/stores/trackInfo.svelte";
@@ -50,7 +51,7 @@
 
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
-    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initWindow()]);
+    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initWindow()]);
     try {
       session = await commands.authStatus();
     } catch (e) {
@@ -76,7 +77,10 @@
 
   // Cœurs : chargés à chaque connexion (une requête pour toute la bibliothèque).
   $effect(() => {
-    if (session) loadLikes();
+    if (session) {
+      loadLikes();
+      loadLater();
+    }
   });
 
   // Couleur de la pochette en cours, reprise par les thèmes (`--album`).
@@ -206,6 +210,7 @@
     await commands.logout();
     session = null;
     clearLikes();
+    clearLater();
   }
 
   const route = $derived(current());

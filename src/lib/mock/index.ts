@@ -31,6 +31,7 @@ import type {
   HomeSection,
   Lang,
   LanguagePref,
+  LaterItem,
   LibraryList,
   LikedIds,
   LikeTarget,
@@ -381,6 +382,43 @@ function setLiked(target: LikeTarget, on: boolean) {
   }
   emit("likes", likedIds());
 }
+// « Plus tard » (#196) : deux titres et un album de démonstration, plus récent en tête.
+const laterItems: LaterItem[] = [
+  ...fx.library.tracks.slice(0, 2).map((t) => ({ kind: "track" as const, ...t })),
+  { kind: "album" as const, ...fx.album.album },
+];
+
+function laterIds(): LikedIds {
+  const ids: LikedIds = { tracks: [], albums: [], artists: [], playlists: [], mixes: [] };
+  for (const item of laterItems) {
+    if (item.kind === "track") ids.tracks.push(item.id);
+    else if (item.kind === "album") ids.albums.push(item.id);
+    else if (item.kind === "artist") ids.artists.push(item.id);
+    else ids.playlists.push(item.uuid);
+  }
+  return ids;
+}
+
+function laterKey(item: LaterItem | LikeTarget): string {
+  return item.kind === "playlist" ? `playlist:${item.uuid}` : `${item.kind}:${item.id}`;
+}
+
+function setSavedForLater(target: LikeTarget, on: boolean) {
+  const i = laterItems.findIndex((item) => laterKey(item) === laterKey(target));
+  if (i >= 0 && !on) laterItems.splice(i, 1);
+  if (i < 0 && on) {
+    const known: LaterItem[] = [
+      ...fx.library.tracks.map((t) => ({ kind: "track" as const, ...t })),
+      ...[fx.album.album, ...fx.search.albums].map((a) => ({ kind: "album" as const, ...a })),
+      ...[fx.artist.artist, ...fx.search.artists].map((a) => ({ kind: "artist" as const, ...a })),
+      ...[fx.playlist.playlist, ...fx.search.playlists].map((p) => ({ kind: "playlist" as const, ...p })),
+    ];
+    const found = known.find((item) => laterKey(item) === laterKey(target));
+    if (found) laterItems.unshift(found);
+  }
+  emit("later", laterIds());
+}
+
 const own: PlaylistSummary[] = fx.library.playlists.filter((p) => p.mine);
 if (params.has("mine") && !own.some((p) => p.uuid === fx.playlist.playlist.uuid)) {
   own.unshift({ ...fx.playlist.playlist, mine: true, editorial: false });
@@ -530,6 +568,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   likes: () => likedIds(),
   // Les arguments sont des proxys Svelte : copiés en JSON avant d'être gardés.
   set_liked: ({ target, liked: on }) => setLiked(JSON.parse(JSON.stringify(target)), Boolean(on)),
+  later_ids: () => laterIds(),
+  save_for_later: () => libraryList([...laterItems]),
+  set_saved_for_later: ({ target, saved }) =>
+    setSavedForLater(JSON.parse(JSON.stringify(target)), Boolean(saved)),
   own_playlists: () => own.map((p) => ownPage(p.uuid)?.playlist ?? p),
   add_to_playlist: ({ uuid, trackIds }) => {
     cachedPlaylists.delete(String(uuid));

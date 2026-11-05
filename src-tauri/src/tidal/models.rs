@@ -232,6 +232,16 @@ pub struct MixSummary {
     pub mix_type: Option<String>,
 }
 
+/// Élément de « Plus tard » (#196) : un titre (avec sa date d'ajout) ou une carte.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum LaterItem {
+    Track(TrackEntry),
+    Album(AlbumSummary),
+    Artist(ArtistSummary),
+    Playlist(PlaylistSummary),
+}
+
 /// Élément affichable sous forme de carte (accueil, résultats).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]

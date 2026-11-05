@@ -8,7 +8,14 @@ export type LimitedTab = "playlists" | "albums" | "artists" | "tracks";
 export const fr = {
   title: "Bibliothèque",
   refresh: "Actualiser",
-  tabs: { playlists: "Playlists", mixes: "Mixes", albums: "Albums", artists: "Artistes", tracks: "Titres" },
+  tabs: {
+    playlists: "Playlists",
+    mixes: "Mixes",
+    albums: "Albums",
+    artists: "Artistes",
+    tracks: "Titres",
+    later: "Plus tard",
+  },
   empty: "Rien ici pour l'instant.",
   noMatch: (query: string) => `Aucun titre ne correspond à « ${query} ».`,
   // Catégorie coupée au plafond de chargement (#91) ; `total` inconnu : `null`.
@@ -20,6 +27,14 @@ export const fr = {
     return tab === "tracks" ? `${text} Le filtre, le tri et la lecture ne portent que sur eux.` : text;
   },
   likedTracks: "Titres likés",
+  // « Plus tard » (#196).
+  later: {
+    empty: "Rien de côté. « Enregistrer pour plus tard » dans le menu d'un titre, d'un album ou d'une playlist l'ajoute ici.",
+    others: "Albums, artistes et playlists",
+    saved: "Enregistré pour plus tard",
+    removed: "Retiré de « Plus tard »",
+    truncated: (shown: number) => `Les ${num(shown)} éléments les plus récents sont affichés.`,
+  },
   pinned: "Épinglés",
   unpin: "Désépingler",
   unpinItem: (label: string) => `Désépingler ${label}`,
@@ -58,7 +73,14 @@ export const fr = {
 export const en: typeof fr = {
   title: "Library",
   refresh: "Refresh",
-  tabs: { playlists: "Playlists", mixes: "Mixes", albums: "Albums", artists: "Artists", tracks: "Tracks" },
+  tabs: {
+    playlists: "Playlists",
+    mixes: "Mixes",
+    albums: "Albums",
+    artists: "Artists",
+    tracks: "Tracks",
+    later: "Save for later",
+  },
   empty: "Nothing here yet.",
   noMatch: (query: string) => `No tracks match “${query}”.`,
   truncated: (tab: LimitedTab, shown: number, total: number | null) => {
@@ -68,6 +90,13 @@ export const en: typeof fr = {
     return tab === "tracks" ? `${text} Filtering, sorting and playback only cover these.` : text;
   },
   likedTracks: "Liked tracks",
+  later: {
+    empty: "Nothing saved. “Save for later” in the menu of a track, album or playlist puts it here.",
+    others: "Albums, artists and playlists",
+    saved: "Saved for later",
+    removed: "Removed from Save for later",
+    truncated: (shown: number) => `Showing the ${num(shown)} most recent items.`,
+  },
   pinned: "Pinned",
   unpin: "Unpin",
   unpinItem: (label: string) => `Unpin ${label}`,

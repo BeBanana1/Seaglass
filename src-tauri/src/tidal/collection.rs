@@ -351,6 +351,7 @@ impl TidalClient {
             path,
             query,
             form,
+            json: None,
             if_none_match,
         })
         .await

@@ -3,6 +3,7 @@
 pub mod auth;
 pub mod catalog;
 pub mod collection;
+pub mod later;
 pub mod link;
 pub mod play_history;
 pub mod player;
