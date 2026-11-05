@@ -6,6 +6,7 @@ pub mod collection;
 pub mod link;
 pub mod player;
 pub mod project;
+pub mod search_history;
 pub mod settings;
 pub mod snapshots;
 #[cfg(desktop)]

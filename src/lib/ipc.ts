@@ -479,6 +479,10 @@ export const commands = {
   login: () => invoke<SessionInfo>("login"),
   logout: () => invoke<void>("logout"),
   search: (query: string) => invoke<SearchResults>("search", { query }),
+  /** Dernières recherches abouties, la plus récente en tête (#211). */
+  searchHistory: () => invoke<string[]>("search_history"),
+  removeSearchHistory: (query: string) => invoke<string[]>("remove_search_history", { query }),
+  clearSearchHistory: () => invoke<string[]>("clear_search_history"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
   /** `null` si la playlist n'a pas changé depuis `revision` (#152). */

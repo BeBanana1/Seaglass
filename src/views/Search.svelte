@@ -27,15 +27,30 @@
 
   let searching = $state(false);
   let error = $state<string | null>(null);
+  /** Dernières recherches (#211), tenues par le backend. */
+  let history = $state<string[]>([]);
+  let input = $state<HTMLInputElement>();
+
+  function refreshHistory() {
+    commands.searchHistory().then(
+      (h) => (history = h),
+      () => {},
+    );
+  }
+  refreshHistory();
 
   async function submit(e: SubmitEvent) {
     e.preventDefault();
     // Un lien TIDAL ouvre sa page au lieu d'être cherché (#203).
     if (await openTidalLink(saved.query)) return;
+    await run(saved.query);
+  }
+
+  async function run(query: string) {
+    saved.query = query;
     searching = true;
     error = null;
     try {
-      const query = saved.query;
       saved.results = await commands.search(query);
       saved.searched = query;
       saved.allTracks = false;
@@ -43,10 +58,32 @@
       error = String(err);
     } finally {
       searching = false;
+      refreshHistory();
     }
   }
 
-  const r = $derived(saved.results);
+  async function removeEntry(query: string) {
+    try {
+      history = await commands.removeSearchHistory(query);
+    } catch {
+      // Rien à signaler : l'entrée reste affichée.
+    }
+    input?.focus();
+  }
+
+  async function clearHistory() {
+    try {
+      history = await commands.clearSearchHistory();
+    } catch {
+      // Idem.
+    }
+    input?.focus();
+  }
+
+  // Champ vide : les recherches récentes à la place des résultats.
+  const showHistory = $derived(!saved.query.trim() && !searching);
+
+  const r = $derived(showHistory ? null : saved.results);
   const tracks = $derived(
     r ? (saved.allTracks ? r.tracks : r.tracks.slice(0, COLLAPSED_TRACKS)) : [],
   );
@@ -67,6 +104,7 @@
       type="search"
       placeholder={t.views.search.placeholder}
       bind:value={saved.query}
+      bind:this={input}
       onpaste={(e) => {
         const text = e.clipboardData?.getData("text/plain");
         if (text) void openTidalLink(text);
@@ -76,6 +114,40 @@
       autofocus
     />
   </form>
+
+  {#if showHistory && history.length > 0}
+    <div class="search-history">
+      <div class="search-history-head">
+        <h2>{t.views.search.recent}</h2>
+        <button class="search-history-clear" onclick={clearHistory}>
+          {t.views.search.clearHistory}
+        </button>
+      </div>
+      <ul>
+        {#each history as query (query)}
+          <li class="search-history-item">
+            <button class="search-history-query" onclick={() => run(query)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 7v5l3 2" />
+                <circle cx="12" cy="12" r="8" />
+              </svg>
+              <span>{query}</span>
+            </button>
+            <button
+              class="search-history-remove"
+              aria-label={t.views.search.removeEntry(query)}
+              title={t.views.search.removeEntry(query)}
+              onclick={() => removeEntry(query)}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 7l10 10M17 7L7 17" />
+              </svg>
+            </button>
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
 
   {#if error}
     <p class="error">{error}</p>
@@ -166,5 +238,105 @@
   .error {
     margin: 0 10px;
     color: var(--danger);
+  }
+
+  .search-history {
+    max-width: 540px;
+    margin-bottom: 24px;
+  }
+
+  .search-history-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .search-history-clear {
+    flex: none;
+    margin-right: 10px;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .search-history-clear:hover {
+    color: var(--text);
+  }
+
+  .search-history ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .search-history-item {
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius);
+  }
+
+  .search-history-item:hover {
+    background: var(--bg-hover);
+  }
+
+  .search-history-query {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    text-align: left;
+  }
+
+  .search-history-query span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .search-history svg {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .search-history-query svg {
+    color: var(--text-muted);
+  }
+
+  .search-history-remove {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    margin-right: 4px;
+    color: var(--text-muted);
+    opacity: 0;
+  }
+
+  .search-history-item:hover .search-history-remove,
+  .search-history-remove:focus-visible {
+    opacity: 1;
+  }
+
+  .search-history-remove:hover {
+    color: var(--text);
+  }
+
+  :global(:root[data-platform="android"]) .search-history-remove {
+    opacity: 1;
+    width: 44px;
+    height: 44px;
+  }
+
+  :global(:root[data-platform="android"]) .search-history-query {
+    padding: 12px 10px;
   }
 </style>
