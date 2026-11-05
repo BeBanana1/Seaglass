@@ -9,6 +9,7 @@
   import { fullTitle } from "../lib/format";
   import Icon from "./Icon.svelte";
   import TrackRow from "./TrackRow.svelte";
+  import { keyboardMove, Reorder } from "../lib/reorder.svelte";
 
   /** `current` : afficher aussi le titre en cours (inutile si la vue l'affiche déjà en grand). */
   let { current = true }: { current?: boolean } = $props();
@@ -37,9 +38,7 @@
   // Réorganisation de la file manuelle (#80) : glisser-déposer, Alt+↑ / Alt+↓, menu.
   // Pas d'affichage optimiste : la liste change au `queue-state` du backend.
   let manualList = $state<HTMLElement>();
-  let dragFrom = $state<number | null>(null);
-  /** Emplacement d'insertion pendant un glisser : avant la ligne `dropSlot` (= longueur : à la fin). */
-  let dropSlot = $state<number | null>(null);
+  const reorder = new Reorder((from, to) => move(from, to));
   /** Bouton à refocaliser dans la ligne déplacée au clavier, une fois la file reçue. */
   let pendingFocus: { index: number; button: number } | null = null;
 
@@ -61,54 +60,12 @@
   });
 
   function onKeydown(e: KeyboardEvent, i: number) {
-    if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
-    const to = e.key === "ArrowUp" ? i - 1 : i + 1;
-    e.preventDefault();
-    if (to < 0 || to >= queue.view.manual.length) return;
+    const to = keyboardMove(e, i, queue.view.manual.length);
+    if (to === null) return;
     const item = e.currentTarget as HTMLElement;
     const buttons = Array.from(item.querySelectorAll("button"));
     pendingFocus = { index: to, button: Math.max(0, buttons.indexOf(document.activeElement as HTMLButtonElement)) };
     move(i, to);
-  }
-
-  function onDragstart(e: DragEvent, i: number) {
-    dragFrom = i;
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", "");
-    }
-  }
-
-  function onDragover(e: DragEvent, i: number) {
-    if (dragFrom === null) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    dropSlot = e.clientY < rect.top + rect.height / 2 ? i : i + 1;
-  }
-
-  function onDrop(e: DragEvent) {
-    e.preventDefault();
-    if (dragFrom !== null && dropSlot !== null) {
-      // L'entrée retirée décale d'un cran les emplacements qui la suivent.
-      const to = dropSlot > dragFrom ? dropSlot - 1 : dropSlot;
-      if (to !== dragFrom) move(dragFrom, to);
-    }
-    endDrag();
-  }
-
-  function onDragleave(e: DragEvent) {
-    if (!manualList?.contains(e.relatedTarget as Node | null)) dropSlot = null;
-  }
-
-  function endDrag() {
-    dragFrom = null;
-    dropSlot = null;
-  }
-
-  /** Repère d'insertion, sauf là où le dépôt ne changerait rien. */
-  function marker(slot: number): boolean {
-    return dragFrom !== null && dropSlot === slot && slot !== dragFrom && slot !== dragFrom + 1;
   }
 
   const empty = $derived(
@@ -134,20 +91,20 @@
 
   {#if queue.view.manual.length > 0}
     <h3 title={t.player.reorderHint}>{t.player.nextInQueue}</h3>
-    <div role="list" class="queue-manual" bind:this={manualList} ondragleave={onDragleave}>
+    <div role="list" class="queue-manual" bind:this={manualList} ondragleave={(e) => reorder.dragleave(e, manualList)}>
       {#each queue.view.manual as track, i (`${i}-${track.id}`)}
         {@const last = queue.view.manual.length - 1}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="queue-item"
-          class:dragging={dragFrom === i}
-          class:drop-before={marker(i)}
-          class:drop-after={i === last && marker(i + 1)}
+          class:dragging={reorder.from === i}
+          class:drop-before={reorder.marker(i)}
+          class:drop-after={i === last && reorder.marker(i + 1)}
           draggable="true"
-          ondragstart={(e) => onDragstart(e, i)}
-          ondragover={(e) => onDragover(e, i)}
-          ondrop={onDrop}
-          ondragend={endDrag}
+          ondragstart={(e) => reorder.dragstart(e, i)}
+          ondragover={(e) => reorder.dragover(e, i)}
+          ondrop={(e) => reorder.drop(e)}
+          ondragend={() => reorder.end()}
           onkeydown={(e) => onKeydown(e, i)}
         >
           <TrackRow

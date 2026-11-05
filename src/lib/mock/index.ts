@@ -202,6 +202,16 @@ function effectiveLanguage(pref: LanguagePref): Lang {
 
 /** Version simplifiée de `HomeLayout::arrange` : sections connues dans l'ordre enregistré,
  *  les autres à leur place dans le flux. Le flux factice ne change pas. */
+/** Historique d'écoute factice (#202) : quelques albums des fixtures. */
+let playedAlbums: AlbumSummary[] = fx.search.albums.slice(0, 5);
+
+/** « Écoutés dans Seaglass » en tête du flux, comme le vrai backend. */
+function withPlayed(rows: HomeRow[]): HomeRow[] {
+  if (playedAlbums.length === 0) return rows;
+  const items = playedAlbums.map((a) => ({ kind: "album" as const, ...a }));
+  return [{ key: "SEAGLASS_RECENT", title: "Écoutés dans Seaglass", items }, ...rows];
+}
+
 function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
   const keyed = rows.map((r) => ({ ...r, key: r.key ?? `title:${r.title.toLowerCase()}` }));
   const rank = (k: string) => {
@@ -332,6 +342,7 @@ function likedIds(): LikedIds {
     albums: favAlbums.map((a) => a.id),
     artists: favArtists.map((a) => a.id),
     playlists: libPlaylists.filter((p) => !p.mine).map((p) => p.uuid),
+    mixes: libraryMixes.map((m) => m.id),
   };
 }
 
@@ -360,6 +371,13 @@ function setLiked(target: LikeTarget, on: boolean) {
     case "playlist":
       toggleIn(libPlaylists, [fx.playlist.playlist, ...fx.search.playlists], (p) => p.uuid === target.uuid, on);
       break;
+    case "mix": {
+      // Ajouté en fin de liste, comme le service (#204).
+      const i = libraryMixes.findIndex((m) => m.id === target.id);
+      if (i >= 0 && !on) libraryMixes.splice(i, 1);
+      if (i < 0 && on) libraryMixes.push(mixPage.mix.id === target.id ? mixPage.mix : { ...mixPage.mix, id: target.id });
+      break;
+    }
   }
   emit("likes", likedIds());
 }
@@ -444,8 +462,11 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   login: () => ({ userId: 1, countryCode: "CH" }),
   logout: () => null,
   // Comme le backend (#207) : première page d'abord (la moitié des lignes), puis tout.
-  home: () => ({ sections: arrangeHome(fx.home.slice(0, homeFirstPage), ui.home), more: homeFirstPage < fx.home.length }),
-  home_rest: () => arrangeHome(fx.home, ui.home),
+  home: () => ({
+    sections: arrangeHome(withPlayed(fx.home.slice(0, homeFirstPage)), ui.home),
+    more: homeFirstPage < fx.home.length,
+  }),
+  home_rest: () => arrangeHome(withPlayed(fx.home), ui.home),
   feed: () => fx.feed ?? [],
   lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
   track_info: ({ trackId }) => mockTrackInfo(Number(trackId)),
@@ -473,11 +494,31 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return searchHistory;
   },
   clear_search_history: () => (searchHistory = []),
+  play_history: () => ({ recent: playedAlbums, top: playedAlbums.slice(0, 2) }),
+  clear_play_history: () => void (playedAlbums = []),
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
   album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
   hires_twin_album: () =>
     hiresTwin ? { ...fx.album.album, id: fx.album.album.id + 1, title: `${fx.album.album.title} (Hi-Res)`, hires: true } : null,
   artist: () => fx.artist,
+  artist_extra: () => ({
+    bio: {
+      source: "TiVo",
+      paragraphs: [
+        [
+          { kind: "text", text: "Biographie de démonstration. Influencé par " },
+          { kind: "artist", text: fx.artist.artist.name, id: fx.artist.artist.id },
+          { kind: "text", text: ", il enregistre " },
+          { kind: "album", text: fx.album.album.title, id: fx.album.album.id },
+          { kind: "text", text: " après plusieurs années de tournée." },
+        ],
+        [{ kind: "text", text: "Second paragraphe, ".repeat(30) }],
+        [{ kind: "text", text: "Troisième paragraphe." }],
+      ],
+    },
+    similar: fx.search.artists.slice(0, 6),
+    appearsOn: fx.search.albums.slice(0, 6),
+  }),
   // Comme le vrai backend (#152) : `null` si rien n'a changé depuis `revision`, et une copie
   // gardée pour `cached_playlist` (effacée par les modifications faites dans l'app).
   playlist: ({ uuid, revision }) => {
@@ -519,6 +560,34 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     }
     page.tracks.splice(Number(index), 1);
     page.playlist.numberOfTracks = page.tracks.length;
+  },
+  move_in_playlist: ({ uuid, from, to, trackId }) => {
+    cachedPlaylists.delete(String(uuid));
+    const page = ownPage(String(uuid));
+    if (page?.tracks[Number(from)]?.id !== Number(trackId)) {
+      throw new Error("la playlist a changé, rouvrez-la avant de la modifier");
+    }
+    const [moved] = page.tracks.splice(Number(from), 1);
+    page.tracks.splice(Number(to), 0, moved);
+  },
+  edit_playlist: ({ uuid, title, description }) => {
+    cachedPlaylists.delete(String(uuid));
+    const page = ownPage(String(uuid));
+    if (!page) throw new Error("playlist introuvable");
+    page.playlist.title = String(title);
+    page.playlist.description = String(description) || null;
+    for (const list of [own, libPlaylists]) {
+      const p = list.find((x) => x.uuid === uuid);
+      if (p) Object.assign(p, { title: page.playlist.title, description: page.playlist.description });
+    }
+  },
+  delete_playlist: ({ uuid }) => {
+    cachedPlaylists.delete(String(uuid));
+    ownPages.delete(String(uuid));
+    for (const list of [own, libPlaylists]) {
+      const i = list.findIndex((p) => p.uuid === uuid);
+      if (i >= 0) list.splice(i, 1);
+    }
   },
   mix: () => mixPage,
   // La radio factice garde ses titres, mais reprend le point de départ demandé.
@@ -610,6 +679,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
   autostart_enabled: () => autostart,
   take_now_playing_request: () => false,
+  take_shared_link: () => null,
   // Le navigateur garde sa taille : seul l'état change (le bouton suit).
   fullscreen: () => fullscreen,
   set_fullscreen: ({ fullscreen: on }) => {

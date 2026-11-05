@@ -86,8 +86,28 @@ internal object Playback {
         }
     }
 
+    /** Texte partagé arrivé avant que Rust ne branche la session (app lancée par le partage). */
+    private var pendingShare: String? = null
+
     fun attachSession(channel: Channel) {
         commands = channel
+        pendingShare?.let {
+            pendingShare = null
+            share(it)
+        }
+    }
+
+    /** Lien reçu par le menu « Partager » (#203), sur le thread principal. */
+    fun share(text: String) {
+        val channel = commands
+        if (channel == null) {
+            pendingShare = text
+            return
+        }
+        val o = JSObject()
+        o.put("command", "openLink")
+        o.put("text", text)
+        channel.send(o)
     }
 
     /** Action de la notification, de l'écran verrouillé ou des écouteurs. */

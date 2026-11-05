@@ -488,3 +488,31 @@ async fn live_album_credits() {
         .expect("Hans Zimmer crédité");
     assert_eq!(zimmer.artist_id, Some(ARTIST_ID));
 }
+
+/// Compléments de la page d'artiste (#205) : bio avec liens, similaires, « Apparaît sur ».
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_artist_extra() {
+    use super::models::BioPart;
+    let client = client().await;
+    let start = std::time::Instant::now();
+    let extra = client.artist_extra(ARTIST_ID).await;
+    println!("en {:?}", start.elapsed());
+    let bio = extra.bio.expect("pas de biographie");
+    let links = bio
+        .paragraphs
+        .iter()
+        .flatten()
+        .filter(|p| !matches!(p, BioPart::Text { .. }))
+        .count();
+    println!(
+        "bio ({:?}) : {} paragraphes, {links} liens ; {} similaires, {} « apparaît sur »",
+        bio.source,
+        bio.paragraphs.len(),
+        extra.similar.len(),
+        extra.appears_on.len()
+    );
+    assert!(links > 0, "aucun lien interne reconnu");
+    assert!(!extra.similar.is_empty());
+    assert!(!extra.appears_on.is_empty());
+}

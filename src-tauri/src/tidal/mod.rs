@@ -1,6 +1,7 @@
 //! Tout ce qui touche à l'API privée TIDAL. Le reste de l'app ne dépend que de `models`.
 
 pub mod api;
+mod artist_extra;
 pub mod auth;
 pub mod cache;
 mod catalog;
@@ -26,6 +27,7 @@ mod paging;
 mod playlist;
 mod raw;
 mod twin;
+mod versions;
 
 pub use api::TidalClient;
 pub use catalog::LIBRARY_MAX;

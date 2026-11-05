@@ -21,6 +21,7 @@
     meta,
     description,
     onRadio,
+    onEdit,
   }: {
     image: string | null;
     /** Type de page (« Album », « Playlist »…). */
@@ -41,6 +42,8 @@
     description?: string | null;
     /** Bouton « Radio » (page d'artiste). */
     onRadio?: () => void;
+    /** Bouton « Modifier » (votre playlist, #201). */
+    onEdit?: () => void;
   } = $props();
 
   async function play(shuffle: boolean) {
@@ -70,7 +73,7 @@
     <h1>{title}</h1>
     {#if meta}<div class="meta">{@render meta()}</div>{/if}
     {#if description}<p class="description">{description}</p>{/if}
-    {#if trackIds.length > 0 || favorite}
+    {#if trackIds.length > 0 || favorite || onEdit}
       <div class="actions">
         {#if trackIds.length > 0}
           <button class="primary" onclick={() => play(false)}>
@@ -103,6 +106,11 @@
           </button>
         {/if}
         {#if pin}<PinButton {pin} />{/if}
+        {#if onEdit}
+          <button class="secondary icon edit-playlist" onclick={onEdit} title={t.views.header.edit} aria-label={t.views.header.edit}>
+            <Icon name="edit" size={18} />
+          </button>
+        {/if}
         {#if onRadio}
           <button class="secondary" onclick={onRadio}>
             <Icon name="radio" size={16} /> {t.views.header.radio}

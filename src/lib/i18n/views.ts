@@ -11,6 +11,7 @@ export const fr = {
     featured: (context: string) => `À la une · ${context}`,
     skipFeatured: "Passer",
     skipFeaturedHint: "Mettre un autre album à la une",
+    mostPlayed: "Vos plus écoutés",
   },
   homeEditor: {
     hint:
@@ -81,6 +82,12 @@ export const fr = {
     popular: "Titres populaires",
     albums: "Albums",
     singles: "EP et singles",
+    about: "À propos",
+    bioSource: (source: string) => `Biographie : ${source}`,
+    readMore: "Lire la suite",
+    readLess: "Réduire",
+    appearsOn: "Apparaît sur",
+    similar: "Artistes similaires",
   },
   playlist: {
     removed: (title: string) => `« ${title} » retiré de la playlist`,
@@ -96,8 +103,24 @@ export const fr = {
     addToQueue: "Ajouter à la file",
     addToPlaylist: "Ajouter à une playlist",
     radio: "Radio",
+    edit: "Modifier la playlist",
     enqueued: (n: number, next: boolean) =>
       `${num(n)} ${n > 1 ? "titres ajoutés" : "titre ajouté"} ${next ? "en tête de la file" : "à la file"}`,
+  },
+  playlistEdit: {
+    title: "Modifier la playlist",
+    name: "Titre",
+    description: "Description",
+    save: "Enregistrer",
+    cancel: "Annuler",
+    saved: "Playlist modifiée",
+    deleteAction: "Supprimer la playlist…",
+    deleteTitle: "Supprimer la playlist ?",
+    deleteConfirm: (title: string) =>
+      `« ${title} » sera supprimée de votre bibliothèque TIDAL, sur tous vos appareils. C'est définitif.`,
+    delete: "Supprimer",
+    deleted: (title: string) => `« ${title} » supprimée`,
+    reorderHint: "Glisser, ou Alt+↑ / Alt+↓, pour réordonner",
   },
   row: {
     play: (title: string) => `Lire ${title}`,
@@ -128,6 +151,7 @@ export const en: typeof fr = {
     featured: (context: string) => `Featured · ${context}`,
     skipFeatured: "Skip",
     skipFeaturedHint: "Feature another album",
+    mostPlayed: "Your most played",
   },
   homeEditor: {
     hint: "Hide the sections you don't use and choose their order. New sections appear in their usual place.",
@@ -196,6 +220,12 @@ export const en: typeof fr = {
     popular: "Popular tracks",
     albums: "Albums",
     singles: "EPs and singles",
+    about: "About",
+    bioSource: (source: string) => `Biography: ${source}`,
+    readMore: "Read more",
+    readLess: "Show less",
+    appearsOn: "Appears on",
+    similar: "Similar artists",
   },
   playlist: {
     removed: (title: string) => `“${title}” removed from the playlist`,
@@ -211,8 +241,24 @@ export const en: typeof fr = {
     addToQueue: "Add to queue",
     addToPlaylist: "Add to playlist",
     radio: "Radio",
+    edit: "Edit playlist",
     enqueued: (n: number, next: boolean) =>
       `${num(n)} ${n === 1 ? "track" : "tracks"} added ${next ? "to the front of the queue" : "to the queue"}`,
+  },
+  playlistEdit: {
+    title: "Edit playlist",
+    name: "Title",
+    description: "Description",
+    save: "Save",
+    cancel: "Cancel",
+    saved: "Playlist updated",
+    deleteAction: "Delete playlist…",
+    deleteTitle: "Delete this playlist?",
+    deleteConfirm: (title: string) =>
+      `“${title}” will be deleted from your TIDAL library, on all your devices. This cannot be undone.`,
+    delete: "Delete",
+    deleted: (title: string) => `“${title}” deleted`,
+    reorderHint: "Drag, or Alt+↑ / Alt+↓, to reorder",
   },
   row: {
     play: (title: string) => `Play ${title}`,

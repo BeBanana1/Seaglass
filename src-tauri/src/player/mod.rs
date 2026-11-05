@@ -1,6 +1,7 @@
 //! Lecteur : un acteur unique possède la file et l'état ; tout passe par `Cmd`.
 
 pub mod actor;
+mod listen;
 pub mod normalize;
 pub mod output;
 mod persist;

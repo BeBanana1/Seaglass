@@ -14,7 +14,7 @@
   import { appWindow, initWindow, setFullscreen, toggleFullscreen } from "./lib/stores/window.svelte";
   import { initBackButton, syncBackButton } from "./lib/backButton";
   import { exitListSearch, listSearch } from "./lib/stores/listSearch.svelte";
-  import { openTidalLink } from "./lib/links";
+  import { openSharedLink, openTidalLink } from "./lib/links";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
@@ -60,6 +60,8 @@
     if (platform.mobile) {
       void events.onOpenNowPlaying(openFromNotification);
       void openFromNotification();
+      void events.onSharedLink(openShared);
+      void openShared();
     }
     if (import.meta.env.DEV && !("__TAURI_INTERNALS__" in window)) {
       const view = (await import("./lib/mock")).initialView();
@@ -124,6 +126,13 @@
   async function openFromNotification() {
     if (!(await commands.takeNowPlayingRequest().catch(() => false))) return;
     if (session && player.state.track) nowPlayingOpen = true;
+  }
+
+  // Lien partagé depuis une autre app (#203) : seulement connecté, sinon il attend.
+  async function openShared() {
+    if (!session) return;
+    nowPlayingOpen = false;
+    await openSharedLink();
   }
 
   function isTextField(el: EventTarget | null): boolean {
@@ -265,7 +274,12 @@
       {:else if route.name === "settings"}
         <Settings section={route.section} onLogout={session ? logout : undefined} />
       {:else if !session}
-        <Login onLogin={(s) => (session = s)} />
+        <Login
+          onLogin={(s) => {
+            session = s;
+            if (platform.mobile) void openShared();
+          }}
+        />
       {:else if route.name === "home"}
         <Home />
       {:else if route.name === "feed"}

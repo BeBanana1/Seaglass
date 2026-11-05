@@ -1,5 +1,5 @@
 //! Favoris gardés en mémoire pour afficher cœurs et boutons « Suivre » sans requête :
-//! titres (#4), albums, artistes et playlists suivies (#81).
+//! titres (#4), albums, artistes et playlists suivies (#81), mixes (#204).
 //!
 //! Chargés d'un coup par `users/{id}/favorites/ids` (identifiants seuls, toute la
 //! bibliothèque), puis tenus à jour par les écritures faites dans l'app et par chaque
@@ -18,6 +18,7 @@ pub enum LikedKind {
     Albums(Vec<u64>),
     Artists(Vec<u64>),
     Playlists(Vec<String>),
+    Mixes(Vec<String>),
 }
 
 #[derive(Default, PartialEq)]
@@ -26,6 +27,7 @@ struct Sets {
     albums: HashSet<u64>,
     artists: HashSet<u64>,
     playlists: HashSet<String>,
+    mixes: HashSet<String>,
 }
 
 #[derive(Default)]
@@ -42,6 +44,7 @@ impl Likes {
             albums: sorted(&s.albums, |id| *id),
             artists: sorted(&s.artists, |id| *id),
             playlists: sorted(&s.playlists, Clone::clone),
+            mixes: sorted(&s.mixes, Clone::clone),
         })
     }
 
@@ -53,6 +56,7 @@ impl Likes {
                 albums: ids.albums.into_iter().collect(),
                 artists: ids.artists.into_iter().collect(),
                 playlists: ids.playlists.into_iter().collect(),
+                mixes: ids.mixes.into_iter().collect(),
             });
         }
     }
@@ -70,6 +74,7 @@ impl Likes {
             LikedKind::Albums(ids) => swap(&mut sets.albums, ids),
             LikedKind::Artists(ids) => swap(&mut sets.artists, ids),
             LikedKind::Playlists(ids) => swap(&mut sets.playlists, ids),
+            LikedKind::Mixes(ids) => swap(&mut sets.mixes, ids),
         }
     }
 
@@ -86,6 +91,7 @@ impl Likes {
             LikeTarget::Album { id } => toggle(&mut sets.albums, *id, liked),
             LikeTarget::Artist { id } => toggle(&mut sets.artists, *id, liked),
             LikeTarget::Playlist { uuid } => toggle(&mut sets.playlists, uuid.clone(), liked),
+            LikeTarget::Mix { id } => toggle(&mut sets.mixes, id.clone(), liked),
         }
     }
 
@@ -140,7 +146,20 @@ mod tests {
             albums: vec![30, 10],
             artists: vec![5],
             playlists: vec![UUID.to_owned()],
+            mixes: vec!["m1".to_owned()],
         });
+        likes.set(
+            &LikeTarget::Mix {
+                id: "m2".to_owned(),
+            },
+            true,
+        );
+        likes.set(
+            &LikeTarget::Mix {
+                id: "m1".to_owned(),
+            },
+            false,
+        );
         likes.set(&LikeTarget::Track { id: TrackId(3) }, true);
         likes.set(&LikeTarget::Album { id: 10 }, false);
         likes.set(&LikeTarget::Artist { id: 4 }, true);
@@ -157,6 +176,7 @@ mod tests {
                 albums: vec![30],
                 artists: vec![4, 5],
                 playlists: vec![],
+                mixes: vec!["m2".to_owned()],
             })
         );
         likes.clear();
@@ -171,6 +191,7 @@ mod tests {
         assert!(!likes.replace(LikedKind::Tracks(vec![TrackId(1), TrackId(2)])));
         assert!(likes.replace(LikedKind::Artists(vec![7])));
         assert!(!likes.replace(LikedKind::Playlists(vec![])));
+        assert!(likes.replace(LikedKind::Mixes(vec!["m".to_owned()])));
         let ids = likes.get().unwrap();
         assert_eq!(ids.tracks, [TrackId(1), TrackId(2)]);
         assert_eq!(ids.artists, [7]);

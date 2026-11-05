@@ -1,5 +1,6 @@
 //! Persistance SQLite : file d'attente, position de lecture, réglages et métadonnées des
-//! titres en file ; copies des listes affichées (`snapshots`, #181).
+//! titres en file ; copies des listes affichées (`snapshots`, #181) ; historique d'écoute
+//! (`plays`, #202).
 //!
 //! La table `tracks` ne contient que les titres référencés par la file sauvegardée : chaque
 //! sauvegarde de la file n'écrit que les titres absents et supprime ceux qui ne sont plus
@@ -17,8 +18,10 @@ use crate::player::queue::Queue;
 use crate::player::volume::Volume;
 use crate::tidal::models::{Track, TrackId};
 
+mod plays;
 mod snapshots;
 
+pub use plays::Play;
 pub use snapshots::SnapshotLimit;
 
 const SCHEMA: &str = "
@@ -92,6 +95,7 @@ impl Store {
 
     fn init(conn: Connection) -> Result<Self> {
         conn.execute_batch(SCHEMA)?;
+        conn.execute_batch(plays::SCHEMA)?;
         let saved = conn
             .prepare("SELECT id FROM tracks")?
             .query_map([], |r| r.get::<_, i64>(0))?

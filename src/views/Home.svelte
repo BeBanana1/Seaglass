@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { commands, type AlbumSummary, type HomeSection } from "../lib/ipc";
+  import { commands, PLAY_HISTORY_KEY, type AlbumSummary, type HomeSection } from "../lib/ipc";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { resetHomeLayout, saveHomeLayout, setHomeFeatured, ui } from "../lib/stores/ui.svelte";
   import CardGrid from "../components/CardGrid.svelte";
@@ -20,10 +20,19 @@
     ui.settings.home.order.length > 0 || ui.settings.home.hidden.length > 0 || ui.settings.home.featuredHidden,
   );
 
-  /** Albums des sections affichées, sans doublon, avec le titre de leur ligne (#185). */
+  /** Albums les plus écoutés dans l'app (#202), relus à chaque visite. */
+  let topPlayed = $state<AlbumSummary[]>([]);
+
+  /** Albums les plus écoutés, puis ceux des sections affichées, sans doublon, avec le titre
+   *  de leur ligne (#185, #202). */
   const candidates = $derived.by(() => {
     const seen = new Set<number>();
     const list: { album: AlbumSummary; context: string }[] = [];
+    for (const album of topPlayed) {
+      if (seen.has(album.id)) continue;
+      seen.add(album.id);
+      list.push({ album, context: t.views.home.mostPlayed });
+    }
     for (const row of visible) {
       for (const item of row.items) {
         if (item.kind !== "album" || seen.has(item.id)) continue;
@@ -64,10 +73,32 @@
     }
   }
 
-  onMount(async () => {
-    if (rows) return;
+  /**
+   * Historique d'écoute local (#202), relu à chaque visite : l'accueil de TIDAL reste gardé
+   * en mémoire, mais « Écoutés dans Seaglass » suit les écoutes faites depuis. La section
+   * n'apparaît qu'au chargement complet suivant si l'historique était vide.
+   */
+  async function refreshPlayHistory() {
     try {
-      await load();
+      const history = await commands.playHistory();
+      topPlayed = history.top;
+      if (!rows) return;
+      const items = history.recent.map((a) => ({ kind: "album" as const, ...a }));
+      rows = cached = rows
+        .map((r) => (r.key === PLAY_HISTORY_KEY ? { ...r, items } : r))
+        .filter((r) => r.key !== PLAY_HISTORY_KEY || r.items.length > 0);
+    } catch (e) {
+      console.warn("historique d'écoute", e);
+    }
+  }
+
+  onMount(async () => {
+    if (rows) {
+      refreshPlayHistory();
+      return;
+    }
+    try {
+      await Promise.all([load(), commands.playHistory().then((h) => (topPlayed = h.top)).catch(() => {})]);
     } catch (e) {
       error = String(e);
     }

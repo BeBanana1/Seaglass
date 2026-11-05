@@ -159,6 +159,12 @@ export const fr = {
   check: "Vérifier",
   checkFailed: (e: string) => `Vérification des mises à jour impossible : ${e}`,
 
+  playHistory: "Historique d'écoute",
+  playHistoryHint:
+    "Gardé sur cet appareil seulement, pour « Écoutés dans Seaglass » et « À la une ». Rien n'est envoyé à TIDAL.",
+  clearPlayHistory: "Effacer",
+  playHistoryCleared: "Historique d'écoute effacé",
+
   about: "À propos",
   account: "Compte",
   disclaimer: "Client non officiel, non affilié à TIDAL.",
@@ -333,6 +339,12 @@ export const en: typeof fr = {
   checking: "Checking…",
   check: "Check",
   checkFailed: (e: string) => `Could not check for updates: ${e}`,
+
+  playHistory: "Listening history",
+  playHistoryHint:
+    "Kept on this device only, for “Played in Seaglass” and “Featured”. Nothing is sent to TIDAL.",
+  clearPlayHistory: "Clear",
+  playHistoryCleared: "Listening history cleared",
 
   about: "About",
   account: "Account",

@@ -12,7 +12,10 @@
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
-  import { listSort, refreshPinTitle, saveListSort } from "../lib/stores/ui.svelte";
+  import PlaylistEditor from "../components/PlaylistEditor.svelte";
+  import { isPinned, listSort, refreshPinTitle, saveListSort, togglePin } from "../lib/stores/ui.svelte";
+  import { library, loadLibrary } from "../lib/stores/library.svelte";
+  import { back } from "../lib/stores/nav.svelte";
   import { notePlaylistChange, playlistChanges } from "../lib/stores/playlistPicker.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { listSearch } from "../lib/stores/listSearch.svelte";
@@ -31,6 +34,8 @@
   let slow = $state(false);
   let query = $state("");
   let sort = $state<TrackSort>(DEFAULT_SORT);
+  let editing = $state(false);
+  let moving = false;
 
   $effect(() => {
     const target = uuid;
@@ -38,6 +43,7 @@
     error = null;
     slow = false;
     query = "";
+    editing = false;
     // Tri mémorisé pour cette playlist (#93) ; le filtre repart vide.
     sort = untrack(() => listSort(target, DEFAULT_SORT));
     const timer = setTimeout(() => (slow = true), LOADING_DELAY_MS);
@@ -94,6 +100,53 @@
     notePlaylistChange(uuid);
   }
 
+  // Réorganisation (#201) : seulement sur vos playlists, dans l'ordre d'origine et sans
+  // filtre (les positions affichées sont alors celles de la playlist). L'ordre affiché change
+  // après confirmation, sans relire la playlist : juste après une écriture, l'API renvoie
+  // parfois encore l'ancien ordre.
+  const reorderable = $derived(
+    !!page?.playlist.mine && sort.key === "position" && !sort.descending && !query.trim(),
+  );
+
+  async function moveTrack(from: number, to: number): Promise<boolean> {
+    const current = page;
+    const entry = current?.tracks[from];
+    // Un déplacement à la fois : le suivant part des positions confirmées.
+    if (!current || !entry || moving || to < 0 || to >= current.tracks.length) return false;
+    moving = true;
+    try {
+      await commands.moveInPlaylist(uuid, from, to, entry.id);
+      if (page !== current) return false;
+      const tracks = [...current.tracks];
+      tracks.splice(to, 0, ...tracks.splice(from, 1));
+      page = { ...current, tracks };
+      return true;
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+      // Un refus signifie souvent que la playlist a changé ailleurs : elle est relue.
+      notePlaylistChange(uuid);
+      return false;
+    } finally {
+      moving = false;
+    }
+  }
+
+  function saved(title: string, description: string) {
+    editing = false;
+    if (page) page = { ...page, playlist: { ...page.playlist, title, description: description || null } };
+    pushToast({ level: "info", message: t.views.playlistEdit.saved });
+    refreshPinTitle(uuid, title).catch(() => {});
+    if (library.playlists.items) loadLibrary("playlists", true);
+  }
+
+  async function deleted() {
+    editing = false;
+    const pin = { kind: "playlist", uuid, title: page?.playlist.title ?? "" } as const;
+    if (isPinned(pin)) await togglePin(pin).catch(() => {});
+    if (library.playlists.items) loadLibrary("playlists", true);
+    back();
+  }
+
   // Lecture / Aléatoire suivent le tri ; un clic sur un titre met en contexte la liste
   // affichée (triée et filtrée), dans cet ordre.
   const sorted = $derived(page ? sortTracks(listTracks(page.tracks), sort) : []);
@@ -119,6 +172,7 @@
         queueable
         pin={{ kind: "playlist", uuid: playlist.uuid, title: playlist.title }}
         favorite={playlist.mine ? undefined : { kind: "playlist", uuid: playlist.uuid }}
+        onEdit={playlist.mine ? () => (editing = true) : undefined}
       >
         {#snippet meta()}
           {playlistSubtitle(playlist)}
@@ -145,6 +199,15 @@
         source={{ kind: "playlist", uuid: page.playlist.uuid, title: page.playlist.title }}
         numbering={platform.mobile ? "none" : "index"}
         onRemoveFromPlaylist={page.playlist.mine ? removeAt : undefined}
+        onMove={reorderable ? moveTrack : undefined}
+      />
+    {/if}
+    {#if editing}
+      <PlaylistEditor
+        playlist={page.playlist}
+        onClose={() => (editing = false)}
+        onSaved={saved}
+        onDeleted={deleted}
       />
     {/if}
   {/if}

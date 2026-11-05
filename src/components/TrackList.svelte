@@ -3,6 +3,9 @@
   import { player } from "../lib/stores/player.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import TrackRow from "./TrackRow.svelte";
+  import { tick } from "svelte";
+  import { keyboardMove, Reorder } from "../lib/reorder.svelte";
+  import { platform } from "../lib/platform.svelte";
 
   let {
     tracks,
@@ -13,6 +16,7 @@
     onRemoveFromPlaylist,
     source,
     highlight,
+    onMove,
   }: {
     /** Contexte de lecture : lire un titre met toute la liste en file, dans cet ordre. */
     tracks: Track[];
@@ -27,7 +31,30 @@
     onRemoveFromPlaylist?: (index: number) => void;
     /** Titre mis en évidence et amené à l'écran (lien collé, #203). */
     highlight?: number;
+    /**
+     * Liste réorganisable (votre playlist, ni triée ni filtrée, #201) : glisser-déposer,
+     * Alt+↑ / Alt+↓, « Monter / Descendre ». `to` = position finale ; `true` si le
+     * déplacement a eu lieu.
+     */
+    onMove?: (from: number, to: number) => Promise<boolean>;
   } = $props();
+
+  let list = $state<HTMLElement>();
+  const reorder = new Reorder((from, to) => move(from, to));
+
+  async function move(from: number, to: number, focusButton?: number) {
+    if (!onMove || !(await onMove(from, to)) || focusButton === undefined) return;
+    // Le focus suit la ligne déplacée au clavier.
+    await tick();
+    list?.children[to]?.querySelectorAll<HTMLElement>("button")[focusButton]?.focus();
+  }
+
+  function onKeydown(e: KeyboardEvent, i: number) {
+    const to = keyboardMove(e, i, tracks.length);
+    if (to === null) return;
+    const buttons = Array.from((e.currentTarget as HTMLElement).querySelectorAll("button"));
+    move(i, to, Math.max(0, buttons.indexOf(document.activeElement as HTMLButtonElement)));
+  }
 
   // Rendu par morceaux (#181) : une longue liste créait toutes ses lignes d'un bloc, et la
   // page restait vide jusque-là (près d'une seconde pour 500 titres sur le téléphone). Les
@@ -58,17 +85,83 @@
   }
 </script>
 
-<div role="list">
+{#snippet row(track: Track, i: number)}
+  <TrackRow
+    {track}
+    number={numbering === "index" ? (positions?.[i] ?? i + 1) : undefined}
+    compact={!showAlbum}
+    {showCover}
+    active={player.currentTrackId === track.id}
+    highlighted={highlight === track.id}
+    onPlay={() => play(i)}
+    onRemoveFromPlaylist={onRemoveFromPlaylist && (() => onRemoveFromPlaylist(i))}
+    onMoveUp={onMove && i > 0 ? () => move(i, i - 1) : undefined}
+    onMoveDown={onMove && i < tracks.length - 1 ? () => move(i, i + 1) : undefined}
+  />
+{/snippet}
+
+<div role="list" bind:this={list} ondragleave={onMove && ((e) => reorder.dragleave(e, list))}>
   {#each visible as track, i (`${positions?.[i] ?? i}-${track.id}`)}
-    <TrackRow
-      {track}
-      number={numbering === "index" ? (positions?.[i] ?? i + 1) : undefined}
-      compact={!showAlbum}
-      {showCover}
-      active={player.currentTrackId === track.id}
-      highlighted={highlight === track.id}
-      onPlay={() => play(i)}
-      onRemoveFromPlaylist={onRemoveFromPlaylist && (() => onRemoveFromPlaylist(i))}
-    />
+    {#if onMove}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="track-item"
+        class:dragging={reorder.from === i}
+        class:drop-before={reorder.marker(i)}
+        class:drop-after={i === visible.length - 1 && reorder.marker(i + 1)}
+        draggable={platform.mobile ? undefined : "true"}
+        ondragstart={(e) => reorder.dragstart(e, i)}
+        ondragover={(e) => reorder.dragover(e, i)}
+        ondrop={(e) => reorder.drop(e)}
+        ondragend={() => reorder.end()}
+        onkeydown={(e) => onKeydown(e, i)}
+      >
+        {@render row(track, i)}
+      </div>
+    {:else}
+      {@render row(track, i)}
+    {/if}
   {/each}
 </div>
+
+<style>
+  .track-item {
+    position: relative;
+    cursor: grab;
+  }
+
+  .track-item :global(img) {
+    -webkit-user-drag: none;
+  }
+
+  .track-item.dragging {
+    opacity: 0.4;
+  }
+
+  .track-item.drop-before::before,
+  .track-item.drop-after::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    left: 6px;
+    right: 6px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--accent);
+    pointer-events: none;
+  }
+
+  .track-item.drop-before::before {
+    top: -1px;
+  }
+
+  .track-item.drop-after::after {
+    bottom: -1px;
+  }
+
+  /* Android : pas de glisser HTML5 (il gênerait l'appui long), « Monter / Descendre » passent
+     par le menu. */
+  :global(:root[data-platform="android"]) .track-item {
+    cursor: auto;
+  }
+</style>

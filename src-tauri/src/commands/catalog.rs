@@ -10,9 +10,9 @@ use super::{AppState, CmdResult, err, settings};
 use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
-    AlbumCreditGroup, AlbumPage, AlbumSummary, ArtistPage, ArtistSummary, FeedItem, LibraryList,
-    Lyrics, MixPage, MixSummary, PlaylistPage, PlaylistSummary, RadioPage, RadioSeed,
-    SearchResults, TrackEntry, TrackId, TrackInfo,
+    AlbumCreditGroup, AlbumPage, AlbumSummary, ArtistExtra, ArtistPage, ArtistSummary, FeedItem,
+    HomeRow, LibraryList, Lyrics, MixPage, MixSummary, PlaylistPage, PlaylistSummary, RadioPage,
+    RadioSeed, SearchResults, TrackEntry, TrackId, TrackInfo,
 };
 
 const MAX_QUERY_LEN: usize = 200;
@@ -78,6 +78,12 @@ pub(super) fn check_playlist_uuid(uuid: &str) -> CmdResult<()> {
     }
 }
 
+/// Biographie, artistes similaires et « Apparaît sur » (#205), après la page elle-même.
+#[tauri::command]
+pub async fn artist_extra(state: State<'_, AppState>, id: u64) -> CmdResult<ArtistExtra> {
+    Ok(state.tidal.artist_extra(id).await)
+}
+
 #[tauri::command]
 pub async fn mix(state: State<'_, AppState>, id: String) -> CmdResult<MixPage> {
     if !is_mix_id(&id) {
@@ -92,8 +98,13 @@ pub async fn radio(state: State<'_, AppState>, seed: RadioSeed, id: u64) -> CmdR
 }
 
 #[tauri::command]
-pub async fn library_mixes(state: State<'_, AppState>) -> CmdResult<Vec<MixSummary>> {
-    state.tidal.favorite_mixes().await.map_err(err)
+pub async fn library_mixes(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<MixSummary>> {
+    let mixes = state.tidal.favorite_mixes().await.map_err(err)?;
+    super::collection::emit_likes(&app, &state).await;
+    Ok(mixes)
 }
 
 #[tauri::command]
@@ -158,7 +169,9 @@ pub struct HomeFeed {
 pub async fn home(state: State<'_, AppState>) -> CmdResult<HomeFeed> {
     let start = state.tidal.home_start().await.map_err(err)?;
     Ok(HomeFeed {
-        sections: settings::load(&state).home.arrange(start.rows),
+        sections: settings::load(&state)
+            .home
+            .arrange(with_local_row(&state, start.rows)),
         more: start.more,
     })
 }
@@ -167,7 +180,18 @@ pub async fn home(state: State<'_, AppState>) -> CmdResult<HomeFeed> {
 #[tauri::command]
 pub async fn home_rest(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
     let rows = state.tidal.home_rest().await.map_err(err)?;
-    Ok(settings::load(&state).home.arrange(rows))
+    Ok(settings::load(&state)
+        .home
+        .arrange(with_local_row(&state, rows)))
+}
+
+/// « Écoutés dans Seaglass » (#202) en tête du flux : la disposition enregistrée s'applique
+/// ensuite comme aux lignes de TIDAL.
+fn with_local_row(state: &AppState, mut rows: Vec<HomeRow>) -> Vec<HomeRow> {
+    if let Some(row) = super::play_history::home_row(state) {
+        rows.insert(0, row);
+    }
+    rows
 }
 
 /// Paroles d'un titre ; `None` si TIDAL n'en a pas (ce n'est pas une erreur).

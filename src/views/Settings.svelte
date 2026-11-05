@@ -150,6 +150,15 @@
     }
   }
 
+  async function clearPlayHistory() {
+    try {
+      await commands.clearPlayHistory();
+      pushToast({ level: "info", message: t.settings.playHistoryCleared });
+    } catch (e) {
+      fail(e);
+    }
+  }
+
   async function openProject(page: "repo" | "newIssue") {
     try {
       await commands.openProjectPage(page);
@@ -344,6 +353,17 @@
       </label>
     </div>
     {/if}
+
+    <!-- #202 : écoutes gardées localement (accueil, « À la une »). -->
+    <div class="group">
+      <h2>{t.settings.playHistory}</h2>
+      <div class="setting-row">
+        <span class="text">
+          <span class="hint">{t.settings.playHistoryHint}</span>
+        </span>
+        <button class="update-check" onclick={clearPlayHistory}>{t.settings.clearPlayHistory}</button>
+      </div>
+    </div>
 
     <div class="group">
       <h2>{t.settings.updates}</h2>

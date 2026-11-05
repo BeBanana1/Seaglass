@@ -80,6 +80,7 @@
       round={view.round}
       trackIds={view.tracks.map((track) => track.id)}
       source={playSource}
+      favorite={"mix" in source ? { kind: "mix", id: source.mix } : undefined}
       queueable
     >
       {#snippet meta()}

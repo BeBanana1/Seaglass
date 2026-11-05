@@ -47,6 +47,7 @@ pub struct TidalClient {
     pub(super) hires: HiresCache,
     pub(super) likes: Likes,
     pub(super) playlists: PlaylistCache,
+    pub(super) versions: super::versions::PlaylistVersions,
     pub(super) home: super::home::HomeCache,
 }
 
@@ -65,6 +66,7 @@ impl TidalClient {
             hires: HiresCache::default(),
             likes: Likes::default(),
             playlists: PlaylistCache::default(),
+            versions: Default::default(),
             home: Default::default(),
         })
     }
@@ -116,6 +118,7 @@ impl TidalClient {
         *self.auth.write().await = None;
         self.likes.clear();
         self.playlists.clear();
+        self.versions.clear();
         auth::clear_refresh_token()
     }
 

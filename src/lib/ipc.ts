@@ -282,7 +282,8 @@ export type LikeTarget =
   | { kind: "track"; id: TrackId }
   | { kind: "album"; id: number }
   | { kind: "artist"; id: number }
-  | { kind: "playlist"; uuid: string };
+  | { kind: "playlist"; uuid: string }
+  | { kind: "mix"; id: string };
 
 /** Tous les favoris, en identifiants (événement `likes`). */
 export interface LikedIds {
@@ -291,6 +292,8 @@ export interface LikedIds {
   artists: number[];
   /** Playlists suivies. */
   playlists: string[];
+  /** Mixes enregistrés (#204). */
+  mixes: string[];
 }
 
 export interface HomeRow {
@@ -341,6 +344,30 @@ export interface ArtistPage {
   topTracks: Track[];
   albums: AlbumSummary[];
   singles: AlbumSummary[];
+}
+
+/** Historique d'écoute local (#202). */
+export interface PlayHistory {
+  /** Albums écoutés, du plus récent au plus ancien. */
+  recent: AlbumSummary[];
+  /** Albums les plus écoutés ces 30 derniers jours (au moins deux écoutes). */
+  top: AlbumSummary[];
+}
+
+/** Clé de la section d'accueil « Écoutés dans Seaglass ». */
+export const PLAY_HISTORY_KEY = "SEAGLASS_RECENT";
+
+/** Segment de biographie : texte ou lien interne (#205). */
+export type BioPart =
+  | { kind: "text"; text: string }
+  | { kind: "artist"; text: string; id: number }
+  | { kind: "album"; text: string; id: number };
+
+/** Compléments de la page d'artiste (#205), chargés après elle. */
+export interface ArtistExtra {
+  bio: { source: string | null; paragraphs: BioPart[][] } | null;
+  similar: ArtistSummary[];
+  appearsOn: AlbumSummary[];
 }
 
 export interface PlaylistPage {
@@ -489,8 +516,13 @@ export const commands = {
   searchHistory: () => invoke<string[]>("search_history"),
   removeSearchHistory: (query: string) => invoke<string[]>("remove_search_history", { query }),
   clearSearchHistory: () => invoke<string[]>("clear_search_history"),
+  /** Historique d'écoute local (#202) : albums récents et les plus écoutés. */
+  playHistory: () => invoke<PlayHistory>("play_history"),
+  clearPlayHistory: () => invoke<void>("clear_play_history"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
+  /** Biographie, similaires, « Apparaît sur » (#205) : chaque partie peut être vide. */
+  artistExtra: (id: number) => invoke<ArtistExtra>("artist_extra", { id }),
   /** `null` si la playlist n'a pas changé depuis `revision` (#152). */
   playlist: (uuid: string, revision: string | null = null) =>
     invoke<PlaylistPage | null>("playlist", { uuid, revision }),
@@ -535,6 +567,13 @@ export const commands = {
   /** `index` : position dans la playlist (0 = premier) ; refusé si un autre titre s'y trouve. */
   removeFromPlaylist: (uuid: string, index: number, trackId: TrackId) =>
     invoke<void>("remove_from_playlist", { uuid, index, trackId }),
+  /** Déplace le titre de `from` à `to` (position finale, 0 = premier, #201). */
+  moveInPlaylist: (uuid: string, from: number, to: number, trackId: TrackId) =>
+    invoke<void>("move_in_playlist", { uuid, from, to, trackId }),
+  /** Renomme et change la description (#201). */
+  editPlaylist: (uuid: string, title: string, description: string) =>
+    invoke<void>("edit_playlist", { uuid, title, description }),
+  deletePlaylist: (uuid: string) => invoke<void>("delete_playlist", { uuid }),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false, source: PlaySource | null = null) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
@@ -600,6 +639,8 @@ export const commands = {
   /** Bureau seulement : plein écran de la fenêtre principale (#131). */
   /** Android : vrai une fois après un appui sur la notification (#163). */
   takeNowPlayingRequest: () => invoke<boolean>("take_now_playing_request"),
+  /** Android : lien reçu par le menu « Partager » (#203), une seule fois. */
+  takeSharedLink: () => invoke<LinkTarget | null>("take_shared_link"),
   fullscreen: () => invoke<boolean>("fullscreen"),
   /** Renvoie l'état relu ; la suite arrive aussi par `fullscreen`. */
   setFullscreen: (fullscreen: boolean) => invoke<boolean>("set_fullscreen", { fullscreen }),
@@ -627,6 +668,8 @@ export const events = {
     listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
   /** Android : appui sur la notification (#163) ; la demande se prend par `takeNowPlayingRequest`. */
   onOpenNowPlaying: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-now-playing", () => cb()),
+  /** Android : lien partagé prêt ; il se prend par `takeSharedLink` (#203). */
+  onSharedLink: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-link", () => cb()),
   onFullscreen: (cb: (fullscreen: boolean) => void): Promise<UnlistenFn> =>
     listen<boolean>("fullscreen", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>

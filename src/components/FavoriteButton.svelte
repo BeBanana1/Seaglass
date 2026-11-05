@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Favori d'un album ou d'une playlist (cœur), « Suivre » pour un artiste (#81).
+  // Favori d'un album, d'une playlist ou d'un mix (cœur), « Suivre » pour un artiste (#81, #204).
   // L'état vient du backend (lib/stores/likes.svelte.ts) et change à sa confirmation.
   import type { LikeTarget } from "../lib/ipc";
   import { isFavorite, isPending, toggleFavorite } from "../lib/stores/likes.svelte";

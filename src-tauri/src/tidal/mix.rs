@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 use super::api::{API_V2, TidalClient};
+use super::likes::LikedKind;
 use super::models::{MixPage, MixSummary, RadioPage, RadioSeed, TrackId};
 use super::raw::{self, RawArtistFull, RawPage, RawTrack, image_url};
 use super::{Result, TidalError};
@@ -66,7 +67,32 @@ impl TidalClient {
                 break;
             }
         }
+        if out.len() < FAVORITE_MIXES_MAX {
+            // Liste complète : les cœurs des mixes suivent (enregistrés ailleurs).
+            let ids = out.iter().map(|m| m.id.clone()).collect();
+            self.likes.replace(LikedKind::Mixes(ids));
+        }
         out.truncate(FAVORITE_MIXES_MAX);
+        Ok(out)
+    }
+
+    /// Identifiants des mixes enregistrés (#204) : v2 `favorites/mixes/ids`, par curseur
+    /// (`{content: ["<id>", …], cursor}`), triés par id. `favorites/ids` ne les a pas.
+    pub(super) async fn favorite_mix_ids(&self) -> Result<Vec<String>> {
+        let mut out = Vec::new();
+        let mut cursor: Option<String> = None;
+        loop {
+            let mut query = vec![("limit", FAVORITE_MIXES_PAGE.to_string())];
+            if let Some(c) = &cursor {
+                query.push(("cursor", c.clone()));
+            }
+            let page: RawIdPage = self.get_at(API_V2, "favorites/mixes/ids", &query).await?;
+            out.extend(page.content);
+            cursor = page.cursor.filter(|c| !c.is_empty());
+            if cursor.is_none() || out.len() >= FAVORITE_MIXES_MAX {
+                break;
+            }
+        }
         Ok(out)
     }
 
@@ -222,6 +248,13 @@ fn track_items(items: Vec<RawMixItem>) -> Vec<RawTrack> {
         .filter(|i| i.kind == "track")
         .filter_map(|i| serde_json::from_value(i.item).ok())
         .collect()
+}
+
+#[derive(Deserialize)]
+struct RawIdPage {
+    #[serde(default)]
+    content: Vec<String>,
+    cursor: Option<String>,
 }
 
 #[derive(Deserialize)]
