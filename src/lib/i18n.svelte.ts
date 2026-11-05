@@ -12,6 +12,7 @@ import * as menu from "./i18n/menu";
 import * as player from "./i18n/player";
 import * as settings from "./i18n/settings";
 import * as info from "./i18n/info";
+import * as jam from "./i18n/jam";
 import * as views from "./i18n/views";
 import { i18n } from "./i18n/state.svelte";
 
@@ -25,6 +26,7 @@ const fr = {
   player: player.fr,
   settings: settings.fr,
   info: info.fr,
+  jam: jam.fr,
   views: views.fr,
 };
 
@@ -38,6 +40,7 @@ const en: Dict = {
   player: player.en,
   settings: settings.en,
   info: info.en,
+  jam: jam.en,
   views: views.en,
 };
 

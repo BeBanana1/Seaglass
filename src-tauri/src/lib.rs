@@ -6,6 +6,8 @@ mod commands;
 mod engine;
 mod i18n;
 mod integrations;
+#[cfg(desktop)]
+mod jam;
 #[cfg(any(target_os = "android", test))]
 mod media3;
 mod mpv;
@@ -185,6 +187,12 @@ pub fn run() {
             #[cfg(desktop)]
             commands::settings::set_autostart,
             #[cfg(desktop)]
+            commands::jam::jam_status,
+            #[cfg(desktop)]
+            commands::jam::start_jam,
+            #[cfg(desktop)]
+            commands::jam::stop_jam,
+            #[cfg(desktop)]
             commands::window::fullscreen,
             #[cfg(desktop)]
             commands::window::set_fullscreen,
@@ -238,6 +246,8 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
                 .build(),
         )
         .manage(UpdateState::default())
+        // Jam locale (#25) : arrêtée tant que l'hôte ne la démarre pas.
+        .manage(jam::JamState::default())
         // Réglage « Fermer la fenêtre » sur « Réduire » : la fenêtre principale est cachée.
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. }
