@@ -1,7 +1,6 @@
 # mpv embarqué par l'installeur (#87). `release.ps1` refuse tout autre binaire.
-# Mettre à jour mpv = remplacer ces deux valeurs dans un commit, après avoir vérifié le nouveau mpv :
-#   (Get-FileHash <mpv.exe> -Algorithm SHA256).Hash
-#   & <mpv.exe> --version | Select-Object -First 1     (deux premiers mots)
-# Build x86-64-v3 (AVX2 exigé, #92) de zhongfly, relevée le 2026-11-03.
-version=mpv v0.41.0-1421-ga687796d9
-sha256=6051B20389B34FC382C594943009CB1A7B41665AB9326A024835E4CE60309A7E
+# Généré par `scripts/update-mpv-lock.ps1`, qui fige aussi la copie lue par release.ps1
+# (SEAGLASS_MPV_PATH) : vérifier le nouveau mpv, lancer le script, commiter ce fichier.
+# Build x86-64-v3 (AVX2 exigé, #92) de zhongfly, relevée le 2026-11-05.
+version=mpv v0.41.0-1446-g858e0e508
+sha256=AB866867E6C021C6A9B91D7980325DE05C5EA518DE14BC88D89B42C25EB0058E

@@ -24,7 +24,8 @@
                               (défaut : https://updates.bebanana.ch/seaglass)
     SEAGLASS_RELEASE_DEST     destination de publication : dossier local ou UNC, ou cible
                               scp « utilisateur@hôte:/chemin » ou « alias-ssh:/chemin »
-    SEAGLASS_MPV_PATH         mpv.exe à embarquer (défaut : celui du PATH), conforme à mpv.lock
+    SEAGLASS_MPV_PATH         mpv.exe à embarquer (défaut : celui du PATH), conforme à mpv.lock ;
+                              copie figée posée par update-mpv-lock.ps1
     SEAGLASS_SIGNING_KEY      clé privée de l'updater (défaut : ~/.tauri/seaglass.key)
     TAURI_SIGNING_PRIVATE_KEY_PASSWORD
                               mot de passe de la clé ; sinon entrée générique
@@ -100,7 +101,8 @@ if (-not $PublishOnly) {
     $mpvHash = (Get-FileHash $mpvSource -Algorithm SHA256).Hash
     if ($mpvHash -ne $lock.sha256.ToUpperInvariant()) {
         Fail ("mpv.exe ne correspond pas à scripts/mpv.lock`n    fichier  : $mpvSource`n    SHA-256  : $mpvHash`n" +
-            "    attendu  : $($lock.sha256)`n    mpv a changé (mise à jour, remplacement ?) : vérifier ce binaire, puis mettre à jour mpv.lock dans un commit")
+            "    attendu  : $($lock.sha256)`n    mpv a changé (mise à jour, remplacement ?) : vérifier ce binaire, puis le figer et`n" +
+            "    mettre à jour mpv.lock avec « powershell -File scripts/update-mpv-lock.ps1 » (à commiter)")
     }
     $mpvVersion = ((& $mpvSource --version | Select-Object -First 1) -split '\s+' | Select-Object -First 2) -join ' '
     if ($mpvVersion -ne $lock.version) { Fail "version de mpv inattendue : '$mpvVersion' (mpv.lock : '$($lock.version)')" }
