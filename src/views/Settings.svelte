@@ -2,6 +2,7 @@
 <script lang="ts">
   import {
     commands,
+    events,
     type AudioDevice,
     type CacheSize,
     type CloseAction,
@@ -116,17 +117,44 @@
     }
   }
 
-  let updateCheck = $state<"idle" | "checking" | "uptodate" | "ready">("idle");
+  let updateCheck = $state<"idle" | "checking" | "uptodate" | "downloading" | "ready">("idle");
+  let downloadingVersion = $state("");
+
+  // Bureau (#187) : la vérification répond avant la fin du téléchargement de l'installeur.
+  $effect(() => {
+    const ready = events.onUpdateReady(() => {
+      if (updateCheck === "downloading") updateCheck = "ready";
+    });
+    const failed = events.onUpdateFailed((message) => {
+      if (updateCheck !== "downloading") return;
+      updateCheck = "idle";
+      fail(t.settings.checkFailed(message));
+    });
+    return () => {
+      void ready.then((f) => f());
+      void failed.then((f) => f());
+    };
+  });
 
   async function checkUpdates() {
-    if (updateCheck === "checking") return;
+    if (updateCheck === "checking" || updateCheck === "downloading") return;
     updateCheck = "checking";
     try {
       // Une version prête est réémise en `update-ready` : UpdatePrompt la propose.
-      updateCheck = (await commands.checkForUpdates()) ? "ready" : "uptodate";
+      const info = await commands.checkForUpdates();
+      if (info?.downloading) downloadingVersion = info.version;
+      updateCheck = !info ? "uptodate" : info.downloading ? "downloading" : "ready";
     } catch (e) {
       updateCheck = "idle";
       fail(t.settings.checkFailed(String(e)));
+    }
+  }
+
+  async function openProject(page: "repo" | "newIssue") {
+    try {
+      await commands.openProjectPage(page);
+    } catch (e) {
+      fail(e);
     }
   }
 
@@ -325,6 +353,8 @@
           <span class="hint">
             {#if updateCheck === "uptodate"}
               {t.settings.upToDate}
+            {:else if updateCheck === "downloading"}
+              {t.settings.updateDownloading(downloadingVersion)}
             {:else if updateCheck === "ready"}
               {desktop ? t.settings.updateReady : t.settings.updateAvailable}
             {:else}
@@ -332,7 +362,7 @@
             {/if}
           </span>
         </span>
-        <button class="update-check" onclick={checkUpdates} disabled={updateCheck === "checking"}>
+        <button class="update-check" onclick={checkUpdates} disabled={updateCheck === "checking" || updateCheck === "downloading"}>
           {updateCheck === "checking" ? t.settings.checking : t.settings.check}
         </button>
       </div>
@@ -343,6 +373,13 @@
       <p><strong>{t.settings.disclaimer}</strong></p>
       <p>{t.settings.streamingOnly}</p>
       <p>{t.settings.license}</p>
+      <!-- #188 : URLs fixes côté Rust, ouvertes dans le navigateur du système. -->
+      <div class="project-links">
+        <button class="update-check" onclick={() => openProject("repo")}>{t.settings.sourceCode}</button>
+        <button class="update-check" onclick={() => openProject("newIssue")} title={t.settings.reportIssueHint}>
+          {t.settings.reportIssue}
+        </button>
+      </div>
     </div>
 
     <!-- #189 : sous À propos, sur les deux plateformes (plus dans l'en-tête du bureau). -->
@@ -547,6 +584,13 @@
   .app-name {
     font-weight: 600;
     color: var(--text);
+  }
+
+  .project-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
   }
 
   .mono {

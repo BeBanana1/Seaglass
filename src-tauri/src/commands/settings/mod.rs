@@ -182,7 +182,16 @@ pub async fn set_home_layout(
     Ok(settings.home)
 }
 
-/// Revient à l'ordre du flux, sans section masquée.
+/// Affiche ou masque le bandeau « À la une » de l'accueil (#185).
+#[tauri::command]
+pub async fn set_home_featured(state: State<'_, AppState>, shown: bool) -> CmdResult<HomeLayout> {
+    let mut settings = load(&state);
+    settings.home.featured_hidden = !shown;
+    save(&state, &settings)?;
+    Ok(settings.home)
+}
+
+/// Revient à l'ordre du flux, sans section masquée, bandeau « À la une » compris.
 #[tauri::command]
 pub async fn reset_home_layout(state: State<'_, AppState>) -> CmdResult<HomeLayout> {
     let mut settings = load(&state);

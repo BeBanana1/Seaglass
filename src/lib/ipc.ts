@@ -298,6 +298,8 @@ export interface FeedItem {
 export interface HomeLayout {
   order: string[];
   hidden: string[];
+  /** Bandeau « À la une » masqué (#185). */
+  featuredHidden: boolean;
 }
 
 export interface AlbumPage {
@@ -438,6 +440,8 @@ export interface UpdateInfo {
   notes: string | null;
   /** Android seulement : taille de l'APK en octets, proposé avant d'être téléchargé. */
   size?: number;
+  /** Bureau : installeur en cours de téléchargement, `update-ready` suivra (#187). */
+  downloading?: boolean;
 }
 
 export interface SessionInfo {
@@ -532,7 +536,11 @@ export const commands = {
   /** Sections affichées, dans l'ordre de l'écran ; renvoie la disposition enregistrée. */
   setHomeLayout: (sections: { key: string; hidden: boolean }[]) =>
     invoke<HomeLayout>("set_home_layout", { sections }),
+  /** Affiche ou masque le bandeau « À la une » (#185) ; renvoie la disposition enregistrée. */
+  setHomeFeatured: (shown: boolean) => invoke<HomeLayout>("set_home_featured", { shown }),
   resetHomeLayout: () => invoke<HomeLayout>("reset_home_layout"),
+  /** Ouvre le dépôt ou une nouvelle issue dans le navigateur (#188) ; URLs fixes côté Rust. */
+  openProjectPage: (page: "repo" | "newIssue") => invoke<void>("open_project_page", { page }),
   /** Remplace les épingles ; renvoie la liste enregistrée (validée, sans doublons). */
   setPins: (pins: Pin[]) => invoke<Pin[]>("set_pins", { pins }),
   /** Mémorise le tri d'une liste (`null` : l'oublie) ; renvoie les tris enregistrés. */
@@ -559,7 +567,8 @@ export const commands = {
   updateStatus: () => invoke<UpdateInfo | null>("update_status"),
   /** L'installeur ferme l'app puis la relance. */
   installUpdate: () => invoke<void>("install_update"),
-  /** Vérifie tout de suite : la mise à jour prête (réémise en `update-ready`), ou `null` si à jour. */
+  /** Vérifie tout de suite : la mise à jour prête (réémise en `update-ready`), en
+   *  téléchargement (`downloading`, `update-ready` suivra), ou `null` si à jour. */
   checkForUpdates: () => invoke<UpdateInfo | null>("check_for_updates"),
 };
 
@@ -570,6 +579,9 @@ export const events = {
     listen<QueueView>("queue-state", (e) => cb(e.payload)),
   onUpdateReady: (cb: (u: UpdateInfo) => void): Promise<UnlistenFn> =>
     listen<UpdateInfo>("update-ready", (e) => cb(e.payload)),
+  /** Bureau : le téléchargement de l'installeur a échoué (message de l'erreur, #187). */
+  onUpdateFailed: (cb: (message: string) => void): Promise<UnlistenFn> =>
+    listen<string>("update-failed", (e) => cb(e.payload)),
   onLikes: (cb: (ids: LikedIds) => void): Promise<UnlistenFn> =>
     listen<LikedIds>("likes", (e) => cb(e.payload)),
   onAudioDevices: (cb: (d: AudioDevices) => void): Promise<UnlistenFn> =>

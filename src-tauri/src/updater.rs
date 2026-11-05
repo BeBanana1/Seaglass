@@ -6,7 +6,9 @@
 //! l'installation se fait alors à la fermeture de l'app. Rien n'est jamais installé
 //! sans action de sa part, et la lecture n'est jamais coupée d'office.
 //!
-//! `check_for_updates` (bouton des Réglages) lance la même vérification à la demande.
+//! `check_for_updates` (bouton des Réglages) lance la même vérification à la demande. Elle
+//! répond dès le manifeste lu (#187) : le téléchargement de l'installeur (une quarantaine de
+//! Mo) continue en arrière-plan et se termine par `update-ready`.
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -31,6 +33,19 @@ pub struct UpdateInfo {
     pub current_version: String,
     /// Notes de version (texte libre du manifeste).
     pub notes: Option<String>,
+    /// Vrai tant que l'installeur se télécharge : `update-ready` suivra (#187).
+    pub downloading: bool,
+}
+
+impl UpdateInfo {
+    fn of(update: &Update, downloading: bool) -> Self {
+        Self {
+            version: update.version.clone(),
+            current_version: update.current_version.clone(),
+            notes: update.body.clone(),
+            downloading,
+        }
+    }
 }
 
 struct Pending {
@@ -42,18 +57,26 @@ struct Pending {
 #[derive(Default)]
 pub struct UpdateState {
     pending: Mutex<Option<Pending>>,
-    /// Sérialise la tâche de fond et le bouton : jamais deux téléchargements à la fois.
+    /// Version en cours de téléchargement : jamais deux téléchargements à la fois.
+    downloading: Mutex<Option<UpdateInfo>>,
+    /// Sérialise la lecture du manifeste entre la tâche de fond et le bouton.
     checking: tokio::sync::Mutex<()>,
 }
 
 impl UpdateState {
     fn info(&self) -> Option<UpdateInfo> {
         let guard = self.pending.lock().ok()?;
-        guard.as_ref().map(|p| UpdateInfo {
-            version: p.update.version.clone(),
-            current_version: p.update.current_version.clone(),
-            notes: p.update.body.clone(),
-        })
+        guard.as_ref().map(|p| UpdateInfo::of(&p.update, false))
+    }
+
+    fn downloading(&self) -> Option<UpdateInfo> {
+        self.downloading.lock().ok()?.clone()
+    }
+
+    fn set_downloading(&self, info: Option<UpdateInfo>) {
+        if let Ok(mut slot) = self.downloading.lock() {
+            *slot = info;
+        }
     }
 
     fn take(&self) -> Option<Pending> {
@@ -82,20 +105,18 @@ pub fn spawn(app: AppHandle, mpv: Arc<ProcessGuard>) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(FIRST_CHECK_DELAY).await;
         loop {
-            match check(&app, endpoint.as_deref(), &mpv).await {
-                Ok(Some(info)) => {
-                    let _ = app.emit("update-ready", info);
-                }
-                Ok(None) => {}
-                Err(e) => tracing::warn!("vérification des mises à jour : {e}"),
+            // Le téléchargement lancé par `check` émet lui-même `update-ready`.
+            if let Err(e) = check(&app, endpoint.as_deref(), &mpv).await {
+                tracing::warn!("vérification des mises à jour : {e}");
             }
             tokio::time::sleep(CHECK_INTERVAL).await;
         }
     });
 }
 
-/// Vérifie et télécharge une version plus récente. Renvoie la mise à jour nouvellement
-/// prête, ou `None` si rien n'a changé (app à jour, ou version déjà téléchargée).
+/// Lit le manifeste. Une version plus récente, ni prête ni déjà en téléchargement, est
+/// téléchargée en arrière-plan (puis `update-ready`). Renvoie l'état de la mise à jour
+/// (prête, ou en téléchargement), `None` si l'app est à jour.
 async fn check(
     app: &AppHandle,
     endpoint: Option<&str>,
@@ -118,17 +139,37 @@ async fn check(
         .map_err(|e| e.to_string())?;
 
     let Some(update) = updater.check().await.map_err(|e| e.to_string())? else {
-        return Ok(None);
+        // Une version prête mais retirée du manifeste reste installable.
+        return Ok(state.info());
     };
-    if state.info().is_some_and(|i| i.version == update.version) {
-        return Ok(None);
+    if let Some(info) = state.info().filter(|i| i.version == update.version) {
+        return Ok(Some(info));
     }
+    if let Some(info) = state.downloading().filter(|i| i.version == update.version) {
+        return Ok(Some(info));
+    }
+    let info = UpdateInfo::of(&update, true);
+    state.set_downloading(Some(info.clone()));
     tracing::info!("version {} disponible, téléchargement", update.version);
+    tauri::async_runtime::spawn(download(app.clone(), update));
+    Ok(Some(info))
+}
+
+/// Télécharge l'installeur, puis le garde et émet `update-ready` (`update-failed` avec le
+/// message en cas d'échec : la page Réglages attend la fin d'un téléchargement demandé).
+async fn download(app: AppHandle, update: Update) {
+    let state = app.state::<UpdateState>();
     // `download` vérifie la signature : des octets non signés par notre clé sont refusés.
-    let bytes = update
-        .download(|_, _| {}, || {})
-        .await
-        .map_err(|e| e.to_string())?;
+    let result = update.download(|_, _| {}, || {}).await;
+    state.set_downloading(None);
+    let bytes = match result {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            tracing::warn!("téléchargement de la version {} : {e}", update.version);
+            let _ = app.emit("update-failed", e.to_string());
+            return;
+        }
+    };
     tracing::info!(
         "version {} prête ({} octets, signature vérifiée)",
         update.version,
@@ -137,21 +178,23 @@ async fn check(
     if let Ok(mut slot) = state.pending.lock() {
         *slot = Some(Pending { update, bytes });
     }
-    Ok(state.info())
+    if let Some(info) = state.info() {
+        let _ = app.emit("update-ready", info);
+    }
 }
 
-/// Vérification à la demande. Renvoie la mise à jour prête (nouvelle ou déjà téléchargée
-/// et reportée), `None` si l'app est à jour. Une mise à jour prête est réémise en
-/// `update-ready` pour que la proposition d'installation réapparaisse.
+/// Vérification à la demande, rendue dès le manifeste lu : la mise à jour prête (nouvelle
+/// ou reportée, réémise en `update-ready` pour que la proposition d'installation
+/// réapparaisse), en téléchargement (`downloading`, `update-ready` suivra), ou `None` si
+/// l'app est à jour.
 #[tauri::command]
 pub async fn check_for_updates(
     app: AppHandle,
     mpv: State<'_, Arc<ProcessGuard>>,
 ) -> Result<Option<UpdateInfo>, String> {
     let endpoint = std::env::var(ENDPOINT_ENV).ok();
-    check(&app, endpoint.as_deref(), &mpv).await?;
-    let info = app.state::<UpdateState>().info();
-    if let Some(info) = &info {
+    let info = check(&app, endpoint.as_deref(), &mpv).await?;
+    if let Some(info) = info.as_ref().filter(|i| !i.downloading) {
         let _ = app.emit("update-ready", info);
     }
     Ok(info)
