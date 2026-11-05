@@ -495,6 +495,10 @@ if (params.has("ticks")) setInterval(playbackTick, 250);
 
 let searchHistory: string[] = ["Daft Punk", "Moon Safari", "Bohemian Rhapsody"];
 
+// Jam locale (#25) : `?jam=1` l'affiche démarrée.
+let jam: { url: string; code: string; lan: boolean } | null =
+  params.get("jam") === "1" ? { url: "http://192.168.1.20:47800/", code: "K7QX2M", lan: true } : null;
+
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => (params.has("loggedout") ? null : { userId: 1, countryCode: "CH" }),
   login: () => ({ userId: 1, countryCode: "CH" }),
@@ -534,6 +538,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   clear_search_history: () => (searchHistory = []),
   play_history: () => ({ recent: playedAlbums, top: playedAlbums.slice(0, 2) }),
   clear_play_history: () => void (playedAlbums = []),
+  jam_status: () => jam,
+  start_jam: () => (jam ??= { url: "http://192.168.1.20:47800/", code: "K7QX2M", lan: true }),
+  stop_jam: () => void (jam = null),
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
   album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
   hires_twin_album: () =>

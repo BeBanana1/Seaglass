@@ -7,6 +7,7 @@
     type CacheSize,
     type CloseAction,
     type HiresUpgrade,
+    type JamInfo,
     type LanguagePref,
     type Normalization,
     type PlaybackSettings,
@@ -43,11 +44,56 @@
   const normalization = $derived(playback?.normalization ?? null);
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
+  // Jam locale (#25), bureau seulement.
+  let jam = $state<JamInfo | null>(null);
+  let jamBusy = $state(false);
+  let jamLoaded = false;
 
   $effect(() => {
     if (section === "playback" && playback === null) loadPlayback();
     if (section === "app" && autostart === null && desktop) loadAutostart();
+    if (section === "app" && desktop && !jamLoaded) loadJam();
   });
+
+  async function loadJam() {
+    jamLoaded = true;
+    try {
+      jam = await commands.jamStatus();
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  async function startJam() {
+    jamBusy = true;
+    try {
+      jam = await commands.startJam();
+    } catch (e) {
+      fail(e);
+    } finally {
+      jamBusy = false;
+    }
+  }
+
+  async function stopJam() {
+    try {
+      await commands.stopJam();
+      jam = null;
+      pushToast({ level: "info", message: t.jam.stopped });
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  async function copyJamUrl() {
+    if (!jam) return;
+    try {
+      await navigator.clipboard.writeText(jam.url);
+      pushToast({ level: "info", message: t.jam.copied });
+    } catch (e) {
+      fail(e);
+    }
+  }
 
   function fail(e: unknown) {
     pushToast({ level: "error", message: String(e) });
@@ -352,6 +398,36 @@
         </button>
       </label>
     </div>
+
+    <!-- #25 : Jam locale, page web servie sur le réseau local. -->
+    <div class="group jam">
+      <h2>{t.jam.title}</h2>
+      <p class="hint">{t.jam.hint}</p>
+      {#if jam}
+        <div class="setting-row jam-info">
+          <dl class="jam-fields">
+            <dt>{t.jam.address}</dt>
+            <dd class="mono jam-url">{jam.url}</dd>
+            <dt>{t.jam.code}</dt>
+            <dd class="mono jam-code">{jam.code}</dd>
+          </dl>
+          <div class="jam-actions">
+            <button class="update-check" onclick={copyJamUrl}>{t.jam.copy}</button>
+            <button class="update-check" onclick={stopJam}>{t.jam.stop}</button>
+          </div>
+        </div>
+        <p class="note">{jam.lan ? t.jam.howTo : t.jam.noLan}</p>
+      {:else}
+        <div class="setting-row">
+          <span class="text">
+            <span class="hint">{t.jam.firewall}</span>
+          </span>
+          <button class="update-check" onclick={startJam} disabled={jamBusy}>
+            {jamBusy ? t.jam.starting : t.jam.start}
+          </button>
+        </div>
+      {/if}
+    </div>
     {/if}
 
     <!-- #202 : écoutes gardées localement (accueil, « À la une »). -->
@@ -604,6 +680,37 @@
   .app-name {
     font-weight: 600;
     color: var(--text);
+  }
+
+  .jam-fields {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    align-items: baseline;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .jam-fields dt {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .jam-fields dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+
+  .jam-code {
+    font-size: 22px;
+    letter-spacing: 0.2em;
+  }
+
+  .jam-actions {
+    display: flex;
+    gap: 8px;
   }
 
   .project-links {
