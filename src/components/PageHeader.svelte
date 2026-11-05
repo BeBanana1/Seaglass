@@ -238,16 +238,23 @@
     font-size: 40px;
   }
 
-  /* Android (#24) : image au-dessus du titre, boutons sur plusieurs lignes au besoin. */
+  /* Android (#24, #182) : en-tête centré, image au-dessus du titre. Boutons sur deux lignes :
+     Lecture et Aléatoire sur toute la largeur, les autres en dessous, centrés, en cibles de 44 px. */
   :global(:root[data-platform="android"]) header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 16px;
+    text-align: center;
   }
 
   :global(:root[data-platform="android"]) .image {
     width: min(220px, 60vw);
     height: min(220px, 60vw);
+  }
+
+  :global(:root[data-platform="android"]) .info {
+    align-items: center;
+    width: 100%;
   }
 
   :global(:root[data-platform="android"]) h1 {
@@ -256,5 +263,29 @@
 
   :global(:root[data-platform="android"]) .actions {
     flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px 16px;
+    width: 100%;
+  }
+
+  :global(:root[data-platform="android"]) .actions button,
+  :global(:root[data-platform="android"]) .actions :global(.pin-button),
+  :global(:root[data-platform="android"]) .actions :global(.favorite-button) {
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  :global(:root[data-platform="android"]) .actions .primary,
+  :global(:root[data-platform="android"]) .actions .primary + .secondary {
+    /* Deux moitiés de la ligne (écart de 16 px) : les autres boutons passent à la suivante. */
+    flex: 1 1 calc(50% - 8px);
+    font-size: 15px;
+  }
+
+  :global(:root[data-platform="android"]) .actions button.icon,
+  :global(:root[data-platform="android"]) .actions :global(.pin-button),
+  :global(:root[data-platform="android"]) .actions :global(.favorite-button:not(.follow)) {
+    width: 44px;
+    height: 44px;
   }
 </style>
