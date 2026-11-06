@@ -28,6 +28,8 @@ export const fr = {
     local: "Sur le réseau local",
   },
   stopped: "Jam arrêtée",
+  guestControls: "Les invités peuvent mettre en pause",
+  guestControlsHint: "Un bouton lecture / pause apparaît sur leur page.",
   addedBy: (name: string) => `ajouté par ${name}`,
 };
 
@@ -59,5 +61,7 @@ export const en: typeof fr = {
     local: "On the local network",
   },
   stopped: "Jam stopped",
+  guestControls: "Guests can pause",
+  guestControlsHint: "A play / pause button appears on their page.",
   addedBy: (name: string) => `added by ${name}`,
 };

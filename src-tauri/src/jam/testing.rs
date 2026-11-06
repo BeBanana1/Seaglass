@@ -10,6 +10,7 @@ use crate::tidal::models::{AlbumRef, ArtistRef, Track, TrackId};
 pub struct Fake {
     pub added: Mutex<Vec<u64>>,
     pub named: Mutex<Vec<(u64, String)>>,
+    pub paused: Mutex<Option<bool>>,
 }
 
 pub fn track(id: u64) -> Track {
@@ -50,11 +51,15 @@ impl Backend for Fake {
         self.added.lock().unwrap().push(id.0);
         Ok(())
     }
+    async fn set_paused(&self, paused: bool) -> Result<(), String> {
+        *self.paused.lock().unwrap() = Some(paused);
+        Ok(())
+    }
     async fn state(&self) -> Result<Snapshot, String> {
         let added = self.added.lock().unwrap();
         Ok(Snapshot {
             now: Some(track(7)),
-            paused: false,
+            paused: self.paused.lock().unwrap().unwrap_or(false),
             manual: added.iter().map(|id| track(*id)).collect(),
             upcoming: (8..50).map(track).collect(),
         })

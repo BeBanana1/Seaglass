@@ -14,6 +14,8 @@ pub const MAX_FAILURES: u32 = 10;
 pub const ADDS_PER_MINUTE: usize = 10;
 /// Assez pour la recherche pendant la saisie (une requête par pause de la frappe).
 pub const SEARCHES_PER_MINUTE: usize = 60;
+/// Lecture / pause (#222) : assez pour l'usage normal, pas pour en faire un jeu.
+pub const CONTROLS_PER_MINUTE: usize = 6;
 /// Au-delà, une nouvelle adresse est refusée (réseau local : jamais atteint en pratique).
 const MAX_CLIENTS: usize = 1024;
 /// Titres proposés par les recherches de la Jam, les seuls que les invités peuvent ajouter.
@@ -50,6 +52,7 @@ pub fn code_matches(expected: &str, given: &str) -> bool {
 pub enum Action {
     Search,
     Add,
+    Control,
 }
 
 #[derive(Default)]
@@ -57,6 +60,7 @@ struct Client {
     failures: u32,
     searches: VecDeque<Instant>,
     adds: VecDeque<Instant>,
+    controls: VecDeque<Instant>,
 }
 
 #[derive(Default)]
@@ -87,6 +91,7 @@ impl Limits {
         let (times, max) = match action {
             Action::Search => (&mut c.searches, SEARCHES_PER_MINUTE),
             Action::Add => (&mut c.adds, ADDS_PER_MINUTE),
+            Action::Control => (&mut c.controls, CONTROLS_PER_MINUTE),
         };
         while times
             .front()
@@ -180,8 +185,9 @@ mod tests {
             assert!(limits.allow(IP, Action::Add, t0));
         }
         assert!(!limits.allow(IP, Action::Add, t0 + Duration::from_secs(30)));
-        // Les recherches ont leur propre compteur.
+        // Les recherches et les commandes de lecture ont leur propre compteur.
         assert!(limits.allow(IP, Action::Search, t0));
+        assert!(limits.allow(IP, Action::Control, t0));
         assert!(limits.allow(IP, Action::Add, t0 + WINDOW));
     }
 

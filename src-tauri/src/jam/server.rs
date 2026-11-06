@@ -339,6 +339,41 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn guests_pause_only_when_the_host_allows_it() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let fake = Arc::new(Fake::default());
+        let core = Arc::new(Core::new(CODE.into(), Arc::default()));
+        tokio::spawn(serve(listener, Arc::clone(&core), Arc::clone(&fake)));
+
+        let pause = r#"{"paused":true}"#;
+        assert_eq!(call(addr, "POST", "/api/pause", CODE, pause).await.0, 200);
+        assert_eq!(*fake.paused.lock().unwrap(), Some(true));
+        let (_, body) = call(addr, "POST", "/api/state", CODE, "").await;
+        let state: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(
+            (state["paused"].clone(), state["controls"].clone()),
+            (true.into(), true.into())
+        );
+        assert_eq!(call(addr, "POST", "/api/pause", CODE, "{}").await.0, 400);
+
+        core.set_controls(false);
+        let (status, body) = call(addr, "POST", "/api/pause", CODE, r#"{"paused":false}"#).await;
+        assert_eq!((status, body.as_str()), (403, r#"{"error":"controls"}"#));
+        assert_eq!(*fake.paused.lock().unwrap(), Some(true));
+        let (_, body) = call(addr, "POST", "/api/state", CODE, "").await;
+        let state: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(state["controls"], false);
+
+        // Limite par adresse.
+        core.set_controls(true);
+        for _ in 1..crate::jam::guard::CONTROLS_PER_MINUTE {
+            assert_eq!(call(addr, "POST", "/api/pause", CODE, pause).await.0, 200);
+        }
+        assert_eq!(call(addr, "POST", "/api/pause", CODE, pause).await.0, 429);
+    }
+
+    #[tokio::test]
     async fn long_queries_are_refused() {
         let (addr, _) = start().await;
         let body = format!(r#"{{"query":"{}"}}"#, "a".repeat(MAX_QUERY_CHARS + 1));

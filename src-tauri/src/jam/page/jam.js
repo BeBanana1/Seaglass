@@ -16,6 +16,8 @@ const TEXT = {
     nowPlaying: "En lecture",
     paused: "En pause",
     nothing: "Rien en lecture",
+    play: "Lecture",
+    pause: "Pause",
     noResults: "Aucun titre trouvé.",
     add: "Ajouter à la file",
     added: (t) => `« ${t} » ajouté à la file`,
@@ -31,6 +33,7 @@ const TEXT = {
     errUnknown: "Ce titre n'est plus disponible : relancez la recherche.",
     errOffline: "L'hôte a perdu le réseau. Il devrait revenir dans un instant.",
     errEnded: "Cette Jam est terminée.",
+    errControls: "L'hôte a désactivé la pause pour les invités.",
   },
   en: {
     lead: "Add tracks to the host's queue.",
@@ -45,6 +48,8 @@ const TEXT = {
     nowPlaying: "Now playing",
     paused: "Paused",
     nothing: "Nothing playing",
+    play: "Play",
+    pause: "Pause",
     noResults: "No tracks found.",
     add: "Add to queue",
     added: (t) => `“${t}” added to the queue`,
@@ -60,6 +65,7 @@ const TEXT = {
     errUnknown: "This track is no longer available: search again.",
     errOffline: "The host lost their connection. They should be back shortly.",
     errEnded: "This Jam has ended.",
+    errControls: "The host has turned off pausing for guests.",
   },
 };
 const lang = (navigator.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
@@ -113,6 +119,7 @@ function message(kind) {
       offline: t.errOffline,
       busy: t.errOffline,
       ended: t.errEnded,
+      controls: t.errControls,
     }[kind] || t.errBackend
   );
 }
@@ -209,6 +216,7 @@ function render(state) {
       el("div", "sub", state.now.artists),
     );
     now.append(meta);
+    if (state.controls) now.append(pauseButton(state.paused));
   } else {
     now.append(el("div", "muted", t.nothing));
   }
@@ -216,6 +224,23 @@ function render(state) {
   for (const track of state.queue) pending.delete(track.id);
   $("queue").replaceChildren(...state.queue.map((track) => trackRow(track)));
   $("queue-empty").hidden = state.queue.length > 0;
+}
+
+/** Lecture / pause (#222), si l'hôte le permet. L'état réel revient par le flux. */
+function pauseButton(paused) {
+  const button = el("button", "play-pause", paused ? "▶︎" : "❚❚");
+  button.type = "button";
+  button.setAttribute("aria-label", paused ? t.play : t.pause);
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    try {
+      await api("pause", { paused: !paused });
+    } catch (e) {
+      button.disabled = false;
+      if (!lostAccess(e)) toast(message(e.kind));
+    }
+  });
+  return button;
 }
 
 function openEvents() {

@@ -119,6 +119,17 @@ button:disabled {
   min-height: 88px;
 }
 
+.now .play-pause {
+  flex: none;
+  width: 52px;
+  min-height: 52px;
+  margin-left: auto;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  letter-spacing: -0.1em;
+}
+
 .now .label {
   color: var(--accent);
   font-size: 0.8rem;

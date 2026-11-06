@@ -172,6 +172,7 @@ fn reason(status: u16) -> &'static str {
         200 => "OK",
         400 => "Bad Request",
         401 => "Unauthorized",
+        403 => "Forbidden",
         404 => "Not Found",
         405 => "Method Not Allowed",
         429 => "Too Many Requests",
