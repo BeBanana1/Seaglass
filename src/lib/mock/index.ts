@@ -495,25 +495,38 @@ if (params.has("ticks")) setInterval(playbackTick, 250);
 
 let searchHistory: string[] = ["Daft Punk", "Moon Safari", "Bohemian Rhapsody"];
 
-// Jam locale (#25) : `?jam=1` l'affiche démarrée ; avec `manual=1`, le premier titre de la
-// file manuelle est marqué comme ajouté par une invitée.
+// Jam (#25) : `?jam=1` l'affiche démarrée en ligne, `?jam=local` sur le réseau local,
+// `?jam=reconnecting` en reconnexion ; avec `manual=1`, le premier titre de la file manuelle
+// est marqué comme ajouté par une invitée.
 const fakeQr = (() => {
   let cells = "";
   for (let y = 0; y < 21; y++)
     for (let x = 0; x < 21; x++) if ((x * 7 + y * 13 + x * y) % 3 === 0) cells += `M${x + 2} ${y + 2}h1v1h-1z`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25" shape-rendering="crispEdges"><rect width="25" height="25" fill="#ffffff"/><path fill="#000000" d="${cells}"/></svg>`;
 })();
-function mockJam() {
+function mockJam(mode: "online" | "local", reconnecting = false) {
   const first = manual[0];
   return {
-    url: "http://192.168.1.20:47800/",
+    mode,
+    url:
+      mode === "online"
+        ? "https://jam.bebanana.ch/j/3f9c2a7e5d1b4c08a6e2f1d9b7c3a5e0/"
+        : "http://192.168.1.20:47800/",
     code: "K7QX2M",
     lan: true,
     qrSvg: fakeQr,
+    connection: reconnecting ? ("reconnecting" as const) : ("online" as const),
+    reason: reconnecting ? "relais injoignable" : null,
     guests: first ? { [first.id]: "Léa" } : {},
   };
 }
-let jam: ReturnType<typeof mockJam> | null = params.get("jam") === "1" ? mockJam() : null;
+const jamParam = params.get("jam");
+let jam: ReturnType<typeof mockJam> | null =
+  jamParam === "1" || jamParam === "reconnecting"
+    ? mockJam("online", jamParam === "reconnecting")
+    : jamParam === "local"
+      ? mockJam("local")
+      : null;
 
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => (params.has("loggedout") ? null : { userId: 1, countryCode: "CH" }),
@@ -555,7 +568,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   play_history: () => ({ recent: playedAlbums, top: playedAlbums.slice(0, 2) }),
   clear_play_history: () => void (playedAlbums = []),
   jam_status: () => jam,
-  start_jam: () => (jam ??= mockJam()),
+  jam_online_available: () => true,
+  start_jam: (args) => (jam ??= mockJam(args.mode === "local" ? "local" : "online")),
   stop_jam: () => void (jam = null),
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
   album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),

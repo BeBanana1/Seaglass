@@ -1,24 +1,32 @@
-//! Jam locale (#25), bureau seulement : démarrer, arrêter, état.
+//! Jam (#25), bureau seulement : démarrer (en ligne ou sur le réseau local), arrêter, état.
 
 use tauri::{AppHandle, State};
 
 use super::{AppState, CmdResult};
-use crate::jam::{JamState, JamStatus};
+use crate::jam::{JamMode, JamState, JamStatus};
 
-/// Jam en cours (adresse, code, QR code, noms des invités), ou `null`.
+/// Jam en cours (adresse, code, QR code, connexion, noms des invités), ou `null`.
 #[tauri::command]
 pub async fn jam_status(jam: State<'_, JamState>) -> CmdResult<Option<JamStatus>> {
     Ok(jam.status())
 }
 
+/// Vrai si l'app peut ouvrir une Jam en ligne (clé du relais compilée).
+#[tauri::command]
+pub async fn jam_online_available() -> CmdResult<bool> {
+    Ok(crate::jam::online_available())
+}
+
 /// Démarre la Jam (ou renvoie celle qui tourne) : adresse et code à donner aux invités.
+/// En ligne, l'adresse arrive ensuite par l'événement `jam-status`.
 #[tauri::command]
 pub async fn start_jam(
     app: AppHandle,
     state: State<'_, AppState>,
     jam: State<'_, JamState>,
+    mode: JamMode,
 ) -> CmdResult<JamStatus> {
-    jam.start(app, state.tidal.clone(), state.player.clone())
+    jam.start(mode, app, state.tidal.clone(), state.player.clone())
         .await
 }
 

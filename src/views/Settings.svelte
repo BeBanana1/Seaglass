@@ -7,6 +7,7 @@
     type CacheSize,
     type CloseAction,
     type HiresUpgrade,
+    type JamMode,
     type LanguagePref,
     type Normalization,
     type PlaybackSettings,
@@ -50,9 +51,9 @@
     if (section === "app" && autostart === null && desktop) loadAutostart();
   });
 
-  async function launchJam() {
+  async function launchJam(mode: JamMode) {
     try {
-      await startJam();
+      await startJam(mode);
     } catch (e) {
       fail(e);
     }
@@ -68,7 +69,7 @@
   }
 
   async function copyJamUrl() {
-    if (!jam.status) return;
+    if (!jam.status?.url) return;
     try {
       await navigator.clipboard.writeText(jam.status.url);
       pushToast({ level: "info", message: t.jam.copied });
@@ -386,6 +387,14 @@
       <h2>{t.jam.title}</h2>
       <p class="hint">{t.jam.hint}</p>
       {#if jam.status}
+        <p
+          class="jam-connection"
+          class:warn={jam.status.connection === "reconnecting" || jam.status.connection === "failed"}
+          role="status"
+        >
+          {jam.status.mode === "local" ? t.jam.connection.local : t.jam.connection[jam.status.connection]}
+          {#if jam.status.reason}<span class="jam-reason">({jam.status.reason})</span>{/if}
+        </p>
         <div class="setting-row jam-info">
           {#if jam.status.qrSvg}
             <!-- SVG produit par le backend (crate qrcode) à partir de l'adresse et du code. -->
@@ -393,25 +402,38 @@
           {/if}
           <dl class="jam-fields">
             <dt>{t.jam.address}</dt>
-            <dd class="mono jam-url">{jam.status.url}</dd>
+            <dd class="mono jam-url">{jam.status.url ?? "…"}</dd>
             <dt>{t.jam.code}</dt>
             <dd class="mono jam-code">{jam.status.code}</dd>
           </dl>
           <div class="jam-actions">
-            <button class="update-check" onclick={copyJamUrl}>{t.jam.copy}</button>
+            <button class="update-check" onclick={copyJamUrl} disabled={!jam.status.url}>{t.jam.copy}</button>
             <button class="update-check" onclick={endJam}>{t.jam.stop}</button>
           </div>
         </div>
         <p class="note">{jam.status.lan ? t.jam.howTo : t.jam.noLan}</p>
       {:else}
+        <!-- En ligne par défaut (relais, sans Wi-Fi commun) ; le réseau local en second choix. -->
         <div class="setting-row">
           <span class="text">
-            <span class="hint">{t.jam.firewall}</span>
+            <span class="hint">{jam.onlineAvailable ? t.jam.onlineHint : t.jam.localHint}</span>
           </span>
-          <button class="update-check" onclick={launchJam} disabled={jam.busy}>
-            {jam.busy ? t.jam.starting : t.jam.start}
-          </button>
+          <div class="jam-actions">
+            {#if jam.onlineAvailable}
+              <button class="update-check" onclick={() => launchJam("online")} disabled={jam.busy}>
+                {jam.busy ? t.jam.starting : t.jam.start}
+              </button>
+              <button class="update-check" onclick={() => launchJam("local")} disabled={jam.busy}>
+                {t.jam.startLocal}
+              </button>
+            {:else}
+              <button class="update-check" onclick={() => launchJam("local")} disabled={jam.busy}>
+                {jam.busy ? t.jam.starting : t.jam.start}
+              </button>
+            {/if}
+          </div>
         </div>
+        <p class="note">{t.jam.localHint} {t.jam.firewall}</p>
       {/if}
     </div>
     {/if}
@@ -671,6 +693,22 @@
   .setting-row.jam-info {
     flex-wrap: wrap;
     gap: 16px;
+  }
+
+  .jam-connection {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .jam-connection.warn {
+    color: var(--warn, var(--text-muted));
+  }
+
+  .jam-reason {
+    font-weight: 400;
+    color: var(--text-muted);
   }
 
   .jam-qr {

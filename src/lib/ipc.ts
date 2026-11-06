@@ -515,14 +515,23 @@ export interface Toast {
   message: string;
 }
 
-/** Jam locale (#25) : adresse et code à donner aux invités. */
+/** Jam (#25) : en ligne par le relais, ou sur le réseau local. */
+export type JamMode = "online" | "local";
+export type JamConnection = "connecting" | "online" | "reconnecting" | "failed";
+
+/** Jam (#25) : adresse et code à donner aux invités. */
 export interface JamStatus {
-  url: string;
+  mode: JamMode;
+  /** `null` tant que le relais n'a pas répondu. */
+  url: string | null;
   code: string;
-  /** Faux si aucune adresse du réseau local n'a été trouvée (`127.0.0.1`). */
+  /** Réseau local : faux si aucune adresse du réseau n'a été trouvée (`127.0.0.1`). */
   lan: boolean;
   /** QR code de l'adresse avec le code, en SVG noir sur blanc (généré par le backend). */
   qrSvg: string | null;
+  connection: JamConnection;
+  /** Raison d'une reconnexion ou d'un échec, déjà traduite. */
+  reason: string | null;
   /** Nom de l'invité de chaque titre ajouté par la Jam, par identifiant de titre. */
   guests: Record<string, string>;
 }
@@ -541,7 +550,9 @@ export const commands = {
   clearPlayHistory: () => invoke<void>("clear_play_history"),
   /** Jam locale (#25), bureau seulement : `null` si aucune Jam ne tourne. */
   jamStatus: () => invoke<JamStatus | null>("jam_status"),
-  startJam: () => invoke<JamStatus>("start_jam"),
+  jamOnlineAvailable: () => invoke<boolean>("jam_online_available"),
+  /** En ligne, l'adresse arrive ensuite par `jam-status`. */
+  startJam: (mode: JamMode) => invoke<JamStatus>("start_jam", { mode }),
   stopJam: () => invoke<void>("stop_jam"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
@@ -684,6 +695,9 @@ export const commands = {
 };
 
 export const events = {
+  /** Jam (#25) : connexion au relais (connecté, reconnexion, nouvelle adresse). */
+  onJamStatus: (cb: (status: JamStatus) => void): Promise<UnlistenFn> =>
+    listen<JamStatus>("jam-status", (e) => cb(e.payload)),
   /** Jam (#25) : un invité a ajouté un titre sous son nom. */
   onJamGuests: (cb: (guests: Record<string, string>) => void): Promise<UnlistenFn> =>
     listen<Record<string, string>>("jam-guests", (e) => cb(e.payload)),

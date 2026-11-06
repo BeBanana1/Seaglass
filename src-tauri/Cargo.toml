@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.4.82"
+version = "0.4.83"
 description = "Seaglass, client de streaming non officiel"
 authors = ["bebanana"]
 edition = "2024"
@@ -30,6 +30,12 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util", "process", "fs"] }
+# Jam en ligne (#25) : connexion sortante au relais, certificats vérifiés par le magasin du
+# système comme `reqwest` (rustls et futures-util sont déjà compilés par reqwest et tauri).
+tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "__rustls-tls"] }
+rustls = { version = "0.23", default-features = false, features = ["std", "aws_lc_rs"] }
+rustls-platform-verifier = "0.7"
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
@@ -48,7 +54,6 @@ qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.22"
 ndk-context = "0.1"
-rustls-platform-verifier = "0.7"
 # Pont natif (Kotlin) : connexion TIDAL dans sa propre WebView, puis Media3.
 tauri-plugin-seaglass-mobile = { path = "plugins/seaglass-mobile" }
 

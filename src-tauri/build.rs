@@ -2,7 +2,13 @@ use std::path::Path;
 
 /// Variables lues dans `../.env` (gitignoré) et injectées à la compilation.
 /// Une variable d'environnement du même nom au lancement reste prioritaire (voir `tidal::auth`).
-const EMBEDDED_ENV: [&str; 2] = ["TIDAL_CLIENT_ID", "TIDAL_CLIENT_SECRET"];
+/// `SEAGLASS_RELAY_KEY` : clé du relais de la Jam en ligne (#25), devient
+/// `SEAGLASS_SEAGLASS_RELAY_KEY` ; sans elle, seule la Jam locale est proposée.
+const EMBEDDED_ENV: [&str; 3] = [
+    "TIDAL_CLIENT_ID",
+    "TIDAL_CLIENT_SECRET",
+    "SEAGLASS_RELAY_KEY",
+];
 
 fn main() {
     check_version();

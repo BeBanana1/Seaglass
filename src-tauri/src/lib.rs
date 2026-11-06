@@ -192,6 +192,8 @@ pub fn run() {
             #[cfg(desktop)]
             commands::jam::jam_status,
             #[cfg(desktop)]
+            commands::jam::jam_online_available,
+            #[cfg(desktop)]
             commands::jam::start_jam,
             #[cfg(desktop)]
             commands::jam::stop_jam,

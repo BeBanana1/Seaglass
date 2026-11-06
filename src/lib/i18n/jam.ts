@@ -1,9 +1,10 @@
-// Jam locale (#25) : contrôles de l'hôte dans Réglages › Application.
+// Jam (#25) : contrôles de l'hôte dans Réglages › Application.
 
 export const fr = {
   title: "Jam",
-  hint: "Des invités sur le même réseau ajoutent des titres à votre file depuis leur téléphone, sans app ni compte. Seul cet ordinateur joue la musique.",
+  hint: "Des invités ajoutent des titres à votre file depuis leur téléphone, sans app ni compte. Seul cet ordinateur joue la musique.",
   start: "Démarrer la Jam",
+  startLocal: "Sur le réseau local",
   stop: "Arrêter",
   starting: "Démarrage…",
   address: "Adresse",
@@ -11,17 +12,27 @@ export const fr = {
   copy: "Copier",
   copied: "Adresse copiée",
   qr: "QR code de la Jam",
+  onlineHint: "Les invités rejoignent par Internet, depuis n'importe quel réseau, même en données mobiles.",
+  localHint: "Sur le réseau local, les invités doivent être sur le même Wi-Fi que cet ordinateur.",
   howTo: "Les invités scannent le QR code, ou ouvrent l'adresse dans leur navigateur et saisissent le code. Leur prénom s'affiche à côté de leurs titres dans la file. Vous gardez la main sur la file : retirez un titre depuis la file habituelle.",
-  firewall: "Au premier démarrage, Windows demande d'autoriser Seaglass sur le réseau : acceptez pour les réseaux privés.",
+  firewall: "Au premier démarrage sur le réseau local, Windows demande d'autoriser Seaglass : acceptez pour les réseaux privés.",
   noLan: "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent rejoindre la Jam.",
+  connection: {
+    connecting: "Connexion au relais…",
+    online: "En ligne",
+    reconnecting: "Connexion perdue, reconnexion… Les invités gardent la même adresse.",
+    failed: "La Jam en ligne s'est arrêtée",
+    local: "Sur le réseau local",
+  },
   stopped: "Jam arrêtée",
   addedBy: (name: string) => `ajouté par ${name}`,
 };
 
 export const en: typeof fr = {
   title: "Jam",
-  hint: "Guests on the same network add tracks to your queue from their phone, with no app or account. Only this computer plays the music.",
+  hint: "Guests add tracks to your queue from their phone, with no app or account. Only this computer plays the music.",
   start: "Start the Jam",
+  startLocal: "On the local network",
   stop: "Stop",
   starting: "Starting…",
   address: "Address",
@@ -29,9 +40,18 @@ export const en: typeof fr = {
   copy: "Copy",
   copied: "Address copied",
   qr: "Jam QR code",
+  onlineHint: "Guests join over the internet, from any network, even on mobile data.",
+  localHint: "On the local network, guests must be on the same Wi-Fi as this computer.",
   howTo: "Guests scan the QR code, or open the address in their browser and enter the code. Their first name appears next to their tracks in the queue. You stay in control: remove a track from the usual queue.",
-  firewall: "The first time, Windows asks to allow Seaglass on the network: accept for private networks.",
+  firewall: "The first time on the local network, Windows asks to allow Seaglass: accept for private networks.",
   noLan: "No local network found: only browsers on this computer can join the Jam.",
+  connection: {
+    connecting: "Connecting to the relay…",
+    online: "Online",
+    reconnecting: "Connection lost, reconnecting… Guests keep the same address.",
+    failed: "The online Jam has stopped",
+    local: "On the local network",
+  },
   stopped: "Jam stopped",
   addedBy: (name: string) => `added by ${name}`,
 };
