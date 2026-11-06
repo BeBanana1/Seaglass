@@ -2,9 +2,9 @@
 
 use std::sync::Mutex;
 
-use super::api::{Backend, Snapshot};
+use super::api::{Backend, Hits, Snapshot};
 use super::guests::Guests;
-use crate::tidal::models::{AlbumRef, ArtistRef, Track, TrackId};
+use crate::tidal::models::{AlbumRef, AlbumSummary, ArtistRef, Track, TrackId};
 
 #[derive(Default)]
 pub struct Fake {
@@ -43,12 +43,51 @@ pub fn track(id: u64) -> Track {
     }
 }
 
-impl Backend for Fake {
-    async fn search(&self, _query: String) -> Result<Vec<Track>, String> {
-        Ok(vec![track(1), track(2)])
+pub fn album(id: u64) -> AlbumSummary {
+    AlbumSummary {
+        id,
+        title: format!("Album {id}"),
+        artists: vec![ArtistRef {
+            id: 1,
+            name: "A".into(),
+        }],
+        cover_url: None,
+        cover_large_url: None,
+        color: None,
+        release_date: Some("2013-05-17".into()),
+        number_of_tracks: Some(35),
+        album_type: Some("ALBUM".into()),
+        explicit: false,
+        hires: false,
     }
-    async fn enqueue(&self, id: TrackId) -> Result<(), String> {
-        self.added.lock().unwrap().push(id.0);
+}
+
+impl Backend for Fake {
+    async fn search(&self, _query: String) -> Result<Hits, String> {
+        Ok(Hits {
+            tracks: vec![track(1), track(2)],
+            albums: vec![album(40)],
+        })
+    }
+    /// L'album 40 a 35 titres (100 à 134) : plus que le plafond d'un ajout.
+    async fn album_tracks(&self, id: u64) -> Result<Vec<Track>, String> {
+        Ok(if id == 40 {
+            (100..135).map(track).collect()
+        } else {
+            Vec::new()
+        })
+    }
+    async fn enqueue(&self, ids: Vec<TrackId>) -> Result<(), String> {
+        self.added.lock().unwrap().extend(ids.iter().map(|id| id.0));
+        Ok(())
+    }
+    async fn remove(&self, ids: Vec<TrackId>) -> Result<(), String> {
+        let mut added = self.added.lock().unwrap();
+        for id in ids {
+            if let Some(i) = added.iter().position(|a| *a == id.0) {
+                added.remove(i);
+            }
+        }
         Ok(())
     }
     async fn set_paused(&self, paused: bool) -> Result<(), String> {

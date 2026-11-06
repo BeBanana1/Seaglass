@@ -50,6 +50,8 @@ pub enum Cmd {
         next: bool,
     },
     RemoveFromQueue(usize),
+    /// Retire de la file manuelle une entrée par identifiant (invités de la Jam, #223).
+    RemoveFromQueueIds(Vec<TrackId>),
     /// Déplace une entrée de la file manuelle (`from` finit à l'index `to`).
     MoveInQueue {
         from: usize,
@@ -304,6 +306,11 @@ impl Player {
             }
             Cmd::RemoveFromQueue(index) => {
                 if self.queue.remove_manual(index) {
+                    self.on_queue_changed().await;
+                }
+            }
+            Cmd::RemoveFromQueueIds(ids) => {
+                if self.queue.remove_manual_ids(&ids) > 0 {
                     self.on_queue_changed().await;
                 }
             }

@@ -151,6 +151,19 @@ impl Queue {
         self.manual.remove(index).is_some()
     }
 
+    /// Retire de la file manuelle une entrée par identifiant donné, la première trouvée
+    /// (invités de la Jam qui retirent leurs ajouts, #223). Renvoie le nombre retiré.
+    pub fn remove_manual_ids(&mut self, ids: &[TrackId]) -> usize {
+        let mut removed = 0;
+        for id in ids {
+            if let Some(i) = self.manual.iter().position(|e| e.id == *id) {
+                self.manual.remove(i);
+                removed += 1;
+            }
+        }
+        removed
+    }
+
     /// Déplace l'entrée `from` de la file manuelle pour qu'elle finisse à l'index `to`
     /// (glisser-déposer, Monter / Descendre). Renvoie `false` si rien ne change.
     pub fn move_manual(&mut self, from: usize, to: usize) -> bool {

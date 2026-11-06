@@ -20,6 +20,7 @@ mod relay;
 mod server;
 #[cfg(test)]
 mod testing;
+mod view;
 
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, UdpSocket};
@@ -37,7 +38,7 @@ use crate::i18n::{tr, trf};
 use crate::player::Cmd;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{Track, TrackId};
-use api::{Backend, Core, Snapshot};
+use api::{Backend, Core, Hits, Snapshot};
 use guests::Guests;
 use relay::{RelayConfig, RelayEvent};
 
@@ -328,17 +329,35 @@ fn stopped() -> String {
 }
 
 impl Backend for AppBackend {
-    async fn search(&self, query: String) -> Result<Vec<Track>, String> {
+    async fn search(&self, query: String) -> Result<Hits, String> {
         self.tidal
             .search(&query, SEARCH_LIMIT)
             .await
-            .map(|r| r.tracks)
+            .map(|r| Hits {
+                tracks: r.tracks,
+                albums: r.albums,
+            })
             .map_err(|e| e.to_string())
     }
 
-    async fn enqueue(&self, id: TrackId) -> Result<(), String> {
+    async fn album_tracks(&self, id: u64) -> Result<Vec<Track>, String> {
+        self.tidal
+            .album(id)
+            .await
+            .map(|page| page.tracks)
+            .map_err(|e| e.to_string())
+    }
+
+    async fn enqueue(&self, ids: Vec<TrackId>) -> Result<(), String> {
         self.player
-            .send(Cmd::AddToQueue(id))
+            .send(Cmd::Enqueue { ids, next: false })
+            .await
+            .map_err(|_| stopped())
+    }
+
+    async fn remove(&self, ids: Vec<TrackId>) -> Result<(), String> {
+        self.player
+            .send(Cmd::RemoveFromQueueIds(ids))
             .await
             .map_err(|_| stopped())
     }
