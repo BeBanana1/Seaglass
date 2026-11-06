@@ -32,6 +32,11 @@ function key(target: LikeTarget): string {
   return target.kind === "playlist" ? `playlist:${target.uuid}` : `${target.kind}:${target.id}`;
 }
 
+/** Écriture en cours pour cet élément (bouton estompé, #227). */
+export function isLaterPending(target: LikeTarget): boolean {
+  return later.pending.has(key(target));
+}
+
 export function isSavedForLater(target: LikeTarget): boolean {
   switch (target.kind) {
     case "track":

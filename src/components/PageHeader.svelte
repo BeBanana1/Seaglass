@@ -6,6 +6,7 @@
   import Icon from "./Icon.svelte";
   import PinButton from "./PinButton.svelte";
   import FavoriteButton from "./FavoriteButton.svelte";
+  import LaterButton from "./LaterButton.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
 
   let {
@@ -18,6 +19,7 @@
     queueable = false,
     pin,
     favorite,
+    later,
     meta,
     description,
     onRadio,
@@ -38,6 +40,8 @@
     pin?: Pin;
     /** Ajout aux favoris (album, playlist d'un autre) ou « Suivre » (artiste), #81. */
     favorite?: LikeTarget;
+    /** « Plus tard » (album, #227). */
+    later?: LikeTarget;
     meta?: Snippet;
     description?: string | null;
     /** Bouton « Radio » (page d'artiste). */
@@ -73,7 +77,7 @@
     <h1>{title}</h1>
     {#if meta}<div class="meta">{@render meta()}</div>{/if}
     {#if description}<p class="description">{description}</p>{/if}
-    {#if trackIds.length > 0 || favorite || onEdit}
+    {#if trackIds.length > 0 || favorite || later || onEdit}
       <div class="actions">
         {#if trackIds.length > 0}
           <button class="primary" onclick={() => play(false)}>
@@ -84,6 +88,7 @@
           </button>
         {/if}
         {#if favorite}<FavoriteButton target={favorite} />{/if}
+        {#if later}<LaterButton target={later} />{/if}
         {#if queueable && trackIds.length > 0}
           <button class="secondary icon" onclick={() => enqueue(true)} title={t.views.header.playNext} aria-label={t.views.header.playNext}>
             <Icon name="playNext" size={18} />
@@ -195,7 +200,8 @@
 
   .actions button,
   .actions :global(.pin-button),
-  .actions :global(.favorite-button) {
+  .actions :global(.favorite-button),
+  .actions :global(.later-button) {
     clip-path: var(--control-clip);
   }
 
@@ -278,7 +284,8 @@
 
   :global(:root[data-platform="android"]) .actions button,
   :global(:root[data-platform="android"]) .actions :global(.pin-button),
-  :global(:root[data-platform="android"]) .actions :global(.favorite-button) {
+  :global(:root[data-platform="android"]) .actions :global(.favorite-button),
+  :global(:root[data-platform="android"]) .actions :global(.later-button) {
     justify-content: center;
     min-height: 44px;
   }
@@ -292,7 +299,8 @@
 
   :global(:root[data-platform="android"]) .actions button.icon,
   :global(:root[data-platform="android"]) .actions :global(.pin-button),
-  :global(:root[data-platform="android"]) .actions :global(.favorite-button:not(.follow)) {
+  :global(:root[data-platform="android"]) .actions :global(.favorite-button:not(.follow)),
+  :global(:root[data-platform="android"]) .actions :global(.later-button) {
     width: 44px;
     height: 44px;
   }

@@ -257,6 +257,8 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // Clic sur l'icône de la zone de notification : cacher si au premier plan (#226).
+            WindowEvent::Focused(focused) if window.label() == "main" => tray::note_focus(*focused),
             // Le plein écran (#131) change la taille : l'UI suit l'état réel de la fenêtre.
             WindowEvent::Resized(_) => commands::window::on_resized(window),
             _ => {}

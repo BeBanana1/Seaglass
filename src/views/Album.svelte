@@ -57,6 +57,7 @@
       source={{ kind: "album", id: album.id, title: album.title }}
       queueable
       favorite={{ kind: "album", id: album.id }}
+      later={{ kind: "album", id: album.id }}
     >
       {#snippet meta()}
         {#each album.artists as artist, i (artist.id)}
