@@ -164,6 +164,14 @@ export const fr = {
   check: "Vérifier",
   checkFailed: (e: string) => `Vérification des mises à jour impossible : ${e}`,
 
+  tidalLinks: "Liens TIDAL",
+  tidalLinksLabel: "Ouvrir les liens TIDAL dans Seaglass",
+  tidalLinksOn: "Activé : un lien TIDAL touché (WhatsApp, navigateur…) ouvre sa page dans l'app.",
+  tidalLinksOff:
+    "Désactivé : les liens TIDAL s'ouvrent dans le navigateur. Dans le réglage, « Ajouter des liens », puis cochez tidal.com.",
+  tidalLinksEnable: "Activer",
+  tidalLinksChange: "Modifier",
+
   playHistory: "Historique d'écoute",
   playHistoryHint:
     "Gardé sur cet appareil seulement, pour « Écoutés dans Seaglass » et « À la une ». Rien n'est envoyé à TIDAL.",
@@ -349,6 +357,14 @@ export const en: typeof fr = {
   checking: "Checking…",
   check: "Check",
   checkFailed: (e: string) => `Could not check for updates: ${e}`,
+
+  tidalLinks: "TIDAL links",
+  tidalLinksLabel: "Open TIDAL links in Seaglass",
+  tidalLinksOn: "On: tapping a TIDAL link (WhatsApp, browser…) opens its page in the app.",
+  tidalLinksOff:
+    "Off: TIDAL links open in the browser. In the settings page, choose “Add links”, then tick tidal.com.",
+  tidalLinksEnable: "Turn on",
+  tidalLinksChange: "Change",
 
   playHistory: "Listening history",
   playHistoryHint:

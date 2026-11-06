@@ -46,6 +46,8 @@
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
   let discordAvailable = $state(false);
+  // Android 12+ (#203) : liens TIDAL donnés à l'app ; `null` = rien à régler ou pas encore lu.
+  let links = $state<{ enabled: boolean } | null>(null);
 
   $effect(() => {
     if (section === "playback" && playback === null) loadPlayback();
@@ -57,6 +59,20 @@
       commands.discordAvailable().then((v) => (discordAvailable = v), fail);
     }
   });
+
+  $effect(() => {
+    if (section !== "app" || desktop) return;
+    const load = () => commands.linkHandling().then((v) => (links = v), fail);
+    load();
+    // Retour depuis le réglage du système : l'état a pu changer.
+    const onVisible = () => document.visibilityState === "visible" && load();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  });
+
+  function openLinkSettings() {
+    commands.openLinkSettings().catch(fail);
+  }
 
   async function toggleDiscord() {
     try {
@@ -400,6 +416,22 @@
       <h2>{t.jam.title}</h2>
       <p class="hint">{t.jam.hint}</p>
       <JamPanel />
+    </div>
+    {/if}
+
+    <!-- #203 : liens https://tidal.com/… touchés, à donner à l'app sur Android 12+. -->
+    {#if links}
+    <div class="group">
+      <h2>{t.settings.tidalLinks}</h2>
+      <div class="setting-row tidal-links">
+        <span class="text">
+          <span class="setting-label">{t.settings.tidalLinksLabel}</span>
+          <span class="hint">{links.enabled ? t.settings.tidalLinksOn : t.settings.tidalLinksOff}</span>
+        </span>
+        <button class="update-check" onclick={openLinkSettings}>
+          {links.enabled ? t.settings.tidalLinksChange : t.settings.tidalLinksEnable}
+        </button>
+      </div>
     </div>
     {/if}
 

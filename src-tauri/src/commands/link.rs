@@ -2,7 +2,7 @@
 //! `listen.tidal.com/…`, avec ou sans schéma, `/u` final ou paramètres, éventuellement au
 //! milieu d'un texte de partage. Le texte n'est jamais envoyé tel quel : seuls le type et
 //! un identifiant validé (numérique, uuid ou id de mix) en sortent. Sur Android, le même
-//! texte arrive aussi par le menu « Partager » du système (`share`).
+//! texte arrive aussi par le menu « Partager » du système et par les liens touchés (`share`).
 
 use std::sync::Mutex;
 
@@ -112,6 +112,50 @@ fn toast(app: &AppHandle, message: String) {
 #[tauri::command]
 pub async fn take_shared_link() -> CmdResult<Option<LinkTarget>> {
     Ok(SHARED.lock().ok().and_then(|mut s| s.take()))
+}
+
+/// Liens `https://tidal.com/…` donnés à l'app sur Android 12+ (#203) : le domaine n'est pas
+/// à nous, l'utilisateur doit les activer dans « Ouvrir par défaut ».
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
+pub struct LinkHandling {
+    pub enabled: bool,
+}
+
+/// État des liens TIDAL, ou `null` s'il n'y a rien à régler (bureau, Android avant 12).
+#[tauri::command]
+pub async fn link_handling() -> CmdResult<Option<LinkHandling>> {
+    #[cfg(target_os = "android")]
+    {
+        #[derive(serde::Deserialize)]
+        struct State {
+            supported: bool,
+            enabled: bool,
+        }
+        let state: State =
+            tauri_plugin_seaglass_mobile::direct::call("linkHandling", serde_json::json!({}))
+                .await?;
+        Ok(state.supported.then_some(LinkHandling {
+            enabled: state.enabled,
+        }))
+    }
+    #[cfg(not(target_os = "android"))]
+    Ok(None)
+}
+
+/// Ouvre le réglage « Ouvrir par défaut » de l'app (Android seulement).
+#[tauri::command]
+pub async fn open_link_settings() -> CmdResult<()> {
+    #[cfg(target_os = "android")]
+    {
+        tauri_plugin_seaglass_mobile::direct::call::<serde::de::IgnoredAny>(
+            "openLinkSettings",
+            serde_json::json!({}),
+        )
+        .await?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    Err(tr("Réglage propre à Android", "Android-only setting").into())
 }
 
 async fn resolve(tidal: &TidalClient, text: &str) -> CmdResult<Option<LinkTarget>> {

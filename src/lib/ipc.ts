@@ -692,6 +692,10 @@ export const commands = {
   takeNowPlayingRequest: () => invoke<boolean>("take_now_playing_request"),
   /** Android : lien reçu par le menu « Partager » (#203), une seule fois. */
   takeSharedLink: () => invoke<LinkTarget | null>("take_shared_link"),
+  /** Android 12+ : liens `https://tidal.com/…` donnés à l'app ; `null` = rien à régler (#203). */
+  linkHandling: () => invoke<{ enabled: boolean } | null>("link_handling"),
+  /** Android : ouvre le réglage « Ouvrir par défaut » de l'app. */
+  openLinkSettings: () => invoke<void>("open_link_settings"),
   fullscreen: () => invoke<boolean>("fullscreen"),
   /** Renvoie l'état relu ; la suite arrive aussi par `fullscreen`. */
   setFullscreen: (fullscreen: boolean) => invoke<boolean>("set_fullscreen", { fullscreen }),

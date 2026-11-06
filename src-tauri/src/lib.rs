@@ -128,6 +128,8 @@ pub fn run() {
             commands::catalog::artist_extra,
             commands::play_history::play_history,
             commands::link::take_shared_link,
+            commands::link::link_handling,
+            commands::link::open_link_settings,
             commands::play_history::clear_play_history,
             commands::catalog::library_tracks,
             commands::catalog::library_albums,
