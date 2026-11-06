@@ -13,7 +13,7 @@
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
-  import { setCloseAction, ui } from "../lib/stores/ui.svelte";
+  import { setCloseAction, setDiscord, ui } from "../lib/stores/ui.svelte";
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
@@ -45,11 +45,26 @@
   const normalization = $derived(playback?.normalization ?? null);
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
+  let discordAvailable = $state(false);
 
   $effect(() => {
     if (section === "playback" && playback === null) loadPlayback();
     if (section === "app" && autostart === null && desktop) loadAutostart();
   });
+
+  $effect(() => {
+    if (section === "app" && desktop) {
+      commands.discordAvailable().then((v) => (discordAvailable = v), fail);
+    }
+  });
+
+  async function toggleDiscord() {
+    try {
+      await setDiscord(!ui.settings.discord);
+    } catch (e) {
+      fail(e);
+    }
+  }
 
   function fail(e: unknown) {
     pushToast({ level: "error", message: String(e) });
@@ -349,6 +364,29 @@
           aria-label={t.settings.autostart}
           disabled={autostart === null || autostartBusy}
           onclick={toggleAutostart}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+    </div>
+    {/if}
+
+    <!-- #215 : présence Discord, proposée seulement si une application Discord est compilée. -->
+    {#if desktop && discordAvailable}
+    <div class="group">
+      <h2>{t.settings.discord}</h2>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.discordPresence}</span>
+          <span class="hint">{t.settings.discordHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={ui.settings.discord}
+          role="switch"
+          aria-checked={ui.settings.discord}
+          aria-label={t.settings.discordPresence}
+          onclick={toggleDiscord}
         >
           <span class="knob"></span>
         </button>

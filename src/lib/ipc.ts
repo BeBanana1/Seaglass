@@ -458,6 +458,8 @@ export interface UiSettings {
   language: LanguagePref;
   /** Fermer la fenêtre : quitter, ou réduire dans la zone de notification (#83). */
   closeAction: CloseAction;
+  /** Présence Discord (#215), désactivée par défaut. */
+  discord: boolean;
   /** Tris mémorisés, le plus récent en tête (#93). */
   sorts: ListSort[];
 }
@@ -681,6 +683,8 @@ export const commands = {
   platform: () => invoke<Platform>("platform"),
   /** État réel du lancement au démarrage, lu dans le système. */
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
+  /** Vrai si la présence Discord peut être proposée (bureau, application Discord compilée, #215). */
+  discordAvailable: () => invoke<boolean>("discord_available"),
   /** Renvoie l'état relu après changement. */
   setAutostart: (enabled: boolean) => invoke<boolean>("set_autostart", { enabled }),
   /** Bureau seulement : plein écran de la fenêtre principale (#131). */

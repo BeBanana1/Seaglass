@@ -5,6 +5,8 @@
 // clippy `-D warnings` échouerait sur du code mort.
 #![cfg_attr(not(windows), allow(dead_code))]
 
+#[cfg(desktop)]
+pub mod discord;
 #[cfg(any(target_os = "android", test))]
 pub mod media_session;
 #[cfg(windows)]
@@ -38,6 +40,8 @@ pub struct Observers {
     pub smtc: Option<smtc::SmtcHandle>,
     #[cfg(desktop)]
     pub tray: Option<tray::TrayHandle>,
+    #[cfg(desktop)]
+    pub discord: Option<discord::DiscordHandle>,
     #[cfg(target_os = "android")]
     pub media_session: Option<media_session::MediaSessionHandle>,
 }
@@ -52,6 +56,10 @@ impl Observers {
         if let Some(tray) = &self.tray {
             tray.update(state);
         }
+        #[cfg(desktop)]
+        if let Some(discord) = &self.discord {
+            discord.update(NowPlaying::from_player(state));
+        }
         #[cfg(target_os = "android")]
         if let Some(session) = &self.media_session {
             session.update(NowPlaying::from_player(state));
@@ -61,6 +69,7 @@ impl Observers {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MediaInfo {
+    pub track_id: u64,
     pub title: String,
     pub artist: String,
     pub album: String,
@@ -91,6 +100,7 @@ pub struct NowPlaying {
 impl NowPlaying {
     pub fn from_player(s: &PlayerState) -> Self {
         let media = s.track.as_ref().map(|t| MediaInfo {
+            track_id: t.id.0,
             title: match &t.version {
                 Some(v) => format!("{} ({v})", t.title),
                 None => t.title.clone(),

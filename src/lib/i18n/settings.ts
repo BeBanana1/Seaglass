@@ -148,6 +148,11 @@ export const fr = {
     tray: "La musique continue ; « Quitter » dans le menu de l'icône ferme l'app.",
   },
 
+  discord: "Discord",
+  discordPresence: "Afficher l'écoute sur Discord",
+  discordHint:
+    "Vos contacts voient « Écoute Seaglass » avec le titre, l'artiste et la pochette. Rien en pause. L'app Discord doit être ouverte sur ce PC.",
+
   updates: "Mises à jour",
   checkUpdates: "Vérifier les mises à jour",
   upToDate: "Seaglass est à jour.",
@@ -328,6 +333,11 @@ export const en: typeof fr = {
     quit: "Playback stops with the app.",
     tray: "The music keeps playing; “Quit” in the icon's menu closes the app.",
   },
+
+  discord: "Discord",
+  discordPresence: "Show what you're playing on Discord",
+  discordHint:
+    "Your friends see “Listening to Seaglass” with the title, artist and cover. Nothing while paused. The Discord app must be running on this PC.",
 
   updates: "Updates",
   checkUpdates: "Check for updates",
