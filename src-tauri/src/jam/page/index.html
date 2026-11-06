@@ -27,12 +27,22 @@
       </section>
 
       <section id="jam" hidden>
+        <!-- Chercher dans son app, puis revenir coller le lien (#225, #229). Texte seulement. -->
+        <nav class="apps" aria-labelledby="apps-label">
+          <span id="apps-label" data-t="appsLabel"></span>
+          <a href="https://listen.tidal.com/" target="_blank" rel="noopener noreferrer">TIDAL</a>
+          <a href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer">Spotify</a>
+          <a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube Music</a>
+          <a href="https://www.deezer.com/" target="_blank" rel="noopener noreferrer">Deezer</a>
+          <a href="https://music.apple.com/" target="_blank" rel="noopener noreferrer">Apple Music</a>
+        </nav>
         <div id="now" class="now" aria-live="polite"></div>
 
         <form id="search-form" class="search" role="search" autocomplete="off">
-          <input id="query" type="search" maxlength="100" enterkeyhint="search" />
+          <input id="query" type="search" maxlength="300" enterkeyhint="search" />
           <button id="clear" type="button" class="clear" hidden>✕</button>
         </form>
+        <p class="hint" data-t="pasteHint"></p>
         <p id="search-status" class="muted status" aria-live="polite" hidden></p>
         <div id="tabs" class="tabs" role="tablist" hidden>
           <button id="tab-tracks" type="button" role="tab" class="tab"></button>

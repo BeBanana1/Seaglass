@@ -41,7 +41,7 @@ pub enum LinkTarget {
 
 /// Ce que désigne un lien, avant résolution d'un titre en album.
 #[derive(Debug, Clone, PartialEq)]
-enum Link {
+pub(crate) enum Link {
     Track(u64),
     Album(u64),
     Artist(u64),
@@ -133,7 +133,7 @@ async fn resolve(tidal: &TidalClient, text: &str) -> CmdResult<Option<LinkTarget
     }))
 }
 
-fn parse(text: &str) -> Option<Link> {
+pub(crate) fn parse(text: &str) -> Option<Link> {
     if text.len() > MAX_TEXT_LEN {
         return None;
     }

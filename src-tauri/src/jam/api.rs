@@ -21,7 +21,8 @@ use crate::tidal::models::{AlbumSummary, Track, TrackId};
 
 /// Délai d'une réponse qui attend TIDAL ou le lecteur.
 pub const BACKEND_TIMEOUT: Duration = Duration::from_secs(15);
-pub const MAX_QUERY_CHARS: usize = 100;
+/// Un lien collé (Apple Music, Spotify avec ses paramètres) dépasse souvent 100 caractères.
+pub const MAX_QUERY_CHARS: usize = 300;
 const MAX_RESULTS: usize = 30;
 const MAX_ALBUM_RESULTS: usize = 20;
 /// Titres d'un album ajoutés au plus : un coffret ne remplit pas la file (#223).
@@ -50,6 +51,9 @@ pub struct Hits {
 /// Ce que le serveur demande à l'app ; remplacé par un faux dans les tests.
 pub trait Backend: Send + Sync + 'static {
     fn search(&self, query: String) -> impl Future<Output = Result<Hits, String>> + Send;
+    /// Titres ou albums d'un lien collé (TIDAL, Deezer, Spotify, Apple Music, YouTube,
+    /// #229) ; appelé seulement si `crate::foreign::find` reconnaît un lien.
+    fn link(&self, text: String) -> impl Future<Output = Result<Hits, String>> + Send;
     /// Titres lisibles d'un album, dans l'ordre (#223).
     fn album_tracks(&self, id: u64) -> impl Future<Output = Result<Vec<Track>, String>> + Send;
     /// Ajoute à la fin de la file manuelle, dans l'ordre donné.
@@ -189,7 +193,14 @@ impl Core {
         if !self.allow(ip, Action::Search) {
             return Response::error(429, "slow");
         }
-        let hits = match backend.search(query.to_owned()).await {
+        // Un lien d'un autre service (#229) : ses titres ou son album, pas une recherche.
+        let link = crate::foreign::find(query).is_some();
+        let hits = if link {
+            backend.link(query.to_owned()).await
+        } else {
+            backend.search(query.to_owned()).await
+        };
+        let hits = match hits {
             Ok(hits) => hits,
             Err(e) => return backend_error(&e),
         };
@@ -213,10 +224,8 @@ impl Core {
             s.offered_albums.note(albums.iter().map(|a| a.id));
         }
         if body.albums {
-            Response::json(
-                200,
-                &serde_json::json!({ "tracks": tracks, "albums": albums }),
-            )
+            let hits = serde_json::json!({ "tracks": tracks, "albums": albums, "link": link });
+            Response::json(200, &hits)
         } else {
             Response::json(200, &serde_json::json!(tracks))
         }

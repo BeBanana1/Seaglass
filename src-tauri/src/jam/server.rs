@@ -442,6 +442,32 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn pasted_links_are_resolved_instead_of_searched() {
+        let (addr, _) = start().await;
+        let query =
+            r#"{"query":"https://open.spotify.com/album/4m2880jivSbbyEGAKfITCa","albums":true}"#;
+        let (_, body) = call(addr, "POST", "/api/search", CODE, query).await;
+        let hits: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(hits["link"], true);
+        assert_eq!(hits["albums"][0]["id"], 41);
+        // L'album du lien est proposé comme celui d'une recherche (le faux n'a pas de
+        // titres pour lui : « empty » et pas « unknown »).
+        let add = r#"{"albumId":41}"#;
+        let (_, body) = call(addr, "POST", "/api/add-album", CODE, add).await;
+        assert_eq!(body, r#"{"error":"empty"}"#);
+        let (_, body) = call(
+            addr,
+            "POST",
+            "/api/search",
+            CODE,
+            r#"{"query":"x","albums":true}"#,
+        )
+        .await;
+        let hits: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(hits["link"], false);
+    }
+
+    #[tokio::test]
     async fn long_queries_are_refused() {
         let (addr, _) = start().await;
         let body = format!(r#"{{"query":"{}"}}"#, "a".repeat(MAX_QUERY_CHARS + 1));

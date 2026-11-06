@@ -22,6 +22,7 @@ mod live_later;
 mod live_playlist_cache;
 #[cfg(test)]
 mod live_tests;
+mod lookup;
 mod lyrics;
 mod manifest;
 mod mix;

@@ -4,6 +4,7 @@ mod android;
 mod apk_update;
 mod commands;
 mod engine;
+mod foreign;
 mod i18n;
 mod integrations;
 mod jam;
