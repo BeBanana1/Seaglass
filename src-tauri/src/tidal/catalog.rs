@@ -47,7 +47,9 @@ impl TidalClient {
             )
             .await?;
         let user = self.user_id().await.ok();
-        let tracks = self.remember(raw::tracks(raw.tracks.items));
+        let mut tracks = self.remember(raw::tracks(raw.tracks.items));
+        // Titres de ce nom avant ceux des artistes de ce nom (#232).
+        super::rank::titles_first(&mut tracks, query);
         Ok(SearchResults {
             tracks,
             albums: raw.albums.items.into_iter().map(Into::into).collect(),

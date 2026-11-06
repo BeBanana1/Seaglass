@@ -28,6 +28,7 @@ mod mix;
 pub mod models;
 mod paging;
 mod playlist;
+mod rank;
 mod raw;
 mod twin;
 mod versions;
