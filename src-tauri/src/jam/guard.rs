@@ -16,6 +16,8 @@ pub const ADDS_PER_MINUTE: usize = 10;
 pub const SEARCHES_PER_MINUTE: usize = 60;
 /// Lecture / pause (#222) : assez pour l'usage normal, pas pour en faire un jeu.
 pub const CONTROLS_PER_MINUTE: usize = 6;
+/// Retraits de ses propres ajouts (#223).
+pub const REMOVES_PER_MINUTE: usize = 30;
 /// Au-delà, une nouvelle adresse est refusée (réseau local : jamais atteint en pratique).
 const MAX_CLIENTS: usize = 1024;
 /// Titres proposés par les recherches de la Jam, les seuls que les invités peuvent ajouter.
@@ -53,6 +55,7 @@ pub enum Action {
     Search,
     Add,
     Control,
+    Remove,
 }
 
 #[derive(Default)]
@@ -61,6 +64,7 @@ struct Client {
     searches: VecDeque<Instant>,
     adds: VecDeque<Instant>,
     controls: VecDeque<Instant>,
+    removes: VecDeque<Instant>,
 }
 
 #[derive(Default)]
@@ -92,6 +96,7 @@ impl Limits {
             Action::Search => (&mut c.searches, SEARCHES_PER_MINUTE),
             Action::Add => (&mut c.adds, ADDS_PER_MINUTE),
             Action::Control => (&mut c.controls, CONTROLS_PER_MINUTE),
+            Action::Remove => (&mut c.removes, REMOVES_PER_MINUTE),
         };
         while times
             .front()

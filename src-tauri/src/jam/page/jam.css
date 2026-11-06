@@ -142,6 +142,64 @@ button:disabled {
   gap: 8px;
 }
 
+/* Titres / Albums d'une recherche (#223). */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tabs[hidden] {
+  display: none;
+}
+
+.tab {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.tab.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+/* Ajouts de ce navigateur dans la file : retirer un titre, ou tout un album. */
+.track .remove {
+  flex: none;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  color: var(--muted);
+  background: var(--raised);
+  font-weight: 400;
+}
+
+.batch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 4px 2px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.batch-head .link {
+  flex: none;
+  white-space: nowrap;
+}
+
+.batch-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tracks {
   list-style: none;
   margin: 8px 0 0;

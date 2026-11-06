@@ -194,7 +194,7 @@ async fn route<B: Backend>(req: Request, ip: IpAddr, shared: &Shared, backend: &
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jam::api::{MAX_QUERY_CHARS, MAX_QUEUE};
+    use crate::jam::api::{MAX_ALBUM_TRACKS, MAX_QUERY_CHARS, MAX_QUEUE};
     use crate::jam::testing::Fake;
     use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 
@@ -371,6 +371,74 @@ mod tests {
             assert_eq!(call(addr, "POST", "/api/pause", CODE, pause).await.0, 200);
         }
         assert_eq!(call(addr, "POST", "/api/pause", CODE, pause).await.0, 429);
+    }
+
+    #[tokio::test]
+    async fn search_returns_albums_only_to_pages_that_ask() {
+        let (addr, _) = start().await;
+        let (_, body) = call(addr, "POST", "/api/search", CODE, r#"{"query":"x"}"#).await;
+        let old: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert!(old.is_array());
+
+        let query = r#"{"query":"x","albums":true}"#;
+        let (_, body) = call(addr, "POST", "/api/search", CODE, query).await;
+        let hits: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(hits["tracks"][0]["id"], 1);
+        assert_eq!(hits["albums"][0]["id"], 40);
+        assert_eq!(hits["albums"][0]["artists"], "A");
+        assert_eq!(hits["albums"][0]["tracks"], 35);
+        assert_eq!(hits["albums"][0]["year"], "2013");
+    }
+
+    #[tokio::test]
+    async fn albums_are_added_as_one_batch_that_only_its_owner_removes() {
+        let (addr, fake) = start().await;
+        let (lea, max) = ("a".repeat(32), "b".repeat(32));
+        let album = format!(r#"{{"albumId":40,"name":"Léa","guest":"{lea}"}}"#);
+        // Pas encore proposé par une recherche.
+        assert_eq!(
+            call(addr, "POST", "/api/add-album", CODE, &album).await.0,
+            400
+        );
+
+        let query = r#"{"query":"x","albums":true}"#;
+        assert_eq!(call(addr, "POST", "/api/search", CODE, query).await.0, 200);
+        let (status, body) = call(addr, "POST", "/api/add-album", CODE, &album).await;
+        assert_eq!(status, 200);
+        let added: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(added["count"], MAX_ALBUM_TRACKS);
+        let batch = added["batch"].as_u64().unwrap();
+        assert_eq!(fake.added.lock().unwrap().len(), MAX_ALBUM_TRACKS);
+
+        let (_, body) = call(addr, "POST", "/api/state", CODE, "").await;
+        let state: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(state["queue"][0]["id"], 100);
+        assert_eq!(state["queue"][0]["by"], "Léa");
+        assert_eq!(state["queue"][0]["batch"], batch);
+
+        // Un autre jeton ne retire rien ; sans jeton valable, la requête est refusée.
+        let remove =
+            |guest: &str, track: &str| format!(r#"{{"guest":"{guest}","batch":{batch}{track}}}"#);
+        let (_, body) = call(addr, "POST", "/api/remove", CODE, &remove(&max, "")).await;
+        assert_eq!(body, r#"{"ok":true,"removed":0}"#);
+        assert_eq!(
+            call(addr, "POST", "/api/remove", CODE, &remove("x", ""))
+                .await
+                .0,
+            400
+        );
+
+        // Un titre, puis le reste du lot.
+        let one = remove(&lea, r#","trackId":101"#);
+        let (_, body) = call(addr, "POST", "/api/remove", CODE, &one).await;
+        assert_eq!(body, r#"{"ok":true,"removed":1}"#);
+        assert!(!fake.added.lock().unwrap().contains(&101));
+        let (_, body) = call(addr, "POST", "/api/remove", CODE, &remove(&lea, "")).await;
+        assert_eq!(
+            body,
+            format!(r#"{{"ok":true,"removed":{}}}"#, MAX_ALBUM_TRACKS - 1)
+        );
+        assert!(fake.added.lock().unwrap().is_empty());
     }
 
     #[tokio::test]

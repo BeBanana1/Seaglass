@@ -109,6 +109,20 @@ fn enqueue_nothing_is_a_no_op() {
 }
 
 #[test]
+fn remove_manual_entries_by_id() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..3), 0, None, &mut rng());
+    q.enqueue(&[TrackId(7), TrackId(8), TrackId(7), TrackId(9)], false);
+    // Une entrée par identifiant demandé ; le contexte n'est pas touché.
+    assert_eq!(
+        q.remove_manual_ids(&[TrackId(7), TrackId(1), TrackId(9)]),
+        2
+    );
+    assert_eq!(q.manual().map(|t| t.0).collect::<Vec<_>>(), vec![8, 7]);
+    assert_eq!(q.peek_next(), Some(TrackId(8)));
+}
+
+#[test]
 fn remove_manual_entry() {
     let mut q = Queue::default();
     q.set_context(ids(0..2), 0, None, &mut rng());
