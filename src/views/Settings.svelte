@@ -7,7 +7,6 @@
     type CacheSize,
     type CloseAction,
     type HiresUpgrade,
-    type JamMode,
     type LanguagePref,
     type Normalization,
     type PlaybackSettings,
@@ -20,7 +19,8 @@
   import AccentPicker from "../components/AccentPicker.svelte";
   import OutputDevicePicker from "../components/OutputDevicePicker.svelte";
   import { platform } from "../lib/platform.svelte";
-  import { jam, startJam, stopJam } from "../lib/stores/jam.svelte";
+  import { jam } from "../lib/stores/jam.svelte";
+  import JamPanel from "../components/JamPanel.svelte";
 
   let { section, onLogout }: { section: SettingsSection; onLogout?: () => void } = $props();
 
@@ -50,33 +50,6 @@
     if (section === "playback" && playback === null) loadPlayback();
     if (section === "app" && autostart === null && desktop) loadAutostart();
   });
-
-  async function launchJam(mode: JamMode) {
-    try {
-      await startJam(mode);
-    } catch (e) {
-      fail(e);
-    }
-  }
-
-  async function endJam() {
-    try {
-      await stopJam();
-      pushToast({ level: "info", message: t.jam.stopped });
-    } catch (e) {
-      fail(e);
-    }
-  }
-
-  async function copyJamUrl() {
-    if (!jam.status?.url) return;
-    try {
-      await navigator.clipboard.writeText(jam.status.url);
-      pushToast({ level: "info", message: t.jam.copied });
-    } catch (e) {
-      fail(e);
-    }
-  }
 
   function fail(e: unknown) {
     pushToast({ level: "error", message: String(e) });
@@ -388,61 +361,7 @@
     <div class="group jam">
       <h2>{t.jam.title}</h2>
       <p class="hint">{t.jam.hint}</p>
-      {#if jam.status}
-        <p
-          class="jam-connection"
-          class:warn={jam.status.connection === "reconnecting" || jam.status.connection === "failed"}
-          role="status"
-        >
-          {jam.status.mode === "local" ? t.jam.connection.local : t.jam.connection[jam.status.connection]}
-          {#if jam.status.reason}<span class="jam-reason">({jam.status.reason})</span>{/if}
-        </p>
-        <div class="setting-row jam-info">
-          {#if jam.status.qrSvg}
-            <!-- SVG produit par le backend (crate qrcode) à partir de l'adresse et du code. -->
-            <div class="jam-qr" role="img" aria-label={t.jam.qr}>{@html jam.status.qrSvg}</div>
-          {/if}
-          <dl class="jam-fields">
-            <dt>{t.jam.address}</dt>
-            <dd class="mono jam-url">{jam.status.url ?? "…"}</dd>
-            <dt>{t.jam.code}</dt>
-            <dd class="mono jam-code">{jam.status.code}</dd>
-          </dl>
-          <div class="jam-actions">
-            <button class="update-check" onclick={copyJamUrl} disabled={!jam.status.url}>{t.jam.copy}</button>
-            <button class="update-check" onclick={endJam}>{t.jam.stop}</button>
-          </div>
-        </div>
-        <p class="note">{jam.status.lan ? t.jam.howTo : t.jam.noLan}</p>
-      {:else}
-        <!-- En ligne par défaut (relais, sans Wi-Fi commun) ; le réseau local en second choix. -->
-        <div class="setting-row jam-start">
-          <span class="text">
-            <span class="hint">{jam.onlineAvailable ? t.jam.onlineHint : t.jam.localHint}</span>
-          </span>
-          <div class="jam-actions">
-            {#if jam.onlineAvailable}
-              <button class="update-check" onclick={() => launchJam("online")} disabled={jam.busy}>
-                {jam.busy ? t.jam.starting : t.jam.start}
-              </button>
-              {#if desktop}
-                <button class="update-check" onclick={() => launchJam("local")} disabled={jam.busy}>
-                  {t.jam.startLocal}
-                </button>
-              {/if}
-            {:else}
-              <button class="update-check" onclick={() => launchJam("local")} disabled={jam.busy}>
-                {jam.busy ? t.jam.starting : t.jam.start}
-              </button>
-            {/if}
-          </div>
-        </div>
-        {#if desktop}
-          <p class="note">{t.jam.localHint} {t.jam.firewall}</p>
-        {:else}
-          <p class="note">{t.jam.phoneHint}</p>
-        {/if}
-      {/if}
+      <JamPanel />
     </div>
     {/if}
 
@@ -696,81 +615,6 @@
   .app-name {
     font-weight: 600;
     color: var(--text);
-  }
-
-  .setting-row.jam-info {
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .jam-connection {
-    margin: 0 0 10px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
-  }
-
-  .jam-connection.warn {
-    color: var(--warn, var(--text-muted));
-  }
-
-  .jam-reason {
-    font-weight: 400;
-    color: var(--text-muted);
-  }
-
-  .jam-qr {
-    flex: none;
-    width: 148px;
-    height: 148px;
-    padding: 6px;
-    border-radius: 10px;
-    background: #ffffff;
-  }
-
-  .jam-qr :global(svg) {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-
-  .jam-fields {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 6px 16px;
-    align-items: baseline;
-    margin: 0;
-    flex: 1;
-    min-width: 220px;
-  }
-
-  .jam-fields dt {
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-
-  .jam-fields dd {
-    margin: 0;
-    overflow-wrap: anywhere;
-    user-select: text;
-  }
-
-  .jam-code {
-    font-size: 22px;
-    letter-spacing: 0.2em;
-  }
-
-  .jam-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  /* Les boutons passent sous le texte quand la place manque (téléphone, thèmes en capitales
-     espacées). */
-  .setting-row.jam-start {
-    flex-wrap: wrap;
-    gap: 12px;
   }
 
   .project-links {

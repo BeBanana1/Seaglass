@@ -5,7 +5,8 @@
   import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
-  import { initJam } from "./lib/stores/jam.svelte";
+  import { closeJamDialog, initJam, jam } from "./lib/stores/jam.svelte";
+  import JamDialog from "./components/JamDialog.svelte";
   import { clearLater, initLater, loadLater } from "./lib/stores/later.svelte";
   import { initUi, ui } from "./lib/stores/ui.svelte";
   import { initLanguage, t } from "./lib/i18n.svelte";
@@ -107,7 +108,7 @@
   // la recherche dans une liste, puis revient à la page précédente.
   function canClose(): boolean {
     return (
-      !!menu.open || !!picker.request || !!trackInfo.track || nowPlayingOpen || listSearch.active || canGoBack()
+      !!menu.open || !!picker.request || !!trackInfo.track || jam.dialogOpen || nowPlayingOpen || listSearch.active || canGoBack()
     );
   }
 
@@ -115,6 +116,7 @@
     if (menu.open) closeMenu();
     else if (picker.request) closePlaylistPicker();
     else if (trackInfo.track) closeTrackInfo();
+    else if (jam.dialogOpen) closeJamDialog();
     // Paroles ou file en plein écran (#173) : Retour revient d'abord à « En lecture ».
     else if (nowPlayingOpen && ui.nowPlayingPanel) ui.nowPlayingPanel = null;
     else if (nowPlayingOpen) nowPlayingOpen = false;
@@ -335,6 +337,7 @@
 <ContextMenu />
 <PlaylistPicker />
 <TrackInfo />
+<JamDialog />
 
 <style>
   /* Fond propre au thème (vide pour Studio et Atelier). */

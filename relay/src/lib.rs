@@ -58,7 +58,7 @@ impl Config {
             host_key: host_key.to_owned(),
             max_jams: 20,
             lifetime: Duration::from_secs(12 * 3600),
-            grace: Duration::from_secs(5 * 60),
+            grace: Duration::from_secs(30 * 60),
             trust_proxy: false,
             creations_per_hour: 10,
             requests_per_minute: 120,
