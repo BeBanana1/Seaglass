@@ -1,4 +1,5 @@
-//! Icône de la zone de notification (#83) : clic gauche = afficher la fenêtre, menu avec
+//! Icône de la zone de notification (#83) : clic gauche = afficher la fenêtre, ou la
+//! cacher si elle est déjà au premier plan (#226), menu avec
 //! le titre en cours, Lecture/Pause, Suivant, Précédent, Afficher, Quitter. Les commandes
 //! passent par `Cmd`, comme SMTC ; le menu est tenu à jour en observateur de l'acteur.
 //!
@@ -7,6 +8,7 @@
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -22,6 +24,46 @@ pub const MINIMIZED_ARG: &str = "--minimized";
 
 static CLOSE_TO_TRAY: AtomicBool = AtomicBool::new(false);
 static TRAY_READY: AtomicBool = AtomicBool::new(false);
+/// Dernière perte du focus de la fenêtre principale (#226).
+static FOCUS_LOST: Mutex<Option<Instant>> = Mutex::new(None);
+/// Cliquer sur l'icône prend le focus à la fenêtre juste avant le clic : une fenêtre qui
+/// l'a perdu il y a moins que ça était encore au premier plan.
+const FOCUS_GRACE: Duration = Duration::from_millis(500);
+
+/// Focus de la fenêtre principale, suivi pour le clic sur l'icône (#226).
+pub fn note_focus(focused: bool) {
+    if let Ok(mut lost) = FOCUS_LOST.lock() {
+        *lost = (!focused).then(Instant::now);
+    }
+}
+
+/// Clic sur l'icône : cacher une fenêtre visible au premier plan, sinon l'afficher
+/// (cachée, réduite ou derrière d'autres fenêtres). Logique pure, testée.
+fn click_hides(visible: bool, minimized: bool, focused: bool, lost_ago: Option<Duration>) -> bool {
+    visible && !minimized && (focused || lost_ago.is_some_and(|d| d <= FOCUS_GRACE))
+}
+
+/// Clic gauche sur l'icône : afficher ou cacher la fenêtre principale (#226).
+fn toggle_main(app: &AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let lost_ago = FOCUS_LOST
+        .lock()
+        .ok()
+        .and_then(|lost| lost.map(|at| at.elapsed()));
+    let hides = click_hides(
+        window.is_visible().unwrap_or(false),
+        window.is_minimized().unwrap_or(false),
+        window.is_focused().unwrap_or(false),
+        lost_ago,
+    );
+    if hides {
+        let _ = window.hide();
+    } else {
+        show_main(app);
+    }
+}
 
 /// Réglage « Fermer la fenêtre » : vrai = réduire dans la zone de notification.
 pub fn set_close_to_tray(enabled: bool) {
@@ -206,7 +248,7 @@ pub fn create(app: &AppHandle, player: mpsc::Sender<Cmd>) -> tauri::Result<TrayH
                 ..
             } = event
             {
-                show_main(tray.app_handle());
+                toggle_main(tray.app_handle());
             }
         });
     if let Some(icon) = app.default_window_icon() {
@@ -286,6 +328,24 @@ mod tests {
         assert_eq!(cut.chars().count(), 60);
         assert!(cut.ends_with('…'));
         assert_eq!(ellipsize("court", 60), "court");
+    }
+
+    #[test]
+    fn click_hides_only_a_window_in_front() {
+        let just = Some(Duration::from_millis(80));
+        // Au premier plan, ou qui vient de perdre le focus à cause du clic : cachée.
+        assert!(click_hides(true, false, true, None));
+        assert!(click_hides(true, false, false, just));
+        // Derrière d'autres fenêtres depuis longtemps, réduite ou cachée : affichée.
+        assert!(!click_hides(
+            true,
+            false,
+            false,
+            Some(Duration::from_secs(5))
+        ));
+        assert!(!click_hides(true, false, false, None));
+        assert!(!click_hides(true, true, false, just));
+        assert!(!click_hides(false, false, false, just));
     }
 
     #[test]
