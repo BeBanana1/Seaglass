@@ -2,6 +2,8 @@
 
 export const fr = {
   title: "Jam",
+  open: "Jam : inviter des amis à ajouter des titres",
+  openRunning: "Jam en cours : QR code et code",
   hint: "Des invités ajoutent des titres à votre file depuis leur téléphone, sans app ni compte. Seul votre appareil joue la musique.",
   start: "Démarrer la Jam",
   startLocal: "Sur le réseau local",
@@ -31,6 +33,8 @@ export const fr = {
 
 export const en: typeof fr = {
   title: "Jam",
+  open: "Jam: let friends add tracks",
+  openRunning: "Jam running: QR code and code",
   hint: "Guests add tracks to your queue from their phone, with no app or account. Only your device plays the music.",
   start: "Start the Jam",
   startLocal: "On the local network",

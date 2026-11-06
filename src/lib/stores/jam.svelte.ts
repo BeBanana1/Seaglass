@@ -3,11 +3,31 @@
 
 import { commands, events, type JamMode, type JamStatus } from "../ipc";
 
-export const jam = $state<{ status: JamStatus | null; busy: boolean; onlineAvailable: boolean }>({
+export const jam = $state<{
+  status: JamStatus | null;
+  busy: boolean;
+  onlineAvailable: boolean;
+  /** Fenêtre d'accès rapide ouverte depuis « En lecture » (JamDialog). */
+  dialogOpen: boolean;
+}>({
   status: null,
   busy: false,
   onlineAvailable: false,
+  dialogOpen: false,
 });
+
+/** La Jam est proposée : bureau (réseau local au moins) ou relais compilé. */
+export function jamAvailable(desktop: boolean): boolean {
+  return desktop || jam.onlineAvailable;
+}
+
+export function openJamDialog() {
+  jam.dialogOpen = true;
+}
+
+export function closeJamDialog() {
+  jam.dialogOpen = false;
+}
 
 export async function initJam() {
   void events.onJamGuests((guests) => {

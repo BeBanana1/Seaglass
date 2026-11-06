@@ -11,6 +11,7 @@
   import { go, nav } from "../lib/stores/nav.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
   import { openTrackInfo } from "../lib/stores/trackInfo.svelte";
+  import { jam, jamAvailable, openJamDialog } from "../lib/stores/jam.svelte";
   import { playedFrom } from "../lib/playSource";
   import Backdrop from "../components/backdrops/Backdrop.svelte";
   import Icon from "../components/Icon.svelte";
@@ -210,6 +211,18 @@
                 <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
                   <Icon name="info" size={20} />
                 </button>
+                <!-- #25 : accès rapide à la Jam, allumé tant qu'elle tourne. -->
+                {#if jamAvailable(!platform.mobile)}
+                  <button
+                    class="now-add jam-open"
+                    class:active={!!jam.status}
+                    onclick={openJamDialog}
+                    title={jam.status ? t.jam.openRunning : t.jam.open}
+                    aria-label={jam.status ? t.jam.openRunning : t.jam.open}
+                  >
+                    <Icon name="jam" size={20} />
+                  </button>
+                {/if}
                 <SleepTimer size={20} />
               </div>
 
@@ -406,6 +419,10 @@
     padding: 4px;
     border-radius: 4px;
     color: var(--text-muted);
+  }
+
+  .jam-open.active {
+    color: var(--accent);
   }
 
   .now-add:hover {

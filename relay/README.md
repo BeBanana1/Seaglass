@@ -13,7 +13,7 @@ Protocole : `src/protocol.rs`.
 
 - **Clé de build** (`SEAGLASS_RELAY_KEY`, en-tête `Authorization: Bearer …` de `/host`) : la même valeur dans le `.env` de l'app. Elle écarte les robots qui scannent Internet. Ce n'est pas un secret : n'importe qui peut la tirer d'une app distribuée. La protection vient des limites ci-dessous.
 - Identifiant de Jam de 128 bits dans le lien, code d'accès vérifié par l'hôte (et par le relais pour le flux d'état, 10 essais ratés par adresse).
-- 20 Jams ouvertes au plus (`RELAY_MAX_JAMS`), 10 créations par adresse et par heure, 12 h de vie, 5 min pour que l'hôte revienne après une coupure (même adresse, même QR code).
+- 20 Jams ouvertes au plus (`RELAY_MAX_JAMS`), 10 créations par adresse et par heure, 12 h de vie, 30 min pour que l'hôte revienne après une coupure ou une pause écran éteint (même adresse, même QR code).
 - 120 appels par minute et par adresse, corps de 2 Kio, 64 pages ouvertes par Jam, messages de l'hôte de 256 Kio, réponse de l'hôte attendue 15 s.
 - Conteneur en lecture seule, sans capacités, utilisateur non root, 128 Mo de mémoire.
 
