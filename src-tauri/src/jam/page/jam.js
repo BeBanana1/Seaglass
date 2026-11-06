@@ -9,6 +9,7 @@ const TEXT = {
     codeLabel: "Code de la Jam",
     join: "Rejoindre",
     searchPlaceholder: "Chercher un titre, un artiste…",
+    clear: "Effacer la recherche",
     searching: "Recherche…",
     upNext: "À suivre",
     queueEmpty: "Rien dans la file pour l'instant.",
@@ -37,6 +38,7 @@ const TEXT = {
     codeLabel: "Jam code",
     join: "Join",
     searchPlaceholder: "Search for a track or artist…",
+    clear: "Clear search",
     searching: "Searching…",
     upNext: "Up next",
     queueEmpty: "Nothing in the queue yet.",
@@ -329,7 +331,19 @@ $("search-form").addEventListener("submit", (event) => {
   $("query").blur();
   search($("query").value);
 });
-$("query").addEventListener("input", scheduleSearch);
+$("query").addEventListener("input", () => {
+  $("clear").hidden = !$("query").value;
+  scheduleSearch();
+});
+
+// Croix maison (#224) : celle de `type="search"` n'existe pas partout (Safari iOS, Firefox).
+$("clear").setAttribute("aria-label", t.clear);
+$("clear").addEventListener("click", () => {
+  $("query").value = "";
+  $("clear").hidden = true;
+  search("");
+  $("query").focus();
+});
 
 $("rename").addEventListener("click", () => showJoin());
 
