@@ -223,8 +223,38 @@ button:disabled {
   text-decoration: underline;
 }
 
+.search {
+  position: relative;
+}
+
 .search input {
   flex: 1;
+  padding-right: 52px;
+}
+
+/* La croix native est masquée : le bouton `.clear` la remplace (#224). */
+.search input::-webkit-search-cancel-button {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.search .clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 48px;
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  font-weight: 400;
+}
+
+.search .clear:hover {
+  color: var(--text);
+}
+
+.search .clear[hidden] {
+  display: none;
 }
 
 .toast {
