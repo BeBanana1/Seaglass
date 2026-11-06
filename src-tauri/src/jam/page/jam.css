@@ -46,25 +46,69 @@ h2 {
   letter-spacing: 0.08em;
 }
 
-/* Liens vers les apps de musique (#225), en haut à droite. */
+/* Boutons vers les apps de musique (#225), en haut à droite : logo seul, nom en info-bulle. */
 .apps {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
-  gap: 4px 12px;
+  gap: 6px;
   margin: -8px 0 14px;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
-.apps a {
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
+.apps span {
+  margin-right: 2px;
 }
 
-.apps a:hover {
-  text-decoration: underline;
+.app {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--brand);
+  transition: background 0.15s, transform 0.15s;
+}
+
+.app svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.app:hover,
+.app:focus-visible {
+  background: #25474d;
+  transform: translateY(-1px);
+}
+
+.app:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tidal {
+  --brand: #ffffff;
+}
+
+.spotify {
+  --brand: #1ed760;
+}
+
+.youtube {
+  --brand: #ff0000;
+}
+
+.deezer {
+  --brand: #a238ff;
+}
+
+.apple {
+  --brand: #fa2d48;
 }
 
 .hint {
