@@ -165,3 +165,47 @@ fn now_ms() -> i64 {
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as i64)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::integrations::{MediaInfo, PlaybackStatus};
+    use crate::player::Repeat;
+
+    /// Contre le vrai Discord (lancé sur le poste, `DISCORD_CLIENT_ID` dans `.env`) :
+    /// `cargo test live_discord -- --ignored --nocapture`, puis regarder son profil.
+    #[tokio::test]
+    #[ignore]
+    async fn live_discord() {
+        let id = client_id().expect("DISCORD_CLIENT_ID absent du .env");
+        let mut conn = ipc::open(&id).await.expect("Discord injoignable");
+        let np = NowPlaying {
+            media: Some(MediaInfo {
+                track_id: 1_632_061,
+                title: "Billie Jean".into(),
+                artist: "Michael Jackson".into(),
+                album: "Thriller 25 Super Deluxe Edition".into(),
+                // Pochette vérifiée dans l'app (URL de la file) : ici seulement le protocole.
+                cover_url: None,
+                duration: 294.0,
+            }),
+            status: PlaybackStatus::Playing,
+            position: 30.0,
+            has_next: false,
+            has_previous: false,
+            shuffle: false,
+            repeat: Repeat::Off,
+        };
+        let activity = activity::desired(Some(&np), None, now_ms()).unwrap();
+        conn.set_activity(Some(activity.to_json())).await.unwrap();
+        let reply = tokio::time::timeout(Duration::from_secs(5), conn.recv())
+            .await
+            .expect("pas de réponse")
+            .expect("connexion fermée");
+        println!("réponse : {}", reply.payload);
+        assert_eq!(reply.payload["cmd"], "SET_ACTIVITY");
+        assert_ne!(reply.payload["evt"], "ERROR");
+        println!("présence affichée pendant 20 s");
+        tokio::time::sleep(Duration::from_secs(20)).await;
+    }
+}
