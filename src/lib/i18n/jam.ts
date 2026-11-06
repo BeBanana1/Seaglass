@@ -2,7 +2,7 @@
 
 export const fr = {
   title: "Jam",
-  hint: "Des invités ajoutent des titres à votre file depuis leur téléphone, sans app ni compte. Seul cet ordinateur joue la musique.",
+  hint: "Des invités ajoutent des titres à votre file depuis leur téléphone, sans app ni compte. Seul votre appareil joue la musique.",
   start: "Démarrer la Jam",
   startLocal: "Sur le réseau local",
   stop: "Arrêter",
@@ -17,6 +17,7 @@ export const fr = {
   howTo: "Les invités scannent le QR code, ou ouvrent l'adresse dans leur navigateur et saisissent le code. Leur prénom s'affiche à côté de leurs titres dans la file. Vous gardez la main sur la file : retirez un titre depuis la file habituelle.",
   firewall: "Au premier démarrage sur le réseau local, Windows demande d'autoriser Seaglass : acceptez pour les réseaux privés.",
   noLan: "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent rejoindre la Jam.",
+  phoneHint: "Gardez la musique en lecture : en pause et écran éteint, Android coupe le réseau de Seaglass au bout d'une minute environ, et les invités ne peuvent plus ajouter de titres.",
   connection: {
     connecting: "Connexion au relais…",
     online: "En ligne",
@@ -30,7 +31,7 @@ export const fr = {
 
 export const en: typeof fr = {
   title: "Jam",
-  hint: "Guests add tracks to your queue from their phone, with no app or account. Only this computer plays the music.",
+  hint: "Guests add tracks to your queue from their phone, with no app or account. Only your device plays the music.",
   start: "Start the Jam",
   startLocal: "On the local network",
   stop: "Stop",
@@ -45,6 +46,7 @@ export const en: typeof fr = {
   howTo: "Guests scan the QR code, or open the address in their browser and enter the code. Their first name appears next to their tracks in the queue. You stay in control: remove a track from the usual queue.",
   firewall: "The first time on the local network, Windows asks to allow Seaglass: accept for private networks.",
   noLan: "No local network found: only browsers on this computer can join the Jam.",
+  phoneHint: "Keep the music playing: when paused with the screen off, Android cuts Seaglass off the network after about a minute, and guests can no longer add tracks.",
   connection: {
     connecting: "Connecting to the relay…",
     online: "Online",

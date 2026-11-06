@@ -381,8 +381,10 @@
         </button>
       </label>
     </div>
+    {/if}
 
-    <!-- #25 : Jam locale, page web servie sur le réseau local. -->
+    <!-- #25 : Jam, en ligne par le relais ou sur le réseau local (bureau seulement). -->
+    {#if desktop || jam.onlineAvailable}
     <div class="group jam">
       <h2>{t.jam.title}</h2>
       <p class="hint">{t.jam.hint}</p>
@@ -414,7 +416,7 @@
         <p class="note">{jam.status.lan ? t.jam.howTo : t.jam.noLan}</p>
       {:else}
         <!-- En ligne par défaut (relais, sans Wi-Fi commun) ; le réseau local en second choix. -->
-        <div class="setting-row">
+        <div class="setting-row jam-start">
           <span class="text">
             <span class="hint">{jam.onlineAvailable ? t.jam.onlineHint : t.jam.localHint}</span>
           </span>
@@ -423,9 +425,11 @@
               <button class="update-check" onclick={() => launchJam("online")} disabled={jam.busy}>
                 {jam.busy ? t.jam.starting : t.jam.start}
               </button>
-              <button class="update-check" onclick={() => launchJam("local")} disabled={jam.busy}>
-                {t.jam.startLocal}
-              </button>
+              {#if desktop}
+                <button class="update-check" onclick={() => launchJam("local")} disabled={jam.busy}>
+                  {t.jam.startLocal}
+                </button>
+              {/if}
             {:else}
               <button class="update-check" onclick={() => launchJam("local")} disabled={jam.busy}>
                 {jam.busy ? t.jam.starting : t.jam.start}
@@ -433,7 +437,11 @@
             {/if}
           </div>
         </div>
-        <p class="note">{t.jam.localHint} {t.jam.firewall}</p>
+        {#if desktop}
+          <p class="note">{t.jam.localHint} {t.jam.firewall}</p>
+        {:else}
+          <p class="note">{t.jam.phoneHint}</p>
+        {/if}
       {/if}
     </div>
     {/if}
@@ -754,7 +762,15 @@
 
   .jam-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+  }
+
+  /* Les boutons passent sous le texte quand la place manque (téléphone, thèmes en capitales
+     espacées). */
+  .setting-row.jam-start {
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .project-links {

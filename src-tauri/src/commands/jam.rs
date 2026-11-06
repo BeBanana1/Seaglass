@@ -1,4 +1,4 @@
-//! Jam (#25), bureau seulement : démarrer (en ligne ou sur le réseau local), arrêter, état.
+//! Jam (#25) : démarrer (en ligne, ou sur le réseau local depuis le bureau), arrêter, état.
 
 use tauri::{AppHandle, State};
 

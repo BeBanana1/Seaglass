@@ -1,8 +1,7 @@
-// Jam (#25), bureau seulement : état de la Jam, connexion au relais et noms des invités,
-// reçus du backend.
+// Jam (#25) : état de la Jam, connexion au relais et noms des invités, reçus du backend.
+// Sur Android, seulement en ligne (pas de Jam sur le réseau local).
 
 import { commands, events, type JamMode, type JamStatus } from "../ipc";
-import { platform } from "../platform.svelte";
 
 export const jam = $state<{ status: JamStatus | null; busy: boolean; onlineAvailable: boolean }>({
   status: null,
@@ -11,7 +10,6 @@ export const jam = $state<{ status: JamStatus | null; busy: boolean; onlineAvail
 });
 
 export async function initJam() {
-  if (platform.mobile) return;
   void events.onJamGuests((guests) => {
     if (jam.status) jam.status = { ...jam.status, guests };
   });

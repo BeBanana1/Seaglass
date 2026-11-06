@@ -5,6 +5,8 @@
 //! - **En ligne** (`relay.rs`) : l'app se connecte au relais (`relay/`), les invités ouvrent
 //!   `https://jam.bebanana.ch/j/<id>/`, sans Wi-Fi commun.
 //! - **Réseau local** (`server.rs`) : l'app ouvre un port (47800, sinon un port libre).
+//!   Bureau seulement : sur un téléphone en données mobiles (ou qui partage sa connexion),
+//!   l'adresse ne servirait à rien, et l'app n'ouvre aucun port sur Android.
 //!
 //! Le code d'accès est tiré pour chaque Jam ; arrêter rend le code invalide. Le QR code
 //! porte l'adresse et le code (après `#`, jamais envoyé au serveur ni journalisé).
@@ -138,6 +140,13 @@ impl JamState {
             player,
         });
         let (info, task) = match mode {
+            JamMode::Local if cfg!(mobile) => {
+                return Err(tr(
+                    "la Jam sur le réseau local n'existe que sur l'ordinateur",
+                    "the local network Jam is only available on the computer",
+                )
+                .to_owned());
+            }
             JamMode::Local => {
                 let (listener, url, lan) = listen().await?;
                 let info = JamInfo {

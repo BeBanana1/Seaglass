@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.4.83"
+version = "0.4.84"
 description = "Seaglass, client de streaming non officiel"
 authors = ["bebanana"]
 edition = "2024"
@@ -36,6 +36,8 @@ tokio-tungstenite = { version = "0.29", default-features = false, features = ["c
 rustls = { version = "0.23", default-features = false, features = ["std", "aws_lc_rs"] }
 rustls-platform-verifier = "0.7"
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+# QR code de la Jam (#25), rendu en SVG : sans la génération d'images par défaut.
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
@@ -46,8 +48,6 @@ tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
-# QR code de la Jam locale (#25), rendu en SVG : sans la génération d'images par défaut.
-qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 
 # Android : vérification HTTPS par le magasin de certificats du système (#24), initialisée au
 # démarrage avec la JVM et le contexte posés par tao. Déjà tirées par reqwest et tauri.
