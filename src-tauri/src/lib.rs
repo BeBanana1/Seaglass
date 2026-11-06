@@ -6,7 +6,6 @@ mod commands;
 mod engine;
 mod i18n;
 mod integrations;
-#[cfg(desktop)]
 mod jam;
 #[cfg(any(target_os = "android", test))]
 mod media3;
@@ -52,6 +51,8 @@ pub fn run() {
     // Rust (`commands::project`) : aucune permission du plugin côté UI.
     platform_builder(tauri::Builder::default())
         .plugin(tauri_plugin_opener::init())
+        // Jam (#25) : arrêtée tant que l'hôte ne la démarre pas.
+        .manage(jam::JamState::default())
         .setup(|app| {
             #[cfg(target_os = "android")]
             if let Err(e) = android::init_tls() {
@@ -189,11 +190,9 @@ pub fn run() {
             commands::settings::autostart_enabled,
             #[cfg(desktop)]
             commands::settings::set_autostart,
-            #[cfg(desktop)]
             commands::jam::jam_status,
-            #[cfg(desktop)]
+            commands::jam::jam_online_available,
             commands::jam::start_jam,
-            #[cfg(desktop)]
             commands::jam::stop_jam,
             #[cfg(desktop)]
             commands::window::fullscreen,
@@ -249,8 +248,6 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
                 .build(),
         )
         .manage(UpdateState::default())
-        // Jam locale (#25) : arrêtée tant que l'hôte ne la démarre pas.
-        .manage(jam::JamState::default())
         // Réglage « Fermer la fenêtre » sur « Réduire » : la fenêtre principale est cachée.
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. }

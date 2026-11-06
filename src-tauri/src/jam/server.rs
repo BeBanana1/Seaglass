@@ -1,168 +1,52 @@
-//! Serveur de la Jam (#25) : page des invités et petite API JSON, sur le réseau local.
+//! Jam sur le réseau local (#25) : page des invités et API, servies en HTTP par l'app.
 //!
 //! Les invités n'ont que trois actions : chercher un titre (compte de l'hôte), l'ajouter
-//! à la fin de la file manuelle, voir le titre en cours et la suite. Chaque appel de l'API
-//! porte le code d'accès dans l'en-tête `X-Jam-Code` : un en-tête personnalisé oblige
-//! aussi un autre site à passer par une requête CORS préalable, que ce serveur ne connaît
-//! pas (pas d'ajout depuis une page malveillante ouverte sur le téléphone d'un invité).
+//! à la fin de la file manuelle, voir le titre en cours et la suite (`api.rs`). Chaque
+//! appel de l'API porte le code d'accès dans l'en-tête `X-Jam-Code` : un en-tête
+//! personnalisé oblige aussi un autre site à passer par une requête CORS préalable, que ce
+//! serveur ne connaît pas (pas d'ajout depuis une page malveillante ouverte sur le
+//! téléphone d'un invité).
 //!
 //! L'état est poussé aux pages ouvertes (Server-Sent Events, `GET /api/events?code=…` :
 //! `EventSource` ne pose pas d'en-tête). Tant qu'une page écoute, l'état du lecteur est
 //! relu toutes les secondes et aussitôt après un ajout ; il n'est envoyé que s'il change.
 
-use std::future::Future;
 use std::net::{IpAddr, SocketAddr};
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::sync::Arc;
+use std::time::Duration;
 
-use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{Notify, Semaphore, watch};
+use tokio::sync::{Semaphore, watch};
 
-use super::guard::{Action, Limits, Offered, code_matches};
-use super::guests::{Guests, sanitize_name};
+use super::api::{BACKEND_TIMEOUT, Backend, Core};
 use super::http::{Method, Request, Response, query_param, read_request, write_response};
-use crate::tidal::models::{Track, TrackId};
 
 const MAX_CONNECTIONS: usize = 32;
 /// Pages ouvertes qui suivent l'état, en plus des requêtes ordinaires.
 const MAX_STREAMS: usize = 64;
 /// Délai pour recevoir la requête, puis pour envoyer la réponse.
 const IO_TIMEOUT: Duration = Duration::from_secs(5);
-/// Délai d'une réponse qui attend TIDAL ou le lecteur.
-const BACKEND_TIMEOUT: Duration = Duration::from_secs(15);
 /// Relecture de l'état du lecteur tant qu'une page écoute.
-const PUSH_INTERVAL: Duration = Duration::from_secs(1);
+pub(super) const PUSH_INTERVAL: Duration = Duration::from_secs(1);
 /// Commentaire envoyé sur un flux silencieux : garde la connexion ouverte (Wi-Fi, proxys).
 const KEEPALIVE: Duration = Duration::from_secs(20);
-const MAX_QUERY_CHARS: usize = 100;
-const MAX_RESULTS: usize = 30;
-/// Titres de la suite montrés aux invités.
-const MAX_QUEUE: usize = 20;
 
 const PAGE: &str = include_str!("page/index.html");
 const SCRIPT: &str = include_str!("page/jam.js");
 const STYLE: &str = include_str!("page/jam.css");
 
-/// État du lecteur vu par la Jam.
-#[derive(Debug, Clone, Default)]
-pub struct Snapshot {
-    pub now: Option<Track>,
-    pub paused: bool,
-    /// File manuelle.
-    pub manual: Vec<Track>,
-    /// Suite du contexte.
-    pub upcoming: Vec<Track>,
-}
-
-/// Ce que le serveur demande à l'app ; remplacé par un faux dans les tests.
-pub trait Backend: Send + Sync + 'static {
-    fn search(&self, query: String) -> impl Future<Output = Result<Vec<Track>, String>> + Send;
-    fn enqueue(&self, id: TrackId) -> impl Future<Output = Result<(), String>> + Send;
-    fn state(&self) -> impl Future<Output = Result<Snapshot, String>> + Send;
-    /// Un invité a ajouté un titre sous son nom : l'UI de l'hôte l'affiche dans la file.
-    fn guests_changed(&self, guests: &Guests);
-}
-
-/// Titre tel que la page l'affiche : rien d'autre ne sort de l'app.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GuestTrack {
-    pub id: u64,
-    pub title: String,
-    pub artists: String,
-    pub album: String,
-    pub cover: Option<String>,
-    pub duration: u32,
-    /// Invité qui l'a ajouté à la file manuelle.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub by: Option<String>,
-}
-
-impl From<&Track> for GuestTrack {
-    fn from(t: &Track) -> Self {
-        let title = match t.version.as_deref().filter(|v| !v.is_empty()) {
-            Some(v) => format!("{} ({v})", t.title),
-            None => t.title.clone(),
-        };
-        Self {
-            id: t.id.0,
-            title,
-            artists: t
-                .artists
-                .iter()
-                .map(|a| a.name.as_str())
-                .collect::<Vec<_>>()
-                .join(", "),
-            album: t.album.title.clone(),
-            cover: t.album.cover_small_url.clone(),
-            duration: t.duration,
-            by: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GuestState {
-    pub now: Option<GuestTrack>,
-    pub paused: bool,
-    /// File manuelle (avec le nom de l'invité) puis suite du contexte, `MAX_QUEUE` au plus.
-    pub queue: Vec<GuestTrack>,
-}
-
-impl GuestState {
-    pub fn new(snapshot: &Snapshot, guests: &Guests) -> Self {
-        let manual = snapshot.manual.iter().map(|t| GuestTrack {
-            by: guests.get(t.id.0).map(str::to_owned),
-            ..GuestTrack::from(t)
-        });
-        Self {
-            now: snapshot.now.as_ref().map(GuestTrack::from),
-            paused: snapshot.paused,
-            queue: manual
-                .chain(snapshot.upcoming.iter().map(GuestTrack::from))
-                .take(MAX_QUEUE)
-                .collect(),
-        }
-    }
-}
-
-struct Session {
-    code: String,
-    limits: Limits,
-    offered: Offered,
-}
-
 struct Shared {
-    session: Mutex<Session>,
-    guests: Arc<Mutex<Guests>>,
+    core: Arc<Core>,
     /// Dernier état envoyé (JSON). L'émetteur vit dans `serve` : la Jam arrêtée, il
     /// disparaît et les flux ouverts se terminent.
     updates: watch::Receiver<Arc<str>>,
-    /// Relire l'état sans attendre (ajout d'un invité, nouvelle page).
-    refresh: Notify,
 }
 
 /// Sert la Jam jusqu'à ce que la tâche soit annulée (fin de la Jam).
-pub async fn serve<B: Backend>(
-    listener: TcpListener,
-    code: String,
-    guests: Arc<Mutex<Guests>>,
-    backend: Arc<B>,
-) {
+pub async fn serve<B: Backend>(listener: TcpListener, core: Arc<Core>, backend: Arc<B>) {
     let (tx, rx) = watch::channel(Arc::<str>::from(""));
-    let shared = Arc::new(Shared {
-        session: Mutex::new(Session {
-            code,
-            limits: Limits::default(),
-            offered: Offered::default(),
-        }),
-        guests,
-        updates: rx,
-        refresh: Notify::new(),
-    });
+    let shared = Arc::new(Shared { core, updates: rx });
     tokio::select! {
         () = accept_loop(listener, Arc::clone(&shared), Arc::clone(&backend)) => {}
         () = push_loop(tx, &shared, &*backend) => {}
@@ -197,7 +81,7 @@ async fn accept_loop<B: Backend>(listener: TcpListener, shared: Arc<Shared>, bac
                 // Un flux dure : il libère la place des requêtes ordinaires.
                 drop(permit);
                 let given = query_param(&req.head.query, "code").unwrap_or("");
-                if let Err(response) = check_code(&shared, ip, given) {
+                if let Err(response) = shared.core.check_code(ip, given) {
                     let _ =
                         tokio::time::timeout(IO_TIMEOUT, write_response(&mut stream, &response))
                             .await;
@@ -210,7 +94,7 @@ async fn accept_loop<B: Backend>(listener: TcpListener, shared: Arc<Shared>, bac
                             .await;
                     return;
                 };
-                shared.refresh.notify_one();
+                shared.core.refresh.notify_one();
                 stream_events(stream, shared.updates.clone()).await;
                 return;
             }
@@ -229,20 +113,15 @@ async fn push_loop<B: Backend>(tx: watch::Sender<Arc<str>>, shared: &Shared, bac
     loop {
         tokio::select! {
             () = tokio::time::sleep(PUSH_INTERVAL) => {}
-            () = shared.refresh.notified() => {}
+            () = shared.core.refresh.notified() => {}
         }
         // `Shared` garde un récepteur : au-delà, des pages écoutent.
         if tx.receiver_count() <= 1 {
             continue;
         }
-        let Ok(Ok(snapshot)) = tokio::time::timeout(BACKEND_TIMEOUT, backend.state()).await else {
+        let Some(json) = shared.core.state_json(backend).await else {
             continue;
         };
-        let state = match shared.guests.lock() {
-            Ok(guests) => GuestState::new(&snapshot, &guests),
-            Err(_) => continue,
-        };
-        let json = serde_json::json!(state).to_string();
         tx.send_if_modified(|current| {
             if **current == *json {
                 return false;
@@ -303,207 +182,30 @@ async fn route<B: Backend>(req: Request, ip: IpAddr, shared: &Shared, backend: &
         (Method::Get, "/") => Response::new(200, "text/html; charset=utf-8", PAGE),
         (Method::Get, "/jam.js") => Response::new(200, "text/javascript; charset=utf-8", SCRIPT),
         (Method::Get, "/jam.css") => Response::new(200, "text/css; charset=utf-8", STYLE),
-        (Method::Post, path) if path.starts_with("/api/") => api(req, ip, shared, backend).await,
+        (Method::Post, path) if path.starts_with("/api/") => {
+            let code = req.head.code.as_deref();
+            shared.core.api(path, code, &req.body, ip, backend).await
+        }
         (Method::Get, _) => Response::not_found(),
         _ => Response::error(405, "method"),
     }
 }
 
-/// Adresse bloquée ou code faux (compté comme un essai raté) : la réponse d'erreur.
-fn check_code(shared: &Shared, ip: IpAddr, given: &str) -> Result<(), Response> {
-    let Ok(mut s) = shared.session.lock() else {
-        return Err(Response::error(502, "backend"));
-    };
-    if s.limits.blocked(ip) {
-        return Err(Response::error(429, "blocked"));
-    }
-    if !code_matches(&s.code, given) {
-        s.limits.fail(ip);
-        return Err(Response::error(401, "code"));
-    }
-    Ok(())
-}
-
-#[derive(Deserialize)]
-struct SearchBody {
-    query: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AddBody {
-    track_id: u64,
-    #[serde(default)]
-    name: Option<String>,
-}
-
-async fn api<B: Backend>(req: Request, ip: IpAddr, shared: &Shared, backend: &B) -> Response {
-    if let Err(response) = check_code(shared, ip, req.head.code.as_deref().unwrap_or("")) {
-        return response;
-    }
-    match req.head.path.as_str() {
-        "/api/join" => Response::json(200, &serde_json::json!({ "ok": true })),
-        "/api/state" => match backend.state().await {
-            Ok(snapshot) => match shared.guests.lock() {
-                Ok(guests) => {
-                    Response::json(200, &serde_json::json!(GuestState::new(&snapshot, &guests)))
-                }
-                Err(_) => Response::error(502, "backend"),
-            },
-            Err(e) => backend_error(&e),
-        },
-        "/api/search" => {
-            let Ok(body) = serde_json::from_slice::<SearchBody>(&req.body) else {
-                return Response::error(400, "body");
-            };
-            let query = body.query.trim();
-            if query.is_empty() {
-                return Response::json(200, &serde_json::json!([]));
-            }
-            if query.chars().count() > MAX_QUERY_CHARS {
-                return Response::error(400, "query");
-            }
-            if !allow(shared, ip, Action::Search) {
-                return Response::error(429, "slow");
-            }
-            match backend.search(query.to_owned()).await {
-                Ok(tracks) => {
-                    let tracks: Vec<GuestTrack> = tracks
-                        .iter()
-                        .take(MAX_RESULTS)
-                        .map(GuestTrack::from)
-                        .collect();
-                    if let Ok(mut s) = shared.session.lock() {
-                        s.offered.note(tracks.iter().map(|t| t.id));
-                    }
-                    Response::json(200, &serde_json::json!(tracks))
-                }
-                Err(e) => backend_error(&e),
-            }
-        }
-        "/api/add" => {
-            let Ok(body) = serde_json::from_slice::<AddBody>(&req.body) else {
-                return Response::error(400, "body");
-            };
-            let offered = shared
-                .session
-                .lock()
-                .map(|s| s.offered.contains(body.track_id))
-                .unwrap_or(false);
-            if !offered {
-                return Response::error(400, "unknown");
-            }
-            if !allow(shared, ip, Action::Add) {
-                return Response::error(429, "slow");
-            }
-            if let Err(e) = backend.enqueue(TrackId(body.track_id)).await {
-                return backend_error(&e);
-            }
-            if let Some(name) = body.name.as_deref().and_then(sanitize_name)
-                && let Ok(mut guests) = shared.guests.lock()
-            {
-                guests.note(body.track_id, name);
-                backend.guests_changed(&guests);
-            }
-            shared.refresh.notify_one();
-            Response::json(200, &serde_json::json!({ "ok": true }))
-        }
-        _ => Response::not_found(),
-    }
-}
-
-fn allow(shared: &Shared, ip: IpAddr, action: Action) -> bool {
-    shared
-        .session
-        .lock()
-        .map(|mut s| s.limits.allow(ip, action, Instant::now()))
-        .unwrap_or(false)
-}
-
-/// Le détail reste dans le journal de l'hôte : la page n'affiche qu'un message générique.
-fn backend_error(e: &str) -> Response {
-    tracing::warn!("Jam : {e}");
-    Response::error(502, "backend")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tidal::models::{AlbumRef, ArtistRef};
+    use crate::jam::api::{MAX_QUERY_CHARS, MAX_QUEUE};
+    use crate::jam::testing::Fake;
     use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 
     const CODE: &str = "AB23CD";
-
-    #[derive(Default)]
-    struct Fake {
-        added: Mutex<Vec<u64>>,
-        named: Mutex<Vec<(u64, String)>>,
-    }
-
-    fn track(id: u64) -> Track {
-        Track {
-            id: TrackId(id),
-            title: format!("Titre {id}"),
-            version: (id == 2).then(|| "Live".into()),
-            duration: 200,
-            artists: vec![
-                ArtistRef {
-                    id: 1,
-                    name: "A".into(),
-                },
-                ArtistRef {
-                    id: 2,
-                    name: "B".into(),
-                },
-            ],
-            album: AlbumRef {
-                id: 9,
-                title: "Album".into(),
-                cover_url: None,
-                cover_small_url: Some("https://resources.tidal.com/x.jpg".into()),
-                cover_large_url: None,
-                color: None,
-            },
-            explicit: false,
-            hires: false,
-            isrc: None,
-        }
-    }
-
-    impl Backend for Fake {
-        async fn search(&self, _query: String) -> Result<Vec<Track>, String> {
-            Ok(vec![track(1), track(2)])
-        }
-        async fn enqueue(&self, id: TrackId) -> Result<(), String> {
-            self.added.lock().unwrap().push(id.0);
-            Ok(())
-        }
-        async fn state(&self) -> Result<Snapshot, String> {
-            let added = self.added.lock().unwrap();
-            Ok(Snapshot {
-                now: Some(track(7)),
-                paused: false,
-                manual: added.iter().map(|id| track(*id)).collect(),
-                upcoming: (8..50).map(track).collect(),
-            })
-        }
-        fn guests_changed(&self, guests: &Guests) {
-            let mut named: Vec<_> = guests.snapshot().into_iter().collect();
-            named.sort();
-            *self.named.lock().unwrap() = named;
-        }
-    }
 
     async fn start() -> (SocketAddr, Arc<Fake>) {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
         let fake = Arc::new(Fake::default());
-        tokio::spawn(serve(
-            listener,
-            CODE.into(),
-            Arc::default(),
-            Arc::clone(&fake),
-        ));
+        let core = Arc::new(Core::new(CODE.into(), Arc::default()));
+        tokio::spawn(serve(listener, core, Arc::clone(&fake)));
         (addr, fake)
     }
 
