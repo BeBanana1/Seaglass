@@ -4,7 +4,7 @@
      les habillent déjà. -->
 <script lang="ts">
   import type { JamMode } from "../lib/ipc";
-  import { jam, startJam, stopJam } from "../lib/stores/jam.svelte";
+  import { jam, setGuestControls, startJam, stopJam } from "../lib/stores/jam.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { platform } from "../lib/platform.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -28,6 +28,15 @@
     try {
       await stopJam();
       pushToast({ level: "info", message: t.jam.stopped });
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  async function toggleControls() {
+    if (!jam.status) return;
+    try {
+      await setGuestControls(!jam.status.guestControls);
     } catch (e) {
       fail(e);
     }
@@ -70,6 +79,22 @@
         <button class="update-check" onclick={end}>{t.jam.stop}</button>
       </div>
     </div>
+    <label class="setting-row jam-controls">
+      <span class="text">
+        <span class="setting-label">{t.jam.guestControls}</span>
+        <span class="hint">{t.jam.guestControlsHint}</span>
+      </span>
+      <button
+        class="setting-switch"
+        class:on={jam.status.guestControls}
+        role="switch"
+        aria-checked={jam.status.guestControls}
+        aria-label={t.jam.guestControls}
+        onclick={toggleControls}
+      >
+        <span class="knob"></span>
+      </button>
+    </label>
     <p class="note">{jam.status.lan ? t.jam.howTo : t.jam.noLan}</p>
   {:else}
     <!-- En ligne par défaut (relais, sans Wi-Fi commun) ; le réseau local en second choix. -->
@@ -137,6 +162,49 @@
   .setting-row .hint {
     margin: 0;
     font-size: 12px;
+  }
+
+  .setting-row .setting-label {
+    font-weight: 500;
+  }
+
+  .setting-row.jam-controls {
+    margin-top: 8px;
+    flex-wrap: nowrap;
+  }
+
+  /* Interrupteur repris de Réglages : les thèmes l'habillent déjà par son nom de classe. */
+  .setting-switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--bg-hover);
+    box-shadow: inset 0 0 0 1px var(--border);
+    transition: background var(--motion-fast);
+  }
+
+  .setting-switch .knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition:
+      transform var(--motion-fast),
+      background var(--motion-fast);
+  }
+
+  .setting-switch.on {
+    background: var(--accent);
+  }
+
+  .setting-switch.on .knob {
+    transform: translateX(18px);
+    background: var(--accent-contrast);
   }
 
   .update-check {

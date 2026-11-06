@@ -4,6 +4,7 @@
 
 use std::future::Future;
 use std::net::IpAddr;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -37,6 +38,8 @@ pub struct Snapshot {
 pub trait Backend: Send + Sync + 'static {
     fn search(&self, query: String) -> impl Future<Output = Result<Vec<Track>, String>> + Send;
     fn enqueue(&self, id: TrackId) -> impl Future<Output = Result<(), String>> + Send;
+    /// Lecture (`false`) ou pause (`true`), demandée par un invité (#222).
+    fn set_paused(&self, paused: bool) -> impl Future<Output = Result<(), String>> + Send;
     fn state(&self) -> impl Future<Output = Result<Snapshot, String>> + Send;
     /// Un invité a ajouté un titre sous son nom : l'UI de l'hôte l'affiche dans la file.
     fn guests_changed(&self, guests: &Guests);
@@ -85,12 +88,14 @@ impl From<&Track> for GuestTrack {
 pub struct GuestState {
     pub now: Option<GuestTrack>,
     pub paused: bool,
+    /// Les invités peuvent mettre en pause et relancer (#222, choix de l'hôte).
+    pub controls: bool,
     /// File manuelle (avec le nom de l'invité) puis suite du contexte, `MAX_QUEUE` au plus.
     pub queue: Vec<GuestTrack>,
 }
 
 impl GuestState {
-    pub fn new(snapshot: &Snapshot, guests: &Guests) -> Self {
+    pub fn new(snapshot: &Snapshot, guests: &Guests, controls: bool) -> Self {
         let manual = snapshot.manual.iter().map(|t| GuestTrack {
             by: guests.get(t.id.0).map(str::to_owned),
             ..GuestTrack::from(t)
@@ -98,6 +103,7 @@ impl GuestState {
         Self {
             now: snapshot.now.as_ref().map(GuestTrack::from),
             paused: snapshot.paused,
+            controls,
             queue: manual
                 .chain(snapshot.upcoming.iter().map(GuestTrack::from))
                 .take(MAX_QUEUE)
@@ -116,7 +122,9 @@ struct Session {
 pub struct Core {
     session: Mutex<Session>,
     guests: Arc<Mutex<Guests>>,
-    /// Relire l'état sans attendre (ajout d'un invité, nouvelle page).
+    /// Les invités peuvent mettre en pause et relancer (#222) ; activé par défaut.
+    controls: AtomicBool,
+    /// Relire l'état sans attendre (ajout d'un invité, nouvelle page, pause).
     pub refresh: Notify,
 }
 
@@ -129,8 +137,24 @@ impl Core {
                 offered: Offered::default(),
             }),
             guests,
+            controls: AtomicBool::new(true),
             refresh: Notify::new(),
         }
+    }
+
+    pub fn controls(&self) -> bool {
+        self.controls.load(Ordering::Relaxed)
+    }
+
+    /// Choix de l'hôte, poussé aussitôt aux pages ouvertes (le bouton y apparaît ou part).
+    pub fn set_controls(&self, enabled: bool) {
+        self.controls.store(enabled, Ordering::Relaxed);
+        self.refresh.notify_one();
+    }
+
+    /// Nom de l'invité de chaque titre ajouté par la Jam, pour l'UI de l'hôte.
+    pub fn guest_names(&self) -> std::collections::HashMap<u64, String> {
+        self.guests.lock().map(|g| g.snapshot()).unwrap_or_default()
     }
 
     /// Adresse bloquée ou code faux (compté comme un essai raté) : la réponse d'erreur.
@@ -162,7 +186,8 @@ impl Core {
             .ok()?
             .ok()?;
         let guests = self.guests.lock().ok()?;
-        Some(serde_json::json!(GuestState::new(&snapshot, &guests)).to_string())
+        let state = GuestState::new(&snapshot, &guests, self.controls());
+        Some(serde_json::json!(state).to_string())
     }
 
     /// Appel `POST /api/<…>` d'un invité, `path` compris (`/api/search`).
@@ -185,6 +210,7 @@ impl Core {
             },
             "/api/search" => self.search(body, ip, backend).await,
             "/api/add" => self.add(body, ip, backend).await,
+            "/api/pause" => self.pause(body, ip, backend).await,
             _ => Response::not_found(),
         }
     }
@@ -246,6 +272,30 @@ impl Core {
         self.refresh.notify_one();
         Response::json(200, &serde_json::json!({ "ok": true }))
     }
+
+    /// Lecture ou pause explicite (pas une bascule : deux invités qui appuient en même
+    /// temps obtiennent le même résultat).
+    async fn pause<B: Backend>(&self, body: &[u8], ip: IpAddr, backend: &B) -> Response {
+        let Ok(body) = serde_json::from_slice::<PauseBody>(body) else {
+            return Response::error(400, "body");
+        };
+        if !self.controls() {
+            return Response::error(403, "controls");
+        }
+        if !self.allow(ip, Action::Control) {
+            return Response::error(429, "slow");
+        }
+        if let Err(e) = backend.set_paused(body.paused).await {
+            return backend_error(&e);
+        }
+        self.refresh.notify_one();
+        Response::json(200, &serde_json::json!({ "ok": true }))
+    }
+}
+
+#[derive(Deserialize)]
+struct PauseBody {
+    paused: bool,
 }
 
 #[derive(Deserialize)]

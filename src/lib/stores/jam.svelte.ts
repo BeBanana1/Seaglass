@@ -61,6 +61,10 @@ export async function startJam(mode: JamMode) {
   }
 }
 
+export async function setGuestControls(enabled: boolean) {
+  jam.status = await commands.setJamGuestControls(enabled);
+}
+
 export async function stopJam() {
   await commands.stopJam();
   jam.status = null;

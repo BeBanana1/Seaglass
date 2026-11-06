@@ -83,9 +83,8 @@ pub enum Cmd {
     GetQueue(oneshot::Sender<QueueView>),
     /// Périphériques de sortie connus de mpv, pour les Réglages (#79).
     GetAudioDevices(oneshot::Sender<AudioDevices>),
-    /// Lecture (`false`) ou pause (`true`) explicite, pour les touches média.
-    /// Envoyé par SMTC et la session média d'Android : code mort ailleurs (CI Linux).
-    #[cfg_attr(not(windows), allow(dead_code))]
+    /// Lecture (`false`) ou pause (`true`) explicite : touches média (SMTC, session média
+    /// d'Android) et invités de la Jam (#222).
     SetPaused(bool),
     /// Branche les intégrations système (SMTC…), créées après l'acteur.
     /// En boîte : les poignées des intégrations alourdiraient toutes les commandes.

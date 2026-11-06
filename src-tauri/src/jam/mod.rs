@@ -90,18 +90,21 @@ pub struct JamStatus {
     pub info: JamInfo,
     /// Nom de l'invité de chaque titre ajouté par la Jam.
     pub guests: HashMap<u64, String>,
+    /// Les invités peuvent mettre en pause et relancer (#222).
+    pub guest_controls: bool,
 }
 
 struct Running {
     info: Arc<Mutex<JamInfo>>,
-    guests: Arc<Mutex<Guests>>,
+    core: Arc<Core>,
     task: JoinHandle<()>,
 }
 
-fn status_of(info: &Mutex<JamInfo>, guests: &Mutex<Guests>) -> Option<JamStatus> {
+fn status_of(info: &Mutex<JamInfo>, core: &Core) -> Option<JamStatus> {
     Some(JamStatus {
         info: info.lock().ok()?.clone(),
-        guests: guests.lock().map(|g| g.snapshot()).unwrap_or_default(),
+        guests: core.guest_names(),
+        guest_controls: core.controls(),
     })
 }
 
@@ -117,7 +120,15 @@ impl JamState {
     pub fn status(&self) -> Option<JamStatus> {
         let slot = self.0.lock().ok()?;
         let running = slot.as_ref()?;
-        status_of(&running.info, &running.guests)
+        status_of(&running.info, &running.core)
+    }
+
+    /// Choix de l'hôte : les invités peuvent mettre en pause et relancer (#222).
+    pub fn set_guest_controls(&self, enabled: bool) -> Option<JamStatus> {
+        let slot = self.0.lock().ok()?;
+        let running = slot.as_ref()?;
+        running.core.set_controls(enabled);
+        status_of(&running.info, &running.core)
     }
 
     /// Démarre la Jam, ou renvoie celle qui tourne déjà.
@@ -159,7 +170,8 @@ impl JamState {
                     reason: None,
                 };
                 let info = Arc::new(Mutex::new(info));
-                (info, tokio::spawn(server::serve(listener, core, backend)))
+                let task = tokio::spawn(server::serve(listener, Arc::clone(&core), backend));
+                (info, task)
             }
             JamMode::Online => {
                 let config = RelayConfig::from_env().ok_or_else(|| {
@@ -178,8 +190,9 @@ impl JamState {
                     connection: Connection::Connecting,
                     reason: None,
                 }));
-                let notify = relay_notify(app, Arc::clone(&info), Arc::clone(&guests));
-                let task = tokio::spawn(relay::run(config, code, core, backend, notify));
+                let notify = relay_notify(app, Arc::clone(&info), Arc::clone(&core));
+                let task =
+                    tokio::spawn(relay::run(config, code, Arc::clone(&core), backend, notify));
                 (info, task)
             }
         };
@@ -196,8 +209,8 @@ impl JamState {
                 .ok_or_else(|| tr("Jam indisponible", "Jam unavailable").to_owned());
         }
         tracing::info!("Jam démarrée ({mode:?})");
-        let status = status_of(&info, &guests);
-        *slot = Some(Running { info, guests, task });
+        let status = status_of(&info, &core);
+        *slot = Some(Running { info, core, task });
         status.ok_or_else(|| tr("Jam indisponible", "Jam unavailable").to_owned())
     }
 
@@ -235,18 +248,14 @@ async fn listen() -> Result<(TcpListener, String, bool), String> {
 }
 
 /// Tient `JamInfo` à jour d'après la connexion au relais et prévient l'UI.
-fn relay_notify(
-    app: AppHandle,
-    info: Arc<Mutex<JamInfo>>,
-    guests: Arc<Mutex<Guests>>,
-) -> relay::Notify {
+fn relay_notify(app: AppHandle, info: Arc<Mutex<JamInfo>>, core: Arc<Core>) -> relay::Notify {
     Arc::new(move |event| {
         let changed = match info.lock() {
             Ok(mut info) => apply(&mut info, event),
             Err(_) => false,
         };
         if changed
-            && let Some(status) = status_of(&info, &guests)
+            && let Some(status) = status_of(&info, &core)
             && let Err(e) = app.emit(STATUS_EVENT, status)
         {
             tracing::warn!("Jam : {e}");
@@ -330,6 +339,13 @@ impl Backend for AppBackend {
     async fn enqueue(&self, id: TrackId) -> Result<(), String> {
         self.player
             .send(Cmd::AddToQueue(id))
+            .await
+            .map_err(|_| stopped())
+    }
+
+    async fn set_paused(&self, paused: bool) -> Result<(), String> {
+        self.player
+            .send(Cmd::SetPaused(paused))
             .await
             .map_err(|_| stopped())
     }

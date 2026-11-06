@@ -35,3 +35,13 @@ pub async fn stop_jam(jam: State<'_, JamState>) -> CmdResult<()> {
     jam.stop();
     Ok(())
 }
+
+/// Les invités peuvent mettre en pause et relancer (#222) : état de la Jam, ou `null`
+/// si aucune ne tourne.
+#[tauri::command]
+pub async fn set_jam_guest_controls(
+    jam: State<'_, JamState>,
+    enabled: bool,
+) -> CmdResult<Option<JamStatus>> {
+    Ok(jam.set_guest_controls(enabled))
+}

@@ -534,6 +534,8 @@ export interface JamStatus {
   reason: string | null;
   /** Nom de l'invité de chaque titre ajouté par la Jam, par identifiant de titre. */
   guests: Record<string, string>;
+  /** Les invités peuvent mettre en pause et relancer (#222). */
+  guestControls: boolean;
 }
 
 export const commands = {
@@ -554,6 +556,9 @@ export const commands = {
   /** En ligne, l'adresse arrive ensuite par `jam-status`. */
   startJam: (mode: JamMode) => invoke<JamStatus>("start_jam", { mode }),
   stopJam: () => invoke<void>("stop_jam"),
+  /** Les invités peuvent mettre en pause et relancer (#222) ; `null` sans Jam. */
+  setJamGuestControls: (enabled: boolean) =>
+    invoke<JamStatus | null>("set_jam_guest_controls", { enabled }),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
   /** Biographie, similaires, « Apparaît sur » (#205) : chaque partie peut être vide. */

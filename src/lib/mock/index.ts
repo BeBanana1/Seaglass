@@ -518,6 +518,7 @@ function mockJam(mode: "online" | "local", reconnecting = false) {
     connection: reconnecting ? ("reconnecting" as const) : ("online" as const),
     reason: reconnecting ? "relais injoignable" : null,
     guests: first ? { [first.id]: "Léa" } : {},
+    guestControls: true,
   };
 }
 const jamParam = params.get("jam");
@@ -571,6 +572,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   jam_online_available: () => true,
   start_jam: (args) => (jam ??= mockJam(args.mode === "local" ? "local" : "online")),
   stop_jam: () => void (jam = null),
+  set_jam_guest_controls: (args) => (jam ? (jam = { ...jam, guestControls: args.enabled === true }) : null),
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
   album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
   hires_twin_album: () =>
