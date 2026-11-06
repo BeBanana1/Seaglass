@@ -69,6 +69,13 @@ impl Backend for Fake {
             albums: vec![album(40)],
         })
     }
+    /// Tout lien collé désigne l'album 41.
+    async fn link(&self, _text: String) -> Result<Hits, String> {
+        Ok(Hits {
+            tracks: Vec::new(),
+            albums: vec![album(41)],
+        })
+    }
     /// L'album 40 a 35 titres (100 à 134) : plus que le plafond d'un ajout.
     async fn album_tracks(&self, id: u64) -> Result<Vec<Track>, String> {
         Ok(if id == 40 {

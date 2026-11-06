@@ -516,3 +516,41 @@ async fn live_artist_extra() {
     assert!(!extra.similar.is_empty());
     assert!(!extra.appears_on.is_empty());
 }
+
+/// Liens d'autres services collés dans la Jam (#229) : contacte Deezer, Spotify, Apple et
+/// YouTube en plus de TIDAL.
+#[tokio::test]
+#[ignore]
+async fn live_foreign_links() {
+    let client = client().await;
+    for link in [
+        "https://tidal.com/browse/album/20115556",
+        "https://www.deezer.com/fr/track/67238735",
+        "https://www.deezer.com/album/6575789",
+        "https://open.spotify.com/intl-fr/track/69kOkLUCkxIZYexIgSG8rq?si=abc",
+        "https://open.spotify.com/album/4m2880jivSbbyEGAKfITCa",
+        "https://music.apple.com/fr/album/get-lucky/617154241?i=617154366",
+        "https://music.apple.com/us/album/random-access-memories/617154241",
+        "https://music.youtube.com/watch?v=5NV6Rdv1a3I",
+        "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b",
+        "https://youtu.be/XFkzRNyygfk",
+    ] {
+        let started = std::time::Instant::now();
+        let found = crate::foreign::resolve(&client, link)
+            .await
+            .unwrap()
+            .unwrap();
+        let first = found
+            .tracks
+            .first()
+            .map(|t| {
+                format!(
+                    "titre {} / {} ({})",
+                    t.title, t.artists[0].name, t.album.title
+                )
+            })
+            .or_else(|| found.albums.first().map(|a| format!("album {}", a.title)));
+        println!("{link}\n  → {first:?} en {:?}", started.elapsed());
+        assert!(first.is_some(), "rien pour {link}");
+    }
+}

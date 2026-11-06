@@ -8,7 +8,10 @@ const TEXT = {
     nameLabel: "Votre prénom (affiché à côté de vos titres)",
     codeLabel: "Code de la Jam",
     join: "Rejoindre",
-    searchPlaceholder: "Chercher un titre, un artiste…",
+    searchPlaceholder: "Titre, artiste, ou lien collé…",
+    appsLabel: "Chercher dans :",
+    pasteHint: "Copiez le lien d'un titre ou d'un album dans votre app (Spotify, Deezer, YouTube Music, Apple Music, TIDAL) et collez-le ici.",
+    noLinkResults: "Rien trouvé pour ce lien. Essayez avec le titre.",
     clear: "Effacer la recherche",
     searching: "Recherche…",
     upNext: "À suivre",
@@ -51,7 +54,10 @@ const TEXT = {
     nameLabel: "Your first name (shown next to your tracks)",
     codeLabel: "Jam code",
     join: "Join",
-    searchPlaceholder: "Search for a track or artist…",
+    searchPlaceholder: "Track, artist, or pasted link…",
+    appsLabel: "Search in:",
+    pasteHint: "Copy the link of a track or album in your app (Spotify, Deezer, YouTube Music, Apple Music, TIDAL) and paste it here.",
+    noLinkResults: "Nothing found for this link. Try the title instead.",
     clear: "Clear search",
     searching: "Searching…",
     upNext: "Up next",
@@ -421,9 +427,9 @@ function showResults() {
   const status = $("search-status");
   const any = tracks.length + albums.length > 0;
   status.hidden = any;
-  status.textContent = any ? "" : t.noResults;
-  // Onglets seulement s'il y a des albums ; sinon, les titres.
-  $("tabs").hidden = albums.length === 0;
+  status.textContent = any ? "" : lastHits.link ? t.noLinkResults : t.noResults;
+  // Onglets seulement s'il y a des titres et des albums (un lien n'en donne qu'un).
+  $("tabs").hidden = albums.length === 0 || tracks.length === 0;
   if (albums.length === 0) tab = "tracks";
   if (tab === "tracks" && tracks.length === 0 && albums.length > 0) tab = "albums";
   for (const [id, which, count] of [

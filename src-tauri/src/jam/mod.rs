@@ -340,6 +340,17 @@ impl Backend for AppBackend {
             .map_err(|e| e.to_string())
     }
 
+    async fn link(&self, text: String) -> Result<Hits, String> {
+        match crate::foreign::resolve(&self.tidal, &text).await {
+            Some(Ok(found)) => Ok(Hits {
+                tracks: found.tracks,
+                albums: found.albums,
+            }),
+            Some(Err(e)) => Err(trf!("lien illisible : {}", "unreadable link: {}", e)),
+            None => Ok(Hits::default()),
+        }
+    }
+
     async fn album_tracks(&self, id: u64) -> Result<Vec<Track>, String> {
         self.tidal
             .album(id)
