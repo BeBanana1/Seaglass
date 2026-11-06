@@ -189,6 +189,7 @@ pub fn run() {
             commands::settings::audio_devices,
             commands::settings::platform,
             commands::settings::autostart_enabled,
+            commands::settings::discord_available,
             #[cfg(desktop)]
             commands::settings::set_autostart,
             commands::jam::jam_status,
@@ -285,6 +286,10 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
     match tray::create(app.handle(), player.clone()) {
         Ok(handle) => observers.tray = Some(handle),
         Err(e) => tracing::warn!("zone de notification indisponible : {e}"),
+    }
+    #[cfg(desktop)]
+    if let Some(id) = integrations::discord::client_id() {
+        observers.discord = Some(integrations::discord::start(id));
     }
     #[cfg(windows)]
     {

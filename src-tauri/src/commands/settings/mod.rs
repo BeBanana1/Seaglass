@@ -76,6 +76,8 @@ pub struct UiSettings {
     pub sorts: Vec<ListSort>,
     /// Fermer la fenêtre principale : quitter, ou réduire dans la zone de notification (#83).
     pub close_action: CloseAction,
+    /// Présence Discord (#215) : montrer le titre en cours à ses contacts. Désactivée par défaut.
+    pub discord: bool,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,6 +93,8 @@ impl UiSettings {
     pub(crate) fn apply_to_backend(&self) {
         #[cfg(desktop)]
         crate::integrations::tray::set_close_to_tray(self.close_action == CloseAction::Tray);
+        #[cfg(desktop)]
+        crate::integrations::discord::set_enabled(self.discord);
     }
 }
 
@@ -296,6 +300,16 @@ pub async fn autostart_enabled(app: AppHandle) -> CmdResult<bool> {
         let _ = app;
         Ok(false)
     }
+}
+
+/// Vrai si la présence Discord peut être proposée (#215) : bureau, identifiant de
+/// l'application Discord compilé ou donné au lancement.
+#[tauri::command]
+pub async fn discord_available() -> CmdResult<bool> {
+    #[cfg(desktop)]
+    return Ok(crate::integrations::discord::client_id().is_some());
+    #[cfg(mobile)]
+    Ok(false)
 }
 
 /// Active ou désactive le lancement au démarrage, puis renvoie l'état relu.

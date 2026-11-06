@@ -4,10 +4,12 @@ use std::path::Path;
 /// Une variable d'environnement du même nom au lancement reste prioritaire (voir `tidal::auth`).
 /// `SEAGLASS_RELAY_KEY` : clé du relais de la Jam en ligne (#25), devient
 /// `SEAGLASS_SEAGLASS_RELAY_KEY` ; sans elle, seule la Jam locale est proposée.
-const EMBEDDED_ENV: [&str; 3] = [
+/// `DISCORD_CLIENT_ID` : application Discord de la présence (#215) ; sans lui, réglage masqué.
+const EMBEDDED_ENV: [&str; 4] = [
     "TIDAL_CLIENT_ID",
     "TIDAL_CLIENT_SECRET",
     "SEAGLASS_RELAY_KEY",
+    "DISCORD_CLIENT_ID",
 ];
 
 fn main() {

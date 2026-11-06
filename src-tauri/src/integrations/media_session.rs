@@ -320,6 +320,7 @@ mod tests {
     #[test]
     fn now_playing_carries_the_cover() {
         let media = MediaInfo {
+            track_id: 1,
             title: "Time".into(),
             artist: "Pink Floyd".into(),
             album: "The Dark Side of the Moon".into(),

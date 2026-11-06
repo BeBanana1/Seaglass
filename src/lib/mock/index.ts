@@ -192,6 +192,8 @@ let ui: UiSettings = {
   language: (params.get("lang") as LanguagePref) ?? "system",
   // `?tray=1` : fermer la fenêtre la réduit dans la zone de notification (#83).
   closeAction: params.has("tray") ? "tray" : "quit",
+  // `?discord=1` : présence Discord activée (#215).
+  discord: params.has("discord"),
   sorts: [],
 };
 
@@ -759,6 +761,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // `?platform=android` : mise en page tactile.
   platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
   autostart_enabled: () => autostart,
+  discord_available: () => true,
   take_now_playing_request: () => false,
   take_shared_link: () => null,
   // Le navigateur garde sa taille : seul l'état change (le bouton suit).

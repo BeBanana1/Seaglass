@@ -30,6 +30,7 @@ export const ui = $state<{
     accent: null,
     language: "system",
     closeAction: "quit",
+    discord: false,
     sorts: [],
   },
   nowPlayingPanel: null,
@@ -97,6 +98,18 @@ export async function setAccent(accent: string | null) {
   ui.settings = { ...ui.settings, accent };
   apply();
   await commands.setUiSettings(ui.settings);
+}
+
+/** Présence Discord (#215), appliquée aussitôt par le backend. */
+export async function setDiscord(discord: boolean) {
+  const previous = ui.settings;
+  ui.settings = { ...ui.settings, discord };
+  try {
+    await commands.setUiSettings(ui.settings);
+  } catch (e) {
+    ui.settings = previous;
+    throw e;
+  }
 }
 
 /** Réglage « Fermer la fenêtre » (#83), appliqué par le backend à la fermeture. */
