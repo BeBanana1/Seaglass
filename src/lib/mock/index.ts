@@ -764,6 +764,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   discord_available: () => true,
   take_now_playing_request: () => false,
   take_shared_link: () => null,
+  // `?platform=android&links=1` : liens TIDAL déjà donnés à l'app.
+  link_handling: () => (params.get("platform") === "android" ? { enabled: params.get("links") === "1" } : null),
+  open_link_settings: () => undefined,
   // Le navigateur garde sa taille : seul l'état change (le bouton suit).
   fullscreen: () => fullscreen,
   set_fullscreen: ({ fullscreen: on }) => {

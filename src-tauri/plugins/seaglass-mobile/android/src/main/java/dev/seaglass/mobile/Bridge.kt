@@ -27,11 +27,15 @@ object Bridge {
     @Volatile
     private var secrets: SecretStore? = null
 
+    @Volatile
+    private var context: Context? = null
+
     /** Contexte de l'application, posé par Rust à la première commande. */
     @JvmStatic
     fun init(context: Context) {
         synchronized(this) {
             if (secrets == null) secrets = SecretStore(context.applicationContext)
+            if (this.context == null) this.context = context.applicationContext
         }
     }
 
@@ -84,8 +88,16 @@ object Bridge {
         "secretDelete" -> secret("effacement du secret impossible") { store ->
             JSONObject().put("existed", store.delete(args.getString("name")))
         }
+        "linkHandling" -> LinkHandling.state(appContext())
+        "openLinkSettings" -> {
+            LinkHandling.openSettings(appContext())
+            null
+        }
         else -> throw IllegalArgumentException("commande inconnue : $command")
     }
+
+    private fun appContext(): Context =
+        context ?: throw IllegalStateException("pont natif non initialisé")
 
     private fun secret(failure: String, block: (SecretStore) -> JSONObject): JSONObject {
         val store = secrets ?: throw IllegalStateException("pont natif non initialisé")

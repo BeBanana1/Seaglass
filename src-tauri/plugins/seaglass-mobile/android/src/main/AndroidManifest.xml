@@ -27,8 +27,9 @@
             android:noHistory="true"
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-        <!-- Menu « Partager » du système (#203) : un lien TIDAL partagé ouvre sa page dans
-             l'app. Même relais sans interface que ci-dessus ; exporté pour recevoir l'intent. -->
+        <!-- Menu « Partager » du système et liens TIDAL touchés (#203) : la page du lien
+             s'ouvre dans l'app. Même relais sans interface que ci-dessus ; exporté pour
+             recevoir l'intent. -->
         <activity
             android:name="dev.seaglass.mobile.ShareActivity"
             android:exported="true"
@@ -41,6 +42,29 @@
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+            </intent-filter>
+            <!-- Liens `https://tidal.com/…` touchés (WhatsApp, navigateur…). Pas d'`autoVerify` :
+                 le domaine n'est pas à nous, Android 12+ ne les donne à l'app qu'une fois
+                 activés par l'utilisateur (Réglages › Application › Liens TIDAL). Seuls les
+                 types que l'app sait ouvrir ; le reste (vidéos…) va au navigateur. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="tidal.com" />
+                <data android:host="www.tidal.com" />
+                <data android:host="listen.tidal.com" />
+                <data android:pathPrefix="/browse/track/" />
+                <data android:pathPrefix="/browse/album/" />
+                <data android:pathPrefix="/browse/artist/" />
+                <data android:pathPrefix="/browse/playlist/" />
+                <data android:pathPrefix="/browse/mix/" />
+                <data android:pathPrefix="/track/" />
+                <data android:pathPrefix="/album/" />
+                <data android:pathPrefix="/artist/" />
+                <data android:pathPrefix="/playlist/" />
+                <data android:pathPrefix="/mix/" />
             </intent-filter>
         </activity>
     </application>
