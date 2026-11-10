@@ -69,3 +69,23 @@ jobs:
           cargo fmt --check
           cargo clippy --all-targets -- -D warnings
           cargo test
+
+      # Vulnérabilités connues des dépendances (#263). Échoue sur une vulnérabilité ; une
+      # crate seulement signalée non maintenue ou retirée reste un avertissement. Une panne
+      # du registre npm, de crates.io ou de la base RustSec n'échoue pas : elle avertit.
+      # `cargo-audit` est dans l'image ; une image plus ancienne l'installe ici (gardé par
+      # le cache Rust). Une alerte à ignorer : `--ignore RUSTSEC-…` ci-dessous, avec sa raison.
+      - name: Dépendances
+        run: |
+          pnpm audit --prod --ignore-registry-errors
+          if ! command -v cargo-audit >/dev/null && ! cargo install cargo-audit --locked; then
+            echo "::warning::cargo-audit non installé : dépendances Rust non vérifiées"
+            exit 0
+          fi
+          db="$(mktemp -d)/advisory-db"
+          if ! git clone --quiet --depth 1 https://github.com/RustSec/advisory-db.git "$db"; then
+            echo "::warning::base d'avis RustSec injoignable : dépendances Rust non vérifiées"
+            exit 0
+          fi
+          cargo audit --no-fetch --db "$db" --file src-tauri/Cargo.lock
+          cargo audit --no-fetch --db "$db" --file relay/Cargo.lock

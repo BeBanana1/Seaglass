@@ -21,5 +21,10 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --no-modify-path --profile minimal \
         --default-toolchain stable --component rustfmt,clippy
 
+# Analyse des vulnérabilités des dépendances (#263). Sans lui, le workflow le compile
+# lui-même au premier run : l'image ne fait que gagner ce temps.
+RUN cargo install cargo-audit --locked \
+    && rm -rf /usr/local/cargo/registry
+
 ARG PNPM_VERSION=12.16.1
 RUN npm install -g pnpm@${PNPM_VERSION}

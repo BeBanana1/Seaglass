@@ -31,7 +31,8 @@ fonctionne. Le workflow (`.gitea/workflows/ci.yml`) cible le label `seaglass`.
 
 Nouvelle base Debian, nouvelle majeure de pnpm, ou Rust trop ancien (le workflow
 le met à jour à chaque run, mais ça ralentit) : changer le tag partout, puis
-reconstruire.
+reconstruire. Pareil pour `cargo-audit` (#263) : une image construite avant son
+ajout fonctionne, le workflow le compile lui-même, mais le premier run est plus long.
 
 1. `SEAGLASS_CI_TAG` dans `.env` et le label de `config.yaml` (même valeur).
 2. `docker compose --profile build build`, puis `docker compose up -d` (le runner
