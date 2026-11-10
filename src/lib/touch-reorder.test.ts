@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Reorder } from "./reorder.svelte";
 import { touchReorder } from "./touch-reorder";
 
-// Liste factice, sans DOM simulé : un conteneur qui défile (haut 0, bas 600) et trois lignes
-// de 50 px posées à 200, 250 et 300 px dans le contenu. La ligne saisie est la deuxième.
+// Liste factice, sans DOM simulé : un conteneur qui défile (haut 0, bas 600) et douze lignes
+// de 50 px posées à partir de 200 px dans le contenu (jusqu'à 800, plus bas que l'écran).
+// La ligne saisie est la deuxième.
 const ROW = 50;
 const TOP = 200;
+const COUNT = 12;
 
 class FakeScroller {
   scrollTop = 0;
@@ -78,6 +80,19 @@ let onMove: ReturnType<typeof vi.fn<(from: number, to: number) => void>>;
 let reorder: Reorder;
 let action: ReturnType<typeof touchReorder>;
 
+/** Remplace la liste par `count` lignes (la saisie reste sur la deuxième). */
+function setRows(count: number) {
+  action.destroy();
+  rows = Array.from({ length: count }, (_, i) => new FakeRow(i, scroller));
+  row = rows[1];
+  action = touchReorder(row as unknown as HTMLElement, {
+    enabled: true,
+    index: 1,
+    reorder,
+    items: () => rows as unknown as HTMLElement[],
+  });
+}
+
 /** Appui long sur la ligne saisie (au milieu, y = 275). */
 function hold(y = 275) {
   row.dispatchEvent(pointer("pointerdown", y));
@@ -116,7 +131,7 @@ beforeEach(() => {
     },
   );
   scroller = new FakeScroller();
-  rows = [0, 1, 2].map((i) => new FakeRow(i, scroller));
+  rows = Array.from({ length: COUNT }, (_, i) => new FakeRow(i, scroller));
   row = rows[1];
   onMove = vi.fn<(from: number, to: number) => void>();
   reorder = new Reorder(onMove);
@@ -264,13 +279,56 @@ describe("touchReorder", () => {
     nextFrame();
     expect(scroller.scrollTop).toBe(28);
 
-    // Au bord haut, à mi-zone : demi-vitesse.
+    // Au bord haut : le haut de la liste est visible (172 px), rien à remonter (#302).
     row.dispatchEvent(pointer("pointermove", 32));
     nextFrame();
-    expect(scroller.scrollTop).toBe(21);
+    expect(scroller.scrollTop).toBe(28);
 
     row.dispatchEvent(pointer("pointerup", 32));
     expect(frames).toHaveLength(0);
+    expect(onMove).toHaveBeenCalledWith(1, 0);
+  });
+
+  it("remonte tant que le haut de la liste est caché, à demi-vitesse à mi-zone", () => {
+    scroller.scrollTop = 180;
+    hold(275 - 180);
+    row.dispatchEvent(pointer("pointermove", 32));
+    nextFrame();
+    expect(scroller.scrollTop).toBe(173);
+    // Le haut de la liste (200 - 173 = 27 px) n'est plus qu'à 37 px de la zone : dernier cran.
+    for (let i = 0; i < 10; i++) nextFrame();
+    expect(scroller.scrollTop).toBe(136);
+    expect(200 - scroller.scrollTop).toBe(64);
+  });
+
+  it("s'arrête au bout de la liste au lieu de descendre sans fin (#302)", () => {
+    hold();
+    row.dispatchEvent(pointer("pointermove", 600));
+    for (let i = 0; i < 100; i++) nextFrame();
+    // Bas de la liste (800) au bord de la zone de défilement (600 - 64).
+    expect(scroller.scrollTop).toBe(800 - 536);
+    // La ligne ne dépasse pas la dernière : son bas s'arrête à celui de la liste.
+    const { top } = row.getBoundingClientRect();
+    expect(top + ROW).toBe(800 - scroller.scrollTop);
+    row.dispatchEvent(pointer("pointerup", 600));
+    expect(onMove).toHaveBeenCalledWith(1, COUNT - 1);
+  });
+
+  it("garde la ligne dans une liste courte, sans faire défiler la page", () => {
+    setRows(3);
+    hold();
+    // Bas de la liste à 350 : la ligne (origine 250) ne descend que de 50 px.
+    row.dispatchEvent(pointer("pointermove", 590));
+    nextFrame();
+    expect(scroller.scrollTop).toBe(0);
+    expect(row.vars.get("--drag-y")).toBe("50px");
+    expect(reorder.slot).toBe(3);
+    // Ni au-dessus de la première.
+    row.dispatchEvent(pointer("pointermove", 10));
+    nextFrame();
+    expect(row.vars.get("--drag-y")).toBe("-50px");
+    expect(scroller.scrollTop).toBe(0);
+    row.dispatchEvent(pointer("pointerup", 10));
     expect(onMove).toHaveBeenCalledWith(1, 0);
   });
 });
