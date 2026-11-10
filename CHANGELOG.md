@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.95
+
+- mpv du `PATH` utilisé seulement en debug ; bandeau « mpv introuvable » si le mpv embarqué manque (#261).
+
 ## 0.4.94 (publiée le 2026-11-06)
 
 - Boutons à logos des apps de musique sur la page des invités de la Jam (#225).

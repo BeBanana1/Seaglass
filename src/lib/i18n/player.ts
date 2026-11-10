@@ -26,6 +26,9 @@ export const fr = {
 
   mpvStopped: "Lecture impossible : mpv s'est arrêté",
   mpvStoppedHint: "Redémarrez Seaglass. Si le problème revient, réinstallez l'app.",
+  mpvMissing: "Lecture impossible : mpv introuvable",
+  mpvMissingHint:
+    "Le lecteur audio livré avec Seaglass (mpv.exe) manque dans son dossier, peut-être retiré par un antivirus. Réinstallez Seaglass.",
   mpvCpu: "Lecture impossible : processeur non pris en charge",
   mpvCpuHint:
     "Le lecteur audio livré avec Seaglass (mpv) exige l'AVX2, que ce processeur n'a pas (Intel antérieur à 2013, certains Pentium, Celeron et Atom). Installez une version x86-64 classique de mpv et indiquez son chemin dans la variable d'environnement SEAGLASS_MPV_PATH.",
@@ -94,6 +97,9 @@ export const en: typeof fr = {
 
   mpvStopped: "Playback unavailable: mpv stopped",
   mpvStoppedHint: "Restart Seaglass. If it happens again, reinstall the app.",
+  mpvMissing: "Playback unavailable: mpv not found",
+  mpvMissingHint:
+    "The audio player bundled with Seaglass (mpv.exe) is missing from its folder, perhaps removed by an antivirus. Reinstall Seaglass.",
   mpvCpu: "Playback unavailable: unsupported processor",
   mpvCpuHint:
     "The audio player bundled with Seaglass (mpv) requires AVX2, which this processor lacks (Intel before 2013, some Pentium, Celeron and Atom). Install a standard x86-64 build of mpv and set its path in the SEAGLASS_MPV_PATH environment variable.",

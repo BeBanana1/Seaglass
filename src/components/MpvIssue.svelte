@@ -1,4 +1,4 @@
-<!-- Bandeau persistant quand mpv ne tourne pas (#92). Lu dans `player-state` plutôt que
+<!-- Bandeau persistant quand mpv ne tourne pas (#92, #261). Lu dans `player-state` plutôt que
      reçu en toast : un échec au lancement précède l'écoute des événements par la webview.
      Pas de bouton de fermeture : tant que mpv ne tourne pas, rien ne peut être lu. -->
 <script lang="ts">
@@ -7,14 +7,21 @@
   import Icon from "./Icon.svelte";
 
   const issue = $derived(player.state.mpvIssue);
+  const text = $derived(
+    issue === "cpuUnsupported"
+      ? { title: t.player.mpvCpu, hint: t.player.mpvCpuHint }
+      : issue === "missing"
+        ? { title: t.player.mpvMissing, hint: t.player.mpvMissingHint }
+        : { title: t.player.mpvStopped, hint: t.player.mpvStoppedHint },
+  );
 </script>
 
 {#if issue}
   <div class="mpv-issue" role="alert">
     <span class="mpv-issue-icon"><Icon name="info" size={18} /></span>
     <span class="text">
-      <span class="mpv-issue-title">{issue === "cpuUnsupported" ? t.player.mpvCpu : t.player.mpvStopped}</span>
-      <span class="mpv-issue-hint">{issue === "cpuUnsupported" ? t.player.mpvCpuHint : t.player.mpvStoppedHint}</span>
+      <span class="mpv-issue-title">{text.title}</span>
+      <span class="mpv-issue-hint">{text.hint}</span>
     </span>
   </div>
 {/if}

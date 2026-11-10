@@ -42,12 +42,18 @@ pub fn pipe_name() -> String {
         .into_owned()
 }
 
-/// `SEAGLASS_MPV_PATH`, sinon le mpv installé avec l'app, sinon celui du `PATH` (dev).
-fn executable() -> PathBuf {
+/// `SEAGLASS_MPV_PATH`, sinon le mpv installé avec l'app. Le repli sur le `mpv` du `PATH`
+/// n'existe qu'en debug (#261) : dans un build installé, Windows chercherait aussi dans le
+/// dossier courant, et un `mpv.exe` posé là serait lancé à la place de celui de l'installeur.
+fn executable() -> Result<PathBuf> {
     if let Some(path) = std::env::var_os("SEAGLASS_MPV_PATH") {
-        return PathBuf::from(path);
+        return Ok(PathBuf::from(path));
     }
-    bundled().unwrap_or_else(|| PathBuf::from("mpv"))
+    match bundled() {
+        Some(path) => Ok(path),
+        None if cfg!(debug_assertions) => Ok(PathBuf::from("mpv")),
+        None => Err(MpvError::Missing),
+    }
 }
 
 /// Le mpv installé avec l'app, s'il existe.
@@ -63,11 +69,17 @@ pub fn is_bundled() -> bool {
     std::env::var_os("SEAGLASS_MPV_PATH").is_none() && bundled().is_some()
 }
 
+/// Vrai si `spawn` échoue faute de mpv : build de release sans mpv embarqué ni
+/// `SEAGLASS_MPV_PATH` (#261).
+pub fn is_missing() -> bool {
+    matches!(executable(), Err(MpvError::Missing))
+}
+
 /// Lance mpv en mode idle, avec la taille de cache et le périphérique de sortie choisis
 /// dans les réglages (`None` = périphérique par défaut du système). Un périphérique absent
 /// est corrigé par le lecteur dès la première liste reçue, avant toute lecture.
 pub fn spawn(conf: &Path, cache: CacheSize, audio_device: Option<&str>) -> Result<Child> {
-    let exe = executable();
+    let exe = executable()?;
     tracing::info!("mpv : {}", exe.display());
     let mut cmd = Command::new(exe);
     cmd.arg("--no-config")
