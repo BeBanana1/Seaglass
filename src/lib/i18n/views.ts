@@ -67,6 +67,8 @@ export const fr = {
     pending: "Connexion en cours…",
     signIn: "Se connecter",
     disclaimer: "Client non officiel, non affilié à TIDAL.",
+    sessionLost: "Session expirée, reconnectez-vous.",
+    unreachable: "Impossible de reprendre la session, nouvel essai automatique.",
   },
   album: {
     hiresTwin: "Cet album existe en Hi-Res",
@@ -205,6 +207,8 @@ export const en: typeof fr = {
     pending: "Signing in…",
     signIn: "Sign in",
     disclaimer: "Unofficial client, not affiliated with TIDAL.",
+    sessionLost: "Session expired, please sign in again.",
+    unreachable: "Could not resume the session, retrying automatically.",
   },
   album: {
     hiresTwin: "This album is available in Hi-Res",

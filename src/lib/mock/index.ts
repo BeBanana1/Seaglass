@@ -533,7 +533,11 @@ let jam: ReturnType<typeof mockJam> | null =
       : null;
 
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
-  auth_status: () => (params.has("loggedout") ? null : { userId: 1, countryCode: "CH" }),
+  auth_status: () => {
+    // Session non reprise (réseau absent au lancement, #252) : écran de connexion qui réessaie.
+    if (params.has("authfail")) throw new Error("réseau : error sending request");
+    return params.has("loggedout") ? null : { userId: 1, countryCode: "CH" };
+  },
   login: () => ({ userId: 1, countryCode: "CH" }),
   logout: () => null,
   // Comme le backend (#207) : première page d'abord (la moitié des lignes), puis tout.

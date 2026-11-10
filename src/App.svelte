@@ -57,12 +57,15 @@
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
     await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initWindow(), initJam()]);
-    try {
-      session = await commands.authStatus();
-    } catch (e) {
-      pushToast({ level: "error", message: String(e) });
-    }
+    await restoreSession();
     ready = true;
+    void events.onSessionLost(() => {
+      if (!session) return;
+      session = null;
+      clearLikes();
+      clearLater();
+      pushToast({ level: "error", message: t.views.login.sessionLost });
+    });
     if (platform.mobile) {
       void events.onOpenNowPlaying(openFromNotification);
       void openFromNotification();
@@ -239,6 +242,27 @@
     if (!editable && !selected) e.preventDefault();
   }
 
+  // Session enregistrée non reprise à cause d'une erreur passagère (réseau absent au
+  // lancement avec Windows, panne de TIDAL) : le refresh token est gardé, on réessaie au
+  // lieu de demander une reconnexion (#252).
+  let restoreError = $state<string | null>(null);
+  let restoreTimer: ReturnType<typeof setTimeout> | undefined;
+  let restoreDelay = 5_000;
+
+  async function restoreSession() {
+    clearTimeout(restoreTimer);
+    try {
+      const restored = await commands.authStatus();
+      if (!session) session = restored;
+      restoreError = null;
+      restoreDelay = 5_000;
+    } catch (e) {
+      restoreError = String(e);
+      restoreTimer = setTimeout(() => void restoreSession(), restoreDelay);
+      restoreDelay = Math.min(restoreDelay * 2, 60_000);
+    }
+  }
+
   async function logout() {
     await commands.logout();
     session = null;
@@ -313,7 +337,10 @@
         <Settings section={route.section} onLogout={session ? logout : undefined} />
       {:else if !session}
         <Login
+          {restoreError}
           onLogin={(s) => {
+            clearTimeout(restoreTimer);
+            restoreError = null;
             session = s;
             if (platform.mobile) void openShared();
           }}

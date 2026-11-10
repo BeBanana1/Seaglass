@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use rand::RngCore;
-use reqwest::Url;
+use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
@@ -99,7 +99,8 @@ pub fn redirect_code(url: &Url) -> Option<String> {
 pub struct Tokens {
     pub access: String,
     pub expires_at: Instant,
-    /// Présent après l'échange du code ; le refresh ne renvoie pas de nouveau refresh token.
+    /// Présent après l'échange du code. Le rafraîchissement n'en renvoie pas (vérifié le
+    /// 2026-11-10, `live_refresh_rotation`) ; s'il en renvoyait un, l'app le garderait.
     pub refresh: Option<String>,
 }
 
@@ -158,11 +159,12 @@ async fn token_request(http: &reqwest::Client, form: &[(&str, &str)]) -> Result<
     let status = resp.status();
     if !status.is_success() {
         let body: TokenErrorBody = resp.json().await.unwrap_or_default();
-        return Err(TidalError::Auth(format!(
-            "{status} {} {}",
+        let message = format!(
+            "{} {}",
             body.error.unwrap_or_default(),
             body.error_description.unwrap_or_default()
-        )));
+        );
+        return Err(token_error(status, message.trim().to_owned()));
     }
     let token: TokenResponse = resp
         .json()
@@ -173,6 +175,19 @@ async fn token_request(http: &reqwest::Client, form: &[(&str, &str)]) -> Result<
         expires_at: Instant::now() + Duration::from_secs(token.expires_in),
         refresh: token.refresh_token,
     })
+}
+
+/// Seul un refus explicite (400 `invalid_grant`, 401, 403) invalide la session. Une panne
+/// du serveur ou une limite de débit (5xx, 429) est passagère : traitée comme un refus, elle
+/// effaçait le refresh token et forçait une reconnexion (#252).
+fn token_error(status: StatusCode, message: String) -> TidalError {
+    match status.as_u16() {
+        400 | 401 | 403 => TidalError::Auth(format!("{status} {message}")),
+        code => TidalError::Api {
+            status: code,
+            message,
+        },
+    }
 }
 
 fn keyring_entry() -> Result<keyring::Entry> {
@@ -209,6 +224,24 @@ mod tests {
         let expected = URL_SAFE_NO_PAD.encode(Sha256::digest(c.verifier.as_bytes()));
         assert_eq!(c.challenge, expected);
         assert_eq!(c.unique_key.len(), 16);
+    }
+
+    #[test]
+    fn only_explicit_refusals_end_the_session() {
+        for code in [400, 401, 403] {
+            let status = StatusCode::from_u16(code).unwrap();
+            assert!(matches!(
+                token_error(status, String::new()),
+                TidalError::Auth(_)
+            ));
+        }
+        for code in [429, 500, 502, 503] {
+            let status = StatusCode::from_u16(code).unwrap();
+            assert!(matches!(
+                token_error(status, String::new()),
+                TidalError::Api { status, .. } if status == code
+            ));
+        }
     }
 
     #[test]

@@ -15,6 +15,8 @@ mod info;
 mod later;
 mod likes;
 #[cfg(test)]
+mod live_auth;
+#[cfg(test)]
 mod live_collection;
 #[cfg(test)]
 mod live_later;
