@@ -8,7 +8,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.5.1
 
-- Android, mode conduite : une tuile lit sa playlist ou ses titres likés dans l'ordre de leur page (tri choisi compris), et l'appui long propose d'ouvrir sa page (#193).
+- Android, mode conduite : une tuile lit sa playlist ou ses titres likés dans l'ordre de leur page (tri choisi compris), et la bande › à droite de chaque tuile ouvre sa page (#193).
 
 ## 0.5.0
 

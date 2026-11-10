@@ -1,7 +1,8 @@
 <script lang="ts">
   // Mode conduite (#193, Android) : plein écran, titre en cours, gros boutons de lecture et
   // tuiles des épingles (8 au plus). Un appui sur une tuile lit toute la source tout de suite,
-  // dans l'ordre de sa page ; appui long : ouvrir sa page, avancer, reculer, retirer. L'écran reste allumé tant que la vue est ouverte.
+  // dans l'ordre de sa page ; la bande à droite (›) ouvre sa page ; appui long : avancer,
+  // reculer, retirer. L'écran reste allumé tant que la vue est ouverte.
   import { onMount } from "svelte";
   import { commands, type Pin, type PlaySource } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
@@ -66,8 +67,6 @@
       y: e.clientY,
       from: e.currentTarget as HTMLElement,
       entries: [
-        { label: t.menu.open, icon: ICONS[pin.kind], action: () => onOpen(pinRoute(pin)) },
-        "separator",
         ...(index > 0 ? [{ label: t.drive.moveUp, icon: "up" as const, action: () => movePin(pin, -1).catch(fail) }] : []),
         ...(index < tiles.length - 1
           ? [{ label: t.drive.moveDown, icon: "down" as const, action: () => movePin(pin, 1).catch(fail) }]
@@ -131,21 +130,28 @@
   {:else}
     <div class="drive-tiles" class:single={tiles.length === 1} style:--rows={Math.ceil(tiles.length / 2)}>
       {#each tiles as pin, i (pinKey(pin))}
-        <button
+        {@const label = pinLabel(pin)}
+        <!-- Deux zones (#193) : la tuile lit, la bande à droite (›) ouvre la page. -->
+        <div
           class="drive-tile"
           class:current={isCurrent(pin, queue.view.source)}
           class:wide={tiles.length % 2 === 1 && i === tiles.length - 1}
-          onclick={() => play(pin)}
           oncontextmenu={(e) => edit(e, pin, i)}
-          aria-busy={starting === pinKey(pin)}
+          role="group"
+          aria-label={label}
         >
-          {#if starting === pinKey(pin)}
-            <span class="spinner"></span>
-          {:else}
-            <Icon name={ICONS[pin.kind]} size={28} />
-          {/if}
-          <span class="drive-tile-label">{pinLabel(pin)}</span>
-        </button>
+          <button class="drive-tile-play" onclick={() => play(pin)} aria-busy={starting === pinKey(pin)}>
+            {#if starting === pinKey(pin)}
+              <span class="spinner"></span>
+            {:else}
+              <Icon name={ICONS[pin.kind]} size={28} />
+            {/if}
+            <span class="drive-tile-label">{label}</span>
+          </button>
+          <button class="drive-tile-open" onclick={() => onOpen(pinRoute(pin))} aria-label={t.drive.openPage(label)}>
+            <Icon name="chevronRight" size={28} />
+          </button>
+        </div>
       {/each}
     </div>
   {/if}
@@ -291,12 +297,9 @@
 
   .drive-tile {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    min-width: 0;
     min-height: 0;
-    padding: 8px 12px;
+    overflow: hidden;
     border: 2px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-raised);
@@ -311,11 +314,35 @@
     grid-column: 1 / -1;
   }
 
-  .drive-tile:active {
+  .drive-tile-play {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 10px;
+    color: inherit;
+  }
+
+  /* Dernier tiers de la tuile, 56 px au moins : assez large pour le pouce même à 8 tuiles,
+     séparé par un trait pour qu'on voie où il commence. */
+  .drive-tile-open {
+    display: grid;
+    flex: 0 0 clamp(56px, 30%, 120px);
+    place-items: center;
+    border-left: 2px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .drive-tile-play:active,
+  .drive-tile-open:active {
     background: var(--bg-hover);
   }
 
-  .drive-tile.current {
+  .drive-tile.current,
+  .drive-tile.current .drive-tile-open {
     border-color: var(--accent);
     color: var(--accent);
   }
