@@ -26,7 +26,7 @@
   <div class="hires-offer" role="status">
     <span class="text">
       <span class="hires-offer-title">{t.player.hiresAvailable(format)}</span>
-      {#if offer.hiresEdition}<span class="hires-offer-album">{offer.hiresEdition}</span>{/if}
+      {#if offer.hiresEdition}<span class="hires-offer-album">{offer.hiresEdition.title}</span>{/if}
     </span>
     <button class="hires-offer-accept" onclick={() => answer(true)}>{t.player.hiresListen(format)}</button>
     <button

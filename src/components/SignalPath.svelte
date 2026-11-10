@@ -39,7 +39,7 @@
   );
   /** Flux pris sur une autre édition hi-res du même enregistrement (#18). */
   const edition = $derived(s.stream?.hiresEdition ?? null);
-  const editionHint = $derived(edition ? t.player.editionHint(edition) : undefined);
+  const editionHint = $derived(edition ? t.player.editionHint(edition.title) : undefined);
   const sourceSub = $derived.by(() => {
     if (!s.stream) return "";
     const kind = edition
@@ -104,7 +104,7 @@
     </div>
     {#if edition && !dense}
       <p class="hires-edition" title={t.player.hiresEditionHint}>
-        {t.player.hiresEdition} <span class="hires-edition-album">{edition}</span>
+        {t.player.hiresEdition} <span class="hires-edition-album">{edition.title}</span>
       </p>
     {/if}
   </div>

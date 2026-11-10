@@ -131,8 +131,9 @@ let playSource: PlaySource | null = radioSeed
 const manual: Track[] = params.has("manual") ? fx.playlist.tracks.slice(0, 4) : [];
 /** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
 const volumeParam = params.get("volume");
-/** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18). */
-const hiresEdition = params.get("hiresedition");
+/** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18), album ouvrable (#111). */
+const hiresEditionParam = params.get("hiresedition");
+const hiresEdition = hiresEditionParam === null ? null : { id: fx.album.album.id, title: hiresEditionParam };
 /** `?hiresoffer=Thriller` : réglage « Demander », bandeau qui propose une édition hi-res (#59). */
 const hiresOfferParam = params.get("hiresoffer");
 /** `?hirestwin=1` : la page album propose un album jumeau hi-res (#59). */
@@ -146,7 +147,8 @@ function mockSleep(param: string | null): SleepState | null {
 }
 
 function offerFormat(album: string): StreamFormat {
-  return { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 192000, bitrate: 5071, hiresEdition: album };
+  const hiresEdition = { id: fx.album.album.id, title: album };
+  return { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 192000, bitrate: 5071, hiresEdition };
 }
 
 const state: PlayerState = {
@@ -982,7 +984,7 @@ function mockTrackInfo(trackId: number): TrackInfo {
     hiresEdition:
       !track.hires && hiresEdition !== null
         ? {
-            track: { ...track, id: track.id + 1_000_000, hires: true, album: { ...track.album, title: hiresEdition } },
+            track: { ...track, id: track.id + 1_000_000, hires: true, album: { ...track.album, title: hiresEdition.title } },
             stream: hires,
             played: playback.hiresUpgrade === "auto",
           }

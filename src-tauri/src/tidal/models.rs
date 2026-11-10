@@ -145,7 +145,25 @@ pub struct StreamFormat {
     pub bitrate: Option<u32>,
     /// Album de l'édition réellement lue quand le flux vient d'une autre édition hi-res du
     /// même enregistrement (#18) ; `None` pour le titre affiché.
-    pub hires_edition: Option<String>,
+    pub hires_edition: Option<EditionAlbum>,
+}
+
+/// Album d'une autre édition hi-res : affiché et ouvrable depuis « En lecture » (#111),
+/// sans changer le titre en cours (like, playlists et file gardent son id).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditionAlbum {
+    pub id: u64,
+    pub title: String,
+}
+
+impl From<&Track> for EditionAlbum {
+    fn from(track: &Track) -> Self {
+        Self {
+            id: track.album.id,
+            title: track.album.title.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

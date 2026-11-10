@@ -7,7 +7,7 @@
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { commands, type Track } from "../lib/ipc";
   import { ui } from "../lib/stores/ui.svelte";
-  import { coverLarge, coverSmall, fullTitle } from "../lib/format";
+  import { coverLarge, coverSmall, formatStream, fullTitle } from "../lib/format";
   import { go, nav } from "../lib/stores/nav.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
   import { openTrackInfo } from "../lib/stores/trackInfo.svelte";
@@ -31,6 +31,9 @@
   let { onClose }: { onClose: () => void } = $props();
 
   const current = $derived(player.currentTrack);
+  const stream = $derived(player.state.stream);
+  /** Autre édition hi-res réellement lue (#111). */
+  const edition = $derived(stream?.hiresEdition ?? null);
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
 
   /** Lit le titre `i` de `upNext` (#167) : file manuelle d'abord, puis suite du contexte. */
@@ -184,6 +187,17 @@
                 {/each}
               </div>
               <button class="link album" onclick={() => go({ name: "album", id: track.album.id })}>{track.album.title}</button>
+              {#if edition && stream}
+                <!-- Flux pris sur une autre édition hi-res (#18, #111) : le titre reste celui
+                     choisi (like, playlists, file), seule la source du son est montrée. -->
+                <div class="played-from played-edition" title={t.player.hiresEditionHint}>
+                  <span class="played-from-label">{t.views.nowPlaying.playedEdition}</span>
+                  <button class="link played-from-link" onclick={() => go({ name: "album", id: edition.id })}
+                    >{edition.title}</button
+                  >
+                  <span class="played-edition-format">· {formatStream(stream)}</span>
+                </div>
+              {/if}
               {#if from}
                 <div class="played-from">
                   <span class="played-from-label">{t.views.nowPlaying.playedFrom}</span>
@@ -466,6 +480,12 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+
+  .played-edition-format {
+    flex: none;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
   }
 
   .controls {
