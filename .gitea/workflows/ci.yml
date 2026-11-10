@@ -73,13 +73,15 @@ jobs:
       # Vulnérabilités connues des dépendances (#263). Échoue sur une vulnérabilité ; une
       # crate seulement signalée non maintenue ou retirée reste un avertissement. Une panne
       # du registre npm, de crates.io ou de la base RustSec n'échoue pas : elle avertit.
-      # `cargo-audit` est dans l'image ; une image plus ancienne l'installe ici (gardé par
-      # le cache Rust). Une alerte à ignorer : `--ignore RUSTSEC-…` ci-dessous, avec sa raison.
+      # `cargo-audit` vient de l'image. Pas de `cargo install` de secours : installé dans
+      # le conteneur, hors du cache Rust, il était recompilé à chaque run (1 min 44 s, le
+      # double du job). Une image sans lui avertit : la reconstruire (ci/README.md).
+      # Une alerte à ignorer : `--ignore RUSTSEC-…` ci-dessous, avec sa raison.
       - name: Dépendances
         run: |
           pnpm audit --prod --ignore-registry-errors
-          if ! command -v cargo-audit >/dev/null && ! cargo install cargo-audit --locked; then
-            echo "::warning::cargo-audit non installé : dépendances Rust non vérifiées"
+          if ! command -v cargo-audit >/dev/null; then
+            echo "::warning::image CI sans cargo-audit : dépendances Rust non vérifiées, reconstruire l'image (ci/README.md)"
             exit 0
           fi
           db="$(mktemp -d)/advisory-db"

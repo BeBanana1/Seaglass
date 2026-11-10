@@ -32,7 +32,10 @@ fonctionne. Le workflow (`.gitea/workflows/ci.yml`) cible le label `seaglass`.
 Nouvelle base Debian, nouvelle majeure de pnpm, ou Rust trop ancien (le workflow
 le met à jour à chaque run, mais ça ralentit) : changer le tag partout, puis
 reconstruire. Pareil pour `cargo-audit` (#263) : une image construite avant son
-ajout fonctionne, le workflow le compile lui-même, mais le premier run est plus long.
+ajout fonctionne, mais l'étape « Dépendances » saute l'audit Rust avec un
+avertissement. Le workflow ne le compile plus lui-même : installé dans le conteneur,
+hors du cache Rust, il était recompilé à chaque run (+1 min 44 s). Pour lui seul, garder
+le tag et reconstruire suffit (étape 2).
 
 1. `SEAGLASS_CI_TAG` dans `.env` et le label de `config.yaml` (même valeur).
 2. `docker compose --profile build build`, puis `docker compose up -d` (le runner
