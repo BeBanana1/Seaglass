@@ -2,7 +2,8 @@
   import { onMount } from "svelte";
   import { commands, events, type SessionInfo } from "./lib/ipc";
   import { initPlayer, player, stepVolume } from "./lib/stores/player.svelte";
-  import { initQueue } from "./lib/stores/queue.svelte";
+  import { initQueue, queue } from "./lib/stores/queue.svelte";
+  import { playedFrom } from "./lib/playSource";
   import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
   import { closeJamDialog, initJam, jam } from "./lib/stores/jam.svelte";
@@ -47,6 +48,8 @@
   let ready = $state(false);
   let queueOpen = $state(false);
   let nowPlayingOpen = $state(false);
+  /** « En lecture » ouvert par la notification d'Android (#240) : la page dessous est quelconque. */
+  let nowPlayingFromOutside = false;
   let main = $state<HTMLElement>();
   // Android : un champ de texte a le focus, donc le clavier est ouvert (#151).
   let typing = $state(false);
@@ -105,10 +108,18 @@
   });
 
   // Retour d'Android : ferme ce qui est au-dessus (menu, dialogue, « En lecture »), quitte
-  // la recherche dans une liste, puis revient à la page précédente.
+  // la recherche dans une liste, revient à la page précédente, puis à l'accueil (#240) :
+  // seul Retour sur l'accueil quitte l'app.
   function canClose(): boolean {
     return (
-      !!menu.open || !!picker.request || !!trackInfo.track || jam.dialogOpen || nowPlayingOpen || listSearch.active || canGoBack()
+      !!menu.open ||
+      !!picker.request ||
+      !!trackInfo.track ||
+      jam.dialogOpen ||
+      nowPlayingOpen ||
+      listSearch.active ||
+      canGoBack() ||
+      (!!session && current().name !== "home")
     );
   }
 
@@ -119,9 +130,25 @@
     else if (jam.dialogOpen) closeJamDialog();
     // Paroles ou file en plein écran (#173) : Retour revient d'abord à « En lecture ».
     else if (nowPlayingOpen && ui.nowPlayingPanel) ui.nowPlayingPanel = null;
-    else if (nowPlayingOpen) nowPlayingOpen = false;
+    else if (nowPlayingOpen) closeNowPlaying();
     else if (listSearch.active) exitListSearch();
-    else back();
+    else if (canGoBack()) back();
+    else replace({ name: "home" });
+  }
+
+  // Fermé autrement (Échap, raccourci, lien partagé) : la marque ne doit pas survivre.
+  $effect(() => {
+    if (!nowPlayingOpen) nowPlayingFromOutside = false;
+  });
+
+  // Ouvert depuis la notification, « En lecture » se referme sur la page d'où joue le titre
+  // (#240), par-dessus la page qui était là : Retour y revient ensuite.
+  function closeNowPlaying() {
+    nowPlayingOpen = false;
+    if (!nowPlayingFromOutside) return;
+    nowPlayingFromOutside = false;
+    const route = playedFrom(queue.view.source)?.route;
+    if (route && JSON.stringify(route) !== JSON.stringify(current())) go(route);
   }
 
   // Android : mini-lecteur et navigation masqués pendant la saisie, comme dans les apps
@@ -132,7 +159,10 @@
   // fois (aussi au démarrage, si l'app a été rouverte par la notification).
   async function openFromNotification() {
     if (!(await commands.takeNowPlayingRequest().catch(() => false))) return;
-    if (session && player.state.track) nowPlayingOpen = true;
+    if (session && player.state.track) {
+      nowPlayingOpen = true;
+      nowPlayingFromOutside = true;
+    }
   }
 
   // Lien partagé depuis une autre app (#203) : seulement connecté, sinon il attend.
@@ -330,7 +360,7 @@
 </div>
 
 {#if nowPlayingOpen}
-  <NowPlaying onClose={() => (nowPlayingOpen = false)} />
+  <NowPlaying onClose={closeNowPlaying} />
 {/if}
 <Toasts />
 <UpdatePrompt />

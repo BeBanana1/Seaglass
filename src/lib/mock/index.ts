@@ -523,6 +523,7 @@ function mockJam(mode: "online" | "local", reconnecting = false) {
     guestControls: true,
   };
 }
+let notificationTaken = false;
 const jamParam = params.get("jam");
 let jam: ReturnType<typeof mockJam> | null =
   jamParam === "1" || jamParam === "reconnecting"
@@ -767,7 +768,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
   autostart_enabled: () => autostart,
   discord_available: () => true,
-  take_now_playing_request: () => false,
+  // `?notification=1` : appui sur la notification d'Android au lancement (#163, #240), une fois.
+  take_now_playing_request: () => {
+    const asked = params.get("notification") === "1" && !notificationTaken;
+    notificationTaken = true;
+    return asked;
+  },
   take_shared_link: () => null,
   // `?platform=android&links=1` : liens TIDAL déjà donnés à l'app.
   link_handling: () => (params.get("platform") === "android" ? { enabled: params.get("links") === "1" } : null),
