@@ -174,8 +174,8 @@ const state: PlayerState = {
   // Calculé plus bas, après les réglages de lecture factices.
   normalization: null,
   sleep: mockSleep(params.get("sleep")),
-  /** `?mpv=cpu` ou `?mpv=stopped` : bandeau « mpv ne tourne pas » (#92). */
-  mpvIssue: params.get("mpv") === "cpu" ? "cpuUnsupported" : params.get("mpv") === "stopped" ? "stopped" : null,
+  /** `?mpv=cpu`, `?mpv=stopped` ou `?mpv=missing` : bandeau « mpv ne tourne pas » (#92, #261). */
+  mpvIssue: ({ cpu: "cpuUnsupported", stopped: "stopped", missing: "missing" } as const)[params.get("mpv") ?? ""] ?? null,
 };
 
 let ui: UiSettings = {

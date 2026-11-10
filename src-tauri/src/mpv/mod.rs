@@ -32,11 +32,17 @@ pub enum MpvIssue {
     Stopped,
     /// mpv de l'installeur (x86-64-v3) sur un processeur sans AVX2 : il ne peut pas tourner.
     CpuUnsupported,
+    /// Build installé sans son `mpv.exe` (installation abîmée, antivirus) : pas de repli sur
+    /// le `PATH` hors debug (#261).
+    Missing,
 }
 
 impl MpvIssue {
     /// Cause probable d'un échec de mpv sur cette machine.
     pub fn diagnose() -> Self {
+        if process::is_missing() {
+            return Self::Missing;
+        }
         Self::classify(process::is_bundled(), cpu::lacks_avx2())
     }
 
@@ -59,6 +65,10 @@ impl MpvIssue {
                 "lecture impossible : ce processeur n'a pas l'AVX2, exigé par le mpv livré avec Seaglass",
                 "playback unavailable: this processor lacks AVX2, which the mpv bundled with Seaglass requires",
             ),
+            Self::Missing => tr(
+                "lecture impossible : mpv introuvable à côté de Seaglass, réinstaller l'app",
+                "playback unavailable: mpv not found next to Seaglass, reinstall the app",
+            ),
         }
     }
 }
@@ -66,11 +76,20 @@ impl MpvIssue {
 #[derive(Debug, thiserror::Error)]
 pub enum MpvError {
     #[error("{}", trf!(
-        "impossible de lancer mpv ({}) : vérifier le PATH ou SEAGLASS_MPV_PATH",
-        "cannot start mpv ({}): check PATH or SEAGLASS_MPV_PATH",
+        "impossible de lancer mpv ({}) : vérifier SEAGLASS_MPV_PATH ou réinstaller l'app",
+        "cannot start mpv ({}): check SEAGLASS_MPV_PATH or reinstall the app",
         .0
     ))]
     Spawn(std::io::Error),
+    /// Build installé sans le `mpv.exe` de l'installeur ni `SEAGLASS_MPV_PATH` (#261).
+    #[error(
+        "{}",
+        tr(
+            "mpv introuvable à côté de Seaglass : réinstaller l'app",
+            "mpv not found next to Seaglass: reinstall the app"
+        )
+    )]
+    Missing,
     #[error("{}", trf!("connexion IPC à mpv impossible : {}", "cannot connect to mpv over IPC: {}", .0))]
     Connect(std::io::Error),
     #[error("{}", tr("mpv s'est arrêté", "mpv stopped"))]
