@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.98
+
+- Android : affichage bloqué en portrait (#243).
+
 ## 0.4.97
 
 - Petits défauts de l'audit : fragment de la page des invités, clients HTTP en HTTPS seulement, coupe de « feat. », chemins du `FileProvider` (#262).
