@@ -491,8 +491,15 @@
     display: none;
   }
 
-  :global(:root[data-platform="android"]) .row:hover:not(.menu-open) {
+  /* Au doigt, la ligne touchée garde `:hover` jusqu'au prochain appui ailleurs : pas de fond
+     de survol. La ligne en cours garde le sien (#291 : lancer un titre effaçait son fond
+     jusqu'à l'appui suivant, sur Pause par exemple). */
+  :global(:root[data-platform="android"]) .row:hover:not(.menu-open, .active) {
     background: none;
+  }
+
+  :global(:root[data-platform="android"]) .row.active:hover:not(.menu-open) {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
   :global(:root[data-platform="android"]) .album,
