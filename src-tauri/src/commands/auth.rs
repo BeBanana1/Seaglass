@@ -39,6 +39,9 @@ pub async fn login(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Sess
 }
 
 /// Bureau : fenêtre dédiée, sans aucune capability Tauri. `None` si elle est fermée.
+/// Navigation privée (#258) : les cookies de TIDAL ne survivent pas à la fenêtre, si bien
+/// qu'une nouvelle connexion peut prendre un autre compte et que la session web ne reste
+/// pas dans le profil WebView2 de l'app.
 #[cfg(desktop)]
 async fn login_page(app: &AppHandle, url: Url) -> CmdResult<Option<String>> {
     if let Some(existing) = app.get_webview_window(LOGIN_WINDOW) {
@@ -56,6 +59,7 @@ async fn login_page(app: &AppHandle, url: Url) -> CmdResult<Option<String>> {
     let window = WebviewWindowBuilder::new(app, LOGIN_WINDOW, WebviewUrl::External(url))
         .title(crate::i18n::tr("Connexion", "Sign in"))
         .inner_size(480.0, 760.0)
+        .incognito(true)
         .on_navigation(move |url| match auth::redirect_code(url) {
             Some(code) => {
                 send(&nav_tx, Some(code));
@@ -93,10 +97,28 @@ async fn login_page(app: &AppHandle, url: Url) -> CmdResult<Option<String>> {
 }
 
 #[tauri::command]
-pub async fn logout(state: State<'_, AppState>) -> CmdResult<()> {
+pub async fn logout(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
     state.tidal.logout().await.map_err(err)?;
+    clear_login_data(&app);
     super::snapshots::clear(&state).await;
     super::search_history::clear(&state);
     super::play_history::clear(&state);
     Ok(())
 }
+
+/// Bureau : données de navigation du profil WebView2 de l'app (#258), où restent les cookies
+/// de TIDAL des connexions faites avant la navigation privée. L'interface n'y garde rien
+/// (ni cookies ni stockage web). Échec seulement journalisé : la déconnexion est faite.
+#[cfg(desktop)]
+fn clear_login_data(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main")
+        && let Err(e) = window.clear_all_browsing_data()
+    {
+        tracing::warn!("données de navigation non effacées : {e}");
+    }
+}
+
+/// Android : la WebView de connexion efface déjà ses cookies avant et après usage
+/// (`SeaglassPlugin.login`).
+#[cfg(target_os = "android")]
+fn clear_login_data(_app: &AppHandle) {}
