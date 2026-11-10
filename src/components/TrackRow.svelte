@@ -6,6 +6,7 @@
   import { trackMenu } from "../lib/trackMenu";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
+  import { isLaterPending, isSavedForLater, toggleLater } from "../lib/stores/later.svelte";
   import { t } from "../lib/i18n.svelte";
   import { platform } from "../lib/platform.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
@@ -25,6 +26,7 @@
     onRemoveFromPlaylist,
     highlighted = false,
     addedBy,
+    laterButton = false,
   }: {
     track: Track;
     /** Numéro affiché devant le titre (position dans l'album ou la playlist). */
@@ -47,7 +49,12 @@
     highlighted?: boolean;
     /** File manuelle pendant une Jam (#25) : invité qui a ajouté le titre. */
     addedBy?: string;
+    /** Liste « Plus tard » (#249) : signet plein à côté du cœur, pour retirer le titre en un clic. */
+    laterButton?: boolean;
   } = $props();
+
+  const laterTarget = $derived({ kind: "track" as const, id: track.id });
+  const saved = $derived(laterButton && isSavedForLater(laterTarget));
 
   $effect(() => {
     if (highlighted) rowEl?.scrollIntoView({ block: "center" });
@@ -175,6 +182,25 @@
     >
       <Icon name="more" size={16} />
     </button>
+    {#if laterButton}
+      <!-- Classes du cœur (`like-button liked`) : même place, toujours visible et même
+           habillage dans chaque thème que le cœur plein des titres likés. -->
+      <button
+        class="like-button later-row"
+        class:liked={saved}
+        class:pending={isLaterPending(laterTarget)}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleLater(laterTarget);
+        }}
+        ondblclick={(e) => e.stopPropagation()}
+        aria-pressed={saved}
+        title={saved ? t.menu.removeFromLater : t.menu.saveForLater}
+        aria-label={saved ? t.menu.removeFromLater : t.menu.saveForLater}
+      >
+        <Icon name={saved ? "bookmarkFilled" : "bookmark"} size={16} />
+      </button>
+    {/if}
     <LikeButton {track} />
   </div>
   <span class="duration">{formatTime(track.duration)}</span>
@@ -331,6 +357,15 @@
   .actions button:hover {
     color: var(--text);
     background: var(--border);
+  }
+
+  .actions .later-row.liked {
+    color: var(--accent);
+  }
+
+  .actions .later-row.pending {
+    opacity: 0.5;
+    cursor: progress;
   }
 
   .duration {
