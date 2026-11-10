@@ -21,7 +21,7 @@ Ce fichier ne garde que ce qui sert à toute tâche. Les notes d'implémentation
 |---|---|
 | App | Tauri 2 |
 | Backend | Rust stable, `tokio`, `serde`, `reqwest` (rustls), `thiserror` + `anyhow`, `tracing` |
-| Frontend | Svelte 5 + TypeScript + Vite, `pnpm` |
+| Frontend | Svelte 5 + TypeScript + Vite, `pnpm`, tests `vitest` |
 | Audio | mpv piloté en JSON IPC (named pipe), sidecar Tauri à terme |
 | Stockage | SQLite (`rusqlite`) pour la file, les réglages et le cache de métadonnées |
 | Secrets | `keyring` (Credential Manager sous Windows) |
@@ -134,6 +134,7 @@ cd src-tauri; cargo fmt; cargo clippy --all-targets -- -D warnings; cargo test
 cargo test live_catalog -- --ignored --nocapture   # endpoints réels (session requise)
 cargo test dump_ui_fixtures -- --ignored          # données de prévisualisation de l'UI
 pnpm check
+pnpm test                                         # tests du frontend (vitest)
 pnpm release                                      # installeur signé dans release/ (voir docs/release.md)
 pnpm release:all -Publish                         # Windows + Android, tag, release Gitea
 ```

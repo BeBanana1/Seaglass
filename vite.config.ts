@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
@@ -19,4 +20,6 @@ export default defineConfig({
     watch: { ignored: ["**/src-tauri/**", "**/spike/**"] },
   },
   build: { target: "es2022" },
+  // Tests du frontend (#264) : logique pure seulement, sans DOM simulé (`pnpm test`).
+  test: { include: ["src/**/*.test.ts"], environment: "node" },
 });

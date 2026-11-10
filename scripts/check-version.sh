@@ -31,7 +31,8 @@ if [[ "$version" != "$released" ]]; then
 fi
 
 # Ce qui ne change pas l'app livrée : documentation, CI, outillage, backend factice
-# (éliminé du build de production), relais de la Jam (déployé à part sur le serveur).
+# (éliminé du build de production), tests du frontend (#264, hors du bundle), relais de la
+# Jam (déployé à part sur le serveur).
 changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude,glob)**/*.md' \
   ':(exclude)LICENSE' \
@@ -44,7 +45,9 @@ changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude).mcp.json' \
   ':(exclude).gitignore' \
   ':(exclude).gitattributes' \
-  ':(exclude)src/lib/mock/')
+  ':(exclude)src/lib/mock/' \
+  ':(exclude,glob)src/**/*.test.ts' \
+  ':(exclude)src/lib/testing/')
 
 if [[ -n "$changed" ]]; then
   echo "::error::L'app a changé depuis $tag mais VERSION vaut encore $version : passer à la version suivante (VERSION et src-tauri/Cargo.toml)."

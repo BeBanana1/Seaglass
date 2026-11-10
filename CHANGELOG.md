@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.115
+
+- Tests du frontend avec `vitest` (tri et filtre des listes, formats, chaîne audio, liens, réorganisation, glissement), lancés par la CI ; rien ne change dans l'app (#264).
+
 ## 0.4.114
 
 - Android : le titre en cours est mis en évidence dès son lancement, plus seulement après une pause (#291).

@@ -39,6 +39,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm check
+          pnpm test
           pnpm build
 
       # Rust est dans l'image : l'action ne télécharge qu'une nouvelle stable.
