@@ -135,6 +135,10 @@ pub(super) struct Player {
     pub(super) store: Option<Arc<Store>>,
     pub(super) tx: mpsc::Sender<Cmd>,
     pub(super) engine: Result<ActiveEngine, String>,
+    /// De quoi relancer le moteur après un arrêt inattendu (#255, `recover.rs`).
+    pub(super) launch: Launch,
+    pub(super) events_tx: mpsc::Sender<Event>,
+    pub(super) last_restart: Option<Instant>,
     pub(super) server: Option<ManifestServer>,
     pub(super) rng: StdRng,
     pub(super) queue: Queue,
@@ -193,7 +197,11 @@ pub fn spawn(
         let settings = PlaybackSettings::load(store.as_deref());
         let output = Output::new(settings.audio_device.clone());
         let mut engine = launch
-            .start(settings.cache_size, output.launch_device(), events_tx)
+            .start(
+                settings.cache_size,
+                output.launch_device(),
+                events_tx.clone(),
+            )
             .await;
         let mut mpv_issue = None;
         if let Err(e) = &engine {
@@ -218,6 +226,9 @@ pub fn spawn(
             store,
             tx: actor_tx,
             engine,
+            launch,
+            events_tx,
+            last_restart: None,
             server,
             rng: StdRng::from_os_rng(),
             queue: Queue::default(),
@@ -441,14 +452,7 @@ impl Player {
             Event::Devices(list) => self.on_device_list(list).await,
             Event::Loaded => self.failures = 0,
             Event::Ended(end) => self.on_end_file(end).await,
-            Event::Stopped => {
-                let issue = engine::diagnose().unwrap_or(MpvIssue::Stopped);
-                self.engine = Err(issue.message().into());
-                self.state.mpv_issue = Some(issue);
-                self.loaded = false;
-                self.next_loaded = None;
-                self.toast("error", issue.message().into());
-            }
+            Event::Stopped => self.on_engine_stopped().await,
         }
     }
 

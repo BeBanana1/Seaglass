@@ -141,6 +141,11 @@ mod android {
     }
 
     impl Launch {
+        /// Media3 ne signale pas d'arrêt du moteur : pas de relance à empêcher.
+        pub fn may_restart(&self) -> bool {
+            true
+        }
+
         /// Crée le lecteur Kotlin et branche ses événements sur `events`. Le cache et le
         /// périphérique de sortie sont des réglages du bureau.
         pub async fn start(

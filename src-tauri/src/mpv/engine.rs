@@ -1,6 +1,9 @@
 //! Moteur mpv : traduit les opérations de `engine::Op` en commandes JSON IPC et les
 //! événements de mpv en `engine::Event`. Logique pure testée, sauf `MpvEngine::start`.
 
+use std::sync::Arc;
+use std::time::Duration;
+
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -9,16 +12,22 @@ use super::events::{EndReason, MpvEvent, Property};
 use super::process::ProcessGuard;
 use super::{CacheSize, MpvHandle};
 use crate::engine::{End, Engine, Event, Op};
+use crate::i18n::tr;
+
+/// Délai de réponse de mpv à une commande. Même `set_property audio-device`, qui rouvre le
+/// périphérique, répond bien avant ; au-delà, mpv est considéré comme figé (#255).
+const COMMAND_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub struct MpvEngine {
     handle: MpvHandle,
+    process: Arc<ProcessGuard>,
 }
 
 /// Ce qu'il faut pour lancer mpv : sa config dédiée et la garde du processus (arrêté à la
 /// sortie de l'app et avant une mise à jour).
 pub struct Launch {
     pub conf: std::path::PathBuf,
-    pub process: std::sync::Arc<ProcessGuard>,
+    pub process: Arc<ProcessGuard>,
 }
 
 impl Launch {
@@ -30,6 +39,11 @@ impl Launch {
     ) -> Result<MpvEngine, String> {
         MpvEngine::start(&self.conf, cache, audio_device, &self.process, events).await
     }
+
+    /// Faux pendant la fermeture de l'app ou une mise à jour : mpv a été arrêté exprès.
+    pub fn may_restart(&self) -> bool {
+        !self.process.closing()
+    }
 }
 
 impl MpvEngine {
@@ -39,7 +53,7 @@ impl MpvEngine {
         conf: &std::path::Path,
         cache: CacheSize,
         audio_device: Option<&str>,
-        process: &ProcessGuard,
+        process: &Arc<ProcessGuard>,
         events: mpsc::Sender<Event>,
     ) -> Result<Self, String> {
         process.set(super::process::spawn(conf, cache, audio_device).map_err(|e| e.to_string())?);
@@ -56,20 +70,34 @@ impl MpvEngine {
                 }
             }
         });
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            process: Arc::clone(process),
+        })
+    }
+
+    /// Envoie les commandes de l'opération dans l'ordre, jusqu'à la première refusée. Sans
+    /// réponse dans `limit`, mpv est figé : il est arrêté, et la fermeture du pipe donne
+    /// `Event::Stopped`, d'où la relance par l'acteur (#255). Sans ce délai, l'acteur
+    /// resterait bloqué sur la commande et plus rien ne répondrait.
+    async fn apply_within(&self, op: Op, limit: Duration) -> Result<(), String> {
+        for command in commands(&op) {
+            match tokio::time::timeout(limit, self.handle.command(command)).await {
+                Ok(reply) => reply.map_err(|e| e.to_string())?,
+                Err(_) => {
+                    tracing::error!("mpv ne répond plus depuis {limit:?}, arrêt du processus");
+                    self.process.terminate();
+                    return Err(tr("mpv ne répond plus", "mpv is not responding").into());
+                }
+            };
+        }
+        Ok(())
     }
 }
 
 impl Engine for MpvEngine {
-    /// Envoie les commandes de l'opération dans l'ordre, jusqu'à la première refusée.
     async fn apply(&self, op: Op) -> Result<(), String> {
-        for command in commands(&op) {
-            self.handle
-                .command(command)
-                .await
-                .map_err(|e| e.to_string())?;
-        }
-        Ok(())
+        self.apply_within(op, COMMAND_TIMEOUT).await
     }
 }
 
@@ -312,6 +340,52 @@ mod tests {
         assert_eq!(end(EndReason::Redirect, None), None);
     }
 
+    /// mpv figé : l'opération échoue après le délai au lieu de bloquer l'acteur (#255).
+    #[tokio::test]
+    async fn unresponsive_mpv_times_out() {
+        let engine = MpvEngine {
+            handle: MpvHandle::unresponsive(),
+            process: Arc::new(ProcessGuard::default()),
+        };
+        let start = std::time::Instant::now();
+        let result = engine
+            .apply_within(Op::SetPaused(true), Duration::from_millis(50))
+            .await;
+        assert!(result.is_err());
+        assert!(start.elapsed() < Duration::from_secs(2));
+    }
+
+    /// Vrai mpv arrêté par `terminate` (délai dépassé) : l'acteur reçoit `Event::Stopped`,
+    /// qui déclenche la relance, et la garde ne se croit pas en fermeture (#255).
+    /// `cargo test live_engine_terminate -- --ignored --nocapture`
+    #[tokio::test]
+    #[ignore = "lance un vrai mpv"]
+    async fn live_engine_terminate() {
+        let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
+        let guard = Arc::new(ProcessGuard::default());
+        let (tx, mut events) = mpsc::channel(256);
+        let engine = MpvEngine::start(&conf, CacheSize::Mib32, None, &guard, tx)
+            .await
+            .unwrap();
+        engine.apply(Op::SetPaused(true)).await.unwrap();
+        guard.terminate();
+        let stopped = tokio::time::timeout(Duration::from_secs(5), async {
+            while let Some(ev) = events.recv().await {
+                if ev == Event::Stopped {
+                    return true;
+                }
+            }
+            false
+        })
+        .await
+        .unwrap_or(false);
+        assert!(stopped, "Event::Stopped attendu");
+        assert!(!guard.closing());
+        assert!(engine.apply(Op::SetPaused(false)).await.is_err());
+        guard.kill();
+        assert!(guard.closing());
+    }
+
     /// Vrai mpv, deux fichiers courts à volume bas : `Play`, `Preload`, enchaînement
     /// (`Advanced`), `DropPrevious`, puis fin naturelle (`Ended(Eof)`), le tout vu à travers
     /// la traduction des événements.
@@ -324,7 +398,7 @@ mod tests {
         use crate::player::normalize::tests::quiet_wav;
 
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
-        let guard = ProcessGuard::default();
+        let guard = Arc::new(ProcessGuard::default());
         let (tx, mut events) = mpsc::channel(256);
         let engine = MpvEngine::start(&conf, CacheSize::Mib32, None, &guard, tx)
             .await

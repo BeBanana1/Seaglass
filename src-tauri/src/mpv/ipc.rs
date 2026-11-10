@@ -39,6 +39,19 @@ impl MpvHandle {
             .map_err(|_| MpvError::Closed)?;
         rx.await.map_err(|_| MpvError::Closed)?
     }
+
+    /// mpv figé : reçoit les commandes sans jamais répondre (tests du délai, #255).
+    #[cfg(test)]
+    pub fn unresponsive() -> Self {
+        let (tx, mut rx) = mpsc::channel::<Request>(32);
+        tokio::spawn(async move {
+            let mut held = Vec::new();
+            while let Some(req) = rx.recv().await {
+                held.push(req);
+            }
+        });
+        Self { tx }
+    }
 }
 
 /// Se connecte au pipe de mpv (qui met un moment à le créer), puis observe les propriétés.

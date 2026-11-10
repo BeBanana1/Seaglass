@@ -2,6 +2,7 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 use tokio::process::{Child, Command};
@@ -115,17 +116,31 @@ pub fn spawn(conf: &Path, cache: CacheSize, audio_device: Option<&str>) -> Resul
 /// pas, d'où l'appel explicite à `kill` sur `RunEvent::Exit` (et avant l'installation
 /// d'une mise à jour). Sur un plantage, c'est le Job Object (`job.rs`) qui arrête mpv.
 #[derive(Default)]
-pub struct ProcessGuard(Mutex<Option<Child>>);
+pub struct ProcessGuard {
+    child: Mutex<Option<Child>>,
+    /// Arrêt voulu (fermeture de l'app, mise à jour) : mpv ne doit pas être relancé (#255).
+    closing: AtomicBool,
+}
 
 impl ProcessGuard {
     pub fn set(&self, child: Child) {
-        if let Ok(mut slot) = self.0.lock() {
-            *slot = Some(child);
+        if let Ok(mut slot) = self.child.lock() {
+            // Ancien processus d'avant une relance, déjà arrêté en principe.
+            if let Some(mut old) = slot.replace(child) {
+                let _ = old.start_kill();
+            }
         }
     }
 
+    /// Arrêt définitif : fermeture de l'app ou installation d'une mise à jour.
     pub fn kill(&self) {
-        let Ok(mut slot) = self.0.lock() else {
+        self.closing.store(true, Ordering::SeqCst);
+        self.terminate();
+    }
+
+    /// Arrête mpv sans fermer l'app : il ne répond plus, l'acteur va le relancer (#255).
+    pub fn terminate(&self) {
+        let Ok(mut slot) = self.child.lock() else {
             return;
         };
         if let Some(mut child) = slot.take()
@@ -133,6 +148,10 @@ impl ProcessGuard {
         {
             tracing::warn!("arrêt de mpv impossible : {e}");
         }
+    }
+
+    pub fn closing(&self) -> bool {
+        self.closing.load(Ordering::SeqCst)
     }
 }
 

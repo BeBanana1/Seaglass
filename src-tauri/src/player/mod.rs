@@ -8,6 +8,7 @@ mod persist;
 mod playback;
 pub mod queue;
 mod radio;
+mod recover;
 pub mod settings;
 pub mod sleep;
 pub mod source;
