@@ -17,7 +17,7 @@
 // pendant la lecture, comme le vrai backend) : mesure des longues listes (#88), `?sleep=30|track`
 // (minuteur de mise en veille actif), `?device=dac|missing` (périphérique de sortie choisi, branché ou
 // débranché), `?normalization=track|album` (normalisation du volume
-// active), `?slow=<ms>` (ouverture d'une playlist ralentie : « Chargement… » après 300 ms,
+// active), `?exclusive=1` (mode exclusif WASAPI, #245), `?slow=<ms>` (ouverture d'une playlist ralentie : « Chargement… » après 300 ms,
 // copie gardée affichée aussitôt à la réouverture, #152).
 
 import type {
@@ -157,7 +157,10 @@ const state: PlayerState = {
   track: context[index] ?? null,
   stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100, bitrate: 1854, hiresEdition },
   output: { format: "s32", samplerate: 44100, channelCount: 2 },
+  // Calculé plus bas, selon le mode exclusif factice.
+  deviceFormat: null,
   outputDriver: "wasapi",
+  exclusive: false,
   // Calculé plus bas, après les réglages de lecture factices.
   outputDevice: null,
   loading: false,
@@ -242,6 +245,7 @@ let playback: PlaybackSettings = {
   audioDevice: deviceParam ? DAC : null,
   autoRadio: radioSeed !== null,
   normalization: normalizationParam ?? "off",
+  exclusive: params.has("exclusive"),
 };
 const audioDevices: AudioDevices = {
   devices: deviceParam === "missing" ? [SPEAKERS] : [SPEAKERS, DAC],
@@ -261,6 +265,18 @@ function mockGain(): number | null {
   return playback.normalization === "off" ? null : playback.normalization === "track" ? -6.5 : -4;
 }
 state.normalization = mockGain();
+/** Comme `player/exclusive.rs` et mpv : en exclusif, le format du flux part tel quel et la
+ *  normalisation est suspendue ; en partagé, Windows impose son format de mixage. */
+function applyExclusive() {
+  state.exclusive = playback.exclusive;
+  if (playback.exclusive) state.normalization = null;
+  state.deviceFormat = !state.output
+    ? null
+    : playback.exclusive
+      ? { ...state.output }
+      : { format: "float", samplerate: 48000, channelCount: state.output.channelCount };
+}
+applyExclusive();
 let autostart = params.has("autostart");
 let fullscreen = params.has("fullscreen");
 
@@ -325,6 +341,7 @@ function setCurrent(track: Track | undefined) {
     })(),
   });
   state.hasNext = manual.length > 0 || index + 1 < context.length;
+  applyExclusive();
   emit("player-state", state);
   emit("queue-state", queueView());
 }
@@ -784,6 +801,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     playback = JSON.parse(JSON.stringify(next));
     state.outputDevice = outputDevice();
     state.normalization = mockGain();
+    applyExclusive();
     emit("player-state", state);
   },
   audio_devices: () => audioDevices,

@@ -101,11 +101,17 @@ export const fr = {
       note: "Les écarts voulus entre les titres d'un album sont gardés (gain du titre s'il manque).",
     },
   },
+  normalizationExclusive: "Suspendue en mode exclusif : le signal est transmis tel quel.",
   outputDevice: "Sortie audio",
   outputDeviceHint:
     "Périphérique sur lequel Seaglass joue, sans changer celui des autres applications. " +
     "S'il est débranché, la lecture passe sur le périphérique par défaut et y revient au " +
     "rebranchement.",
+  exclusive: "Mode exclusif",
+  exclusiveHint:
+    "Seaglass ouvre la sortie audio pour lui seul, sans passer par le mixeur de Windows : " +
+    "le flux arrive intact si le périphérique accepte son format. Les autres applications " +
+    "n'ont plus de son pendant la lecture, et la normalisation est suspendue.",
   systemDefault: "Par défaut du système",
   deviceUnplugged: "débranché",
   devicesLoading: "Recherche des périphériques…",
@@ -299,10 +305,16 @@ export const en: typeof fr = {
       note: "Keeps the intended differences between an album's tracks (track gain if missing).",
     },
   },
+  normalizationExclusive: "Suspended in exclusive mode: the signal is passed through untouched.",
   outputDevice: "Audio output",
   outputDeviceHint:
     "Device Seaglass plays on, without changing the one used by other apps. If it is " +
     "unplugged, playback moves to the default device and comes back when it is plugged in again.",
+  exclusive: "Exclusive mode",
+  exclusiveHint:
+    "Seaglass opens the audio output for itself, bypassing the Windows mixer: the stream " +
+    "arrives untouched if the device accepts its format. Other apps are silent during " +
+    "playback, and normalization is suspended.",
   systemDefault: "System default",
   deviceUnplugged: "unplugged",
   devicesLoading: "Looking for devices…",

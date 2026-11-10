@@ -162,6 +162,20 @@ describe("signalVerdict", () => {
     expect(signalVerdict(hires, out(96000), { level: 100, muted: true }, -6.5).label).toBe("Son coupé");
     expect(signalVerdict(hires, out(48000), undefined, 2).detail).toBe("96 → 48 kHz ; ReplayGain +2 dB");
   });
+
+  it("annonce le bit-perfect seulement en mode exclusif (#245)", () => {
+    const full = { level: 100, muted: false };
+    expect(signalVerdict(hires, out(96000), full, null, true)).toMatchObject({ tone: "ok", label: "Bit-perfect" });
+    // Fréquence refusée par le périphérique : mpv rééchantillonne, la cause est donnée.
+    expect(plain(signalVerdict(hires, out(48000), full, null, true).detail)).toBe(
+      "96 → 48 kHz : fréquence refusée par le périphérique en exclusif",
+    );
+    // Volume logiciel gardé en exclusif, mais signalé.
+    expect(signalVerdict(hires, out(96000), { level: 60, muted: false }, null, true)).toMatchObject({
+      tone: "warn",
+      label: "Volume logiciel",
+    });
+  });
 });
 
 describe("nombres", () => {

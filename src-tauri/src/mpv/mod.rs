@@ -10,6 +10,7 @@ pub mod cpu;
 pub mod device;
 pub mod engine;
 pub mod events;
+pub mod exclusive;
 pub mod ipc;
 #[cfg(windows)]
 mod job;

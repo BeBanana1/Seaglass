@@ -26,7 +26,10 @@
   } = $props();
 
   const s = $derived(player.state);
-  const verdict = $derived(signalVerdict(s.stream, s.output, s.volume, s.normalization));
+  /** Format réellement écrit sur la sortie (#245), sinon celui du décodage (Android). */
+  const sink = $derived(s.deviceFormat ?? s.output);
+  const verdict = $derived(signalVerdict(s.stream, sink, s.volume, s.normalization, s.exclusive));
+  const mode = $derived(s.exclusive ? t.player.exclusive : t.player.shared);
   /** Sous-titre du nœud du moteur : format de sortie, et le volume s'il modifie le signal. */
   const decodeSub = $derived(
     [
@@ -56,13 +59,13 @@
   const device = $derived(s.outputDevice);
   /** La version resserrée garde « WASAPI · partagé » : le nom passe dans l'info-bulle. */
   const outputSub = $derived(
-    [(dense ? null : device?.name) ?? s.outputDriver?.toUpperCase() ?? "", s.outputDriver ? t.player.shared : ""]
+    [(dense ? null : device?.name) ?? s.outputDriver?.toUpperCase() ?? "", s.outputDriver ? mode : ""]
       .filter(Boolean)
       .join(" · "),
   );
   const outputTitle = $derived(
     [
-      s.outputDriver ? `${s.outputDriver.toUpperCase()} · ${t.player.shared}` : "",
+      s.outputDriver ? `${s.outputDriver.toUpperCase()} · ${mode}` : "",
       device?.name ? (device.systemDefault ? `${device.name} (${t.player.systemDevice})` : device.name) : "",
       device?.missing ? t.player.deviceFallback(device.missing) : "",
     ]
@@ -96,7 +99,7 @@
     <span class="wire" aria-hidden="true"></span>
     <div class="node" title={outputTitle}>
       <span class="label">{t.player.output}</span>
-      <span class="value mono">{s.output ? `${khz(s.output.samplerate)} kHz` : "—"}</span>
+      <span class="value mono">{sink ? `${khz(sink.samplerate)} kHz` : "—"}</span>
       <span class="sub output-device" class:device-fallback={!!device?.missing}>{outputSub}</span>
     </div>
     <div class="verdict" title={verdict.detail}>

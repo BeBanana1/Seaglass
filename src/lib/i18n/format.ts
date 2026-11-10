@@ -36,6 +36,9 @@ export const fr = {
     nativeLabel: "Fréquence native",
     nativeDetail: "mpv transmet sans conversion ; en mode partagé, Windows peut encore mixer",
     nativeDetailAndroid: "Media3 transmet sans conversion ; Android peut encore mixer ou réencoder (Bluetooth)",
+    bitPerfectLabel: "Bit-perfect",
+    bitPerfectDetail: "mpv transmet sans conversion, en mode exclusif sur le périphérique",
+    deviceRefused: (from: string, to: string) => `${from} → ${to} kHz : fréquence refusée par le périphérique en exclusif`,
   },
 
   /** Noms des notes, de Do à Si (C à B). */
@@ -80,6 +83,9 @@ export const en: typeof fr = {
     nativeLabel: "Native rate",
     nativeDetail: "mpv passes it through unchanged; in shared mode, Windows may still mix",
     nativeDetailAndroid: "Media3 passes it through unchanged; Android may still mix or re-encode (Bluetooth)",
+    bitPerfectLabel: "Bit-perfect",
+    bitPerfectDetail: "mpv passes it through unchanged, in exclusive mode on the device",
+    deviceRefused: (from: string, to: string) => `${from} → ${to} kHz: rate refused by the device in exclusive mode`,
   },
 
   notes: { C: "C", D: "D", E: "E", F: "F", G: "G", A: "A", B: "B" },

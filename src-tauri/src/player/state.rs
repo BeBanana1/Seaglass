@@ -20,7 +20,12 @@ pub struct PlayerState {
     pub stream: Option<StreamFormat>,
     /// Format réellement envoyé à la sortie audio par mpv.
     pub output: Option<AudioParams>,
+    /// Format réellement écrit sur la sortie (#245) : mixage de Windows en partagé, format
+    /// ouvert sur le périphérique en exclusif. `None` sur Android.
+    pub device_format: Option<AudioParams>,
     pub output_driver: Option<String>,
+    /// Mode exclusif WASAPI actif (#245).
+    pub exclusive: bool,
     /// Périphérique de sortie réellement utilisé (#79).
     pub output_device: Option<OutputDevice>,
     /// Un titre est en cours de résolution (métadonnées + manifeste).
@@ -74,11 +79,20 @@ impl PlayerState {
         }
     }
 
+    /// Applique `audio-out-params`, avec la même règle que `set_output` : un `null` (fin de
+    /// fichier, réouverture de la sortie) n'efface rien.
+    pub fn set_device_format(&mut self, params: Option<AudioParams>) {
+        if params.is_some() {
+            self.device_format = params;
+        }
+    }
+
     /// Applique `idle-active` : sans fichier, mpv n'a plus de sortie audio ouverte.
     pub fn set_idle(&mut self, idle: bool) {
         self.idle = idle;
         if idle {
             self.output = None;
+            self.device_format = None;
         }
     }
 }

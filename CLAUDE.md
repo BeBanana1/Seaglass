@@ -3,7 +3,7 @@
 Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
 Projet personnel, Windows en priorité.
 
-> Statut : version courante dans `VERSION`, journal dans [`CHANGELOG.md`](CHANGELOG.md) (une version publiée porte un tag `v<version>`). Phases 0 à 4 livrées ; phase 5 (finitions) en cours : reste le mode exclusif WASAPI (#245). App Android en cours (#24, [`docs/android.md`](docs/android.md)). Last.fm reporté, pas avant que l'utilisateur le demande.
+> Statut : version courante dans `VERSION`, journal dans [`CHANGELOG.md`](CHANGELOG.md) (une version publiée porte un tag `v<version>`). Phases 0 à 5 livrées (mode exclusif WASAPI en 0.5.0, #245). App Android en cours (#24, [`docs/android.md`](docs/android.md)). Last.fm reporté, pas avant que l'utilisateur le demande.
 
 Ce fichier ne garde que ce qui sert à toute tâche. Les notes d'implémentation sont dans `docs/` : voir « Documentation » plus bas et lire le fichier du domaine avant d'y toucher.
 
@@ -96,7 +96,7 @@ seaglass/
 2. ~~**File d'attente**~~ ✅ : `queue.rs` (testé), gapless, retry sur erreur, repeat One via `loop-file`, persistance SQLite.
 3. ~~**Vues**~~ ✅ : accueil, recherche multi-types, album, artiste, playlist, bibliothèque (playlists, albums, artistes, titres).
 4. ~~**Intégrations + UI**~~ ✅ : SMTC ; thèmes Verre de mer / Studio / Atelier / Acidwave / Surréalisme, vue « En lecture », chaîne audio, raccourcis clavier. Présence Discord en 0.4.92 (#215) ; Last.fm reporté (pas avant que l'utilisateur le demande).
-5. **(actuel)** Finitions : ~~installeur NSIS, mpv embarqué + Job Object, mises à jour signées, script de release~~ ✅ ; ~~hébergement des mises à jour~~ ✅ (v0.4.4 publiée) ; ~~CI~~ ✅ ; ~~mixes et radios~~ ✅ (0.4.8) ; reste le mode exclusif WASAPI (réglage).
+5. ~~**Finitions**~~ ✅ : installeur NSIS, mpv embarqué + Job Object, mises à jour signées, script de release ; hébergement des mises à jour (v0.4.4 publiée) ; CI ; mixes et radios (0.4.8) ; mode exclusif WASAPI (0.5.0, #245).
 
 ## Documentation
 

@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.0
+
+- Mode exclusif WASAPI (Réglages › Lecture) : sortie ouverte pour Seaglass seul, bascule à chaud, normalisation suspendue, échec d'ouverture signalé sans repli en partagé ; la chaîne audio lit le format réellement envoyé au périphérique et n'annonce « Bit-perfect » qu'en exclusif. Fin de la phase 5 (#245).
+
 ## 0.4.118
 
 - Android : mode conduite plein écran (gros boutons de lecture, 1 à 8 tuiles qui lancent une playlist, un mix, les titres likés ou « Plus tard » en un appui), ouvert par l'icône voiture, le raccourci de l'app ou le lien `seaglass://drive` ; les mixes s'épinglent aussi dans la barre latérale du bureau (#193).
