@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.106
+
+- Sections de l'accueil réordonnables par glisser-déposer dans « Personnaliser » (#246).
+
 ## 0.4.105
 
 - Recherche lancée pendant la frappe, l'historique ne garde que la requête retenue (#248).
