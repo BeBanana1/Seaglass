@@ -28,6 +28,11 @@ export class Reorder {
 
   drop(e: DragEvent) {
     e.preventDefault();
+    this.commit();
+  }
+
+  /** Applique le déplacement en cours (dépôt HTML5, ou fin d'un glisser au doigt). */
+  commit() {
     const { from, slot } = this;
     if (from !== null && slot !== null) {
       // L'entrée retirée décale d'un cran les emplacements qui la suivent.

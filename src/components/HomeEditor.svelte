@@ -1,7 +1,8 @@
 <script lang="ts">
   // Mode « Personnaliser l'accueil » (#21, #22) : une ligne par section, avec Monter /
   // Descendre et Masquer / Afficher. Tout se fait avec des boutons, donc au clavier ; sur
-  // le bureau, une ligne se déplace aussi par glisser-déposer (#246, comme la file).
+  // le bureau, une ligne se déplace aussi par glisser-déposer (#246, comme la file) ; sur
+  // Android, par un appui long puis en glissant le doigt (#290).
   // Le composant ne fait que réordonner la liste affichée : l'enregistrement et la règle
   // des sections absentes ou nouvelles sont côté backend (`HomeLayout`).
   import { tick } from "svelte";
@@ -10,6 +11,7 @@
   import { t } from "../lib/i18n.svelte";
   import { platform } from "../lib/platform.svelte";
   import { Reorder } from "../lib/reorder.svelte";
+  import { touchReorder } from "../lib/touch-reorder";
   import Icon from "./Icon.svelte";
 
   let {
@@ -86,6 +88,9 @@
 
   const reorder = new Reorder((from, to) => void moveTo(from, to));
 
+  /** Lignes réorganisables, dans l'ordre (sans le bandeau « À la une »). */
+  const items = () => Array.from(list?.querySelectorAll<HTMLElement>(".home-editor-item.draggable") ?? []);
+
   function toggleFeatured() {
     announce = t.views.homeEditor.featuredToggled(!featuredHidden);
     onfeatured(featuredHidden);
@@ -148,6 +153,7 @@
         ondragover={(e) => reorder.dragover(e, i)}
         ondrop={(e) => reorder.drop(e)}
         ondragend={() => reorder.end()}
+        use:touchReorder={{ enabled: platform.mobile, index: i, reorder, items }}
       >
         <span class="home-editor-thumbs" aria-hidden="true">
           {#each g.images as src (src)}<img {src} alt="" loading="lazy" />{/each}
@@ -244,8 +250,17 @@
     -webkit-user-drag: none;
   }
 
-  .home-editor-item.dragging {
+  .home-editor-item.dragging:not(:global(.touch-dragging)) {
     opacity: 0.4;
+  }
+
+  /* Ligne saisie au doigt (#290) : elle suit le doigt, au-dessus des autres. */
+  .home-editor-item:global(.touch-dragging) {
+    z-index: 1;
+    transform: translateY(var(--drag-y, 0px)) scale(1.02);
+    /* Fond opaque : la surface des thèmes est translucide, le texte dessous transparaissait. */
+    background: linear-gradient(var(--bg-raised), var(--bg-raised)), var(--bg);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
   }
 
   /* Repère d'insertion, comme dans la file (`QueueList`). */
@@ -410,6 +425,10 @@
   :global(:root[data-platform="android"]) .home-editor-item {
     gap: 8px;
     padding: 6px 6px 6px 12px;
+    /* Appui long = saisie de la ligne, pas sélection de texte ni menu de la WebView. */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   :global(:root[data-platform="android"]) .home-editor-thumbs,
