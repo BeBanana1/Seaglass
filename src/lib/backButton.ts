@@ -1,37 +1,21 @@
-// Touche (ou geste) Retour d'Android (#24). L'activité ne la passe à la WebView que si son
-// historique peut reculer : une entrée sentinelle est posée tant que l'app a quelque chose à
-// fermer ou une page précédente. Retour la consomme (`popstate`) et l'app fait l'action. Sans
-// sentinelle, Android reçoit Retour et passe l'app en arrière-plan (la lecture continue).
+// Touche (ou geste) Retour d'Android (#24). `MainActivity` appelle `window.__seaglassBack()` à
+// chaque Retour : vrai si l'app a fermé quelque chose (menu, vue, page), faux sinon, et
+// Android passe alors l'app en arrière-plan (la lecture continue).
+//
+// Plus d'entrée d'historique sentinelle (jusqu'en 0.4.117) : la WebView ignore pour Retour les
+// entrées posées sans geste de l'utilisateur dans la page, donc le mode conduite ouvert par le
+// lien `seaglass://drive` faisait quitter l'app au premier Retour (#193, vu sur le S21).
 
-let armed = false;
-/** Sentinelle en cours de retrait par `history.back()` : son `popstate` n'est pas un Retour. */
-let dropping = false;
-let canGoBack: () => boolean = () => false;
-
-function sync() {
-  if (dropping) return;
-  if (canGoBack() && !armed) {
-    history.pushState({ seaglass: true }, "");
-    armed = true;
-  } else if (!canGoBack() && armed) {
-    armed = false;
-    dropping = true;
-    history.back();
+declare global {
+  interface Window {
+    __seaglassBack?: () => boolean;
   }
 }
 
-export function initBackButton(can: () => boolean, goBack: () => void) {
-  canGoBack = can;
-  window.addEventListener("popstate", () => {
-    if (dropping) {
-      dropping = false;
-    } else {
-      armed = false;
-      goBack();
-    }
-    sync();
-  });
+export function initBackButton(canClose: () => boolean, close: () => void) {
+  window.__seaglassBack = () => {
+    if (!canClose()) return false;
+    close();
+    return true;
+  };
 }
-
-/** À appeler quand ce que Retour peut fermer change. */
-export const syncBackButton = sync;

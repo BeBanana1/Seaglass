@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.119
+
+- Android : Retour ferme le mode conduite ouvert par le raccourci ou le lien au lieu de quitter l'app ; Retour est désormais demandé directement à l'interface (#193).
+
 ## 0.4.118
 
 - Android : mode conduite plein écran (gros boutons de lecture, 1 à 8 tuiles qui lancent une playlist, un mix, les titres likés ou « Plus tard » en un appui), ouvert par l'icône voiture, le raccourci de l'app ou le lien `seaglass://drive` ; les mixes s'épinglent aussi dans la barre latérale du bureau (#193).
