@@ -5,6 +5,7 @@
   import {
     filterTracks,
     listTracks,
+    PLAYLIST_DEFAULT_SORT,
     sortTracks,
     type SortKey,
     type TrackSort,
@@ -23,7 +24,7 @@
   import { platform } from "../lib/platform.svelte";
 
   const SORT_KEYS: SortKey[] = ["position", "added", "title", "artist", "album", "duration"];
-  const DEFAULT_SORT: TrackSort = { key: "position", descending: false };
+  const DEFAULT_SORT = PLAYLIST_DEFAULT_SORT;
   // « Chargement… » seulement si l'ouverture dure : rien ne clignote sur une page rapide (#152).
   const LOADING_DELAY_MS = 300;
 

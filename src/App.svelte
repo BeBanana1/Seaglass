@@ -406,7 +406,13 @@
   <NowPlaying onClose={closeNowPlaying} />
 {/if}
 {#if driveOpen && session && platform.mobile}
-  <Drive onClose={() => (driveOpen = false)} />
+  <Drive
+    onClose={() => (driveOpen = false)}
+    onOpen={(target) => {
+      driveOpen = false;
+      if (JSON.stringify(target) !== JSON.stringify(current())) go(target);
+    }}
+  />
 {/if}
 <Toasts />
 <UpdatePrompt />

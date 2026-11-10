@@ -1,7 +1,8 @@
 <script lang="ts">
   // Mode conduite (#193, Android) : plein écran, titre en cours, gros boutons de lecture et
-  // tuiles des épingles (8 au plus). Un appui sur une tuile lit toute la source tout de suite ;
-  // appui long : avancer, reculer, retirer. L'écran reste allumé tant que la vue est ouverte.
+  // tuiles des épingles (8 au plus). Un appui sur une tuile lit toute la source tout de suite,
+  // dans l'ordre de sa page ; la bande à droite (›) ouvre sa page ; appui long : avancer,
+  // reculer, retirer. L'écran reste allumé tant que la vue est ouverte.
   import { onMount } from "svelte";
   import { commands, type Pin, type PlaySource } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
@@ -10,17 +11,19 @@
   import { openMenu } from "../lib/stores/menu.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { coverSmall, fullTitle } from "../lib/format";
-  import { pinLabel } from "../lib/pins";
+  import { pinLabel, pinRoute, playPin } from "../lib/pins";
+  import type { Route } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
   import Icon, { type IconName } from "../components/Icon.svelte";
 
-  let { onClose }: { onClose: () => void } = $props();
+  /** `onOpen` : quitte le mode conduite et ouvre la page de l'épingle. */
+  let { onClose, onOpen }: { onClose: () => void; onOpen: (route: Route) => void } = $props();
 
   const s = $derived(player.state);
   const track = $derived(player.currentTrack);
   const playing = $derived(!s.paused && !s.idle);
   const tiles = $derived(ui.settings.pins.slice(0, MAX_DRIVE_TILES));
-  /** Tuile dont la lecture se prépare (titres cherchés par le backend). */
+  /** Tuile dont la lecture se prépare (titres de la source en cours de chargement). */
   let starting = $state<string | null>(null);
 
   onMount(() => {
@@ -48,7 +51,7 @@
     if (starting) return;
     starting = key;
     try {
-      await commands.playPin(pin, s.shuffle);
+      await playPin(pin, s.shuffle);
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     } finally {
@@ -127,21 +130,28 @@
   {:else}
     <div class="drive-tiles" class:single={tiles.length === 1} style:--rows={Math.ceil(tiles.length / 2)}>
       {#each tiles as pin, i (pinKey(pin))}
-        <button
+        {@const label = pinLabel(pin)}
+        <!-- Deux zones (#193) : la tuile lit, la bande à droite (›) ouvre la page. -->
+        <div
           class="drive-tile"
           class:current={isCurrent(pin, queue.view.source)}
           class:wide={tiles.length % 2 === 1 && i === tiles.length - 1}
-          onclick={() => play(pin)}
           oncontextmenu={(e) => edit(e, pin, i)}
-          aria-busy={starting === pinKey(pin)}
+          role="group"
+          aria-label={label}
         >
-          {#if starting === pinKey(pin)}
-            <span class="spinner"></span>
-          {:else}
-            <Icon name={ICONS[pin.kind]} size={28} />
-          {/if}
-          <span class="drive-tile-label">{pinLabel(pin)}</span>
-        </button>
+          <button class="drive-tile-play" onclick={() => play(pin)} aria-busy={starting === pinKey(pin)}>
+            {#if starting === pinKey(pin)}
+              <span class="spinner"></span>
+            {:else}
+              <Icon name={ICONS[pin.kind]} size={28} />
+            {/if}
+            <span class="drive-tile-label">{label}</span>
+          </button>
+          <button class="drive-tile-open" onclick={() => onOpen(pinRoute(pin))} aria-label={t.drive.openPage(label)}>
+            <Icon name="chevronRight" size={28} />
+          </button>
+        </div>
       {/each}
     </div>
   {/if}
@@ -287,12 +297,9 @@
 
   .drive-tile {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    min-width: 0;
     min-height: 0;
-    padding: 8px 12px;
+    overflow: hidden;
     border: 2px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-raised);
@@ -307,11 +314,35 @@
     grid-column: 1 / -1;
   }
 
-  .drive-tile:active {
+  .drive-tile-play {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 6px;
+    color: inherit;
+  }
+
+  /* Dernier tiers de la tuile, 56 px au moins : assez large pour le pouce même à 8 tuiles,
+     séparé par un trait pour qu'on voie où il commence. */
+  .drive-tile-open {
+    display: grid;
+    flex: 0 0 clamp(56px, 30%, 120px);
+    place-items: center;
+    border-left: 2px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .drive-tile-play:active,
+  .drive-tile-open:active {
     background: var(--bg-hover);
   }
 
-  .drive-tile.current {
+  .drive-tile.current,
+  .drive-tile.current .drive-tile-open {
     border-color: var(--accent);
     color: var(--accent);
   }
@@ -320,12 +351,15 @@
     display: -webkit-box;
     max-width: 100%;
     overflow: hidden;
-    font-size: 19px;
+    font-size: 18px;
     font-weight: 600;
     line-height: 1.2;
     text-align: center;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    /* Trois lignes : la bande › prend un tiers de la largeur, un long titre tient quand même. */
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    /* Un mot plus large que la tuile (« Masculine » à 2 colonnes) est coupé plutôt que rogné. */
+    overflow-wrap: break-word;
     -webkit-box-orient: vertical;
   }
 
