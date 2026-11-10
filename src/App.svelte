@@ -16,7 +16,7 @@
   import { closePlaylistPicker, picker } from "./lib/stores/playlistPicker.svelte";
   import { platform } from "./lib/platform.svelte";
   import { appWindow, initWindow, setFullscreen, toggleFullscreen } from "./lib/stores/window.svelte";
-  import { initBackButton, syncBackButton } from "./lib/backButton";
+  import { initBackButton } from "./lib/backButton";
   import { exitListSearch, listSearch } from "./lib/stores/listSearch.svelte";
   import { openSharedLink, openTidalLink } from "./lib/links";
   import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
@@ -201,12 +201,6 @@
     if (!platform.mobile) return;
     typing = isTextField(e.type === "focusin" ? e.target : e.relatedTarget);
   }
-
-  $effect(() => {
-    if (!platform.mobile) return;
-    void canClose();
-    syncBackButton();
-  });
 
   function onKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement;
