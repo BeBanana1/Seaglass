@@ -219,16 +219,26 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("échec du lancement de l'application")
         .run(|_app, _event| {
-            // Tauri quitte sans exécuter les destructeurs : mpv doit être arrêté ici.
-            // Une mise à jour reportée (« Plus tard ») s'installe à ce moment-là.
+            // Tauri quitte sans exécuter les destructeurs : dernière sauvegarde de la file
+            // (#260), puis arrêt de mpv. Une mise à jour reportée (« Plus tard »)
+            // s'installe à ce moment-là.
             #[cfg(desktop)]
             if let RunEvent::Exit = _event {
+                flush_player(_app);
                 _app.state::<Arc<ProcessGuard>>().kill();
                 _app.state::<UpdateState>().install_on_exit();
             }
             #[cfg(target_os = "android")]
             android::keep_alive(_app, &_event);
         });
+}
+
+/// Sauvegarde immédiate de la file et de la position avant que l'app quitte (#260).
+#[cfg(desktop)]
+pub(crate) fn flush_player(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<AppState>() {
+        player::flush_blocking(&state.player);
+    }
 }
 
 /// Plugins et comportement de fenêtre du bureau.

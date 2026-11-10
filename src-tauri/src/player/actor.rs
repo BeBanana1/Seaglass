@@ -82,6 +82,10 @@ pub enum Cmd {
     /// Minuteur de mise en veille (#85), déjà validé ; `None` l'annule.
     SetSleepTimer(Option<SleepRequest>),
     GetState(oneshot::Sender<PlayerState>),
+    /// Sauvegarde immédiate de la file, de la position et du volume, à la fermeture
+    /// (#260) ; la réponse part une fois l'écriture terminée. Canal synchrone : attendu
+    /// depuis le thread principal (`RunEvent::Exit`) ou l'updater, hors de tokio.
+    Flush(std::sync::mpsc::Sender<()>),
     GetQueue(oneshot::Sender<QueueView>),
     /// Périphériques de sortie connus de mpv, pour les Réglages (#79).
     GetAudioDevices(oneshot::Sender<AudioDevices>),
@@ -168,6 +172,9 @@ pub(super) struct Player {
     pub(super) persist_position: bool,
     pub(super) persist_volume: bool,
     pub(super) last_persist: Instant,
+    /// Dernière écriture lancée : une sauvegarde de fermeture l'attend pour ne pas être
+    /// écrasée par des données plus anciennes (#260).
+    pub(super) last_write: Option<tokio::task::JoinHandle<()>>,
     /// Temps réellement écouté du titre courant, pour l'historique local (#202).
     pub(super) listen: ListenTracker,
     observers: Observers,
@@ -240,6 +247,7 @@ pub fn spawn(
             persist_position: false,
             persist_volume: false,
             last_persist: Instant::now(),
+            last_write: None,
             listen: ListenTracker::default(),
             observers: Observers::default(),
         };
@@ -386,6 +394,7 @@ impl Player {
             Cmd::GetState(reply) => {
                 let _ = reply.send(self.state.clone());
             }
+            Cmd::Flush(reply) => self.flush(reply),
             Cmd::GetQueue(reply) => {
                 let _ = reply.send(self.queue_view());
             }
