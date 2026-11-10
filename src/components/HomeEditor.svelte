@@ -1,12 +1,15 @@
 <script lang="ts">
   // Mode « Personnaliser l'accueil » (#21, #22) : une ligne par section, avec Monter /
-  // Descendre et Masquer / Afficher. Tout se fait avec des boutons, donc au clavier.
+  // Descendre et Masquer / Afficher. Tout se fait avec des boutons, donc au clavier ; sur
+  // le bureau, une ligne se déplace aussi par glisser-déposer (#246, comme la file).
   // Le composant ne fait que réordonner la liste affichée : l'enregistrement et la règle
   // des sections absentes ou nouvelles sont côté backend (`HomeLayout`).
   import { tick } from "svelte";
   import type { HomeSection } from "../lib/ipc";
   import { mediaImage } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
+  import { platform } from "../lib/platform.svelte";
+  import { Reorder } from "../lib/reorder.svelte";
   import Icon from "./Icon.svelte";
 
   let {
@@ -58,14 +61,20 @@
   let list = $state<HTMLOListElement>();
   let announce = $state("");
 
-  async function move(index: number, dir: -1 | 1) {
+  /** Place la section `index` en position `target` (les autres glissent d'un cran). */
+  function moveTo(index: number, target: number): string | null {
     const keys = groups.map((g) => g.key);
-    const target = index + dir;
-    if (target < 0 || target >= keys.length) return;
-    [keys[index], keys[target]] = [keys[target], keys[index]];
-    const { key, title } = groups[index];
+    if (target < 0 || target >= keys.length || target === index) return null;
+    const [key] = keys.splice(index, 1);
+    keys.splice(target, 0, key);
     onchange(keys.flatMap((k) => sections.filter((s) => s.key === k)));
-    announce = t.views.homeEditor.moved(title, target + 1, keys.length);
+    announce = t.views.homeEditor.moved(groups[index].title, target + 1, keys.length);
+    return key;
+  }
+
+  async function move(index: number, dir: -1 | 1) {
+    const key = moveTo(index, index + dir);
+    if (key === null) return;
     // Le nœud déplacé perd le focus : on le rend au même bouton, ou à l'autre s'il est désactivé.
     await tick();
     const sel = (d: string) => `[data-key="${CSS.escape(key)}"] [data-dir="${d}"]`;
@@ -74,6 +83,8 @@
       list?.querySelector<HTMLButtonElement>(sel(dir < 0 ? "down" : "up"));
     btn?.focus();
   }
+
+  const reorder = new Reorder((from, to) => void moveTo(from, to));
 
   function toggleFeatured() {
     announce = t.views.homeEditor.featuredToggled(!featuredHidden);
@@ -89,7 +100,12 @@
 
 <div class="home-editor">
   <p class="home-editor-hint">{t.views.homeEditor.hint}</p>
-  <ol class="home-editor-list" bind:this={list} aria-label={t.views.homeEditor.sections}>
+  <ol
+    class="home-editor-list"
+    bind:this={list}
+    aria-label={t.views.homeEditor.sections}
+    ondragleave={(e) => reorder.dragleave(e, list)}
+  >
     <li class="home-editor-item" class:off={featuredHidden} data-key="featured">
       <span class="home-editor-thumbs" aria-hidden="true">
         {#each featuredImages as src (src)}<img {src} alt="" loading="lazy" />{/each}
@@ -118,7 +134,21 @@
       </span>
     </li>
     {#each groups as g, i (g.key)}
-      <li class="home-editor-item" class:off={g.hidden} data-key={g.key}>
+      <!-- Le glisser double les boutons Monter / Descendre, qui restent pour le clavier. -->
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <li
+        class="home-editor-item draggable"
+        class:off={g.hidden}
+        class:dragging={reorder.from === i}
+        class:drop-before={reorder.marker(i)}
+        class:drop-after={i === groups.length - 1 && reorder.marker(i + 1)}
+        data-key={g.key}
+        draggable={platform.mobile ? undefined : "true"}
+        ondragstart={(e) => reorder.dragstart(e, i)}
+        ondragover={(e) => reorder.dragover(e, i)}
+        ondrop={(e) => reorder.drop(e)}
+        ondragend={() => reorder.end()}
+      >
         <span class="home-editor-thumbs" aria-hidden="true">
           {#each g.images as src (src)}<img {src} alt="" loading="lazy" />{/each}
         </span>
@@ -200,6 +230,43 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-raised);
+  }
+
+  .home-editor-item.draggable {
+    position: relative;
+  }
+
+  :global(:root:not([data-platform="android"])) .home-editor-item.draggable {
+    cursor: grab;
+  }
+
+  .home-editor-item :global(img) {
+    -webkit-user-drag: none;
+  }
+
+  .home-editor-item.dragging {
+    opacity: 0.4;
+  }
+
+  /* Repère d'insertion, comme dans la file (`QueueList`). */
+  .home-editor-item.drop-before::before,
+  .home-editor-item.drop-after::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--accent);
+    pointer-events: none;
+  }
+
+  .home-editor-item.drop-before::before {
+    top: -5px;
+  }
+
+  .home-editor-item.drop-after::after {
+    bottom: -5px;
   }
 
   .home-editor-thumbs {
