@@ -15,7 +15,7 @@ use crate::tidal::models::{
     RadioSeed, SearchResults, TrackEntry, TrackId, TrackInfo,
 };
 
-const MAX_QUERY_LEN: usize = 200;
+pub(super) const MAX_QUERY_LEN: usize = 200;
 const SEARCH_LIMIT: u32 = 50;
 
 #[tauri::command]
@@ -30,9 +30,9 @@ pub async fn search(state: State<'_, AppState>, query: String) -> CmdResult<Sear
             "search limited to {MAX_QUERY_LEN} characters"
         ));
     }
-    let results = state.tidal.search(query, SEARCH_LIMIT).await.map_err(err)?;
-    super::search_history::note(&state, query);
-    Ok(results)
+    // L'historique n'est pas tenu ici : l'UI cherche pendant la frappe (#248) et
+    // n'enregistre que la requête retenue (`note_search_history`).
+    state.tidal.search(query, SEARCH_LIMIT).await.map_err(err)
 }
 
 #[tauri::command]

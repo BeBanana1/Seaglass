@@ -1,6 +1,7 @@
 //! Historique de recherche (#211) : dernières requêtes, la plus récente en tête, dans la
-//! table `kv` (`search.history`). Une requête est enregistrée par la commande `search`
-//! quand elle aboutit ; l'UI ne fait qu'afficher la liste et demander un retrait.
+//! table `kv` (`search.history`). L'UI cherche pendant la frappe (#248) : elle n'enregistre
+//! une requête (`note_search_history`) que lorsqu'elle est retenue (Entrée, clic dans les
+//! résultats), sinon chaque préfixe tapé finirait dans la liste.
 //! Effacé à la déconnexion (il appartient à la personne connectée).
 
 use tauri::State;
@@ -53,17 +54,6 @@ fn save(store: Option<&Store>, history: &[String]) -> CmdResult<()> {
     }
 }
 
-/// Enregistre une requête aboutie. Un échec d'écriture n'est que journalisé : la
-/// recherche a réussi.
-pub(super) fn note(state: &AppState, query: &str) {
-    let store = state.store.as_deref();
-    let mut history = load(store);
-    record(&mut history, query);
-    if let Err(e) = save(store, &history) {
-        tracing::warn!("historique de recherche non enregistré : {e}");
-    }
-}
-
 /// Déconnexion : l'historique de la personne précédente disparaît.
 pub(super) fn clear(state: &AppState) {
     if let Err(e) = save(state.store.as_deref(), &[]) {
@@ -74,6 +64,22 @@ pub(super) fn clear(state: &AppState) {
 #[tauri::command]
 pub async fn search_history(state: State<'_, AppState>) -> CmdResult<Vec<String>> {
     Ok(load(state.store.as_deref()))
+}
+
+/// Enregistre une requête retenue ; renvoie l'historique à jour.
+#[tauri::command]
+pub async fn note_search_history(
+    state: State<'_, AppState>,
+    query: String,
+) -> CmdResult<Vec<String>> {
+    if query.chars().count() > super::catalog::MAX_QUERY_LEN {
+        return Ok(load(state.store.as_deref()));
+    }
+    let store = state.store.as_deref();
+    let mut history = load(store);
+    record(&mut history, &query);
+    save(store, &history)?;
+    Ok(history)
 }
 
 /// Retire une requête ; renvoie l'historique restant.

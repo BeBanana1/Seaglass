@@ -548,8 +548,10 @@ export const commands = {
   login: () => invoke<SessionInfo>("login"),
   logout: () => invoke<void>("logout"),
   search: (query: string) => invoke<SearchResults>("search", { query }),
-  /** Dernières recherches abouties, la plus récente en tête (#211). */
+  /** Dernières recherches retenues, la plus récente en tête (#211). */
   searchHistory: () => invoke<string[]>("search_history"),
+  /** Garde une requête dans l'historique (#248 : `search` ne le fait plus). */
+  noteSearchHistory: (query: string) => invoke<string[]>("note_search_history", { query }),
   removeSearchHistory: (query: string) => invoke<string[]>("remove_search_history", { query }),
   clearSearchHistory: () => invoke<string[]>("clear_search_history"),
   /** Historique d'écoute local (#202) : albums récents et les plus écoutés. */

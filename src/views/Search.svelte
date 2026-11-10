@@ -24,12 +24,19 @@
   import { openTidalLink } from "../lib/links";
 
   const COLLAPSED_TRACKS = 8;
+  /** Pause de frappe avant de chercher (#248), comme la page de la Jam. */
+  const TYPING_DELAY = 400;
 
   let searching = $state(false);
   let error = $state<string | null>(null);
   /** Dernières recherches (#211), tenues par le backend. */
   let history = $state<string[]>([]);
   let input = $state<HTMLInputElement>();
+  let typingTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Numéro de la dernière recherche lancée : une réponse plus ancienne est ignorée. */
+  let seq = 0;
+  /** Requête déjà gardée dans l'historique, pour ne pas la renvoyer à chaque clic. */
+  let noted = "";
 
   function refreshHistory() {
     commands.searchHistory().then(
@@ -39,26 +46,63 @@
   }
   refreshHistory();
 
-  async function submit(e: SubmitEvent) {
-    e.preventDefault();
-    // Un lien TIDAL ouvre sa page au lieu d'être cherché (#203).
-    if (await openTidalLink(saved.query)) return;
-    await run(saved.query);
+  /** Garde `query` dans l'historique : seulement une requête retenue, pas chaque préfixe tapé. */
+  function remember(query: string) {
+    const q = query.trim();
+    if (!q || q === noted) return;
+    noted = q;
+    commands.noteSearchHistory(q).then(
+      (h) => (history = h),
+      () => {},
+    );
   }
 
-  async function run(query: string) {
+  async function submit(e: SubmitEvent) {
+    e.preventDefault();
+    clearTimeout(typingTimer);
+    // Un lien TIDAL ouvre sa page au lieu d'être cherché (#203).
+    if (await openTidalLink(saved.query)) return;
+    // Résultats déjà là pour cette requête : Entrée ne fait que la retenir.
+    if (saved.results && saved.searched === saved.query.trim() && !error) {
+      remember(saved.query);
+      return;
+    }
+    await run(saved.query, true);
+  }
+
+  /** Recherche pendant la frappe (#248), après une courte pause. */
+  function typed() {
+    clearTimeout(typingTimer);
+    const query = saved.query;
+    if (!query.trim()) {
+      // Champ vidé : l'historique revient, une réponse en route est oubliée.
+      seq++;
+      searching = false;
+      error = null;
+      return;
+    }
+    // Un lien collé est traité par `onpaste`, pas cherché comme du texte.
+    if (/^\s*https?:\/\//i.test(query)) return;
+    typingTimer = setTimeout(() => void run(query, false), TYPING_DELAY);
+  }
+
+  async function run(query: string, keep: boolean) {
+    clearTimeout(typingTimer);
+    const id = ++seq;
     saved.query = query;
     searching = true;
     error = null;
     try {
-      saved.results = await commands.search(query);
-      saved.searched = query;
+      const results = await commands.search(query);
+      if (id !== seq) return;
+      saved.results = results;
+      saved.searched = query.trim();
       saved.allTracks = false;
+      if (keep) remember(query);
     } catch (err) {
-      error = String(err);
+      if (id === seq) error = String(err);
     } finally {
-      searching = false;
-      refreshHistory();
+      if (id === seq) searching = false;
     }
   }
 
@@ -105,6 +149,7 @@
       placeholder={t.views.search.placeholder}
       bind:value={saved.query}
       bind:this={input}
+      oninput={typed}
       onpaste={(e) => {
         const text = e.clipboardData?.getData("text/plain");
         if (text) void openTidalLink(text);
@@ -126,7 +171,7 @@
       <ul>
         {#each history as query (query)}
           <li class="search-history-item">
-            <button class="search-history-query" onclick={() => run(query)}>
+            <button class="search-history-query" onclick={() => run(query, true)}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 7v5l3 2" />
                 <circle cx="12" cy="12" r="8" />
@@ -151,11 +196,14 @@
 
   {#if error}
     <p class="error">{error}</p>
-  {:else if searching}
+  {:else if searching && !r}
     <p class="muted">{t.views.search.searching}</p>
-  {:else if empty}
+  {:else if empty && !searching}
     <p class="muted">{t.views.search.noResults}</p>
   {/if}
+
+  <!-- Un clic dans les résultats retient la requête (#248) : c'est celle qu'on cherchait. -->
+  <div class="results" class:stale={searching} onpointerdowncapture={() => remember(saved.searched)}>
 
   {#if r && r.tracks.length > 0}
     <div class="tracks">
@@ -172,6 +220,7 @@
   <CardGrid title={t.views.search.artists} items={artists} row />
   <CardGrid title={t.views.search.albums} items={albums} row />
   <CardGrid title={t.views.search.playlists} items={playlists} row />
+  </div>
 </section>
 
 <style>
@@ -212,6 +261,15 @@
 
   .tracks {
     margin-bottom: 28px;
+  }
+
+  /* Résultats de la requête précédente pendant que la suivante arrive : pas de saut. */
+  .results {
+    transition: opacity 0.15s;
+  }
+
+  .results.stale {
+    opacity: 0.6;
   }
 
   h2 {
