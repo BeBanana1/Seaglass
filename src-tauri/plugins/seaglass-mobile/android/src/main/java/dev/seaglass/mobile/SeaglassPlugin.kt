@@ -3,7 +3,9 @@ package dev.seaglass.mobile
 import android.app.Activity
 import android.app.Dialog
 import android.graphics.Bitmap
+import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
+import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import app.tauri.annotation.Command
@@ -96,6 +98,7 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
     fun login(invoke: Invoke) {
         val args = invoke.parseArgs(LoginArgs::class.java)
         activity.runOnUiThread {
+            clearLoginData()
             val webView = WebView(activity)
             val dialog = Dialog(activity, android.R.style.Theme_DeviceDefault_NoActionBar)
             var done = false
@@ -106,6 +109,7 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
                 webView.stopLoading()
                 dialog.dismiss()
                 webView.destroy()
+                clearLoginData()
                 val result = JSObject()
                 if (url != null) result.put("url", url)
                 invoke.resolve(result)
@@ -138,5 +142,22 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
             dialog.show()
             webView.loadUrl(args.url)
         }
+    }
+
+    /**
+     * Données de la page de connexion (#258), avant et après usage : la session web de TIDAL
+     * ne survit pas, et une nouvelle connexion peut prendre un autre compte. `CookieManager`
+     * est commun à tout le processus, mais l'interface de l'app n'a pas de cookies ; le
+     * stockage web n'est effacé que pour les origines de TIDAL.
+     */
+    private fun clearLoginData() {
+        CookieManager.getInstance().removeAllCookies(null)
+        CookieManager.getInstance().flush()
+        val storage = WebStorage.getInstance()
+        for (origin in TIDAL_ORIGINS) storage.deleteOrigin(origin)
+    }
+
+    private companion object {
+        val TIDAL_ORIGINS = listOf("https://login.tidal.com", "https://tidal.com", "https://listen.tidal.com")
     }
 }
