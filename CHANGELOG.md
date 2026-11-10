@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.99
+
+- Android : tuile des paroles (et de la file) centrée en plein écran (#242).
+
 ## 0.4.98
 
 - Android : affichage bloqué en portrait (#243).

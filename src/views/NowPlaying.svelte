@@ -801,7 +801,9 @@
     color: var(--text-muted);
   }
 
-  .np-sheet .np-sheet-body {
+  /* Préfixe Android : sans lui, la règle `.np-panel` d'Android (plus spécifique)
+     l'emporte sur la largeur et la marge du bas, et la tuile est décalée à gauche (#242). */
+  :global(:root[data-platform="android"]) .np-sheet .np-sheet-body {
     display: flex;
     flex: 1;
     flex-direction: column;
