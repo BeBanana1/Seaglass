@@ -190,8 +190,11 @@ export interface PlayerState {
   mpvIssue: MpvIssue | null;
 }
 
-/** `cpuUnsupported` : mpv embarqué (x86-64-v3) sur un processeur sans AVX2. */
-export type MpvIssue = "stopped" | "cpuUnsupported";
+/**
+ * `cpuUnsupported` : mpv embarqué (x86-64-v3) sur un processeur sans AVX2.
+ * `missing` : build installé sans son mpv (#261).
+ */
+export type MpvIssue = "stopped" | "cpuUnsupported" | "missing";
 
 /** Minuteur actif : échéance en ms epoch (l'UI calcule le temps restant), ou fin du titre. */
 export type SleepState = { kind: "minutes"; endsAt: number } | { kind: "endOfTrack" };
