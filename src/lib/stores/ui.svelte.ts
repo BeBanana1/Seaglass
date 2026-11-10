@@ -27,7 +27,7 @@ export const ui = $state<{
     theme: "seaglass",
     home: { order: [], hidden: [], featuredHidden: false },
     pins: [],
-    accent: null,
+    accents: {},
     language: "system",
     closeAction: "quit",
     discord: false,
@@ -64,7 +64,7 @@ function apply() {
   root.dataset.theme = ui.settings.theme;
   // Le style en ligne de <html> l'emporte sur les jetons du thème ; sans accent choisi,
   // on le retire pour revenir à ceux du thème.
-  const accent = ui.settings.accent;
+  const accent = currentAccent();
   if (accent) {
     root.style.setProperty("--accent", accent);
     // Variante de survol : mêlée à la couleur du texte (plus claire sur fond sombre,
@@ -93,9 +93,17 @@ export async function setTheme(theme: Theme) {
   await commands.setUiSettings(ui.settings);
 }
 
-/** `null` : revient à l'accent du thème. */
+/** Couleur choisie pour le thème courant (#250), `null` : celle du thème. */
+export function currentAccent(): string | null {
+  return ui.settings.accents[ui.settings.theme] ?? null;
+}
+
+/** Pour le thème courant seulement ; `null` : revient à l'accent du thème. */
 export async function setAccent(accent: string | null) {
-  ui.settings = { ...ui.settings, accent };
+  const accents = { ...ui.settings.accents };
+  if (accent) accents[ui.settings.theme] = accent;
+  else delete accents[ui.settings.theme];
+  ui.settings = { ...ui.settings, accents };
   apply();
   await commands.setUiSettings(ui.settings);
 }

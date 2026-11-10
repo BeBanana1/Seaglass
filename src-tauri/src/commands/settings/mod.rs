@@ -1,6 +1,7 @@
 //! Réglages : interface et lecture dans SQLite (table `kv`, clés séparées), lancement au
 //! démarrage lu et écrit directement dans le système (clé `Run` du registre).
 
+pub mod accent;
 pub mod home_layout;
 pub mod pins;
 pub mod sorts;
@@ -15,13 +16,14 @@ use crate::i18n::{self, Lang, LanguagePref, tr};
 use crate::player::output::AudioDevices;
 use crate::player::{Cmd, PlaybackSettings};
 use crate::store::Store;
+use accent::Accents;
 use home_layout::{HomeLayout, SectionPref};
 use pins::Pin;
 use sorts::{ListSort, TrackSort};
 
 const KEY_UI: &str = "ui.settings";
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {
     /// Verre dépoli sur fond de pochette, couleurs accordées à l'album.
@@ -67,9 +69,14 @@ pub struct UiSettings {
     pub home: HomeLayout,
     /// Raccourcis de la barre latérale, dans l'ordre d'affichage (#10).
     pub pins: Vec<Pin>,
-    /// Couleur d'accent choisie (`#rrggbb`, #23) ; absente : celle du thème.
-    #[serde(deserialize_with = "accent_color")]
-    pub accent: Option<String>,
+    /// Couleur d'accent choisie pour chaque thème (`#rrggbb`, #23, #250) ; thème absent :
+    /// l'accent de son CSS.
+    #[serde(deserialize_with = "accent::accents")]
+    pub accents: Accents,
+    /// Ancienne couleur unique (avant 0.4.104) : lue seulement, rangée dans `accents` sous
+    /// `theme` par `migrate_accent`.
+    #[serde(skip_serializing, deserialize_with = "accent::legacy")]
+    accent: Option<String>,
     /// Langue de l'app (#7) ; `system` suit la langue d'affichage de Windows.
     pub language: LanguagePref,
     /// Tri mémorisé par playlist et pour les titres likés, le plus récent en tête (#93).
@@ -89,28 +96,20 @@ pub enum CloseAction {
 }
 
 impl UiSettings {
+    /// Range l'ancienne couleur unique sous le thème enregistré avec elle, sans écraser une
+    /// couleur déjà choisie pour ce thème.
+    pub(crate) fn migrate_accent(&mut self) {
+        if let Some(color) = self.accent.take() {
+            self.accents.entry(self.theme).or_insert(color);
+        }
+    }
+
     /// Reporte les réglages lus par le backend hors des commandes (fermeture de la fenêtre).
     pub(crate) fn apply_to_backend(&self) {
         #[cfg(desktop)]
         crate::integrations::tray::set_close_to_tray(self.close_action == CloseAction::Tray);
         #[cfg(desktop)]
         crate::integrations::discord::set_enabled(self.discord);
-    }
-}
-
-/// N'accepte que `#rrggbb` (mis en minuscules) : la valeur part telle quelle dans le CSS.
-fn accent_color<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
-    let Some(color) = Option::<String>::deserialize(d)? else {
-        return Ok(None);
-    };
-    let hex = color.strip_prefix('#').unwrap_or_default();
-    if hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()) {
-        Ok(Some(color.to_ascii_lowercase()))
-    } else {
-        Err(serde::de::Error::custom(tr(
-            "couleur d'accent invalide (attendu #rrggbb)",
-            "invalid accent color (expected #rrggbb)",
-        )))
     }
 }
 
@@ -123,10 +122,12 @@ pub(crate) fn load_from(store: Option<&Store>) -> UiSettings {
     let Some(store) = store else {
         return UiSettings::default();
     };
-    store
+    let mut settings = store
         .get_setting::<UiSettings>(KEY_UI)
         .unwrap_or_default()
-        .unwrap_or_default()
+        .unwrap_or_default();
+    settings.migrate_accent();
+    settings
 }
 
 fn save(state: &AppState, settings: &UiSettings) -> CmdResult<()> {
@@ -375,25 +376,6 @@ mod tests {
     }
 
     #[test]
-    fn accent_must_be_a_hex_color() {
-        let s: UiSettings = serde_json::from_str(r##"{"accent":"#FF5C8A"}"##).unwrap();
-        assert_eq!(s.accent.as_deref(), Some("#ff5c8a"));
-        let s: UiSettings = serde_json::from_str(r#"{"accent":null}"#).unwrap();
-        assert_eq!(s.accent, None);
-        for bad in [
-            r#""red""#,
-            r##""#fff""##,
-            r##""#12345g""##,
-            r#""ff5c8a""#,
-            r##""#ff5c8a;color:red""##,
-            "1",
-        ] {
-            let json = format!(r#"{{"accent":{bad}}}"#);
-            assert!(serde_json::from_str::<UiSettings>(&json).is_err(), "{bad}");
-        }
-    }
-
-    #[test]
     fn close_action_defaults_to_quit() {
         let s: UiSettings = serde_json::from_str(r#"{"theme":"studio"}"#).unwrap();
         assert_eq!(s.close_action, CloseAction::Quit);
@@ -409,7 +391,7 @@ mod tests {
         assert_eq!(s.home, HomeLayout::default());
         assert!(s.pins.is_empty());
         assert!(s.sorts.is_empty());
-        assert_eq!(s.accent, None);
+        assert!(s.accents.is_empty());
         let s: UiSettings =
             serde_json::from_str(r#"{"theme":"studio","home":{"order":["A","B"],"hidden":["B"]}}"#)
                 .unwrap();

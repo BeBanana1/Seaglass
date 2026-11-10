@@ -455,8 +455,8 @@ export interface UiSettings {
   theme: Theme;
   home: HomeLayout;
   pins: Pin[];
-  /** Couleur d'accent `#rrggbb` ; `null` : celle du thème. */
-  accent: string | null;
+  /** Couleur d'accent `#rrggbb` de chaque thème (#250) ; thème absent : celle de son CSS. */
+  accents: Partial<Record<Theme, string>>;
   /** Langue choisie (#7) ; `system` suit la langue d'affichage de Windows. */
   language: LanguagePref;
   /** Fermer la fenêtre : quitter, ou réduire dans la zone de notification (#83). */

@@ -72,7 +72,8 @@ export const fr = {
   accent: "Couleur d'accent",
   accentHint:
     "Boutons, éléments actifs et titres mis en avant. Par défaut, chaque thème a la sienne " +
-    "(accordée à l'album pour Verre de mer, Atelier et Surréalisme).",
+    "(accordée à l'album pour Verre de mer, Atelier et Surréalisme). Le choix vaut pour le thème actuel : " +
+    "chaque thème garde sa couleur.",
   accentTheme: "Celle du thème",
   accentOther: "Autre couleur",
   accentOtherShort: "Autre…",
@@ -271,7 +272,8 @@ export const en: typeof fr = {
   accent: "Accent color",
   accentHint:
     "Buttons, active items and highlighted titles. By default, each theme has its own " +
-    "(matched to the album for Seaglass, Atelier and Surrealism).",
+    "(matched to the album for Seaglass, Atelier and Surrealism). The choice applies to the current theme: " +
+    "each theme keeps its own color.",
   accentTheme: "Theme default",
   accentOther: "Other color",
   accentOtherShort: "Other…",

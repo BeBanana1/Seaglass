@@ -1,11 +1,11 @@
 <!-- Couleur d'accent (section Apparence des réglages) : celle du thème, une couleur proposée
-     ou une couleur libre. Elle remplace l'accent de tous les thèmes. -->
+     ou une couleur libre. Gardée pour le thème courant seulement (#250) : chaque thème a la sienne. -->
 <script lang="ts">
-  import { ACCENT_PRESETS, setAccent, ui } from "../lib/stores/ui.svelte";
+  import { ACCENT_PRESETS, currentAccent, setAccent } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
 
-  const current = $derived(ui.settings.accent);
+  const current = $derived(currentAccent());
   const custom = $derived(current !== null && !ACCENT_PRESETS.includes(current));
 
   async function choose(accent: string | null) {
