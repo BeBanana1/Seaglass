@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.96
+
+- Dernière sauvegarde de la file, de la position et du volume à la fermeture et avant une mise à jour (#260).
+
 ## 0.4.95
 
 - mpv du `PATH` utilisé seulement en debug ; bandeau « mpv introuvable » si le mpv embarqué manque (#261).

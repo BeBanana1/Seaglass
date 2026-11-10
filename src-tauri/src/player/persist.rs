@@ -4,7 +4,9 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use super::actor::Player;
+use tokio::sync::mpsc;
+
+use super::actor::{Cmd, Player};
 use crate::store::Play;
 use crate::tidal::models::{AlbumSummary, Track, TrackId};
 
@@ -16,6 +18,23 @@ const PERSIST_INTERVAL: Duration = Duration::from_secs(2);
 const POSITION_INTERVAL: Duration = PERSIST_INTERVAL;
 #[cfg(mobile)]
 const POSITION_INTERVAL: Duration = Duration::from_secs(10);
+
+/// Délai maximal d'une sauvegarde de fermeture : au-delà, l'app quitte sans l'attendre.
+const FLUSH_TIMEOUT: Duration = Duration::from_secs(1);
+
+/// Demande à l'acteur une sauvegarde immédiate et l'attend `FLUSH_TIMEOUT` au plus (#260).
+/// Bloquant, sans runtime tokio : appelable depuis `RunEvent::Exit` comme depuis l'updater.
+#[cfg_attr(mobile, allow(dead_code))]
+pub fn flush_blocking(player: &mpsc::Sender<Cmd>) {
+    let (reply, done) = std::sync::mpsc::channel();
+    if player.try_send(Cmd::Flush(reply)).is_err() {
+        tracing::warn!("sauvegarde de fermeture non demandée : lecteur indisponible");
+        return;
+    }
+    if done.recv_timeout(FLUSH_TIMEOUT).is_err() {
+        tracing::warn!("sauvegarde de fermeture non terminée après {FLUSH_TIMEOUT:?}");
+    }
+}
 
 impl Player {
     /// Restaure la file en pause ; le titre n'est chargé dans mpv qu'à la reprise.
@@ -68,9 +87,35 @@ impl Player {
         {
             return;
         }
-        let Some(store) = self.store.as_ref().map(Arc::clone) else {
-            return;
-        };
+        self.last_write = self.write().map(tokio::task::spawn_blocking);
+    }
+
+    /// Sauvegarde de fermeture (#260) : tout ce qui est en attente, et la position même
+    /// inchangée. Attend l'écriture précédente puis la sienne avant de répondre.
+    pub(super) fn flush(&mut self, reply: std::sync::mpsc::Sender<()>) {
+        if self.state.track.is_some() {
+            self.persist_position = true;
+        }
+        let previous = self.last_write.take();
+        let write = self.write();
+        tokio::spawn(async move {
+            if let Some(previous) = previous {
+                let _ = previous.await;
+            }
+            if let Some(write) = write {
+                let _ = tokio::task::spawn_blocking(write).await;
+            }
+            let _ = reply.send(());
+        });
+    }
+
+    /// Écriture de ce qui est marqué à sauvegarder, à lancer hors de l'acteur ; `None` sans
+    /// store ou sans rien à écrire.
+    fn write(&mut self) -> Option<impl FnOnce() + Send + 'static> {
+        if !(self.persist_queue || self.persist_position || self.persist_volume) {
+            return None;
+        }
+        let store = self.store.as_ref().map(Arc::clone)?;
         // Seule la file est copiée : le store ne demande au cache que les titres qui ne
         // sont pas encore en base (#90).
         let queue = self.persist_queue.then(|| self.queue.clone());
@@ -82,7 +127,7 @@ impl Player {
         self.persist_volume = false;
         self.last_persist = Instant::now();
 
-        tokio::task::spawn_blocking(move || {
+        Some(move || {
             let lookup = |ids: &[TrackId]| tidal.cache.get_many(ids.iter().copied());
             if let Err(e) = store.save_player(queue.as_ref(), position, lookup) {
                 tracing::warn!("sauvegarde de la file impossible : {e}");
@@ -92,7 +137,7 @@ impl Player {
             {
                 tracing::warn!("sauvegarde du volume impossible : {e}");
             }
-        });
+        })
     }
 
     /// Position reçue : l'écoute est enregistrée une fois le seuil franchi (`listen.rs`),

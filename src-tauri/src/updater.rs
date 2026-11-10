@@ -131,10 +131,15 @@ async fn check(
             .map_err(|e| format!("{ENDPOINT_ENV} invalide : {e}"))?;
         builder = builder.endpoints(vec![url]).map_err(|e| e.to_string())?;
     }
-    // L'installeur ferme l'app par `std::process::exit` : mpv doit être arrêté avant.
+    // L'installeur ferme l'app par `std::process::exit` : la file doit être sauvegardée
+    // (#260) et mpv arrêté avant.
     let mpv = Arc::clone(mpv);
+    let handle = app.clone();
     let updater = builder
-        .on_before_exit(move || mpv.kill())
+        .on_before_exit(move || {
+            crate::flush_player(&handle);
+            mpv.kill();
+        })
         .build()
         .map_err(|e| e.to_string())?;
 
