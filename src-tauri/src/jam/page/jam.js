@@ -560,7 +560,13 @@ for (const [id, which] of [
 
 // QR code de l'hôte : le code arrive après `#`, jamais envoyé au serveur. Retiré de
 // l'adresse pour ne pas rester dans l'historique ni être partagé par erreur.
-const fromQr = decodeURIComponent(location.hash.slice(1));
+// Un fragment mal formé (`%` isolé) ferait lever `decodeURIComponent` : ignoré (#262).
+let fromQr = "";
+try {
+  fromQr = decodeURIComponent(location.hash.slice(1));
+} catch {
+  history.replaceState(null, "", location.pathname);
+}
 if (fromQr) {
   history.replaceState(null, "", location.pathname);
   code = fromQr;

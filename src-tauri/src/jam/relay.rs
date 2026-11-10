@@ -4,7 +4,7 @@
 //! l'état est poussé au relais quand il change.
 //!
 //! Coupure (réseau mobile, veille) : reconnexion de plus en plus espacée (1 s à 30 s) avec
-//! la reprise du relais, qui garde la même adresse et le même QR code 5 min. Au-delà, le
+//! la reprise du relais, qui garde la même adresse et le même QR code 30 min (depuis la 0.4.85). Au-delà, le
 //! relais ouvre une nouvelle Jam : l'adresse change et l'UI en est prévenue.
 
 use std::net::{IpAddr, Ipv4Addr};

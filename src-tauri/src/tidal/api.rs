@@ -61,6 +61,7 @@ impl TidalClient {
     pub fn new() -> Result<Self> {
         let http = reqwest::Client::builder()
             .user_agent(USER_AGENT)
+            .https_only(true)
             .timeout(Duration::from_secs(15))
             .build()?;
         Ok(Self {

@@ -47,6 +47,7 @@ fn client() -> Result<&'static Client, String> {
     CLIENT
         .get_or_init(|| {
             Client::builder()
+                .https_only(true)
                 .timeout(TIMEOUT)
                 .redirect(redirect::Policy::none())
                 .user_agent("Mozilla/5.0 (compatible; Seaglass)")

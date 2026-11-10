@@ -129,7 +129,9 @@ pub fn strip_decorations(title: &str) -> String {
             _ => {}
         }
     }
-    let lower = out.to_lowercase();
+    // `to_ascii_lowercase` garde la longueur en octets : l'index trouvé vaut pour `out`
+    // (#262), ce que `to_lowercase` ne garantit pas (« İ » s'allonge, par exemple).
+    let lower = out.to_ascii_lowercase();
     let cut = [" ft. ", " ft ", " feat. ", " feat ", " featuring "]
         .iter()
         .filter_map(|m| lower.find(m))
@@ -197,6 +199,9 @@ mod tests {
             "Get Lucky"
         );
         assert_eq!(strip_decorations("Stay feat. Justin Bieber"), "Stay");
+        // « İ » s'allonge en minuscules (2 → 3 octets) : la coupe reste au bon endroit (#262).
+        assert_eq!(strip_decorations("İstanbul feat. Ayla"), "İstanbul");
+        assert_eq!(strip_decorations("İİİ Song feat. X"), "İİİ Song");
         assert_eq!(
             first_artist("Daft Punk, Pharrell Williams & Nile Rodgers"),
             "Daft Punk"
