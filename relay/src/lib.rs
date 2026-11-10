@@ -37,6 +37,9 @@ pub struct Config {
     /// Clé de build de l'app (`SEAGLASS_RELAY_KEY`) : écarte les robots, pas un secret.
     pub host_key: String,
     pub max_jams: usize,
+    /// Jams ouvertes en même temps pour une même adresse d'hôte (#257) : la clé de build
+    /// se lit dans l'app, une seule adresse ne doit pas pouvoir remplir le relais.
+    pub max_jams_per_address: usize,
     /// Durée de vie d'une Jam, reprises comprises.
     pub lifetime: Duration,
     /// Délai laissé à l'hôte pour revenir après une coupure (réseau mobile).
@@ -57,6 +60,7 @@ impl Config {
             public_url: public_url.trim_end_matches('/').to_owned(),
             host_key: host_key.to_owned(),
             max_jams: 20,
+            max_jams_per_address: 3,
             lifetime: Duration::from_secs(12 * 3600),
             grace: Duration::from_secs(30 * 60),
             trust_proxy: false,
