@@ -18,7 +18,7 @@
   -PublishOnly saute les étapes 2 à 4 et publie le dernier build, s'il a été fait sur ce
   commit, arbre propre (`release-all.ps1` construit Windows et Android avant de publier).
 
-  La clé de release se crée une fois (voir CLAUDE.md, « Android », Distribution) et se
+  La clé de release se crée une fois (voir docs/android.md, puce « Distribution ») et se
   sauvegarde comme la clé minisign : Android refuse toute mise à jour signée par une
   autre clé que celle de l'app installée.
 
@@ -78,7 +78,7 @@ if ($Publish) {
 if (-not (Test-Path .env)) { Fail ".env absent : l'identifiant client est injecté à la compilation" }
 
 $keystore = if ($env:SEAGLASS_ANDROID_KEYSTORE) { $env:SEAGLASS_ANDROID_KEYSTORE } else { Join-Path $HOME '.android\seaglass-release.jks' }
-if (-not (Test-Path $keystore)) { Fail "clé de release Android introuvable : $keystore (création : CLAUDE.md, section Android)" }
+if (-not (Test-Path $keystore)) { Fail "clé de release Android introuvable : $keystore (création : docs/android.md, puce « Distribution »)" }
 $keystore = (Resolve-Path $keystore).Path
 $alias = if ($env:SEAGLASS_ANDROID_KEY_ALIAS) { $env:SEAGLASS_ANDROID_KEY_ALIAS } else { 'seaglass' }
 

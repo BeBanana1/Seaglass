@@ -119,7 +119,7 @@ if (-not $PublishOnly) {
     # avant le build (scripts/protect-signing-key.py --check, mot de passe sur l'entrée standard).
     Step "clé de signature"
     $credentialTarget = 'seaglass-signing-key'
-    $keyHelp = "procédure : issue #87 / CLAUDE.md, « Signature »"
+    $keyHelp = "procédure : issue #87 / docs/release.md, « Signature »"
 
     . (Join-Path $PSScriptRoot 'credentials.ps1')
 

@@ -709,7 +709,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return u;
   },
   set_ui_settings: ({ settings }) => {
-    // Proxy Svelte : copie en JSON (voir les épingles dans CLAUDE.md).
+    // Proxy Svelte : copie en JSON (voir les épingles dans docs/interface.md).
     ui = JSON.parse(JSON.stringify(settings)) as UiSettings;
   },
   language: () => effectiveLanguage(ui.language),
