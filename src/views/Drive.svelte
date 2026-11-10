@@ -322,7 +322,7 @@
     justify-content: center;
     gap: 8px;
     min-width: 0;
-    padding: 8px 10px;
+    padding: 8px 6px;
     color: inherit;
   }
 
@@ -358,6 +358,8 @@
     /* Trois lignes : la bande › prend un tiers de la largeur, un long titre tient quand même. */
     -webkit-line-clamp: 3;
     line-clamp: 3;
+    /* Un mot plus large que la tuile (« Masculine » à 2 colonnes) est coupé plutôt que rogné. */
+    overflow-wrap: break-word;
     -webkit-box-orient: vertical;
   }
 
