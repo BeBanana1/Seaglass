@@ -10,7 +10,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use futures_util::{SinkExt, StreamExt};
 
-use crate::jams::{Jam, Reply};
+use crate::jams::{CreateError, Jam, Reply};
 use crate::limits::same;
 use crate::protocol::{FromHost, ToHost};
 use crate::{MAX_HOST_MESSAGE, Relay};
@@ -61,8 +61,18 @@ async fn session(socket: WebSocket, relay: Arc<Relay>, ip: std::net::IpAddr) {
             let created = if Relay::allow(&relay.creations, ip) {
                 relay
                     .jams
-                    .create(code.clone(), relay.config.max_jams)
-                    .ok_or("relais complet")
+                    .create(
+                        code.clone(),
+                        ip,
+                        relay.config.max_jams,
+                        relay.config.max_jams_per_address,
+                    )
+                    .map_err(|e| match e {
+                        CreateError::Full => "relais complet",
+                        CreateError::TooManyForAddress => {
+                            "trop de Jams ouvertes depuis cette adresse"
+                        }
+                    })
             } else {
                 Err("trop de Jams créées depuis cette adresse")
             };
@@ -76,7 +86,7 @@ async fn session(socket: WebSocket, relay: Arc<Relay>, ip: std::net::IpAddr) {
             }
         }
     };
-    let (mut outbox, generation) = jam.attach(code);
+    let (mut outbox, generation) = jam.attach(code, ip);
     tracing::info!(
         "Jam {} : hôte {} ({} ouvertes)",
         short(&jam.id),

@@ -34,6 +34,15 @@ pub enum ForwardError {
     Busy,
 }
 
+/// Pourquoi une Jam n'a pas pu être créée.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CreateError {
+    /// Le relais a déjà toutes ses Jams ouvertes.
+    Full,
+    /// Cette adresse a déjà toutes les siennes (#257).
+    TooManyForAddress,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum CodeError {
     Wrong,
@@ -42,6 +51,9 @@ pub enum CodeError {
 
 struct Inner {
     code: String,
+    /// Adresse de l'hôte, suivie à chaque reprise (Wi-Fi puis réseau mobile) : compte dans
+    /// le plafond de Jams par adresse (#257).
+    host_ip: IpAddr,
     host: Option<mpsc::Sender<ToHost>>,
     /// Numéro de la connexion de l'hôte attachée : une ancienne connexion qui se ferme
     /// après la reprise ne détache pas la nouvelle.
@@ -91,7 +103,7 @@ impl Jam {
         }
     }
 
-    fn new(code: String) -> Self {
+    fn new(code: String, host_ip: IpAddr) -> Self {
         let (state, _) = watch::channel(Arc::<str>::from(""));
         Self {
             id: random_token(),
@@ -99,6 +111,7 @@ impl Jam {
             created: Instant::now(),
             inner: Mutex::new(Inner {
                 code,
+                host_ip,
                 host: None,
                 host_gen: 0,
                 disconnected_at: Some(Instant::now()),
@@ -121,11 +134,15 @@ impl Jam {
     }
 
     /// Branche une connexion d'hôte (nouvelle ou reprise) : renvoie la file de ses messages
-    /// et son numéro.
-    pub fn attach(&self, code: String) -> (mpsc::Receiver<ToHost>, u64) {
+    /// et son numéro. Une connexion encore branchée est remplacée (#253) : son émetteur
+    /// disparaît, ce qui la termine, et ses requêtes en attente échouent tout de suite
+    /// (la page des invités réessaie) au lieu d'attendre une réponse qui ne viendra pas.
+    pub fn attach(&self, code: String, host_ip: IpAddr) -> (mpsc::Receiver<ToHost>, u64) {
         let (tx, rx) = mpsc::channel(HOST_QUEUE);
         let mut inner = self.lock();
         inner.code = code;
+        inner.host_ip = host_ip;
+        inner.pending.clear();
         inner.host = Some(tx);
         inner.host_gen += 1;
         inner.disconnected_at = None;
@@ -223,6 +240,10 @@ impl Jam {
         Err(CodeError::Wrong)
     }
 
+    fn host_ip(&self) -> IpAddr {
+        self.lock().host_ip
+    }
+
     pub fn host_online(&self) -> bool {
         self.lock().host.is_some()
     }
@@ -263,21 +284,35 @@ impl Registry {
         self.lock().get(id).cloned()
     }
 
-    /// Jam à reprendre : seulement avec le bon secret et si aucun hôte n'y est branché.
+    /// Jam à reprendre : avec le bon secret seulement. Une connexion d'hôte encore branchée
+    /// n'empêche pas la reprise (#253) : quand le téléphone change de réseau, il revient
+    /// bien avant que le relais ait vu mourir l'ancienne connexion (jusqu'à 80 s), et le
+    /// secret prouve que c'est le même hôte.
     pub fn resume(&self, id: &str, secret: &str) -> Option<Arc<Jam>> {
         let jam = self.get(id)?;
-        (same(&jam.secret, secret) && !jam.host_online()).then_some(jam)
+        same(&jam.secret, secret).then_some(jam)
     }
 
-    /// Nouvelle Jam, sauf si `max` sont déjà ouvertes.
-    pub fn create(&self, code: String, max: usize) -> Option<Arc<Jam>> {
+    /// Nouvelle Jam, sauf si `max` sont déjà ouvertes sur le relais ou `max_per_address`
+    /// pour l'adresse `host_ip` (#257 : une seule adresse ne remplit pas le relais).
+    pub fn create(
+        &self,
+        code: String,
+        host_ip: IpAddr,
+        max: usize,
+        max_per_address: usize,
+    ) -> Result<Arc<Jam>, CreateError> {
         let mut jams = self.lock();
         if jams.len() >= max {
-            return None;
+            return Err(CreateError::Full);
         }
-        let jam = Arc::new(Jam::new(code));
+        let same_address = jams.values().filter(|j| j.host_ip() == host_ip).count();
+        if same_address >= max_per_address {
+            return Err(CreateError::TooManyForAddress);
+        }
+        let jam = Arc::new(Jam::new(code, host_ip));
         jams.insert(jam.id.clone(), Arc::clone(&jam));
-        Some(jam)
+        Ok(jam)
     }
 
     pub fn len(&self) -> usize {
@@ -312,28 +347,91 @@ mod tests {
     use std::net::Ipv4Addr;
 
     const IP: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    const OTHER: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 3));
 
     #[test]
     fn registry_limits_and_resume() {
         let registry = Registry::default();
-        let jam = registry.create("AB23CD".into(), 1).unwrap();
-        assert!(registry.create("X".into(), 1).is_none());
-        // Pas d'hôte branché : reprise possible avec le bon secret seulement.
+        let jam = registry.create("AB23CD".into(), IP, 1, 3).unwrap();
+        assert_eq!(
+            registry.create("X".into(), IP, 1, 3).err(),
+            Some(CreateError::Full)
+        );
+        // Reprise avec le bon secret seulement, qu'un hôte soit branché ou non (#253).
         assert!(registry.resume(&jam.id, "faux").is_none());
         assert!(registry.resume(&jam.id, jam.secret()).is_some());
-        let (_rx, generation) = jam.attach("AB23CD".into());
-        assert!(registry.resume(&jam.id, jam.secret()).is_none());
+        let (_rx, generation) = jam.attach("AB23CD".into(), IP);
+        assert!(registry.resume(&jam.id, "faux").is_none());
+        assert!(registry.resume(&jam.id, jam.secret()).is_some());
         jam.detach(generation + 1);
         assert!(jam.host_online());
         jam.detach(generation);
         assert!(!jam.host_online());
     }
 
+    #[tokio::test]
+    async fn a_new_host_connection_replaces_the_old_one() {
+        let registry = Registry::default();
+        let jam = registry.create("AB23CD".into(), IP, 5, 3).unwrap();
+        let (mut old, old_gen) = jam.attach("AB23CD".into(), IP);
+        // Une requête attend l'ancienne connexion, qui ne répondra plus.
+        let waiting = {
+            let jam = Arc::clone(&jam);
+            tokio::spawn(async move {
+                jam.forward(IP, "/api/join".into(), None, String::new())
+                    .await
+            })
+        };
+        assert!(matches!(old.recv().await, Some(ToHost::Request { .. })));
+
+        let (mut new, new_gen) = jam.attach("AB23CD".into(), OTHER);
+        // Elle échoue tout de suite, et l'ancienne connexion voit sa file se fermer.
+        assert_eq!(waiting.await.unwrap(), Err(ForwardError::Offline));
+        assert!(old.recv().await.is_none());
+        // L'ancienne connexion qui se ferme ne détache pas la nouvelle.
+        jam.detach(old_gen);
+        assert!(jam.host_online());
+        let host = Arc::clone(&jam);
+        tokio::spawn(async move {
+            if let Some(ToHost::Request { rid, .. }) = new.recv().await {
+                let body = "ok".into();
+                host.respond(rid, Reply { status: 200, body });
+            }
+        });
+        let reply = jam
+            .forward(IP, "/api/join".into(), None, String::new())
+            .await
+            .unwrap();
+        assert_eq!(reply.body, "ok");
+        jam.detach(new_gen);
+        assert!(!jam.host_online());
+    }
+
+    #[test]
+    fn jams_are_capped_per_host_address() {
+        let registry = Registry::default();
+        let first = registry.create("A".into(), IP, 10, 2).unwrap();
+        let _second = registry.create("B".into(), IP, 10, 2).unwrap();
+        assert_eq!(
+            registry.create("C".into(), IP, 10, 2).err(),
+            Some(CreateError::TooManyForAddress)
+        );
+        // Une autre adresse garde ses places.
+        assert!(registry.create("C".into(), OTHER, 10, 2).is_ok());
+        // L'hôte revenu par une autre adresse (reprise) libère une place de l'ancienne.
+        let _rx = first.attach("A".into(), OTHER);
+        assert!(registry.create("D".into(), IP, 10, 2).is_ok());
+        assert_eq!(
+            registry.create("E".into(), OTHER, 10, 2).err(),
+            Some(CreateError::TooManyForAddress)
+        );
+    }
+
     #[test]
     fn sweep_closes_abandoned_jams() {
         let registry = Registry::default();
-        let jam = registry.create("AB23CD".into(), 5).unwrap();
-        let (_rx, _) = jam.attach("AB23CD".into());
+        let jam = registry.create("AB23CD".into(), IP, 5, 3).unwrap();
+        let (_rx, _) = jam.attach("AB23CD".into(), IP);
         let events = jam.subscribe().unwrap();
         let grace = Duration::from_secs(120);
         let life = Duration::from_secs(3600);
@@ -347,7 +445,7 @@ mod tests {
     #[test]
     fn codes_are_checked_and_guessing_blocked() {
         let registry = Registry::default();
-        let jam = registry.create("AB23CD".into(), 5).unwrap();
+        let jam = registry.create("AB23CD".into(), IP, 5, 3).unwrap();
         assert_eq!(jam.check_code(IP, "ab23cd"), Ok(()));
         for _ in 0..MAX_FAILURES {
             assert_eq!(jam.check_code(IP, "nope"), Err(CodeError::Wrong));
@@ -358,13 +456,13 @@ mod tests {
     #[tokio::test]
     async fn requests_reach_the_host_and_come_back() {
         let registry = Registry::default();
-        let jam = registry.create("AB23CD".into(), 5).unwrap();
+        let jam = registry.create("AB23CD".into(), IP, 5, 3).unwrap();
         assert_eq!(
             jam.forward(IP, "/api/join".into(), None, String::new())
                 .await,
             Err(ForwardError::Offline)
         );
-        let (mut rx, _) = jam.attach("AB23CD".into());
+        let (mut rx, _) = jam.attach("AB23CD".into(), IP);
         let host = Arc::clone(&jam);
         tokio::spawn(async move {
             if let Some(ToHost::Request { rid, client, .. }) = rx.recv().await {

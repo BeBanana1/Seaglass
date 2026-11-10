@@ -241,6 +241,51 @@ async fn a_disconnected_host_can_resume_the_same_jam() {
     assert_eq!(http(addr, "POST", &path, CODE, "").await.0, 200);
 }
 
+/// Changement de réseau (#253) : l'hôte revient alors que le relais croit encore
+/// l'ancienne connexion ouverte. Même Jam, et les invités atteignent la nouvelle connexion.
+#[tokio::test]
+async fn a_host_resumes_while_its_old_connection_is_still_open() {
+    let addr = start(|_| {}).await;
+    let (old, id, secret, _) = host(addr, None).await;
+    let resume = Resume {
+        id: id.clone(),
+        secret,
+    };
+    let (socket, again, _, resumed) = host(addr, Some(resume)).await;
+    assert!(resumed);
+    assert_eq!(again, id);
+
+    let _host = echo(socket);
+    let path = format!("/j/{id}/api/join");
+    assert_eq!(http(addr, "POST", &path, CODE, "").await.0, 200);
+    // L'ancienne connexion, fermée après coup, ne coupe pas la nouvelle.
+    drop(old);
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(http(addr, "POST", &path, CODE, "").await.0, 200);
+}
+
+#[tokio::test]
+async fn one_address_cannot_fill_the_relay() {
+    let addr = start(|c| c.max_jams_per_address = 2).await;
+    let (_first, _, _, _) = host(addr, None).await;
+    let (_second, _, _, _) = host(addr, None).await;
+    let mut third = connect_host(addr, KEY).await.unwrap();
+    send(
+        &mut third,
+        &FromHost::Hello {
+            code: CODE.into(),
+            resume: None,
+        },
+    )
+    .await;
+    assert_eq!(
+        receive(&mut third).await,
+        ToHost::Error {
+            message: "trop de Jams ouvertes depuis cette adresse".into()
+        }
+    );
+}
+
 #[tokio::test]
 async fn the_relay_refuses_jams_beyond_its_limits() {
     let addr = start(|c| {

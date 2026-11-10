@@ -5,6 +5,7 @@
 //! - `RELAY_BIND` : adresse d'écoute (défaut `0.0.0.0:8080`).
 //! - `RELAY_TRUST_PROXY` : `1` derrière Caddy (lit `X-Forwarded-For`), défaut `0`.
 //! - `RELAY_MAX_JAMS` : Jams ouvertes en même temps (défaut 20).
+//! - `RELAY_MAX_JAMS_PER_ADDRESS` : dont celles d'une même adresse d'hôte (défaut 3).
 
 use std::process::ExitCode;
 
@@ -31,6 +32,9 @@ async fn main() -> ExitCode {
     config.trust_proxy = env("RELAY_TRUST_PROXY").is_some_and(|v| v == "1");
     if let Some(max) = env("RELAY_MAX_JAMS").and_then(|v| v.parse().ok()) {
         config.max_jams = max;
+    }
+    if let Some(max) = env("RELAY_MAX_JAMS_PER_ADDRESS").and_then(|v| v.parse().ok()) {
+        config.max_jams_per_address = max;
     }
     let bind = env("RELAY_BIND").unwrap_or_else(|| "0.0.0.0:8080".into());
     let listener = match TcpListener::bind(&bind).await {
