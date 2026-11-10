@@ -27,16 +27,17 @@
     pointer-events: none;
   }
 
-  /* Au-dessus du mini-lecteur et de la navigation du bas (comme la mise à jour). */
+  /* Au-dessus du mini-lecteur et de la navigation du bas (comme la mise à jour), et du
+     clavier quand il est ouvert : `--keyboard-inset` vient du plugin Android (#251). */
   :global(:root[data-platform="android"]) .stack {
-    bottom: calc(var(--safe-bottom) + 140px);
+    bottom: max(calc(var(--safe-bottom) + 140px), calc(var(--keyboard-inset, 0px) + 12px));
     width: calc(100vw - 24px);
   }
 
   /* « En lecture » couvre la barre de lecture : en bas de l'écran, pour ne pas
      recouvrir la progression ni les commandes. */
   :global(:root:has(.now-playing)) .stack {
-    bottom: calc(var(--safe-bottom) + 20px);
+    bottom: max(calc(var(--safe-bottom) + 20px), calc(var(--keyboard-inset, 0px) + 12px));
   }
 
   /* Surface pleine du menu contextuel : lisible sur n'importe quel contenu, dans chaque thème. */
