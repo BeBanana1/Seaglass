@@ -62,7 +62,13 @@ export interface StreamFormat {
   /** Débit moyen déclaré par le manifeste, en kbps (#3). */
   bitrate: number | null;
   /** Album de l'édition hi-res réellement lue, quand ce n'est pas celle du titre affiché (#18). */
-  hiresEdition: string | null;
+  hiresEdition: EditionAlbum | null;
+}
+
+/** Album d'une autre édition hi-res, ouvrable depuis « En lecture » (#111). */
+export interface EditionAlbum {
+  id: number;
+  title: string;
 }
 
 /** Infos détaillées d'un titre (#3), demandées à l'ouverture du panneau. */

@@ -57,7 +57,7 @@ pub(super) async fn resolve_stream(
                     edition.id,
                     edition.album.title
                 );
-                stream.format.hires_edition = Some(edition.album.title);
+                stream.format.hires_edition = Some((&edition).into());
                 return Ok(stream);
             }
             Ok(stream) => tracing::info!(
@@ -91,7 +91,7 @@ pub(super) async fn find_offer(
     let edition = lookup_result(track, tidal.hires_edition(track).await)?;
     match tidal.playback_format(edition.id, quality).await {
         Ok(mut format) if is_better(&format, Some(original)) => {
-            format.hires_edition = Some(edition.album.title);
+            format.hires_edition = Some((&edition).into());
             Some(format)
         }
         Ok(_) => None,
