@@ -3,6 +3,7 @@ package dev.seaglass.mobile
 import android.app.Activity
 import android.app.Dialog
 import android.graphics.Bitmap
+import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebStorage
@@ -41,6 +42,11 @@ class EngineArgs {
 }
 
 @InvokeArg
+class ScreenArgs {
+    var on: Boolean = false
+}
+
+@InvokeArg
 class InstallArgs {
     lateinit var path: String
 }
@@ -65,6 +71,17 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
             ApkInstaller.install(activity, args.path) { error ->
                 if (error == null) invoke.resolve() else invoke.reject(error)
             }
+        }
+    }
+
+    /** Mode conduite (#193) : l'écran reste allumé tant qu'il est ouvert. */
+    @Command
+    fun keepScreenOn(invoke: Invoke) {
+        val args = invoke.parseArgs(ScreenArgs::class.java)
+        activity.runOnUiThread {
+            val flag = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            if (args.on) activity.window.addFlags(flag) else activity.window.clearFlags(flag)
+            invoke.resolve()
         }
     }
 

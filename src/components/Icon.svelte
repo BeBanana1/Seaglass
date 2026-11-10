@@ -60,6 +60,8 @@
     // Filtre et tri des listes sur Android (#182).
     check: "M9.5 16.2 5.3 12a1 1 0 0 0-1.4 1.4l4.9 4.9a1 1 0 0 0 1.4 0l10-10a1 1 0 0 0-1.4-1.4z",
     sort: "M3 6h10a1 1 0 1 1 0 2H3a1 1 0 0 1 0-2zm0 5h7a1 1 0 1 1 0 2H3a1 1 0 1 1 0-2zm0 5h4a1 1 0 1 1 0 2H3a1 1 0 1 1 0-2zM18 5a1 1 0 0 1 1 1v9.6l1.3-1.3a1 1 0 0 1 1.4 1.4l-3 3a1 1 0 0 1-1.4 0l-3-3a1 1 0 0 1 1.4-1.4l1.3 1.3V6a1 1 0 0 1 1-1z",
+    // Mode conduite (#193) : vitre et roues en creux (sens inverse de la carrosserie).
+    car: "M6.6 5.7A2 2 0 0 1 8.5 4.5h7a2 2 0 0 1 1.9 1.2L19 9.6h.5A1.5 1.5 0 0 1 21 11.1V17a1 1 0 0 1-1 1h-1v1a1 1 0 0 1-2 0v-1H7v1a1 1 0 0 1-2 0v-1H4a1 1 0 0 1-1-1v-5.9a1.5 1.5 0 0 1 1.5-1.5H5zM8.5 6.5 7.2 9.6h9.6l-1.3-3.1zM7 12.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z",
     volume: speaker + waveSmall + waveLarge,
     volumeLow: speaker + waveSmall,
     volumeMute:

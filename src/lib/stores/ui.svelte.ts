@@ -148,8 +148,15 @@ export async function resetHomeLayout() {
   ui.settings.home = await commands.resetHomeLayout();
 }
 
-const samePin = (a: Pin, b: Pin) =>
-  a.kind === b.kind && (a.kind !== "playlist" || (b.kind === "playlist" && a.uuid === b.uuid));
+/** Identité d'une épingle (clé de liste) : deux épingles de même clé sont la même. */
+export function pinKey(pin: Pin): string {
+  return pin.kind === "playlist" ? `playlist:${pin.uuid}` : pin.kind === "mix" ? `mix:${pin.id}` : pin.kind;
+}
+
+const samePin = (a: Pin, b: Pin) => pinKey(a) === pinKey(b);
+
+/** Tuiles du mode conduite (#193) : les premières épingles, 8 au plus sur Android. */
+export const MAX_DRIVE_TILES = 8;
 
 export function isPinned(pin: Pin): boolean {
   return ui.settings.pins.some((p) => samePin(p, pin));
@@ -159,10 +166,27 @@ async function savePins(pins: Pin[]) {
   ui.settings.pins = await commands.setPins(pins);
 }
 
-/** Épingle à la fin de la barre latérale, ou désépingle. */
-export function togglePin(pin: Pin): Promise<void> {
+/** Épingle à la fin de la barre latérale (ou des tuiles du mode conduite), ou désépingle.
+ *  `limit` : nombre d'épingles au-delà duquel l'ajout est refusé (`false` renvoyé). */
+export async function togglePin(pin: Pin, limit = Infinity): Promise<boolean> {
   const pins = ui.settings.pins;
-  return savePins(isPinned(pin) ? pins.filter((p) => !samePin(p, pin)) : [...pins, pin]);
+  if (isPinned(pin)) {
+    await savePins(pins.filter((p) => !samePin(p, pin)));
+    return true;
+  }
+  if (pins.length >= limit) return false;
+  await savePins([...pins, pin]);
+  return true;
+}
+
+/** Avance (`-1`) ou recule (`1`) une épingle d'une place. */
+export async function movePin(pin: Pin, delta: -1 | 1) {
+  const pins = [...ui.settings.pins];
+  const from = pins.findIndex((p) => samePin(p, pin));
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= pins.length) return;
+  [pins[from], pins[to]] = [pins[to], pins[from]];
+  await savePins(pins);
 }
 
 /** Reporte le titre actuel d'une playlist épinglée (renommée depuis l'épinglage). */

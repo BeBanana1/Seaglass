@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Pin } from "../lib/ipc";
   import { current, replace, type Route } from "../lib/stores/nav.svelte";
-  import { togglePin, ui } from "../lib/stores/ui.svelte";
+  import { pinKey, togglePin, ui } from "../lib/stores/ui.svelte";
+  import { pinLabel, pinRoute, pinTab } from "../lib/pins";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
@@ -18,24 +19,16 @@
 
   const route = $derived(current());
 
-  const pinRoute = (pin: Pin): Route =>
-    pin.kind === "playlist" ? { name: "playlist", uuid: pin.uuid } : { name: "library", tab: libraryTab(pin) };
-
-  /** Onglet de la bibliothèque d'une épingle qui n'est pas une playlist. */
-  const libraryTab = (pin: Pin) => (pin.kind === "later" ? "later" : "tracks");
-
-  const pinLabel = (pin: Pin) =>
-    pin.kind === "playlist"
-      ? pin.title || t.format.playlist
-      : pin.kind === "later"
-        ? t.library.tabs.later
-        : t.library.likedTracks;
-
   function pinActive(pin: Pin): boolean {
     const r = route;
-    return pin.kind === "playlist"
-      ? r.name === "playlist" && r.uuid === pin.uuid
-      : r.name === "library" && r.tab === libraryTab(pin);
+    switch (pin.kind) {
+      case "playlist":
+        return r.name === "playlist" && r.uuid === pin.uuid;
+      case "mix":
+        return r.name === "mix" && r.id === pin.id;
+      default:
+        return r.name === "library" && r.tab === pinTab(pin);
+    }
   }
 
   async function unpin(pin: Pin) {
@@ -59,7 +52,7 @@
     {#if entry.route.name === "library" && ui.settings.pins.length > 0}
       <div class="pins">
         <span class="pins-title">{t.library.pinned}</span>
-        {#each ui.settings.pins as pin (pin.kind === "playlist" ? pin.uuid : pin.kind)}
+        {#each ui.settings.pins as pin (pinKey(pin))}
           <div class="pin" class:active={pinActive(pin)}>
             <button class="pin-open" onclick={() => replace(pinRoute(pin))} title={pinLabel(pin)}>
               {pinLabel(pin)}

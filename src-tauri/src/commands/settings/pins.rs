@@ -1,8 +1,9 @@
-//! Raccourcis épinglés dans la barre latérale (#10) : playlists, titres likés et « Plus tard ».
-//! Logique pure : la liste est stockée dans `UiSettings::pins`, dans l'ordre d'affichage.
+//! Raccourcis épinglés (#10) : playlists, mixes, titres likés et « Plus tard ». Barre latérale
+//! sur le bureau, tuiles du mode conduite sur Android (#193). Logique pure : la liste est
+//! stockée dans `UiSettings::pins`, dans l'ordre d'affichage.
 //!
-//! Le titre d'une playlist est gardé avec l'épingle pour afficher la barre sans requête ;
-//! l'UI le remet à jour quand elle ouvre la playlist.
+//! Le titre d'une playlist ou d'un mix est gardé avec l'épingle pour l'afficher sans
+//! requête ; l'UI le remet à jour quand elle ouvre la playlist.
 
 use std::collections::HashSet;
 
@@ -21,6 +22,11 @@ pub enum Pin {
         uuid: String,
         title: String,
     },
+    /// Mix ou radio de TIDAL (#193).
+    Mix {
+        id: String,
+        title: String,
+    },
     /// Bibliothèque › Titres.
     LikedTracks,
     /// Bibliothèque › Plus tard (#244).
@@ -37,6 +43,8 @@ pub enum PinError {
     TooMany(usize),
     #[error("{}", tr("identifiant de playlist invalide", "invalid playlist ID"))]
     InvalidUuid,
+    #[error("{}", tr("identifiant de mix invalide", "invalid mix ID"))]
+    InvalidMixId,
 }
 
 impl Pin {
@@ -44,6 +52,7 @@ impl Pin {
     fn key(&self) -> &str {
         match self {
             Pin::Playlist { uuid, .. } => uuid,
+            Pin::Mix { id, .. } => id,
             Pin::LikedTracks => "liked-tracks",
             Pin::Later => "later",
         }
@@ -61,10 +70,18 @@ pub fn normalize(pins: Vec<Pin>) -> Result<Vec<Pin>, PinError> {
                 if !is_uuid(&uuid) {
                     return Err(PinError::InvalidUuid);
                 }
-                let title = title.trim().chars().take(MAX_TITLE_CHARS).collect();
                 Pin::Playlist {
                     uuid: uuid.to_ascii_lowercase(),
-                    title,
+                    title: clean_title(&title),
+                }
+            }
+            Pin::Mix { id, title } => {
+                if !super::super::catalog::is_mix_id(&id) {
+                    return Err(PinError::InvalidMixId);
+                }
+                Pin::Mix {
+                    id,
+                    title: clean_title(&title),
                 }
             }
             Pin::LikedTracks | Pin::Later => pin,
@@ -77,6 +94,10 @@ pub fn normalize(pins: Vec<Pin>) -> Result<Vec<Pin>, PinError> {
         return Err(PinError::TooMany(out.len()));
     }
     Ok(out)
+}
+
+fn clean_title(title: &str) -> String {
+    title.trim().chars().take(MAX_TITLE_CHARS).collect()
 }
 
 /// Forme `8-4-4-4-12` en hexadécimal, celle des uuid de playlists TIDAL. L'uuid finit
@@ -139,6 +160,38 @@ mod tests {
                 Pin::Later
             ]
         );
+    }
+
+    #[test]
+    fn mix_pins() {
+        let mix = |id: &str| Pin::Mix {
+            id: id.into(),
+            title: " Mix du jour ".into(),
+        };
+        let json = serde_json::to_string(&mix("0abc")).unwrap();
+        assert_eq!(
+            json,
+            r#"{"kind":"mix","id":"0abc","title":" Mix du jour "}"#
+        );
+        // Titre nettoyé, doublon retiré.
+        let pins = normalize(vec![mix("0abc"), mix("0abc"), Pin::LikedTracks]).unwrap();
+        assert_eq!(
+            pins,
+            [
+                Pin::Mix {
+                    id: "0abc".into(),
+                    title: "Mix du jour".into()
+                },
+                Pin::LikedTracks
+            ]
+        );
+        for bad in ["", "../users/1", "abc?x=1"] {
+            assert_eq!(
+                normalize(vec![mix(bad)]),
+                Err(PinError::InvalidMixId),
+                "{bad}"
+            );
+        }
     }
 
     #[test]

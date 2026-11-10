@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.118
+
+- Android : mode conduite plein écran (gros boutons de lecture, 1 à 8 tuiles qui lancent une playlist, un mix, les titres likés ou « Plus tard » en un appui), ouvert par l'icône voiture, le raccourci de l'app ou le lien `seaglass://drive` ; les mixes s'épinglent aussi dans la barre latérale du bureau (#193).
+
 ## 0.4.117
 
 - Android : répétition et aléatoire demandés par un contrôleur (autoradio, montre) repartent vers Rust, et la session média ne propose plus de changer la liste de lecture, la vitesse ni le volume d'ExoPlayer (#254).

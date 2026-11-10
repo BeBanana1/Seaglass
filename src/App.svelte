@@ -31,6 +31,7 @@
   import Mix from "./views/Mix.svelte";
   import Queue from "./views/Queue.svelte";
   import NowPlaying from "./views/NowPlaying.svelte";
+  import Drive from "./views/Drive.svelte";
   import Settings from "./views/Settings.svelte";
   import Backdrop from "./components/backdrops/Backdrop.svelte";
   import Sidebar from "./components/Sidebar.svelte";
@@ -48,6 +49,8 @@
   let ready = $state(false);
   let queueOpen = $state(false);
   let nowPlayingOpen = $state(false);
+  /** Mode conduite (#193, Android) : plein écran au-dessus de tout le reste. */
+  let driveOpen = $state(false);
   /** « En lecture » ouvert par la notification d'Android (#240) : la page dessous est quelconque. */
   let nowPlayingFromOutside = false;
   let main = $state<HTMLElement>();
@@ -71,6 +74,8 @@
       void openFromNotification();
       void events.onSharedLink(openShared);
       void openShared();
+      void events.onOpenDrive(openDriveFromOutside);
+      void openDriveFromOutside();
     }
     if (import.meta.env.DEV && !("__TAURI_INTERNALS__" in window)) {
       const view = (await import("./lib/mock")).initialView();
@@ -80,6 +85,7 @@
       ui.nowPlayingPanel =
         view.lyrics && view.queue ? "both" : view.lyrics ? "lyrics" : view.queue ? "queue" : null;
       if (view.trackInfo && player.state.track) openTrackInfo(player.state.track);
+      driveOpen = view.drive;
     }
   });
 
@@ -119,6 +125,7 @@
       !!picker.request ||
       !!trackInfo.track ||
       jam.dialogOpen ||
+      driveOpen ||
       nowPlayingOpen ||
       listSearch.active ||
       canGoBack() ||
@@ -131,6 +138,7 @@
     else if (picker.request) closePlaylistPicker();
     else if (trackInfo.track) closeTrackInfo();
     else if (jam.dialogOpen) closeJamDialog();
+    else if (driveOpen) driveOpen = false;
     // Paroles ou file en plein écran (#173) : Retour revient d'abord à « En lecture ».
     else if (nowPlayingOpen && ui.nowPlayingPanel) ui.nowPlayingPanel = null;
     else if (nowPlayingOpen) closeNowPlaying();
@@ -166,6 +174,15 @@
       nowPlayingOpen = true;
       nowPlayingFromOutside = true;
     }
+  }
+
+  // Lien `seaglass://drive` ou raccourci de l'app (#193) : demande gardée par Rust, prise une
+  // seule fois (aussi au démarrage). Déconnecté, elle est oubliée : rien à y lire.
+  async function openDriveFromOutside() {
+    if (!(await commands.takeDriveRequest().catch(() => false))) return;
+    if (!session) return;
+    nowPlayingOpen = false;
+    driveOpen = true;
   }
 
   // Lien partagé depuis une autre app (#203) : seulement connecté, sinon il attend.
@@ -310,6 +327,11 @@
       <!-- Android : navigation en bas, réglages en haut à droite (#143), déconnexion dans Réglages › Application. -->
       {#if route.name !== "settings"}
         <div class="actions">
+          {#if session}
+            <button class="icon-action" onclick={() => (driveOpen = true)} aria-label={t.drive.open}>
+              <Icon name="car" size={22} />
+            </button>
+          {/if}
           <button class="icon-action" onclick={() => openSettings()} aria-label={t.common.nav.settings}>
             <Icon name="settings" size={20} />
           </button>
@@ -388,6 +410,9 @@
 
 {#if nowPlayingOpen}
   <NowPlaying onClose={closeNowPlaying} />
+{/if}
+{#if driveOpen && session && platform.mobile}
+  <Drive onClose={() => (driveOpen = false)} />
 {/if}
 <Toasts />
 <UpdatePrompt />

@@ -1,18 +1,32 @@
 <script lang="ts">
   import type { Pin } from "../lib/ipc";
-  import { isPinned, togglePin } from "../lib/stores/ui.svelte";
+  import { isPinned, MAX_DRIVE_TILES, togglePin } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { platform } from "../lib/platform.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { pinLabel } from "../lib/pins";
   import Icon from "./Icon.svelte";
 
+  // Bureau : barre latérale. Android : tuiles du mode conduite (#193), 8 au plus.
   let { pin }: { pin: Pin } = $props();
 
   const pinned = $derived(isPinned(pin));
-  const label = $derived(pinned ? t.menu.unpin : t.menu.pin);
+  const label = $derived(
+    platform.mobile ? (pinned ? t.drive.unpin : t.drive.pin) : pinned ? t.menu.unpin : t.menu.pin,
+  );
 
   async function toggle() {
     try {
-      await togglePin(pin);
+      if (!platform.mobile) {
+        await togglePin(pin);
+        return;
+      }
+      const adding = !pinned;
+      if (!(await togglePin(pin, MAX_DRIVE_TILES))) {
+        pushToast({ level: "error", message: t.drive.full(MAX_DRIVE_TILES) });
+      } else if (adding) {
+        pushToast({ level: "info", message: t.drive.pinned(pinLabel(pin)) });
+      }
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }

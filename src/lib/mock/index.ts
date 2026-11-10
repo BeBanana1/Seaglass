@@ -6,7 +6,8 @@
 // mix|radio|library|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
 // `?queue=1`, `?update=1`, `?autostart=1`, `?tray=1`, `?volume=60|muted`, `?accent=ff5c8a`,
-// `?platform=android` (mise en page tactile, à regarder en largeur de téléphone),
+// `?platform=android` (mise en page tactile, à regarder en largeur de téléphone ; avec `&drive=1`,
+// mode conduite ouvert, #193),
 // `?lyrics=1|plain|none` (ouvre le panneau Paroles ; texte simple ou aucune parole ; avec `?queue=1`,
 // paroles et file côte à côte en fenêtre large),
 // `?mine=1` (la playlist de démonstration devient la vôtre : retrait de titres possible),
@@ -21,6 +22,7 @@
 
 import type {
   PlaySource,
+  Pin,
   AlbumPage,
   AlbumSummary,
   ArtistPage,
@@ -796,6 +798,20 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return asked;
   },
   take_shared_link: () => null,
+  // Mode conduite (#193) : `?platform=android&drive=1` l'ouvre au lancement (`initialView`).
+  take_drive_request: () => false,
+  keep_screen_on: () => null,
+  // Tous les titres des fixtures, avec la source de l'épingle (« Joué depuis », tuile allumée).
+  play_pin: ({ pin, shuffle }) => {
+    const p = JSON.parse(JSON.stringify(pin)) as Pin;
+    const source: PlaySource =
+      p.kind === "playlist"
+        ? { kind: "playlist", uuid: p.uuid, title: p.title }
+        : p.kind === "mix"
+          ? { kind: "mix", id: p.id, title: p.title }
+          : { kind: p.kind };
+    return handlers.play_tracks({ trackIds: [...allTracks.keys()], startIndex: 0, shuffle, source });
+  },
   // `?platform=android&links=1` : liens TIDAL déjà donnés à l'app.
   link_handling: () => (params.get("platform") === "android" ? { enabled: params.get("links") === "1" } : null),
   open_link_settings: () => undefined,
@@ -1045,6 +1061,7 @@ export function initialView(): {
   queue: boolean;
   lyrics: boolean;
   trackInfo: boolean;
+  drive: boolean;
 } {
   const routes: Record<string, Route> = {
     album: { name: "album", id: fx.album.album.id },
@@ -1063,6 +1080,7 @@ export function initialView(): {
     queue: params.has("queue"),
     lyrics: params.has("lyrics"),
     trackInfo: params.has("trackinfo"),
+    drive: params.has("drive"),
   };
 }
 

@@ -81,6 +81,7 @@
       trackIds={view.tracks.map((track) => track.id)}
       source={playSource}
       favorite={"mix" in source ? { kind: "mix", id: source.mix } : undefined}
+      pin={"mix" in source ? { kind: "mix", id: source.mix, title: view.title } : undefined}
       queueable
     >
       {#snippet meta()}

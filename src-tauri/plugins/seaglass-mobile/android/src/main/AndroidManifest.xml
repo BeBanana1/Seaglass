@@ -27,6 +27,23 @@
             android:noHistory="true"
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!-- Mode conduite (#193) : lien `seaglass://drive` (Modes et routines, autres
+             automatisations) et raccourci de l'app (`res/xml/shortcuts.xml` de l'app). Même
+             relais sans interface ; exporté pour recevoir le lien. -->
+        <activity
+            android:name="dev.seaglass.mobile.DriveActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="seaglass" android:host="drive" />
+            </intent-filter>
+        </activity>
         <!-- Menu « Partager » du système et liens TIDAL touchés (#203) : la page du lien
              s'ouvre dans l'app. Même relais sans interface que ci-dessus ; exporté pour
              recevoir l'intent. -->
