@@ -545,8 +545,37 @@ export interface JamStatus {
   reason: string | null;
   /** Nom de l'invité de chaque titre ajouté par la Jam, par identifiant de titre. */
   guests: Record<string, string>;
+  /** Règles de l'hôte (#222, #288), retenues d'une Jam à l'autre. */
+  rules: JamRules;
+  /** Les invités peuvent ajouter (suspension propre à la Jam, #288). */
+  addsOpen: boolean;
+  /** Invités qui ont ajouté pendant la Jam, exclus compris (#288). */
+  members: JamGuest[];
+}
+
+/** Règles de l'hôte pour la Jam (#288). */
+export interface JamRules {
   /** Les invités peuvent mettre en pause et relancer (#222). */
   guestControls: boolean;
+  /** Titres en attente au plus par invité ; `null` = sans limite. */
+  maxPending: number | null;
+  /** Les invités peuvent ajouter un album entier. */
+  albums: boolean;
+}
+
+/** Invité de la Jam vu par l'hôte (#288). */
+export interface JamGuest {
+  id: number;
+  name: string | null;
+  /** Titres ajoutés pendant la Jam. */
+  added: number;
+  banned: boolean;
+}
+
+/** Événement `jam-guests` : noms des titres et invités. */
+export interface JamGuestsUpdate {
+  guests: Record<string, string>;
+  members: JamGuest[];
 }
 
 export const commands = {
@@ -569,9 +598,13 @@ export const commands = {
   /** En ligne, l'adresse arrive ensuite par `jam-status`. */
   startJam: (mode: JamMode) => invoke<JamStatus>("start_jam", { mode }),
   stopJam: () => invoke<void>("stop_jam"),
-  /** Les invités peuvent mettre en pause et relancer (#222) ; `null` sans Jam. */
-  setJamGuestControls: (enabled: boolean) =>
-    invoke<JamStatus | null>("set_jam_guest_controls", { enabled }),
+  /** Règles de l'hôte, enregistrées et appliquées (#222, #288) ; `null` sans Jam. */
+  setJamRules: (rules: JamRules) => invoke<JamStatus | null>("set_jam_rules", { rules }),
+  /** Suspend (`false`) ou rouvre les ajouts des invités (#288). */
+  setJamAddsOpen: (open: boolean) => invoke<JamStatus | null>("set_jam_adds_open", { open }),
+  /** Exclut un invité (ses titres en attente sont retirés) ou le réadmet (#288). */
+  setJamGuestBanned: (id: number, banned: boolean) =>
+    invoke<JamStatus | null>("set_jam_guest_banned", { id, banned }),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
   /** Biographie, similaires, « Apparaît sur » (#205) : chaque partie peut être vide. */
@@ -722,9 +755,9 @@ export const events = {
   /** Jam (#25) : connexion au relais (connecté, reconnexion, nouvelle adresse). */
   onJamStatus: (cb: (status: JamStatus) => void): Promise<UnlistenFn> =>
     listen<JamStatus>("jam-status", (e) => cb(e.payload)),
-  /** Jam (#25) : un invité a ajouté un titre sous son nom. */
-  onJamGuests: (cb: (guests: Record<string, string>) => void): Promise<UnlistenFn> =>
-    listen<Record<string, string>>("jam-guests", (e) => cb(e.payload)),
+  /** Jam (#25) : un invité a ajouté ou retiré des titres, ou a été exclu (#288). */
+  onJamGuests: (cb: (update: JamGuestsUpdate) => void): Promise<UnlistenFn> =>
+    listen<JamGuestsUpdate>("jam-guests", (e) => cb(e.payload)),
   onPlayerState: (cb: (s: PlayerState) => void): Promise<UnlistenFn> =>
     listen<PlayerState>("player-state", (e) => cb(e.payload)),
   onQueueState: (cb: (q: QueueView) => void): Promise<UnlistenFn> =>

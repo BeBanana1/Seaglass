@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use super::api::{MAX_QUEUE, Snapshot};
 use super::guests::Guests;
+use super::rules::JamRules;
 use crate::tidal::models::{AlbumSummary, ArtistRef, Track};
 
 fn artist_names(artists: &[ArtistRef]) -> String {
@@ -88,12 +89,19 @@ pub struct GuestState {
     pub paused: bool,
     /// Les invités peuvent mettre en pause et relancer (#222, choix de l'hôte).
     pub controls: bool,
+    /// Les invités peuvent ajouter (l'hôte peut suspendre les ajouts, #288).
+    pub adds: bool,
+    /// Les invités peuvent ajouter un album entier (#288).
+    pub albums: bool,
+    /// Titres en attente au plus par invité, si l'hôte en a fixé une (#288).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
     /// File manuelle (avec le nom de l'invité) puis suite du contexte, `MAX_QUEUE` au plus.
     pub queue: Vec<GuestTrack>,
 }
 
 impl GuestState {
-    pub fn new(snapshot: &Snapshot, guests: &Guests, controls: bool) -> Self {
+    pub fn new(snapshot: &Snapshot, guests: &Guests, rules: &JamRules, adds: bool) -> Self {
         let manual = snapshot.manual.iter().map(|t| GuestTrack {
             by: guests.name(t.id.0).map(str::to_owned),
             batch: guests.batch(t.id.0),
@@ -102,7 +110,10 @@ impl GuestState {
         Self {
             now: snapshot.now.as_ref().map(GuestTrack::from),
             paused: snapshot.paused,
-            controls,
+            controls: rules.guest_controls,
+            adds,
+            albums: rules.albums,
+            limit: rules.max_pending,
             queue: manual
                 .chain(snapshot.upcoming.iter().map(GuestTrack::from))
                 .take(MAX_QUEUE)

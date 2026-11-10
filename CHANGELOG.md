@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.112
+
+- Jam : contrôles de l'hôte (repliés) : limite de titres en attente par invité, albums permis ou non, ajouts suspendus, invités exclus ou réadmis ; un titre déjà dans la file est refusé (#288).
+
 ## 0.4.111
 
 - mpv figé : arrêté après 5 s sans réponse au lieu de bloquer le lecteur ; mpv arrêté ou planté : relancé une fois et le titre reprend (#255).

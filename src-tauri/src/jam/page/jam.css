@@ -409,3 +409,17 @@ button:disabled {
   color: var(--text);
   box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
 }
+
+/* Règles de l'hôte (#288) : ajouts suspendus, limite par invité. */
+.notice {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.notice.warn {
+  color: var(--danger);
+}

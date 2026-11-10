@@ -501,7 +501,8 @@ let searchHistory: string[] = ["Daft Punk", "Moon Safari", "Bohemian Rhapsody"];
 
 // Jam (#25) : `?jam=1` l'affiche démarrée en ligne, `?jam=local` sur le réseau local,
 // `?jam=reconnecting` en reconnexion ; avec `manual=1`, le premier titre de la file manuelle
-// est marqué comme ajouté par une invitée.
+// est marqué comme ajouté par une invitée. Deux invités (dont un exclu) dans les contrôles de
+// l'hôte (#288).
 const fakeQr = (() => {
   let cells = "";
   for (let y = 0; y < 21; y++)
@@ -522,7 +523,12 @@ function mockJam(mode: "online" | "local", reconnecting = false) {
     connection: reconnecting ? ("reconnecting" as const) : ("online" as const),
     reason: reconnecting ? "relais injoignable" : null,
     guests: first ? { [first.id]: "Léa" } : {},
-    guestControls: true,
+    rules: { guestControls: true, maxPending: null as number | null, albums: true },
+    addsOpen: true,
+    members: [
+      { id: 1, name: "Léa" as string | null, added: 4, banned: false },
+      { id: 2, name: null as string | null, added: 31, banned: true },
+    ],
   };
 }
 let notificationTaken = false;
@@ -586,7 +592,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   jam_online_available: () => true,
   start_jam: (args) => (jam ??= mockJam(args.mode === "local" ? "local" : "online")),
   stop_jam: () => void (jam = null),
-  set_jam_guest_controls: (args) => (jam ? (jam = { ...jam, guestControls: args.enabled === true }) : null),
+  set_jam_rules: (args) =>
+    jam ? (jam = { ...jam, rules: args.rules as NonNullable<typeof jam>["rules"] }) : null,
+  set_jam_adds_open: (args) => (jam ? (jam = { ...jam, addsOpen: args.open === true }) : null),
+  set_jam_guest_banned: (args) =>
+    jam
+      ? (jam = {
+          ...jam,
+          members: jam.members.map((m) => (m.id === args.id ? { ...m, banned: args.banned === true } : m)),
+        })
+      : null,
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
   album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
   hires_twin_album: () =>

@@ -1,7 +1,7 @@
 // Jam (#25) : état de la Jam, connexion au relais et noms des invités, reçus du backend.
 // Sur Android, seulement en ligne (pas de Jam sur le réseau local).
 
-import { commands, events, type JamMode, type JamStatus } from "../ipc";
+import { commands, events, type JamMode, type JamRules, type JamStatus } from "../ipc";
 
 export const jam = $state<{
   status: JamStatus | null;
@@ -30,8 +30,8 @@ export function closeJamDialog() {
 }
 
 export async function initJam() {
-  void events.onJamGuests((guests) => {
-    if (jam.status) jam.status = { ...jam.status, guests };
+  void events.onJamGuests(({ guests, members }) => {
+    if (jam.status) jam.status = { ...jam.status, guests, members };
   });
   // Connexion au relais : connecté, reconnexion, nouvelle adresse.
   void events.onJamStatus((status) => {
@@ -61,8 +61,17 @@ export async function startJam(mode: JamMode) {
   }
 }
 
-export async function setGuestControls(enabled: boolean) {
-  jam.status = await commands.setJamGuestControls(enabled);
+/** Règles de l'hôte (#222, #288) : enregistrées, puis appliquées à la Jam en cours. */
+export async function setJamRules(rules: JamRules) {
+  jam.status = await commands.setJamRules(rules);
+}
+
+export async function setJamAddsOpen(open: boolean) {
+  jam.status = await commands.setJamAddsOpen(open);
+}
+
+export async function setJamGuestBanned(id: number, banned: boolean) {
+  jam.status = await commands.setJamGuestBanned(id, banned);
 }
 
 export async function stopJam() {
