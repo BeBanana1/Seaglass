@@ -186,8 +186,8 @@ let ui: UiSettings = {
     { kind: "playlist", uuid: fx.playlist.playlist.uuid, title: fx.playlist.playlist.title },
     { kind: "likedTracks" },
   ],
-  // `?accent=ff5c8a` : couleur d'accent personnalisée.
-  accent: params.get("accent") ? `#${params.get("accent")}` : null,
+  // `?accent=ff5c8a` : couleur d'accent personnalisée du thème affiché.
+  accents: params.get("accent") ? { [(params.get("theme") as Theme) ?? "seaglass"]: `#${params.get("accent")}` } : {},
   // `?lang=en` : interface en anglais.
   language: (params.get("lang") as LanguagePref) ?? "system",
   // `?tray=1` : fermer la fenêtre la réduit dans la zone de notification (#83).
