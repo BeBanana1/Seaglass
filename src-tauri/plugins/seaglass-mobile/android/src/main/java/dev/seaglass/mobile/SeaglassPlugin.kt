@@ -50,6 +50,11 @@ class InstallArgs {
  */
 @TauriPlugin
 class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
+    /** WebView de l'app : la hauteur du clavier lui est transmise (#251). */
+    override fun load(webView: WebView) {
+        KeyboardInset.watch(webView)
+    }
+
     /** Installe l'APK de mise à jour déjà vérifié par Rust (`apk_update.rs`). */
     @Command
     fun installApk(invoke: Invoke) {
