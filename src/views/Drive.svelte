@@ -351,12 +351,13 @@
     display: -webkit-box;
     max-width: 100%;
     overflow: hidden;
-    font-size: 19px;
+    font-size: 18px;
     font-weight: 600;
     line-height: 1.2;
     text-align: center;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    /* Trois lignes : la bande › prend un tiers de la largeur, un long titre tient quand même. */
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
   }
 
