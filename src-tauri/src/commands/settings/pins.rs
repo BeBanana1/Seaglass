@@ -1,4 +1,4 @@
-//! Raccourcis épinglés dans la barre latérale (#10) : playlists et titres likés.
+//! Raccourcis épinglés dans la barre latérale (#10) : playlists, titres likés et « Plus tard ».
 //! Logique pure : la liste est stockée dans `UiSettings::pins`, dans l'ordre d'affichage.
 //!
 //! Le titre d'une playlist est gardé avec l'épingle pour afficher la barre sans requête ;
@@ -23,6 +23,8 @@ pub enum Pin {
     },
     /// Bibliothèque › Titres.
     LikedTracks,
+    /// Bibliothèque › Plus tard (#244).
+    Later,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -43,6 +45,7 @@ impl Pin {
         match self {
             Pin::Playlist { uuid, .. } => uuid,
             Pin::LikedTracks => "liked-tracks",
+            Pin::Later => "later",
         }
     }
 }
@@ -64,7 +67,7 @@ pub fn normalize(pins: Vec<Pin>) -> Result<Vec<Pin>, PinError> {
                     title,
                 }
             }
-            Pin::LikedTracks => Pin::LikedTracks,
+            Pin::LikedTracks | Pin::Later => pin,
         };
         if seen.insert(pin.key().to_owned()) {
             out.push(pin);
@@ -102,11 +105,13 @@ mod tests {
 
     #[test]
     fn serializes_with_kind_tag() {
-        let json = serde_json::to_string(&vec![playlist(UUID, "Soir"), Pin::LikedTracks]).unwrap();
+        let json =
+            serde_json::to_string(&vec![playlist(UUID, "Soir"), Pin::LikedTracks, Pin::Later])
+                .unwrap();
         assert_eq!(
             json,
             format!(
-                r#"[{{"kind":"playlist","uuid":"{UUID}","title":"Soir"}},{{"kind":"likedTracks"}}]"#
+                r#"[{{"kind":"playlist","uuid":"{UUID}","title":"Soir"}},{{"kind":"likedTracks"}},{{"kind":"later"}}]"#
             )
         );
         assert!(serde_json::from_str::<Pin>(r#"{"kind":"album","id":1}"#).is_err());
@@ -121,11 +126,18 @@ mod tests {
             playlist(other, "B"),
             playlist(&UUID.to_uppercase(), "A bis"),
             Pin::LikedTracks,
+            Pin::Later,
+            Pin::Later,
         ])
         .unwrap();
         assert_eq!(
             pins,
-            [playlist(UUID, "A"), Pin::LikedTracks, playlist(other, "B")]
+            [
+                playlist(UUID, "A"),
+                Pin::LikedTracks,
+                playlist(other, "B"),
+                Pin::Later
+            ]
         );
     }
 

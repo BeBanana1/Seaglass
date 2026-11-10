@@ -108,6 +108,7 @@
       <h1>{likesPage ? t.library.likedTracks : t.library.title}</h1>
       <div class="top-actions">
         {#if tab === "tracks"}<PinButton pin={{ kind: "likedTracks" }} />{/if}
+        {#if tab === "later"}<PinButton pin={{ kind: "later" }} />{/if}
         <button class="refresh" onclick={() => loadLibrary(tab, true)} disabled={slot.loading}>
           {t.library.refresh}
         </button>

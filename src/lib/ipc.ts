@@ -436,7 +436,7 @@ export interface SearchResults {
 export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal" | "solarpunk" | "cyberpunk" | "neumorph" | "neumorph-dark" | "terminal" | "riso" | "bauhaus" | "aero" | "alloy" | "alloy-dark";
 
 /** Raccourci de la barre latérale ; le titre d'une playlist est gardé pour l'afficher sans requête. */
-export type Pin = { kind: "playlist"; uuid: string; title: string } | { kind: "likedTracks" };
+export type Pin = { kind: "playlist"; uuid: string; title: string } | { kind: "likedTracks" } | { kind: "later" };
 
 /** Critères de tri d'une liste de titres (#1, #2). */
 export type SortKey = "position" | "added" | "title" | "artist" | "album" | "duration";
