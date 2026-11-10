@@ -42,6 +42,8 @@ enum Action {
     SetRepeat(Repeat),
     /// Appui sur la notification : l'app s'ouvre sur « En lecture » (#163).
     OpenNowPlaying,
+    /// Lien `seaglass://drive` ou raccourci de l'app : mode conduite (#193).
+    OpenDrive,
     /// Texte reçu par le menu « Partager » d'Android (#203).
     OpenLink(String),
 }
@@ -62,6 +64,7 @@ impl Action {
             "setShuffle" => Self::SetShuffle(raw.shuffle?),
             "setRepeat" => Self::SetRepeat(raw.repeat?),
             "openNowPlaying" => Self::OpenNowPlaying,
+            "openDrive" => Self::OpenDrive,
             "openLink" => Self::OpenLink(raw.text?),
             other => {
                 tracing::warn!("action de la session inconnue : {other}");
@@ -70,7 +73,7 @@ impl Action {
         })
     }
 
-    /// `None` : l'action ne concerne pas le lecteur (`OpenNowPlaying`).
+    /// `None` : l'action ne concerne pas le lecteur (`OpenNowPlaying`, `OpenDrive`…).
     #[cfg_attr(not(target_os = "android"), allow(dead_code))]
     fn into_cmd(self, modes: Modes) -> Option<Cmd> {
         Some(match self {
@@ -83,7 +86,7 @@ impl Action {
             Self::CycleRepeat => Cmd::SetRepeat(next_repeat(modes.repeat)),
             Self::SetShuffle(on) => Cmd::SetShuffle(on),
             Self::SetRepeat(repeat) => Cmd::SetRepeat(repeat),
-            Self::OpenNowPlaying | Self::OpenLink(_) => return None,
+            Self::OpenNowPlaying | Self::OpenDrive | Self::OpenLink(_) => return None,
         })
     }
 }
@@ -192,6 +195,13 @@ mod android {
                 super::super::request_now_playing();
                 if let Err(e) = ui.emit("open-now-playing", ()) {
                     tracing::warn!("« En lecture » non demandé à l'UI : {e}");
+                }
+                return Ok(());
+            }
+            if action == Action::OpenDrive {
+                super::super::request_drive();
+                if let Err(e) = ui.emit("open-drive", ()) {
+                    tracing::warn!("mode conduite non demandé à l'UI : {e}");
                 }
                 return Ok(());
             }
@@ -304,6 +314,10 @@ mod tests {
         assert_eq!(
             Action::parse(r#"{"command":"openNowPlaying"}"#),
             Some(Action::OpenNowPlaying)
+        );
+        assert_eq!(
+            Action::parse(r#"{"command":"openDrive"}"#),
+            Some(Action::OpenDrive)
         );
         assert_eq!(
             Action::parse(r#"{"command":"openLink","text":"https://tidal.com/album/1"}"#),

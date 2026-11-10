@@ -89,12 +89,31 @@ internal object Playback {
     /** Texte partagé arrivé avant que Rust ne branche la session (app lancée par le partage). */
     private var pendingShare: String? = null
 
+    /** Mode conduite demandé avant que Rust ne branche la session (app lancée par le lien). */
+    private var pendingDrive = false
+
     fun attachSession(channel: Channel) {
         commands = channel
         pendingShare?.let {
             pendingShare = null
             share(it)
         }
+        if (pendingDrive) {
+            pendingDrive = false
+            openDrive()
+        }
+    }
+
+    /** Lien `seaglass://drive` ou raccourci de l'app (#193), sur le thread principal. */
+    fun openDrive() {
+        val channel = commands
+        if (channel == null) {
+            pendingDrive = true
+            return
+        }
+        val o = JSObject()
+        o.put("command", "openDrive")
+        channel.send(o)
     }
 
     /** Lien reçu par le menu « Partager » (#203), sur le thread principal. */

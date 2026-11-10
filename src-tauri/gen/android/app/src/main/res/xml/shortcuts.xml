@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Raccourci de l'app (#193) : ouvre le mode conduite par `DriveActivity` (plugin). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="drive"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_drive">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="seaglass://drive"
+            android:targetPackage="dev.seaglass.app"
+            android:targetClass="dev.seaglass.mobile.DriveActivity" />
+    </shortcut>
+</shortcuts>

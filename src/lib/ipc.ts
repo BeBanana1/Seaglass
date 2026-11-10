@@ -441,8 +441,13 @@ export interface SearchResults {
 
 export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal" | "solarpunk" | "cyberpunk" | "neumorph" | "neumorph-dark" | "terminal" | "riso" | "bauhaus" | "aero" | "alloy" | "alloy-dark";
 
-/** Raccourci de la barre latérale ; le titre d'une playlist est gardé pour l'afficher sans requête. */
-export type Pin = { kind: "playlist"; uuid: string; title: string } | { kind: "likedTracks" } | { kind: "later" };
+/** Raccourci de la barre latérale (bureau) ou tuile du mode conduite (Android, #193) ; le titre
+ *  d'une playlist ou d'un mix est gardé pour l'afficher sans requête. */
+export type Pin =
+  | { kind: "playlist"; uuid: string; title: string }
+  | { kind: "mix"; id: string; title: string }
+  | { kind: "likedTracks" }
+  | { kind: "later" };
 
 /** Critères de tri d'une liste de titres (#1, #2). */
 export type SortKey = "position" | "added" | "title" | "artist" | "album" | "duration";
@@ -670,6 +675,12 @@ export const commands = {
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false, source: PlaySource | null = null) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
+  /** Mode conduite (#193) : lit toute la source épinglée, titres cherchés par le backend. */
+  playPin: (pin: Pin, shuffle: boolean) => invoke<void>("play_pin", { pin, shuffle }),
+  /** Android : vrai une fois après le lien `seaglass://drive` ou le raccourci de l'app (#193). */
+  takeDriveRequest: () => invoke<boolean>("take_drive_request"),
+  /** Android : écran gardé allumé (mode conduite, #193) ; rien sur le bureau. */
+  keepScreenOn: (on: boolean) => invoke<void>("keep_screen_on", { on }),
   playNext: (trackId: TrackId) => invoke<void>("play_next", { trackId }),
   addToQueue: (trackId: TrackId) => invoke<void>("add_to_queue", { trackId }),
   /** Plusieurs titres dans l'ordre : en tête de la file avec `next` (« Lire ensuite »), sinon à la fin. */
@@ -775,6 +786,8 @@ export const events = {
     listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
   /** Android : appui sur la notification (#163) ; la demande se prend par `takeNowPlayingRequest`. */
   onOpenNowPlaying: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-now-playing", () => cb()),
+  /** Android : mode conduite demandé (#193) ; la demande se prend par `takeDriveRequest`. */
+  onOpenDrive: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-drive", () => cb()),
   /** Android : lien partagé prêt ; il se prend par `takeSharedLink` (#203). */
   onSharedLink: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-link", () => cb()),
   onFullscreen: (cb: (fullscreen: boolean) => void): Promise<UnlistenFn> =>

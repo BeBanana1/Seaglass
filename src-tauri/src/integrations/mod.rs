@@ -33,6 +33,20 @@ pub fn take_now_playing_request() -> bool {
     NOW_PLAYING_REQUEST.swap(false, Ordering::Relaxed)
 }
 
+/// Mode conduite demandé par le lien `seaglass://drive` ou le raccourci de l'app (#193),
+/// gardé comme « En lecture » jusqu'à ce que l'UI le prenne.
+static DRIVE_REQUEST: AtomicBool = AtomicBool::new(false);
+
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+pub fn request_drive() {
+    DRIVE_REQUEST.store(true, Ordering::Relaxed);
+}
+
+/// Vrai une seule fois par demande.
+pub fn take_drive_request() -> bool {
+    DRIVE_REQUEST.swap(false, Ordering::Relaxed)
+}
+
 /// Intégrations branchées sur le lecteur, notifiées à chaque changement d'état émis.
 #[derive(Default)]
 pub struct Observers {
