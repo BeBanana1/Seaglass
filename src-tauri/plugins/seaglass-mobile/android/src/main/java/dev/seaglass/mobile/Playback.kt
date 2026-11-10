@@ -118,6 +118,22 @@ internal object Playback {
         commands?.send(o) ?: Log.w(TAG, "commande « $name » sans session branchée")
     }
 
+    /** Répétition demandée par un contrôleur (#254) : `off`, `all` ou `one`. */
+    fun setRepeat(mode: String) {
+        val o = JSObject()
+        o.put("command", "setRepeat")
+        o.put("repeat", mode)
+        commands?.send(o) ?: Log.w(TAG, "commande « setRepeat » sans session branchée")
+    }
+
+    /** Aléatoire demandé par un contrôleur (#254). */
+    fun setShuffle(on: Boolean) {
+        val o = JSObject()
+        o.put("command", "setShuffle")
+        o.put("shuffle", on)
+        commands?.send(o) ?: Log.w(TAG, "commande « setShuffle » sans session branchée")
+    }
+
     fun apply(args: EngineArgs) {
         val p = exo ?: throw IllegalStateException("lecteur non démarré")
         when (args.op) {
@@ -173,6 +189,7 @@ internal object Playback {
     fun setModes(next: SessionModes) {
         if (next == modes) return
         modes = next
+        remote?.modesChanged()
         PlaybackService.current?.refreshLayout()
     }
 

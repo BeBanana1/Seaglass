@@ -19,6 +19,9 @@ struct Raw {
     position: Option<f64>,
     /// Texte partagé, pour `openLink` (#203).
     text: Option<String>,
+    /// État demandé par un contrôleur, pour `setRepeat` et `setShuffle` (#254).
+    repeat: Option<Repeat>,
+    shuffle: Option<bool>,
 }
 
 /// Action reconnue. Pas directement un `Cmd` : en détruire un dans un test tirerait le code
@@ -34,6 +37,9 @@ enum Action {
     /// dernier état envoyé à la session.
     ToggleShuffle,
     CycleRepeat,
+    /// Commandes standard d'un contrôleur (autoradio, montre…) : l'état demandé (#254).
+    SetShuffle(bool),
+    SetRepeat(Repeat),
     /// Appui sur la notification : l'app s'ouvre sur « En lecture » (#163).
     OpenNowPlaying,
     /// Texte reçu par le menu « Partager » d'Android (#203).
@@ -53,6 +59,8 @@ impl Action {
             "seek" => Self::Seek(raw.position?.max(0.0)),
             "shuffle" => Self::ToggleShuffle,
             "repeat" => Self::CycleRepeat,
+            "setShuffle" => Self::SetShuffle(raw.shuffle?),
+            "setRepeat" => Self::SetRepeat(raw.repeat?),
             "openNowPlaying" => Self::OpenNowPlaying,
             "openLink" => Self::OpenLink(raw.text?),
             other => {
@@ -73,6 +81,8 @@ impl Action {
             Self::Seek(secs) => Cmd::Seek(secs),
             Self::ToggleShuffle => Cmd::SetShuffle(!modes.shuffle),
             Self::CycleRepeat => Cmd::SetRepeat(next_repeat(modes.repeat)),
+            Self::SetShuffle(on) => Cmd::SetShuffle(on),
+            Self::SetRepeat(repeat) => Cmd::SetRepeat(repeat),
             Self::OpenNowPlaying | Self::OpenLink(_) => return None,
         })
     }
@@ -277,6 +287,19 @@ mod tests {
         assert_eq!(
             Action::parse(r#"{"command":"repeat"}"#),
             Some(Action::CycleRepeat)
+        );
+        assert_eq!(
+            Action::parse(r#"{"command":"setShuffle","shuffle":true}"#),
+            Some(Action::SetShuffle(true))
+        );
+        assert_eq!(
+            Action::parse(r#"{"command":"setRepeat","repeat":"all"}"#),
+            Some(Action::SetRepeat(Repeat::All))
+        );
+        assert_eq!(Action::parse(r#"{"command":"setShuffle"}"#), None);
+        assert_eq!(
+            Action::parse(r#"{"command":"setRepeat","repeat":"twice"}"#),
+            None
         );
         assert_eq!(
             Action::parse(r#"{"command":"openNowPlaying"}"#),
