@@ -48,6 +48,13 @@ const TEXT = {
     errEnded: "Cette Jam est terminée.",
     errControls: "L'hôte a désactivé la pause pour les invités.",
     errEmpty: "Cet album n'a aucun titre disponible.",
+    errBanned: "L'hôte vous a retiré de cette Jam.",
+    errClosed: "L'hôte a suspendu les ajouts pour l'instant.",
+    errFull: "Vous avez atteint la limite de titres en attente : attendez que les vôtres passent.",
+    errDuplicate: "Ce titre est déjà dans la file.",
+    errAlbums: "L'hôte n'accepte pas les albums entiers.",
+    closed: "Ajouts suspendus par l'hôte.",
+    limit: (n) => `Jusqu'à ${n} titre${n > 1 ? "s" : ""} en attente par personne.`,
   },
   en: {
     lead: "Add tracks to the host's queue.",
@@ -94,6 +101,13 @@ const TEXT = {
     errEnded: "This Jam has ended.",
     errControls: "The host has turned off pausing for guests.",
     errEmpty: "This album has no available tracks.",
+    errBanned: "The host removed you from this Jam.",
+    errClosed: "The host has paused adding for now.",
+    errFull: "You reached the limit of waiting tracks: wait for yours to play.",
+    errDuplicate: "This track is already in the queue.",
+    errAlbums: "The host doesn't accept whole albums.",
+    closed: "Adding is paused by the host.",
+    limit: (n) => `Up to ${n} waiting track${n > 1 ? "s" : ""} per person.`,
   },
 };
 const lang = (navigator.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
@@ -155,10 +169,11 @@ async function api(path, body) {
   let res;
   try {
     // Chemins relatifs : la page est servie à `/` (réseau local) ou à `/j/<id>/` (relais).
+    // Le jeton part avec chaque requête : l'hôte peut exclure un invité (#288).
     res = await fetch(`api/${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Jam-Code": code },
-      body: body === undefined ? "" : JSON.stringify(body),
+      body: JSON.stringify({ ...body, guest }),
     });
   } catch {
     throw new ApiError("network");
@@ -181,13 +196,19 @@ function message(kind) {
       ended: t.errEnded,
       controls: t.errControls,
       empty: t.errEmpty,
+      banned: t.errBanned,
+      closed: t.errClosed,
+      full: t.errFull,
+      duplicate: t.errDuplicate,
+      albums: t.errAlbums,
     }[kind] || t.errBackend
   );
 }
 
-/** Code refusé, adresse bloquée ou Jam terminée (relais) : retour à l'écran pour rejoindre. */
+/** Code refusé, adresse bloquée, invité exclu (#288) ou Jam terminée (relais) : retour à
+ * l'écran pour rejoindre. */
 function lostAccess(e) {
-  if (e.kind !== "code" && e.kind !== "blocked" && e.kind !== "ended") return false;
+  if (!["code", "blocked", "ended", "banned"].includes(e.kind)) return false;
   localStorage.removeItem(CODE_KEY);
   code = "";
   showJoin(message(e.kind));
@@ -282,6 +303,15 @@ function render(state) {
   } else {
     now.append(el("div", "muted", t.nothing));
   }
+  // Règles de l'hôte (#288) : ajouts suspendus, limite par invité, albums.
+  const notice = $("notice");
+  const lines = [];
+  if (state.adds === false) lines.push(t.closed);
+  if (state.limit) lines.push(t.limit(state.limit));
+  notice.textContent = lines.join(" ");
+  notice.hidden = lines.length === 0;
+  notice.classList.toggle("warn", state.adds === false);
+  const albumsChanged = lastState && lastState.albums !== state.albums;
   // L'hôte a pris en compte les ajouts en attente qu'il renvoie.
   for (const track of state.queue) pending.delete(track.id);
   lastState = state;
@@ -298,6 +328,7 @@ function render(state) {
   }
   $("queue").replaceChildren(...rows);
   $("queue-empty").hidden = state.queue.length > 0;
+  if (albumsChanged) showResults();
 }
 
 function albumHead(track) {
@@ -423,7 +454,9 @@ let lastHits = { tracks: [], albums: [] };
 let tab = "tracks";
 
 function showResults() {
-  const { tracks, albums } = lastHits;
+  const { tracks } = lastHits;
+  // L'hôte peut refuser les albums entiers (#288) : l'onglet disparaît.
+  const albums = lastState?.albums === false ? [] : lastHits.albums;
   const status = $("search-status");
   const any = tracks.length + albums.length > 0;
   status.hidden = any;

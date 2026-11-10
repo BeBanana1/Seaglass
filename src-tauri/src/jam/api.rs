@@ -1,7 +1,9 @@
 //! Cœur de l'API des invités (#25), commun à la Jam locale (`server.rs`) et au relais
 //! (`relay.rs`) : code d'accès, limites par adresse, titres et albums proposés, ajouts des
-//! invités, état. Les deux transports ne font que livrer des requêtes ici et rendre les
-//! réponses.
+//! invités, règles et exclusions de l'hôte (#288), état. Les deux transports ne font que
+//! livrer des requêtes ici et rendre les réponses.
+
+mod adds;
 
 use std::collections::HashMap;
 use std::future::Future;
@@ -14,8 +16,10 @@ use serde::Deserialize;
 use tokio::sync::Notify;
 
 use super::guard::{Action, Limits, Offered, code_matches};
-use super::guests::{Guests, sanitize_name, sanitize_token};
+use super::guests::{Guests, sanitize_token};
 use super::http::Response;
+use super::members::{GuestInfo, owner_key};
+use super::rules::JamRules;
 use super::view::{GuestAlbum, GuestState, GuestTrack};
 use crate::tidal::models::{AlbumSummary, Track, TrackId};
 
@@ -78,14 +82,31 @@ struct Session {
 pub struct Core {
     session: Mutex<Session>,
     guests: Arc<Mutex<Guests>>,
-    /// Les invités peuvent mettre en pause et relancer (#222) ; activé par défaut.
-    controls: AtomicBool,
+    /// Règles de l'hôte (#222, #288), retenues d'une Jam à l'autre.
+    rules: Mutex<JamRules>,
+    /// L'hôte peut suspendre les ajouts le temps de la Jam (#288).
+    adds_open: AtomicBool,
+    /// Exclure un invité bloque aussi son adresse (réseau local seulement, #288).
+    ban_ips: bool,
+    /// Un ajout à la fois : la limite par invité et les doublons se vérifient sur la file
+    /// qui suit l'ajout précédent.
+    add_turn: tokio::sync::Mutex<()>,
     /// Relire l'état sans attendre (ajout d'un invité, nouvelle page, pause).
     pub refresh: Notify,
 }
 
 impl Core {
+    #[cfg(test)]
     pub fn new(code: String, guests: Arc<Mutex<Guests>>) -> Self {
+        Self::with_rules(code, guests, JamRules::default(), false)
+    }
+
+    pub fn with_rules(
+        code: String,
+        guests: Arc<Mutex<Guests>>,
+        rules: JamRules,
+        ban_ips: bool,
+    ) -> Self {
         Self {
             session: Mutex::new(Session {
                 code,
@@ -94,19 +115,87 @@ impl Core {
                 offered_albums: Offered::default(),
             }),
             guests,
-            controls: AtomicBool::new(true),
+            rules: Mutex::new(rules.sanitized()),
+            adds_open: AtomicBool::new(true),
+            ban_ips,
+            add_turn: tokio::sync::Mutex::new(()),
             refresh: Notify::new(),
         }
     }
 
-    pub fn controls(&self) -> bool {
-        self.controls.load(Ordering::Relaxed)
+    pub fn rules(&self) -> JamRules {
+        self.rules.lock().map(|r| *r).unwrap_or_default()
     }
 
-    /// Choix de l'hôte, poussé aussitôt aux pages ouvertes (le bouton y apparaît ou part).
-    pub fn set_controls(&self, enabled: bool) {
-        self.controls.store(enabled, Ordering::Relaxed);
+    /// Choix de l'hôte, poussé aussitôt aux pages ouvertes (boutons et messages y changent).
+    pub fn set_rules(&self, rules: JamRules) {
+        if let Ok(mut current) = self.rules.lock() {
+            *current = rules.sanitized();
+        }
         self.refresh.notify_one();
+    }
+
+    pub fn controls(&self) -> bool {
+        self.rules().guest_controls
+    }
+
+    #[cfg(test)]
+    pub fn set_controls(&self, enabled: bool) {
+        self.set_rules(JamRules {
+            guest_controls: enabled,
+            ..self.rules()
+        });
+    }
+
+    pub fn adds_open(&self) -> bool {
+        self.adds_open.load(Ordering::Relaxed)
+    }
+
+    pub fn set_adds_open(&self, open: bool) {
+        self.adds_open.store(open, Ordering::Relaxed);
+        self.refresh.notify_one();
+    }
+
+    /// Invités qui ont ajouté pendant la Jam, pour l'UI de l'hôte.
+    pub fn members(&self) -> Vec<GuestInfo> {
+        self.guests
+            .lock()
+            .map(|g| g.members.list())
+            .unwrap_or_default()
+    }
+
+    /// Exclut un invité (ses titres en attente sont retirés) ou le réadmet ; faux si
+    /// l'invité n'existe pas.
+    pub async fn set_banned<B: Backend>(&self, id: u32, banned: bool, backend: &B) -> bool {
+        let ids = {
+            let Ok(mut guests) = self.guests.lock() else {
+                return false;
+            };
+            let Some(key) = guests.members.set_banned(id, banned, self.ban_ips) else {
+                return false;
+            };
+            let ids = if banned {
+                guests.take_all(&key)
+            } else {
+                Vec::new()
+            };
+            backend.guests_changed(&guests);
+            ids
+        };
+        if !ids.is_empty()
+            && let Err(e) = backend.remove(ids.into_iter().map(TrackId).collect()).await
+        {
+            tracing::warn!("Jam : {e}");
+        }
+        self.refresh.notify_one();
+        true
+    }
+
+    fn is_banned(&self, key: &str, ip: IpAddr) -> bool {
+        self.guests
+            .lock()
+            .map(|g| g.members.is_banned(key, ip))
+            .unwrap_or(false)
     }
 
     /// Nom de l'invité de chaque titre ajouté par la Jam, pour l'UI de l'hôte.
@@ -143,7 +232,7 @@ impl Core {
             .ok()?
             .ok()?;
         let guests = self.guests.lock().ok()?;
-        let state = GuestState::new(&snapshot, &guests, self.controls());
+        let state = GuestState::new(&snapshot, &guests, &self.rules(), self.adds_open());
         Some(serde_json::json!(state).to_string())
     }
 
@@ -159,6 +248,16 @@ impl Core {
         if let Err(response) = self.check_code(ip, code.unwrap_or("")) {
             return response;
         }
+        // Jeton du navigateur, envoyé avec toutes les requêtes depuis #288 : un invité exclu
+        // est refusé partout, et la page le lui dit.
+        let token = serde_json::from_slice::<GuestOnly>(body)
+            .ok()
+            .and_then(|b| b.guest)
+            .and_then(|t| sanitize_token(&t));
+        let key = owner_key(token.as_deref(), ip);
+        if self.is_banned(&key, ip) {
+            return Response::error(403, "banned");
+        }
         match path {
             "/api/join" => Response::json(200, &serde_json::json!({ "ok": true })),
             "/api/state" => match self.state_json(backend).await {
@@ -166,8 +265,8 @@ impl Core {
                 None => Response::error(502, "backend"),
             },
             "/api/search" => self.search(body, ip, backend).await,
-            "/api/add" => self.add(body, ip, backend).await,
-            "/api/add-album" => self.add_album(body, ip, backend).await,
+            "/api/add" => self.add(body, ip, &key, backend).await,
+            "/api/add-album" => self.add_album(body, ip, &key, backend).await,
             "/api/remove" => self.remove(body, ip, backend).await,
             "/api/pause" => self.pause(body, ip, backend).await,
             _ => Response::not_found(),
@@ -231,123 +330,6 @@ impl Core {
         }
     }
 
-    async fn add<B: Backend>(&self, body: &[u8], ip: IpAddr, backend: &B) -> Response {
-        let Ok(body) = serde_json::from_slice::<AddBody>(body) else {
-            return Response::error(400, "body");
-        };
-        let offered = self
-            .session
-            .lock()
-            .map(|s| s.offered.contains(body.track_id))
-            .unwrap_or(false);
-        if !offered {
-            return Response::error(400, "unknown");
-        }
-        if !self.allow(ip, Action::Add) {
-            return Response::error(429, "slow");
-        }
-        if let Err(e) = backend.enqueue(vec![TrackId(body.track_id)]).await {
-            return backend_error(&e);
-        }
-        let batch = self.note(&[body.track_id], &body.guest, backend);
-        Response::json(200, &serde_json::json!({ "ok": true, "batch": batch }))
-    }
-
-    /// Les titres d'un album à la fin de la file, en un seul lot (#223).
-    async fn add_album<B: Backend>(&self, body: &[u8], ip: IpAddr, backend: &B) -> Response {
-        let Ok(body) = serde_json::from_slice::<AddAlbumBody>(body) else {
-            return Response::error(400, "body");
-        };
-        let offered = self
-            .session
-            .lock()
-            .map(|s| s.offered_albums.contains(body.album_id))
-            .unwrap_or(false);
-        if !offered {
-            return Response::error(400, "unknown");
-        }
-        if !self.allow(ip, Action::Add) {
-            return Response::error(429, "slow");
-        }
-        let tracks = match backend.album_tracks(body.album_id).await {
-            Ok(tracks) => tracks,
-            Err(e) => return backend_error(&e),
-        };
-        let ids: Vec<u64> = tracks
-            .iter()
-            .map(|t| t.id.0)
-            .take(MAX_ALBUM_TRACKS)
-            .collect();
-        if ids.is_empty() {
-            return Response::error(400, "empty");
-        }
-        if let Err(e) = backend
-            .enqueue(ids.iter().copied().map(TrackId).collect())
-            .await
-        {
-            return backend_error(&e);
-        }
-        let batch = self.note(&ids, &body.guest, backend);
-        Response::json(
-            200,
-            &serde_json::json!({ "ok": true, "batch": batch, "count": ids.len() }),
-        )
-    }
-
-    /// Note un ajout sous le nom et le jeton de l'invité ; renvoie le lot.
-    fn note<B: Backend>(&self, ids: &[u64], guest: &GuestFields, backend: &B) -> Option<u32> {
-        let name = guest.name.as_deref().and_then(sanitize_name);
-        let owner = guest.guest.as_deref().and_then(sanitize_token);
-        let batch = {
-            let mut guests = self.guests.lock().ok()?;
-            let batch = guests.new_batch();
-            for id in ids {
-                guests.note(*id, batch, name.clone(), owner.clone());
-            }
-            backend.guests_changed(&guests);
-            batch
-        };
-        self.refresh.notify_one();
-        Some(batch)
-    }
-
-    /// Retire un lot de l'invité, ou un seul de ses titres (#223). Seul l'auteur du lot,
-    /// reconnu par son jeton, peut le faire.
-    async fn remove<B: Backend>(&self, body: &[u8], ip: IpAddr, backend: &B) -> Response {
-        let Ok(body) = serde_json::from_slice::<RemoveBody>(body) else {
-            return Response::error(400, "body");
-        };
-        let Some(owner) = sanitize_token(&body.guest) else {
-            return Response::error(400, "body");
-        };
-        if !self.allow(ip, Action::Remove) {
-            return Response::error(429, "slow");
-        }
-        let ids = {
-            let Ok(mut guests) = self.guests.lock() else {
-                return Response::error(502, "backend");
-            };
-            let ids = guests.take(&owner, body.batch, body.track_id);
-            if !ids.is_empty() {
-                backend.guests_changed(&guests);
-            }
-            ids
-        };
-        if !ids.is_empty() {
-            if let Err(e) = backend
-                .remove(ids.iter().copied().map(TrackId).collect())
-                .await
-            {
-                return backend_error(&e);
-            }
-            self.refresh.notify_one();
-        }
-        Response::json(
-            200,
-            &serde_json::json!({ "ok": true, "removed": ids.len() }),
-        )
-    }
-
     /// Lecture ou pause explicite (pas une bascule : deux invités qui appuient en même
     /// temps obtiennent le même résultat).
     async fn pause<B: Backend>(&self, body: &[u8], ip: IpAddr, backend: &B) -> Response {
@@ -381,39 +363,11 @@ struct SearchBody {
     albums: bool,
 }
 
-/// Prénom affiché et jeton du navigateur, facultatifs.
+/// Jeton du navigateur, lu dans toute requête (#288).
 #[derive(Deserialize)]
-struct GuestFields {
-    #[serde(default)]
-    name: Option<String>,
+struct GuestOnly {
     #[serde(default)]
     guest: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AddBody {
-    track_id: u64,
-    #[serde(flatten)]
-    guest: GuestFields,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AddAlbumBody {
-    album_id: u64,
-    #[serde(flatten)]
-    guest: GuestFields,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RemoveBody {
-    guest: String,
-    batch: u32,
-    /// Un seul titre du lot ; tout le lot sinon.
-    #[serde(default)]
-    track_id: Option<u64>,
 }
 
 /// Le détail reste dans le journal de l'hôte : la page n'affiche qu'un message générique.
@@ -421,3 +375,6 @@ fn backend_error(e: &str) -> Response {
     tracing::warn!("Jam : {e}");
     Response::error(502, "backend")
 }
+
+#[cfg(test)]
+mod tests;

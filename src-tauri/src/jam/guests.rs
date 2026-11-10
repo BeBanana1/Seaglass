@@ -10,6 +10,8 @@
 
 use std::collections::{HashMap, VecDeque};
 
+use super::members::Members;
+
 /// Longueur maximale d'un nom, en caractères.
 pub const MAX_NAME_CHARS: usize = 24;
 /// Titres retenus : au-delà, les plus anciens sont oubliés.
@@ -55,6 +57,8 @@ pub struct Guests {
     by_track: HashMap<u64, Added>,
     order: VecDeque<u64>,
     next_batch: u32,
+    /// Invités qui ont ajouté, et ceux que l'hôte a exclus (#288).
+    pub members: Members,
 }
 
 impl Guests {
@@ -97,6 +101,37 @@ impl Guests {
                 self.by_track
                     .get(id)
                     .is_some_and(|a| a.batch == batch && a.owner.as_deref() == Some(owner))
+            })
+            .collect();
+        for id in &taken {
+            self.by_track.remove(id);
+        }
+        self.order.retain(|id| !taken.contains(id));
+        taken
+    }
+
+    /// Titres de cet invité encore en attente dans la file manuelle (#288).
+    pub fn pending(&self, owner: &str, manual: &[u64]) -> usize {
+        manual
+            .iter()
+            .filter(|id| {
+                self.by_track
+                    .get(id)
+                    .is_some_and(|a| a.owner.as_deref() == Some(owner))
+            })
+            .count()
+    }
+
+    /// Retire tous les titres de cet invité, quel que soit le lot (exclusion, #288).
+    pub fn take_all(&mut self, owner: &str) -> Vec<u64> {
+        let taken: Vec<u64> = self
+            .order
+            .iter()
+            .copied()
+            .filter(|id| {
+                self.by_track
+                    .get(id)
+                    .is_some_and(|a| a.owner.as_deref() == Some(owner))
             })
             .collect();
         for id in &taken {
@@ -176,5 +211,25 @@ mod tests {
         assert_eq!(guests.name(3), Some("Max"));
         assert_eq!(guests.take(&max, single, None), vec![3]);
         assert!(guests.snapshot().is_empty());
+    }
+
+    #[test]
+    fn pending_counts_only_queued_tracks_of_the_owner() {
+        let (lea, max) = ("a".repeat(32), "b".repeat(32));
+        let mut guests = Guests::default();
+        for id in [1, 2, 3] {
+            let batch = guests.new_batch();
+            guests.note(id, batch, None, Some(lea.clone()));
+        }
+        let batch = guests.new_batch();
+        guests.note(4, batch, None, Some(max.clone()));
+        // Le titre 1 a été lu : il n'est plus dans la file manuelle.
+        assert_eq!(guests.pending(&lea, &[2, 3, 4]), 2);
+        assert_eq!(guests.pending(&max, &[2, 3, 4]), 1);
+        let mut taken = guests.take_all(&lea);
+        taken.sort_unstable();
+        assert_eq!(taken, vec![1, 2, 3]);
+        assert_eq!(guests.pending(&lea, &[2, 3, 4]), 0);
+        assert_eq!(guests.batch(4), Some(batch));
     }
 }

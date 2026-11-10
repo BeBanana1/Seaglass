@@ -15,8 +15,10 @@ mod api;
 mod guard;
 mod guests;
 mod http;
+mod members;
 mod protocol;
 mod relay;
+mod rules;
 mod server;
 #[cfg(test)]
 mod testing;
@@ -40,12 +42,14 @@ use crate::tidal::TidalClient;
 use crate::tidal::models::{Track, TrackId};
 use api::{Backend, Core, Hits, Snapshot};
 use guests::Guests;
+use members::GuestInfo;
 use relay::{RelayConfig, RelayEvent};
+pub use rules::JamRules;
 
 /// Port préféré : l'adresse reste la même d'une Jam à l'autre (marque-page des invités).
 const PORT: u16 = 47800;
 const SEARCH_LIMIT: u32 = 30;
-/// Événement vers l'UI de l'hôte : `{ <id du titre>: <nom de l'invité> }`.
+/// Événement vers l'UI de l'hôte : `GuestsUpdate` (noms des titres, invités).
 const GUESTS_EVENT: &str = "jam-guests";
 /// Événement vers l'UI de l'hôte : `JamStatus` (connexion au relais, adresse changée).
 const STATUS_EVENT: &str = "jam-status";
@@ -91,13 +95,25 @@ pub struct JamStatus {
     pub info: JamInfo,
     /// Nom de l'invité de chaque titre ajouté par la Jam.
     pub guests: HashMap<u64, String>,
-    /// Les invités peuvent mettre en pause et relancer (#222).
-    pub guest_controls: bool,
+    /// Règles de l'hôte (#222, #288), retenues d'une Jam à l'autre.
+    pub rules: JamRules,
+    /// Les invités peuvent ajouter (suspension propre à la Jam, #288).
+    pub adds_open: bool,
+    /// Invités qui ont ajouté, exclus compris (#288).
+    pub members: Vec<GuestInfo>,
+}
+
+/// Charge de l'événement `jam-guests`.
+#[derive(Debug, Clone, Serialize)]
+struct GuestsUpdate {
+    guests: HashMap<u64, String>,
+    members: Vec<GuestInfo>,
 }
 
 struct Running {
     info: Arc<Mutex<JamInfo>>,
     core: Arc<Core>,
+    backend: Arc<AppBackend>,
     task: JoinHandle<()>,
 }
 
@@ -105,7 +121,9 @@ fn status_of(info: &Mutex<JamInfo>, core: &Core) -> Option<JamStatus> {
     Some(JamStatus {
         info: info.lock().ok()?.clone(),
         guests: core.guest_names(),
-        guest_controls: core.controls(),
+        rules: core.rules(),
+        adds_open: core.adds_open(),
+        members: core.members(),
     })
 }
 
@@ -124,18 +142,42 @@ impl JamState {
         status_of(&running.info, &running.core)
     }
 
-    /// Choix de l'hôte : les invités peuvent mettre en pause et relancer (#222).
-    pub fn set_guest_controls(&self, enabled: bool) -> Option<JamStatus> {
+    /// Règles de l'hôte (#222, #288), appliquées à la Jam en cours s'il y en a une.
+    pub fn set_rules(&self, rules: JamRules) -> Option<JamStatus> {
         let slot = self.0.lock().ok()?;
         let running = slot.as_ref()?;
-        running.core.set_controls(enabled);
+        running.core.set_rules(rules);
         status_of(&running.info, &running.core)
+    }
+
+    /// Suspend ou rouvre les ajouts des invités (#288).
+    pub fn set_adds_open(&self, open: bool) -> Option<JamStatus> {
+        let slot = self.0.lock().ok()?;
+        let running = slot.as_ref()?;
+        running.core.set_adds_open(open);
+        status_of(&running.info, &running.core)
+    }
+
+    /// Exclut un invité (ses titres en attente sont retirés) ou le réadmet (#288).
+    pub async fn set_guest_banned(&self, id: u32, banned: bool) -> Option<JamStatus> {
+        let (info, core, backend) = {
+            let slot = self.0.lock().ok()?;
+            let running = slot.as_ref()?;
+            (
+                Arc::clone(&running.info),
+                Arc::clone(&running.core),
+                Arc::clone(&running.backend),
+            )
+        };
+        core.set_banned(id, banned, backend.as_ref()).await;
+        status_of(&info, &core)
     }
 
     /// Démarre la Jam, ou renvoie celle qui tourne déjà.
     pub async fn start(
         &self,
         mode: JamMode,
+        rules: JamRules,
         app: AppHandle,
         tidal: Arc<TidalClient>,
         player: mpsc::Sender<Cmd>,
@@ -145,7 +187,14 @@ impl JamState {
         }
         let code = guard::new_code();
         let guests: Arc<Mutex<Guests>> = Arc::default();
-        let core = Arc::new(Core::new(code.clone(), Arc::clone(&guests)));
+        // Réseau local : une adresse = un appareil, l'exclusion la bloque aussi (#288).
+        let ban_ips = mode == JamMode::Local;
+        let core = Arc::new(Core::with_rules(
+            code.clone(),
+            Arc::clone(&guests),
+            rules,
+            ban_ips,
+        ));
         let backend = Arc::new(AppBackend {
             app: app.clone(),
             tidal,
@@ -171,7 +220,11 @@ impl JamState {
                     reason: None,
                 };
                 let info = Arc::new(Mutex::new(info));
-                let task = tokio::spawn(server::serve(listener, Arc::clone(&core), backend));
+                let task = tokio::spawn(server::serve(
+                    listener,
+                    Arc::clone(&core),
+                    Arc::clone(&backend),
+                ));
                 (info, task)
             }
             JamMode::Online => {
@@ -192,8 +245,13 @@ impl JamState {
                     reason: None,
                 }));
                 let notify = relay_notify(app, Arc::clone(&info), Arc::clone(&core));
-                let task =
-                    tokio::spawn(relay::run(config, code, Arc::clone(&core), backend, notify));
+                let task = tokio::spawn(relay::run(
+                    config,
+                    code,
+                    Arc::clone(&core),
+                    Arc::clone(&backend),
+                    notify,
+                ));
                 (info, task)
             }
         };
@@ -211,7 +269,12 @@ impl JamState {
         }
         tracing::info!("Jam démarrée ({mode:?})");
         let status = status_of(&info, &core);
-        *slot = Some(Running { info, core, task });
+        *slot = Some(Running {
+            info,
+            core,
+            backend,
+            task,
+        });
         status.ok_or_else(|| tr("Jam indisponible", "Jam unavailable").to_owned())
     }
 
@@ -402,7 +465,11 @@ impl Backend for AppBackend {
     }
 
     fn guests_changed(&self, guests: &Guests) {
-        if let Err(e) = self.app.emit(GUESTS_EVENT, guests.snapshot()) {
+        let update = GuestsUpdate {
+            guests: guests.snapshot(),
+            members: guests.members.list(),
+        };
+        if let Err(e) = self.app.emit(GUESTS_EVENT, update) {
             tracing::warn!("Jam : {e}");
         }
     }

@@ -199,7 +199,9 @@ pub fn run() {
             commands::jam::jam_status,
             commands::jam::jam_online_available,
             commands::jam::start_jam,
-            commands::jam::set_jam_guest_controls,
+            commands::jam::set_jam_rules,
+            commands::jam::set_jam_adds_open,
+            commands::jam::set_jam_guest_banned,
             commands::jam::stop_jam,
             #[cfg(desktop)]
             commands::window::fullscreen,
