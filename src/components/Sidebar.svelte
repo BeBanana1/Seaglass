@@ -19,16 +19,23 @@
   const route = $derived(current());
 
   const pinRoute = (pin: Pin): Route =>
-    pin.kind === "playlist" ? { name: "playlist", uuid: pin.uuid } : { name: "library", tab: "tracks" };
+    pin.kind === "playlist" ? { name: "playlist", uuid: pin.uuid } : { name: "library", tab: libraryTab(pin) };
+
+  /** Onglet de la bibliothèque d'une épingle qui n'est pas une playlist. */
+  const libraryTab = (pin: Pin) => (pin.kind === "later" ? "later" : "tracks");
 
   const pinLabel = (pin: Pin) =>
-    pin.kind === "playlist" ? pin.title || t.format.playlist : t.library.likedTracks;
+    pin.kind === "playlist"
+      ? pin.title || t.format.playlist
+      : pin.kind === "later"
+        ? t.library.tabs.later
+        : t.library.likedTracks;
 
   function pinActive(pin: Pin): boolean {
     const r = route;
     return pin.kind === "playlist"
       ? r.name === "playlist" && r.uuid === pin.uuid
-      : r.name === "library" && r.tab === "tracks";
+      : r.name === "library" && r.tab === libraryTab(pin);
   }
 
   async function unpin(pin: Pin) {

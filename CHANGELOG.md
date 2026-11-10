@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.103
+
+- « Plus tard » épinglable dans la barre latérale (#244).
+
 ## 0.4.102
 
 - « Plus tard » : signet à côté du cœur pour retirer un titre en un clic (#249).
