@@ -95,6 +95,7 @@ pub fn run() {
             if !tray::start_hidden(std::env::args()) {
                 tray::show_main(app.handle());
             }
+            spawn_session_watch(app.handle().clone(), Arc::clone(&tidal));
             app.manage(AppState {
                 tidal,
                 player,
@@ -346,4 +347,20 @@ fn open_store(app: &tauri::App) -> Option<Arc<Store>> {
             None
         }
     }
+}
+
+/// Événement émis quand TIDAL refuse le rafraîchissement en cours de route (#259) : l'UI
+/// revient à l'écran de connexion.
+const SESSION_LOST_EVENT: &str = "session-lost";
+
+fn spawn_session_watch(app: tauri::AppHandle, tidal: Arc<TidalClient>) {
+    use tauri::Emitter;
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tidal.session_lost().await;
+            if let Err(e) = app.emit(SESSION_LOST_EVENT, ()) {
+                tracing::warn!("émission de {SESSION_LOST_EVENT} impossible : {e}");
+            }
+        }
+    });
 }

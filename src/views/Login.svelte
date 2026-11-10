@@ -2,7 +2,10 @@
   import { commands, type SessionInfo } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
 
-  let { onLogin }: { onLogin: (s: SessionInfo) => void } = $props();
+  // `restoreError` : la session enregistrée n'a pas pu être reprise (réseau absent au
+  // démarrage, panne passagère) ; elle n'est pas perdue et l'app réessaie seule (#252).
+  let { onLogin, restoreError = null }: { onLogin: (s: SessionInfo) => void; restoreError?: string | null } =
+    $props();
 
   let pending = $state(false);
   let error = $state<string | null>(null);
@@ -28,6 +31,8 @@
   </button>
   {#if error}
     <p class="error">{error}</p>
+  {:else if restoreError}
+    <p class="error">{t.views.login.unreachable}<br />{restoreError}</p>
   {/if}
   <p class="disclaimer">{t.views.login.disclaimer}</p>
 </section>

@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.109
+
+- Session : une panne passagère de TIDAL n'efface plus le refresh token, une session non reprise au lancement est réessayée seule, et une session refusée en cours de route ramène à l'écran de connexion (#252, #259).
+
 ## 0.4.108
 
 - Android : Retour ne quitte l'app que depuis l'accueil, et « En lecture » ouvert par la notification revient à la page d'où joue le titre (#240).

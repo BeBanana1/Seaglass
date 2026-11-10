@@ -740,6 +740,8 @@ export const events = {
   onSharedLink: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-link", () => cb()),
   onFullscreen: (cb: (fullscreen: boolean) => void): Promise<UnlistenFn> =>
     listen<boolean>("fullscreen", (e) => cb(e.payload)),
+  /** TIDAL a refusé le rafraîchissement en cours de route : reconnexion nécessaire (#259). */
+  onSessionLost: (cb: () => void): Promise<UnlistenFn> => listen<null>("session-lost", () => cb()),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>
     listen<Toast>("toast", (e) => cb(e.payload)),
 };
