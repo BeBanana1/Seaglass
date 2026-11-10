@@ -96,6 +96,48 @@ async fn each_guest_has_a_limit_of_waiting_tracks() {
 }
 
 #[tokio::test]
+async fn the_jam_share_of_the_queue_is_capped() {
+    let guests = Arc::new(std::sync::Mutex::new(crate::jam::guests::Guests::default()));
+    let core = Core::with_rules(CODE.into(), Arc::clone(&guests), JamRules::default(), false);
+    let fake = Fake::default();
+    // D'autres invités ont déjà mis 99 titres en attente.
+    {
+        let mut guests = guests.lock().unwrap();
+        let batch = guests.new_batch();
+        for id in 1000..1099 {
+            guests.note(id, batch, None, Some(MAX.into()));
+        }
+    }
+    fake.added.lock().unwrap().extend(1000..1099);
+    search(&core, &fake).await;
+
+    // L'album est coupé à la dernière place, puis la file de la Jam est pleine (#256).
+    let body = json!({ "albumId": 40, "guest": LEA });
+    let (status, body) = call(&core, &fake, "/api/add-album", body, IP).await;
+    assert_eq!((status, body["count"].as_u64()), (200, Some(1)));
+    let (status, body) = add(&core, &fake, 1, LEA, IP).await;
+    assert_eq!((status, body["error"].as_str()), (429, Some("queue")));
+
+    // Un titre de la Jam est lu : la place revient.
+    fake.added.lock().unwrap().retain(|id| *id != 1000);
+    assert_eq!(add(&core, &fake, 1, LEA, IP).await.0, 200);
+}
+
+#[tokio::test]
+async fn adds_are_counted_per_guest_behind_a_shared_address() {
+    let (core, fake) = (core(JamRules::default(), false), Fake::default());
+    search(&core, &fake).await;
+    // Léa épuise ses ajouts de la minute (les doublons comptent aussi).
+    for _ in 0..crate::jam::guard::ADDS_PER_MINUTE {
+        assert_ne!(add(&core, &fake, 1, LEA, IP).await.0, 429);
+    }
+    let (status, body) = add(&core, &fake, 2, LEA, IP).await;
+    assert_eq!((status, body["error"].as_str()), (429, Some("slow")));
+    // Max, derrière la même adresse (données mobiles), n'est pas freiné par elle (#256).
+    assert_eq!(add(&core, &fake, 2, MAX, IP).await.0, 200);
+}
+
+#[tokio::test]
 async fn the_host_can_refuse_albums_and_suspend_adds() {
     let rules = JamRules {
         albums: false,

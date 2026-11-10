@@ -39,7 +39,7 @@ const TEXT = {
     anonymous: "Vous ajoutez des titres sans nom.",
     rename: "Changer",
     errCode: "Code incorrect.",
-    errBlocked: "Trop d'essais : demandez à l'hôte de relancer la Jam.",
+    errBlocked: "Trop d'essais : réessayez dans un quart d'heure.",
     errSlow: "Doucement : réessayez dans une minute.",
     errNetwork: "La Jam ne répond pas. Elle est peut-être terminée.",
     errBackend: "L'hôte n'a pas pu répondre. Réessayez.",
@@ -52,6 +52,7 @@ const TEXT = {
     errClosed: "L'hôte a suspendu les ajouts pour l'instant.",
     errFull: "Vous avez atteint la limite de titres en attente : attendez que les vôtres passent.",
     errDuplicate: "Ce titre est déjà dans la file.",
+    errQueue: "La file de la Jam est pleine : attendez que des titres passent.",
     errAlbums: "L'hôte n'accepte pas les albums entiers.",
     closed: "Ajouts suspendus par l'hôte.",
     limit: (n) => `Jusqu'à ${n} titre${n > 1 ? "s" : ""} en attente par personne.`,
@@ -92,7 +93,7 @@ const TEXT = {
     anonymous: "You add tracks without a name.",
     rename: "Change",
     errCode: "Wrong code.",
-    errBlocked: "Too many attempts: ask the host to restart the Jam.",
+    errBlocked: "Too many attempts: try again in a quarter of an hour.",
     errSlow: "Slow down: try again in a minute.",
     errNetwork: "The Jam isn't responding. It may have ended.",
     errBackend: "The host couldn't answer. Try again.",
@@ -105,6 +106,7 @@ const TEXT = {
     errClosed: "The host has paused adding for now.",
     errFull: "You reached the limit of waiting tracks: wait for yours to play.",
     errDuplicate: "This track is already in the queue.",
+    errQueue: "The Jam's queue is full: wait for some tracks to play.",
     errAlbums: "The host doesn't accept whole albums.",
     closed: "Adding is paused by the host.",
     limit: (n) => `Up to ${n} waiting track${n > 1 ? "s" : ""} per person.`,
@@ -115,7 +117,11 @@ const t = TEXT[lang];
 document.documentElement.lang = lang;
 
 const $ = (id) => document.getElementById(id);
-const CODE_KEY = "seaglass-jam-code";
+/** Code rangé par Jam (#256) : sur le relais, toutes les Jams partagent l'origine, et un
+ * ancien code gâcherait un essai sur la nouvelle. Le chemin est `/j/<id>/` (relais) ou `/`
+ * (réseau local). L'ancienne clé commune est retirée. */
+const CODE_KEY = `seaglass-jam-code:${location.pathname}`;
+localStorage.removeItem("seaglass-jam-code");
 const NAME_KEY = "seaglass-jam-name";
 const GUEST_KEY = "seaglass-jam-guest";
 const MINE_KEY = "seaglass-jam-mine";
@@ -200,6 +206,7 @@ function message(kind) {
       closed: t.errClosed,
       full: t.errFull,
       duplicate: t.errDuplicate,
+      queue: t.errQueue,
       albums: t.errAlbums,
     }[kind] || t.errBackend
   );

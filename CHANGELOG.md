@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.116
+
+- Jam : limites comptées par invité (plafond 5 fois plus large par adresse), essais de code ratés oubliés au bout d'un quart d'heure, 100 titres de la Jam en attente au plus, code retenu par Jam dans la page ; relais à redéployer (#256).
+
 ## 0.4.115
 
 - Tests du frontend avec `vitest` (tri et filtre des listes, formats, chaîne audio, liens, réorganisation, glissement), lancés par la CI ; rien ne change dans l'app (#264).

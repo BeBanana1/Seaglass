@@ -122,6 +122,15 @@ impl Guests {
             .count()
     }
 
+    /// Titres venus de la Jam encore en attente dans la file manuelle, tous invités
+    /// confondus (#256).
+    pub fn pending_total(&self, manual: &[u64]) -> usize {
+        manual
+            .iter()
+            .filter(|id| self.by_track.contains_key(id))
+            .count()
+    }
+
     /// Retire tous les titres de cet invité, quel que soit le lot (exclusion, #288).
     pub fn take_all(&mut self, owner: &str) -> Vec<u64> {
         let taken: Vec<u64> = self
@@ -226,6 +235,7 @@ mod tests {
         // Le titre 1 a été lu : il n'est plus dans la file manuelle.
         assert_eq!(guests.pending(&lea, &[2, 3, 4]), 2);
         assert_eq!(guests.pending(&max, &[2, 3, 4]), 1);
+        assert_eq!(guests.pending_total(&[2, 3, 4, 9]), 3);
         let mut taken = guests.take_all(&lea);
         taken.sort_unstable();
         assert_eq!(taken, vec![1, 2, 3]);
