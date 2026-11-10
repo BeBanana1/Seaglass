@@ -1,5 +1,5 @@
 //! Ajouts et retraits des invités (#223), sous les règles de l'hôte (#288) : doublons,
-//! limite par invité, albums, ajouts suspendus.
+//! limite par invité, albums, ajouts suspendus ; plafond de la Jam dans la file (#256).
 
 use std::net::IpAddr;
 
@@ -34,7 +34,7 @@ impl Core {
         if !offered {
             return Response::error(400, "unknown");
         }
-        if !self.allow(ip, Action::Add) {
+        if !self.allow(ip, key, Action::Add) {
             return Response::error(429, "slow");
         }
         let _turn = self.add_turn.lock().await;
@@ -66,12 +66,13 @@ impl Core {
             Err(_) => return Err(backend_error("lecteur sans réponse")),
         };
         let manual: Vec<u64> = snapshot.manual.iter().map(|t| t.id.0).collect();
-        let pending = self
+        let (pending, total) = self
             .guests
             .lock()
-            .map(|g| g.pending(key, &manual))
-            .unwrap_or(0);
-        rules::admit(candidates, &manual, self.rules().room(pending)).map_err(|refusal| {
+            .map(|g| (g.pending(key, &manual), g.pending_total(&manual)))
+            .unwrap_or((0, 0));
+        let room = self.rules().room(pending);
+        rules::admit(candidates, &manual, room, rules::jam_room(total)).map_err(|refusal| {
             let (status, kind) = refusal.kind();
             Response::error(status, kind)
         })
@@ -102,7 +103,7 @@ impl Core {
         if !offered {
             return Response::error(400, "unknown");
         }
-        if !self.allow(ip, Action::Add) {
+        if !self.allow(ip, key, Action::Add) {
             return Response::error(429, "slow");
         }
         let tracks = match backend.album_tracks(body.album_id).await {
@@ -168,6 +169,7 @@ impl Core {
         &self,
         body: &[u8],
         ip: IpAddr,
+        key: &str,
         backend: &B,
     ) -> Response {
         let Ok(body) = serde_json::from_slice::<RemoveBody>(body) else {
@@ -176,7 +178,7 @@ impl Core {
         let Some(owner) = sanitize_token(&body.guest) else {
             return Response::error(400, "body");
         };
-        if !self.allow(ip, Action::Remove) {
+        if !self.allow(ip, key, Action::Remove) {
             return Response::error(429, "slow");
         }
         let ids = {

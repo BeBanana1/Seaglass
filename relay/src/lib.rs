@@ -48,7 +48,9 @@ pub struct Config {
     pub trust_proxy: bool,
     /// Jams créées par adresse et par heure.
     pub creations_per_hour: usize,
-    /// Appels de l'API par adresse et par minute (toutes Jams confondues).
+    /// Appels de l'API par adresse et par minute (toutes Jams confondues). Large : en données
+    /// mobiles, plusieurs invités sortent par la même adresse et cherchent pendant la saisie
+    /// (#256) ; l'hôte compte ensuite par invité.
     pub requests_per_minute: usize,
     /// Pages ouvertes par Jam.
     pub max_streams: usize,
@@ -65,7 +67,7 @@ impl Config {
             grace: Duration::from_secs(30 * 60),
             trust_proxy: false,
             creations_per_hour: 10,
-            requests_per_minute: 120,
+            requests_per_minute: 300,
             max_streams: 64,
         }
     }

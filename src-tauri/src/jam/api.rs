@@ -1,7 +1,8 @@
 //! Cœur de l'API des invités (#25), commun à la Jam locale (`server.rs`) et au relais
-//! (`relay.rs`) : code d'accès, limites par adresse, titres et albums proposés, ajouts des
-//! invités, règles et exclusions de l'hôte (#288), état. Les deux transports ne font que
-//! livrer des requêtes ici et rendre les réponses.
+//! (`relay.rs`) : code d'accès, limites par invité et par adresse (#256), titres et albums
+//! proposés, ajouts des invités, règles et exclusions de l'hôte (#288), plafond de la Jam
+//! dans la file (#256), état. Les deux transports ne font que livrer des requêtes ici et
+//! rendre les réponses.
 
 mod adds;
 
@@ -208,20 +209,22 @@ impl Core {
         let Ok(mut s) = self.session.lock() else {
             return Err(Response::error(502, "backend"));
         };
-        if s.limits.blocked(ip) {
+        let now = Instant::now();
+        if s.limits.blocked(ip, now) {
             return Err(Response::error(429, "blocked"));
         }
         if !code_matches(&s.code, given) {
-            s.limits.fail(ip);
+            s.limits.fail(ip, now);
             return Err(Response::error(401, "code"));
         }
         Ok(())
     }
 
-    fn allow(&self, ip: IpAddr, action: Action) -> bool {
+    /// Action comptée pour l'invité (`key`, `owner_key`) et pour son adresse (#256).
+    fn allow(&self, ip: IpAddr, key: &str, action: Action) -> bool {
         self.session
             .lock()
-            .map(|mut s| s.limits.allow(ip, action, Instant::now()))
+            .map(|mut s| s.limits.allow(ip, key, action, Instant::now()))
             .unwrap_or(false)
     }
 
@@ -264,17 +267,23 @@ impl Core {
                 Some(json) => Response::new(200, "application/json", json),
                 None => Response::error(502, "backend"),
             },
-            "/api/search" => self.search(body, ip, backend).await,
+            "/api/search" => self.search(body, ip, &key, backend).await,
             "/api/add" => self.add(body, ip, &key, backend).await,
             "/api/add-album" => self.add_album(body, ip, &key, backend).await,
-            "/api/remove" => self.remove(body, ip, backend).await,
-            "/api/pause" => self.pause(body, ip, backend).await,
+            "/api/remove" => self.remove(body, ip, &key, backend).await,
+            "/api/pause" => self.pause(body, ip, &key, backend).await,
             _ => Response::not_found(),
         }
     }
 
     /// Titres seuls (tableau) pour une page d'avant #223, titres et albums sinon.
-    async fn search<B: Backend>(&self, body: &[u8], ip: IpAddr, backend: &B) -> Response {
+    async fn search<B: Backend>(
+        &self,
+        body: &[u8],
+        ip: IpAddr,
+        key: &str,
+        backend: &B,
+    ) -> Response {
         let Ok(body) = serde_json::from_slice::<SearchBody>(body) else {
             return Response::error(400, "body");
         };
@@ -289,7 +298,7 @@ impl Core {
         if query.chars().count() > MAX_QUERY_CHARS {
             return Response::error(400, "query");
         }
-        if !self.allow(ip, Action::Search) {
+        if !self.allow(ip, key, Action::Search) {
             return Response::error(429, "slow");
         }
         // Un lien d'un autre service (#229) : ses titres ou son album, pas une recherche.
@@ -332,14 +341,14 @@ impl Core {
 
     /// Lecture ou pause explicite (pas une bascule : deux invités qui appuient en même
     /// temps obtiennent le même résultat).
-    async fn pause<B: Backend>(&self, body: &[u8], ip: IpAddr, backend: &B) -> Response {
+    async fn pause<B: Backend>(&self, body: &[u8], ip: IpAddr, key: &str, backend: &B) -> Response {
         let Ok(body) = serde_json::from_slice::<PauseBody>(body) else {
             return Response::error(400, "body");
         };
         if !self.controls() {
             return Response::error(403, "controls");
         }
-        if !self.allow(ip, Action::Control) {
+        if !self.allow(ip, key, Action::Control) {
             return Response::error(429, "slow");
         }
         if let Err(e) = backend.set_paused(body.paused).await {

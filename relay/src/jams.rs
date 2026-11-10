@@ -1,6 +1,6 @@
 //! Jams ouvertes sur le relais : connexion de l'hôte, requêtes en attente, dernier état.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::net::IpAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -11,8 +11,13 @@ use tokio::sync::{mpsc, oneshot, watch};
 use crate::limits::{code_matches, random_token, same};
 use crate::protocol::ToHost;
 
-/// Essais de code ratés avant qu'une adresse soit bloquée pour cette Jam.
-pub const MAX_FAILURES: u32 = 10;
+/// Essais de code ratés par adresse sur `FAILURE_WINDOW` avant qu'elle soit bloquée pour
+/// cette Jam ; le blocage tombe quand les plus anciens sortent de la fenêtre (#256 : en
+/// données mobiles, plusieurs invités partagent une adresse).
+pub const MAX_FAILURES: usize = 10;
+pub const FAILURE_WINDOW: Duration = Duration::from_secs(15 * 60);
+/// Adresses suivies au plus pour les essais ratés d'une Jam.
+const MAX_FAILING_ADDRESSES: usize = 10_000;
 /// Réponse de l'hôte attendue au plus ce délai.
 pub const HOST_TIMEOUT: Duration = Duration::from_secs(15);
 /// Messages en attente vers un hôte (requêtes des invités).
@@ -63,7 +68,7 @@ struct Inner {
     next_rid: u64,
     /// Dernier état ; `None` une fois la Jam fermée (les flux ouverts se terminent).
     state: Option<watch::Sender<Arc<str>>>,
-    failures: HashMap<IpAddr, u32>,
+    failures: HashMap<IpAddr, VecDeque<Instant>>,
 }
 
 pub struct Jam {
@@ -227,15 +232,28 @@ impl Jam {
 
     /// Vérifie le code d'un flux d'état (les appels de l'API sont vérifiés par l'hôte).
     pub fn check_code(&self, ip: IpAddr, given: &str) -> Result<(), CodeError> {
+        self.check_code_at(ip, given, Instant::now())
+    }
+
+    fn check_code_at(&self, ip: IpAddr, given: &str, now: Instant) -> Result<(), CodeError> {
         let mut inner = self.lock();
-        if inner.failures.get(&ip).is_some_and(|n| *n >= MAX_FAILURES) {
-            return Err(CodeError::Blocked);
+        let recent = |t: &Instant| now.duration_since(*t) < FAILURE_WINDOW;
+        if let Some(times) = inner.failures.get_mut(&ip) {
+            times.retain(recent);
+            if times.len() >= MAX_FAILURES {
+                return Err(CodeError::Blocked);
+            }
         }
         if code_matches(&inner.code, given) {
             return Ok(());
         }
-        if inner.failures.len() < 10_000 || inner.failures.contains_key(&ip) {
-            *inner.failures.entry(ip).or_default() += 1;
+        if inner.failures.len() >= MAX_FAILING_ADDRESSES && !inner.failures.contains_key(&ip) {
+            inner
+                .failures
+                .retain(|_, times| times.back().is_some_and(recent));
+        }
+        if inner.failures.len() < MAX_FAILING_ADDRESSES || inner.failures.contains_key(&ip) {
+            inner.failures.entry(ip).or_default().push_back(now);
         }
         Err(CodeError::Wrong)
     }
@@ -446,11 +464,14 @@ mod tests {
     fn codes_are_checked_and_guessing_blocked() {
         let registry = Registry::default();
         let jam = registry.create("AB23CD".into(), IP, 5, 3).unwrap();
-        assert_eq!(jam.check_code(IP, "ab23cd"), Ok(()));
+        let t0 = Instant::now();
+        assert_eq!(jam.check_code_at(IP, "ab23cd", t0), Ok(()));
         for _ in 0..MAX_FAILURES {
-            assert_eq!(jam.check_code(IP, "nope"), Err(CodeError::Wrong));
+            assert_eq!(jam.check_code_at(IP, "nope", t0), Err(CodeError::Wrong));
         }
-        assert_eq!(jam.check_code(IP, "AB23CD"), Err(CodeError::Blocked));
+        assert_eq!(jam.check_code_at(IP, "AB23CD", t0), Err(CodeError::Blocked));
+        // Le blocage tombe au bout de la fenêtre (#256).
+        assert_eq!(jam.check_code_at(IP, "AB23CD", t0 + FAILURE_WINDOW), Ok(()));
     }
 
     #[tokio::test]

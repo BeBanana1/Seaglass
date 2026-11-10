@@ -1,4 +1,11 @@
-//! Code d'accès et limites par adresse : logique pure, horloge passée en argument.
+//! Code d'accès et limites par invité et par adresse : logique pure, horloge passée en
+//! argument.
+//!
+//! En données mobiles, plusieurs invités sortent souvent par la même adresse (#256) : chaque
+//! action est donc comptée par invité (jeton du navigateur, sinon l'adresse) aux seuils
+//! ci-dessous, et par adresse avec un seuil `IP_FACTOR` fois plus large. Le jeton n'est pas
+//! une identité forte (un navigateur en tire un autre quand il veut) : le plafond par
+//! adresse reste la vraie borne.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::net::IpAddr;
@@ -9,8 +16,10 @@ use rand::Rng;
 /// Sans 0/O, 1/I : le code se lit à voix haute ou sur un écran de loin.
 const ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 pub const CODE_LEN: usize = 6;
-/// Essais ratés avant que l'adresse soit bloquée jusqu'à la fin de la Jam.
-pub const MAX_FAILURES: u32 = 10;
+/// Essais ratés par adresse sur `FAILURE_WINDOW` avant que l'adresse soit bloquée ; le
+/// blocage tombe quand les essais les plus anciens sortent de la fenêtre (#256).
+pub const MAX_FAILURES: usize = 10;
+pub const FAILURE_WINDOW: Duration = Duration::from_secs(15 * 60);
 pub const ADDS_PER_MINUTE: usize = 10;
 /// Assez pour la recherche pendant la saisie (une requête par pause de la frappe).
 pub const SEARCHES_PER_MINUTE: usize = 60;
@@ -18,8 +27,11 @@ pub const SEARCHES_PER_MINUTE: usize = 60;
 pub const CONTROLS_PER_MINUTE: usize = 6;
 /// Retraits de ses propres ajouts (#223).
 pub const REMOVES_PER_MINUTE: usize = 30;
-/// Au-delà, une nouvelle adresse est refusée (réseau local : jamais atteint en pratique).
-const MAX_CLIENTS: usize = 1024;
+/// Seuils d'une adresse = seuils d'un invité × ce facteur (#256).
+pub const IP_FACTOR: usize = 5;
+/// Adresses et invités suivis au plus ; les inactifs sont oubliés quand la table est pleine.
+const MAX_ADDRESSES: usize = 1024;
+const MAX_GUESTS: usize = 4096;
 /// Titres proposés par les recherches de la Jam, les seuls que les invités peuvent ajouter.
 const MAX_OFFERED: usize = 5000;
 const WINDOW: Duration = Duration::from_secs(60);
@@ -58,64 +70,144 @@ pub enum Action {
     Remove,
 }
 
+impl Action {
+    fn per_minute(self) -> usize {
+        match self {
+            Self::Search => SEARCHES_PER_MINUTE,
+            Self::Add => ADDS_PER_MINUTE,
+            Self::Control => CONTROLS_PER_MINUTE,
+            Self::Remove => REMOVES_PER_MINUTE,
+        }
+    }
+}
+
+/// Actions récentes d'un invité ou d'une adresse.
 #[derive(Default)]
-struct Client {
-    failures: u32,
+struct Counters {
     searches: VecDeque<Instant>,
     adds: VecDeque<Instant>,
     controls: VecDeque<Instant>,
     removes: VecDeque<Instant>,
 }
 
-#[derive(Default)]
-pub struct Limits {
-    clients: HashMap<IpAddr, Client>,
-}
-
-impl Limits {
-    /// Adresse bloquée (trop d'essais ratés) ou refusée (trop d'adresses).
-    pub fn blocked(&self, ip: IpAddr) -> bool {
-        match self.clients.get(&ip) {
-            Some(c) => c.failures >= MAX_FAILURES,
-            None => self.clients.len() >= MAX_CLIENTS,
+impl Counters {
+    fn times(&mut self, action: Action) -> &mut VecDeque<Instant> {
+        match action {
+            Action::Search => &mut self.searches,
+            Action::Add => &mut self.adds,
+            Action::Control => &mut self.controls,
+            Action::Remove => &mut self.removes,
         }
     }
 
-    pub fn fail(&mut self, ip: IpAddr) {
-        if let Some(c) = self.client(ip) {
-            c.failures += 1;
-        }
-    }
-
-    /// Vrai si l'action est permise maintenant ; elle est alors comptée.
-    pub fn allow(&mut self, ip: IpAddr, action: Action, now: Instant) -> bool {
-        let Some(c) = self.client(ip) else {
-            return false;
-        };
-        let (times, max) = match action {
-            Action::Search => (&mut c.searches, SEARCHES_PER_MINUTE),
-            Action::Add => (&mut c.adds, ADDS_PER_MINUTE),
-            Action::Control => (&mut c.controls, CONTROLS_PER_MINUTE),
-            Action::Remove => (&mut c.removes, REMOVES_PER_MINUTE),
-        };
+    /// Place pour une action de plus sous `max` (anciennes actions oubliées au passage).
+    fn has_room(&mut self, action: Action, max: usize, now: Instant) -> bool {
+        let times = self.times(action);
         while times
             .front()
             .is_some_and(|t| now.duration_since(*t) >= WINDOW)
         {
             times.pop_front();
         }
-        if times.len() >= max {
+        times.len() < max
+    }
+
+    fn idle(&self, now: Instant) -> bool {
+        [&self.searches, &self.adds, &self.controls, &self.removes]
+            .iter()
+            .all(|q| q.back().is_none_or(|t| now.duration_since(*t) >= WINDOW))
+    }
+}
+
+#[derive(Default)]
+struct Address {
+    failures: VecDeque<Instant>,
+    counters: Counters,
+}
+
+impl Address {
+    fn prune_failures(&mut self, now: Instant) {
+        while self
+            .failures
+            .front()
+            .is_some_and(|t| now.duration_since(*t) >= FAILURE_WINDOW)
+        {
+            self.failures.pop_front();
+        }
+    }
+
+    fn idle(&mut self, now: Instant) -> bool {
+        self.prune_failures(now);
+        self.failures.is_empty() && self.counters.idle(now)
+    }
+}
+
+#[derive(Default)]
+pub struct Limits {
+    addresses: HashMap<IpAddr, Address>,
+    guests: HashMap<String, Counters>,
+}
+
+impl Limits {
+    /// Adresse bloquée (trop d'essais ratés récents) ou refusée (trop d'adresses actives).
+    pub fn blocked(&mut self, ip: IpAddr, now: Instant) -> bool {
+        match self.address(ip, now) {
+            Some(a) => {
+                a.prune_failures(now);
+                a.failures.len() >= MAX_FAILURES
+            }
+            None => true,
+        }
+    }
+
+    pub fn fail(&mut self, ip: IpAddr, now: Instant) {
+        if let Some(a) = self.address(ip, now) {
+            a.failures.push_back(now);
+        }
+    }
+
+    /// Vrai si l'action est permise maintenant à l'invité `guest` (sa clé, `owner_key`)
+    /// depuis `ip` ; elle est alors comptée pour les deux.
+    pub fn allow(&mut self, ip: IpAddr, guest: &str, action: Action, now: Instant) -> bool {
+        let max = action.per_minute();
+        let ip_room = match self.address(ip, now) {
+            Some(a) => a.counters.has_room(action, max * IP_FACTOR, now),
+            None => false,
+        };
+        if !ip_room {
             return false;
         }
-        times.push_back(now);
+        let Some(counters) = self.guest(guest, now) else {
+            return false;
+        };
+        if !counters.has_room(action, max, now) {
+            return false;
+        }
+        counters.times(action).push_back(now);
+        if let Some(a) = self.addresses.get_mut(&ip) {
+            a.counters.times(action).push_back(now);
+        }
         true
     }
 
-    fn client(&mut self, ip: IpAddr) -> Option<&mut Client> {
-        if !self.clients.contains_key(&ip) && self.clients.len() >= MAX_CLIENTS {
-            return None;
+    fn address(&mut self, ip: IpAddr, now: Instant) -> Option<&mut Address> {
+        if !self.addresses.contains_key(&ip) && self.addresses.len() >= MAX_ADDRESSES {
+            self.addresses.retain(|_, a| !a.idle(now));
+            if self.addresses.len() >= MAX_ADDRESSES {
+                return None;
+            }
         }
-        Some(self.clients.entry(ip).or_default())
+        Some(self.addresses.entry(ip).or_default())
+    }
+
+    fn guest(&mut self, key: &str, now: Instant) -> Option<&mut Counters> {
+        if !self.guests.contains_key(key) && self.guests.len() >= MAX_GUESTS {
+            self.guests.retain(|_, c| !c.idle(now));
+            if self.guests.len() >= MAX_GUESTS {
+                return None;
+            }
+        }
+        Some(self.guests.entry(key.to_owned()).or_default())
     }
 }
 
@@ -149,8 +241,10 @@ impl Offered {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::Ipv4Addr;
 
-    const IP: IpAddr = IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 20));
+    const IP: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20));
+    const OTHER: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 21));
 
     #[test]
     fn codes_use_the_unambiguous_alphabet() {
@@ -170,30 +264,62 @@ mod tests {
     }
 
     #[test]
-    fn address_is_blocked_after_too_many_failures() {
+    fn failures_block_the_address_for_a_while() {
         let mut limits = Limits::default();
-        for _ in 0..MAX_FAILURES - 1 {
-            limits.fail(IP);
+        let t0 = Instant::now();
+        for i in 0..MAX_FAILURES - 1 {
+            limits.fail(IP, t0 + Duration::from_secs(i as u64));
         }
-        assert!(!limits.blocked(IP));
-        limits.fail(IP);
-        assert!(limits.blocked(IP));
-        let other = IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 21));
-        assert!(!limits.blocked(other));
+        assert!(!limits.blocked(IP, t0));
+        limits.fail(IP, t0 + Duration::from_secs(60));
+        assert!(limits.blocked(IP, t0 + Duration::from_secs(60)));
+        assert!(!limits.blocked(OTHER, t0));
+        // Le premier essai sort de la fenêtre : l'adresse peut réessayer.
+        assert!(limits.blocked(IP, t0 + FAILURE_WINDOW - Duration::from_secs(1)));
+        assert!(!limits.blocked(IP, t0 + FAILURE_WINDOW));
     }
 
     #[test]
-    fn adds_are_limited_per_minute() {
+    fn adds_are_limited_per_guest_and_minute() {
         let mut limits = Limits::default();
         let t0 = Instant::now();
         for _ in 0..ADDS_PER_MINUTE {
-            assert!(limits.allow(IP, Action::Add, t0));
+            assert!(limits.allow(IP, "lea", Action::Add, t0));
         }
-        assert!(!limits.allow(IP, Action::Add, t0 + Duration::from_secs(30)));
+        assert!(!limits.allow(IP, "lea", Action::Add, t0 + Duration::from_secs(30)));
+        // Un autre invité derrière la même adresse a ses propres ajouts (#256).
+        assert!(limits.allow(IP, "max", Action::Add, t0));
         // Les recherches et les commandes de lecture ont leur propre compteur.
-        assert!(limits.allow(IP, Action::Search, t0));
-        assert!(limits.allow(IP, Action::Control, t0));
-        assert!(limits.allow(IP, Action::Add, t0 + WINDOW));
+        assert!(limits.allow(IP, "lea", Action::Search, t0));
+        assert!(limits.allow(IP, "lea", Action::Control, t0));
+        assert!(limits.allow(IP, "lea", Action::Add, t0 + WINDOW));
+    }
+
+    #[test]
+    fn an_address_keeps_a_wider_ceiling() {
+        let mut limits = Limits::default();
+        let t0 = Instant::now();
+        // Des jetons neufs à chaque ajout ne dépassent pas le plafond de l'adresse.
+        for i in 0..ADDS_PER_MINUTE * IP_FACTOR {
+            assert!(limits.allow(IP, &format!("k{i}"), Action::Add, t0));
+        }
+        assert!(!limits.allow(IP, "fresh", Action::Add, t0));
+        assert!(limits.allow(OTHER, "fresh", Action::Add, t0));
+        // Un refus de l'adresse ne compte pas pour l'invité.
+        assert!(limits.allow(IP, "fresh", Action::Add, t0 + WINDOW));
+    }
+
+    #[test]
+    fn idle_guests_are_forgotten_when_the_table_is_full() {
+        let mut limits = Limits::default();
+        let t0 = Instant::now();
+        for i in 0..MAX_GUESTS {
+            limits.guests.insert(format!("k{i}"), Counters::default());
+        }
+        limits.guests.get_mut("k0").unwrap().adds.push_back(t0);
+        assert!(limits.allow(IP, "new", Action::Search, t0 + Duration::from_secs(1)));
+        assert!(limits.guests.contains_key("k0"));
+        assert_eq!(limits.guests.len(), 2);
     }
 
     #[test]
