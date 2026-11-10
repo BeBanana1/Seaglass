@@ -93,6 +93,7 @@
     {showCover}
     active={player.currentTrackId === track.id}
     highlighted={highlight === track.id}
+    laterButton={source?.kind === "later"}
     onPlay={() => play(i)}
     onRemoveFromPlaylist={onRemoveFromPlaylist && (() => onRemoveFromPlaylist(i))}
     onMoveUp={onMove && i > 0 ? () => move(i, i - 1) : undefined}
