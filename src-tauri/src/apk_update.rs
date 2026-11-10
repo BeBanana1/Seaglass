@@ -158,6 +158,7 @@ mod android {
 
     fn http() -> Result<reqwest::Client, String> {
         reqwest::Client::builder()
+            .https_only(true)
             .connect_timeout(Duration::from_secs(15))
             .read_timeout(Duration::from_secs(30))
             .build()
