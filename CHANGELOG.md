@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.1
+
+- Android : en déplaçant une section de l'accueil au doigt, la page ne descend plus sans fin ; la ligne reste dans la liste et le défilement s'arrête à son bout (#302).
+
 ## 0.5.0
 
 - Mode exclusif WASAPI (Réglages › Lecture) : sortie ouverte pour Seaglass seul, bascule à chaud, normalisation suspendue, échec d'ouverture signalé sans repli en partagé ; la chaîne audio lit le format réellement envoyé au périphérique et n'annonce « Bit-perfect » qu'en exclusif. Fin de la phase 5 (#245).

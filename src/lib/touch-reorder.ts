@@ -4,7 +4,10 @@
 // `Reorder` que le glisser de la souris.
 // - Avant la saisie, un déplacement de plus de SLOP px rend la main au défilement.
 // - Après la saisie, `touchmove` est annulé (écouteur non passif) : la page ne défile plus
-//   sous le doigt ; elle défile seule quand le doigt approche d'un bord du conteneur.
+//   sous le doigt ; elle défile seule quand le doigt approche d'un bord du conteneur, mais
+//   seulement tant qu'il reste de la liste à montrer de ce côté (#302).
+// - La ligne saisie reste dans la liste : sinon son `transform` agrandissait la zone
+//   défilable et le défilement automatique descendait sans fin sous la liste (#302).
 // - Un appui qui commence sur un bouton n'est pas une saisie (Monter / Descendre, Masquer).
 // La ligne suit le doigt par une variable CSS et des classes posées ici, sans état Svelte.
 
@@ -47,14 +50,33 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
   let scroller: HTMLElement | null = null;
   let scroll0 = 0;
   let frame = 0;
+  /** Décalage appliqué à la ligne saisie (`--drag-y`), en px. */
+  let shift = 0;
   /** Une saisie vient de finir : le clic qui suit n'est pas un appui sur la ligne. */
   let swallowClick = false;
 
+  /** Haut et bas de la liste à l'écran, la ligne saisie comptée à sa place d'origine. */
+  function bounds(items: HTMLElement[]): { top: number; bottom: number } | null {
+    if (items.length === 0) return null;
+    const rect = (el: HTMLElement) => (el === node ? originRect() : el.getBoundingClientRect());
+    const first = rect(items[0]);
+    const last = rect(items[items.length - 1]);
+    return { top: first.top, bottom: last.top + last.height };
+  }
+
   function place() {
     if (!scroller) return;
-    node.style.setProperty("--drag-y", `${y - y0 + scroller.scrollTop - scroll0}px`);
-    // Emplacement : avant la première ligne dont le milieu est sous le doigt.
     const items = opts.items();
+    const origin = originRect();
+    let next = y - y0 + scroller.scrollTop - scroll0;
+    const list = bounds(items);
+    if (list) {
+      next = Math.min(next, list.bottom - origin.top - origin.height);
+      next = Math.max(next, list.top - origin.top);
+    }
+    shift = next;
+    node.style.setProperty("--drag-y", `${shift}px`);
+    // Emplacement : avant la première ligne dont le milieu est sous le doigt.
     let slot = items.length;
     for (let i = 0; i < items.length; i++) {
       // La ligne saisie est déplacée par `transform` : on la situe à sa place d'origine.
@@ -69,7 +91,6 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
 
   function originRect(): DOMRect {
     const r = node.getBoundingClientRect();
-    const shift = y - y0 + (scroller ? scroller.scrollTop - scroll0 : 0);
     return new DOMRect(r.x, r.y - shift, r.width, r.height);
   }
 
@@ -83,6 +104,10 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
     let step = 0;
     if (y < box.top + EDGE) step = -SPEED * Math.min(1, (box.top + EDGE - y) / EDGE);
     else if (y > box.bottom - EDGE) step = SPEED * Math.min(1, (y - (box.bottom - EDGE)) / EDGE);
+    // Pas au-delà de la liste : on s'arrête quand son bout est sorti de la zone du bord.
+    const list = bounds(opts.items());
+    if (list && step > 0) step = Math.min(step, Math.max(0, list.bottom - (box.bottom - EDGE)));
+    if (list && step < 0) step = Math.max(step, Math.min(0, list.top - (box.top + EDGE)));
     if (step !== 0) {
       const before = scroller.scrollTop;
       scroller.scrollTop += step;
@@ -93,6 +118,7 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
 
   function grab() {
     phase = "dragging";
+    shift = 0;
     scroller = scrollParent(node);
     scroll0 = scroller.scrollTop;
     node.classList.add("touch-dragging");
@@ -109,6 +135,7 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
       else opts.reorder.end();
       node.classList.remove("touch-dragging");
       node.style.removeProperty("--drag-y");
+      shift = 0;
       swallowClick = true;
       setTimeout(() => (swallowClick = false), 0);
     }
