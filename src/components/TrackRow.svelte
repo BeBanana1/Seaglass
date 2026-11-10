@@ -11,6 +11,7 @@
   import { platform } from "../lib/platform.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { swipeRight } from "../lib/swipe";
+  import { player } from "../lib/stores/player.svelte";
 
   let {
     track,
@@ -33,6 +34,7 @@
     number?: number;
     /** Pochette en début de ligne (inutile sur une page d'album). */
     showCover?: boolean;
+    /** Titre en cours (#241) : fond teinté, barre d'accent et égaliseur à la place de la pochette / du numéro. */
     active?: boolean;
     /** Variante étroite (panneau de file) : sans colonne album. */
     compact?: boolean;
@@ -123,11 +125,18 @@
   onclick={onTap}
   oncontextmenu={onContextmenu}
 >
-  {#if number !== undefined}<span class="number">{number}</span>{/if}
+  {#snippet nowBars()}
+    <!-- Lu seulement par la ligne en cours : les autres ne suivent pas `player.playing`. -->
+    <span class="now-bars" class:paused={!player.playing} aria-hidden="true"><i></i><i></i><i></i></span>
+  {/snippet}
+  {#if number !== undefined}
+    <span class="number">{#if active}{@render nowBars()}{:else}{number}{/if}</span>
+  {/if}
   <div class="cover" class:hidden={!showCover}>
     {#if track.album.coverUrl}
       <img src={coverSmall(track.album)} alt="" loading="lazy" />
     {/if}
+    {#if active && number === undefined}{@render nowBars()}{/if}
     {#if onPlay}
       <button class="cover-play" onclick={onPlay} aria-label={t.views.row.play(track.title)}>
         <Icon name="play" size={16} />
@@ -268,8 +277,90 @@
     box-shadow: inset 3px 0 0 var(--accent);
   }
 
+  /* Titre en cours (#241) : la seule couleur du titre se perdait dans certains thèmes. */
+  .row.active {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  .row.active:hover,
+  .row.active.menu-open {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+
   .row.active .title {
     color: var(--accent);
+  }
+
+  .now-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    width: 14px;
+    height: 12px;
+    color: var(--accent);
+  }
+
+  .now-bars i {
+    width: 3px;
+    height: 100%;
+    border-radius: 1px;
+    background: currentColor;
+    transform-origin: bottom;
+    animation: now-bars 0.9s ease-in-out infinite alternate;
+  }
+
+  .now-bars i:nth-child(2) {
+    animation-delay: -0.3s;
+  }
+
+  .now-bars i:nth-child(3) {
+    animation-delay: -0.6s;
+  }
+
+  .now-bars.paused i {
+    animation-play-state: paused;
+  }
+
+  @keyframes now-bars {
+    from {
+      transform: scaleY(0.25);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .now-bars i {
+      animation: none;
+      transform: scaleY(0.7);
+    }
+  }
+
+  /* Sur la pochette : voile sombre et barres claires, centrés. */
+  .cover .now-bars {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    padding: 13px 12px;
+    color: #fff;
+    background: rgb(0 0 0 / 0.5);
+  }
+
+  .cover.hidden .now-bars {
+    padding: 14px 9px;
+    color: var(--accent);
+    background: none;
+  }
+
+  /* Le bouton de lecture prend la place au survol (bureau : sur Android, `:hover` reste
+     collé après un appui et le bouton est masqué). */
+  :global(:root:not([data-platform="android"])) .row:hover .cover .now-bars,
+  .row.menu-open .cover .now-bars {
+    visibility: hidden;
   }
 
   .cover {
