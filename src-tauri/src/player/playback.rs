@@ -214,7 +214,10 @@ impl Player {
             End::Eof => {}
             // Périphérique de sortie choisi qui ne s'ouvre pas : repli, pas une erreur du flux.
             End::OutputFailed => {
-                if !self.on_output_init_failed().await {
+                // Exclusif : pas de repli silencieux en partagé ni sur un autre périphérique.
+                if self.state.exclusive {
+                    self.on_exclusive_failed().await;
+                } else if !self.on_output_init_failed().await {
                     let detail = tr(
                         "ouverture de la sortie audio impossible",
                         "audio output initialization failed",

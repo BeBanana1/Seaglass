@@ -196,10 +196,12 @@ pub fn spawn(
         let (events_tx, events_rx) = mpsc::channel(256);
         let settings = PlaybackSettings::load(store.as_deref());
         let output = Output::new(settings.audio_device.clone());
+        let exclusive = super::exclusive::supported() && settings.exclusive;
         let mut engine = launch
             .start(
                 settings.cache_size,
                 output.launch_device(),
+                exclusive,
                 events_tx.clone(),
             )
             .await;
@@ -234,6 +236,7 @@ pub fn spawn(
             queue: Queue::default(),
             state: PlayerState {
                 idle: true,
+                exclusive,
                 mpv_issue,
                 ..PlayerState::default()
             },
@@ -249,7 +252,7 @@ pub fn spawn(
             hires_upgrade: settings.hires_upgrade,
             hires_answers: HashMap::new(),
             offer_req: 0,
-            normalizer: Normalizer::new(settings.normalization),
+            normalizer: Normalizer::new(settings.normalization, exclusive),
             output,
             sleep_deadline: None,
             radio: AutoRadio::new(settings.auto_radio),
@@ -394,6 +397,7 @@ impl Player {
                 self.apply_cache_size(settings.cache_size).await;
                 self.set_normalization(settings.normalization).await;
                 self.set_audio_device(settings.audio_device).await;
+                self.set_exclusive(settings.exclusive).await;
             }
             Cmd::AnswerHiresOffer(accept) => self.answer_hires_offer(accept).await,
             Cmd::SetSleepTimer(request) => self.set_sleep_timer(request).await,
@@ -446,6 +450,7 @@ impl Player {
             Event::Paused(_) => {}
             Event::Buffering(b) => s.buffering = b,
             Event::Format(a) => s.set_output(a),
+            Event::DeviceFormat(a) => s.set_device_format(a),
             Event::Driver(ao) => s.output_driver = ao,
             Event::Idle(i) => s.set_idle(i),
             Event::Advanced => self.on_advanced().await,

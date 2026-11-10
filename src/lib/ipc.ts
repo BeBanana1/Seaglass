@@ -171,7 +171,12 @@ export interface PlayerState {
   track: Track | null;
   stream: StreamFormat | null;
   output: AudioParams | null;
+  /** Format réellement écrit sur la sortie (#245) : mixage de Windows en partagé, format
+   *  ouvert sur le périphérique en exclusif. `null` sur Android. */
+  deviceFormat: AudioParams | null;
   outputDriver: string | null;
+  /** Mode exclusif WASAPI actif (#245). */
+  exclusive: boolean;
   outputDevice: OutputDevice | null;
   loading: boolean;
   paused: boolean;
@@ -507,6 +512,9 @@ export interface PlaybackSettings {
   /** Périphérique de sortie choisi (#79) ; `null` = périphérique par défaut du système.
    *  Gardé même débranché : le lecteur se replie sur le défaut puis y revient. */
   audioDevice: AudioDevice | null;
+  /** Mode exclusif WASAPI (#245), désactivé par défaut : normalisation suspendue, les
+   *  autres apps n'ont plus de son pendant la lecture. Sans effet sur Android. */
+  exclusive: boolean;
   /** Fin de file : enchaîner sur la radio du dernier titre (#78). */
   autoRadio: boolean;
 }

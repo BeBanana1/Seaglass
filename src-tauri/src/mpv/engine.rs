@@ -35,9 +35,14 @@ impl Launch {
         &self,
         cache: CacheSize,
         audio_device: Option<&str>,
+        exclusive: bool,
         events: mpsc::Sender<Event>,
     ) -> Result<MpvEngine, String> {
-        MpvEngine::start(&self.conf, cache, audio_device, &self.process, events).await
+        let output = Output {
+            device: audio_device,
+            exclusive,
+        };
+        MpvEngine::start(&self.conf, cache, output, &self.process, events).await
     }
 
     /// Faux pendant la fermeture de l'app ou une mise à jour : mpv a été arrêté exprès.
@@ -46,17 +51,27 @@ impl Launch {
     }
 }
 
+/// Sortie demandée au lancement : périphérique (`None` = défaut du système) et mode
+/// exclusif (#245).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Output<'a> {
+    pub device: Option<&'a str>,
+    pub exclusive: bool,
+}
+
 impl MpvEngine {
     /// Lance mpv (processus gardé par `process`), s'y connecte et transmet ses événements
     /// traduits à `events`.
     pub async fn start(
         conf: &std::path::Path,
         cache: CacheSize,
-        audio_device: Option<&str>,
+        output: Output<'_>,
         process: &Arc<ProcessGuard>,
         events: mpsc::Sender<Event>,
     ) -> Result<Self, String> {
-        process.set(super::process::spawn(conf, cache, audio_device).map_err(|e| e.to_string())?);
+        let child = super::process::spawn(conf, cache, output.device, output.exclusive)
+            .map_err(|e| e.to_string())?;
+        process.set(child);
         let (raw_tx, mut raw_rx) = mpsc::channel(256);
         let handle = super::ipc::connect(raw_tx)
             .await
@@ -131,6 +146,7 @@ pub fn commands(op: &Op) -> Vec<Vec<Value>> {
         // Option locale du fichier : remise à la fin du titre, le préchargé garde la sienne.
         Op::CurrentGain(gain) => vec![set("file-local-options/af", json!(af_value(*gain)))],
         Op::OutputDevice(id) => vec![set("audio-device", json!(id))],
+        Op::Exclusive(on) => vec![set("audio-exclusive", json!(on))],
     }
 }
 
@@ -149,6 +165,7 @@ pub fn translate(ev: MpvEvent) -> Option<Event> {
             Property::CurrentAo(ao) => Event::Driver(ao),
             Property::IdleActive(i) => Event::Idle(i),
             Property::AudioDeviceList(list) => Event::Devices(list),
+            Property::AudioOutParams(a) => Event::DeviceFormat(a),
         },
         MpvEvent::FileLoaded => Event::Loaded,
         MpvEvent::EndFile { reason, error } => Event::Ended(match reason {
@@ -302,6 +319,14 @@ mod tests {
             ]]
         );
         assert_eq!(commands(&Op::CacheSize(CacheSize::Mib64)).len(), 2);
+        assert_eq!(
+            commands(&Op::Exclusive(true)),
+            vec![vec![
+                json!("set_property"),
+                json!("audio-exclusive"),
+                json!(true)
+            ]]
+        );
     }
 
     #[test]
@@ -364,7 +389,7 @@ mod tests {
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
         let guard = Arc::new(ProcessGuard::default());
         let (tx, mut events) = mpsc::channel(256);
-        let engine = MpvEngine::start(&conf, CacheSize::Mib32, None, &guard, tx)
+        let engine = MpvEngine::start(&conf, CacheSize::Mib32, Output::default(), &guard, tx)
             .await
             .unwrap();
         engine.apply(Op::SetPaused(true)).await.unwrap();
@@ -400,7 +425,7 @@ mod tests {
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
         let guard = Arc::new(ProcessGuard::default());
         let (tx, mut events) = mpsc::channel(256);
-        let engine = MpvEngine::start(&conf, CacheSize::Mib32, None, &guard, tx)
+        let engine = MpvEngine::start(&conf, CacheSize::Mib32, Output::default(), &guard, tx)
             .await
             .unwrap();
         async fn wait_for(

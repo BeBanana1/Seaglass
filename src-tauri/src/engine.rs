@@ -9,8 +9,9 @@
 //! Le périphérique de sortie (`AudioDevice`) et la taille du cache (`CacheSize`) restent
 //! définis dans `mpv` : ce sont des réglages du bureau, à revoir avec le moteur Android.
 
-// Sur Android, Media3 n'a ni périphérique à choisir ni liste à remonter :
-// `End::OutputFailed` et `Event::Devices` n'y sont pas construits.
+// Sur Android, Media3 n'a ni périphérique à choisir ni liste à remonter, ni mode
+// exclusif : `End::OutputFailed`, `Event::Devices` et `Event::DeviceFormat` n'y sont pas
+// construits.
 #![cfg_attr(mobile, allow(dead_code))]
 
 use serde::{Deserialize, Serialize};
@@ -55,6 +56,8 @@ pub enum Op {
     CurrentGain(Option<f64>),
     /// Identifiant du périphérique de sortie (`auto` = défaut du système).
     OutputDevice(String),
+    /// Mode exclusif WASAPI (#245) : le moteur rouvre la sortie sans interrompre le titre.
+    Exclusive(bool),
 }
 
 /// Format décodé envoyé à la sortie (`audio-params` de mpv).
@@ -87,6 +90,9 @@ pub enum Event {
     Buffering(bool),
     /// `None` entre deux fichiers : sans effet sur l'affichage (#12).
     Format(Option<AudioParams>),
+    /// Format réellement écrit sur la sortie (#245) : mixage de Windows en partagé, format
+    /// ouvert sur le périphérique en exclusif. `None` pendant une réouverture.
+    DeviceFormat(Option<AudioParams>),
     /// Pilote de sortie (`wasapi`…).
     Driver(Option<String>),
     Idle(bool),

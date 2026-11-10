@@ -309,7 +309,8 @@ mod tests {
 
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
         let bogus = "wasapi/{00000000-0000-0000-0000-000000000000}";
-        let mut child = crate::mpv::process::spawn(&conf, CacheSize::Mib32, Some(bogus)).unwrap();
+        let mut child =
+            crate::mpv::process::spawn(&conf, CacheSize::Mib32, Some(bogus), false).unwrap();
         let (events_tx, mut events) = tokio::sync::mpsc::channel(256);
         let handle = crate::mpv::ipc::connect(events_tx).await.unwrap();
         let cmd = |c: Vec<Value>| {

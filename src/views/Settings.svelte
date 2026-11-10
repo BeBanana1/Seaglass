@@ -43,6 +43,8 @@
   const cacheSize = $derived(playback?.cacheSize ?? null);
   const hiresUpgrade = $derived(playback?.hiresUpgrade ?? null);
   const normalization = $derived(playback?.normalization ?? null);
+  /** Mode exclusif (#245) : la normalisation est suspendue, ses choix grisés. */
+  const exclusive = $derived(playback?.exclusive === true);
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
   let discordAvailable = $state(false);
@@ -136,6 +138,10 @@
 
   function setHiresUpgrade(mode: HiresUpgrade) {
     if (playback && mode !== playback.hiresUpgrade) savePlayback({ ...playback, hiresUpgrade: mode });
+  }
+
+  function toggleExclusive() {
+    if (playback) savePlayback({ ...playback, exclusive: !playback.exclusive });
   }
 
   function toggleAutoRadio() {
@@ -266,6 +272,25 @@
       <OutputDevicePicker value={playback ? playback.audioDevice : undefined} onchange={setAudioDevice} />
     </div>
     <div class="group">
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.exclusive}</span>
+          <span class="hint">{t.settings.exclusiveHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={exclusive}
+          role="switch"
+          aria-checked={exclusive}
+          aria-label={t.settings.exclusive}
+          disabled={playback === null}
+          onclick={toggleExclusive}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+    </div>
+    <div class="group">
       <h2>{t.settings.cache}</h2>
       <p class="hint">{t.settings.cacheHint}</p>
       <div class="cache-sizes" role="radiogroup" aria-label={t.settings.cacheSize}>
@@ -307,7 +332,6 @@
     <div class="group">
       <h2>{t.settings.normalization}</h2>
       <p class="hint">{t.settings.normalizationHint}</p>
-      <!-- Le mode exclusif / bit-perfect (phase 5) devra griser ces choix. -->
       <div class="cache-sizes normalization-modes" role="radiogroup" aria-label={t.settings.normalization}>
         {#each NORMALIZATION_MODES as mode (mode)}
           <button
@@ -315,14 +339,20 @@
             class:selected={normalization === mode}
             role="radio"
             aria-checked={normalization === mode}
-            disabled={normalization === null}
+            disabled={normalization === null || exclusive}
             onclick={() => setNormalization(mode)}
           >
             {t.settings.normalizationModes[mode].label}
           </button>
         {/each}
       </div>
-      <p class="note">{normalization ? t.settings.normalizationModes[normalization].note : ""}</p>
+      <p class="note">
+        {exclusive
+          ? t.settings.normalizationExclusive
+          : normalization
+            ? t.settings.normalizationModes[normalization].note
+            : ""}
+      </p>
     </div>
     <div class="group">
       <h2>{t.settings.queueEnd}</h2>

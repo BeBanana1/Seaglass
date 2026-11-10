@@ -55,39 +55,52 @@ pub fn gain_db(mode: Normalization, rg: &ReplayGain) -> Option<f64> {
 /// préchargé, pour recalculer le gain quand le réglage change.
 #[derive(Debug, Clone, Default)]
 pub(super) struct Normalizer {
+    /// Réglage choisi, gardé tel quel pendant le mode exclusif.
     pub(super) mode: Normalization,
+    /// Mode exclusif (#245) : aucun filtre posé, quel que soit le réglage.
+    pub(super) bypass: bool,
     current: ReplayGain,
     next: ReplayGain,
 }
 
 impl Normalizer {
-    pub(super) fn new(mode: Normalization) -> Self {
+    pub(super) fn new(mode: Normalization, bypass: bool) -> Self {
         Self {
             mode,
+            bypass,
             ..Self::default()
+        }
+    }
+
+    /// Normalisation réellement appliquée : aucune en mode exclusif.
+    pub(super) fn effective(&self) -> Normalization {
+        if self.bypass {
+            Normalization::Off
+        } else {
+            self.mode
         }
     }
 
     /// Titre chargé en entrée 0 : gain à lui appliquer.
     pub(super) fn loaded(&mut self, rg: ReplayGain) -> Option<f64> {
         self.current = rg;
-        gain_db(self.mode, &rg)
+        gain_db(self.effective(), &rg)
     }
 
     /// Titre préchargé en entrée 1 : gain posé avec son `loadfile`.
     pub(super) fn preloaded(&mut self, rg: ReplayGain) -> Option<f64> {
         self.next = rg;
-        gain_db(self.mode, &rg)
+        gain_db(self.effective(), &rg)
     }
 
     /// Passage gapless sur le préchargé : son gain devient le courant.
     pub(super) fn advance(&mut self) -> Option<f64> {
         self.current = std::mem::take(&mut self.next);
-        gain_db(self.mode, &self.current)
+        gain_db(self.effective(), &self.current)
     }
 
     pub(super) fn current_gain(&self) -> Option<f64> {
-        gain_db(self.mode, &self.current)
+        gain_db(self.effective(), &self.current)
     }
 }
 
@@ -95,10 +108,17 @@ impl Player {
     /// Nouveau réglage : appliqué tout de suite au titre en cours, et le suivant préchargé
     /// est retiré pour être rechargé avec son gain.
     pub(super) async fn set_normalization(&mut self, mode: Normalization) {
-        if mode == self.normalizer.mode {
+        let before = self.normalizer.effective();
+        self.normalizer.mode = mode;
+        self.on_normalization_changed(before).await;
+    }
+
+    /// Réapplique le gain si la normalisation effective a changé (réglage, ou passage en
+    /// mode exclusif et retour).
+    pub(super) async fn on_normalization_changed(&mut self, before: Normalization) {
+        if self.normalizer.effective() == before {
             return;
         }
-        self.normalizer.mode = mode;
         let gain = self.normalizer.current_gain();
         if self.loaded {
             self.engine_op(Op::CurrentGain(gain)).await;
@@ -162,7 +182,7 @@ pub(crate) mod tests {
 
     #[test]
     fn normalizer_tracks_current_and_next() {
-        let mut n = Normalizer::new(Normalization::Track);
+        let mut n = Normalizer::new(Normalization::Track, false);
         assert_eq!(n.loaded(rg((-5.0, 0.5), None)), Some(-5.0));
         assert_eq!(n.preloaded(rg((-2.0, 0.5), None)), Some(-2.0));
         assert_eq!(n.current_gain(), Some(-5.0));
@@ -172,6 +192,18 @@ pub(crate) mod tests {
         assert_eq!(n.advance(), None);
         n.mode = Normalization::Off;
         assert_eq!(n.loaded(rg((-5.0, 0.5), None)), None);
+    }
+
+    /// Mode exclusif (#245) : aucun gain, le réglage est gardé pour le retour en partagé.
+    #[test]
+    fn exclusive_bypasses_normalization() {
+        let mut n = Normalizer::new(Normalization::Album, true);
+        assert_eq!(n.effective(), Normalization::Off);
+        assert_eq!(n.loaded(rg((-5.0, 0.5), None)), None);
+        assert_eq!(n.preloaded(rg((-2.0, 0.5), None)), None);
+        n.bypass = false;
+        assert_eq!(n.effective(), Normalization::Album);
+        assert_eq!(n.current_gain(), Some(-5.0));
     }
 
     #[test]
@@ -234,7 +266,7 @@ pub(crate) mod tests {
         use std::time::Duration;
 
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
-        let mut child = crate::mpv::process::spawn(&conf, CacheSize::Mib32, None).unwrap();
+        let mut child = crate::mpv::process::spawn(&conf, CacheSize::Mib32, None, false).unwrap();
         let (events_tx, mut events) = tokio::sync::mpsc::channel(256);
         let handle = crate::mpv::ipc::connect(events_tx).await.unwrap();
         let cmd = |c: Vec<Value>| {

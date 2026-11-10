@@ -126,17 +126,20 @@ export function volumeLabel(volume: Volume): string {
 }
 
 /**
- * Ce que mpv fait du flux reçu : fréquence et profondeur conservées ou non. Un volume
- * différent de 100 % n'invalide que le verdict « Fréquence native » : les autres
- * conversions restent plus importantes à signaler, le volume est alors dans le détail.
+ * Ce que devient le flux jusqu'à la sortie : fréquence et profondeur conservées ou non.
+ * `output` est le format réellement écrit sur la sortie (`deviceFormat`, #245), sinon celui
+ * du décodage. « Bit-perfect » n'est annoncé qu'en mode exclusif ; en partagé, Windows mixe
+ * encore. Un volume différent de 100 % n'invalide que ce verdict : les autres conversions
+ * restent plus importantes à signaler, le volume est alors dans le détail.
  */
 export function signalVerdict(
   stream: StreamFormat | null,
   output: AudioParams | null,
   volume: Volume = { level: 100, muted: false },
   normalization: number | null = null,
+  exclusive = false,
 ): SignalVerdict {
-  const verdict = streamVerdict(stream, output);
+  const verdict = streamVerdict(stream, output, exclusive);
   const v = t.format.verdict;
   // Normalisation (#82) : gain appliqué par mpv, comme le volume ; la coupure reste prioritaire.
   if (normalization !== null && !volume.muted && verdict.tone === "ok") {
@@ -169,7 +172,7 @@ export function engineName(): string {
   return platform.mobile ? "Media3" : "mpv";
 }
 
-function streamVerdict(stream: StreamFormat | null, output: AudioParams | null): SignalVerdict {
+function streamVerdict(stream: StreamFormat | null, output: AudioParams | null, exclusive: boolean): SignalVerdict {
   const v = t.format.verdict;
   if (!stream) return { label: v.noStream, tone: "idle", detail: "" };
   if (stream.codec !== "flac") {
@@ -180,12 +183,15 @@ function streamVerdict(stream: StreamFormat | null, output: AudioParams | null):
     return {
       label: v.resampledLabel,
       tone: "warn",
-      detail: `${khz(stream.sampleRate)} → ${khz(output.samplerate)} kHz`,
+      detail: exclusive
+        ? v.deviceRefused(khz(stream.sampleRate), khz(output.samplerate))
+        : `${khz(stream.sampleRate)} → ${khz(output.samplerate)} kHz`,
     };
   }
   if (output.format === "s16" && (stream.bitDepth ?? 16) > 16) {
     return { label: v.reducedLabel, tone: "warn", detail: v.reducedDetail };
   }
+  if (exclusive) return { label: v.bitPerfectLabel, tone: "ok", detail: v.bitPerfectDetail };
   return { label: v.nativeLabel, tone: "ok", detail: platform.mobile ? v.nativeDetailAndroid : v.nativeDetail };
 }
 

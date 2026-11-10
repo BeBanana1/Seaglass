@@ -38,7 +38,12 @@ impl Player {
             let cache = PlaybackSettings::load(self.store.as_deref()).cache_size;
             let started = self
                 .launch
-                .start(cache, self.output.launch_device(), self.events_tx.clone())
+                .start(
+                    cache,
+                    self.output.launch_device(),
+                    self.state.exclusive,
+                    self.events_tx.clone(),
+                )
                 .await;
             match started {
                 Ok(engine) => {

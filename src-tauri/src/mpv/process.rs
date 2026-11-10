@@ -76,10 +76,16 @@ pub fn is_missing() -> bool {
     matches!(executable(), Err(MpvError::Missing))
 }
 
-/// Lance mpv en mode idle, avec la taille de cache et le périphérique de sortie choisis
-/// dans les réglages (`None` = périphérique par défaut du système). Un périphérique absent
-/// est corrigé par le lecteur dès la première liste reçue, avant toute lecture.
-pub fn spawn(conf: &Path, cache: CacheSize, audio_device: Option<&str>) -> Result<Child> {
+/// Lance mpv en mode idle, avec la taille de cache, le périphérique de sortie (`None` =
+/// périphérique par défaut du système) et le mode exclusif (#245) choisis dans les
+/// réglages. Un périphérique absent est corrigé par le lecteur dès la première liste
+/// reçue, avant toute lecture.
+pub fn spawn(
+    conf: &Path,
+    cache: CacheSize,
+    audio_device: Option<&str>,
+    exclusive: bool,
+) -> Result<Child> {
     let exe = executable()?;
     tracing::info!("mpv : {}", exe.display());
     let mut cmd = Command::new(exe);
@@ -95,6 +101,7 @@ pub fn spawn(conf: &Path, cache: CacheSize, audio_device: Option<&str>) -> Resul
         ])
         .args(cache.args())
         .arg(format!("--audio-device={}", audio_device.unwrap_or(AUTO)))
+        .arg(super::exclusive::arg(exclusive))
         .arg(format!("--input-ipc-server={}", pipe_name()))
         .stdin(Stdio::null())
         .stdout(Stdio::null())

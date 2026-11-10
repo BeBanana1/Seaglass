@@ -39,7 +39,7 @@ pub fn op_args(op: &Op) -> Option<Value> {
         Op::LoopCurrent(on) => json!({"op": "loop", "on": on}),
         Op::Volume { level, muted } => json!({"op": "volume", "level": level, "muted": muted}),
         Op::CurrentGain(gain) => json!({"op": "currentGain", "gain": gain}),
-        Op::CacheSize(_) | Op::OutputDevice(_) => return None,
+        Op::CacheSize(_) | Op::OutputDevice(_) | Op::Exclusive(_) => return None,
     })
 }
 
@@ -152,6 +152,7 @@ mod android {
             &self,
             _cache: CacheSize,
             _audio_device: Option<&str>,
+            _exclusive: bool,
             events: mpsc::Sender<Event>,
         ) -> Result<Media3Engine, String> {
             // Le canal est rappelé sur le thread principal d'Android, qui ne doit jamais

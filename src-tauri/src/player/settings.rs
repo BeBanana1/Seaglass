@@ -24,6 +24,9 @@ pub struct PlaybackSettings {
     /// Gardé même débranché : le lecteur se replie sur le défaut et y revient au
     /// rebranchement.
     pub audio_device: Option<AudioDevice>,
+    /// Mode exclusif WASAPI (#245), désactivé par défaut : les autres apps n'ont plus de son
+    /// pendant la lecture, et la normalisation est suspendue. Sans effet sur Android.
+    pub exclusive: bool,
     /// Fin de file : enchaîner sur la radio du dernier titre (#78). Désactivé par défaut.
     pub auto_radio: bool,
 }
@@ -102,9 +105,10 @@ mod tests {
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"autoRadio":false}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false}"#
         );
         assert!(!s.auto_radio, "radio automatique désactivée par défaut");
+        assert!(!s.exclusive, "mode exclusif désactivé par défaut");
     }
 
     #[test]

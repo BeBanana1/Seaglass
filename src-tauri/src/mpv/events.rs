@@ -6,7 +6,7 @@ use super::device::{self, AudioDevice};
 use crate::engine::AudioParams;
 
 /// Propriétés observées (`observe_property`), dans l'ordre des identifiants 1..=N.
-pub const OBSERVED: [&str; 9] = [
+pub const OBSERVED: [&str; 10] = [
     "playlist-pos",
     "time-pos",
     "duration",
@@ -16,6 +16,7 @@ pub const OBSERVED: [&str; 9] = [
     "current-ao",
     "idle-active",
     "audio-device-list",
+    "audio-out-params",
 ];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -30,6 +31,9 @@ pub enum Property {
     IdleActive(bool),
     /// Périphériques WASAPI connus de mpv, renotifiés au branchement (#79).
     AudioDeviceList(Vec<AudioDevice>),
+    /// Format réellement écrit sur la sortie (#245) : le format de mixage de Windows en
+    /// partagé, celui ouvert sur le périphérique en exclusif.
+    AudioOutParams(Option<AudioParams>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,6 +95,7 @@ fn parse_property(msg: &Value) -> Option<Property> {
         "current-ao" => Property::CurrentAo(data.as_str().map(str::to_owned)),
         "idle-active" => Property::IdleActive(flag()),
         "audio-device-list" => Property::AudioDeviceList(device::parse_list(data)),
+        "audio-out-params" => Property::AudioOutParams(serde_json::from_value(data.clone()).ok()),
         _ => return None,
     })
 }
