@@ -96,8 +96,14 @@ class PlaybackService : MediaSessionService() {
                 .add(SessionCommand(SHUFFLE, Bundle.EMPTY))
                 .add(SessionCommand(REPEAT, Bundle.EMPTY))
                 .build()
+            // Aucun contrôleur n'est filtré (#145, Buds et écran verrouillé) : seules les
+            // commandes qu'aucun n'a à utiliser sont retirées (#254).
+            val player = MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon()
+                .removeAll(*RemotePlayer.BLOCKED)
+                .build()
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(commands)
+                .setAvailablePlayerCommands(player)
                 .build()
         }
 
@@ -140,12 +146,40 @@ class PlaybackService : MediaSessionService() {
 }
 
 /**
- * Le lecteur tel que la session le voit : lecture, pause, saut, suivant et précédent
- * repartent vers Rust, qui tient la file (comme SMTC sur le bureau). Rien n'est appliqué
- * directement à l'ExoPlayer.
+ * Le lecteur tel que la session le voit : lecture, pause, saut, suivant, précédent,
+ * répétition et aléatoire repartent vers Rust, qui tient la file (comme SMTC sur le bureau).
+ * Rien n'est appliqué directement à l'ExoPlayer, et ce que la session n'a pas à faire
+ * (changer les entrées, la vitesse, le volume) n'est pas proposé aux contrôleurs (#254).
  */
 @OptIn(UnstableApi::class)
 class RemotePlayer(player: ExoPlayer) : ForwardingPlayer(player) {
+    companion object {
+        /**
+         * Commandes jamais proposées : la fenêtre d'ExoPlayer (titre courant + suivant) et
+         * son volume appartiennent au moteur, piloté par Rust. Retirées aussi des commandes
+         * accordées aux contrôleurs dans `onConnect`.
+         */
+        val BLOCKED = intArrayOf(
+            Player.COMMAND_SET_MEDIA_ITEM,
+            Player.COMMAND_CHANGE_MEDIA_ITEMS,
+            Player.COMMAND_SET_SPEED_AND_PITCH,
+            Player.COMMAND_SET_VOLUME,
+        )
+    }
+
+    /** Écouteurs de la session : prévenus quand Rust change la répétition ou l'aléatoire. */
+    private val listeners = mutableListOf<Player.Listener>()
+
+    override fun addListener(listener: Player.Listener) {
+        listeners.add(listener)
+        super.addListener(listener)
+    }
+
+    override fun removeListener(listener: Player.Listener) {
+        listeners.remove(listener)
+        super.removeListener(listener)
+    }
+
     override fun play() = Playback.command("play")
 
     override fun pause() = Playback.command("pause")
@@ -171,6 +205,40 @@ class RemotePlayer(player: ExoPlayer) : ForwardingPlayer(player) {
         if (mediaItemIndex == currentMediaItemIndex) Playback.command("seek", positionMs)
     }
 
+    // Répétition et aléatoire de la file, pas de la fenêtre d'ExoPlayer : sa répétition
+    // ne sert qu'à « répéter le titre » (`loop`) et ignore « répéter la file ».
+    override fun setRepeatMode(repeatMode: Int) = Playback.setRepeat(
+        when (repeatMode) {
+            Player.REPEAT_MODE_ONE -> "one"
+            Player.REPEAT_MODE_ALL -> "all"
+            else -> "off"
+        },
+    )
+
+    override fun getRepeatMode(): Int = when (Playback.modes.repeat) {
+        "one" -> Player.REPEAT_MODE_ONE
+        "all" -> Player.REPEAT_MODE_ALL
+        else -> Player.REPEAT_MODE_OFF
+    }
+
+    override fun setShuffleModeEnabled(shuffleModeEnabled: Boolean) = Playback.setShuffle(shuffleModeEnabled)
+
+    override fun getShuffleModeEnabled(): Boolean = Playback.modes.shuffle
+
+    /**
+     * État de Rust reçu (`sessionModes`, thread principal). La session ne relit pas les
+     * getters : elle prend la valeur des événements. ExoPlayer n'en émet que pour sa propre
+     * répétition (« répéter le titre »), avant que Rust renvoie l'état : celui-ci passe après.
+     */
+    fun modesChanged() {
+        val repeat = repeatMode
+        val shuffle = shuffleModeEnabled
+        for (listener in listeners.toList()) {
+            listener.onRepeatModeChanged(repeat)
+            listener.onShuffleModeEnabledChanged(shuffle)
+        }
+    }
+
     // La fenêtre n'a souvent qu'une entrée : suivant et précédent restent toujours proposés.
     override fun getAvailableCommands(): Player.Commands = super.getAvailableCommands()
         .buildUpon()
@@ -181,6 +249,7 @@ class RemotePlayer(player: ExoPlayer) : ForwardingPlayer(player) {
             Player.COMMAND_SEEK_TO_PREVIOUS,
             Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
         )
+        .removeAll(*BLOCKED)
         .build()
 
     override fun isCommandAvailable(command: Int): Boolean = availableCommands.contains(command)

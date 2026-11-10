@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.4.117
+
+- Android : répétition et aléatoire demandés par un contrôleur (autoradio, montre) repartent vers Rust, et la session média ne propose plus de changer la liste de lecture, la vitesse ni le volume d'ExoPlayer (#254).
+
 ## 0.4.116
 
 - Jam : limites comptées par invité (plafond 5 fois plus large par adresse), essais de code ratés oubliés au bout d'un quart d'heure, 100 titres de la Jam en attente au plus, code retenu par Jam dans la page ; relais à redéployer (#256).
