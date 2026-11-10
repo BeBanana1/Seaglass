@@ -115,6 +115,7 @@ pub fn run() {
             commands::auth::logout,
             commands::catalog::search,
             commands::search_history::search_history,
+            commands::search_history::note_search_history,
             commands::search_history::remove_search_history,
             commands::search_history::clear_search_history,
             commands::catalog::album,

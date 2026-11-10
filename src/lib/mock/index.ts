@@ -557,11 +557,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   search: ({ query }) => {
     const q = String(query).trim().replace(/\s+/g, " ");
     if (!q) return { tracks: [], albums: [], artists: [], playlists: [] };
-    // Comme `search_history.rs` : en tête, sans doublon (casse ignorée), 20 au plus.
-    searchHistory = [q, ...searchHistory.filter((h) => h.toLowerCase() !== q.toLowerCase())].slice(0, 20);
     return fx.search;
   },
   search_history: () => searchHistory,
+  note_search_history: ({ query }) => {
+    const q = String(query).trim().replace(/\s+/g, " ");
+    if (!q) return searchHistory;
+    // Comme `search_history.rs` : en tête, sans doublon (casse ignorée), 20 au plus.
+    searchHistory = [q, ...searchHistory.filter((h) => h.toLowerCase() !== q.toLowerCase())].slice(0, 20);
+    return searchHistory;
+  },
   remove_search_history: ({ query }) => {
     const q = String(query).trim().replace(/\s+/g, " ").toLowerCase();
     searchHistory = searchHistory.filter((h) => h.toLowerCase() !== q);
