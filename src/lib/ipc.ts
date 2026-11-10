@@ -683,8 +683,6 @@ export const commands = {
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false, source: PlaySource | null = null) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
-  /** Mode conduite (#193) : lit toute la source épinglée, titres cherchés par le backend. */
-  playPin: (pin: Pin, shuffle: boolean) => invoke<void>("play_pin", { pin, shuffle }),
   /** Android : vrai une fois après le lien `seaglass://drive` ou le raccourci de l'app (#193). */
   takeDriveRequest: () => invoke<boolean>("take_drive_request"),
   /** Android : écran gardé allumé (mode conduite, #193) ; rien sur le bureau. */

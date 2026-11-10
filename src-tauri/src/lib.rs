@@ -161,7 +161,6 @@ pub fn run() {
             commands::player::play_tracks,
             commands::player::play_next,
             commands::player::take_now_playing_request,
-            commands::drive::play_pin,
             commands::drive::take_drive_request,
             commands::drive::keep_screen_on,
             commands::player::add_to_queue,

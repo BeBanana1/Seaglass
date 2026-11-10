@@ -4,6 +4,7 @@
   import { replace, type LibraryTab } from "../lib/stores/nav.svelte";
   import {
     filterTracks,
+    LIKED_DEFAULT_SORT,
     listTracks,
     sortTracks,
     type SortKey,
@@ -22,7 +23,7 @@
 
   // Titres likés : l'API les renvoie du plus récent au plus ancien (date du like).
   const TRACK_SORT_KEYS: SortKey[] = ["added", "title", "artist", "album", "duration"];
-  const TRACK_DEFAULT_SORT: TrackSort = { key: "added", descending: true };
+  const TRACK_DEFAULT_SORT = LIKED_DEFAULT_SORT;
 
   let { tab }: { tab: LibraryTab } = $props();
 

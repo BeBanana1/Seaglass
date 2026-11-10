@@ -1,7 +1,7 @@
 <script lang="ts">
   // Mode conduite (#193, Android) : plein écran, titre en cours, gros boutons de lecture et
-  // tuiles des épingles (8 au plus). Un appui sur une tuile lit toute la source tout de suite ;
-  // appui long : avancer, reculer, retirer. L'écran reste allumé tant que la vue est ouverte.
+  // tuiles des épingles (8 au plus). Un appui sur une tuile lit toute la source tout de suite,
+  // dans l'ordre de sa page ; appui long : ouvrir sa page, avancer, reculer, retirer. L'écran reste allumé tant que la vue est ouverte.
   import { onMount } from "svelte";
   import { commands, type Pin, type PlaySource } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
@@ -10,17 +10,19 @@
   import { openMenu } from "../lib/stores/menu.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { coverSmall, fullTitle } from "../lib/format";
-  import { pinLabel } from "../lib/pins";
+  import { pinLabel, pinRoute, playPin } from "../lib/pins";
+  import type { Route } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
   import Icon, { type IconName } from "../components/Icon.svelte";
 
-  let { onClose }: { onClose: () => void } = $props();
+  /** `onOpen` : quitte le mode conduite et ouvre la page de l'épingle. */
+  let { onClose, onOpen }: { onClose: () => void; onOpen: (route: Route) => void } = $props();
 
   const s = $derived(player.state);
   const track = $derived(player.currentTrack);
   const playing = $derived(!s.paused && !s.idle);
   const tiles = $derived(ui.settings.pins.slice(0, MAX_DRIVE_TILES));
-  /** Tuile dont la lecture se prépare (titres cherchés par le backend). */
+  /** Tuile dont la lecture se prépare (titres de la source en cours de chargement). */
   let starting = $state<string | null>(null);
 
   onMount(() => {
@@ -48,7 +50,7 @@
     if (starting) return;
     starting = key;
     try {
-      await commands.playPin(pin, s.shuffle);
+      await playPin(pin, s.shuffle);
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     } finally {
@@ -64,6 +66,8 @@
       y: e.clientY,
       from: e.currentTarget as HTMLElement,
       entries: [
+        { label: t.menu.open, icon: ICONS[pin.kind], action: () => onOpen(pinRoute(pin)) },
+        "separator",
         ...(index > 0 ? [{ label: t.drive.moveUp, icon: "up" as const, action: () => movePin(pin, -1).catch(fail) }] : []),
         ...(index < tiles.length - 1
           ? [{ label: t.drive.moveDown, icon: "down" as const, action: () => movePin(pin, 1).catch(fail) }]

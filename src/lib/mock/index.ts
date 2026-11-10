@@ -22,7 +22,6 @@
 
 import type {
   PlaySource,
-  Pin,
   AlbumPage,
   AlbumSummary,
   ArtistPage,
@@ -819,17 +818,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // Mode conduite (#193) : `?platform=android&drive=1` l'ouvre au lancement (`initialView`).
   take_drive_request: () => false,
   keep_screen_on: () => null,
-  // Tous les titres des fixtures, avec la source de l'épingle (« Joué depuis », tuile allumée).
-  play_pin: ({ pin, shuffle }) => {
-    const p = JSON.parse(JSON.stringify(pin)) as Pin;
-    const source: PlaySource =
-      p.kind === "playlist"
-        ? { kind: "playlist", uuid: p.uuid, title: p.title }
-        : p.kind === "mix"
-          ? { kind: "mix", id: p.id, title: p.title }
-          : { kind: p.kind };
-    return handlers.play_tracks({ trackIds: [...allTracks.keys()], startIndex: 0, shuffle, source });
-  },
+
   // `?platform=android&links=1` : liens TIDAL déjà donnés à l'app.
   link_handling: () => (params.get("platform") === "android" ? { enabled: params.get("links") === "1" } : null),
   open_link_settings: () => undefined,

@@ -41,6 +41,11 @@ function haystack(track: TrackEntry): string {
   return text;
 }
 
+/** Ordre d'une playlist tant qu'aucun tri n'est mémorisé : celui de la playlist. */
+export const PLAYLIST_DEFAULT_SORT: TrackSort = { key: "position", descending: false };
+/** Titres likés : les plus récents d'abord. */
+export const LIKED_DEFAULT_SORT: TrackSort = { key: "added", descending: true };
+
 export function listTracks(tracks: TrackEntry[]): ListedTrack[] {
   return tracks.map((track, i) => ({ track, position: i + 1 }));
 }
