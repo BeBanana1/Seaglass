@@ -332,11 +332,8 @@
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .now-bars i {
-      animation: none;
-      transform: scaleY(0.7);
-    }
+  :global(:root[data-motion="reduced"]) .now-bars i {
+    transform: scaleY(0.7);
   }
 
   /* Sur la pochette : voile sombre et barres claires, centrés. */

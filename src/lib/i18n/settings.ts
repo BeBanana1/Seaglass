@@ -12,6 +12,11 @@ export const fr = {
 
   zoom: "Taille de l'interface",
   zoomHint: "Agrandit ou réduit tout l'affichage. Raccourcis : Ctrl + « + », Ctrl + « - », Ctrl + 0.",
+  motion: "Animations",
+  motionHint:
+    "Fonds animés, fondus et transitions. « Système » suit le réglage « réduire les " +
+    "animations » de l'appareil.",
+  motions: { system: "Système", reduced: "Réduites", full: "Complètes" },
   theme: "Thème",
   themeHint: "Le thème s'applique tout de suite et reste enregistré.",
   themes: {
@@ -247,6 +252,11 @@ export const en: typeof fr = {
 
   zoom: "Interface size",
   zoomHint: "Enlarges or shrinks the whole display. Shortcuts: Ctrl + \"+\", Ctrl + \"-\", Ctrl + 0.",
+  motion: "Animations",
+  motionHint:
+    "Animated backdrops, fades and transitions. \"System\" follows the device's " +
+    "\"reduce motion\" setting.",
+  motions: { system: "System", reduced: "Reduced", full: "Full" },
   theme: "Theme",
   themeHint: "The theme applies right away and is saved.",
   themes: {

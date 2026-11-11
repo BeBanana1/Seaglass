@@ -202,6 +202,8 @@ let ui: UiSettings = {
   discord: params.has("discord"),
   sorts: [],
   zoom: 100,
+  // `?motion=reduced|full` : animations réduites ou forcées (#351).
+  motion: (params.get("motion") as UiSettings["motion"]) ?? "system",
 };
 
 /** « Système » du backend factice : la langue du navigateur. */

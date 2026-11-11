@@ -5,11 +5,13 @@ import {
   commands,
   type CloseAction,
   type HomeSection,
+  type Motion,
   type Pin,
   type Theme,
   type TrackSort,
   type UiSettings,
 } from "../ipc";
+import { motionReduced } from "../motion";
 
 /** Thèmes dans l'ordre du sélecteur ; noms et descriptions dans `i18n/settings.ts`. */
 export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal", "solarpunk", "cyberpunk", "neumorph", "neumorph-dark", "terminal", "riso", "bauhaus", "aero", "alloy", "alloy-dark"];
@@ -33,6 +35,7 @@ export const ui = $state<{
     discord: false,
     sorts: [],
     zoom: 100,
+    motion: "system",
   },
   nowPlayingPanel: null,
 });
@@ -60,9 +63,21 @@ function contrastOn(hex: string): string {
   return luminance > 0.179 ? "#0a0a0b" : "#ffffff";
 }
 
+/** Choix proposés pour les animations (#351). */
+export const MOTIONS: Motion[] = ["system", "reduced", "full"];
+
+/** « Réduire les animations » du système, suivi en direct. */
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+function applyMotion() {
+  const reduced = motionReduced(ui.settings.motion, reducedMotion.matches);
+  document.documentElement.dataset.motion = reduced ? "reduced" : "full";
+}
+
 function apply() {
   const root = document.documentElement;
   root.dataset.theme = ui.settings.theme;
+  applyMotion();
   // Le style en ligne de <html> l'emporte sur les jetons du thème ; sans accent choisi,
   // on le retire pour revenir à ceux du thème.
   const accent = currentAccent();
@@ -86,6 +101,22 @@ export async function initUi() {
     // Valeurs par défaut si le backend ne répond pas.
   }
   apply();
+  reducedMotion.addEventListener("change", applyMotion);
+}
+
+/** Animations de l'interface (#351), appliquées tout de suite. */
+export async function setMotion(motion: Motion) {
+  if (motion === ui.settings.motion) return;
+  const previous = ui.settings;
+  ui.settings = { ...ui.settings, motion };
+  applyMotion();
+  try {
+    await commands.setUiSettings(ui.settings);
+  } catch (e) {
+    ui.settings = previous;
+    applyMotion();
+    throw e;
+  }
 }
 
 export async function setTheme(theme: Theme) {

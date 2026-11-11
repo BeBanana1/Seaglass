@@ -863,11 +863,13 @@ input {
   color: var(--text-muted);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-  }
+/* Animations réduites (#351) : attribut posé par `stores/ui.svelte.ts` selon le réglage
+   et « réduire les animations » du système. */
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  transition: none !important;
+  animation: none !important;
 }
 
 /* Titres : police d'affichage du thème (serif pour Atelier). */

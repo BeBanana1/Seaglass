@@ -73,10 +73,4 @@
       transform: translateY(6px);
     }
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    .toast {
-      animation: none;
-    }
-  }
 </style>
