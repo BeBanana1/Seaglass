@@ -112,13 +112,45 @@ pub fn spawn(
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
     #[cfg(target_os = "linux")]
-    die_with_parent(&mut cmd);
+    {
+        die_with_parent(&mut cmd);
+        clean_appimage_env(&mut cmd);
+    }
     let child = cmd.spawn().map_err(MpvError::Spawn)?;
     #[cfg(windows)]
     if let Some(handle) = child.raw_handle() {
         super::job::adopt(handle);
     }
     Ok(child)
+}
+
+/// Lancée depuis l'AppImage (`APPDIR` défini), l'app transmettrait à mpv, binaire du
+/// système, les chemins de bibliothèques et de plugins de l'AppImage (#320).
+#[cfg(target_os = "linux")]
+fn clean_appimage_env(cmd: &mut Command) {
+    let Some(appdir) = std::env::var_os("APPDIR") else {
+        return;
+    };
+    // Variables non UTF-8 laissées telles quelles : l'AppRun n'en pose pas.
+    let vars = std::env::vars_os()
+        .filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?)));
+    let fixes = super::appimage_env::fixes(vars, &appdir.to_string_lossy());
+    if !fixes.is_empty() {
+        tracing::info!(
+            "mpv : {} variable(s) de l'AppImage corrigée(s)",
+            fixes.len()
+        );
+    }
+    for fix in fixes {
+        match fix {
+            super::appimage_env::Fix::Remove(key) => {
+                cmd.env_remove(key);
+            }
+            super::appimage_env::Fix::Set(key, value) => {
+                cmd.env(key, value);
+            }
+        }
+    }
 }
 
 /// Équivalent Linux du Job Object (#17) : le noyau envoie `SIGKILL` à mpv quand l'app

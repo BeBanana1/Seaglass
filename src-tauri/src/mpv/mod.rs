@@ -5,6 +5,8 @@
 // mpv n'y est jamais lancé.
 #![cfg_attr(mobile, allow(dead_code))]
 
+#[cfg(any(target_os = "linux", test))]
+mod appimage_env;
 pub mod cache;
 pub mod cpu;
 pub mod device;
