@@ -37,6 +37,11 @@
       "../LICENSE": "licenses/Seaglass-GPL-3.0.txt",
       "licenses/mpv.txt": "licenses/mpv.txt"
     },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    },
     "windows": {
       "nsis": {
         "installMode": "currentUser",

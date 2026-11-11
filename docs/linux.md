@@ -30,7 +30,7 @@ WSL sert à vérifier que l'app se lance, se connecte et lit, pas la qualité.
 Paquets (Ubuntu 24.04, en root : `wsl -u root`) :
 
 ```bash
-apt-get install -y pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libdbus-1-dev libxdo-dev file mpv
+apt-get install -y pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libdbus-1-dev libxdo-dev file patchelf mpv
 ```
 
 Node 20+ (Vite 8) n'est pas dans les dépôts d'Ubuntu 24.04 : le frontend est construit sous
@@ -42,6 +42,14 @@ les artefacts de mise à jour aussi (ils exigent la clé de signature) :
 ```bash
 cd ~/seaglass/src-tauri && cargo tauri build --bundles appimage --config '{"build":{"beforeBuildCommand":""},"bundle":{"createUpdaterArtifacts":false}}'
 ```
+
+**GStreamer dans l'AppImage** (`bundle.linux.appimage.bundleMediaFramework`) : sans lui,
+l'AppImage embarque `libgstreamer` mais aucun plugin, et ne trouve pas ceux du système
+(`appsink`, `appsrc`, `autoaudiosink` « not found »). La page de vérification anti-robot
+de TIDAL, servie à WebKitGTK à la connexion, n'affichait alors pas son épreuve et la
+connexion était impossible. Le binaire nu (`target/release/seaglass`), qui prend le
+GStreamer du système, l'affichait. Avec le plugin `gstreamer` de linuxdeploy (il demande
+`patchelf`), l'AppImage passe de 83 à 97 Mo.
 
 L'AppImage se lance avec `--appimage-extract-and-run` (pas de FUSE dans WSL). La
 session `wsl.exe` qui l'a lancée doit rester ouverte : l'app s'arrête avec elle.
@@ -55,7 +63,10 @@ session `wsl.exe` qui l'a lancée doit rester ouverte : l'app s'arrête avec ell
   garde `pulse/RDPSink`. Avec `--ao=pipewire,pulse,alsa`, mpv essaie `pipewire` puis ouvre
   `pulse` (un `audio-device` préfixé `pulse/` ne fait pas sauter `pipewire`).
 - `kill -9` de l'app : mpv disparaît aussitôt (`PR_SET_PDEATHSIG`).
+- Connexion (binaire nu) : TIDAL sert une vérification anti-robot à WebKitGTK ; une fois
+  l'épreuve résolue par l'utilisateur, la redirection est bien interceptée par
+  `on_navigation` et la session ouverte.
 
-À vérifier : connexion (redirection interceptée par `on_navigation` sous WebKitGTK, jetons
-dans le Secret Service, absent de WSL sans `gnome-keyring`), lecture TIDAL, gapless,
+À vérifier : connexion depuis l'AppImage avec GStreamer embarqué, jetons gardés après un
+redémarrage (Secret Service, absent de WSL sans `gnome-keyring`), lecture TIDAL, gapless,
 reprise de la file, zone de notification.
