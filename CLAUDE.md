@@ -25,7 +25,7 @@ Ce fichier ne garde que ce qui sert à toute tâche. Les notes d'implémentation
 | Audio | mpv piloté en JSON IPC (named pipe), sidecar Tauri à terme |
 | Stockage | SQLite (`rusqlite`) pour la file, les réglages et le cache de métadonnées |
 | Secrets | `keyring` (Credential Manager sous Windows) |
-| Intégrations | SMTC Windows (`windows` crate), icône de la zone de notification (`tauri`, feature `tray-icon`), présence Discord (IPC écrit à la main, #215), Last.fm (plus tard) |
+| Intégrations | SMTC Windows (`windows` crate), MPRIS sous Linux (`zbus` 5, déjà tiré par les plugins, #312), icône de la zone de notification (`tauri`, feature `tray-icon`), présence Discord (IPC écrit à la main, #215), Last.fm (plus tard) |
 | Mises à jour | `tauri-plugin-updater` (installeur NSIS signé, manifeste `latest.json`) |
 | Système | `tauri-plugin-autostart` (lancement au démarrage, piloté uniquement côté Rust), `tauri-plugin-single-instance` (une seule instance, #83), `tauri-plugin-opener` (liens dans le navigateur, depuis Rust seulement, #188), `qrcode` sans ses options par défaut (QR code de la Jam en SVG, #25), `tokio-tungstenite` (connexion au relais de la Jam, #25 ; avec `rustls`, `rustls-platform-verifier` et `futures-util` en direct, déjà compilés par `reqwest`) |
 
@@ -66,7 +66,7 @@ seaglass/
       ├─ mpv/                # engine.rs (moteur mpv), process.rs, ipc.rs, events.rs, serve.rs (MPD servis en HTTP local)
       ├─ store/              # SQLite (dont snapshots.rs : copies des listes)
       ├─ foreign/            # liens d'autres services collés dans la Jam (#229) : links.rs, meta.rs, matching.rs
-      └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs, tray.rs, discord/ (présence Discord)
+      └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs, mpris/ (Linux), tray.rs, discord/ (présence Discord)
 ```
 
 ## Architecture du lecteur
@@ -108,7 +108,7 @@ Notes d'implémentation, lues à la demande : endpoints vérifiés, mesures, pi�
 | [`docs/tidal.md`](docs/tidal.md) | résultats du spike, connexion et garde DRM, endpoints du catalogue, fil d'actualité, mixes, paroles, écritures dans la bibliothèque, « Plus tard », infos du titre et crédits, performances du backend | `tidal/`, `commands/catalog.rs`, `commands/collection.rs` |
 | [`docs/interface.md`](docs/interface.md) | navigation, réglages, raccourcis, aperçu sans Tauri (paramètres d'URL), CSP, pages et listes, menu contextuel, liens collés, performances des listes, langue | `src/` hors thèmes, `commands/settings/`, `i18n.rs` |
 | [`docs/themes.md`](docs/themes.md) | jetons, fonds, couleur d'accent, cascade, notes de chaque thème, classes surchargées | `src/themes/`, `app.css`, `components/backdrops/`, et avant de renommer une classe de composant |
-| [`docs/systeme.md`](docs/systeme.md) | SMTC, présence Discord, zone de notification, lancement au démarrage | `integrations/` (bureau) |
+| [`docs/systeme.md`](docs/systeme.md) | SMTC, MPRIS, présence Discord, zone de notification, lancement au démarrage | `integrations/` (bureau) |
 | [`docs/linux.md`](docs/linux.md) | ce qui diffère sous Linux (sortie audio, arrêt de mpv, exclusif), construire et tester dans WSL | le code `cfg(not(windows))` du bureau, un paquet Linux |
 | [`docs/android.md`](docs/android.md) | état de l'app Android, moteur Media3, session média, pont natif, secrets, mise en page tactile, distribution de l'APK, construire et tester sur le S21 | `media3.rs`, `android.rs`, `plugins/seaglass-mobile/`, `gen/android/`, les styles `data-platform="android"` |
 | [`docs/jam.md`](docs/jam.md) | Jam locale et en ligne, API des invités, garde-fous, relais, liens d'autres services | `jam/`, `foreign/`, `relay/` |

@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.5.5"
+version = "0.5.6"
 description = "Seaglass, client de streaming non officiel"
 authors = ["bebanana"]
 edition = "2024"
@@ -61,6 +61,9 @@ tauri-plugin-seaglass-mobile = { path = "plugins/seaglass-mobile" }
 # `keyring` n'a qu'un magasin en mémoire et la session est perdue à la fermeture.
 [target.'cfg(target_os = "linux")'.dependencies]
 keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
+# Contrôles média (MPRIS, #312). Mêmes version et features que celles tirées par
+# tauri-plugin-opener et tauri-plugin-single-instance : aucune crate de plus à compiler.
+zbus = "5"
 
 [target.'cfg(windows)'.dependencies]
 # Même version que celle tirée par Tauri : aucune compilation supplémentaire.

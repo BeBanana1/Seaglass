@@ -1,14 +1,19 @@
 //! Intégrations système : elles reçoivent un résumé de l'état du lecteur (`NowPlaying`)
 //! et renvoient leurs actions (touches média…) sous forme de `Cmd` à l'acteur.
 
-// Hors Windows et Android (CI Linux), aucune intégration ne consomme `NowPlaying` : sans cela,
-// clippy `-D warnings` échouerait sur du code mort.
-#![cfg_attr(not(windows), allow(dead_code))]
+// Hors Windows, Linux et Android (macOS…), aucune intégration ne consomme `NowPlaying` :
+// sans cela, clippy `-D warnings` échouerait sur du code mort.
+#![cfg_attr(
+    not(any(windows, target_os = "linux", target_os = "android")),
+    allow(dead_code)
+)]
 
 #[cfg(desktop)]
 pub mod discord;
 #[cfg(any(target_os = "android", test))]
 pub mod media_session;
+#[cfg(any(target_os = "linux", test))]
+pub mod mpris;
 #[cfg(windows)]
 pub mod smtc;
 #[cfg(desktop)]
@@ -52,6 +57,8 @@ pub fn take_drive_request() -> bool {
 pub struct Observers {
     #[cfg(windows)]
     pub smtc: Option<smtc::SmtcHandle>,
+    #[cfg(target_os = "linux")]
+    pub mpris: Option<mpris::MprisHandle>,
     #[cfg(desktop)]
     pub tray: Option<tray::TrayHandle>,
     #[cfg(desktop)]
@@ -65,6 +72,10 @@ impl Observers {
         #[cfg(windows)]
         if let Some(smtc) = &self.smtc {
             smtc.update(NowPlaying::from_player(state));
+        }
+        #[cfg(target_os = "linux")]
+        if let Some(mpris) = &self.mpris {
+            mpris.update(NowPlaying::from_player(state));
         }
         #[cfg(desktop)]
         if let Some(tray) = &self.tray {
@@ -109,6 +120,8 @@ pub struct NowPlaying {
     pub has_previous: bool,
     pub shuffle: bool,
     pub repeat: Repeat,
+    /// 0.0–1.0, 0 quand le son est coupé (MPRIS).
+    pub volume: f64,
 }
 
 impl NowPlaying {
@@ -154,6 +167,11 @@ impl NowPlaying {
             has_previous: s.has_previous || s.track.is_some(),
             shuffle: s.shuffle,
             repeat: s.repeat,
+            volume: if s.volume.muted {
+                0.0
+            } else {
+                f64::from(s.volume.level) / 100.0
+            },
         }
     }
 }
