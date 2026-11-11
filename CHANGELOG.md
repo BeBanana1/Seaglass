@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.11
+
+- Taille de l'interface réglable sur le bureau (80 à 150 %) dans Réglages › Apparence, avec Ctrl + « + », Ctrl + « - » et Ctrl + 0 (#337).
+
 ## 0.5.10
 
 - Journaux et rapports de plantage gardés en local (bureau et Android) : `seaglass.log`, panics Rust, exceptions Kotlin et sorties anormales signalées par Android ; Réglages › Application › Journaux pour copier le journal ou le dernier rapport, et toast au lancement qui suit un plantage (#192).

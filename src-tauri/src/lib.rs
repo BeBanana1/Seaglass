@@ -65,6 +65,8 @@ pub fn run() {
             i18n::set(ui_settings.language.resolve());
             ui_settings.apply_to_backend();
             #[cfg(desktop)]
+            commands::settings::zoom::apply(app.handle(), ui_settings.zoom);
+            #[cfg(desktop)]
             commands::settings::refresh_autostart(app.handle());
             #[cfg(desktop)]
             let mpv_process = Arc::new(ProcessGuard::default());

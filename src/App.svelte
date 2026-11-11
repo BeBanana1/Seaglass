@@ -9,7 +9,7 @@
   import { closeJamDialog, initJam, jam } from "./lib/stores/jam.svelte";
   import JamDialog from "./components/JamDialog.svelte";
   import { clearLater, initLater, loadLater } from "./lib/stores/later.svelte";
-  import { initUi, ui } from "./lib/stores/ui.svelte";
+  import { initUi, stepZoom, ui } from "./lib/stores/ui.svelte";
   import { initLanguage, t } from "./lib/i18n.svelte";
   import { closeTrackInfo, openTrackInfo, trackInfo } from "./lib/stores/trackInfo.svelte";
   import { closeMenu, menu } from "./lib/stores/menu.svelte";
@@ -216,6 +216,12 @@
     if (e.key === "Escape") {
       if (appWindow.fullscreen) setFullscreen(false);
       else if (nowPlayingOpen) nowPlayingOpen = false;
+      return;
+    }
+    // Taille de l'interface (#337), comme dans un navigateur ; Android a son propre réglage.
+    if (e.ctrlKey && !platform.mobile && ["+", "=", "-", "0"].includes(e.key)) {
+      e.preventDefault();
+      stepZoom(e.key === "0" ? 0 : e.key === "-" ? -1 : 1).catch(() => {});
       return;
     }
     // Les réglages restent accessibles déconnecté (thème, cache).

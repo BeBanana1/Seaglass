@@ -10,6 +10,8 @@ export const fr = {
   languageHint: "Langue de l'interface et des contenus proposés par le service (accueil, mixes).",
   languages: { system: "Système", fr: "Français", en: "English" },
 
+  zoom: "Taille de l'interface",
+  zoomHint: "Agrandit ou réduit tout l'affichage. Raccourcis : Ctrl + « + », Ctrl + « - », Ctrl + 0.",
   theme: "Thème",
   themeHint: "Le thème s'applique tout de suite et reste enregistré.",
   themes: {
@@ -230,6 +232,8 @@ export const en: typeof fr = {
   languageHint: "Language of the interface and of the content suggested by the service (home, mixes).",
   languages: { system: "System", fr: "Français", en: "English" },
 
+  zoom: "Interface size",
+  zoomHint: "Enlarges or shrinks the whole display. Shortcuts: Ctrl + \"+\", Ctrl + \"-\", Ctrl + 0.",
   theme: "Theme",
   themeHint: "The theme applies right away and is saved.",
   themes: {

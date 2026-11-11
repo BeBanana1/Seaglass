@@ -481,6 +481,8 @@ export interface UiSettings {
   discord: boolean;
   /** Tris mémorisés, le plus récent en tête (#93). */
   sorts: ListSort[];
+  /** Taille de l'interface en pourcentage (#337), une valeur de `ZOOM_LEVELS`. */
+  zoom: number;
 }
 
 export type CloseAction = "quit" | "tray";

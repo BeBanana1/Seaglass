@@ -201,6 +201,7 @@ let ui: UiSettings = {
   // `?discord=1` : présence Discord activée (#215).
   discord: params.has("discord"),
   sorts: [],
+  zoom: 100,
 };
 
 /** « Système » du backend factice : la langue du navigateur. */
