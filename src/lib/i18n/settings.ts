@@ -189,6 +189,11 @@ export const fr = {
   clearPlayHistory: "Effacer",
   playHistoryCleared: "Historique d'écoute effacé",
 
+  changelog: "Journal des versions",
+  changelogHint: "Les changements de chaque version qui concernent cet appareil.",
+  showChangelog: "Afficher",
+  hideChangelog: "Masquer",
+  publishedOn: (date: string) => `publiée le ${date}`,
   logs: "Journaux",
   logsHint:
     "Gardés sur cet appareil seulement. Pour signaler un bug, copiez le journal ou le rapport de plantage et collez-le dans l'issue.",
@@ -406,6 +411,11 @@ export const en: typeof fr = {
   clearPlayHistory: "Clear",
   playHistoryCleared: "Listening history cleared",
 
+  changelog: "Changelog",
+  changelogHint: "What changed in each version, for this device.",
+  showChangelog: "Show",
+  hideChangelog: "Hide",
+  publishedOn: (date: string) => `released ${date}`,
   logs: "Logs",
   logsHint:
     "Kept on this device only. To report a bug, copy the log or the crash report and paste it into the issue.",

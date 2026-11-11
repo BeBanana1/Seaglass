@@ -6,6 +6,15 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+Ce journal est aussi affiché dans l'app (Réglages › Application, #340). Une entrée propre à
+une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (Windows et
+Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
+s'affichent pas.
+
+## 0.5.12
+
+- Journal des versions dans Réglages › Application, limité aux changements de la plateforme (#340).
+
 ## 0.5.11
 
 - Taille de l'interface réglable sur le bureau (80 à 150 %) dans Réglages › Apparence, avec Ctrl + « + », Ctrl + « - » et Ctrl + 0 (#337).
@@ -44,7 +53,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.5.2
 
-- Android, mode conduite : une tuile lit sa playlist ou ses titres likés dans l'ordre de leur page (tri choisi compris), et la bande › à droite de chaque tuile ouvre sa page (#193).
+- Android : en mode conduite, une tuile lit sa playlist ou ses titres likés dans l'ordre de leur page (tri choisi compris), et la bande › à droite de chaque tuile ouvre sa page (#193).
 
 ## 0.5.1
 
@@ -52,7 +61,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.5.0
 
-- Mode exclusif WASAPI (Réglages › Lecture) : sortie ouverte pour Seaglass seul, bascule à chaud, normalisation suspendue, échec d'ouverture signalé sans repli en partagé ; la chaîne audio lit le format réellement envoyé au périphérique et n'annonce « Bit-perfect » qu'en exclusif. Fin de la phase 5 (#245).
+- Windows : Mode exclusif WASAPI (Réglages › Lecture) : sortie ouverte pour Seaglass seul, bascule à chaud, normalisation suspendue, échec d'ouverture signalé sans repli en partagé ; la chaîne audio lit le format réellement envoyé au périphérique et n'annonce « Bit-perfect » qu'en exclusif. Fin de la phase 5 (#245).
 
 ## 0.4.119
 
@@ -160,7 +169,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.93 (publiée le 2026-11-06)
 
-- Liens `https://tidal.com/…` touchés ouverts dans l'app sur Android, à activer dans Réglages (#203).
+- Android : Liens `https://tidal.com/…` touchés ouverts dans l'app sur Android, à activer dans Réglages (#203).
 
 ## 0.4.92 (publiée le 2026-11-06)
 
@@ -196,7 +205,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.84
 
-- Jam depuis Android, en ligne seulement (#25, étape 4, en cours de vérification sur le S21).
+- Android : Jam depuis Android, en ligne seulement (#25, étape 4, en cours de vérification sur le S21).
 
 ## 0.4.83
 
@@ -236,11 +245,11 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.74
 
-- En-tête des pages centré sur Android, Lecture / Aléatoire puis les autres boutons sur deux lignes, filtre pleine largeur et tri en un bouton (#182).
+- Android : En-tête des pages centré sur Android, Lecture / Aléatoire puis les autres boutons sur deux lignes, filtre pleine largeur et tri en un bouton (#182).
 
 ## 0.4.73
 
-- Nom de l'app aligné sur les boutons de l'en-tête, centré avec la version dessous sur Android (#183).
+- Android : Nom de l'app aligné sur les boutons de l'en-tête, centré avec la version dessous sur Android (#183).
 
 ## 0.4.72
 
@@ -256,11 +265,11 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.69 (publiée le 2026-11-04)
 
-- Glisser un titre vers la droite l'ajoute à la file sur Android (#174).
+- Android : Glisser un titre vers la droite l'ajoute à la file sur Android (#174).
 
 ## 0.4.68
 
-- Paroles et file en plein écran dans « En lecture » sur Android (#173).
+- Android : Paroles et file en plein écran dans « En lecture » sur Android (#173).
 
 ## 0.4.67
 
@@ -280,7 +289,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.63
 
-- Notification d'Android cliquable (ouvre « En lecture ») avec boutons aléatoire et répétition (#163).
+- Android : Notification d'Android cliquable (ouvre « En lecture ») avec boutons aléatoire et répétition (#163).
 
 ## 0.4.62
 
@@ -288,7 +297,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.61
 
-- Aucun fond ni décor animé sur Android (#158).
+- Android : Aucun fond ni décor animé sur Android (#158).
 
 ## 0.4.60
 
@@ -300,7 +309,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.58 (publiée le 2026-11-04)
 
-- Mode recherche dans une playlist et les titres likés sur Android (#151).
+- Android : Mode recherche dans une playlist et les titres likés sur Android (#151).
 
 ## 0.4.57
 
@@ -312,11 +321,11 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.55
 
-- Onglet « Titres likés » dans la navigation d'Android, réglages en haut à droite (#143).
+- Android : Onglet « Titres likés » dans la navigation d'Android, réglages en haut à droite (#143).
 
 ## 0.4.54 (publiée le 2026-11-03)
 
-- L'installeur fait relire l'icône à Windows (#139).
+- Windows : L'installeur fait relire l'icône à Windows (#139).
 
 ## 0.4.53
 
@@ -340,23 +349,23 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.47 (publiée le 2026-11-03)
 
-- APK release signé et mises à jour sur Android (#24).
+- Android : APK release signé et mises à jour sur Android (#24).
 
 ## 0.4.46
 
-- Mise en page tactile sur Android (#24).
+- Android : Mise en page tactile sur Android (#24).
 
 ## 0.4.45
 
-- Refresh token dans l'Android Keystore (#24).
+- Android : Refresh token dans l'Android Keystore (#24).
 
 ## 0.4.44
 
-- Lecture Media3 et session média sur Android (#24).
+- Android : Lecture Media3 et session média sur Android (#24).
 
 ## 0.4.43 (publiée le 2026-11-03)
 
-- Squelette Android, sans lecture, avec connexion (#24).
+- Android : Squelette Android, sans lecture, avec connexion (#24).
 
 ## 0.4.42
 
@@ -494,7 +503,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.4.4 (publiée le 2026-10-29)
 
-- Première version publiée : installeur NSIS signé, mpv embarqué, mises à jour automatiques.
+- Windows : Première version publiée : installeur NSIS signé, mpv embarqué, mises à jour automatiques.
 
 ## 0.4.3
 
@@ -514,7 +523,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.3.1
 
-- feat(integrations): Windows media controls via SMTC (v0.3.1)
+- Windows : feat(integrations): Windows media controls via SMTC (v0.3.1)
 
 ## 0.3.0
 

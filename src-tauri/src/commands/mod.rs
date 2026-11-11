@@ -2,6 +2,7 @@
 
 pub mod auth;
 pub mod catalog;
+pub mod changelog;
 pub mod collection;
 pub mod drive;
 pub mod jam;

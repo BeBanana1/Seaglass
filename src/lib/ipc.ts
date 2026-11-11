@@ -467,6 +467,14 @@ export interface ListSort extends TrackSort {
   list: string;
 }
 
+/** Version du journal (#340), entrées déjà filtrées pour la plateforme. */
+export interface Release {
+  version: string;
+  /** `AAAA-MM-JJ` pour une version publiée. */
+  published: string | null;
+  entries: string[];
+}
+
 export interface UiSettings {
   theme: Theme;
   home: HomeLayout;
@@ -743,6 +751,7 @@ export const commands = {
   lastCrashReport: () => invoke<string | null>("last_crash_report"),
   /** Fin du journal de ce lancement. */
   currentLog: () => invoke<string | null>("current_log"),
+  changelog: () => invoke<Release[]>("changelog"),
   /** Bureau : dossier des journaux dans l'explorateur. */
   openLogDir: () => invoke<void>("open_log_dir"),
   /** Remplace les épingles ; renvoie la liste enregistrée (validée, sans doublons). */
