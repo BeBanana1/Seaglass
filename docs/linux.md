@@ -37,7 +37,9 @@ passe donc par le navigateur de l'utilisateur, comme le flux PKCE de `tidalapi` 
 2. Après la connexion, TIDAL renvoie sur `https://tidal.com/android/login/auth?code=…`, une
    page d'erreur dans un navigateur de bureau. L'utilisateur colle son adresse dans l'app.
 3. `browser_login_finish` n'accepte que cette adresse (`auth::redirect_code`, 4 Ko au plus,
-   testé) ; une adresse refusée laisse le défi en place pour un nouvel essai.
+   testé). Le défi n'est retiré qu'une fois la session ouverte : sinon un échec de
+   l'échange ou du trousseau, suivi d'un nouvel essai, n'affichait plus que « ouvrez d'abord
+   la page de connexion » et masquait la vraie erreur (vu dans WSL).
 
 Le choix vient de Rust (`login_in_browser`, vrai sous Linux) ; l'écran est
 `views/Login.svelte`. Aperçu : `?loggedout&browserLogin=1`.
@@ -93,7 +95,17 @@ session `wsl.exe` qui l'a lancée doit rester ouverte : l'app s'arrête avec ell
   Sans backend Linux pour `keyring`, la session était perdue à la fermeture.
 
 WSL a un bus de session D-Bus (systemd utilisateur) : `gnome-keyring` y est activé à la
-demande. Au premier enregistrement, une fenêtre demande le mot de passe du nouveau trousseau.
+demande, mais **sans trousseau par défaut** (l'alias `default` pointe vers un `login`
+inexistant), et `keyring` ne le crée pas : limite documentée dans
+`keyring/src/secret_service.rs` (keyring-rs#133). Le créer une fois avec `secret-tool`, qui
+ouvre la fenêtre de GNOME pour choisir son mot de passe, puis effacer l'entrée de test :
+
+```bash
+secret-tool store --label=test seaglass-test x
+secret-tool clear seaglass-test x
+```
+
+Un vrai bureau (GNOME, KDE) a ce trousseau dès l'ouverture de session.
 
 À vérifier : connexion par le navigateur du système (page d'erreur finale de TIDAL dans un
 navigateur de bureau, d'après `tidalapi`), session gardée après un redémarrage, lecture TIDAL, gapless, reprise de la

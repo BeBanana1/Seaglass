@@ -82,7 +82,14 @@ pub enum TidalError {
     Drm(String),
     #[error("{}", trf!("format de flux non pris en charge : {}", "unsupported stream format: {}", .0))]
     UnsupportedStream(String),
-    #[error("{}", trf!("Gestionnaire d'identifiants : {}", "Credential Manager: {}", .0))]
+    #[cfg_attr(
+        not(target_os = "linux"),
+        error("{}", trf!("Gestionnaire d'identifiants : {}", "Credential Manager: {}", .0))
+    )]
+    #[cfg_attr(
+        target_os = "linux",
+        error("{}", trf!("Trousseau du système (GNOME Keyring, KWallet) : {}", "System keyring (GNOME Keyring, KWallet): {}", .0))
+    )]
     Keyring(#[from] keyring::Error),
 }
 

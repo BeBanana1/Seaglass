@@ -83,7 +83,9 @@ pub async fn browser_login_start(app: AppHandle, state: State<'_, AppState>) -> 
 
 /// Connexion par navigateur, étape 2 : l'adresse de la page sur laquelle TIDAL a renvoyé
 /// après la connexion. Seule une adresse de redirection attendue (`auth::redirect_code`)
-/// est acceptée ; une adresse invalide laisse le défi en place pour un nouvel essai.
+/// est acceptée. Le défi n'est retiré qu'une fois la session ouverte : après un échec
+/// (adresse refusée, code périmé ou venu d'une autre page de connexion), un nouvel essai
+/// montre la vraie erreur au lieu de « ouvrez d'abord la page ».
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn browser_login_finish(
@@ -97,14 +99,18 @@ pub async fn browser_login_finish(
         )
         .to_owned()
     })?;
-    let challenge = BROWSER_LOGIN.lock().map_err(err)?.take().ok_or_else(|| {
+    let challenge = BROWSER_LOGIN.lock().map_err(err)?.clone().ok_or_else(|| {
         crate::i18n::tr(
             "Ouvrez d'abord la page de connexion",
             "Open the sign-in page first",
         )
         .to_owned()
     })?;
-    finish_login(&state, &challenge, &code).await
+    let session = finish_login(&state, &challenge, &code).await?;
+    if let Ok(mut pending) = BROWSER_LOGIN.lock() {
+        *pending = None;
+    }
+    Ok(session)
 }
 
 #[cfg(desktop)]
