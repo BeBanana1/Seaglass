@@ -18,7 +18,7 @@
   import { library, loadLibrary } from "../lib/stores/library.svelte";
   import { back } from "../lib/stores/nav.svelte";
   import { notePlaylistChange, playlistChanges } from "../lib/stores/playlistPicker.svelte";
-  import { pushToast } from "../lib/stores/toasts.svelte";
+  import { pushToast, pushUndoToast } from "../lib/stores/toasts.svelte";
   import { listSearch } from "../lib/stores/listSearch.svelte";
   import { t } from "../lib/i18n.svelte";
   import { platform } from "../lib/platform.svelte";
@@ -93,12 +93,23 @@
     if (!entry) return;
     try {
       await commands.removeFromPlaylist(uuid, entry.position - 1, entry.track.id);
-      pushToast({ level: "info", message: t.views.playlist.removed(fullTitle(entry.track)) });
+      // Annulable (#349) : le titre revient à sa position, avec une nouvelle date d'ajout.
+      const [playlist, position, id] = [uuid, entry.position - 1, entry.track.id];
+      pushUndoToast(t.views.playlist.removed(fullTitle(entry.track)), () => void restore(playlist, position, id));
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
     // Rechargée même en cas d'échec : un refus signifie que la playlist a changé.
     notePlaylistChange(uuid);
+  }
+
+  async function restore(playlist: string, position: number, id: number) {
+    try {
+      await commands.restoreToPlaylist(playlist, position, id);
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+    notePlaylistChange(playlist);
   }
 
   // Réorganisation (#201) : seulement sur vos playlists, dans l'ordre d'origine et sans
