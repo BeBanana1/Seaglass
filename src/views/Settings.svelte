@@ -13,7 +13,7 @@
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { copyText, pushToast } from "../lib/stores/toasts.svelte";
-  import { setCloseAction, setDiscord, ui } from "../lib/stores/ui.svelte";
+  import { setCloseAction, setDiscord, setZoom, ui, ZOOM_LEVELS } from "../lib/stores/ui.svelte";
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
@@ -282,6 +282,25 @@
       <p class="hint">{t.settings.accentHint}</p>
       <AccentPicker />
     </div>
+    {#if desktop}
+    <div class="group">
+      <h2>{t.settings.zoom}</h2>
+      <p class="hint">{t.settings.zoomHint}</p>
+      <div class="cache-sizes" role="radiogroup" aria-label={t.settings.zoom}>
+        {#each ZOOM_LEVELS as level (level)}
+          <button
+            class="cache-size"
+            class:selected={ui.settings.zoom === level}
+            role="radio"
+            aria-checked={ui.settings.zoom === level}
+            onclick={() => setZoom(level).catch(fail)}
+          >
+            {level} %
+          </button>
+        {/each}
+      </div>
+    </div>
+    {/if}
   {:else if section === "playback"}
     {#if desktop}
     <div class="group">

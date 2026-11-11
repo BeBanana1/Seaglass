@@ -5,6 +5,7 @@ pub mod accent;
 pub mod home_layout;
 pub mod pins;
 pub mod sorts;
+pub mod zoom;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
@@ -20,6 +21,7 @@ use accent::Accents;
 use home_layout::{HomeLayout, SectionPref};
 use pins::Pin;
 use sorts::{ListSort, TrackSort};
+use zoom::Zoom;
 
 const KEY_UI: &str = "ui.settings";
 
@@ -85,6 +87,8 @@ pub struct UiSettings {
     pub close_action: CloseAction,
     /// Présence Discord (#215) : montrer le titre en cours à ses contacts. Désactivée par défaut.
     pub discord: bool,
+    /// Taille de l'interface en pourcentage (#337), propre à chaque appareil.
+    pub zoom: Zoom,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -148,10 +152,18 @@ pub async fn ui_settings(state: State<'_, AppState>) -> CmdResult<UiSettings> {
 
 /// La désérialisation de `settings` valide le thème : une valeur inconnue est refusée.
 #[tauri::command]
-pub async fn set_ui_settings(state: State<'_, AppState>, settings: UiSettings) -> CmdResult<()> {
+pub async fn set_ui_settings(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    settings: UiSettings,
+) -> CmdResult<()> {
     save(&state, &settings)?;
     i18n::set(settings.language.resolve());
     settings.apply_to_backend();
+    #[cfg(desktop)]
+    zoom::apply(&app, settings.zoom);
+    #[cfg(not(desktop))]
+    let _ = app;
     Ok(())
 }
 

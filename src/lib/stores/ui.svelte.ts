@@ -32,6 +32,7 @@ export const ui = $state<{
     closeAction: "quit",
     discord: false,
     sorts: [],
+    zoom: 100,
   },
   nowPlayingPanel: null,
 });
@@ -130,6 +131,30 @@ export async function setCloseAction(closeAction: CloseAction) {
     ui.settings = previous;
     throw e;
   }
+}
+
+/** Tailles de l'interface (#337), les mêmes que `zoom::LEVELS` côté Rust. */
+export const ZOOM_LEVELS = [80, 90, 100, 110, 125, 150];
+
+/** Taille de l'interface, appliquée au zoom de la WebView par le backend. */
+export async function setZoom(zoom: number) {
+  if (zoom === ui.settings.zoom || !ZOOM_LEVELS.includes(zoom)) return;
+  const previous = ui.settings;
+  ui.settings = { ...ui.settings, zoom };
+  try {
+    await commands.setUiSettings(ui.settings);
+  } catch (e) {
+    ui.settings = previous;
+    throw e;
+  }
+}
+
+/** Raccourcis Ctrl + « + » / « - » : niveau voisin ; 0 revient à 100 %. */
+export function stepZoom(step: -1 | 0 | 1): Promise<void> {
+  if (step === 0) return setZoom(100);
+  const i = ZOOM_LEVELS.indexOf(ui.settings.zoom);
+  const next = ZOOM_LEVELS[Math.min(ZOOM_LEVELS.length - 1, Math.max(0, (i < 0 ? 2 : i) + step))];
+  return setZoom(next);
 }
 
 /** Enregistre l'ordre et le masquage des sections de l'accueil, tels qu'affichés. */
