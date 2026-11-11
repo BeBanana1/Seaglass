@@ -787,6 +787,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   take_crash_notice: () => params.get("crash") === "1",
   last_crash_report: () =>
     params.get("crash") === "1" ? "# Rapport de plantage Seaglass\n\npanic dans le thread « main » : exemple\n" : null,
+  changelog: () => [
+    { version: "0.5.12", published: null, entries: ["Journal des versions dans Réglages › Application (#340)."] },
+    { version: "0.5.11", published: "2026-11-11", entries: ["Taille de l'interface réglable avec `Ctrl` + « + » (#337)."] },
+  ],
   current_log: () => "2026-11-11T10:00:00Z  INFO seaglass_lib: Seaglass (aperçu)\n",
   open_log_dir: () => null,
   reset_home_layout: () => (ui.home = { order: [], hidden: [], featuredHidden: false }),

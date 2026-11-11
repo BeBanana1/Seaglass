@@ -17,6 +17,7 @@
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
+  import ChangelogList from "../components/ChangelogList.svelte";
   import OutputDevicePicker from "../components/OutputDevicePicker.svelte";
   import { platform } from "../lib/platform.svelte";
   import { jam } from "../lib/stores/jam.svelte";
@@ -48,6 +49,7 @@
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
   let discordAvailable = $state(false);
+  let changelogOpen = $state(false);
   // Faux sous Linux hors d'une AppImage (#314) : pas de bouton « Vérifier ».
   let updatesAvailable = $state(true);
   let exclusiveAvailable = $state(false);
@@ -530,6 +532,16 @@
 
     <div class="group">
       <h2>{t.settings.updates}</h2>
+      <div class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.changelog}</span>
+          <span class="hint">{t.settings.changelogHint}</span>
+        </span>
+        <button class="update-check" onclick={() => (changelogOpen = !changelogOpen)} aria-expanded={changelogOpen}>
+          {changelogOpen ? t.settings.hideChangelog : t.settings.showChangelog}
+        </button>
+      </div>
+      {#if changelogOpen}<ChangelogList />{/if}
       <div class="setting-row">
         <span class="text">
           <span class="setting-label">{t.settings.checkUpdates}</span>

@@ -148,6 +148,7 @@ pub fn run() {
             commands::catalog::track_info,
             commands::catalog::album_credits,
             commands::link::open_link,
+            commands::changelog::changelog,
             commands::logs::take_crash_notice,
             commands::logs::last_crash_report,
             commands::logs::current_log,
