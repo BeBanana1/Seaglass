@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.4
+
+- Mode exclusif : plus de grésillements ni de bouts répétés sur les interfaces USB qui réveillent le lecteur moins souvent que leur période annoncée (Focusrite) ; tampon exclusif de 50 ms (#308).
+
 ## 0.5.3
 
 - Android : plus d'avertissement « unused import » sur `flush_blocking` à la compilation, la réexport n'existe plus que sur le bureau comme son seul appelant (#307).
