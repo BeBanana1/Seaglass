@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use super::normalize::Normalization;
 use crate::mpv::{AudioDevice, CacheSize};
 use crate::store::Store;
+use crate::tidal::models::AudioQuality;
 
 const KEY: &str = "playback.settings";
 
@@ -34,6 +35,9 @@ pub struct PlaybackSettings {
     pub pause_on_unplug: bool,
     /// Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut.
     pub resume_on_launch: bool,
+    /// Android : qualité demandée à TIDAL (#325), Lossless par défaut. Sans effet sur le
+    /// bureau, toujours en Hi-Res Lossless.
+    pub mobile_quality: MobileQuality,
 }
 
 impl Default for PlaybackSettings {
@@ -47,6 +51,26 @@ impl Default for PlaybackSettings {
             auto_radio: false,
             pause_on_unplug: true,
             resume_on_launch: false,
+            mobile_quality: MobileQuality::default(),
+        }
+    }
+}
+
+/// Qualité de lecture sur Android (#325). L'écoute y passe par le Bluetooth, qui réencode le
+/// son : « Haute » (AAC 320 kbit/s) demande environ trois fois moins de données que le FLAC.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MobileQuality {
+    #[default]
+    Lossless,
+    High,
+}
+
+impl MobileQuality {
+    pub fn audio_quality(self) -> AudioQuality {
+        match self {
+            Self::Lossless => AudioQuality::Lossless,
+            Self::High => AudioQuality::High,
         }
     }
 }
@@ -125,7 +149,7 @@ mod tests {
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false,"mobileQuality":"lossless"}"#
         );
         assert!(!s.auto_radio, "radio automatique désactivée par défaut");
         assert!(!s.exclusive, "mode exclusif désactivé par défaut");
@@ -137,6 +161,23 @@ mod tests {
             !s.resume_on_launch,
             "pas de reprise au lancement par défaut (#353)"
         );
+    }
+
+    #[test]
+    fn mobile_quality_is_lossless_unless_asked() {
+        let read =
+            |json: &str| serde_json::from_str::<PlaybackSettings>(json).map(|s| s.mobile_quality);
+        assert_eq!(read("{}").unwrap(), MobileQuality::Lossless);
+        assert_eq!(
+            read(r#"{"mobileQuality":"high"}"#).unwrap(),
+            MobileQuality::High
+        );
+        assert!(read(r#"{"mobileQuality":"low"}"#).is_err());
+        assert_eq!(
+            MobileQuality::Lossless.audio_quality(),
+            AudioQuality::Lossless
+        );
+        assert_eq!(MobileQuality::High.audio_quality(), AudioQuality::High);
     }
 
     #[test]

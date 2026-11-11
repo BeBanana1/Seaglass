@@ -513,6 +513,9 @@ export type CacheSize = 32 | 64 | 128 | 256;
 
 export type HiresUpgrade = "auto" | "ask" | "off";
 
+/** Qualité de lecture sur Android (#325) : FLAC 16/44,1 ou AAC 320 kbit/s. */
+export type MobileQuality = "lossless" | "high";
+
 /** Normalisation du volume par ReplayGain (#82). */
 export type Normalization = "off" | "track" | "album";
 
@@ -537,6 +540,8 @@ export interface PlaybackSettings {
   pauseOnUnplug: boolean;
   /** Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut. */
   resumeOnLaunch: boolean;
+  /** Android : qualité demandée (#325), Lossless par défaut. Sans effet sur le bureau. */
+  mobileQuality: MobileQuality;
 }
 
 export interface UpdateInfo {

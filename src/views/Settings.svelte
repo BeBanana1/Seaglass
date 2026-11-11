@@ -7,6 +7,7 @@
     type CacheSize,
     type CloseAction,
     type HiresUpgrade,
+    type MobileQuality,
     type LanguagePref,
     type Normalization,
     type PlaybackSettings,
@@ -39,6 +40,7 @@
 
   const HIRES_MODES: HiresUpgrade[] = ["auto", "ask", "off"];
 
+  const MOBILE_QUALITIES: MobileQuality[] = ["lossless", "high"];
   const NORMALIZATION_MODES: Normalization[] = ["off", "track", "album"];
   let playback = $state<PlaybackSettings | null>(null);
   const cacheSize = $derived(playback?.cacheSize ?? null);
@@ -150,6 +152,10 @@
 
   function setHiresUpgrade(mode: HiresUpgrade) {
     if (playback && mode !== playback.hiresUpgrade) savePlayback({ ...playback, hiresUpgrade: mode });
+  }
+
+  function setMobileQuality(quality: MobileQuality) {
+    if (playback && quality !== playback.mobileQuality) savePlayback({ ...playback, mobileQuality: quality });
   }
 
   function toggleExclusive() {
@@ -410,6 +416,28 @@
         {/each}
       </div>
       <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
+    </div>
+    {:else}
+    <div class="group">
+      <h2>{t.settings.quality}</h2>
+      <p class="hint">{t.settings.mobileQualityHint}</p>
+      <div class="cache-sizes mobile-qualities" role="radiogroup" aria-label={t.settings.quality}>
+        {#each MOBILE_QUALITIES as quality (quality)}
+          <button
+            class="cache-size hires-mode"
+            class:selected={playback?.mobileQuality === quality}
+            role="radio"
+            aria-checked={playback?.mobileQuality === quality}
+            disabled={playback === null}
+            onclick={() => setMobileQuality(quality)}
+          >
+            {t.settings.mobileQualities[quality].label}
+          </button>
+        {/each}
+      </div>
+      <p class="note">
+        {playback ? `${t.settings.mobileQualities[playback.mobileQuality].note} ${t.settings.mobileQualityNext}` : ""}
+      </p>
     </div>
     {/if}
     <div class="group">

@@ -554,3 +554,39 @@ async fn live_foreign_links() {
         assert!(first.is_some(), "rien pour {link}");
     }
 }
+
+/// `cargo test live_high_quality -- --ignored --nocapture` : flux `HIGH` du client PKCE
+/// (#325) : type de manifeste, codec, absence de DRM, gain de normalisation.
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_high_quality() {
+    use super::models::{AudioQuality, StreamSource};
+
+    let client = client().await;
+    for id in [LYRICS_TRACK, NO_LYRICS_TRACK, TrackId(1_632_061)] {
+        let lossless = client.stream(id, AudioQuality::Lossless).await.unwrap();
+        // `stream` refuse un manifeste ou un segment d'initialisation chiffré.
+        let high = client.stream(id, AudioQuality::High).await.unwrap();
+        let kind = match &high.source {
+            StreamSource::Dash(mpd) => {
+                let shape: String = mpd
+                    .split('<')
+                    .filter(|tag| !tag.starts_with('/'))
+                    .map(|tag| tag.split([' ', '>']).next().unwrap_or_default())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                format!("MPD ({shape})")
+            }
+            StreamSource::Direct(_) => "URL directe (BTS)".to_owned(),
+        };
+        println!("{id} : {kind}");
+        println!("  HIGH     : {:?} gain {:?}", high.format, high.gain);
+        println!(
+            "  LOSSLESS : {:?} gain {:?}",
+            lossless.format, lossless.gain
+        );
+        assert_eq!(high.format.quality, AudioQuality::High);
+        assert!(high.format.codec.starts_with("mp4a"), "AAC attendu");
+        assert_eq!(high.gain, lossless.gain, "même gain dans les deux qualités");
+    }
+}
