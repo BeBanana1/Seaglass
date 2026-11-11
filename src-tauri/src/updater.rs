@@ -9,6 +9,11 @@
 //! `check_for_updates` (bouton des Réglages) lance la même vérification à la demande. Elle
 //! répond dès le manifeste lu (#187) : le téléchargement de l'installeur (une quarantaine de
 //! Mo) continue en arrière-plan et se termine par `update-ready`.
+//!
+//! Linux (#314) : seulement depuis une AppImage (`APPIMAGE`, validé par Tauri). Le plugin
+//! réécrit ce fichier, puis l'app se relance elle-même. Sans AppImage, il prendrait
+//! l'exécutable courant pour cible et remplacerait le binaire nu par une AppImage : les
+//! mises à jour y sont désactivées (`supported`).
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -17,6 +22,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
+use crate::i18n::tr;
 use crate::mpv::process::ProcessGuard;
 
 const CHECK_INTERVAL: Duration = Duration::from_secs(6 * 3600);
@@ -97,7 +103,23 @@ impl UpdateState {
     }
 }
 
+/// Vrai si l'app peut se mettre à jour elle-même : Windows (installeur NSIS), Linux
+/// lancé depuis une AppImage.
+pub fn supported(app: &AppHandle) -> bool {
+    #[cfg(target_os = "linux")]
+    return app.env().appimage.is_some();
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = app;
+        true
+    }
+}
+
 pub fn spawn(app: AppHandle, mpv: Arc<ProcessGuard>) {
+    if !supported(&app) {
+        tracing::info!("mises à jour automatiques désactivées : app lancée hors d'une AppImage");
+        return;
+    }
     let endpoint = std::env::var(ENDPOINT_ENV).ok();
     if cfg!(debug_assertions) && endpoint.is_none() {
         return;
@@ -143,7 +165,19 @@ async fn check(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let Some(update) = updater.check().await.map_err(|e| e.to_string())? else {
+    let update = match updater.check().await {
+        Ok(update) => update,
+        // Version publiée sans cette plateforme (release Windows seule, par exemple) :
+        // rien à installer ici, ce n'est pas une erreur à montrer.
+        Err(tauri_plugin_updater::Error::TargetNotFound(target)) => {
+            tracing::info!(
+                "manifeste sans entrée {target} : pas de mise à jour pour cette plateforme"
+            );
+            None
+        }
+        Err(e) => return Err(e.to_string()),
+    };
+    let Some(update) = update else {
         // Une version prête mais retirée du manifeste reste installable.
         return Ok(state.info());
     };
@@ -197,6 +231,13 @@ pub async fn check_for_updates(
     app: AppHandle,
     mpv: State<'_, Arc<ProcessGuard>>,
 ) -> Result<Option<UpdateInfo>, String> {
+    if !supported(&app) {
+        return Err(tr(
+            "mises à jour automatiques indisponibles hors de l'AppImage",
+            "automatic updates are unavailable outside the AppImage",
+        )
+        .into());
+    }
     let endpoint = std::env::var(ENDPOINT_ENV).ok();
     let info = check(&app, endpoint.as_deref(), &mpv).await?;
     if let Some(info) = info.as_ref().filter(|i| !i.downloading) {
@@ -205,19 +246,58 @@ pub async fn check_for_updates(
     Ok(info)
 }
 
+/// Vrai si les Réglages peuvent proposer de vérifier les mises à jour (voir `supported`).
+#[tauri::command]
+pub fn updates_available(app: AppHandle) -> bool {
+    supported(&app)
+}
+
 #[tauri::command]
 pub fn update_status(state: State<'_, UpdateState>) -> Option<UpdateInfo> {
     state.info()
 }
 
-/// Installe tout de suite : l'installeur ferme l'app puis la relance.
+/// Installe tout de suite. Windows : l'installeur ferme l'app puis la relance. Linux :
+/// l'AppImage est remplacée, puis l'app se relance (file sauvegardée et mpv arrêté par
+/// `RunEvent::Exit`, comme à la fermeture).
 #[tauri::command]
-pub fn install_update(state: State<'_, UpdateState>) -> Result<(), String> {
+pub fn install_update(app: AppHandle, state: State<'_, UpdateState>) -> Result<(), String> {
     let pending = state
         .take()
         .ok_or_else(|| "aucune mise à jour prête".to_owned())?;
-    pending
-        .update
-        .install(&pending.bytes)
-        .map_err(|e| e.to_string())
+    if let Err(e) = pending.update.install(&pending.bytes) {
+        let message = install_error(&app, e);
+        // Gardée : après avoir déplacé l'AppImage, un nouvel essai ne retélécharge rien.
+        if let Ok(mut slot) = state.pending.lock() {
+            *slot = Some(pending);
+        }
+        return Err(message);
+    }
+    #[cfg(target_os = "linux")]
+    app.request_restart();
+    Ok(())
+}
+
+/// Message d'un échec d'installation. Linux : une AppImage rangée dans un dossier sans
+/// droit d'écriture (`/opt`, clé montée en lecture seule…) ne peut pas être remplacée.
+fn install_error(app: &AppHandle, e: tauri_plugin_updater::Error) -> String {
+    #[cfg(target_os = "linux")]
+    if let tauri_plugin_updater::Error::Io(io) = &e
+        && io.kind() == std::io::ErrorKind::PermissionDenied
+    {
+        let dir = app
+            .env()
+            .appimage
+            .as_deref()
+            .and_then(|p| std::path::Path::new(p).parent())
+            .map(|d| d.display().to_string())
+            .unwrap_or_default();
+        return crate::i18n::trf!(
+            "impossible de remplacer l'AppImage : le dossier {} n'est pas modifiable. Télécharger la nouvelle version à la main, ou déplacer l'AppImage dans un dossier à soi",
+            "cannot replace the AppImage: the folder {} is not writable. Download the new version manually, or move the AppImage to a folder you own",
+            dir
+        );
+    }
+    let _ = app;
+    e.to_string()
 }

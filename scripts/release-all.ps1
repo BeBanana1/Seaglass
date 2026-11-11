@@ -7,9 +7,10 @@
   2. Construit l'installeur Windows (`release.ps1`), l'APK (`release-android.ps1`), puis
      l'AppImage (`release-linux.ps1`, dans WSL), sans rien publier : si un build échoue,
      rien n'est en ligne.
-  3. Avec -Publish : publie Windows, Android puis Linux (`-PublishOnly` : les fichiers du
+  3. Avec -Publish : publie Android, Linux puis Windows (`-PublishOnly` : les fichiers du
      build de l'étape 2, contrôlés par leur repère), pose le tag, puis crée la release
-     Gitea avec l'installeur, l'APK et l'AppImage (`gitea-release.ps1`).
+     Gitea avec l'installeur, l'APK et l'AppImage (`gitea-release.ps1`). Windows passe en
+     dernier : il envoie latest.json, qui annonce aussi l'AppImage aux mises à jour (#314).
 
   -SkipLinux laisse Linux de côté (WSL ou sa distribution de build absents).
 
@@ -81,24 +82,27 @@ if (-not $Publish) {
 }
 
 # --- 3. Publication ---------------------------------------------------------------------
-Step "Windows $version : publication"
-powershell @ps $windows -PublishOnly -SkipGiteaRelease
-if ($LASTEXITCODE -ne 0) {
-    Fail "publication Windows en échec, Android non publié (relancer : powershell -File scripts/release-all.ps1 -Publish)"
-}
+# Windows en dernier : sa publication envoie latest.json, qui annonce aussi l'AppImage
+# (#314) ; elle vérifie que chaque fichier annoncé est déjà en ligne.
 Step "Android $version : publication"
 powershell @ps $android -PublishOnly -SkipGiteaRelease
 if ($LASTEXITCODE -ne 0) {
-    Fail ("Windows est publié mais pas Android. Pour finir :`n" +
-        "    powershell -File scripts/release-android.ps1 -PublishOnly")
+    Fail "publication Android en échec, rien d'autre n'a été publié (relancer : powershell -File scripts/release-all.ps1 -Publish)"
 }
 if (-not $SkipLinux) {
     Step "Linux $version : publication"
     powershell @ps $linux -PublishOnly -SkipGiteaRelease
     if ($LASTEXITCODE -ne 0) {
-        Fail ("Windows et Android sont publiés mais pas Linux. Pour finir :`n" +
-            "    powershell -File scripts/release-linux.ps1 -PublishOnly")
+        Fail ("Android est publié mais pas Linux ni Windows. Pour finir :`n" +
+            "    powershell -File scripts/release-linux.ps1 -PublishOnly`n" +
+            "    powershell -File scripts/release.ps1 -PublishOnly")
     }
+}
+Step "Windows $version : publication (latest.json en dernier)"
+powershell @ps $windows -PublishOnly -SkipGiteaRelease
+if ($LASTEXITCODE -ne 0) {
+    Fail ("Android$(if (-not $SkipLinux) { ' et Linux sont publiés' } else { ' est publié' }), pas Windows ni le manifeste de l'updater. Pour finir :`n" +
+        "    powershell -File scripts/release.ps1 -PublishOnly")
 }
 
 # Tout est en ligne : un échec ici n'est qu'un avertissement (#108).

@@ -218,6 +218,8 @@ pub fn run() {
             #[cfg(desktop)]
             updater::update_status,
             #[cfg(desktop)]
+            updater::updates_available,
+            #[cfg(desktop)]
             updater::install_update,
             #[cfg(desktop)]
             updater::check_for_updates,

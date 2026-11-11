@@ -167,6 +167,8 @@ export const fr = {
   updateAvailable: "Une nouvelle version est disponible.",
   updateDownloading: (v: string) => `Version ${v} disponible, téléchargement en cours…`,
   updateAuto: "Vérification automatique au démarrage puis toutes les 6 heures.",
+  updatesManual:
+    "Mises à jour automatiques réservées à l'AppImage : télécharger les nouvelles versions sur la page de Seaglass.",
   checking: "Vérification…",
   check: "Vérifier",
   checkFailed: (e: string) => `Vérification des mises à jour impossible : ${e}`,
@@ -368,6 +370,8 @@ export const en: typeof fr = {
   updateAvailable: "A new version is available.",
   updateDownloading: (v: string) => `Version ${v} available, downloading…`,
   updateAuto: "Checked automatically at startup, then every 6 hours.",
+  updatesManual:
+    "Automatic updates are only available in the AppImage: download new versions from the Seaglass page.",
   checking: "Checking…",
   check: "Check",
   checkFailed: (e: string) => `Could not check for updates: ${e}`,

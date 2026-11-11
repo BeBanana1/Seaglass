@@ -58,6 +58,7 @@ Set-Location $root
 function Fail($message) { Write-Host "ERREUR : $message" -ForegroundColor Red; exit 1 }
 function Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
 . (Join-Path $PSScriptRoot 'build-stamp.ps1')
+. (Join-Path $PSScriptRoot 'updater-manifest.ps1')
 if ($PublishOnly) { $Publish = $true }
 
 # --- 1. Vérifications -------------------------------------------------------------------
@@ -113,62 +114,9 @@ if (-not $PublishOnly) {
     Write-Host "    $mpvVersion, SHA-256 conforme à mpv.lock"
 
     # --- 3. Build signé ---------------------------------------------------------------------
-    # Mot de passe de la clé (#87) : TAURI_SIGNING_PRIVATE_KEY_PASSWORD (session), sinon entrée
-    # générique « seaglass-signing-key » du Gestionnaire d'identifiants, sinon saisi au clavier.
-    # Il ne passe que par l'environnement du build, jamais par un fichier, et il est vérifié
-    # avant le build (scripts/protect-signing-key.py --check, mot de passe sur l'entrée standard).
     Step "clé de signature"
-    $credentialTarget = 'seaglass-signing-key'
-    $keyHelp = "procédure : issue #87 / docs/release.md, « Signature »"
-
-    . (Join-Path $PSScriptRoot 'credentials.ps1')
-
-    # Code de sortie de --check : 0 = le mot de passe ouvre la clé, 1 = non, 2 = clé illisible.
-    $python = Get-Command python -ErrorAction SilentlyContinue
-    function Test-KeyPassword([string]$password) {
-        # UTF-8 pour les mots de passe non ASCII (le BOM ajouté par PowerShell 5.1 est retiré).
-        $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-        $password | & $python.Source -I (Join-Path $PSScriptRoot 'protect-signing-key.py') --check $keyPath | Out-Null
-        $LASTEXITCODE
-    }
-
-    $keyPassword = $null
-    if (-not $python) {
-        Write-Host "    python introuvable : mot de passe non vérifié avant le build" -ForegroundColor Yellow
-    } else {
-        switch (Test-KeyPassword '') {
-            0 {
-                # Clé encore chiffrée avec un mot de passe vide : la release passe, avec un rappel.
-                Write-Host "    ATTENTION : la clé de signature n'a pas de mot de passe ($keyHelp)" -ForegroundColor Yellow
-                $keyPassword = ''
-            }
-            1 { }
-            default { Fail "clé de signature illisible : $keyPath" }
-        }
-    }
-    if ($null -eq $keyPassword) {
-        if ($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
-            $keyPassword = $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD
-            $origin = 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD'
-        } else {
-            $keyPassword = Read-StoredSecret $credentialTarget
-            $origin = "Gestionnaire d'identifiants ($credentialTarget)"
-        }
-        if ($null -eq $keyPassword) {
-            $origin = 'saisie'
-            try { $secure = Read-Host "    Mot de passe de la clé de signature" -AsSecureString }
-            catch { Fail "mot de passe de la clé absent (session non interactive) : définir TAURI_SIGNING_PRIVATE_KEY_PASSWORD ($keyHelp)" }
-            $keyPassword = [System.Net.NetworkCredential]::new('', $secure).Password
-        }
-        if ($python) {
-            if (-not $keyPassword) { Fail "mot de passe de la clé vide ($origin)" }
-            if ((Test-KeyPassword $keyPassword) -ne 0) { Fail "mot de passe de la clé incorrect ($origin)" }
-            Write-Host "    mot de passe vérifié ($origin)"
-        } elseif (-not $keyPassword) {
-            # Sans python, rien ne distingue une clé sans mot de passe : Tauri dira s'il est faux.
-            Write-Host "    mot de passe vide : clé supposée sans mot de passe ($keyHelp)" -ForegroundColor Yellow
-        }
-    }
+    . (Join-Path $PSScriptRoot 'signing-key.ps1')
+    $keyPassword = Get-SigningKeyPassword $keyPath
 
     Step "build de Seaglass $version"
     $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content $keyPath -Raw
@@ -208,20 +156,11 @@ if (-not $PublishOnly) {
         $range = if ($previous) { "$previous..HEAD" } else { 'HEAD' }
         $Notes = (git log $range --no-merges --pretty=format:'- %s' -n 30) -join "`n"
     }
-    $manifest = [ordered]@{
-        version   = $version
-        notes     = $Notes
-        pub_date  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        platforms = [ordered]@{
-            'windows-x86_64' = [ordered]@{
-                signature = (Get-Content "$setup.sig" -Raw).Trim()
-                url       = "$baseUrl/$version/$setupName"
-            }
-        }
-    }
+    # Repère avant le manifeste : il décide des plateformes annoncées (Linux s'il a été
+    # construit sur ce commit, #314).
+    Write-BuildStamp 'windows' $version
+    $announced = Write-UpdaterManifest $version $Notes $baseUrl
     $manifestPath = Join-Path $root 'release\latest.json'
-    # UTF-8 sans BOM : l'updater lit du JSON strict.
-    [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
 
     $size = [math]::Round((Get-Item $setup).Length / 1MB, 1)
 
@@ -245,9 +184,8 @@ if (-not $PublishOnly) {
     [System.IO.File]::WriteAllText($pagePath, $page, [System.Text.UTF8Encoding]::new($false))
 
     Write-Host "    installeur : release\$version\$setupName ($size Mo)"
-    Write-Host "    manifeste  : release\latest.json -> $baseUrl/latest.json"
+    Write-Host "    manifeste  : release\latest.json -> $baseUrl/latest.json ($($announced -join ', '))"
     Write-Host "    page       : release\index.html -> $baseUrl/"
-    Write-BuildStamp 'windows' $version
 } else {
     $setupName = "Seaglass_${version}_x64-setup.exe"
     $out = Join-Path $root "release\$version"
@@ -268,6 +206,8 @@ if (-not $Publish) {
 
 Step "publication vers $env:SEAGLASS_RELEASE_DEST"
 $dest = $env:SEAGLASS_RELEASE_DEST
+# latest.json peut aussi annoncer l'AppImage (#314) : elle doit déjà être en ligne.
+Assert-ManifestOnline $manifestPath $dest @('windows-x86_64')
 # Le manifeste part en dernier : l'updater ne voit la version qu'une fois l'installeur en place.
 # Cible scp : « hôte:… » ou « utilisateur@hôte:… » (au moins 2 caractères avant « : »,
 # pour ne pas confondre avec une lettre de lecteur comme « D: »).

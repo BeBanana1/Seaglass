@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.8
+
+- Linux : mises à jour automatiques de l'AppImage (signée, annoncée dans le même `latest.json` que Windows), relance après installation ; désactivées hors d'une AppImage, message clair si son dossier n'est pas modifiable (#314).
+
 ## 0.5.7
 
 - Lecteur : `loadfile` envoyé en arguments nommés, que le mpv 0.37 d'Ubuntu 24.04 comprend aussi ; il refusait toute reprise à une position et la normalisation du volume (#316).

@@ -26,11 +26,17 @@ rsync -a --delete \
     "$src/" "$work/"
 
 echo "==> build de l'AppImage"
-# Frontend déjà construit, artefacts de l'updater laissés à #314 (ils exigent la clé).
+# Frontend déjà construit. L'AppImage est signée pour l'updater (#314) : la clé et son mot
+# de passe arrivent par l'environnement (TAURI_SIGNING_PRIVATE_KEY*, transmis par WSLENV),
+# jamais par un fichier.
+if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+    echo "ERREUR : TAURI_SIGNING_PRIVATE_KEY absente (lancer release-linux.ps1)" >&2
+    exit 1
+fi
 config=$(mktemp)
 trap 'rm -f "$config"' EXIT
 cat > "$config" <<'JSON'
-{"build":{"beforeBuildCommand":""},"bundle":{"createUpdaterArtifacts":false}}
+{"build":{"beforeBuildCommand":""}}
 JSON
 cd "$work/src-tauri"
 rm -rf target/release/bundle/appimage
@@ -54,6 +60,11 @@ if [ "$(printf '%s\n%s\n' "$needed" "$glibc_max" | sort -V | tail -1)" != "$glib
     exit 1
 fi
 
+if [ ! -s "${images[0]}.sig" ]; then
+    echo "ERREUR : signature de l'updater absente (${images[0]}.sig)" >&2
+    exit 1
+fi
+
 mkdir -p "$out"
-cp "${images[0]}" "$out/"
+cp "${images[0]}" "${images[0]}.sig" "$out/"
 echo "APPIMAGE=$(basename "${images[0]}")"
