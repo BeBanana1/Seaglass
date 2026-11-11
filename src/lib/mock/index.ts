@@ -740,6 +740,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     })[String(tab)]?.() ?? null,
   player_state: () => state,
   queue_state: () => queueView(),
+  queue_track_ids: () => {
+    const v = queueView();
+    return [...v.manual, ...v.upcoming].map((t) => t.id);
+  },
   ui_settings: () => ui,
   // `?update=1` : simule une mise à jour prête.
   update_status: () => (mockDownloaded ? mockUpdate() : null),

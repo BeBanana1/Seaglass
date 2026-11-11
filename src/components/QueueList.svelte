@@ -11,11 +11,23 @@
   import TrackRow from "./TrackRow.svelte";
   import { keyboardMove, Reorder } from "../lib/reorder.svelte";
   import { guestOf } from "../lib/stores/jam.svelte";
+  import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
 
   /** `current` : afficher aussi le titre en cours (inutile si la vue l'affiche déjà en grand). */
   let { current = true }: { current?: boolean } = $props();
 
   const clearable = $derived(queue.view.manual.length > 0 || queue.view.upcoming.length > 0);
+
+  /** Toute la file, pas seulement les titres affichés (#327). */
+  async function saveAsPlaylist() {
+    try {
+      const trackIds = await commands.queueTrackIds();
+      if (trackIds.length === 0) return;
+      openPlaylistPicker({ trackIds, label: `${t.player.queue} · ${t.common.tracks(trackIds.length)}` });
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
 
   async function clear() {
     try {
@@ -77,6 +89,9 @@
 <div class="queue-list">
   {#if clearable}
     <div class="queue-actions">
+      <button class="queue-clear queue-save" onclick={saveAsPlaylist} title={t.player.saveQueueHint}>
+        {t.player.saveQueue}
+      </button>
       <button class="queue-clear" onclick={clear} title={t.player.clearQueueHint}>
         {t.player.clearQueue}
       </button>
@@ -148,6 +163,7 @@
   .queue-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 6px;
     margin: 0 6px;
   }
 

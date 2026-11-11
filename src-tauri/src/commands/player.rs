@@ -199,6 +199,16 @@ pub async fn queue_state(state: State<'_, AppState>) -> CmdResult<QueueView> {
         .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
 }
 
+/// Titres de la file dans l'ordre de lecture (#327), pour l'enregistrer comme playlist :
+/// l'UI ne reçoit que le début de la suite. Plafonné comme un ajout à une playlist.
+#[tauri::command]
+pub async fn queue_track_ids(state: State<'_, AppState>) -> CmdResult<Vec<TrackId>> {
+    let (tx, rx) = oneshot::channel();
+    send_cmd(&state, Cmd::GetPlayOrder(super::collection::MAX_ADD, tx)).await?;
+    rx.await
+        .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
+}
+
 async fn send_cmd(state: &AppState, cmd: Cmd) -> CmdResult<()> {
     state
         .player

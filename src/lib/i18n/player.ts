@@ -56,6 +56,8 @@ export const fr = {
   sleepAtEnd: "Pause à la fin du titre",
   sleepEndShort: "fin du titre",
 
+  saveQueue: "Enregistrer en playlist",
+  saveQueueHint: "Titre en cours, file et suite, dans l'ordre de lecture",
   clearQueue: "Vider la file",
   clearQueueHint: "Retire les titres à venir, le titre en cours continue",
   nowPlaying: "En cours",
@@ -128,6 +130,8 @@ export const en: typeof fr = {
   sleepAtEnd: "Pausing at the end of the track",
   sleepEndShort: "end of track",
 
+  saveQueue: "Save as playlist",
+  saveQueueHint: "Current track, queue and what follows, in play order",
   clearQueue: "Clear queue",
   clearQueueHint: "Removes upcoming tracks; the current track keeps playing",
   nowPlaying: "Now playing",

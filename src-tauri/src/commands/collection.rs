@@ -10,7 +10,7 @@ use crate::tidal::models::{LikeTarget, LikedIds, PlaylistSummary, TrackId};
 const MAX_TITLE_LEN: usize = 200;
 const MAX_DESCRIPTION_LEN: usize = 2_000;
 /// Titres ajoutés en une fois (un album, une playlist affichée).
-const MAX_ADD: usize = 10_000;
+pub(crate) const MAX_ADD: usize = 10_000;
 
 /// Événement émis à chaque changement des favoris, avec toutes les listes.
 pub const LIKES_EVENT: &str = "likes";
