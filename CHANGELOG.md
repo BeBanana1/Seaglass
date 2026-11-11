@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.14
+
+- Android : la file d'attente de « En lecture » défile de nouveau (#342).
+
 ## 0.5.12
 
 - Journal des versions dans Réglages › Application, limité aux changements de la plateforme (#340).
