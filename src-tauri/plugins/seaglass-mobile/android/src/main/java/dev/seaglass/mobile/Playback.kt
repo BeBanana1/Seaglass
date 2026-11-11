@@ -19,6 +19,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
@@ -46,6 +47,18 @@ internal object Playback {
      */
     private const val FOREGROUND_POSITION_MS = 1_000L
     private const val BACKGROUND_POSITION_MS = 5_000L
+
+    /**
+     * Tampon par rafales (#323). Media3 garde par défaut 50 s d'avance (minimum = maximum) et
+     * retélécharge donc au goutte-à-goutte pendant toute la lecture : le modem ne dort
+     * jamais. Ici le lecteur charge jusqu'à 5 minutes d'avance d'un coup, puis ne redemande
+     * rien avant d'être retombé à 1 minute. Un titre courant tient en une rafale.
+     * La limite en octets (13 Mo par défaut, environ 2 min de FLAC 16/44,1) est relevée pour
+     * ne pas couper la rafale. Tampon en mémoire seulement, rien sur disque.
+     */
+    private const val MIN_BUFFER_MS = 60_000
+    private const val MAX_BUFFER_MS = 300_000
+    private const val TARGET_BUFFER_BYTES = 64 * 1024 * 1024
 
     private val main = Handler(Looper.getMainLooper())
     private var context: Context? = null
@@ -228,7 +241,18 @@ internal object Playback {
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
+        // Démarrage de la lecture inchangé : seuils par défaut de Media3.
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                MIN_BUFFER_MS,
+                MAX_BUFFER_MS,
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
+            )
+            .setTargetBufferBytes(TARGET_BUFFER_BYTES)
+            .build()
         val player = ExoPlayer.Builder(appContext)
+            .setLoadControl(loadControl)
             .setAudioAttributes(attributes, true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)

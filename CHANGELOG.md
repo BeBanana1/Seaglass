@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.20
+
+- Android : la musique se charge par grandes rafales (jusqu'à 5 minutes d'avance) au lieu d'un filet continu, pour laisser le Wi-Fi et le réseau mobile se reposer entre deux et économiser la batterie (#323).
+
 ## 0.5.19
 
 - Bouton « Annuler » après avoir retiré un titre d'une playlist : il revient à sa position (#349).
