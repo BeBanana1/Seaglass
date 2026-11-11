@@ -11,6 +11,11 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.16
+
+- Bureau : la lecture se met en pause quand le casque ou la sortie audio utilisée est débranché, au lieu de continuer sur les haut-parleurs (réglable dans Réglages › Lecture › Sortie audio) (#348).
+- Bureau : option « Reprendre la lecture au lancement » (Réglages › Lecture › Démarrage), jamais à l'ouverture de session ni après un plantage (#353).
+
 ## 0.5.15
 
 - Android : les écouteurs reprennent la lecture après une pause de plus d'une minute, app en arrière-plan (la notification reste affichée 10 minutes après une pause) (#247).

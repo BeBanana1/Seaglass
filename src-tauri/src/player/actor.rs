@@ -94,6 +94,9 @@ pub enum Cmd {
     /// Lecture (`false`) ou pause (`true`) explicite : touches média (SMTC, session média
     /// d'Android) et invités de la Jam (#222).
     SetPaused(bool),
+    /// Session reprise au lancement : lire le titre restauré si rien n'a été lancé
+    /// entre-temps (#353).
+    ResumeOnLaunch,
     /// Branche les intégrations système (SMTC…), créées après l'acteur.
     /// En boîte : les poignées des intégrations alourdiraient toutes les commandes.
     AttachObservers(Box<Observers>),
@@ -169,6 +172,8 @@ pub(super) struct Player {
     pub(super) normalizer: Normalizer,
     /// Périphérique de sortie choisi, liste de mpv et repli (#79).
     pub(super) output: Output,
+    /// Pause quand le périphérique utilisé disparaît (#348).
+    pub(super) pause_on_unplug: bool,
     /// Échéance du minuteur de mise en veille en durée (#85, état dans `state.sleep`).
     pub(super) sleep_deadline: Option<Instant>,
     /// Radio automatique en fin de file (#78).
@@ -191,6 +196,8 @@ pub fn spawn(
     tidal: Arc<TidalClient>,
     store: Option<Arc<Store>>,
     launch: Launch,
+    // Lancement par l'utilisateur, sans plantage juste avant : la reprise est permise (#353).
+    may_resume: bool,
 ) -> mpsc::Sender<Cmd> {
     let (tx, rx) = mpsc::channel(64);
     let actor_tx = tx.clone();
@@ -256,6 +263,7 @@ pub fn spawn(
             offer_req: 0,
             normalizer: Normalizer::new(settings.normalization, exclusive),
             output,
+            pause_on_unplug: settings.pause_on_unplug,
             sleep_deadline: None,
             radio: AutoRadio::new(settings.auto_radio),
             queue_dirty: true,
@@ -268,6 +276,9 @@ pub fn spawn(
             observers: Observers::default(),
         };
         player.restore();
+        if may_resume && settings.resume_on_launch {
+            player.resume_when_signed_in();
+        }
         player.apply_loop_file().await;
         player.apply_volume().await;
         player.run(rx, events_rx).await;
@@ -366,6 +377,7 @@ impl Player {
             Cmd::Previous => self.previous().await,
             Cmd::TogglePause => self.toggle_pause().await,
             Cmd::SetPaused(paused) => self.set_paused(paused).await,
+            Cmd::ResumeOnLaunch => self.resume_on_launch(),
             Cmd::AttachObservers(observers) => {
                 observers.notify(&self.state);
                 self.observers = *observers;
@@ -396,6 +408,7 @@ impl Player {
                     self.maybe_offer_hires();
                 }
                 self.radio.enabled = settings.auto_radio;
+                self.pause_on_unplug = settings.pause_on_unplug;
                 self.apply_cache_size(settings.cache_size).await;
                 self.set_normalization(settings.normalization).await;
                 self.set_audio_device(settings.audio_device).await;

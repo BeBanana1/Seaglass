@@ -10,7 +10,7 @@ use crate::store::Store;
 
 const KEY: &str = "playback.settings";
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PlaybackSettings {
     /// Taille du cache mpv, en Mio (#16).
@@ -29,6 +29,26 @@ pub struct PlaybackSettings {
     pub exclusive: bool,
     /// Fin de file : enchaîner sur la radio du dernier titre (#78). Désactivé par défaut.
     pub auto_radio: bool,
+    /// Bureau : mettre en pause quand le périphérique de sortie utilisé disparaît (casque
+    /// débranché, #348). Activé par défaut.
+    pub pause_on_unplug: bool,
+    /// Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut.
+    pub resume_on_launch: bool,
+}
+
+impl Default for PlaybackSettings {
+    fn default() -> Self {
+        Self {
+            cache_size: CacheSize::default(),
+            hires_upgrade: HiresUpgrade::default(),
+            normalization: Normalization::default(),
+            audio_device: None,
+            exclusive: false,
+            auto_radio: false,
+            pause_on_unplug: true,
+            resume_on_launch: false,
+        }
+    }
 }
 
 /// Que faire d'une édition hi-res trouvée pour un titre qui n'en a pas.
@@ -105,10 +125,18 @@ mod tests {
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false}"#
         );
         assert!(!s.auto_radio, "radio automatique désactivée par défaut");
         assert!(!s.exclusive, "mode exclusif désactivé par défaut");
+        assert!(
+            s.pause_on_unplug,
+            "pause au débranchement par défaut (#348)"
+        );
+        assert!(
+            !s.resume_on_launch,
+            "pas de reprise au lancement par défaut (#353)"
+        );
     }
 
     #[test]
