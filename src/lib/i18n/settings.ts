@@ -135,6 +135,14 @@ export const fr = {
   qualityHint:
     "Un titre qui n'existe qu'en qualité CD a souvent une autre édition en hi-res (album " +
     "d'origine, réédition, compilation). Le master peut différer de l'édition affichée.",
+  mobileQualityHint:
+    "En Bluetooth, le son est réencodé par le téléphone : la qualité Haute s'entend comme le " +
+    "Lossless et demande environ trois fois moins de données.",
+  mobileQualities: {
+    lossless: { label: "Lossless", note: "FLAC 16 bits / 44,1 kHz, environ 1 Mbit/s." },
+    high: { label: "Haute", note: "AAC 320 kbit/s. Moins de données mobiles et de batterie." },
+  },
+  mobileQualityNext: "Pris en compte à partir du titre suivant.",
   hiresEdition: "Édition hi-res",
   hiresModes: {
     auto: {
@@ -372,6 +380,14 @@ export const en: typeof fr = {
   qualityHint:
     "A track only available in CD quality often has another edition in hi-res (original " +
     "album, reissue, compilation). The master may differ from the edition shown.",
+  mobileQualityHint:
+    "Over Bluetooth the phone re-encodes the sound: High sounds like Lossless and needs " +
+    "about a third of the data.",
+  mobileQualities: {
+    lossless: { label: "Lossless", note: "FLAC 16-bit / 44.1 kHz, about 1 Mbit/s." },
+    high: { label: "High", note: "AAC 320 kbit/s. Less mobile data and battery." },
+  },
+  mobileQualityNext: "Applies from the next track.",
   hiresEdition: "Hi-res edition",
   hiresModes: {
     auto: {

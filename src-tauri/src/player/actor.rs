@@ -26,7 +26,7 @@ use crate::integrations::Observers;
 use crate::mpv::{MpvIssue, serve::ManifestServer};
 use crate::store::Store;
 use crate::tidal::TidalClient;
-use crate::tidal::models::{RadioSeed, Stream, StreamFormat, Track, TrackId};
+use crate::tidal::models::{AudioQuality, RadioSeed, Stream, StreamFormat, Track, TrackId};
 
 /// Intervalle minimal entre deux événements qui ne changent que `time_pos` (~4 Hz).
 const TIME_EMIT_INTERVAL: Duration = Duration::from_millis(250);
@@ -167,6 +167,8 @@ pub(super) struct Player {
     /// Titre pour lequel une nouvelle URL a déjà été demandée après une erreur.
     pub(super) retried: Option<TrackId>,
     pub(super) failures: u32,
+    /// Qualité demandée à TIDAL (`playback::requested_quality`, réglage sur Android, #325).
+    pub(super) quality: AudioQuality,
     /// Lire une autre édition hi-res d'un titre qui n'en a pas (#18), ou la proposer (#59).
     pub(super) hires_upgrade: HiresUpgrade,
     /// Réponses au bandeau « Demander » par album, pour la session : oui = les titres de
@@ -265,6 +267,7 @@ pub fn spawn(
             next_loaded: None,
             retried: None,
             failures: 0,
+            quality: super::playback::requested_quality(&settings),
             hires_upgrade: settings.hires_upgrade,
             hires_answers: HashMap::new(),
             offer_req: 0,
@@ -421,6 +424,12 @@ impl Player {
                 if settings.hires_upgrade != self.hires_upgrade {
                     self.hires_upgrade = settings.hires_upgrade;
                     self.maybe_offer_hires();
+                }
+                // Le suivant préchargé est dans l'ancienne qualité : il sera redemandé.
+                let quality = super::playback::requested_quality(&settings);
+                if quality != self.quality {
+                    self.quality = quality;
+                    self.invalidate_next().await;
                 }
                 self.radio.enabled = settings.auto_radio;
                 self.pause_on_unplug = settings.pause_on_unplug;

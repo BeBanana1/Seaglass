@@ -12,7 +12,6 @@
 use std::time::Duration;
 
 use super::actor::{Cmd, Player};
-use super::playback::QUALITY;
 use super::settings::HiresUpgrade;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{AudioQuality, Stream, StreamFormat, Track};
@@ -123,8 +122,9 @@ impl Player {
         }
         let (track, format) = (track.clone(), format.clone());
         let (tidal, tx, request) = (self.tidal.clone(), self.tx.clone(), self.offer_req);
+        let quality = self.quality;
         tauri::async_runtime::spawn(async move {
-            if let Some(offer) = find_offer(&tidal, &track, QUALITY, &format).await {
+            if let Some(offer) = find_offer(&tidal, &track, quality, &format).await {
                 let _ = tx.send(Cmd::HiresOffer { request, offer }).await;
             }
         });

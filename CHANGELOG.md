@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.22
+
+- Android : réglage « Qualité » dans Réglages › Lecture : Lossless (comme avant) ou Haute (AAC 320 kbit/s), qui demande environ trois fois moins de données pour le même son en Bluetooth (#325).
+
 ## 0.5.21
 
 - Android : écran éteint ou app en arrière-plan, l'interface ne recalcule plus la position de lecture plusieurs fois par seconde pour rien (#324).

@@ -4,19 +4,22 @@
 
 use super::actor::{Cmd, Player, Slot};
 use super::queue::Repeat;
-use super::settings::HiresUpgrade;
+use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::upgrade;
 use crate::engine::{End, Engine, Op};
 use crate::i18n::{tr, trf};
 use crate::mpv::CacheSize;
 use crate::tidal::models::{AudioQuality, Stream, StreamSource, Track, TrackId};
 
-/// Qualité demandée ; deviendra un réglage utilisateur. Sur Android, Lossless 16/44,1 :
-/// l'écoute passe par le Bluetooth, qui réencode le son (#24).
-#[cfg(desktop)]
-pub(super) const QUALITY: AudioQuality = AudioQuality::HiResLossless;
-#[cfg(mobile)]
-pub(super) const QUALITY: AudioQuality = AudioQuality::Lossless;
+/// Qualité demandée à TIDAL. Bureau : toujours Hi-Res Lossless. Android : le réglage
+/// « Qualité » (#325), l'écoute y passe par le Bluetooth, qui réencode le son (#24).
+pub(super) fn requested_quality(settings: &PlaybackSettings) -> AudioQuality {
+    if cfg!(mobile) {
+        settings.mobile_quality.audio_quality()
+    } else {
+        AudioQuality::HiResLossless
+    }
+}
 /// Préchargement du suivant quand il reste moins que ça sur le titre courant.
 const PRELOAD_BEFORE_END: f64 = 30.0;
 /// En deçà, « Précédent » revient au titre précédent plutôt qu'au début du titre.
@@ -87,7 +90,7 @@ impl Player {
     /// l'offre a été acceptée.
     fn resolve(&self, id: TrackId, slot: Slot, request: u64) {
         let (tidal, tx) = (self.tidal.clone(), self.tx.clone());
-        let mode = self.hires_upgrade;
+        let (mode, quality) = (self.hires_upgrade, self.quality);
         let accepted: Vec<u64> = self
             .hires_answers
             .iter()
@@ -98,8 +101,8 @@ impl Player {
             let result = async {
                 // Sans édition hi-res possible (Android, réglage « Non »), le flux ne dépend
                 // pas des métadonnées : les deux requêtes partent ensemble (#148).
-                if QUALITY != AudioQuality::HiResLossless || mode == HiresUpgrade::Off {
-                    let (track, stream) = tokio::join!(tidal.track(id), tidal.stream(id, QUALITY));
+                if quality != AudioQuality::HiResLossless || mode == HiresUpgrade::Off {
+                    let (track, stream) = tokio::join!(tidal.track(id), tidal.stream(id, quality));
                     return Ok(Box::new((track?, stream?)));
                 }
                 let track = tidal.track(id).await?;
@@ -109,7 +112,7 @@ impl Player {
                     HiresUpgrade::Off => false,
                 };
                 let stream =
-                    upgrade::resolve_stream(&tidal, &track, QUALITY, upgrade, current).await?;
+                    upgrade::resolve_stream(&tidal, &track, quality, upgrade, current).await?;
                 Ok::<_, crate::tidal::TidalError>(Box::new((track, stream)))
             }
             .await
