@@ -722,6 +722,9 @@ export const commands = {
   /** Déplace l'entrée `from` de la file manuelle pour qu'elle finisse à l'index `to`. */
   moveInQueue: (from: number, to: number) => invoke<void>("move_in_queue", { from, to }),
   clearQueue: () => invoke<void>("clear_queue"),
+  /** Annule le dernier vidage ou retrait d'un titre de la file (#349) ; `false` si la
+   *  file a changé depuis. */
+  restoreQueue: () => invoke<boolean>("restore_queue"),
   /** Lit le titre `index` de `QueueView.manual` ou `.upcoming` (#167) ; sans effet si ce
    *  n'est plus `trackId` (file changée depuis l'affichage). */
   playFromQueue: (part: QueuePart, index: number, trackId: TrackId) =>

@@ -3,7 +3,7 @@
 
 import { commands, events, type LikedIds, type LikeTarget } from "../ipc";
 import { library, loadLibrary } from "./library.svelte";
-import { pushToast } from "./toasts.svelte";
+import { pushToast, pushUndoToast } from "./toasts.svelte";
 import { t } from "../i18n.svelte";
 
 export const later = $state<{
@@ -82,7 +82,8 @@ export async function toggleLater(target: LikeTarget) {
   later.pending = new Set(later.pending).add(k);
   try {
     await commands.setSavedForLater(target, saved);
-    pushToast({ level: "info", message: saved ? t.library.later.saved : t.library.later.removed });
+    if (saved) pushToast({ level: "info", message: t.library.later.saved });
+    else pushUndoToast(t.library.later.removed, () => void toggleLater(target));
     if (library.later.items) loadLibrary("later", true);
   } catch (e) {
     pushToast({ level: "error", message: String(e) });

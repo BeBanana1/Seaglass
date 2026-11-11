@@ -4,7 +4,7 @@
   import { commands, type QueuePart, type Track } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
   import { queue } from "../lib/stores/queue.svelte";
-  import { pushToast } from "../lib/stores/toasts.svelte";
+  import { pushToast, pushUndoToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
   import { fullTitle } from "../lib/format";
   import Icon from "./Icon.svelte";
@@ -29,9 +29,28 @@
     }
   }
 
+  /** Annule le dernier vidage ou retrait (#349), si la file n'a pas changé depuis. */
+  async function undo() {
+    try {
+      if (!(await commands.restoreQueue())) pushToast({ level: "info", message: t.player.undoGone });
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
+
   async function clear() {
     try {
       await commands.clearQueue();
+      pushUndoToast(t.player.queueCleared, undo);
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
+
+  async function remove(index: number) {
+    try {
+      await commands.removeFromQueue(index);
+      pushUndoToast(t.player.removedFromQueue, undo);
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
@@ -127,7 +146,7 @@
             {track}
             compact
             onPlay={() => play("manual", i, track)}
-            onRemove={() => commands.removeFromQueue(i)}
+            onRemove={() => remove(i)}
             onMoveUp={i > 0 ? () => move(i, i - 1) : undefined}
             onMoveDown={i < last ? () => move(i, i + 1) : undefined}
             addedBy={guestOf(track.id)}

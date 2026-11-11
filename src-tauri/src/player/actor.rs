@@ -59,6 +59,9 @@ pub enum Cmd {
     },
     /// Vide la file manuelle et la suite du contexte ; le titre courant continue.
     ClearQueue,
+    /// Annule le dernier « Vider la file » ou retrait d'un titre (#349) ; répond `false`
+    /// si la file a changé depuis.
+    RestoreQueue(oneshot::Sender<bool>),
     /// Lit un titre de la file tel que l'UI l'affiche (#167) ; ignoré si ce n'est plus `id`.
     PlayFromQueue {
         part: QueuePart,
@@ -147,6 +150,9 @@ pub(super) struct Player {
     pub(super) server: Option<ManifestServer>,
     pub(super) rng: StdRng,
     pub(super) queue: Queue,
+    /// File d'avant le dernier vidage ou retrait, tant que rien d'autre ne l'a modifiée
+    /// (#349).
+    undo_queue: Option<Queue>,
     pub(super) state: PlayerState,
     emitted: PlayerState,
     last_emit: Instant,
@@ -243,6 +249,7 @@ pub fn spawn(
             server,
             rng: StdRng::from_os_rng(),
             queue: Queue::default(),
+            undo_queue: None,
             state: PlayerState {
                 idle: true,
                 exclusive,
@@ -340,8 +347,10 @@ impl Player {
                 }
             }
             Cmd::RemoveFromQueue(index) => {
+                let before = self.queue.clone();
                 if self.queue.remove_manual(index) {
                     self.on_queue_changed().await;
+                    self.undo_queue = Some(before);
                 }
             }
             Cmd::RemoveFromQueueIds(ids) => {
@@ -362,9 +371,15 @@ impl Player {
                 }
             }
             Cmd::ClearQueue => {
+                let before = self.queue.clone();
                 if self.queue.clear_upcoming() {
                     self.on_queue_changed().await;
+                    self.undo_queue = Some(before);
                 }
+            }
+            Cmd::RestoreQueue(reply) => {
+                let restored = self.restore_queue().await;
+                let _ = reply.send(restored);
             }
             Cmd::PlayFromQueue { part, index, id } => match self.queue.jump_to(part, index, id) {
                 Some(id) => {
@@ -485,7 +500,21 @@ impl Player {
         self.mark_queue_dirty();
     }
 
+    /// Remet la file gardée avant un vidage ou un retrait (#349), si le titre en cours est
+    /// toujours le même. Toute autre modification de la file l'a déjà oubliée.
+    async fn restore_queue(&mut self) -> bool {
+        match self.undo_queue.take() {
+            Some(before) if before.current() == self.queue.current() => {
+                self.queue = before;
+                self.on_queue_changed().await;
+                true
+            }
+            _ => false,
+        }
+    }
+
     pub(super) fn mark_queue_dirty(&mut self) {
+        self.undo_queue = None;
         self.queue_dirty = true;
         self.persist_queue = true;
         self.pin_queue_tracks();
