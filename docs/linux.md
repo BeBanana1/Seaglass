@@ -111,5 +111,7 @@ Un vrai bureau (GNOME, KDE) a ce trousseau dès l'ouverture de session.
   page d'erreur finale de TIDAL collée dans l'app) : session ouverte, enregistrée dans
   GNOME Keyring une fois le trousseau créé. Lecture TIDAL par mpv sur la sortie `pulse`.
 
-À vérifier : session gardée après un redémarrage, lecture TIDAL, gapless, reprise de la
-file, zone de notification.
+- Session gardée après un redémarrage de l'app, enchaînement sans blanc entre les titres
+  d'un album, file et titre en cours repris en pause au redémarrage.
+
+Pas vérifié : zone de notification (WSLg n'en a pas de représentative).
