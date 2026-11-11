@@ -107,7 +107,12 @@ mod tests {
 
     #[test]
     fn real_changelog_starts_with_current_version() {
-        let releases = parse(CHANGELOG, Platform::Windows);
-        assert_eq!(releases[0].version, env!("CARGO_PKG_VERSION"));
+        // Premier titre du journal, sans filtre : une version qui ne touche qu'une
+        // plateforme n'apparaît pas dans le journal des autres (#342).
+        let first = CHANGELOG
+            .lines()
+            .find_map(|line| line.strip_prefix("## "))
+            .and_then(|title| title.split(' ').next());
+        assert_eq!(first, Some(env!("CARGO_PKG_VERSION")));
     }
 }
