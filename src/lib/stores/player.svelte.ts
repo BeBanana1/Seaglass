@@ -107,9 +107,17 @@ export function estimatedPosition(now: number): number {
   return Math.min(s.timePos + elapsed, s.duration || Infinity);
 }
 
-/** Suit la position estimée : `cb` à chaque image tant que la lecture avance, une seule fois
- *  par état reçu sinon (pause, chargement, arrêt : aucune boucle d'animation). À appeler dans
- *  un `$effect`, qui la relance à chaque état ; renvoie le nettoyage de la boucle.
+/** Page affichée. Cachée (écran éteint, autre app devant, fenêtre réduite), personne ne
+ *  regarde la position : `followPosition` ne garde alors aucun minuteur (#324). */
+const page = $state({ visible: typeof document === "undefined" || !document.hidden });
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => (page.visible = !document.hidden));
+}
+
+/** Suit la position estimée : `cb` à chaque image tant que la lecture avance et que la page
+ *  est affichée, une seule fois par état reçu sinon (pause, chargement, arrêt, page cachée :
+ *  aucune boucle d'animation). À appeler dans un `$effect`, qui la relance à chaque état et
+ *  au retour de la page ; renvoie le nettoyage de la boucle.
  *  Sur Android, `mobileHz` fois par seconde plutôt qu'à chaque image (#146) : une barre qui
  *  avance de 2 px/s n'a pas besoin de 120 mises à jour par seconde sur un écran à 120 Hz. */
 export function followPosition(
@@ -117,10 +125,11 @@ export function followPosition(
   mobileHz = 4,
 ): (() => void) | undefined {
   void player.state;
+  const visible = page.visible;
   const position = estimatedPosition(performance.now());
   // Ce que lit `cb` (ligne de paroles courante…) ne doit pas relancer la boucle.
   untrack(() => cb(position));
-  if (!player.advancing) return;
+  if (!player.advancing || !visible) return;
   if (platform.mobile) {
     const timer = setInterval(() => cb(estimatedPosition(performance.now())), 1000 / mobileHz);
     return () => clearInterval(timer);
