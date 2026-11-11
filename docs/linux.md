@@ -114,6 +114,12 @@ Un vrai bureau (GNOME, KDE) a ce trousseau dès l'ouverture de session.
 - Session gardée après un redémarrage de l'app, enchaînement sans blanc entre les titres
   d'un album, file et titre en cours repris en pause au redémarrage.
 
+- `loadfile` (#316) : la forme positionnelle `loadfile <url> <flags> -1 <options>` n'existe
+  que depuis mpv 0.38 (argument `index` ajouté avant `options`). Le mpv 0.37 d'Ubuntu 24.04
+  répondait `invalid parameter` à toute reprise à une position et à la normalisation. Le
+  moteur envoie maintenant `loadfile` en **arguments nommés**
+  (`{"name": "loadfile", "url", "flags", "options"}`), compris par 0.37 comme par 0.41 :
+  `live_per_file_af` passe dans les deux cas, et la reprise de la file à 91 s lit bien.
 - Contrôles média (MPRIS, #312) pilotés par `playerctl` : voir `systeme.md`. Pour essayer
   sans AppImage : `cargo tauri build --no-bundle` avec la même configuration, puis
   `target/release/seaglass` (même dossier de données, même trousseau).

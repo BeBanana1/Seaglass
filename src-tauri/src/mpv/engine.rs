@@ -117,12 +117,14 @@ impl Engine for MpvEngine {
 }
 
 /// Commandes mpv d'une opération.
-pub fn commands(op: &Op) -> Vec<Vec<Value>> {
-    let set = |name: &str, value: Value| vec![json!("set_property"), json!(name), value];
+pub fn commands(op: &Op) -> Vec<Value> {
+    let set = |name: &str, value: Value| json!(["set_property", name, value]);
+    // Arguments nommés : en positionnel, mpv 0.38 a inséré `index` avant `options`, et le
+    // mpv 0.37 d'Ubuntu 24.04 refuse `… replace -1 start=…` (#316). Compris par les deux.
     let load = |url: &str, mode: &str, options: Option<String>| {
-        let mut cmd = vec![json!("loadfile"), json!(url), json!(mode)];
+        let mut cmd = json!({ "name": "loadfile", "url": url, "flags": mode });
         if let Some(options) = options {
-            cmd.extend([json!(-1), json!(options)]);
+            cmd["options"] = json!(options);
         }
         cmd
     };
@@ -132,17 +134,21 @@ pub fn commands(op: &Op) -> Vec<Vec<Value>> {
             set("pause", json!(false)),
         ],
         Op::Preload { url, gain } => vec![load(url, "append", file_options(0.0, *gain))],
-        Op::RemoveNext => vec![vec![json!("playlist-remove"), json!(1)]],
-        Op::DropPrevious => vec![vec![json!("playlist-remove"), json!(0)]],
-        Op::Stop => vec![vec![json!("stop")]],
-        Op::TogglePause => vec![vec![json!("cycle"), json!("pause")]],
+        Op::RemoveNext => vec![json!(["playlist-remove", 1])],
+        Op::DropPrevious => vec![json!(["playlist-remove", 0])],
+        Op::Stop => vec![json!(["stop"])],
+        Op::TogglePause => vec![json!(["cycle", "pause"])],
         Op::SetPaused(paused) => vec![set("pause", json!(paused))],
-        Op::Seek(secs) => vec![vec![json!("seek"), json!(secs), json!("absolute")]],
+        Op::Seek(secs) => vec![json!(["seek", secs, "absolute"])],
         Op::LoopCurrent(on) => vec![set("loop-file", json!(if *on { "inf" } else { "no" }))],
         Op::Volume { level, muted } => {
             vec![set("volume", json!(level)), set("mute", json!(muted))]
         }
-        Op::CacheSize(size) => size.set_property_commands().into(),
+        Op::CacheSize(size) => size
+            .set_property_commands()
+            .into_iter()
+            .map(Value::from)
+            .collect(),
         // Option locale du fichier : remise à la fin du titre, le préchargé garde la sienne.
         Op::CurrentGain(gain) => vec![set("file-local-options/af", json!(af_value(*gain)))],
         Op::OutputDevice(id) => vec![set("audio-device", json!(id))],
@@ -187,7 +193,7 @@ pub fn af_value(gain: Option<f64>) -> String {
         .unwrap_or_default()
 }
 
-/// Options de fichier du `loadfile` (4ᵉ argument, séparées par des virgules) : position de
+/// Options de fichier du `loadfile` (argument `options`, séparées par des virgules) : position de
 /// départ et filtre de gain. `None` s'il n'y en a aucune.
 pub fn file_options(start: f64, gain: Option<f64>) -> Option<String> {
     let mut options = Vec::new();
@@ -230,8 +236,8 @@ mod tests {
         assert_eq!(
             commands(&play),
             vec![
-                vec![json!("loadfile"), json!("http://x/a.mpd"), json!("replace")],
-                vec![json!("set_property"), json!("pause"), json!(false)],
+                json!({ "name": "loadfile", "url": "http://x/a.mpd", "flags": "replace" }),
+                json!(["set_property", "pause", false]),
             ]
         );
         let resumed = Op::Play {
@@ -241,13 +247,12 @@ mod tests {
         };
         assert_eq!(
             commands(&resumed)[0],
-            vec![
-                json!("loadfile"),
-                json!("u"),
-                json!("replace"),
-                json!(-1),
-                json!("start=42,af=volume=volume=-6.50dB")
-            ]
+            json!({
+                "name": "loadfile",
+                "url": "u",
+                "flags": "replace",
+                "options": "start=42,af=volume=volume=-6.50dB"
+            })
         );
     }
 
@@ -259,13 +264,12 @@ mod tests {
         };
         assert_eq!(
             commands(&preload),
-            vec![vec![
-                json!("loadfile"),
-                json!("u"),
-                json!("append"),
-                json!(-1),
-                json!("af=volume=volume=-3.00dB")
-            ]]
+            vec![json!({
+                "name": "loadfile",
+                "url": "u",
+                "flags": "append",
+                "options": "af=volume=volume=-3.00dB"
+            })]
         );
         let plain = Op::Preload {
             url: "u".into(),
@@ -273,7 +277,7 @@ mod tests {
         };
         assert_eq!(
             commands(&plain),
-            vec![vec![json!("loadfile"), json!("u"), json!("append")]]
+            vec![json!({ "name": "loadfile", "url": "u", "flags": "append" })]
         );
     }
 
@@ -281,23 +285,19 @@ mod tests {
     fn window_and_transport_commands() {
         assert_eq!(
             commands(&Op::RemoveNext),
-            vec![vec![json!("playlist-remove"), json!(1)]]
+            vec![json!(["playlist-remove", 1])]
         );
         assert_eq!(
             commands(&Op::DropPrevious),
-            vec![vec![json!("playlist-remove"), json!(0)]]
+            vec![json!(["playlist-remove", 0])]
         );
         assert_eq!(
             commands(&Op::Seek(12.5)),
-            vec![vec![json!("seek"), json!(12.5), json!("absolute")]]
+            vec![json!(["seek", 12.5, "absolute"])]
         );
         assert_eq!(
             commands(&Op::LoopCurrent(true)),
-            vec![vec![
-                json!("set_property"),
-                json!("loop-file"),
-                json!("inf")
-            ]]
+            vec![json!(["set_property", "loop-file", "inf"])]
         );
         assert_eq!(commands(&Op::LoopCurrent(false))[0][2], json!("no"));
         assert_eq!(
@@ -306,26 +306,18 @@ mod tests {
                 muted: true
             }),
             vec![
-                vec![json!("set_property"), json!("volume"), json!(60)],
-                vec![json!("set_property"), json!("mute"), json!(true)],
+                json!(["set_property", "volume", 60]),
+                json!(["set_property", "mute", true]),
             ]
         );
         assert_eq!(
             commands(&Op::CurrentGain(None)),
-            vec![vec![
-                json!("set_property"),
-                json!("file-local-options/af"),
-                json!("")
-            ]]
+            vec![json!(["set_property", "file-local-options/af", ""])]
         );
         assert_eq!(commands(&Op::CacheSize(CacheSize::Mib64)).len(), 2);
         assert_eq!(
             commands(&Op::Exclusive(true)),
-            vec![vec![
-                json!("set_property"),
-                json!("audio-exclusive"),
-                json!(true)
-            ]]
+            vec![json!(["set_property", "audio-exclusive", true])]
         );
     }
 

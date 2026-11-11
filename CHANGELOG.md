@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.7
+
+- Lecteur : `loadfile` envoyé en arguments nommés, que le mpv 0.37 d'Ubuntu 24.04 comprend aussi ; il refusait toute reprise à une position et la normalisation du volume (#316).
+
 ## 0.5.6
 
 - Linux : contrôles média du système par MPRIS (touches média, applet du bureau, `playerctl`, KDE Connect) : titre, artiste, album, pochette, position, lecture/pause, suivant, précédent, saut, aléatoire, répétition et volume (#312).

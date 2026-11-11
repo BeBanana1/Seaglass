@@ -2,7 +2,7 @@
 //! limité par la crête pour ne jamais écrêter, appliqué par le moteur **à chaque fichier**
 //! séparément (`Op::Play`, `Op::Preload`, `Op::CurrentGain`).
 //!
-//! Sous mpv (`mpv::engine`), vérifié avec mpv 0.41 (`live_per_file_af`) : `loadfile <url> append -1 af=…` pose le
+//! Sous mpv (`mpv::engine`), vérifié avec mpv 0.41 et 0.37 (`live_per_file_af`) : `loadfile` avec `options` `af=…` pose le
 //! filtre en option locale du fichier préchargé ; le titre en cours garde le sien jusqu'au
 //! passage gapless, et un fichier chargé sans option revient à `af=[]`. Pour le titre en
 //! cours, `file-local-options/af` change le filtre à chaud ; la valeur d'avant est remise
@@ -251,7 +251,7 @@ pub(crate) mod tests {
     }
 
     /// Vrai mpv, lecture réelle courte à volume bas (sinus à −40 dBFS, `volume=30`) : le
-    /// filtre posé par `loadfile … append -1 af=…` ne vaut que pour le fichier préchargé,
+    /// filtre posé par `loadfile` (`append`, `options` `af=…`, commandes de `mpv::engine`) ne vaut que pour le fichier préchargé,
     /// le titre en cours garde le sien jusqu'au passage gapless ; `file-local-options/af`
     /// change celui du titre en cours sans déborder sur les suivants (le préchargé garde
     /// le sien, un fichier chargé ensuite sans option revient à `af=[]`).
@@ -259,8 +259,9 @@ pub(crate) mod tests {
     #[tokio::test]
     #[ignore = "lance un vrai mpv sur la sortie audio"]
     async fn live_per_file_af() {
+        use crate::engine::Op;
         use crate::mpv::CacheSize;
-        use crate::mpv::engine::{af_value, file_options};
+        use crate::mpv::engine::{af_value, commands};
         use crate::mpv::events::{MpvEvent, Property};
         use serde_json::{Value, json};
         use std::time::Duration;
@@ -269,57 +270,52 @@ pub(crate) mod tests {
         let mut child = crate::mpv::process::spawn(&conf, CacheSize::Mib32, None, false).unwrap();
         let (events_tx, mut events) = tokio::sync::mpsc::channel(256);
         let handle = crate::mpv::ipc::connect(events_tx).await.unwrap();
-        let cmd = |c: Vec<Value>| {
+        let cmd = |c: Value| {
             let handle = handle.clone();
             async move { handle.command(c).await.unwrap() }
         };
-        let af = || cmd(vec![json!("get_property"), json!("af")]);
+        let af = || cmd(json!(["get_property", "af"]));
         let volume_of = |v: Value| -> Option<String> {
             v.as_array()?
                 .iter()
                 .find(|f| f["name"] == "volume")
                 .and_then(|f| f["params"]["volume"].as_str().map(str::to_owned))
         };
-        cmd(vec![json!("set_property"), json!("volume"), json!(30)]).await;
+        cmd(json!(["set_property", "volume", 30])).await;
 
         let a = quiet_wav("af-a", 3, 440.0);
         let b = quiet_wav("af-b", 3, 660.0);
         let c = quiet_wav("af-c", 2, 550.0);
         let path = |p: &std::path::PathBuf| json!(p.to_string_lossy());
+        let url = |p: &std::path::PathBuf| p.to_string_lossy().into_owned();
 
-        let opts_a = file_options(0.0, Some(-6.0)).unwrap();
-        let opts_b = file_options(0.0, Some(-12.0)).unwrap();
-        cmd(vec![
-            json!("loadfile"),
-            path(&a),
-            json!("replace"),
-            json!(-1),
-            json!(opts_a),
-        ])
-        .await;
-        cmd(vec![
-            json!("loadfile"),
-            path(&b),
-            json!("append"),
-            json!(-1),
-            json!(opts_b),
-        ])
-        .await;
+        let play = Op::Play {
+            url: url(&a),
+            start: 0.0,
+            gain: Some(-6.0),
+        };
+        let preload = Op::Preload {
+            url: url(&b),
+            gain: Some(-12.0),
+        };
+        for c in commands(&play).into_iter().chain(commands(&preload)) {
+            cmd(c).await;
+        }
         tokio::time::sleep(Duration::from_millis(800)).await;
         assert_eq!(
             volume_of(af().await).as_deref(),
             Some("-6.00dB"),
             "titre en cours"
         );
-        let params = cmd(vec![json!("get_property"), json!("audio-params")]).await;
+        let params = cmd(json!(["get_property", "audio-params"])).await;
         println!("A : af = -6 dB, préchargé B en attente, audio-params = {params}");
 
         // Changement à chaud du titre en cours : option locale seulement.
-        cmd(vec![
-            json!("set_property"),
-            json!("file-local-options/af"),
-            json!(af_value(Some(-3.0))),
-        ])
+        cmd(json!([
+            "set_property",
+            "file-local-options/af",
+            af_value(Some(-3.0))
+        ]))
         .await;
         assert_eq!(volume_of(af().await).as_deref(), Some("-3.00dB"));
 
@@ -339,7 +335,7 @@ pub(crate) mod tests {
         assert_eq!(on_b.as_deref(), Some("-12.00dB"));
 
         // Fichier sans option : aucun filtre.
-        cmd(vec![json!("loadfile"), path(&c), json!("replace")]).await;
+        cmd(json!(["loadfile", path(&c), "replace"])).await;
         tokio::time::sleep(Duration::from_millis(500)).await;
         assert_eq!(
             af().await,

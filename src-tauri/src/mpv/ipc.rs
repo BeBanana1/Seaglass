@@ -20,7 +20,8 @@ const CONNECT_ATTEMPTS: u32 = 50;
 const CONNECT_DELAY: Duration = Duration::from_millis(100);
 
 struct Request {
-    command: Vec<Value>,
+    /// Tableau d'arguments, ou objet à arguments nommés (`{"name": "loadfile", …}`).
+    command: Value,
     reply: oneshot::Sender<Result<Value>>,
 }
 
@@ -30,11 +31,15 @@ pub struct MpvHandle {
 }
 
 impl MpvHandle {
-    /// Envoie une commande (`["loadfile", url, "replace"]`…) et attend la réponse de mpv.
-    pub async fn command(&self, command: Vec<Value>) -> Result<Value> {
+    /// Envoie une commande (`["set_property", "pause", true]`…, ou un objet à arguments
+    /// nommés) et attend la réponse de mpv.
+    pub async fn command(&self, command: impl Into<Value>) -> Result<Value> {
         let (reply, rx) = oneshot::channel();
         self.tx
-            .send(Request { command, reply })
+            .send(Request {
+                command: command.into(),
+                reply,
+            })
             .await
             .map_err(|_| MpvError::Closed)?;
         rx.await.map_err(|_| MpvError::Closed)?
