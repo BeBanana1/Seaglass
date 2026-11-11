@@ -731,6 +731,7 @@ export const commands = {
   setMuted: (muted: boolean) => invoke<void>("set_muted", { muted }),
   playerState: () => invoke<PlayerState>("player_state"),
   queueState: () => invoke<QueueView>("queue_state"),
+  queueTrackIds: () => invoke<number[]>("queue_track_ids"),
   uiSettings: () => invoke<UiSettings>("ui_settings"),
   setUiSettings: (settings: UiSettings) => invoke<void>("set_ui_settings", { settings }),
   /** Langue effective (réglage, ou langue du système). */

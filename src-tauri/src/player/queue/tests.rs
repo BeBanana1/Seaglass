@@ -576,3 +576,16 @@ fn jump_to_a_moved_entry_does_nothing() {
     assert_eq!(q.current(), Some(TrackId(0)));
     assert_eq!(drain(&mut q), vec![50, 51, 1, 2, 3]);
 }
+
+#[test]
+fn play_order_is_current_then_manual_then_context_capped() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..5), 1, None, &mut rng());
+    q.add_to_queue(TrackId(10));
+    q.play_next(TrackId(11));
+    let order: Vec<u64> = q.play_order(100).iter().map(|t| t.0).collect();
+    assert_eq!(order, vec![1, 11, 10, 2, 3, 4]);
+    let order: Vec<u64> = q.play_order(4).iter().map(|t| t.0).collect();
+    assert_eq!(order, vec![1, 11, 10, 2]);
+    assert_eq!(q.play_order(2).len(), 2);
+}

@@ -372,6 +372,16 @@ impl Queue {
         }
     }
 
+    /// Ordre de lecture complet (#327) : titre en cours, file manuelle, puis la suite du
+    /// contexte, `limit` titres au plus.
+    pub fn play_order(&self, limit: usize) -> Vec<TrackId> {
+        let mut ids: Vec<TrackId> = self.current().into_iter().chain(self.manual()).collect();
+        ids.truncate(limit);
+        let rest = limit - ids.len();
+        ids.extend(self.upcoming_context(rest));
+        ids
+    }
+
     /// Tous les identifiants référencés (pour persister leurs métadonnées).
     pub fn referenced_ids(&self) -> Vec<TrackId> {
         let mut ids: Vec<TrackId> = self.context.clone();

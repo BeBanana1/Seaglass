@@ -87,6 +87,8 @@ pub enum Cmd {
     /// depuis le thread principal (`RunEvent::Exit`) ou l'updater, hors de tokio.
     Flush(std::sync::mpsc::Sender<()>),
     GetQueue(oneshot::Sender<QueueView>),
+    /// Ordre de lecture complet, plafonné (#327).
+    GetPlayOrder(usize, oneshot::Sender<Vec<TrackId>>),
     /// Périphériques de sortie connus de mpv, pour les Réglages (#79).
     GetAudioDevices(oneshot::Sender<AudioDevices>),
     /// Lecture (`false`) ou pause (`true`) explicite : touches média (SMTC, session média
@@ -412,6 +414,9 @@ impl Player {
             Cmd::Flush(reply) => self.flush(reply),
             Cmd::GetQueue(reply) => {
                 let _ = reply.send(self.queue_view());
+            }
+            Cmd::GetPlayOrder(limit, reply) => {
+                let _ = reply.send(self.queue.play_order(limit));
             }
             Cmd::GetAudioDevices(reply) => {
                 let _ = reply.send(self.output.devices());

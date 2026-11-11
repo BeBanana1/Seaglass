@@ -191,6 +191,7 @@ pub fn run() {
             commands::player::set_muted,
             commands::player::player_state,
             commands::player::queue_state,
+            commands::player::queue_track_ids,
             commands::settings::ui_settings,
             commands::settings::set_ui_settings,
             commands::settings::language,
