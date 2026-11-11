@@ -107,6 +107,9 @@ secret-tool clear seaglass-test x
 
 Un vrai bureau (GNOME, KDE) a ce trousseau dès l'ouverture de session.
 
-À vérifier : connexion par le navigateur du système (page d'erreur finale de TIDAL dans un
-navigateur de bureau, d'après `tidalapi`), session gardée après un redémarrage, lecture TIDAL, gapless, reprise de la
+- Connexion par le navigateur du système (adresse copiée dans le navigateur de Windows,
+  page d'erreur finale de TIDAL collée dans l'app) : session ouverte, enregistrée dans
+  GNOME Keyring une fois le trousseau créé. Lecture TIDAL par mpv sur la sortie `pulse`.
+
+À vérifier : session gardée après un redémarrage, lecture TIDAL, gapless, reprise de la
 file, zone de notification.
