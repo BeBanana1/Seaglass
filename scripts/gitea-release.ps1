@@ -14,6 +14,7 @@
     release/<version>/Seaglass_<version>_arm64.apk
     release/android.json                      (seulement s'il décrit cette version)
     release/<version>/Seaglass_<version>_amd64.AppImage
+    release/<version>/Seaglass_<version>_amd64.AppImage.sig  (s'il existe)
     release/linux.json                        (seulement s'il décrit cette version)
 
   La release porte le tag `v<version>` (qui doit déjà exister sur Gitea), le titre
@@ -87,6 +88,8 @@ if (Test-Path $apk) {
 $appImage = Join-Path $root "release\$Version\Seaglass_${Version}_amd64.AppImage"
 if (Test-Path $appImage) {
     $files += $appImage
+    # Signature de l'updater, depuis #314.
+    if (Test-Path "$appImage.sig") { $files += "$appImage.sig" }
     $linux = Read-Manifest 'linux.json'
     if ($linux) {
         $files += $linux.path

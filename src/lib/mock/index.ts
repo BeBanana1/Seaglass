@@ -743,6 +743,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // `?update=1` : simule une mise à jour prête.
   update_status: () => (mockDownloaded ? mockUpdate() : null),
   install_update: () => null,
+  // `?updates=manual` : Linux hors d'une AppImage, pas de mise à jour automatique (#314).
+  updates_available: () => params.get("updates") !== "manual",
   // Sans `?update=1`, l'app est « à jour ». `?update=download` : comme le bureau (#187),
   // la réponse arrive avant l'installeur, `update-ready` 2 s plus tard.
   check_for_updates: () => {

@@ -769,7 +769,9 @@ export const commands = {
   /** Renvoie l'état relu ; la suite arrive aussi par `fullscreen`. */
   setFullscreen: (fullscreen: boolean) => invoke<boolean>("set_fullscreen", { fullscreen }),
   updateStatus: () => invoke<UpdateInfo | null>("update_status"),
-  /** L'installeur ferme l'app puis la relance. */
+  /** Faux sous Linux hors d'une AppImage : mises à jour à faire à la main (#314). */
+  updatesAvailable: () => invoke<boolean>("updates_available"),
+  /** L'installeur ferme l'app puis la relance (Linux : AppImage remplacée, puis relance). */
   installUpdate: () => invoke<void>("install_update"),
   /** Vérifie tout de suite : la mise à jour prête (réémise en `update-ready`), en
    *  téléchargement (`downloading`, `update-ready` suivra), ou `null` si à jour. */

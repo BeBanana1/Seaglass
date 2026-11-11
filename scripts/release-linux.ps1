@@ -17,7 +17,12 @@
   -PublishOnly saute les étapes 2 et 3 et publie le dernier build, s'il a été fait sur ce
   commit, arbre propre (`release-all.ps1` construit toutes les plateformes avant de publier).
 
-  Pas de signature ici : l'AppImage n'a pas encore de mises à jour automatiques (#314).
+  L'AppImage est signée pour l'updater (#314) avec la clé de l'installeur Windows (même
+  mot de passe, `signing-key.ps1`), transmise à WSL par l'environnement. Le build réécrit
+  `release/latest.json` (`updater-manifest.ps1`) : il annonce l'AppImage, et l'installeur
+  Windows s'il a été construit sur ce commit. Ce manifeste n'est envoyé que par la
+  publication Windows, en dernier (`release-all.ps1` publie Linux avant) : publiée seule,
+  l'AppImage est téléchargeable mais pas encore proposée aux mises à jour.
 
   La distribution de build se prépare une fois avec `scripts/linux-build-setup.sh` (voir
   docs/linux.md, « Release »).
@@ -28,6 +33,9 @@
     SEAGLASS_UPDATE_BASE_URL   URL publique du dossier de mises à jour
                                (défaut : https://updates.bebanana.ch/seaglass)
     SEAGLASS_RELEASE_DEST      destination de publication (voir release.ps1)
+    SEAGLASS_SIGNING_KEY       clé privée de l'updater (défaut : ~/.tauri/seaglass.key)
+    TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+                               mot de passe de la clé (voir release.ps1)
 
 .EXAMPLE
   powershell -File scripts/release-linux.ps1               # construit dans release/
@@ -52,6 +60,7 @@ Set-Location $root
 function Fail($message) { Write-Host "ERREUR : $message" -ForegroundColor Red; exit 1 }
 function Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
 . (Join-Path $PSScriptRoot 'build-stamp.ps1')
+. (Join-Path $PSScriptRoot 'updater-manifest.ps1')
 if ($PublishOnly) { $Publish = $true }
 
 # --- 1. Vérifications -------------------------------------------------------------------
@@ -75,6 +84,7 @@ $baseUrl = if ($env:SEAGLASS_UPDATE_BASE_URL) { $env:SEAGLASS_UPDATE_BASE_URL.Tr
 $imageName = "Seaglass_${version}_amd64.AppImage"
 $out = Join-Path $root "release\$version"
 $imageOut = Join-Path $out $imageName
+$sigOut = "$imageOut.sig"
 $manifestPath = Join-Path $root 'release\linux.json'
 
 if (-not $PublishOnly) {
@@ -82,6 +92,8 @@ if (-not $PublishOnly) {
     $distro = if ($env:SEAGLASS_LINUX_DISTRO) { $env:SEAGLASS_LINUX_DISTRO } else { 'Ubuntu-22.04' }
     $glibcMax = if ($env:SEAGLASS_LINUX_GLIBC_MAX) { $env:SEAGLASS_LINUX_GLIBC_MAX } else { '2.35' }
     if ($glibcMax -notmatch '^\d+\.\d+$') { Fail "SEAGLASS_LINUX_GLIBC_MAX invalide : '$glibcMax'" }
+    $keyPath = if ($env:SEAGLASS_SIGNING_KEY) { $env:SEAGLASS_SIGNING_KEY } else { Join-Path $HOME '.tauri\seaglass.key' }
+    if (-not (Test-Path $keyPath)) { Fail "clé de signature introuvable : $keyPath" }
 
     # `wsl -l -q` écrit en UTF-16 : les caractères nuls sont retirés avant la comparaison.
     $distros = @(wsl.exe -l -q | ForEach-Object { ($_ -replace "`0", '').Trim() } | Where-Object { $_ })
@@ -92,6 +104,10 @@ if (-not $PublishOnly) {
             "    wsl -d $distro bash scripts/linux-build-setup.sh")
     }
 
+    Step "clé de signature"
+    . (Join-Path $PSScriptRoot 'signing-key.ps1')
+    $keyPassword = Get-SigningKeyPassword $keyPath
+
     # --- 2. Build ---------------------------------------------------------------------------
     Step "frontend"
     pnpm build
@@ -100,13 +116,26 @@ if (-not $PublishOnly) {
     Step "AppImage de Seaglass $version ($distro, glibc <= $glibcMax)"
     $toWsl = { param($path) (wsl.exe -d $distro wslpath -a ($path -replace '\\', '/')).Trim() }
     New-Item -ItemType Directory -Force $out | Out-Null
-    Remove-Item $imageOut -ErrorAction SilentlyContinue
+    Remove-Item $imageOut, $sigOut -ErrorAction SilentlyContinue
     $wslRoot = & $toWsl $root
     $wslOut = & $toWsl $out
-    # Sortie affichée telle quelle (pas capturée) ; le nom de l'AppImage est connu d'avance.
-    wsl.exe -d $distro --cd $wslRoot bash scripts/linux-build.sh $wslRoot $wslOut $glibcMax
-    if ($LASTEXITCODE -ne 0) { Fail "échec du build Linux" }
-    if (-not (Test-Path $imageOut)) { Fail "AppImage absente : $imageOut" }
+    # Clé et mot de passe passés à WSL par l'environnement (WSLENV), jamais par un fichier ;
+    # retirés dès la fin du build.
+    $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content $keyPath -Raw).Trim()
+    $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = $keyPassword
+    $savedWslEnv = $env:WSLENV
+    $env:WSLENV = (@($env:WSLENV, 'TAURI_SIGNING_PRIVATE_KEY', 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD') | Where-Object { $_ }) -join ':'
+    try {
+        # Sortie affichée telle quelle (pas capturée) ; le nom de l'AppImage est connu d'avance.
+        wsl.exe -d $distro --cd $wslRoot bash scripts/linux-build.sh $wslRoot $wslOut $glibcMax
+        $buildExit = $LASTEXITCODE
+    } finally {
+        Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY, Env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue
+        if ($savedWslEnv) { $env:WSLENV = $savedWslEnv } else { Remove-Item Env:WSLENV -ErrorAction SilentlyContinue }
+        $keyPassword = $null
+    }
+    if ($buildExit -ne 0) { Fail "échec du build Linux" }
+    if (-not (Test-Path $imageOut) -or -not (Test-Path $sigOut)) { Fail "AppImage ou signature absentes dans release\$version" }
 
     # --- 3. Fichiers à publier --------------------------------------------------------------
     Step "manifeste"
@@ -127,11 +156,13 @@ if (-not $PublishOnly) {
     }
     [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 3), [System.Text.UTF8Encoding]::new($false))
     $size = [math]::Round($item.Length / 1MB, 1)
+    Write-BuildStamp 'linux' $version
+    $announced = Write-UpdaterManifest $version $Notes $baseUrl
     Write-Host "    AppImage  : release\$version\$imageName ($size Mo)"
     Write-Host "    manifeste : release\linux.json -> $baseUrl/linux.json"
-    Write-BuildStamp 'linux' $version
+    Write-Host "    updater   : release\latest.json ($($announced -join ', ')), envoyé par la publication Windows"
 } else {
-    Assert-BuildStamp 'linux' $version @($imageOut, $manifestPath)
+    Assert-BuildStamp 'linux' $version @($imageOut, $sigOut, $manifestPath)
     $manifest = Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($manifest.version -ne $version) { Fail "release\linux.json ne décrit pas la $version" }
     if ((Get-FileHash $imageOut -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.sha256) {
@@ -153,15 +184,15 @@ if ($dest -match '^[^\\/:]{2,}:') {
     $sshHost, $remotePath = $dest -split ':', 2
     ssh $sshHost "mkdir -p '$remotePath/$version' && chmod 755 '$remotePath/$version'"
     if ($LASTEXITCODE -ne 0) { Fail "échec de la création du dossier de version" }
-    scp $imageOut "$dest/$version/$imageName"
+    scp $imageOut $sigOut "$dest/$version/"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (AppImage)" }
     scp $manifestPath "$dest/linux.json"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (manifeste)" }
-    ssh $sshHost "chmod 644 '$remotePath/$version/$imageName' '$remotePath/linux.json'"
+    ssh $sshHost "chmod 644 '$remotePath/$version/$imageName' '$remotePath/$version/$imageName.sig' '$remotePath/linux.json'"
     if ($LASTEXITCODE -ne 0) { Fail "échec du réglage des droits sur le serveur" }
 } else {
     New-Item -ItemType Directory -Force (Join-Path $dest $version) | Out-Null
-    Copy-Item $imageOut (Join-Path $dest "$version\$imageName") -Force
+    Copy-Item $imageOut, $sigOut (Join-Path $dest $version) -Force
     Copy-Item $manifestPath (Join-Path $dest 'linux.json') -Force
 }
 
@@ -174,6 +205,7 @@ if ($tagExists) {
     if ($LASTEXITCODE -ne 0) { Fail "échec du push du tag" }
 }
 Write-Host "AppImage Seaglass $version publiée." -ForegroundColor Green
+Write-Host "    mises à jour : proposées une fois latest.json envoyé par la publication Windows (release.ps1)"
 if ($SkipGiteaRelease) { exit 0 }
 
 # L'AppImage est déjà en ligne : un échec ici n'est qu'un avertissement (#108).

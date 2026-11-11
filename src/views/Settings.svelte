@@ -48,6 +48,8 @@
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
   let discordAvailable = $state(false);
+  // Faux sous Linux hors d'une AppImage (#314) : pas de bouton « Vérifier ».
+  let updatesAvailable = $state(true);
   let exclusiveAvailable = $state(false);
   // Android 12+ (#203) : liens TIDAL donnés à l'app ; `null` = rien à régler ou pas encore lu.
   let links = $state<{ enabled: boolean } | null>(null);
@@ -66,6 +68,7 @@
   $effect(() => {
     if (section === "app" && desktop) {
       commands.discordAvailable().then((v) => (discordAvailable = v), fail);
+      commands.updatesAvailable().then((v) => (updatesAvailable = v), fail);
     }
   });
 
@@ -491,7 +494,9 @@
         <span class="text">
           <span class="setting-label">{t.settings.checkUpdates}</span>
           <span class="hint">
-            {#if updateCheck === "uptodate"}
+            {#if desktop && !updatesAvailable}
+              {t.settings.updatesManual}
+            {:else if updateCheck === "uptodate"}
               {t.settings.upToDate}
             {:else if updateCheck === "downloading"}
               {t.settings.updateDownloading(downloadingVersion)}
@@ -502,9 +507,11 @@
             {/if}
           </span>
         </span>
+        {#if !desktop || updatesAvailable}
         <button class="update-check" onclick={checkUpdates} disabled={updateCheck === "checking" || updateCheck === "downloading"}>
           {updateCheck === "checking" ? t.settings.checking : t.settings.check}
         </button>
+        {/if}
       </div>
     </div>
     <div class="group about">

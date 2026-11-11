@@ -94,10 +94,10 @@ Debian 12, Mint 21, Fedora 36 et plus récentes (annoncé sur la page de téléc
 - **Build** : `powershell -File scripts/release-linux.ps1` (appelé par `release-all.ps1`,
   qui accepte `-SkipLinux`). `pnpm build` sous Windows, puis `scripts/linux-build.sh` dans
   la distribution : copie de l'arbre dans `~/seaglass-release` (`target/` gardé),
-  `cargo tauri build --bundles appimage` sans artefacts de l'updater (#314), puis
+  `cargo tauri build --bundles appimage`, signée pour l'updater (#314, clé par `WSLENV`), puis
   **contrôle de la glibc** : le plus haut `GLIBC_x.y` exigé par le binaire et par les `.so`
   de l'`AppDir` doit être ≤ `SEAGLASS_LINUX_GLIBC_MAX` (2.35 par défaut), sinon le build
-  échoue. Sorties : `release/<version>/Seaglass_<version>_amd64.AppImage`,
+  échoue. Sorties : `release/<version>/Seaglass_<version>_amd64.AppImage` et son `.sig`,
   `release/linux.json` (version, URL, SHA-256, taille, glibc, notes) et le repère
   `release/.build/linux.json`. `-PublishOnly`, publication (AppImage puis manifeste), tag
   et release Gitea comme pour Android.
@@ -112,6 +112,32 @@ Debian 12, Mint 21, Fedora 36 et plus récentes (annoncé sur la page de téléc
   `loadfile` en arguments nommés (#316) accepté, avec `start` et `af` appliqués ;
   `seaglass.conf` ne donne que les deux avertissements déjà connus (`media-controls`,
   `wasapi-exclusive-buffer`).
+
+## Mises à jour (#314)
+
+Fonctionnement et manifeste : `release.md` (puces « Mises à jour » et « Manifeste de
+l'updater »). Essai de bout en bout le 2026-11-11 (0.5.8), avec une **clé de test jetable**
+et un manifeste servi en `http://127.0.0.1:8765` (`dangerousInsecureTransportProtocol` dans
+la config du build d'essai seulement), deux AppImage construites sous 22.04 (0.5.8 et une
+fausse 0.5.9 par `"version"` dans `--config`), lancées sous 24.04 en **vraie AppImage**
+(FUSE : `libfuse2t64`, `/dev/fuse` existe dans WSL2) :
+
+- AppImage dans `~/Apps` : manifeste lu, 0.5.9 téléchargée, signature vérifiée,
+  proposition « Mise à jour prête » ; « Installer et redémarrer » : fichier remplacé par la
+  0.5.9 (empreinte), app relancée par `request_restart`, la nouvelle instance ne propose
+  plus rien.
+- AppImage dans un dossier `555` : message « impossible de remplacer l'AppImage : le
+  dossier … n'est pas modifiable … », fichier intact.
+- `--appimage-extract-and-run` : Tauri valide `APPIMAGE`, l'updater est actif et
+  viserait le vrai fichier.
+- Binaire nu (`--no-bundle`) : « mises à jour automatiques désactivées ».
+- Pilotage de la fenêtre dans WSLg : `GDK_BACKEND=x11`, puis `xwininfo` (position absolue),
+  `xdotool` (clic) et `import` (capture) ; `wmctrl` ne voit pas les fenêtres.
+
+Pendant ces essais, la sortie `pulse` de WSLg s'est figée (mpv bloqué à 0 % avec ou sans
+l'app) : la lecture n'a pas pu être revérifiée sur l'AppImage mise à jour. Remarque : mpv
+hérite du `LD_LIBRARY_PATH` posé par l'AppImage et charge alors 95 bibliothèques de
+celle-ci au lieu de celles du système ; sans effet constaté jusqu'ici.
 
 ## Vérifié (2026-11-11, WSL Ubuntu 24.04, mpv 0.37)
 
