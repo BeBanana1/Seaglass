@@ -21,6 +21,9 @@ impl Zoom {
         LEVELS.contains(&percent).then_some(Self(percent))
     }
 
+    /// Bureau seulement, comme `apply` : sans cela, la compilation Android avertit d'une
+    /// méthode jamais utilisée (#357).
+    #[cfg(any(desktop, test))]
     pub fn factor(self) -> f64 {
         f64::from(self.0) / 100.0
     }

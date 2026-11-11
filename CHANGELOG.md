@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.23
+
+- chore: plus d'avertissement « method `factor` is never used » à la compilation de l'app Android (#357).
+
 ## 0.5.22
 
 - Android : réglage « Qualité » dans Réglages › Lecture : Lossless (comme avant) ou Haute (AAC 320 kbit/s), qui demande environ trois fois moins de données pour le même son en Bluetooth (#325).
