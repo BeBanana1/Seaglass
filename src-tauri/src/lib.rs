@@ -113,6 +113,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::auth::auth_status,
             commands::auth::login,
+            commands::auth::login_in_browser,
+            #[cfg(desktop)]
+            commands::auth::browser_login_start,
+            #[cfg(desktop)]
+            commands::auth::browser_login_finish,
             commands::auth::logout,
             commands::catalog::search,
             commands::search_history::search_history,

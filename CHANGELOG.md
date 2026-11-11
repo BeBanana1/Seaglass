@@ -8,7 +8,7 @@ de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits q
 
 ## 0.5.5
 
-- Linux : sortie audio PipeWire, PulseAudio ou ALSA selon ce qui est disponible, mpv arrêté avec l'app même sur un plantage, mode exclusif masqué hors Windows ; AppImage avec GStreamer embarqué (sans lui, la vérification anti-robot de la connexion ne s'affiche pas), session gardée dans le Secret Service (GNOME Keyring, KWallet) ; testée dans WSL (#17).
+- Linux : sortie audio PipeWire, PulseAudio ou ALSA selon ce qui est disponible, mpv arrêté avec l'app même sur un plantage, mode exclusif masqué hors Windows ; AppImage avec GStreamer embarqué (sans lui, la vérification anti-robot de la connexion ne s'affiche pas), session gardée dans le Secret Service (GNOME Keyring, KWallet) ; connexion dans le navigateur du système, TIDAL bloquant le navigateur intégré de Linux ; testée dans WSL (#17).
 
 ## 0.5.4
 

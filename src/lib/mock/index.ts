@@ -565,6 +565,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return params.has("loggedout") ? null : { userId: 1, countryCode: "CH" };
   },
   login: () => ({ userId: 1, countryCode: "CH" }),
+  // `?browserLogin=1` : connexion par le navigateur du système, comme sous Linux.
+  login_in_browser: () => params.get("browserLogin") === "1",
+  browser_login_start: () => "https://login.tidal.com/authorize?response_type=code&client_id=demo",
+  browser_login_finish: () => ({ userId: 1, countryCode: "CH" }),
   logout: () => null,
   // Comme le backend (#207) : première page d'abord (la moitié des lignes), puis tout.
   home: () => ({

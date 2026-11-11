@@ -14,12 +14,33 @@ système (`apt install mpv`), il n'est pas embarqué.
 | mpv | embarqué ; le `PATH` seulement en debug (#261) | celui du système (`PATH`, aussi en release : `execvp` ne cherche pas dans le dossier courant) |
 | Arrêt de mpv sur plantage | Job Object (`mpv/job.rs`) | `prctl(PR_SET_PDEATHSIG, SIGKILL)` (`process::die_with_parent`) |
 | IPC mpv | named pipe | socket Unix dans le dossier temporaire |
+| Connexion | fenêtre WebView2, redirection interceptée | navigateur du système, adresse de retour collée dans l'app (voir plus bas) |
 | Contrôles média | SMTC | rien pour l'instant (MPRIS à faire, issue séparée) |
 | Jetons | Gestionnaire d'identifiants (`windows-native`) | Secret Service (`sync-secret-service` + `crypto-rust`, dépendance propre à la cible Linux dans `Cargo.toml`) : demande un trousseau (GNOME Keyring, KWallet). Sans backend, `keyring` 3 se rabat sur un magasin **en mémoire** et la session est perdue à la fermeture : c'était le cas avant (#17). Sans service disponible, la connexion échoue avec une erreur au lieu de perdre la session en silence. `secret-service` et `zbus` 4 figurent dans `Cargo.lock` par une feature optionnelle de `keyring`, sans être compilés |
 
 Bit-perfect : PipeWire suit la fréquence du flux si `default.clock.allowed-rates` contient
 44,1 et 48 kHz (et leurs multiples) dans sa configuration ; sinon il rééchantillonne. ALSA
 direct (`alsa/hw:…`) serait l'équivalent du mode exclusif : à étudier.
+
+## Connexion par le navigateur du système
+
+TIDAL sert une vérification anti-robot à WebKitGTK et, après quelques connexions, le
+**bloque** (« You have been blocked », vu le 2026-11-11 dans WSL). Sous Linux, la connexion
+passe donc par le navigateur de l'utilisateur, comme le flux PKCE de `tidalapi` :
+
+1. `browser_login_start` crée le défi PKCE, le garde dans `commands::auth::BROWSER_LOGIN`
+   (un seul à la fois), ouvre `login.tidal.com/authorize` par `tauri-plugin-opener` et
+   renvoie l'adresse. Si aucun navigateur ne s'ouvre (WSL n'en a pas, `xdg-open` échoue),
+   l'échec est seulement journalisé : l'écran affiche l'adresse avec un bouton Copier, à
+   coller dans n'importe quel navigateur, celui de Windows compris. Elle ne contient que le
+   défi, pas le vérificateur.
+2. Après la connexion, TIDAL renvoie sur `https://tidal.com/android/login/auth?code=…`, une
+   page d'erreur dans un navigateur de bureau. L'utilisateur colle son adresse dans l'app.
+3. `browser_login_finish` n'accepte que cette adresse (`auth::redirect_code`, 4 Ko au plus,
+   testé) ; une adresse refusée laisse le défi en place pour un nouvel essai.
+
+Le choix vient de Rust (`login_in_browser`, vrai sous Linux) ; l'écran est
+`views/Login.svelte`. Aperçu : `?loggedout&browserLogin=1`.
 
 ## Construire et tester dans WSL
 
@@ -63,9 +84,10 @@ session `wsl.exe` qui l'a lancée doit rester ouverte : l'app s'arrête avec ell
   garde `pulse/RDPSink`. Avec `--ao=pipewire,pulse,alsa`, mpv essaie `pipewire` puis ouvre
   `pulse` (un `audio-device` préfixé `pulse/` ne fait pas sauter `pipewire`).
 - `kill -9` de l'app : mpv disparaît aussitôt (`PR_SET_PDEATHSIG`).
-- Connexion (binaire nu) : TIDAL sert une vérification anti-robot à WebKitGTK ; une fois
-  l'épreuve résolue par l'utilisateur, la redirection est bien interceptée par
-  `on_navigation` et la session ouverte.
+- Connexion dans WebKitGTK (binaire nu, puis AppImage) : TIDAL sert une vérification
+  anti-robot ; une fois l'épreuve résolue par l'utilisateur, la redirection est bien
+  interceptée et la session ouverte. Après quelques connexions, TIDAL a bloqué WebKitGTK :
+  d'où la connexion par le navigateur du système.
 
 - Connexion depuis l'AppImage avec GStreamer embarqué : épreuve affichée, session ouverte.
   Sans backend Linux pour `keyring`, la session était perdue à la fermeture.
@@ -73,5 +95,6 @@ session `wsl.exe` qui l'a lancée doit rester ouverte : l'app s'arrête avec ell
 WSL a un bus de session D-Bus (systemd utilisateur) : `gnome-keyring` y est activé à la
 demande. Au premier enregistrement, une fenêtre demande le mot de passe du nouveau trousseau.
 
-À vérifier : session gardée après un redémarrage, lecture TIDAL, gapless, reprise de la
+À vérifier : connexion par le navigateur du système (page d'erreur finale de TIDAL dans un
+navigateur de bureau, d'après `tidalapi`), session gardée après un redémarrage, lecture TIDAL, gapless, reprise de la
 file, zone de notification.
