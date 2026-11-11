@@ -5,8 +5,12 @@ const LIFETIME_MS = 6000;
 /** Toast avec action (#192) : le temps de lire et de cliquer. */
 const ACTION_LIFETIME_MS = 15000;
 
-/** Toast de l'UI : un clic exécute `action` s'il y en a une, puis le ferme. */
-export type UiToast = Toast & { action?: () => void };
+/** Annulation (#349) : assez long pour réagir, sans encombrer. */
+const UNDO_LIFETIME_MS = 7000;
+
+/** Toast de l'UI : un clic exécute `action` s'il y en a une, puis le ferme. `actionLabel`
+ *  l'annonce dans le toast (« Annuler ») ; `lifetimeMs` remplace la durée par défaut. */
+export type UiToast = Toast & { action?: () => void; actionLabel?: string; lifetimeMs?: number };
 
 export const toasts = $state<{ items: (UiToast & { id: number })[] }>({ items: [] });
 
@@ -15,11 +19,16 @@ let nextId = 0;
 export function pushToast(t: UiToast) {
   const id = nextId++;
   toasts.items.push({ ...t, id });
-  setTimeout(() => dismissToast(id), t.action ? ACTION_LIFETIME_MS : LIFETIME_MS);
+  setTimeout(() => dismissToast(id), t.lifetimeMs ?? (t.action ? ACTION_LIFETIME_MS : LIFETIME_MS));
 }
 
 export function dismissToast(id: number) {
   toasts.items = toasts.items.filter((t) => t.id !== id);
+}
+
+/** Toast « … · Annuler » (#349) : un clic exécute `undo`. */
+export function pushUndoToast(message: string, undo: () => void) {
+  pushToast({ level: "info", message, action: undo, actionLabel: t.common.undo, lifetimeMs: UNDO_LIFETIME_MS });
 }
 
 export async function initToasts() {

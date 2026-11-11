@@ -130,6 +130,14 @@ let playSource: PlaySource | null = radioSeed
   : { kind: "album", id: fx.album.album.id, title: fx.album.album.title };
 /** `?manual=1` : quelques titres dans la file manuelle, pour la réorganiser (#80). */
 const manual: Track[] = params.has("manual") ? fx.playlist.tracks.slice(0, 4) : [];
+/** File d'avant le dernier vidage ou retrait (#349), comme `Player::undo_queue`. */
+let queueUndo: {
+  manual: Track[];
+  context: Track[];
+  index: number;
+  radioSeed: Track | null;
+  playSource: PlaySource | null;
+} | null = null;
 /** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
 const volumeParam = params.get("volume");
 /** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18), album ouvrable (#111). */
@@ -884,6 +892,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     emit("queue-state", queueView());
   },
   remove_from_queue: ({ index: i }) => {
+    queueUndo = { manual: [...manual], context, index, radioSeed, playSource };
     manual.splice(Number(i), 1);
     emit("queue-state", queueView());
   },
@@ -911,7 +920,18 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
         : { kind: "endOfTrack" };
     emit("player-state", state);
   },
+  restore_queue: () => {
+    if (!queueUndo) return false;
+    manual.splice(0, manual.length, ...queueUndo.manual);
+    ({ context, index, radioSeed, playSource } = queueUndo);
+    queueUndo = null;
+    state.hasNext = true;
+    emit("player-state", state);
+    emit("queue-state", queueView());
+    return true;
+  },
   clear_queue: () => {
+    queueUndo = { manual: [...manual], context, index, radioSeed, playSource };
     manual.length = 0;
     radioSeed = null;
     playSource = null;

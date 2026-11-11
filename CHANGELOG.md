@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.18
+
+- Bouton « Annuler » pendant quelques secondes après avoir vidé la file, retiré un titre de la file, enlevé un favori ou retiré un élément de « Plus tard » (#349).
+
 ## 0.5.17
 
 - Animations de l'interface réglables dans Réglages › Apparence : suivre le système, réduites ou complètes (#351).

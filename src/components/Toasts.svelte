@@ -13,6 +13,7 @@
       }}
     >
       {toast.message}
+      {#if toast.actionLabel}<span class="toast-action">{toast.actionLabel}</span>{/if}
     </button>
   {/each}
 </div>
@@ -65,6 +66,15 @@
 
   .toast.error {
     border: 1px solid var(--danger);
+  }
+
+  /* Action du toast (« Annuler », #349) : tout le toast est cliquable, le libellé le dit. */
+  .toast-action {
+    margin-left: 10px;
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   @keyframes toast-in {

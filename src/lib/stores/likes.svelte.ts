@@ -3,7 +3,7 @@
 
 import { commands, events, type LikedIds, type LikeTarget, type Track, type TrackId } from "../ipc";
 import { library, loadLibrary } from "./library.svelte";
-import { pushToast } from "./toasts.svelte";
+import { pushToast, pushUndoToast } from "./toasts.svelte";
 import { t } from "../i18n.svelte";
 
 export const likes = $state<{
@@ -89,6 +89,8 @@ export async function toggleFavorite(target: LikeTarget) {
   likes.pending = new Set(likes.pending).add(key);
   try {
     await commands.setLiked(target, liked);
+    // Retrait (#349) : annulable d'un clic ; le favori remis porte une nouvelle date.
+    if (!liked) pushUndoToast(t.common.unliked, () => void toggleFavorite(target));
     if (target.kind !== "track") {
       const tab = TABS[target.kind];
       if (library[tab].items) loadLibrary(tab, true);
