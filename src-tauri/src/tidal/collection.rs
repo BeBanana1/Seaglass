@@ -184,6 +184,35 @@ impl TidalClient {
         Ok(added)
     }
 
+    /// Remet un titre à la position `index` (0 = premier) : annulation d'un retrait (#349).
+    /// `onDupes=ADD` : le titre revient même s'il figure ailleurs dans la playlist.
+    /// Renvoie `false` si rien n'a été ajouté.
+    pub async fn insert_in_playlist(&self, uuid: &str, index: usize, id: TrackId) -> Result<bool> {
+        self.playlists.remove(uuid);
+        let path = format!("playlists/{uuid}/items");
+        let form = [
+            ("trackIds", id.to_string()),
+            ("onArtifactNotFound", "FAIL".to_owned()),
+            ("onDupes", "ADD".to_owned()),
+            ("toIndex", index.to_string()),
+        ];
+        let (resp, etag) = retry_stale!(
+            async {
+                let etag = self.fresh_etag(uuid).await?;
+                self.write_raw(Method::POST, API_V1, &path, &[], Some(&form), Some(&etag))
+                    .await
+                    .map(|r| (r, etag))
+            }
+            .await
+        )?;
+        self.settle(uuid, &etag).await;
+        let resp: RawAdded = resp
+            .json()
+            .await
+            .map_err(|e| TidalError::Decode(format!("{path} : {e}")))?;
+        Ok(!resp.added_item_ids.is_empty())
+    }
+
     /// Retire le titre à cette position (0 = premier), après avoir vérifié que c'est bien
     /// `expected` : la playlist a pu changer ailleurs depuis son affichage.
     pub async fn remove_from_playlist(

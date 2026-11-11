@@ -105,6 +105,26 @@ pub async fn remove_from_playlist(
         .map_err(err)
 }
 
+/// Remet le titre `track_id` à la position `index` (0 = premier) : annulation d'un retrait
+/// (#349). `false` si TIDAL n'a rien ajouté.
+#[tauri::command]
+pub async fn restore_to_playlist(
+    state: State<'_, AppState>,
+    uuid: String,
+    index: usize,
+    track_id: TrackId,
+) -> CmdResult<bool> {
+    if !is_uuid(&uuid) {
+        return Err("identifiant de playlist invalide".into());
+    }
+    super::snapshots::forget_playlist(&state, &uuid);
+    state
+        .tidal
+        .insert_in_playlist(&uuid, index, track_id)
+        .await
+        .map_err(err)
+}
+
 /// Déplace le titre `track_id` de la position `from` à la position `to` (0 = premier, #201) ;
 /// refusé si la playlist a changé depuis son affichage.
 #[tauri::command]
