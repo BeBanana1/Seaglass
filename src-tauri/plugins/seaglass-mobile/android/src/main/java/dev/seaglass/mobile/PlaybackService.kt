@@ -3,6 +3,9 @@ package dev.seaglass.mobile
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
@@ -26,12 +29,49 @@ class PlaybackService : MediaSessionService() {
         const val SHUFFLE = "dev.seaglass.SHUFFLE"
         const val REPEAT = "dev.seaglass.REPEAT"
 
+        /**
+         * Durée pendant laquelle le service reste au premier plan après une pause (#247),
+         * comme Media3 le fait depuis la 1.6.
+         */
+        private const val PAUSED_HOLD_MS = 10 * 60_000L
+
         /** Service en cours, pour remettre à jour les boutons quand Rust change leur état. */
         var current: PlaybackService? = null
             private set
     }
 
     private var session: MediaSession? = null
+
+    private val main = Handler(Looper.getMainLooper())
+
+    /** Fin du maintien au premier plan (`SystemClock.elapsedRealtime`), 0 : jamais joué. */
+    private var holdUntil = 0L
+
+    /** Maintien écoulé : la notification repasse en simple notification. */
+    private val endHold = Runnable {
+        session?.let { onUpdateNotification(it, false) }
+    }
+
+    /**
+     * Toutes les mises à jour de la notification passent ici, avec ce que Media3 a décidé :
+     * premier plan pendant la lecture seulement. En pause, il rendait donc le service à
+     * l'arrière-plan ; app non visible, Android l'arrêtait une minute plus tard (« app
+     * idle »), la session média était détruite et l'appui suivant sur les écouteurs
+     * n'arrivait plus nulle part (#247). Le service reste donc au premier plan
+     * `PAUSED_HOLD_MS` après la dernière lecture, tant qu'un titre est chargé.
+     */
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        val now = SystemClock.elapsedRealtime()
+        main.removeCallbacks(endHold)
+        if (startInForegroundRequired) holdUntil = now + PAUSED_HOLD_MS
+        val hold = !startInForegroundRequired && now < holdUntil && resumable(session.player)
+        if (hold) main.postDelayed(endHold, holdUntil - now)
+        super.onUpdateNotification(session, startInForegroundRequired || hold)
+    }
+
+    /** Un titre est chargé et prêt : mêmes états que ceux où Media3 garde le premier plan. */
+    private fun resumable(player: Player): Boolean = player.mediaItemCount > 0 &&
+        (player.playbackState == Player.STATE_READY || player.playbackState == Player.STATE_BUFFERING)
 
     override fun onCreate() {
         super.onCreate()
@@ -138,6 +178,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        main.removeCallbacks(endHold)
         if (current === this) current = null
         session?.release()
         session = null
