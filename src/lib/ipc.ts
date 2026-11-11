@@ -594,6 +594,12 @@ export interface JamGuestsUpdate {
 export const commands = {
   authStatus: () => invoke<SessionInfo | null>("auth_status"),
   login: () => invoke<SessionInfo>("login"),
+  /** Vrai si la connexion passe par le navigateur du système (Linux, #17). */
+  loginInBrowser: () => invoke<boolean>("login_in_browser"),
+  /** Ouvre la page de connexion dans le navigateur du système et renvoie son adresse. */
+  browserLoginStart: () => invoke<string>("browser_login_start"),
+  /** Adresse de la page sur laquelle TIDAL a renvoyé après la connexion. */
+  browserLoginFinish: (redirect: string) => invoke<SessionInfo>("browser_login_finish", { redirect }),
   logout: () => invoke<void>("logout"),
   search: (query: string) => invoke<SearchResults>("search", { query }),
   /** Dernières recherches retenues, la plus récente en tête (#211). */
@@ -746,6 +752,8 @@ export const commands = {
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
   /** Vrai si la présence Discord peut être proposée (bureau, application Discord compilée, #215). */
   discordAvailable: () => invoke<boolean>("discord_available"),
+  /** Vrai si le mode exclusif peut être proposé (Windows seulement, #245, #17). */
+  exclusiveAvailable: () => invoke<boolean>("exclusive_available"),
   /** Renvoie l'état relu après changement. */
   setAutostart: (enabled: boolean) => invoke<boolean>("set_autostart", { enabled }),
   /** Bureau seulement : plein écran de la fenêtre principale (#131). */

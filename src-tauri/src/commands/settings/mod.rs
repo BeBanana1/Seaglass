@@ -313,6 +313,12 @@ pub async fn discord_available() -> CmdResult<bool> {
     Ok(false)
 }
 
+/// Vrai si le mode exclusif peut être proposé (#245) : mpv sous Windows seulement (#17).
+#[tauri::command]
+pub async fn exclusive_available() -> CmdResult<bool> {
+    Ok(crate::player::exclusive_supported())
+}
+
 /// Active ou désactive le lancement au démarrage, puis renvoie l'état relu.
 #[cfg(desktop)]
 #[tauri::command]

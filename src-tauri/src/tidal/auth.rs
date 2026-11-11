@@ -47,6 +47,7 @@ impl ClientCredentials {
     }
 }
 
+#[derive(Clone)]
 pub struct PkceChallenge {
     verifier: String,
     challenge: String,

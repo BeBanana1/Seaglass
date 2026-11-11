@@ -13,8 +13,20 @@ use serde_json::Value;
 
 /// Valeur de `audio-device` pour le périphérique par défaut du système.
 pub const AUTO: &str = "auto";
-/// Seuls les périphériques de la sortie utilisée (`--ao=wasapi`) sont proposés.
-const PREFIX: &str = "wasapi/";
+/// Pilotes de sortie passés à `--ao`, par ordre de préférence. Sous Linux (#17), mpv prend
+/// le premier qui s'ouvre : PipeWire, puis PulseAudio (WSLg, anciens bureaux), puis ALSA.
+#[cfg(windows)]
+pub const AO: &str = "wasapi";
+#[cfg(not(windows))]
+pub const AO: &str = "pipewire,pulse,alsa";
+/// Préfixes d'identifiant (`<pilote>/…`) des pilotes de [`AO`], dans le même ordre.
+#[cfg(windows)]
+const PREFIXES: &[&str] = &["wasapi/"];
+#[cfg(not(windows))]
+const PREFIXES: &[&str] = &["pipewire/", "pulse/", "alsa/"];
+/// Préfixes acceptés pour un choix enregistré, toutes plateformes confondues : un choix
+/// d'une autre plateforme reste valide, il est seulement absent de la liste (repli).
+const KNOWN_PREFIXES: &[&str] = &["wasapi/", "pipewire/", "pulse/", "alsa/"];
 /// Bornes d'un choix reçu de l'UI : un identifiant WASAPI fait une quarantaine de caractères.
 const MAX_ID: usize = 200;
 const MAX_NAME: usize = 200;
@@ -35,14 +47,16 @@ struct RawDevice {
     name: String,
 }
 
-/// Choix reçu de l'UI ou relu en base : identifiant WASAPI, nom non vide, longueurs bornées.
+/// Choix reçu de l'UI ou relu en base : identifiant `<pilote>/…` d'un pilote connu, nom
+/// non vide, longueurs bornées.
 impl TryFrom<RawDevice> for AudioDevice {
     type Error = String;
 
     fn try_from(raw: RawDevice) -> Result<Self, Self::Error> {
         let name = raw.name.trim().to_owned();
-        let valid_id = raw.id.starts_with(PREFIX)
-            && raw.id.len() > PREFIX.len()
+        let valid_id = KNOWN_PREFIXES
+            .iter()
+            .any(|p| raw.id.starts_with(p) && raw.id.len() > p.len())
             && raw.id.len() <= MAX_ID
             && !raw.id.chars().any(char::is_control);
         if !valid_id {
@@ -55,15 +69,30 @@ impl TryFrom<RawDevice> for AudioDevice {
     }
 }
 
-/// Entrées WASAPI de `audio-device-list` (`[{name, description}]`), dans l'ordre de mpv.
-/// `auto` et les autres sorties (`openal`…) sont écartés.
+/// Entrées de `audio-device-list` (`[{name, description}]`) du pilote utilisé, dans l'ordre
+/// de mpv. `auto` et les autres sorties (`openal`…) sont écartés.
 pub fn parse_list(data: &Value) -> Vec<AudioDevice> {
-    data.as_array()
+    pick(data, PREFIXES)
+}
+
+/// Garde les entrées du premier pilote de `prefixes` présent dans la liste. Sous Linux, mpv
+/// liste les périphériques de tous ses pilotes : PipeWire les présente aussi par sa
+/// couche PulseAudio et ALSA, d'où des doublons si l'on gardait tout.
+fn pick(data: &Value, prefixes: &[&str]) -> Vec<AudioDevice> {
+    let entries: Vec<&Value> = data.as_array().into_iter().flatten().collect();
+    let id_of = |entry: &Value| entry.get("name").and_then(Value::as_str).map(str::to_owned);
+    let Some(prefix) = prefixes.iter().find(|p| {
+        entries
+            .iter()
+            .any(|e| id_of(e).is_some_and(|id| id.starts_with(**p) && id.len() > p.len()))
+    }) else {
+        return Vec::new();
+    };
+    entries
         .into_iter()
-        .flatten()
         .filter_map(|entry| {
             let id = entry.get("name")?.as_str()?;
-            if !id.starts_with(PREFIX) {
+            if !id.starts_with(prefix) || id.len() == prefix.len() {
                 return None;
             }
             let name = entry
@@ -87,7 +116,7 @@ pub fn parse_list(data: &Value) -> Vec<AudioDevice> {
 pub fn mpv_id_from_endpoint(endpoint: &str) -> Option<String> {
     let guid = endpoint.rsplit('.').next()?;
     (guid.starts_with('{') && guid.ends_with('}') && guid.len() > 2)
-        .then(|| format!("{PREFIX}{}", guid.to_ascii_lowercase()))
+        .then(|| format!("wasapi/{}", guid.to_ascii_lowercase()))
 }
 
 /// Retrouve un identifiant dans la liste, sans tenir compte de la casse du guid.
@@ -192,7 +221,7 @@ mod tests {
             {"description": "sans nom"}
         ]);
         assert_eq!(
-            parse_list(&data),
+            pick(&data, &["wasapi/"]),
             vec![
                 device(DAC, "Haut-parleurs (3- Focusrite USB Audio)"),
                 device("wasapi/{aaaa}", "wasapi/{aaaa}"),
@@ -202,14 +231,50 @@ mod tests {
     }
 
     #[test]
+    fn list_keeps_the_first_linux_driver_present() {
+        // PipeWire liste aussi ses sorties par sa couche PulseAudio et par ALSA.
+        let data = json!([
+            {"name": "auto", "description": "Autoselect device"},
+            {"name": "pipewire", "description": "Default (pipewire)"},
+            {"name": "pipewire/alsa_output.usb-dac", "description": "DAC USB"},
+            {"name": "pulse/alsa_output.usb-dac", "description": "DAC USB"},
+            {"name": "alsa/hw:CARD=DAC,DEV=0", "description": "DAC, USB Audio"},
+        ]);
+        let linux = ["pipewire/", "pulse/", "alsa/"];
+        assert_eq!(
+            pick(&data, &linux),
+            vec![device("pipewire/alsa_output.usb-dac", "DAC USB")]
+        );
+        // WSLg : PulseAudio seulement.
+        let wslg = json!([
+            {"name": "pulse", "description": "Default (pulse)"},
+            {"name": "pulse/RDPSink", "description": "RDP Sink"},
+            {"name": "alsa/default", "description": "Default ALSA Output"},
+        ]);
+        assert_eq!(
+            pick(&wslg, &linux),
+            vec![device("pulse/RDPSink", "RDP Sink")]
+        );
+        assert!(pick(&json!([{"name": "auto"}]), &linux).is_empty());
+    }
+
+    #[test]
     fn choice_is_validated() {
         let ok: AudioDevice =
             serde_json::from_value(json!({"id": DAC, "name": " Focusrite "})).unwrap();
         assert_eq!(ok, device(DAC, "Focusrite"));
+        for id in [
+            "pipewire/alsa_output.usb",
+            "pulse/RDPSink",
+            "alsa/hw:CARD=DAC,DEV=0",
+        ] {
+            assert!(serde_json::from_value::<AudioDevice>(json!({"id": id, "name": "x"})).is_ok());
+        }
         for bad in [
             json!({"id": "auto", "name": "x"}),
             json!({"id": "wasapi/", "name": "x"}),
             json!({"id": "openal", "name": "x"}),
+            json!({"id": "pulse/", "name": "x"}),
             json!({"id": DAC, "name": "  "}),
             json!({"id": format!("wasapi/{}", "a".repeat(300)), "name": "x"}),
             json!({"id": "wasapi/{a}\n", "name": "x"}),

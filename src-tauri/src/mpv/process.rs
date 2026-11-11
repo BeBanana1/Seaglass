@@ -7,7 +7,7 @@ use std::sync::{Mutex, OnceLock};
 
 use tokio::process::{Child, Command};
 
-use super::device::AUTO;
+use super::device::{AO, AUTO};
 use super::{CacheSize, MpvError, Result};
 
 /// `CREATE_NO_WINDOW` : pas de console qui s'ouvre à côté de l'app.
@@ -43,16 +43,18 @@ pub fn pipe_name() -> String {
         .into_owned()
 }
 
-/// `SEAGLASS_MPV_PATH`, sinon le mpv installé avec l'app. Le repli sur le `mpv` du `PATH`
-/// n'existe qu'en debug (#261) : dans un build installé, Windows chercherait aussi dans le
-/// dossier courant, et un `mpv.exe` posé là serait lancé à la place de celui de l'installeur.
+/// `SEAGLASS_MPV_PATH`, sinon le mpv installé avec l'app. Sous Windows, le repli sur le
+/// `mpv` du `PATH` n'existe qu'en debug (#261) : dans un build installé, Windows chercherait
+/// aussi dans le dossier courant, et un `mpv.exe` posé là serait lancé à la place de celui de
+/// l'installeur. Sous Linux (#17), mpv vient du système et `execvp` ne cherche que dans le
+/// `PATH` : le repli vaut aussi en release.
 fn executable() -> Result<PathBuf> {
     if let Some(path) = std::env::var_os("SEAGLASS_MPV_PATH") {
         return Ok(PathBuf::from(path));
     }
     match bundled() {
         Some(path) => Ok(path),
-        None if cfg!(debug_assertions) => Ok(PathBuf::from("mpv")),
+        None if cfg!(any(debug_assertions, not(windows))) => Ok(PathBuf::from("mpv")),
         None => Err(MpvError::Missing),
     }
 }
@@ -95,10 +97,10 @@ pub fn spawn(
             "--idle=yes",
             "--no-video",
             "--no-terminal",
-            "--ao=wasapi",
             "--gapless-audio=weak",
             "--prefetch-playlist=yes",
         ])
+        .arg(format!("--ao={AO}"))
         .args(cache.args())
         .arg(format!("--audio-device={}", audio_device.unwrap_or(AUTO)))
         .arg(super::exclusive::arg(exclusive))
@@ -109,6 +111,8 @@ pub fn spawn(
         .kill_on_drop(true);
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
+    #[cfg(target_os = "linux")]
+    die_with_parent(&mut cmd);
     let child = cmd.spawn().map_err(MpvError::Spawn)?;
     #[cfg(windows)]
     if let Some(handle) = child.raw_handle() {
@@ -117,11 +121,44 @@ pub fn spawn(
     Ok(child)
 }
 
+/// Équivalent Linux du Job Object (#17) : le noyau envoie `SIGKILL` à mpv quand l'app
+/// meurt, plantage compris. Le signal suit la mort du *thread* qui a lancé mpv : `spawn`
+/// est appelé depuis une tâche async, donc un thread worker de tokio qui vit autant que
+/// l'app (jamais depuis `spawn_blocking`, dont les threads s'arrêtent après 10 s d'inactivité).
+#[cfg(target_os = "linux")]
+fn die_with_parent(cmd: &mut Command) {
+    use std::ffi::{c_int, c_ulong};
+
+    unsafe extern "C" {
+        fn prctl(option: c_int, ...) -> c_int;
+    }
+    const PR_SET_PDEATHSIG: c_int = 1;
+    const SIGKILL: c_ulong = 9;
+    const ESRCH: i32 = 3;
+
+    let parent = std::process::id();
+    // SAFETY : la fermeture s'exécute entre `fork` et `exec` ; elle n'appelle que `prctl` et
+    // `getppid` (sûrs après `fork`) et n'alloue pas. Si l'app est morte avant `prctl`, mpv
+    // a déjà été rattaché à un autre parent : on abandonne le lancement.
+    unsafe {
+        cmd.pre_exec(move || {
+            if prctl(PR_SET_PDEATHSIG, SIGKILL) != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            if std::os::unix::process::parent_id() != parent {
+                return Err(std::io::Error::from_raw_os_error(ESRCH));
+            }
+            Ok(())
+        });
+    }
+}
+
 /// Détient le processus mpv pour pouvoir l'arrêter à la fermeture de l'app.
 ///
 /// Tauri quitte le processus sans exécuter les destructeurs : `kill_on_drop` ne suffit
 /// pas, d'où l'appel explicite à `kill` sur `RunEvent::Exit` (et avant l'installation
-/// d'une mise à jour). Sur un plantage, c'est le Job Object (`job.rs`) qui arrête mpv.
+/// d'une mise à jour). Sur un plantage, c'est le Job Object (`job.rs`) qui arrête mpv, ou
+/// `PR_SET_PDEATHSIG` sous Linux.
 #[derive(Default)]
 pub struct ProcessGuard {
     child: Mutex<Option<Child>>,

@@ -69,6 +69,16 @@ export const fr = {
     disclaimer: "Client non officiel, non affilié à TIDAL.",
     sessionLost: "Session expirée, reconnectez-vous.",
     unreachable: "Impossible de reprendre la session, nouvel essai automatique.",
+    signInBrowser: "Se connecter dans le navigateur",
+    reopenBrowser: "Rouvrir la page de connexion",
+    browserSteps:
+      "Une fois connecté, TIDAL affiche une page d'erreur : c'est normal. Copiez l'adresse de cette page et collez-la ici.",
+    redirectLabel: "Adresse de la page",
+    finish: "Valider",
+    browserFallback: "La page de connexion s'est ouverte dans votre navigateur. Sinon, copiez cette adresse dans un navigateur :",
+    loginUrlLabel: "Adresse de la page de connexion",
+    copy: "Copier",
+    copied: "Copié",
   },
   album: {
     hiresTwin: "Cet album existe en Hi-Res",
@@ -210,6 +220,16 @@ export const en: typeof fr = {
     disclaimer: "Unofficial client, not affiliated with TIDAL.",
     sessionLost: "Session expired, please sign in again.",
     unreachable: "Could not resume the session, retrying automatically.",
+    signInBrowser: "Sign in with your browser",
+    reopenBrowser: "Reopen the sign-in page",
+    browserSteps:
+      "Once signed in, TIDAL shows an error page: that is expected. Copy the address of that page and paste it here.",
+    redirectLabel: "Page address",
+    finish: "Confirm",
+    browserFallback: "The sign-in page opened in your browser. If it did not, copy this address into a browser:",
+    loginUrlLabel: "Sign-in page address",
+    copy: "Copy",
+    copied: "Copied",
   },
   album: {
     hiresTwin: "This album is available in Hi-Res",
