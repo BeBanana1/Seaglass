@@ -156,6 +156,14 @@
     if (playback) savePlayback({ ...playback, exclusive: !playback.exclusive });
   }
 
+  function togglePauseOnUnplug() {
+    if (playback) savePlayback({ ...playback, pauseOnUnplug: !playback.pauseOnUnplug });
+  }
+
+  function toggleResumeOnLaunch() {
+    if (playback) savePlayback({ ...playback, resumeOnLaunch: !playback.resumeOnLaunch });
+  }
+
   function toggleAutoRadio() {
     if (playback) savePlayback({ ...playback, autoRadio: !playback.autoRadio });
   }
@@ -309,6 +317,23 @@
       <h2>{t.settings.outputDevice}</h2>
       <p class="hint">{t.settings.outputDeviceHint}</p>
       <OutputDevicePicker value={playback ? playback.audioDevice : undefined} onchange={setAudioDevice} />
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.pauseOnUnplug}</span>
+          <span class="hint">{t.settings.pauseOnUnplugHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={playback?.pauseOnUnplug === true}
+          role="switch"
+          aria-checked={playback?.pauseOnUnplug === true}
+          aria-label={t.settings.pauseOnUnplug}
+          disabled={playback === null}
+          onclick={togglePauseOnUnplug}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
     </div>
     {#if exclusiveAvailable}
     <div class="group">
@@ -415,6 +440,28 @@
         </button>
       </label>
     </div>
+    {#if desktop}
+    <div class="group">
+      <h2>{t.settings.startup}</h2>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.resumeOnLaunch}</span>
+          <span class="hint">{t.settings.resumeOnLaunchHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={playback?.resumeOnLaunch === true}
+          role="switch"
+          aria-checked={playback?.resumeOnLaunch === true}
+          aria-label={t.settings.resumeOnLaunch}
+          disabled={playback === null}
+          onclick={toggleResumeOnLaunch}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+    </div>
+    {/if}
   {:else}
     {#if desktop}
     <div class="group">

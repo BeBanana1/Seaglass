@@ -527,6 +527,11 @@ export interface PlaybackSettings {
   exclusive: boolean;
   /** Fin de file : enchaîner sur la radio du dernier titre (#78). */
   autoRadio: boolean;
+  /** Bureau : pause quand le périphérique de sortie utilisé est débranché (#348). Activé
+   *  par défaut. */
+  pauseOnUnplug: boolean;
+  /** Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut. */
+  resumeOnLaunch: boolean;
 }
 
 export interface UpdateInfo {

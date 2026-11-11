@@ -81,11 +81,19 @@ pub fn run() {
             let launch = engine::Launch {
                 app: app.handle().clone(),
             };
+            // Reprise de la lecture au lancement (#353) : jamais au démarrage de session
+            // (`--minimized`) ni après un plantage ; bureau seulement.
+            #[cfg(desktop)]
+            let may_resume = !std::env::args().any(|a| a == tray::MINIMIZED_ARG)
+                && !logs::previous_launch_crashed();
+            #[cfg(mobile)]
+            let may_resume = false;
             let player = player::spawn(
                 app.handle().clone(),
                 Arc::clone(&tidal),
                 store.clone(),
                 launch,
+                may_resume,
             );
             attach_integrations(app, &player);
             // La fenêtre est créée cachée (`visible: false`) : affichée ici, sauf au

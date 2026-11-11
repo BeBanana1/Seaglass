@@ -244,6 +244,8 @@ let playback: PlaybackSettings = {
   hiresUpgrade: hiresOfferParam ? "ask" : "auto",
   audioDevice: deviceParam ? DAC : null,
   autoRadio: radioSeed !== null,
+  pauseOnUnplug: true,
+  resumeOnLaunch: false,
   normalization: normalizationParam ?? "off",
   exclusive: params.has("exclusive"),
 };

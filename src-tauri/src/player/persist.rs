@@ -75,6 +75,42 @@ impl Player {
         );
     }
 
+    /// Reprise au lancement (#353) : attend la session TIDAL hors de l'acteur, puis lui
+    /// demande de lire le titre restauré. Sans session (déconnecté, réseau absent), rien.
+    pub(super) fn resume_when_signed_in(&self) {
+        if self.queue.current().is_none() {
+            return;
+        }
+        let tidal = Arc::clone(&self.tidal);
+        let tx = self.tx.clone();
+        tokio::spawn(async move {
+            match tidal.current_session().await {
+                Ok(Some(_)) => {
+                    let _ = tx.send(Cmd::ResumeOnLaunch).await;
+                }
+                Ok(None) => tracing::info!("pas de reprise au lancement : aucune session"),
+                Err(e) => tracing::warn!("pas de reprise au lancement : {e}"),
+            }
+        });
+    }
+
+    /// Lit le titre restauré à sa position, sauf si l'utilisateur a déjà lancé quelque
+    /// chose (`load_req`) ou si le titre était presque fini.
+    pub(super) fn resume_on_launch(&mut self) {
+        if self.loaded || self.load_req != 0 || !self.state.paused {
+            return;
+        }
+        let Some(id) = self.queue.current() else {
+            return;
+        };
+        if !worth_resuming(self.state.time_pos, self.state.duration) {
+            tracing::info!("pas de reprise au lancement : titre presque fini");
+            return;
+        }
+        tracing::info!("reprise de la lecture au lancement");
+        self.load_current(id, self.state.time_pos);
+    }
+
     pub(super) fn persist_if_due(&mut self) {
         let only_position = !(self.persist_queue || self.persist_volume);
         let interval = if only_position && !self.state.paused {
@@ -181,6 +217,15 @@ impl Player {
     }
 }
 
+/// Fin de titre trop proche pour une reprise au lancement (#353).
+const RESUME_MARGIN: f64 = 5.0;
+
+/// Une reprise au lancement vaut la peine s'il reste plus de `RESUME_MARGIN` secondes ;
+/// durée inconnue : on reprend.
+fn worth_resuming(position: f64, duration: f64) -> bool {
+    duration <= 0.0 || duration - position > RESUME_MARGIN
+}
+
 /// Carte d'album tirée du titre : de quoi l'afficher sans requête. Les artistes sont ceux du
 /// titre (le plus souvent ceux de l'album).
 fn album_of(track: &Track) -> AlbumSummary {
@@ -197,5 +242,19 @@ fn album_of(track: &Track) -> AlbumSummary {
         album_type: None,
         explicit: track.explicit,
         hires: track.hires,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resume_skips_a_track_about_to_end() {
+        assert!(worth_resuming(0.0, 200.0));
+        assert!(worth_resuming(120.0, 200.0));
+        assert!(!worth_resuming(196.0, 200.0));
+        assert!(!worth_resuming(200.0, 200.0));
+        assert!(worth_resuming(30.0, 0.0), "durée inconnue : on reprend");
     }
 }

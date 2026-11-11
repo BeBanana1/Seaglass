@@ -19,6 +19,8 @@ const COPY_LINES: usize = 500;
 static DIR: OnceLock<PathBuf> = OnceLock::new();
 /// Plantage au lancement précédent, pas encore signalé à l'UI.
 static CRASH_NOTICE: AtomicBool = AtomicBool::new(false);
+/// Plantage au lancement précédent ; jamais remis à faux, contrairement à `CRASH_NOTICE`.
+static CRASHED: AtomicBool = AtomicBool::new(false);
 
 /// Premier appel de l'app : sortie standard, journal sur disque (ouvert par `setup`) et
 /// hook des panics.
@@ -69,6 +71,7 @@ pub fn setup(app: &tauri::App) {
             report::REPORT_FILE
         );
         CRASH_NOTICE.store(true, Ordering::SeqCst);
+        CRASHED.store(true, Ordering::SeqCst);
     }
     let _ = DIR.set(dir);
 }
@@ -81,6 +84,12 @@ fn dir() -> Option<&'static Path> {
 #[cfg(desktop)]
 pub fn log_dir() -> Option<&'static Path> {
     dir()
+}
+
+/// Vrai si le lancement précédent a planté : la lecture ne reprend pas seule (#353).
+#[cfg_attr(mobile, allow(dead_code))]
+pub fn previous_launch_crashed() -> bool {
+    CRASHED.load(Ordering::SeqCst)
 }
 
 /// Vrai une seule fois si le lancement précédent a planté.

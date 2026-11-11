@@ -109,6 +109,14 @@ export const fr = {
     "Périphérique sur lequel Seaglass joue, sans changer celui des autres applications. " +
     "S'il est débranché, la lecture passe sur le périphérique par défaut et y revient au " +
     "rebranchement.",
+  pauseOnUnplug: "Mettre en pause si la sortie est débranchée",
+  pauseOnUnplugHint:
+    "Casque débranché, DAC éteint ou casque Bluetooth déconnecté : la lecture s'arrête au " +
+    "lieu de continuer sur les haut-parleurs.",
+  resumeOnLaunch: "Reprendre la lecture au lancement",
+  resumeOnLaunchHint:
+    "Seaglass reprend le dernier titre là où il s'était arrêté. Jamais quand il est lancé " +
+    "à l'ouverture de session, ni après un plantage.",
   exclusive: "Mode exclusif",
   exclusiveHint:
     "Seaglass ouvre la sortie audio pour lui seul, sans passer par le mixeur de Windows : " +
@@ -333,6 +341,14 @@ export const en: typeof fr = {
   outputDeviceHint:
     "Device Seaglass plays on, without changing the one used by other apps. If it is " +
     "unplugged, playback moves to the default device and comes back when it is plugged in again.",
+  pauseOnUnplug: "Pause when the output is unplugged",
+  pauseOnUnplugHint:
+    "Headphones unplugged, DAC switched off or Bluetooth headset disconnected: playback " +
+    "stops instead of carrying on through the speakers.",
+  resumeOnLaunch: "Resume playback on launch",
+  resumeOnLaunchHint:
+    "Seaglass picks the last track up where it stopped. Never when it is launched at " +
+    "sign-in, nor after a crash.",
   exclusive: "Exclusive mode",
   exclusiveHint:
     "Seaglass opens the audio output for itself, bypassing the Windows mixer: the stream " +

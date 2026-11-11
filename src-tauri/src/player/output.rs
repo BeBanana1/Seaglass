@@ -73,6 +73,29 @@ impl Output {
         }
     }
 
+    /// Nouvelle liste de mpv. Renvoie le nom du périphérique qui servait jusque-là (le
+    /// choix, ou celui du système en `auto`) s'il vient d'en disparaître : débranché (#348).
+    /// Un changement du périphérique par défaut dont l'ancien reste listé ne compte pas.
+    fn set_list(
+        &mut self,
+        list: Vec<AudioDevice>,
+        system_default: Option<String>,
+    ) -> Option<String> {
+        let in_use = if self.applied == AUTO {
+            self.system_default.as_deref()
+        } else {
+            Some(self.applied.as_str())
+        };
+        let lost = in_use
+            .and_then(|id| device::find(self.list.as_deref()?, id))
+            .filter(|d| device::find(&list, &d.id).is_none())
+            .map(|d| d.name.clone());
+        self.list = Some(list);
+        self.system_default = system_default;
+        self.unusable = None;
+        lost
+    }
+
     /// Recalcule le périphérique à demander. Renvoie la nouvelle valeur de `audio-device`
     /// si elle change, et le passage en repli (`Some(true)`) ou sa fin (`Some(false)`).
     fn update(&mut self) -> (Option<String>, Option<bool>) {
@@ -130,14 +153,28 @@ impl Player {
             .await
             .ok()
             .flatten();
-        self.output.list = Some(list);
-        self.output.system_default = system_default;
-        self.output.unusable = None;
+        let lost = self.output.set_list(list, system_default);
         let devices = self.output.devices();
         if let Err(e) = self.app.emit("audio-devices", &devices) {
             tracing::warn!("émission audio-devices : {e}");
         }
-        self.apply_output_device(true).await;
+        // Débranché pendant la lecture (#348) : pause avant de basculer la sortie, pour
+        // que rien ne sorte des haut-parleurs ; ce toast remplace celui du repli.
+        let playing = self.loaded && !self.state.paused;
+        match lost {
+            Some(name) if playing && self.pause_on_unplug => {
+                self.engine_op(Op::SetPaused(true)).await;
+                self.apply_output_device(false).await;
+                self.toast(
+                    "info",
+                    trf!(
+                        "« {name} » débranché : lecture en pause",
+                        "“{name}” unplugged: playback paused"
+                    ),
+                );
+            }
+            _ => self.apply_output_device(true).await,
+        }
     }
 
     /// Choix fait dans les Réglages, appliqué à chaud (mpv rouvre la sortie sans
@@ -247,6 +284,50 @@ mod tests {
         out.list = Some(vec![dev(SPEAKERS, "Haut-parleurs"), dev(DAC, "DAC USB")]);
         assert_eq!(out.update(), (Some(DAC.into()), Some(false)));
         assert_eq!(out.describe().missing, None);
+    }
+
+    #[test]
+    fn unplugging_the_device_in_use_is_reported() {
+        let speakers = || dev(SPEAKERS, "Haut-parleurs");
+        let dac = || dev(DAC, "DAC USB");
+        let both = || vec![speakers(), dac()];
+
+        // Périphérique choisi : la première liste ne signale rien, même s'il en est absent.
+        let mut out = Output::new(Some(dev(DAC, "DAC")));
+        assert_eq!(out.set_list(vec![speakers()], Some(SPEAKERS.into())), None);
+        out.update();
+        assert_eq!(out.set_list(both(), Some(SPEAKERS.into())), None);
+        out.update();
+        // Un autre périphérique disparaît : rien.
+        assert_eq!(out.set_list(vec![dac()], None), None);
+        out.update();
+        // Le périphérique utilisé disparaît.
+        assert_eq!(
+            out.set_list(vec![speakers()], Some(SPEAKERS.into())),
+            Some("DAC USB".into())
+        );
+        out.update();
+        // Déjà en repli : la liste suivante ne le signale pas une seconde fois.
+        assert_eq!(out.set_list(vec![speakers()], Some(SPEAKERS.into())), None);
+
+        // Périphérique par défaut du système.
+        let mut out = Output::new(None);
+        assert_eq!(out.set_list(both(), Some(DAC.into())), None);
+        out.update();
+        // Défaut changé dans Windows, l'ancien toujours branché : rien.
+        assert_eq!(out.set_list(both(), Some(SPEAKERS.into())), None);
+        out.update();
+        assert_eq!(out.set_list(both(), Some(DAC.into())), None);
+        out.update();
+        // Casque par défaut débranché : Windows passe aux haut-parleurs.
+        assert_eq!(
+            out.set_list(vec![speakers()], Some(SPEAKERS.into())),
+            Some("DAC USB".into())
+        );
+        // Défaut inconnu (Linux) : rien à signaler.
+        let mut out = Output::new(None);
+        assert_eq!(out.set_list(both(), None), None);
+        assert_eq!(out.set_list(vec![speakers()], None), None);
     }
 
     #[test]
