@@ -135,9 +135,22 @@ fausse 0.5.9 par `"version"` dans `--config`), lancées sous 24.04 en **vraie Ap
   `xdotool` (clic) et `import` (capture) ; `wmctrl` ne voit pas les fenêtres.
 
 Pendant ces essais, la sortie `pulse` de WSLg s'est figée (mpv bloqué à 0 % avec ou sans
-l'app) : la lecture n'a pas pu être revérifiée sur l'AppImage mise à jour. Remarque : mpv
-hérite du `LD_LIBRARY_PATH` posé par l'AppImage et charge alors 95 bibliothèques de
-celle-ci au lieu de celles du système ; sans effet constaté jusqu'ici.
+l'app) : la lecture n'a pas pu être revérifiée sur l'AppImage mise à jour.
+
+## Environnement de mpv sous AppImage (#320)
+
+L'`AppRun` pose des variables qui pointent dans le point de montage (`LD_LIBRARY_PATH`,
+`GST_PLUGIN_*`, `GIO_MODULE_DIR`, `GTK_*`, `GDK_PIXBUF_MODULE_FILE`, `PYTHONHOME`,
+`XDG_DATA_DIRS`, `PATH`… : 21 variables) ; après une relance, l'environnement garde aussi
+celles de l'ancien montage. mpv, binaire du système, en héritait : avec le seul
+`LD_LIBRARY_PATH`, `ldd /usr/bin/mpv` résolvait 95 bibliothèques dans l'AppImage (celles
+d'Ubuntu 22.04). `mpv/process.rs` (`clean_appimage_env`, si `APPDIR` est défini) applique
+à la commande de mpv les corrections de `mpv/appimage_env.rs` (logique pure testée) : les
+listes de chemins perdent leurs entrées situées sous `APPDIR` ou sous un dossier
+`.mount_*`, et les entrées vides ; une variable qui ne pointait que là est retirée. L'app
+garde son environnement. Vérifié le 2026-11-11 (0.5.9, vraie AppImage sous 24.04) : 21
+variables vers l'AppImage dans l'app, 0 dans `/proc/<mpv>/environ`, aucune bibliothèque
+de l'AppImage dans `/proc/<mpv>/maps`.
 
 ## Vérifié (2026-11-11, WSL Ubuntu 24.04, mpv 0.37)
 

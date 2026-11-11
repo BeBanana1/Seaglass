@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.9
+
+- Linux : mpv, lancé depuis l'AppImage, ne reçoit plus ses chemins de bibliothèques et de plugins (il chargeait 95 bibliothèques de l'AppImage au lieu de celles du système) (#320).
+
 ## 0.5.8
 
 - Linux : mises à jour automatiques de l'AppImage (signée, annoncée dans le même `latest.json` que Windows), relance après installation ; désactivées hors d'une AppImage, message clair si son dossier n'est pas modifiable (#314).
