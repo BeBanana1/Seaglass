@@ -137,7 +137,7 @@ cargo test dump_ui_fixtures -- --ignored          # données de prévisualisatio
 pnpm check
 pnpm test                                         # tests du frontend (vitest)
 pnpm release                                      # installeur signé dans release/ (voir docs/release.md)
-pnpm release:all -Publish                         # Windows + Android, tag, release Gitea
+pnpm release:all -Publish                         # Windows + Android + Linux (WSL), tag, release Gitea
 ```
 
 ## Conventions

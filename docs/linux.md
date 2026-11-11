@@ -77,6 +77,42 @@ GStreamer du système, l'affichait. Avec le plugin `gstreamer` de linuxdeploy (i
 L'AppImage se lance avec `--appimage-extract-and-run` (pas de FUSE dans WSL). La
 session `wsl.exe` qui l'a lancée doit rester ouverte : l'app s'arrête avec elle.
 
+## Release (#313)
+
+L'AppImage publiée se construit sous **Ubuntu 22.04**, dans une distribution WSL dédiée
+(`Ubuntu-22.04`), et pas dans celle des essais (24.04). Une AppImage exige la glibc de la
+machine qui l'a construite : sous 24.04, le binaire demandait `GLIBC_2.39` et ne démarrait
+ni sur Debian 12 (2.36), ni sur Ubuntu 22.04 (2.35), ni sur Mint 21. La 22.04 est la base
+la plus ancienne qui a WebKitGTK 4.1 (exigé par Tauri 2) : glibc 2.35, soit Ubuntu 22.04,
+Debian 12, Mint 21, Fedora 36 et plus récentes (annoncé sur la page de téléchargement).
+
+- **Préparer la distribution** (une fois, relançable) : `wsl --install -d Ubuntu-22.04
+  --no-launch`, un utilisateur créé en root (`useradd -m`, `[user] default=` dans
+  `/etc/wsl.conf`), puis `scripts/linux-build-setup.sh --system` en root (paquets, plugins
+  GStreamer embarqués par `bundleMediaFramework`, mpv et playerctl pour les essais) et
+  `scripts/linux-build-setup.sh` en utilisateur (rustup, `tauri-cli`).
+- **Build** : `powershell -File scripts/release-linux.ps1` (appelé par `release-all.ps1`,
+  qui accepte `-SkipLinux`). `pnpm build` sous Windows, puis `scripts/linux-build.sh` dans
+  la distribution : copie de l'arbre dans `~/seaglass-release` (`target/` gardé),
+  `cargo tauri build --bundles appimage` sans artefacts de l'updater (#314), puis
+  **contrôle de la glibc** : le plus haut `GLIBC_x.y` exigé par le binaire et par les `.so`
+  de l'`AppDir` doit être ≤ `SEAGLASS_LINUX_GLIBC_MAX` (2.35 par défaut), sinon le build
+  échoue. Sorties : `release/<version>/Seaglass_<version>_amd64.AppImage`,
+  `release/linux.json` (version, URL, SHA-256, taille, glibc, notes) et le repère
+  `release/.build/linux.json`. `-PublishOnly`, publication (AppImage puis manifeste), tag
+  et release Gitea comme pour Android.
+- **Page de téléchargement** : carte Linux remplie depuis `linux.json` (même code que la
+  carte Android), avec la mention « mpv requis ».
+- Premier build (2026-11-11, 0.5.7) : compilation complète en 2 min, AppImage de 94 Mo,
+  glibc exigée 2.35, 106 plugins GStreamer embarqués. Lancée sous Ubuntu 24.04 : reprise
+  de la file et lecture HiRes 24/96, MPRIS publié. Lancée sous 22.04 : l'app et mpv
+  démarrent ; la distribution de build n'a pas de bus de session (sa session systemd
+  utilisateur ne démarre pas), MPRIS y est donc absent, avec un simple avertissement.
+- **mpv 0.34** (Ubuntu 22.04, la plus vieille version visée ; Debian 12 a la 0.35) :
+  `loadfile` en arguments nommés (#316) accepté, avec `start` et `af` appliqués ;
+  `seaglass.conf` ne donne que les deux avertissements déjà connus (`media-controls`,
+  `wasapi-exclusive-buffer`).
+
 ## Vérifié (2026-11-11, WSL Ubuntu 24.04, mpv 0.37)
 
 - AppImage 0.5.5 construite (83 Mo) ; l'app démarre, mpv du système lancé comme enfant.

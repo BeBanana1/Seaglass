@@ -1,27 +1,32 @@
 <#
 .SYNOPSIS
-  Construit puis publie Seaglass pour Windows et Android, sur le même commit.
+  Construit puis publie Seaglass pour Windows, Android et Linux, sur le même commit.
 
 .DESCRIPTION
   1. Vérifie l'arbre git et le tag `v<version>` (absent, ou déjà sur HEAD).
-  2. Construit l'installeur Windows (`release.ps1`), puis l'APK (`release-android.ps1`),
-     sans rien publier : si l'un des deux builds échoue, rien n'est en ligne.
-  3. Avec -Publish : publie Windows puis Android (`-PublishOnly` : les fichiers du build
-     de l'étape 2, contrôlés par leur repère), pose le tag, puis crée la release Gitea
-     avec l'installeur et l'APK (`gitea-release.ps1`).
+  2. Construit l'installeur Windows (`release.ps1`), l'APK (`release-android.ps1`), puis
+     l'AppImage (`release-linux.ps1`, dans WSL), sans rien publier : si un build échoue,
+     rien n'est en ligne.
+  3. Avec -Publish : publie Windows, Android puis Linux (`-PublishOnly` : les fichiers du
+     build de l'étape 2, contrôlés par leur repère), pose le tag, puis crée la release
+     Gitea avec l'installeur, l'APK et l'AppImage (`gitea-release.ps1`).
+
+  -SkipLinux laisse Linux de côté (WSL ou sa distribution de build absents).
 
   Clés, mots de passe et variables d'environnement : ceux de release.ps1,
-  release-android.ps1 et gitea-release.ps1. Chaque étape tourne dans son propre
-  processus PowerShell ; la première qui échoue arrête tout.
+  release-android.ps1, release-linux.ps1 et gitea-release.ps1. Chaque étape tourne dans
+  son propre processus PowerShell ; la première qui échoue arrête tout.
 
 .EXAMPLE
-  powershell -File scripts/release-all.ps1            # construit les deux, ne publie rien
+  powershell -File scripts/release-all.ps1            # construit tout, ne publie rien
   powershell -File scripts/release-all.ps1 -Publish   # construit, publie, tague, release Gitea
   powershell -File scripts/release-all.ps1 -Publish -Notes "- Correctif lecture"
 #>
 param(
     [switch]$Publish,
-    [string]$Notes
+    [string]$Notes,
+    # Sans l'AppImage Linux (WSL ou sa distribution de build absents).
+    [switch]$SkipLinux
 )
 
 $ErrorActionPreference = 'Stop'
@@ -37,6 +42,7 @@ function Step($message) { Write-Host "`n=== $message ===" -ForegroundColor Magen
 $ps = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File')
 $windows = Join-Path $PSScriptRoot 'release.ps1'
 $android = Join-Path $PSScriptRoot 'release-android.ps1'
+$linux = Join-Path $PSScriptRoot 'release-linux.ps1'
 $gitea = Join-Path $PSScriptRoot 'gitea-release.ps1'
 
 # --- 1. Vérifications -------------------------------------------------------------------
@@ -60,9 +66,17 @@ if ($LASTEXITCODE -ne 0) { Fail "build Windows en échec, rien n'a été publié
 Step "Android $version : build"
 powershell @ps $android @buildArgs
 if ($LASTEXITCODE -ne 0) { Fail "build Android en échec, rien n'a été publié" }
+if ($SkipLinux) {
+    Write-Host "`nLinux laissé de côté (-SkipLinux)" -ForegroundColor Yellow
+} else {
+    Step "Linux $version : build"
+    powershell @ps $linux @buildArgs
+    if ($LASTEXITCODE -ne 0) { Fail "build Linux en échec, rien n'a été publié (ou relancer avec -SkipLinux)" }
+}
+$platforms = if ($SkipLinux) { 'Windows et Android' } else { 'Windows, Android et Linux' }
 
 if (-not $Publish) {
-    Write-Host "`nBuilds Windows et Android terminés, rien n'a été publié (ajouter -Publish)." -ForegroundColor Green
+    Write-Host "`nBuilds $platforms terminés, rien n'a été publié (ajouter -Publish)." -ForegroundColor Green
     exit 0
 }
 
@@ -78,6 +92,14 @@ if ($LASTEXITCODE -ne 0) {
     Fail ("Windows est publié mais pas Android. Pour finir :`n" +
         "    powershell -File scripts/release-android.ps1 -PublishOnly")
 }
+if (-not $SkipLinux) {
+    Step "Linux $version : publication"
+    powershell @ps $linux -PublishOnly -SkipGiteaRelease
+    if ($LASTEXITCODE -ne 0) {
+        Fail ("Windows et Android sont publiés mais pas Linux. Pour finir :`n" +
+            "    powershell -File scripts/release-linux.ps1 -PublishOnly")
+    }
+}
 
 # Tout est en ligne : un échec ici n'est qu'un avertissement (#108).
 Step "release Gitea $tag"
@@ -86,4 +108,4 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host ("ATTENTION : release Gitea non créée, les mises à jour restent publiées.`n" +
         "    Pour la refaire seule : powershell -File scripts/gitea-release.ps1") -ForegroundColor Yellow
 }
-Write-Host "`nSeaglass $version publiée pour Windows et Android." -ForegroundColor Green
+Write-Host "`nSeaglass $version publiée pour $platforms." -ForegroundColor Green
