@@ -89,6 +89,18 @@ pub struct UiSettings {
     pub discord: bool,
     /// Taille de l'interface en pourcentage (#337), propre à chaque appareil.
     pub zoom: Zoom,
+    /// Animations de l'interface (#351) : suivre le système, les réduire ou les garder.
+    pub motion: Motion,
+}
+
+/// `System` suit « réduire les animations » du système (`prefers-reduced-motion`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Motion {
+    #[default]
+    System,
+    Reduced,
+    Full,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -400,6 +412,14 @@ mod tests {
         let s: UiSettings = serde_json::from_str(r#"{"closeAction":"tray"}"#).unwrap();
         assert_eq!(s.close_action, CloseAction::Tray);
         assert!(serde_json::from_str::<UiSettings>(r#"{"closeAction":"hide"}"#).is_err());
+        assert_eq!(
+            s.motion,
+            Motion::System,
+            "animations : système par défaut (#351)"
+        );
+        let s: UiSettings = serde_json::from_str(r#"{"motion":"reduced"}"#).unwrap();
+        assert_eq!(s.motion, Motion::Reduced);
+        assert!(serde_json::from_str::<UiSettings>(r#"{"motion":"none"}"#).is_err());
     }
 
     /// Les réglages enregistrés avant l'accueil personnalisable restent lisibles.

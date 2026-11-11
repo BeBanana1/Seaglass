@@ -491,9 +491,14 @@ export interface UiSettings {
   sorts: ListSort[];
   /** Taille de l'interface en pourcentage (#337), une valeur de `ZOOM_LEVELS`. */
   zoom: number;
+  /** Animations de l'interface (#351). */
+  motion: Motion;
 }
 
 export type CloseAction = "quit" | "tray";
+
+/** `system` suit « réduire les animations » du système. */
+export type Motion = "system" | "reduced" | "full";
 
 /** Langue effective de l'app, décidée par le backend. */
 export type Lang = "fr" | "en";

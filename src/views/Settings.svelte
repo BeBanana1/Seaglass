@@ -13,7 +13,7 @@
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { copyText, pushToast } from "../lib/stores/toasts.svelte";
-  import { setCloseAction, setDiscord, setZoom, ui, ZOOM_LEVELS } from "../lib/stores/ui.svelte";
+  import { MOTIONS, setCloseAction, setDiscord, setMotion, setZoom, ui, ZOOM_LEVELS } from "../lib/stores/ui.svelte";
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
@@ -286,6 +286,23 @@
       <h2>{t.settings.theme}</h2>
       <p class="hint">{t.settings.themeHint}</p>
       <ThemePicker />
+    </div>
+    <div class="group">
+      <h2>{t.settings.motion}</h2>
+      <p class="hint">{t.settings.motionHint}</p>
+      <div class="cache-sizes motions" role="radiogroup" aria-label={t.settings.motion}>
+        {#each MOTIONS as motion (motion)}
+          <button
+            class="cache-size motion"
+            class:selected={ui.settings.motion === motion}
+            role="radio"
+            aria-checked={ui.settings.motion === motion}
+            onclick={() => setMotion(motion).catch(fail)}
+          >
+            {t.settings.motions[motion]}
+          </button>
+        {/each}
+      </div>
     </div>
     <div class="group">
       <h2>{t.settings.accent}</h2>

@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.17
+
+- Animations de l'interface réglables dans Réglages › Apparence : suivre le système, réduites ou complètes (#351).
+
 ## 0.5.16
 
 - Bureau : la lecture se met en pause quand le casque ou la sortie audio utilisée est débranché, au lieu de continuer sur les haut-parleurs (réglable dans Réglages › Lecture › Sortie audio) (#348).
