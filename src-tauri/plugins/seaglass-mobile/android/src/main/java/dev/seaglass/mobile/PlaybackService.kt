@@ -42,6 +42,9 @@ class PlaybackService : MediaSessionService() {
 
     private var session: MediaSession? = null
 
+    /** Chargeur d'images de la session : le widget y reprend la pochette déjà chargée (#329). */
+    internal val bitmapLoader get() = session?.bitmapLoader
+
     private val main = Handler(Looper.getMainLooper())
 
     /** Fin du maintien au premier plan (`SystemClock.elapsedRealtime`), 0 : jamais joué. */
