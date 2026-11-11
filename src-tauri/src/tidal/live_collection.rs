@@ -333,3 +333,58 @@ async fn check_playlist(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Ch
     }
     Ok(())
 }
+
+/// Annulation d'un retrait (#349) : `toIndex` à l'ajout remet le titre à sa place, y
+/// compris un doublon (`onDupes=ADD`). Playlist jetable, aucun favori touché.
+/// `cargo test live_playlist_insert -- --ignored --nocapture`
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis, crée puis supprime une playlist"]
+async fn live_playlist_insert() {
+    let client = client().await;
+    let album = client.album(ALBUM_ID).await.unwrap();
+    let ids: Vec<TrackId> = album.tracks.iter().map(|t| t.id).take(4).collect();
+    assert_eq!(ids.len(), 4);
+    let uuid = client
+        .create_playlist("Seaglass test (à supprimer)", "Créée par un test")
+        .await
+        .unwrap();
+    let result = check_insert(&client, &uuid, &ids).await;
+    let deleted = client.delete_playlist(&uuid).await;
+    result.unwrap();
+    deleted.unwrap();
+}
+
+async fn check_insert(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Check {
+    let tracks = async || -> Result<Vec<TrackId>, String> {
+        let page = client.playlist(uuid).await.map_err(err)?;
+        Ok(page.tracks.into_iter().map(|t| t.track.id).collect())
+    };
+    client.add_to_playlist(uuid, ids).await.map_err(err)?;
+    for index in [1, 0, 3] {
+        client
+            .remove_from_playlist(uuid, index, ids[index])
+            .await
+            .map_err(err)?;
+        let added = client
+            .insert_in_playlist(uuid, index, ids[index])
+            .await
+            .map_err(err)?;
+        let after = tracks().await?;
+        println!("retrait puis remise à l'index {index} : ajouté {added}, {after:?}");
+        if !added || after != ids {
+            return Err(format!("remise à l'index {index} : {after:?}"));
+        }
+    }
+    // Doublon : le premier titre remis aussi à l'index 2.
+    let added = client
+        .insert_in_playlist(uuid, 2, ids[0])
+        .await
+        .map_err(err)?;
+    let after = tracks().await?;
+    println!("doublon à l'index 2 : ajouté {added}, {after:?}");
+    let expected = [ids[0], ids[1], ids[0], ids[2], ids[3]];
+    if !added || after != expected {
+        return Err(format!("doublon : {after:?}"));
+    }
+    Ok(())
+}

@@ -169,6 +169,7 @@ pub fn run() {
             commands::collection::add_to_playlist,
             commands::collection::create_playlist,
             commands::collection::remove_from_playlist,
+            commands::collection::restore_to_playlist,
             commands::collection::move_in_playlist,
             commands::collection::edit_playlist,
             commands::collection::delete_playlist,

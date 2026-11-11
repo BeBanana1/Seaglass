@@ -506,6 +506,8 @@ const longPlaylist: PlaylistPage | null = longCount
   : null;
 
 const cachedPlaylists = new Map<string, PlaylistPage>();
+/** Dernier titre retiré d'une playlist, pour l'annulation (#349). */
+let removedFromPlaylist: PlaylistPage["tracks"][number] | null = null;
 const homeFirstPage = Math.ceil(fx.home.length / 2);
 
 /** `?slow=<ms>` : latence de la commande `playlist`, pour voir « Chargement… » (#152). */
@@ -703,8 +705,18 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (page?.tracks[Number(index)]?.id !== Number(trackId)) {
       throw new Error("la playlist a changé, rouvrez-la avant de retirer ce titre");
     }
-    page.tracks.splice(Number(index), 1);
+    removedFromPlaylist = page.tracks.splice(Number(index), 1)[0] ?? null;
     page.playlist.numberOfTracks = page.tracks.length;
+  },
+  restore_to_playlist: ({ uuid, index, trackId }) => {
+    cachedPlaylists.delete(String(uuid));
+    const page = ownPage(String(uuid));
+    const entry = removedFromPlaylist;
+    if (!page || !entry || entry.id !== Number(trackId)) return false;
+    page.tracks.splice(Number(index), 0, entry);
+    page.playlist.numberOfTracks = page.tracks.length;
+    removedFromPlaylist = null;
+    return true;
   },
   move_in_playlist: ({ uuid, from, to, trackId }) => {
     cachedPlaylists.delete(String(uuid));
