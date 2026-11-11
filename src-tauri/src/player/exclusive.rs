@@ -7,8 +7,9 @@ use crate::engine::Op;
 use crate::i18n::{tr, trf};
 
 /// Le moteur sait-il ouvrir une sortie en exclusif ? mpv sous Windows seulement : Media3
-/// n'a pas de mode exclusif utilisable.
-pub(super) fn supported() -> bool {
+/// n'a pas de mode exclusif utilisable, et sous Linux (#17) ni PipeWire ni PulseAudio ne
+/// l'offrent par mpv (ALSA direct sur `hw:` reste à étudier).
+pub fn supported() -> bool {
     cfg!(all(desktop, windows))
 }
 

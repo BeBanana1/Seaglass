@@ -3,7 +3,7 @@
 Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
 Projet personnel, Windows en priorité.
 
-> Statut : version courante dans `VERSION`, journal dans [`CHANGELOG.md`](CHANGELOG.md) (une version publiée porte un tag `v<version>`). Phases 0 à 5 livrées (mode exclusif WASAPI en 0.5.0, #245). App Android en cours (#24, [`docs/android.md`](docs/android.md)). Last.fm reporté, pas avant que l'utilisateur le demande.
+> Statut : version courante dans `VERSION`, journal dans [`CHANGELOG.md`](CHANGELOG.md) (une version publiée porte un tag `v<version>`). Phases 0 à 5 livrées (mode exclusif WASAPI en 0.5.0, #245). App Android en cours (#24, [`docs/android.md`](docs/android.md)). Version Linux en cours (#17, [`docs/linux.md`](docs/linux.md)). Last.fm reporté, pas avant que l'utilisateur le demande.
 
 Ce fichier ne garde que ce qui sert à toute tâche. Les notes d'implémentation sont dans `docs/` : voir « Documentation » plus bas et lire le fichier du domaine avant d'y toucher.
 
@@ -109,6 +109,7 @@ Notes d'implémentation, lues à la demande : endpoints vérifiés, mesures, pi�
 | [`docs/interface.md`](docs/interface.md) | navigation, réglages, raccourcis, aperçu sans Tauri (paramètres d'URL), CSP, pages et listes, menu contextuel, liens collés, performances des listes, langue | `src/` hors thèmes, `commands/settings/`, `i18n.rs` |
 | [`docs/themes.md`](docs/themes.md) | jetons, fonds, couleur d'accent, cascade, notes de chaque thème, classes surchargées | `src/themes/`, `app.css`, `components/backdrops/`, et avant de renommer une classe de composant |
 | [`docs/systeme.md`](docs/systeme.md) | SMTC, présence Discord, zone de notification, lancement au démarrage | `integrations/` (bureau) |
+| [`docs/linux.md`](docs/linux.md) | ce qui diffère sous Linux (sortie audio, arrêt de mpv, exclusif), construire et tester dans WSL | le code `cfg(not(windows))` du bureau, un paquet Linux |
 | [`docs/android.md`](docs/android.md) | état de l'app Android, moteur Media3, session média, pont natif, secrets, mise en page tactile, distribution de l'APK, construire et tester sur le S21 | `media3.rs`, `android.rs`, `plugins/seaglass-mobile/`, `gen/android/`, les styles `data-platform="android"` |
 | [`docs/jam.md`](docs/jam.md) | Jam locale et en ligne, API des invités, garde-fous, relais, liens d'autres services | `jam/`, `foreign/`, `relay/` |
 | [`docs/release.md`](docs/release.md) | installeur NSIS, mpv embarqué, mises à jour, signature, scripts de release, release Gitea, CI et runner | `scripts/`, `updater.rs`, `tauri*.conf.json`, `.gitea/`, `ci/` |

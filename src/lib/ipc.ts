@@ -746,6 +746,8 @@ export const commands = {
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
   /** Vrai si la présence Discord peut être proposée (bureau, application Discord compilée, #215). */
   discordAvailable: () => invoke<boolean>("discord_available"),
+  /** Vrai si le mode exclusif peut être proposé (Windows seulement, #245, #17). */
+  exclusiveAvailable: () => invoke<boolean>("exclusive_available"),
   /** Renvoie l'état relu après changement. */
   setAutostart: (enabled: boolean) => invoke<boolean>("set_autostart", { enabled }),
   /** Bureau seulement : plein écran de la fenêtre principale (#131). */

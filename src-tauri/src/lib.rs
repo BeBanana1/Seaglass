@@ -196,6 +196,7 @@ pub fn run() {
             commands::settings::platform,
             commands::settings::autostart_enabled,
             commands::settings::discord_available,
+            commands::settings::exclusive_available,
             #[cfg(desktop)]
             commands::settings::set_autostart,
             commands::jam::jam_status,

@@ -808,6 +808,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
   autostart_enabled: () => autostart,
   discord_available: () => true,
+  exclusive_available: () => true,
   // `?notification=1` : appui sur la notification d'Android au lancement (#163, #240), une fois.
   take_now_playing_request: () => {
     const asked = params.get("notification") === "1" && !notificationTaken;

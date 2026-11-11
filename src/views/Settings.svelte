@@ -48,12 +48,19 @@
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
   let discordAvailable = $state(false);
+  let exclusiveAvailable = $state(false);
   // Android 12+ (#203) : liens TIDAL donnés à l'app ; `null` = rien à régler ou pas encore lu.
   let links = $state<{ enabled: boolean } | null>(null);
 
   $effect(() => {
     if (section === "playback" && playback === null) loadPlayback();
     if (section === "app" && autostart === null && desktop) loadAutostart();
+  });
+
+  $effect(() => {
+    if (section === "playback" && desktop) {
+      commands.exclusiveAvailable().then((v) => (exclusiveAvailable = v), fail);
+    }
   });
 
   $effect(() => {
@@ -271,6 +278,7 @@
       <p class="hint">{t.settings.outputDeviceHint}</p>
       <OutputDevicePicker value={playback ? playback.audioDevice : undefined} onchange={setAudioDevice} />
     </div>
+    {#if exclusiveAvailable}
     <div class="group">
       <label class="setting-row">
         <span class="text">
@@ -290,6 +298,7 @@
         </button>
       </label>
     </div>
+    {/if}
     <div class="group">
       <h2>{t.settings.cache}</h2>
       <p class="hint">{t.settings.cacheHint}</p>

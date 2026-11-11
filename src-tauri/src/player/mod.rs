@@ -18,6 +18,7 @@ mod upgrade;
 pub mod volume;
 
 pub use actor::{Cmd, spawn};
+pub use exclusive::supported as exclusive_supported;
 #[cfg(desktop)]
 pub use persist::flush_blocking;
 pub use queue::{QueuePart, Repeat};
