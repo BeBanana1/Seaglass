@@ -44,6 +44,22 @@
                 <data android:scheme="seaglass" android:host="drive" />
             </intent-filter>
         </activity>
+        <!-- Épingle à lire (#335) : raccourcis de l'icône (`PinShortcuts`) et lien
+             `seaglass://pin/<clé>` (Modes et routines). Même relais sans interface. -->
+        <activity
+            android:name="dev.seaglass.mobile.PinActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="seaglass" android:host="pin" />
+            </intent-filter>
+        </activity>
         <!-- Menu « Partager » du système et liens TIDAL touchés (#203) : la page du lien
              s'ouvre dans l'app. Même relais sans interface que ci-dessus ; exporté pour
              recevoir l'intent. -->

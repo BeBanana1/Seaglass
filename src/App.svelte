@@ -4,6 +4,7 @@
   import { initPlayer, player, stepVolume } from "./lib/stores/player.svelte";
   import { initQueue, queue } from "./lib/stores/queue.svelte";
   import { playedFrom } from "./lib/playSource";
+  import { playPin } from "./lib/pins";
   import { initToasts, noticeCrash, pushToast } from "./lib/stores/toasts.svelte";
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
   import { closeJamDialog, initJam, jam } from "./lib/stores/jam.svelte";
@@ -77,6 +78,8 @@
       void openShared();
       void events.onOpenDrive(openDriveFromOutside);
       void openDriveFromOutside();
+      void events.onOpenPin(playPinFromOutside);
+      void playPinFromOutside();
     }
     if (import.meta.env.DEV && !("__TAURI_INTERNALS__" in window)) {
       const view = (await import("./lib/mock")).initialView();
@@ -184,6 +187,22 @@
     if (!session) return;
     nowPlayingOpen = false;
     driveOpen = true;
+  }
+
+  // Raccourci d'une épingle (appui long sur l'icône) ou lien `seaglass://pin/…` (#335) :
+  // l'épingle est lue comme une tuile du mode conduite, puis « En lecture » s'ouvre.
+  // Déconnecté, la demande est oubliée.
+  async function playPinFromOutside() {
+    const pin = await commands.takePinRequest().catch(() => null);
+    if (!pin || !session) return;
+    try {
+      await playPin(pin, player.state.shuffle);
+      driveOpen = false;
+      nowPlayingOpen = true;
+      nowPlayingFromOutside = true;
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
   }
 
   // Lien partagé depuis une autre app (#203) : seulement connecté, sinon il attend.

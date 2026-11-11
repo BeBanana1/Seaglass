@@ -64,6 +64,7 @@ pub fn run() {
             let ui_settings = commands::settings::load_from(store.as_deref());
             i18n::set(ui_settings.language.resolve());
             ui_settings.apply_to_backend();
+            commands::shortcuts::sync(&ui_settings.pins);
             #[cfg(desktop)]
             commands::settings::zoom::apply(app.handle(), ui_settings.zoom);
             #[cfg(desktop)]
@@ -181,6 +182,7 @@ pub fn run() {
             commands::player::play_next,
             commands::player::take_now_playing_request,
             commands::drive::take_drive_request,
+            commands::shortcuts::take_pin_request,
             commands::drive::keep_screen_on,
             commands::player::add_to_queue,
             commands::player::enqueue_tracks,

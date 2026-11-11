@@ -14,6 +14,7 @@ pub mod player;
 pub mod project;
 pub mod search_history;
 pub mod settings;
+pub mod shortcuts;
 pub mod snapshots;
 #[cfg(desktop)]
 pub mod window;

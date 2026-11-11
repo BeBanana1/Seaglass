@@ -49,7 +49,7 @@ pub enum PinError {
 
 impl Pin {
     /// Identité de l'épingle : deux épingles de même clé sont des doublons.
-    fn key(&self) -> &str {
+    pub(crate) fn key(&self) -> &str {
         match self {
             Pin::Playlist { uuid, .. } => uuid,
             Pin::Mix { id, .. } => id,

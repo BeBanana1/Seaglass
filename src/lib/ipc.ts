@@ -719,6 +719,9 @@ export const commands = {
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
   /** Android : vrai une fois après le lien `seaglass://drive` ou le raccourci de l'app (#193). */
   takeDriveRequest: () => invoke<boolean>("take_drive_request"),
+  /** Android : épingle demandée par un raccourci de l'icône ou le lien `seaglass://pin/…`
+   *  (#335), une seule fois. */
+  takePinRequest: () => invoke<Pin | null>("take_pin_request"),
   /** Android : écran gardé allumé (mode conduite, #193) ; rien sur le bureau. */
   keepScreenOn: (on: boolean) => invoke<void>("keep_screen_on", { on }),
   playNext: (trackId: TrackId) => invoke<void>("play_next", { trackId }),
@@ -845,6 +848,8 @@ export const events = {
   onOpenNowPlaying: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-now-playing", () => cb()),
   /** Android : mode conduite demandé (#193) ; la demande se prend par `takeDriveRequest`. */
   onOpenDrive: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-drive", () => cb()),
+  /** Android : épingle à lire (#335) ; elle se prend par `takePinRequest`. */
+  onOpenPin: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-pin", () => cb()),
   /** Android : lien partagé prêt ; il se prend par `takeSharedLink` (#203). */
   onSharedLink: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-link", () => cb()),
   onFullscreen: (cb: (fullscreen: boolean) => void): Promise<UnlistenFn> =>

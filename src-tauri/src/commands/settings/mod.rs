@@ -194,6 +194,8 @@ pub async fn set_language(state: State<'_, AppState>, language: LanguagePref) ->
     save(&state, &settings)?;
     let lang = language.resolve();
     i18n::set(lang);
+    // Libellés traduits des raccourcis de l'icône (#335).
+    super::shortcuts::sync(&settings.pins);
     Ok(lang)
 }
 
@@ -236,6 +238,7 @@ pub async fn set_pins(state: State<'_, AppState>, pins: Vec<Pin>) -> CmdResult<V
     let mut settings = load(&state);
     settings.pins = pins::normalize(pins).map_err(err)?;
     save(&state, &settings)?;
+    super::shortcuts::sync(&settings.pins);
     Ok(settings.pins)
 }
 

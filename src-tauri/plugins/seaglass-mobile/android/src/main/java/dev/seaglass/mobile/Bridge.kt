@@ -90,6 +90,10 @@ object Bridge {
         }
         "crashSetup" -> CrashLog.setup(appContext(), java.io.File(args.getString("dir")))
         "linkHandling" -> LinkHandling.state(appContext())
+        "pinShortcuts" -> {
+            PinShortcuts.set(appContext(), args)
+            null
+        }
         "openLinkSettings" -> {
             LinkHandling.openSettings(appContext())
             null
