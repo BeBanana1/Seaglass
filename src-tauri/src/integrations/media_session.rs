@@ -19,6 +19,8 @@ struct Raw {
     position: Option<f64>,
     /// Texte partagé, pour `openLink` (#203).
     text: Option<String>,
+    /// Clé de l'épingle, pour `openPin` (#335).
+    pin: Option<String>,
     /// État demandé par un contrôleur, pour `setRepeat` et `setShuffle` (#254).
     repeat: Option<Repeat>,
     shuffle: Option<bool>,
@@ -46,6 +48,8 @@ enum Action {
     OpenDrive,
     /// Texte reçu par le menu « Partager » d'Android (#203).
     OpenLink(String),
+    /// Raccourci d'une épingle ou lien `seaglass://pin/<clé>` (#335).
+    OpenPin(String),
 }
 
 impl Action {
@@ -66,6 +70,7 @@ impl Action {
             "openNowPlaying" => Self::OpenNowPlaying,
             "openDrive" => Self::OpenDrive,
             "openLink" => Self::OpenLink(raw.text?),
+            "openPin" => Self::OpenPin(raw.pin?),
             other => {
                 tracing::warn!("action de la session inconnue : {other}");
                 return None;
@@ -86,7 +91,9 @@ impl Action {
             Self::CycleRepeat => Cmd::SetRepeat(next_repeat(modes.repeat)),
             Self::SetShuffle(on) => Cmd::SetShuffle(on),
             Self::SetRepeat(repeat) => Cmd::SetRepeat(repeat),
-            Self::OpenNowPlaying | Self::OpenDrive | Self::OpenLink(_) => return None,
+            Self::OpenNowPlaying | Self::OpenDrive | Self::OpenLink(_) | Self::OpenPin(_) => {
+                return None;
+            }
         })
     }
 }
@@ -189,6 +196,10 @@ mod android {
             };
             if let Action::OpenLink(text) = action {
                 crate::commands::link::share(&ui, text);
+                return Ok(());
+            }
+            if let Action::OpenPin(key) = action {
+                crate::commands::shortcuts::request(&ui, key);
                 return Ok(());
             }
             if action == Action::OpenNowPlaying {
@@ -315,6 +326,11 @@ mod tests {
             Action::parse(r#"{"command":"openNowPlaying"}"#),
             Some(Action::OpenNowPlaying)
         );
+        assert_eq!(
+            Action::parse(r#"{"command":"openPin","pin":"later"}"#),
+            Some(Action::OpenPin("later".into()))
+        );
+        assert_eq!(Action::parse(r#"{"command":"openPin"}"#), None);
         assert_eq!(
             Action::parse(r#"{"command":"openDrive"}"#),
             Some(Action::OpenDrive)

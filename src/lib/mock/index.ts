@@ -84,6 +84,7 @@ interface Fixtures {
 const found = import.meta.glob<Fixtures>("./fixtures.json", { eager: true, import: "default" });
 const fx: Fixtures = Object.values(found)[0] ?? synthetic();
 const params = new URLSearchParams(location.search);
+let pinShortcutParam = params.has("pinshortcut");
 
 const demoMix: MixSummary = {
   id: "0000000000000000000000000000ff",
@@ -864,6 +865,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   take_shared_link: () => null,
   // Mode conduite (#193) : `?platform=android&drive=1` l'ouvre au lancement (`initialView`).
   take_drive_request: () => false,
+  // Raccourci d'une épingle (#335) : `?platform=android&pinshortcut=1` lit la première épingle.
+  take_pin_request: () => {
+    const pin = pinShortcutParam ? (ui.pins[0] ?? null) : null;
+    pinShortcutParam = false;
+    return pin;
+  },
   keep_screen_on: () => null,
 
   // `?platform=android&links=1` : liens TIDAL déjà donnés à l'app.

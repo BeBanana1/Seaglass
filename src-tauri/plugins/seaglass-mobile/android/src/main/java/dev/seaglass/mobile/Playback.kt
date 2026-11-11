@@ -105,8 +105,15 @@ internal object Playback {
     /** Mode conduite demandé avant que Rust ne branche la session (app lancée par le lien). */
     private var pendingDrive = false
 
+    /** Épingle demandée avant que Rust ne branche la session (app lancée par le raccourci). */
+    private var pendingPin: String? = null
+
     fun attachSession(channel: Channel) {
         commands = channel
+        pendingPin?.let {
+            pendingPin = null
+            openPin(it)
+        }
         pendingShare?.let {
             pendingShare = null
             share(it)
@@ -126,6 +133,19 @@ internal object Playback {
         }
         val o = JSObject()
         o.put("command", "openDrive")
+        channel.send(o)
+    }
+
+    /** Raccourci d'une épingle ou lien `seaglass://pin/<clé>` (#335), sur le thread principal. */
+    fun openPin(key: String) {
+        val channel = commands
+        if (channel == null) {
+            pendingPin = key
+            return
+        }
+        val o = JSObject()
+        o.put("command", "openPin")
+        o.put("pin", key)
         channel.send(o)
     }
 
