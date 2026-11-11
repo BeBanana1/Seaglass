@@ -17,6 +17,22 @@
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
+        <!-- Widget d'écran d'accueil (#329). Exporté : le lanceur et le système lui demandent
+             de s'afficher. Ses boutons passent par un récepteur à part, non exporté. -->
+        <receiver
+            android:name="dev.seaglass.mobile.NowPlayingWidget"
+            android:exported="true"
+            android:label="@string/widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_now_playing" />
+        </receiver>
+        <receiver
+            android:name="dev.seaglass.mobile.WidgetActionReceiver"
+            android:exported="false" />
         <!-- Appui sur la notification (#163) : relais sans interface vers « En lecture ».
              Tâche à part (affinité vide) : elle ne s'empile pas sur l'app, qu'elle ramène
              au premier plan avant de se fermer. -->

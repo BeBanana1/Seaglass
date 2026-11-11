@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.25
+
+- Android : widget d'écran d'accueil avec la pochette, le titre, l'artiste et les boutons Précédent, Lecture / Pause et Suivant ; un appui sur la pochette ouvre « En lecture » (#329).
+
 ## 0.5.24
 
 - Android : un appui long sur l'icône de l'app propose les quatre premières épingles ; un appui lance leur lecture, et chacune peut être posée en icône sur l'écran d'accueil. Lien `seaglass://pin/<clé>` pour Modes et routines (#335).

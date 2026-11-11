@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget d'écran d'accueil (#329) : clair par défaut, sombre dans `values-night`. -->
+<resources>
+    <color name="widget_background">#F2F4F8F8</color>
+    <color name="widget_text">#FF10201F</color>
+    <color name="widget_text_dim">#B310201F</color>
+    <string name="widget_label">Seaglass</string>
+    <string name="widget_description">Current track and playback controls</string>
+    <string name="widget_idle_title">Seaglass</string>
+    <string name="widget_idle_hint">Tap to open</string>
+    <string name="widget_play">Play</string>
+    <string name="widget_pause">Pause</string>
+    <string name="widget_next">Next</string>
+    <string name="widget_previous">Previous</string>
+</resources>

@@ -97,6 +97,25 @@ internal object Playback {
             ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycle)
             observing = true
         }
+        refreshWidget()
+    }
+
+    /** Ce que le widget d'écran d'accueil affiche (#329), sur le thread principal. */
+    fun widgetState(): WidgetState {
+        val live = commands != null
+        val p = exo
+        return WidgetState(
+            live = live,
+            title = metadata.title?.toString()?.takeIf { it.isNotEmpty() },
+            artist = metadata.artist?.toString(),
+            artwork = metadata.artworkUri,
+            playing = live && p != null && p.playWhenReady && p.mediaItemCount > 0,
+        )
+    }
+
+    /** Titre, pause ou session changés : le widget suit, s'il y en a un de posé. */
+    private fun refreshWidget() {
+        context?.let { NowPlayingWidget.refresh(it) }
     }
 
     /** Texte partagé arrivé avant que Rust ne branche la session (app lancée par le partage). */
@@ -122,6 +141,7 @@ internal object Playback {
             pendingDrive = false
             openDrive()
         }
+        refreshWidget()
     }
 
     /** Lien `seaglass://drive` ou raccourci de l'app (#193), sur le thread principal. */
@@ -216,6 +236,7 @@ internal object Playback {
             "stop" -> {
                 p.stop()
                 p.clearMediaItems()
+                refreshWidget()
             }
             "togglePause" -> p.playWhenReady = !p.playWhenReady
             "setPaused" -> p.playWhenReady = args.paused != true
@@ -248,6 +269,7 @@ internal object Playback {
     /** Titre, artiste, album et pochette du titre courant, pour la notification. */
     fun setNowPlaying(meta: MediaMetadata) {
         metadata = meta
+        refreshWidget()
         val p = exo ?: return
         if (p.mediaItemCount == 0) return
         val index = p.currentMediaItemIndex
@@ -372,6 +394,7 @@ internal object Playback {
 
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             send("paused") { put("value", !playWhenReady) }
+            refreshWidget()
             exo?.let { updateIdle(it) }
         }
 

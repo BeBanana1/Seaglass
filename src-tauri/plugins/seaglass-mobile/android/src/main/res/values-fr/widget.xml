@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Titre en cours et commandes de lecture</string>
+    <string name="widget_idle_hint">Toucher pour ouvrir</string>
+    <string name="widget_play">Lecture</string>
+    <string name="widget_pause">Pause</string>
+    <string name="widget_next">Suivant</string>
+    <string name="widget_previous">Précédent</string>
+</resources>
