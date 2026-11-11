@@ -302,7 +302,7 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
     builder
 }
 
-/// SMTC (touches média, panneau Windows), branché sur la fenêtre principale, et icône de
+/// SMTC (touches média, panneau Windows), branché sur la fenêtre principale, MPRIS sous Linux, et icône de
 /// la zone de notification ; session média sur Android. Un échec est journalisé sans empêcher l'app de démarrer.
 fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<player::Cmd>) {
     let mut observers = integrations::Observers::default();
@@ -326,6 +326,13 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
             Err(e) => tracing::warn!("SMTC indisponible : {e}"),
         }
     }
+    #[cfg(target_os = "linux")]
+    {
+        observers.mpris = Some(integrations::mpris::start(
+            app.handle().clone(),
+            player.clone(),
+        ));
+    }
     #[cfg(target_os = "android")]
     {
         observers.media_session = Some(integrations::media_session::start(
@@ -333,7 +340,7 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
             player.clone(),
         ));
     }
-    #[cfg(not(any(windows, target_os = "android")))]
+    #[cfg(not(any(windows, target_os = "linux", target_os = "android")))]
     let _ = app;
     if player
         .try_send(player::Cmd::AttachObservers(Box::new(observers)))

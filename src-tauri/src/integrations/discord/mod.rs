@@ -195,6 +195,7 @@ mod tests {
             has_previous: false,
             shuffle: false,
             repeat: Repeat::Off,
+            volume: 1.0,
         };
         let activity = activity::desired(Some(&np), None, now_ms()).unwrap();
         conn.set_activity(Some(activity.to_json())).await.unwrap();

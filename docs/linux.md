@@ -114,4 +114,9 @@ Un vrai bureau (GNOME, KDE) a ce trousseau dès l'ouverture de session.
 - Session gardée après un redémarrage de l'app, enchaînement sans blanc entre les titres
   d'un album, file et titre en cours repris en pause au redémarrage.
 
-Pas vérifié : zone de notification (WSLg n'en a pas de représentative).
+- Contrôles média (MPRIS, #312) pilotés par `playerctl` : voir `systeme.md`. Pour essayer
+  sans AppImage : `cargo tauri build --no-bundle` avec la même configuration, puis
+  `target/release/seaglass` (même dossier de données, même trousseau).
+
+Pas vérifié : zone de notification (WSLg n'en a pas de représentative), applet média et
+touches média d'un vrai bureau.

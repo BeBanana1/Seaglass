@@ -138,6 +138,7 @@ mod tests {
             has_previous: false,
             shuffle: false,
             repeat: Repeat::Off,
+            volume: 1.0,
         }
     }
 

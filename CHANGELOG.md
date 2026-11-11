@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.6
+
+- Linux : contrôles média du système par MPRIS (touches média, applet du bureau, `playerctl`, KDE Connect) : titre, artiste, album, pochette, position, lecture/pause, suivant, précédent, saut, aléatoire, répétition et volume (#312).
+
 ## 0.5.5
 
 - Linux : sortie audio PipeWire, PulseAudio ou ALSA selon ce qui est disponible, mpv arrêté avec l'app même sur un plantage, mode exclusif masqué hors Windows ; AppImage avec GStreamer embarqué (sans lui, la vérification anti-robot de la connexion ne s'affiche pas), session gardée dans le Secret Service (GNOME Keyring, KWallet) ; connexion dans le navigateur du système, TIDAL bloquant le navigateur intégré de Linux ; testée dans WSL (#17).
