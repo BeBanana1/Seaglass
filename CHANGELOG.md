@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.10
+
+- Journaux et rapports de plantage gardés en local (bureau et Android) : `seaglass.log`, panics Rust, exceptions Kotlin et sorties anormales signalées par Android ; Réglages › Application › Journaux pour copier le journal ou le dernier rapport, et toast au lancement qui suit un plantage (#192).
+
 ## 0.5.9
 
 - Linux : mpv, lancé depuis l'AppImage, ne reçoit plus ses chemins de bibliothèques et de plugins (il chargeait 95 bibliothèques de l'AppImage au lieu de celles du système) (#320).

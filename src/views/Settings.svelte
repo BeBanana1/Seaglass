@@ -12,7 +12,7 @@
     type PlaybackSettings,
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
-  import { pushToast } from "../lib/stores/toasts.svelte";
+  import { copyText, pushToast } from "../lib/stores/toasts.svelte";
   import { setCloseAction, setDiscord, ui } from "../lib/stores/ui.svelte";
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
@@ -206,6 +206,14 @@
     } catch (e) {
       fail(e);
     }
+  }
+
+  function copyLog() {
+    void copyText(commands.currentLog, t.settings.logCopied, t.settings.logUnavailable);
+  }
+
+  function copyCrash() {
+    void copyText(commands.lastCrashReport, t.settings.crashCopied, t.settings.noCrash);
   }
 
   async function openProject(page: "repo" | "newIssue") {
@@ -485,6 +493,19 @@
           <span class="hint">{t.settings.playHistoryHint}</span>
         </span>
         <button class="update-check" onclick={clearPlayHistory}>{t.settings.clearPlayHistory}</button>
+      </div>
+    </div>
+
+    <!-- #192 : journal et rapport de plantage gardés en local, copiés pour une issue. -->
+    <div class="group">
+      <h2>{t.settings.logs}</h2>
+      <p class="hint">{t.settings.logsHint}</p>
+      <div class="project-links">
+        <button class="update-check" onclick={copyLog}>{t.settings.copyLog}</button>
+        <button class="update-check" onclick={copyCrash}>{t.settings.copyCrash}</button>
+        {#if desktop}
+        <button class="update-check" onclick={() => commands.openLogDir().catch(fail)}>{t.settings.openLogDir}</button>
+        {/if}
       </div>
     </div>
 

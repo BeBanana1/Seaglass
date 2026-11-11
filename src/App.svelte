@@ -4,7 +4,7 @@
   import { initPlayer, player, stepVolume } from "./lib/stores/player.svelte";
   import { initQueue, queue } from "./lib/stores/queue.svelte";
   import { playedFrom } from "./lib/playSource";
-  import { initToasts, pushToast } from "./lib/stores/toasts.svelte";
+  import { initToasts, noticeCrash, pushToast } from "./lib/stores/toasts.svelte";
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
   import { closeJamDialog, initJam, jam } from "./lib/stores/jam.svelte";
   import JamDialog from "./components/JamDialog.svelte";
@@ -62,6 +62,7 @@
     await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initWindow(), initJam()]);
     await restoreSession();
     ready = true;
+    void noticeCrash();
     void events.onSessionLost(() => {
       if (!session) return;
       session = null;

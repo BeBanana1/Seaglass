@@ -782,6 +782,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     console.info("open_project_page", page);
     return null;
   },
+  // #192 : `?crash=1` simule un plantage au lancement précédent (toast et rapport).
+  take_crash_notice: () => params.get("crash") === "1",
+  last_crash_report: () =>
+    params.get("crash") === "1" ? "# Rapport de plantage Seaglass\n\npanic dans le thread « main » : exemple\n" : null,
+  current_log: () => "2026-11-11T10:00:00Z  INFO seaglass_lib: Seaglass (aperçu)\n",
+  open_log_dir: () => null,
   reset_home_layout: () => (ui.home = { order: [], hidden: [], featuredHidden: false }),
   // Copie JSON : l'UI envoie des proxys Svelte, que `structuredClone` refuse.
   set_pins: ({ pins }) => (ui.pins = JSON.parse(JSON.stringify(pins))),

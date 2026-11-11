@@ -4,7 +4,14 @@
 
 <div class="stack" aria-live="polite">
   {#each toasts.items as toast (toast.id)}
-    <button class="toast" class:error={toast.level === "error"} onclick={() => dismissToast(toast.id)}>
+    <button
+      class="toast"
+      class:error={toast.level === "error"}
+      onclick={() => {
+        toast.action?.();
+        dismissToast(toast.id);
+      }}
+    >
       {toast.message}
     </button>
   {/each}
