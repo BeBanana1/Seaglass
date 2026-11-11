@@ -15,7 +15,7 @@ système (`apt install mpv`), il n'est pas embarqué.
 | Arrêt de mpv sur plantage | Job Object (`mpv/job.rs`) | `prctl(PR_SET_PDEATHSIG, SIGKILL)` (`process::die_with_parent`) |
 | IPC mpv | named pipe | socket Unix dans le dossier temporaire |
 | Contrôles média | SMTC | rien pour l'instant (MPRIS à faire, issue séparée) |
-| Jetons | Gestionnaire d'identifiants | Secret Service (`keyring`) : demande un trousseau (GNOME Keyring, KWallet) |
+| Jetons | Gestionnaire d'identifiants (`windows-native`) | Secret Service (`sync-secret-service` + `crypto-rust`, dépendance propre à la cible Linux dans `Cargo.toml`) : demande un trousseau (GNOME Keyring, KWallet). Sans backend, `keyring` 3 se rabat sur un magasin **en mémoire** et la session est perdue à la fermeture : c'était le cas avant (#17). Sans service disponible, la connexion échoue avec une erreur au lieu de perdre la session en silence. `secret-service` et `zbus` 4 figurent dans `Cargo.lock` par une feature optionnelle de `keyring`, sans être compilés |
 
 Bit-perfect : PipeWire suit la fréquence du flux si `default.clock.allowed-rates` contient
 44,1 et 48 kHz (et leurs multiples) dans sa configuration ; sinon il rééchantillonne. ALSA
@@ -30,7 +30,7 @@ WSL sert à vérifier que l'app se lance, se connecte et lit, pas la qualité.
 Paquets (Ubuntu 24.04, en root : `wsl -u root`) :
 
 ```bash
-apt-get install -y pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libdbus-1-dev libxdo-dev file patchelf mpv
+apt-get install -y pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libdbus-1-dev libxdo-dev file patchelf mpv gnome-keyring libsecret-tools
 ```
 
 Node 20+ (Vite 8) n'est pas dans les dépôts d'Ubuntu 24.04 : le frontend est construit sous
@@ -67,6 +67,11 @@ session `wsl.exe` qui l'a lancée doit rester ouverte : l'app s'arrête avec ell
   l'épreuve résolue par l'utilisateur, la redirection est bien interceptée par
   `on_navigation` et la session ouverte.
 
-À vérifier : connexion depuis l'AppImage avec GStreamer embarqué, jetons gardés après un
-redémarrage (Secret Service, absent de WSL sans `gnome-keyring`), lecture TIDAL, gapless,
-reprise de la file, zone de notification.
+- Connexion depuis l'AppImage avec GStreamer embarqué : épreuve affichée, session ouverte.
+  Sans backend Linux pour `keyring`, la session était perdue à la fermeture.
+
+WSL a un bus de session D-Bus (systemd utilisateur) : `gnome-keyring` y est activé à la
+demande. Au premier enregistrement, une fenêtre demande le mot de passe du nouveau trousseau.
+
+À vérifier : session gardée après un redémarrage, lecture TIDAL, gapless, reprise de la
+file, zone de notification.

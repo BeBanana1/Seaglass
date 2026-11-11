@@ -57,6 +57,11 @@ ndk-context = "0.1"
 # Pont natif (Kotlin) : connexion TIDAL dans sa propre WebView, puis Media3.
 tauri-plugin-seaglass-mobile = { path = "plugins/seaglass-mobile" }
 
+# Linux (#17) : jetons dans le Secret Service (GNOME Keyring, KWallet). Sans backend,
+# `keyring` n'a qu'un magasin en mémoire et la session est perdue à la fermeture.
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
+
 [target.'cfg(windows)'.dependencies]
 # Même version que celle tirée par Tauri : aucune compilation supplémentaire.
 windows = { version = "0.62", features = [
