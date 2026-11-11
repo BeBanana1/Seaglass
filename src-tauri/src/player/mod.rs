@@ -18,6 +18,7 @@ mod upgrade;
 pub mod volume;
 
 pub use actor::{Cmd, spawn};
+#[cfg(desktop)]
 pub use persist::flush_blocking;
 pub use queue::{QueuePart, Repeat};
 pub use settings::{HiresUpgrade, PlaybackSettings};

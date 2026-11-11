@@ -6,6 +6,10 @@ intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne
 de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
 (en anglais au début du projet).
 
+## 0.5.3
+
+- Android : plus d'avertissement « unused import » sur `flush_blocking` à la compilation, la réexport n'existe plus que sur le bureau comme son seul appelant (#307).
+
 ## 0.5.2
 
 - Android, mode conduite : une tuile lit sa playlist ou ses titres likés dans l'ordre de leur page (tri choisi compris), et la bande › à droite de chaque tuile ouvre sa page (#193).
