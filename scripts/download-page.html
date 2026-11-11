@@ -65,7 +65,7 @@
 <body>
 <main>
   <h1>Seaglass</h1>
-  <p class="tagline">Client de streaming musical lossless pour Windows et Android.</p>
+  <p class="tagline">Client de streaming musical lossless pour Windows, Android et Linux.</p>
 
   <section class="card">
     <a class="download" href="{{URL}}">Télécharger pour Windows</a>
@@ -78,6 +78,13 @@
     <a class="download" id="android-link" href="#">Télécharger pour Android</a>
     <p class="meta" id="android-meta"></p>
     <p class="meta">Android 7 ou plus récent, processeur 64 bits (ARM). Au premier téléchargement, autoriser le navigateur à installer des applications ; ensuite, l'app propose elle-même ses mises à jour.</p>
+  </section>
+
+  <!-- Rempli par le script en bas de page depuis linux.json (release-linux.ps1), comme Android. -->
+  <section class="card" id="linux" hidden>
+    <a class="download" id="linux-link" href="#">Télécharger pour Linux (AppImage)</a>
+    <p class="meta" id="linux-meta"></p>
+    <p class="meta">64 bits (x86-64), Ubuntu 22.04, Debian 12, Linux Mint 21, Fedora 36 ou plus récents. <strong>mpv requis</strong> : <code>sudo apt install mpv</code> (ou le paquet <code>mpv</code> de la distribution). Rendre le fichier exécutable (<code>chmod +x</code>) puis le lancer ; la session est gardée dans le trousseau du bureau (GNOME Keyring, KWallet). Pas encore de mise à jour automatique : retélécharger l'AppImage.</p>
   </section>
 
   <section class="card">
@@ -108,16 +115,20 @@
   <footer>Client non officiel, non affilié à TIDAL. Licence GPL-3.0.</footer>
 </main>
 <script>
-  fetch("android.json", { cache: "no-cache" })
-    .then((r) => (r.ok ? r.json() : null))
-    .then((m) => {
-      if (!m || typeof m.url !== "string" || !m.url.startsWith("https://")) return;
-      document.getElementById("android-link").href = m.url;
-      const size = (m.size / 1048576).toLocaleString("fr-FR", { maximumFractionDigits: 1 });
-      document.getElementById("android-meta").textContent = `Version ${m.version} · ${size} Mo`;
-      document.getElementById("android").hidden = false;
-    })
-    .catch(() => {});
+  // Android et Linux sont publiés indépendamment de cette page : leur carte n'apparaît que
+  // si leur manifeste est en ligne et désigne une adresse HTTPS.
+  for (const id of ["android", "linux"]) {
+    fetch(`${id}.json`, { cache: "no-cache" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((m) => {
+        if (!m || typeof m.url !== "string" || !m.url.startsWith("https://")) return;
+        document.getElementById(`${id}-link`).href = m.url;
+        const size = (m.size / 1048576).toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+        document.getElementById(`${id}-meta`).textContent = `Version ${m.version} · ${size} Mo`;
+        document.getElementById(id).hidden = false;
+      })
+      .catch(() => {});
+  }
 </script>
 </body>
 </html>

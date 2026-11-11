@@ -3,16 +3,18 @@
   Crée (ou complète) la release Gitea d'une version déjà publiée (#108).
 
 .DESCRIPTION
-  Appelé par `release.ps1 -Publish`, `release-android.ps1 -Publish` ou `release-all.ps1`
+  Appelé par `release.ps1`, `release-android.ps1` ou `release-linux.ps1` avec -Publish, ou par `release-all.ps1`
   une fois le tag poussé, ou seul si cette étape a échoué ou pour une version publiée
   avant #108. Rien n'est reconstruit : les pièces jointes sont exactement les fichiers
   publiés sur le serveur de mises à jour, pris dans `release/` (ceux qui existent ; au
-  moins l'installeur ou l'APK) :
+  moins l'installeur, l'APK ou l'AppImage) :
     release/<version>/Seaglass_<version>_x64-setup.exe
     release/<version>/Seaglass_<version>_x64-setup.exe.sig   (s'il existe)
     release/latest.json                       (seulement s'il décrit cette version)
     release/<version>/Seaglass_<version>_arm64.apk
     release/android.json                      (seulement s'il décrit cette version)
+    release/<version>/Seaglass_<version>_amd64.AppImage
+    release/linux.json                        (seulement s'il décrit cette version)
 
   La release porte le tag `v<version>` (qui doit déjà exister sur Gitea), le titre
   « Seaglass <version> » et les notes du manifeste (sinon le journal git depuis le tag
@@ -82,7 +84,16 @@ if (Test-Path $apk) {
         if (-not $notes) { $notes = $android.notes }
     }
 }
-if (-not $files) { Fail "ni installeur ni APK de la $Version dans release\" }
+$appImage = Join-Path $root "release\$Version\Seaglass_${Version}_amd64.AppImage"
+if (Test-Path $appImage) {
+    $files += $appImage
+    $linux = Read-Manifest 'linux.json'
+    if ($linux) {
+        $files += $linux.path
+        if (-not $notes) { $notes = $linux.notes }
+    }
+}
+if (-not $files) { Fail "ni installeur, ni APK, ni AppImage de la $Version dans release\" }
 
 if (-not $notes) {
     Write-Host "    notes tirées de git"
