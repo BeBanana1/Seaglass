@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.14
+
+- Android : la file d'attente de « En lecture » défile de nouveau (#342).
+
 ## 0.5.13
 
 - Enregistrer la file d'attente comme playlist (nouvelle ou existante), titre en cours compris, dans l'ordre de lecture (#327).

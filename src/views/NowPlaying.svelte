@@ -835,7 +835,9 @@
     overflow: hidden;
   }
 
-  .np-sheet .np-queue {
+  /* Même préfixe que la règle du dessus, sinon son `overflow: hidden` l'emporte et la file
+     ne défile plus (#342). */
+  :global(:root[data-platform="android"]) .np-sheet .np-queue {
     overflow: auto;
   }
 
