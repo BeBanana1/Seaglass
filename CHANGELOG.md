@@ -15,6 +15,10 @@ s'affichent pas.
 
 - Android : la file d'attente de « En lecture » défile de nouveau (#342).
 
+## 0.5.13
+
+- Enregistrer la file d'attente comme playlist (nouvelle ou existante), titre en cours compris, dans l'ordre de lecture (#327).
+
 ## 0.5.12
 
 - Journal des versions dans Réglages › Application, limité aux changements de la plateforme (#340).
