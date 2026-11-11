@@ -7,6 +7,7 @@ pub mod drive;
 pub mod jam;
 pub mod later;
 pub mod link;
+pub mod logs;
 pub mod play_history;
 pub mod player;
 pub mod project;

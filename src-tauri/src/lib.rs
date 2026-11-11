@@ -8,6 +8,7 @@ mod foreign;
 mod i18n;
 mod integrations;
 mod jam;
+mod logs;
 #[cfg(any(target_os = "android", test))]
 mod media3;
 mod mpv;
@@ -24,7 +25,6 @@ use tauri::Manager;
 use tauri::path::BaseDirectory;
 #[cfg(desktop)]
 use tauri::{RunEvent, WindowEvent};
-use tracing_subscriber::EnvFilter;
 
 use commands::AppState;
 #[cfg(desktop)]
@@ -40,12 +40,7 @@ const DB_FILE: &str = "seaglass.db";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("seaglass_lib=info")),
-        )
-        .init();
+    logs::init();
 
     // L'instance unique du bureau doit être le premier plugin : celui-ci vient après.
     // Ouverture de liens dans le navigateur du système (#188), appelée seulement depuis
@@ -61,6 +56,8 @@ pub fn run() {
             }
             #[cfg(target_os = "android")]
             android::install_keystore();
+            // Avant le reste : un plantage plus loin a déjà son journal sur disque (#192).
+            logs::setup(app);
             let tidal = Arc::new(TidalClient::new()?);
             let store = open_store(app);
             // Avant le lecteur : ses toasts et les requêtes TIDAL suivent la langue.
@@ -149,6 +146,11 @@ pub fn run() {
             commands::catalog::track_info,
             commands::catalog::album_credits,
             commands::link::open_link,
+            commands::logs::take_crash_notice,
+            commands::logs::last_crash_report,
+            commands::logs::current_log,
+            #[cfg(desktop)]
+            commands::logs::open_log_dir,
             commands::catalog::hires_twin_album,
             commands::collection::likes,
             commands::collection::set_liked,

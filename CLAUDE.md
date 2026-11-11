@@ -59,6 +59,7 @@ seaglass/
       ├─ media3.rs           # moteur Media3 d'Android (plugin `plugins/seaglass-mobile`)
       ├─ apk_update.rs       # mises à jour de l'app Android (manifeste `android.json`, APK)
       ├─ jam/                # Jam (#25) : api.rs (règles communes), server.rs (réseau local), relay.rs (en ligne), page/
+      ├─ logs/               # journal sur disque, rapports de plantage (#192)
       ├─ i18n.rs             # langue effective, messages traduits (`tr`, `trf!`), locale TIDAL
       ├─ commands/           # auth.rs, player.rs, catalog.rs, settings.rs : valident l'entrée puis délèguent
       ├─ tidal/              # auth.rs, api.rs, catalog.rs, home.rs (accueil paginé), playlist.rs (pages gardées), mix.rs (mixes, radios), hires.rs + twin.rs (éditions hi-res), credits.rs, raw.rs (JSON bruts), paging.rs (listes paginées), models.rs, cache.rs, manifest.rs (DRM)
@@ -108,7 +109,7 @@ Notes d'implémentation, lues à la demande : endpoints vérifiés, mesures, pi�
 | [`docs/tidal.md`](docs/tidal.md) | résultats du spike, connexion et garde DRM, endpoints du catalogue, fil d'actualité, mixes, paroles, écritures dans la bibliothèque, « Plus tard », infos du titre et crédits, performances du backend | `tidal/`, `commands/catalog.rs`, `commands/collection.rs` |
 | [`docs/interface.md`](docs/interface.md) | navigation, réglages, raccourcis, aperçu sans Tauri (paramètres d'URL), CSP, pages et listes, menu contextuel, liens collés, performances des listes, langue | `src/` hors thèmes, `commands/settings/`, `i18n.rs` |
 | [`docs/themes.md`](docs/themes.md) | jetons, fonds, couleur d'accent, cascade, notes de chaque thème, classes surchargées | `src/themes/`, `app.css`, `components/backdrops/`, et avant de renommer une classe de composant |
-| [`docs/systeme.md`](docs/systeme.md) | SMTC, MPRIS, présence Discord, zone de notification, lancement au démarrage | `integrations/` (bureau) |
+| [`docs/systeme.md`](docs/systeme.md) | SMTC, MPRIS, présence Discord, zone de notification, lancement au démarrage, journaux et rapports de plantage | `integrations/` (bureau), `logs/` |
 | [`docs/linux.md`](docs/linux.md) | ce qui diffère sous Linux (sortie audio, arrêt de mpv, exclusif), construire et tester dans WSL | le code `cfg(not(windows))` du bureau, un paquet Linux |
 | [`docs/android.md`](docs/android.md) | état de l'app Android, moteur Media3, session média, pont natif, secrets, mise en page tactile, distribution de l'APK, construire et tester sur le S21 | `media3.rs`, `android.rs`, `plugins/seaglass-mobile/`, `gen/android/`, les styles `data-platform="android"` |
 | [`docs/jam.md`](docs/jam.md) | Jam locale et en ligne, API des invités, garde-fous, relais, liens d'autres services | `jam/`, `foreign/`, `relay/` |

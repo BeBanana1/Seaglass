@@ -88,6 +88,7 @@ object Bridge {
         "secretDelete" -> secret("effacement du secret impossible") { store ->
             JSONObject().put("existed", store.delete(args.getString("name")))
         }
+        "crashSetup" -> CrashLog.setup(appContext(), java.io.File(args.getString("dir")))
         "linkHandling" -> LinkHandling.state(appContext())
         "openLinkSettings" -> {
             LinkHandling.openSettings(appContext())

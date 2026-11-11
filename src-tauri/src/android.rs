@@ -121,6 +121,28 @@ pub fn install_keystore() {
     keyring::set_default_credential_builder(Box::new(KeystoreBuilder));
 }
 
+/// Plantages côté Kotlin (#192, `CrashLog.kt`) : installe le gestionnaire des exceptions
+/// non rattrapées, qui écrit `crash.txt` dans `dir`, et renvoie la dernière sortie
+/// anormale signalée par Android 11+ (plantage natif, ANR…) pas encore rapportée.
+pub fn crash_setup(dir: &std::path::Path) -> Option<String> {
+    #[derive(Serialize)]
+    struct Args<'a> {
+        dir: &'a str,
+    }
+    #[derive(Deserialize)]
+    struct Setup {
+        exit: Option<String>,
+    }
+    let dir = dir.to_string_lossy();
+    match direct::call_blocking::<Setup>("crashSetup", Args { dir: &dir }) {
+        Ok(setup) => setup.exit,
+        Err(e) => {
+            tracing::warn!("journal des plantages Kotlin indisponible : {e}");
+            None
+        }
+    }
+}
+
 #[derive(Debug)]
 struct KeystoreBuilder;
 

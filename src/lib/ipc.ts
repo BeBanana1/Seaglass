@@ -735,6 +735,14 @@ export const commands = {
   resetHomeLayout: () => invoke<HomeLayout>("reset_home_layout"),
   /** Ouvre le dépôt ou une nouvelle issue dans le navigateur (#188) ; URLs fixes côté Rust. */
   openProjectPage: (page: "repo" | "newIssue") => invoke<void>("open_project_page", { page }),
+  /** #192 : vrai une seule fois si le lancement précédent a planté. */
+  takeCrashNotice: () => invoke<boolean>("take_crash_notice"),
+  /** Rapport du dernier plantage, à copier dans une issue. */
+  lastCrashReport: () => invoke<string | null>("last_crash_report"),
+  /** Fin du journal de ce lancement. */
+  currentLog: () => invoke<string | null>("current_log"),
+  /** Bureau : dossier des journaux dans l'explorateur. */
+  openLogDir: () => invoke<void>("open_log_dir"),
   /** Remplace les épingles ; renvoie la liste enregistrée (validée, sans doublons). */
   setPins: (pins: Pin[]) => invoke<Pin[]>("set_pins", { pins }),
   /** Mémorise le tri d'une liste (`null` : l'oublie) ; renvoie les tris enregistrés. */

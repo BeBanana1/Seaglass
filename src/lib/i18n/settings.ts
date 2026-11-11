@@ -187,6 +187,18 @@ export const fr = {
   clearPlayHistory: "Effacer",
   playHistoryCleared: "Historique d'écoute effacé",
 
+  logs: "Journaux",
+  logsHint:
+    "Gardés sur cet appareil seulement. Pour signaler un bug, copiez le journal ou le rapport de plantage et collez-le dans l'issue.",
+  copyLog: "Copier le journal",
+  copyCrash: "Copier le dernier rapport de plantage",
+  openLogDir: "Ouvrir le dossier",
+  noCrash: "Aucun plantage enregistré",
+  logCopied: "Journal copié",
+  crashCopied: "Rapport de plantage copié",
+  logUnavailable: "Journal indisponible",
+  crashed: "Seaglass s'est fermé de façon inattendue — copier le rapport",
+
   about: "À propos",
   account: "Compte",
   disclaimer: "Client non officiel, non affilié à TIDAL.",
@@ -389,6 +401,18 @@ export const en: typeof fr = {
     "Kept on this device only, for “Played in Seaglass” and “Featured”. Nothing is sent to TIDAL.",
   clearPlayHistory: "Clear",
   playHistoryCleared: "Listening history cleared",
+
+  logs: "Logs",
+  logsHint:
+    "Kept on this device only. To report a bug, copy the log or the crash report and paste it into the issue.",
+  copyLog: "Copy log",
+  copyCrash: "Copy last crash report",
+  openLogDir: "Open folder",
+  noCrash: "No crash recorded",
+  logCopied: "Log copied",
+  crashCopied: "Crash report copied",
+  logUnavailable: "Log unavailable",
+  crashed: "Seaglass closed unexpectedly — copy the report",
 
   about: "About",
   account: "Account",

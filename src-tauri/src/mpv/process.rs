@@ -201,8 +201,14 @@ pub struct ProcessGuard {
 impl ProcessGuard {
     pub fn set(&self, child: Child) {
         if let Ok(mut slot) = self.child.lock() {
-            // Ancien processus d'avant une relance, déjà arrêté en principe.
+            // Ancien processus d'avant une relance, déjà arrêté en principe : son code de
+            // sortie va au journal (#192), un plantage de mpv s'y distingue d'un arrêt voulu.
             if let Some(mut old) = slot.replace(child) {
+                match old.try_wait() {
+                    Ok(Some(status)) => tracing::warn!("mpv s'était arrêté ({status})"),
+                    Ok(None) => tracing::warn!("ancien mpv encore actif, arrêté"),
+                    Err(e) => tracing::warn!("état de l'ancien mpv illisible : {e}"),
+                }
                 let _ = old.start_kill();
             }
         }
