@@ -6,17 +6,25 @@
     items,
     title,
     row = false,
+    more,
   }: {
     items: MediaItem[];
     title?: string;
     /** Une seule ligne défilante (accueil, recherche) plutôt qu'une grille. */
     row?: boolean;
+    /** Lien à droite du titre (« Voir l'artiste », #350). */
+    more?: { label: string; onclick: () => void };
   } = $props();
 </script>
 
 {#if items.length > 0}
   <section>
-    {#if title}<h2>{title}</h2>{/if}
+    {#if title && more}
+      <div class="heading">
+        <h2>{title}</h2>
+        <button class="card-grid-more" onclick={more.onclick}>{more.label}</button>
+      </div>
+    {:else if title}<h2>{title}</h2>{/if}
     <div class="items" class:row>
       {#each items as item, i (`${item.kind}-${i}`)}
         <Card {item} />
@@ -34,6 +42,29 @@
     margin: 0 10px 8px;
     font-size: 17px;
     font-weight: 600;
+  }
+
+  .heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .heading h2 {
+    min-width: 0;
+  }
+
+  .card-grid-more {
+    flex-shrink: 0;
+    margin-right: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .card-grid-more:hover {
+    color: var(--text);
+    text-decoration: underline;
   }
 
   .items {

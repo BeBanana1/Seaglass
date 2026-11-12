@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { commands, type AlbumPage, type AlbumSummary } from "../lib/ipc";
+  import { commands, type AlbumPage, type AlbumRelated, type AlbumSummary, type MediaItem } from "../lib/ipc";
   import { albumKind, formatLongDuration, year } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
   import { go } from "../lib/stores/nav.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
   import AlbumCredits from "../components/AlbumCredits.svelte";
+  import CardGrid from "../components/CardGrid.svelte";
 
   /** `track` : titre à mettre en évidence (lien collé, #203). */
   let { id, track }: { id: number; track?: number } = $props();
@@ -14,17 +15,25 @@
   let error = $state<string | null>(null);
   /** Même album en hi-res chez l'artiste (#59), cherché après l'affichage de la page. */
   let twin = $state<AlbumSummary | null>(null);
+  /** Autres versions et autres albums de l'artiste (#350), demandés après l'affichage. */
+  let related = $state<AlbumRelated | null>(null);
 
   $effect(() => {
     const target = id;
     page = null;
     error = null;
     twin = null;
+    related = null;
     commands
       .album(target)
       .then((p) => {
         if (target !== id) return;
         page = p;
+        commands
+          .albumRelated(target)
+          .then((r) => target === id && (related = r))
+          // Rangées facultatives : absentes en cas d'erreur (journalisée côté Rust).
+          .catch((e) => console.warn("autres versions :", e));
         if (!p.album.hires) {
           commands
             .hiresTwinAlbum(target)
@@ -35,6 +44,12 @@
       })
       .catch((e) => (error = String(e)));
   });
+
+  const asItems = (albums: AlbumSummary[]): MediaItem[] => albums.map((a) => ({ kind: "album", ...a }));
+  // Le jumeau hi-res a déjà son bandeau (#59) : pas deux fois.
+  const versions = $derived(related ? asItems(related.versions.filter((a) => a.id !== twin?.id)) : []);
+  const byArtist = $derived(related ? asItems(related.byArtist) : []);
+  const mainArtist = $derived(page?.album.artists[0] ?? null);
 </script>
 
 <section>
@@ -87,6 +102,18 @@
     />
     <AlbumCredits albumId={page.album.id} tracks={page.tracks} />
     {#if page.copyright}<p class="copyright">{page.copyright}</p>{/if}
+    <div class="album-related">
+      <CardGrid title={t.views.album.versions} items={versions} row />
+      {#if mainArtist}
+        {@const artist = mainArtist}
+        <CardGrid
+          title={t.views.album.byArtist(artist.name)}
+          items={byArtist}
+          row
+          more={{ label: t.views.album.seeArtist, onclick: () => go({ name: "artist", id: artist.id }) }}
+        />
+      {/if}
+    </div>
   {/if}
 </section>
 
@@ -152,6 +179,10 @@
   :global([data-theme="atelier"]) .hires-twin,
   :global([data-theme="atelier"]) .hires-twin-open {
     border-radius: 0;
+  }
+
+  .album-related {
+    margin-top: 32px;
   }
 
   .copyright {

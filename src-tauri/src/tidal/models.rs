@@ -317,6 +317,15 @@ pub struct ArtistPage {
     pub singles: Vec<AlbumSummary>,
 }
 
+/// Bas de la page d'album (#350), chargé après elle : autres éditions du même album
+/// (deluxe, remaster…) et autres albums de l'artiste, album affiché exclu.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumRelated {
+    pub versions: Vec<AlbumSummary>,
+    pub by_artist: Vec<AlbumSummary>,
+}
+
 /// Compléments de la page d'artiste (#205), chargés après elle.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

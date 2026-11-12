@@ -82,6 +82,9 @@ export const fr = {
   },
   album: {
     hiresTwin: "Cet album existe en Hi-Res",
+    versions: "Autres versions",
+    byArtist: (name: string) => `Plus de ${name}`,
+    seeArtist: "Voir l'artiste",
     open: "Ouvrir",
     credits: "Crédits de l'album",
     creditsLoading: "Chargement des crédits…",
@@ -233,6 +236,9 @@ export const en: typeof fr = {
   },
   album: {
     hiresTwin: "This album is available in Hi-Res",
+    versions: "Other versions",
+    byArtist: (name: string) => `More by ${name}`,
+    seeArtist: "View artist",
     open: "Open",
     credits: "Album credits",
     creditsLoading: "Loading credits…",
