@@ -11,6 +11,7 @@
   import AeroLivery from "./AeroLivery.svelte";
   import AlloyBody from "./AlloyBody.svelte";
   import EstampeScene from "./EstampeScene.svelte";
+  import DecoScene from "./DecoScene.svelte";
 
   let { context = "shell" }: { context?: "shell" | "nowplaying" } = $props();
 
@@ -39,6 +40,8 @@
     <AlloyBody {intense} />
   {:else if theme === "estampe"}
     <EstampeScene {intense} />
+  {:else if theme === "artdeco"}
+    <DecoScene {intense} />
   {/if}
 </div>
 

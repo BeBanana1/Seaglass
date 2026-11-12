@@ -1,0 +1,168 @@
+/* Thème Art déco (#338) : affiche des années 1920.
+   Jetons (bleu nuit, or, double filet, pans coupés des boutons) dans app.css ; ici, le décor :
+   éventails aux angles des panneaux, titres en capitales, cartouches, cadre de l'affiche
+   dans « En lecture ». Surcharges par classe de composant (spécificité supérieure aux
+   styles scopés Svelte). */
+
+/* Panneaux : éventail de deux arcs dorés dans le coin haut gauche et le coin bas droit. */
+:root[data-theme="artdeco"] .panel {
+  background-image:
+    radial-gradient(circle at 0 0, transparent 0 15px, var(--ad-line) 15px 16px, transparent 16px 21px, var(--ad-line) 21px 22px, transparent 22px),
+    radial-gradient(circle at 100% 100%, transparent 0 15px, var(--ad-line) 15px 16px, transparent 16px 21px, var(--ad-line) 21px 22px, transparent 22px);
+  background-size: 26px 26px;
+  background-position:
+    0 0,
+    100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* Titres : capitales géométriques espacées. */
+:root[data-theme="artdeco"] :is(h1, .hero .title) {
+  text-transform: uppercase;
+}
+
+:root[data-theme="artdeco"] h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.95em;
+  color: var(--accent);
+}
+
+/* Losange doré avant les titres de section. */
+:root[data-theme="artdeco"] h2::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 0.7em 0.15em 0;
+  vertical-align: middle;
+  background: var(--ad-gold);
+  transform: rotate(45deg);
+}
+
+:root[data-theme="artdeco"] .brand {
+  font-family: var(--display-family);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+:root[data-theme="artdeco"] .badge {
+  border-radius: 0;
+  color: var(--bg);
+  background: var(--ad-gold);
+}
+
+/* Lignes : filet doré au survol, titre en cours en or. */
+:root[data-theme="artdeco"] .row:hover {
+  background: linear-gradient(90deg, rgb(201 162 74 / 0.1), transparent 75%);
+}
+
+:root[data-theme="artdeco"] .row.active .title {
+  color: var(--accent);
+}
+
+:root[data-theme="artdeco"] :is(nav button.active, nav .pin.active) {
+  color: var(--accent);
+  background: linear-gradient(90deg, rgb(201 162 74 / 0.14), transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* Cartouches : boutons à pans coupés, bouton de lecture en octogone doré. */
+:root[data-theme="artdeco"] .transport .play {
+  border-radius: 0;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  clip-path: var(--ad-cut);
+}
+
+:root[data-theme="artdeco"] .transport .play:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+:root[data-theme="artdeco"] :is(
+    .tabs button,
+    .search-hint,
+    .update-check,
+    .queue-clear,
+    .cache-size,
+    .home-customize,
+    .accent-theme,
+    .accent-custom,
+    .hires-offer-accept,
+    .hires-twin-open
+  ) {
+  border-radius: 0;
+  clip-path: var(--ad-cut);
+}
+
+:root[data-theme="artdeco"] .tabs button.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme="artdeco"] :is(.progress .track, .volume .track) {
+  border-radius: 0;
+  background: rgb(201 162 74 / 0.18);
+}
+
+:root[data-theme="artdeco"] :is(.progress .fill, .volume .fill) {
+  border-radius: 0;
+  background: var(--accent);
+}
+
+:root[data-theme="artdeco"] :is(.theme-card, .setting-row, .signal, .chip, .verdict, .lyrics-line, .context-menu-item) {
+  border-radius: 0;
+}
+
+:root[data-theme="artdeco"] .theme-card.selected {
+  border-color: var(--accent);
+  box-shadow:
+    inset 0 0 0 3px var(--bg),
+    inset 0 0 0 4px var(--ad-line);
+}
+
+:root[data-theme="artdeco"] .lyrics-line.active {
+  color: var(--accent-strong);
+}
+
+/* Bandeau d'accueil : cartouche sombre à double filet, sans le fond teinté. */
+:root[data-theme="artdeco"] .hero {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--ad-gold);
+  box-shadow:
+    inset 0 0 0 6px var(--bg),
+    inset 0 0 0 7px var(--ad-line);
+}
+
+:root[data-theme="artdeco"] .hero .bg {
+  display: none;
+}
+
+:root[data-theme="artdeco"] :is(.hero .label, .hero .meta) {
+  color: var(--text-muted);
+}
+
+/* « En lecture » : la pochette encadrée comme une affiche, double filet et marge. */
+:root[data-theme="artdeco"] .now-playing .art {
+  overflow: visible;
+}
+
+:root[data-theme="artdeco"] .now-playing .art img {
+  box-shadow:
+    0 0 0 1px var(--ad-gold),
+    0 0 0 10px var(--bg),
+    0 0 0 11px var(--ad-gold),
+    0 0 0 15px var(--bg),
+    0 0 0 16px var(--ad-line);
+}
+
+:root[data-theme="artdeco"] .now-playing h1 {
+  letter-spacing: 0.1em;
+}
+
+:root[data-theme="artdeco"] .like-button.liked {
+  color: var(--accent);
+}

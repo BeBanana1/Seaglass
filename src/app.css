@@ -814,6 +814,64 @@
   --label-tracking: 0.12em;
 }
 
+/* --- Art déco : affiche des années 1920 (voir themes/artdeco.css) ------------------- */
+/* Bleu nuit, ivoire, or. L'or est l'accent (remplaçable) ; `--ad-gold` reste fixe pour le
+   décor (filets, éventails), qui ne porte jamais de texte. Ni néon ni métal brossé : des
+   filets fins, des pans coupés et de la symétrie. */
+:root[data-theme="artdeco"] {
+  color-scheme: dark;
+  --ad-gold: #c9a24a;
+  --ad-line: rgb(201 162 74 / 0.45);
+  --ad-cut: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  --bg: #0a111e;
+  --surface: rgb(12 20 35 / 0.9);
+  --dialog-bg: #0e1727;
+  --bg-raised: rgb(201 162 74 / 0.06);
+  --bg-hover: rgb(201 162 74 / 0.1);
+  --border: rgb(201 162 74 / 0.22);
+  --text: #ece4d0;
+  --text-muted: #a39c8a;
+  --accent: #d6b25e;
+  --accent-strong: #ead08a;
+  --accent-contrast: #0a111e;
+  --danger: #f08470;
+  --ok: #8fd0a6;
+  --warn: #f0c66a;
+  --radius: 0;
+  --radius-pill: 0;
+  --radius-card: 0;
+  --radius-cover: 0;
+  --panel-radius: 0;
+  --dialog-radius: 0;
+  --popover-radius: 0;
+  --control-clip: var(--ad-cut);
+  --panel-blur: none;
+  /* Double filet doré : le cadre, puis une ligne intérieure plus pâle. */
+  --panel-border: 1px solid var(--ad-line);
+  --panel-shadow:
+    inset 0 0 0 4px rgb(12 20 35 / 0.9),
+    inset 0 0 0 5px rgb(201 162 74 / 0.16);
+  --dialog-border: 1px solid var(--ad-gold);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow:
+    inset 0 0 0 5px var(--dialog-bg),
+    inset 0 0 0 6px rgb(201 162 74 / 0.3),
+    0 24px 60px rgb(0 0 0 / 0.55);
+  --popover-shadow: 0 14px 34px rgb(0 0 0 / 0.5);
+  --shadow-cover:
+    0 0 0 1px var(--ad-gold),
+    0 0 0 5px var(--bg),
+    0 0 0 6px var(--ad-line);
+  --control-bg: transparent;
+  --focus-ring: 2px solid var(--accent-strong);
+  --shell-gap: 10px;
+  --display-weight: 400;
+  --display-tracking: 0.08em;
+  --display-family: "Century Gothic", Futura, Bahnschrift, "Segoe UI Variable Display", sans-serif;
+  --label-transform: uppercase;
+  --label-tracking: 0.2em;
+}
+
 * {
   box-sizing: border-box;
 }
