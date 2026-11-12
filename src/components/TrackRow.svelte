@@ -13,6 +13,7 @@
   import { swipeRight } from "../lib/swipe";
   import { player } from "../lib/stores/player.svelte";
   import { eggs } from "../lib/eggs/eggs.svelte";
+  import { parsecs } from "../lib/eggs/playback";
 
   let {
     track,
@@ -218,7 +219,8 @@
     {/if}
     <LikeButton {track} />
   </div>
-  <span class="duration">{formatTime(track.duration)}</span>
+  <!-- #399 : recherche « kessel », les durées passent un instant en parsecs. -->
+  <span class="duration">{eggs.search === "kessel" ? t.eggs.parsecs(parsecs(track.duration)) : formatTime(track.duration)}</span>
 </div>
 
 <style>

@@ -3,6 +3,8 @@
   import { followPosition, player } from "../lib/stores/player.svelte";
   import { formatTime } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
+  import { eggs } from "../lib/eggs/eggs.svelte";
+  import { stationClock } from "../lib/eggs/playback";
 
   const ENDING_SECONDS = 30;
 
@@ -18,7 +20,10 @@
   const s = $derived(player.state);
   const duration = $derived(s.duration);
   const shown = $derived(dragging ?? position);
-  const ratio = $derived(duration ? Math.min(shown / duration, 1) : 0);
+  /** 1er août (#399) : la barre suit la trotteuse d'une horloge de gare, arrêt compris.
+   *  Pas pendant un glissement, ni dans le temps affiché en chiffres. */
+  const bar = $derived(dragging === null && eggs.date === "swissDay" ? stationClock(position, duration) : shown);
+  const ratio = $derived(duration ? Math.min(bar / duration, 1) : 0);
   /** Le texte du temps ne change qu'à la seconde : pas de recalcul à chaque image. */
   const shownText = $derived(formatTime(Math.floor(shown)));
   /** Dernières secondes du titre, quand le suivant est préchargé (même seuil de 30 s que
@@ -40,7 +45,7 @@
       min="0"
       max={s.duration || 1}
       step="0.1"
-      value={shown}
+      value={bar}
       disabled={!s.track || !s.duration}
       aria-label={t.player.position}
       oninput={(e) => (dragging = e.currentTarget.valueAsNumber)}

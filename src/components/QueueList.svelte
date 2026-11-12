@@ -9,6 +9,7 @@
   import { fullTitle } from "../lib/format";
   import Icon from "./Icon.svelte";
   import TrackRow from "./TrackRow.svelte";
+  import { eggs } from "../lib/eggs/eggs.svelte";
   import { keyboardMove, Reorder } from "../lib/reorder.svelte";
   import { guestOf } from "../lib/stores/jam.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
@@ -170,6 +171,14 @@
       {#each queue.view.upcoming as track, i (`${i}-${track.id}`)}
         <TrackRow {track} compact actions={false} onPlay={() => play("upcoming", i, track)} />
       {/each}
+      <!-- #399 : le 29 février, une « piste cachée » factice ferme la file, comme sur un disque.
+           Ni cliquable, ni lue par les lecteurs d'écran. -->
+      {#if eggs.date === "leapDay"}
+        <div class="hidden-track" aria-hidden="true">
+          <span class="hidden-title">{t.eggs.hiddenTrack}</span>
+          <span class="hidden-time mono">–:––</span>
+        </div>
+      {/if}
     </div>
   {/if}
 
@@ -263,6 +272,22 @@
 
   .queue-radio :global(svg) {
     flex-shrink: 0;
+  }
+
+  .hidden-track {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 2px 6px;
+    padding: 8px 10px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--text-muted);
+    opacity: 0.7;
+    cursor: default;
+    user-select: none;
   }
 
   .muted {

@@ -18,6 +18,7 @@ export type DateEgg =
   | "musicDay"
   | "swissDay"
   | "hobbits"
+  | "timeCircuits"
   | "halloween"
   | "cecilia"
   | "winter"
@@ -33,6 +34,7 @@ const FIXED: [DateEgg, number, number][] = [
   ["winter", 12, 21],
   ["halloween", 10, 31],
   ["foundation", 10, 29],
+  ["timeCircuits", 10, 21],
   ["cecilia", 11, 22],
   ["hobbits", 9, 22],
   ["swissDay", 8, 1],
@@ -68,7 +70,8 @@ export type SearchEgg =
   | "mellon"
   | "spice"
   | "origami"
-  | "witcher";
+  | "witcher"
+  | "kessel";
 
 /** Saisies reconnues, déjà normalisées (`normalize`). */
 const QUERIES: Record<string, SearchEgg> = {
@@ -84,6 +87,7 @@ const QUERIES: Record<string, SearchEgg> = {
   origami: "origami",
   sorceleur: "witcher",
   witcher: "witcher",
+  kessel: "kessel",
 };
 
 /** Minuscules, sans accents, espaces réduits : « Épice » et « épice » valent « epice ». */

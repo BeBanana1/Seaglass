@@ -20,6 +20,7 @@ describe("eggForDate", () => {
     expect(eggForDate(day(2026, 12, 25))).toBe("christmas");
     expect(eggForDate(day(2026, 12, 21))).toBe("winter");
     expect(eggForDate(day(2026, 10, 29))).toBe("foundation");
+    expect(eggForDate(day(2026, 10, 21))).toBe("timeCircuits");
   });
 
   it("rien un jour ordinaire, ni la veille ou le lendemain", () => {
@@ -54,6 +55,7 @@ describe("eggForQuery", () => {
     expect(eggForQuery("Épice")).toBe("spice");
     expect(eggForQuery("epice")).toBe("spice");
     expect(eggForQuery("42")).toBe("answer");
+    expect(eggForQuery("Kessel")).toBe("kessel");
   });
 
   it("une saisie exacte seulement", () => {

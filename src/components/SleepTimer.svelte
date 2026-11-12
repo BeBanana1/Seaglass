@@ -1,6 +1,6 @@
 <script lang="ts" module>
   // Clin d'œil (#399) : minuteur réglé sur une heure ici, partagé par la barre et « En lecture ».
-  const chosen = $state({ hour: false });
+  const chosen = $state<{ hour: boolean; setAt: number | null }>({ hour: false, setAt: null });
 </script>
 
 <script lang="ts">
@@ -12,9 +12,10 @@
   import { player } from "../lib/stores/player.svelte";
   import { closeMenu, menu, openMenu, type MenuEntry } from "../lib/stores/menu.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
-  import { t } from "../lib/i18n.svelte";
+  import { locale, t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
   import { ui } from "../lib/stores/ui.svelte";
+  import { eggs } from "../lib/eggs/eggs.svelte";
 
   const DURATIONS = [15, 30, 45, 60, 90];
 
@@ -34,8 +35,14 @@
   });
 
   const remaining = $derived(endsAt === null ? null : formatTime(Math.max(0, endsAt - now) / 1000));
+  /** 21 octobre (#399) : le minuteur se lit comme un cadran à trois lignes. */
+  const circuits = $derived(eggs.date === "timeCircuits" && endsAt !== null);
+  const clock = (ms: number) =>
+    new Date(ms).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
   const label = $derived(
-    remaining !== null
+    circuits && endsAt !== null
+      ? t.eggs.circuits(clock(endsAt), clock(now), chosen.setAt === null ? "--:--" : clock(chosen.setAt))
+      : remaining !== null
       ? t.player.sleepIn(remaining) + (chosen.hour && ui.settings.easterEggs ? t.eggs.sevenYears : "")
       : sleep
         ? t.player.sleepAtEnd
@@ -44,6 +51,7 @@
 
   async function set(timer: SleepRequest | null) {
     chosen.hour = timer?.kind === "minutes" && timer.minutes === 60;
+    chosen.setAt = timer ? Date.now() : null;
     try {
       await commands.setSleepTimer(timer);
     } catch (e) {
@@ -80,7 +88,7 @@
 >
   <Icon name="moon" {size} />
   {#if remaining !== null}
-    <span class="sleep-remaining">{remaining}</span>
+    <span class="sleep-remaining" class:circuits>{remaining}</span>
   {:else if sleep}
     <span class="sleep-remaining">{t.player.sleepEndShort}</span>
   {/if}
@@ -107,5 +115,16 @@
   .sleep-remaining {
     font-size: 12px;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* 21 octobre : afficheur à segments, chiffres orange sur fond sombre. */
+  .sleep-remaining.circuits {
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    color: #ff8a2a;
+    background: #1a0c04;
+    text-shadow: 0 0 4px #ff6a00;
+    letter-spacing: 0.08em;
   }
 </style>
