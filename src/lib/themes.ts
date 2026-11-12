@@ -34,6 +34,7 @@ export const THEME_INFO: ThemeInfo[] = [
   { id: "estampe", scheme: "light", family: "estampe" },
   { id: "artdeco", scheme: "dark", family: "artdeco" },
   { id: "cassette", scheme: "dark", family: "cassette" },
+  { id: "seance", scheme: "dark", family: "seance" },
 ];
 
 export const THEMES: Theme[] = THEME_INFO.map((t) => t.id);

@@ -1,0 +1,262 @@
+/* Thème Séance (#339) : la salle de cinéma plutôt qu'un film.
+   Jetons (noir de salle, velours, ivoire, accent rouge) dans app.css ; ici, ce que les jetons
+   ne disent pas : titres en capitales de générique, « En lecture » en format large avec un
+   carton-titre, repère de changement de bobine, décompte d'amorce pour le chargement, chaîne
+   audio en fiche technique de projection.
+   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+
+/* Titres de générique : serif en capitales espacées. */
+:root[data-theme="seance"] h1 {
+  text-transform: uppercase;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+:root[data-theme="seance"] h2 {
+  font-family: var(--display-family);
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="seance"] .brand {
+  font-family: var(--display-family);
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="seance"] .badge {
+  border-radius: 2px;
+  color: var(--bg);
+  background: var(--se-ivory);
+}
+
+:root[data-theme="seance"] .row.active .title {
+  color: var(--accent);
+}
+
+:root[data-theme="seance"] :is(nav button.active, nav .pin.active) {
+  color: var(--text);
+  background: var(--bg-hover);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+:root[data-theme="seance"] .tabs button.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme="seance"] .theme-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+:root[data-theme="seance"] .lyrics-line.active {
+  color: var(--se-screen);
+}
+
+:root[data-theme="seance"] .like-button.liked {
+  color: var(--accent);
+}
+
+/* Progression : fil fin ivoire, sans halo. */
+:root[data-theme="seance"] .progress .fill {
+  box-shadow: none;
+}
+
+/* --- Chargement : décompte d'amorce de pellicule -------------------------------------
+   Cercle et croix de visée, secteur qui balaie, chiffre 3-2-1 (une seconde chacun).
+   Remplace la roue de tous les indicateurs `.spinner` (barre, mini-lecteur, conduite). */
+:root[data-theme="seance"] .spinner {
+  position: relative;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 1px 100% no-repeat;
+  animation: none;
+  overflow: hidden;
+}
+
+:root[data-theme="seance"] .spinner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(currentColor 0 90deg, transparent 90deg);
+  opacity: 0.35;
+  animation: se-sweep 1s linear infinite;
+}
+
+:root[data-theme="seance"] .spinner::after {
+  content: "3";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--display-family);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  /* Le chiffre se détache sur la croix : petit disque sombre derrière lui. */
+  background: radial-gradient(circle, rgb(0 0 0 / 0.75) 0 34%, transparent 36%);
+  animation: se-count 3s steps(1) infinite;
+}
+
+@keyframes se-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes se-count {
+  0% {
+    content: "3";
+  }
+  33.333% {
+    content: "2";
+  }
+  66.666% {
+    content: "1";
+  }
+}
+
+/* --- « En lecture » ------------------------------------------------------------------ */
+
+/* Format large (bureau) : bandes noires en haut et en bas, au-dessus du fond et sous les
+   boutons du coin ; le contenu défile entre les deux. Sur Android, l'écran est trop étroit. */
+:root[data-theme="seance"]:not([data-platform="android"]) .now-playing {
+  --se-bar: clamp(36px, 8vh, 88px);
+}
+
+:root[data-theme="seance"]:not([data-platform="android"]) .now-playing::before,
+:root[data-theme="seance"]:not([data-platform="android"]) .now-playing::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: var(--se-bar);
+  background: #000;
+  pointer-events: none;
+}
+
+:root[data-theme="seance"]:not([data-platform="android"]) .now-playing::before {
+  top: 0;
+  box-shadow: 0 1px 0 rgb(239 230 210 / 0.06);
+}
+
+:root[data-theme="seance"]:not([data-platform="android"]) .now-playing::after {
+  bottom: 0;
+  box-shadow: 0 -1px 0 rgb(239 230 210 / 0.06);
+}
+
+:root[data-theme="seance"]:not([data-platform="android"]) .now-playing .scroller {
+  padding-block: var(--se-bar);
+}
+
+/* Les boutons du coin restent dans la bande du haut. */
+:root[data-theme="seance"]:not([data-platform="android"]) .now-playing .top-actions {
+  top: calc((var(--se-bar) - 40px) / 2);
+}
+
+:root[data-theme="seance"] .now-playing :is(.close, .fullscreen-toggle, .queue-toggle, .lyrics-toggle) {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+:root[data-theme="seance"] .now-playing :is(.close, .fullscreen-toggle, .queue-toggle, .lyrics-toggle):hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+:root[data-theme="seance"] .now-playing :is(.queue-toggle, .lyrics-toggle).on {
+  color: var(--accent);
+}
+
+/* Carton de générique : libellé entre deux filets, titre en capitales, artiste en italique
+   plus petit, comme « un film de ». */
+:root[data-theme="seance"] .now-playing .info > .label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--display-family);
+  letter-spacing: 0.3em;
+  color: var(--text-muted);
+}
+
+:root[data-theme="seance"] .now-playing .info > .label::before,
+:root[data-theme="seance"] .now-playing .info > .label::after {
+  content: "";
+  flex: 0 0 28px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+:root[data-theme="seance"] .now-playing .info h1 {
+  color: var(--se-screen);
+  text-shadow: 0 0 24px rgb(246 239 224 / 0.12);
+}
+
+:root[data-theme="seance"] .now-playing .who {
+  font-family: var(--display-family);
+  font-style: italic;
+  font-size: 1.15em;
+}
+
+:root[data-theme="seance"] .now-playing .link.album {
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+
+/* Repère de changement de bobine : petit rond en haut à droite de l'image pendant les
+   30 dernières secondes, quand le titre suivant est préchargé (`.progress.ending`). Il
+   apparaît une fois, puis reste fixe. */
+:root[data-theme="seance"] .now-playing .art {
+  position: relative;
+}
+
+:root[data-theme="seance"] .now-playing:has(.progress.ending) .art::after {
+  content: "";
+  position: absolute;
+  top: 6%;
+  right: 6%;
+  width: clamp(14px, 5%, 26px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(246 239 224 / 0.95) 0 55%, rgb(246 239 224 / 0.5) 62%, transparent 70%);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
+  mix-blend-mode: screen;
+  animation: se-cue 0.5s ease-out;
+}
+
+@keyframes se-cue {
+  from {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* Chaîne audio en fiche technique de projection : cadre à double filet, libellés à la
+   machine, étapes reliées par des pointillés. */
+:root[data-theme="seance"] .signal {
+  border: 3px double rgb(239 230 210 / 0.35);
+  border-radius: 2px;
+  background: rgb(26 18 20 / 0.85);
+  backdrop-filter: none;
+}
+
+:root[data-theme="seance"] .signal .label {
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+}
+
+:root[data-theme="seance"] .signal .wire {
+  height: 1px;
+  background: repeating-linear-gradient(90deg, var(--text-muted) 0 2px, transparent 2px 6px);
+}
+
+:root[data-theme="seance"] .verdict {
+  border-radius: 2px;
+}

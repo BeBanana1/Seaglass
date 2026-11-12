@@ -541,6 +541,28 @@
     background: #ef8a3c;
   }
 
+  /* Rideaux de velours sur les bords, salle noire. */
+  .preview.seance {
+    border-radius: 6px;
+    background:
+      linear-gradient(90deg, #7c141c 0 7%, transparent 7% 93%, #7c141c 93%),
+      #0e0a0b;
+  }
+
+  .seance :is(.side, .main, .bar) {
+    border-radius: 4px;
+    background: #1a1214;
+    border: 1px solid rgb(239 230 210 / 0.1);
+  }
+
+  .seance .h {
+    background: #efe6d2;
+  }
+
+  .seance .l {
+    background: #e65a5e;
+  }
+
   /* La pochette, seule touche de couleur. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);

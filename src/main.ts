@@ -17,6 +17,7 @@ import "./themes/midnight.css";
 import "./themes/estampe.css";
 import "./themes/artdeco.css";
 import "./themes/cassette.css";
+import "./themes/seance.css";
 
 const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");
