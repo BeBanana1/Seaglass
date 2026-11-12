@@ -41,6 +41,8 @@
   const HIRES_MODES: HiresUpgrade[] = ["auto", "ask", "off"];
 
   const MOBILE_QUALITIES: MobileQuality[] = ["low", "high", "lossless", "max"];
+  type NetworkQualityKey = "wifiQuality" | "cellularQuality";
+  const NETWORKS: NetworkQualityKey[] = ["wifiQuality", "cellularQuality"];
   const NORMALIZATION_MODES: Normalization[] = ["off", "track", "album"];
   let playback = $state<PlaybackSettings | null>(null);
   const cacheSize = $derived(playback?.cacheSize ?? null);
@@ -154,8 +156,13 @@
     if (playback && mode !== playback.hiresUpgrade) savePlayback({ ...playback, hiresUpgrade: mode });
   }
 
-  function setMobileQuality(quality: MobileQuality) {
-    if (playback && quality !== playback.mobileQuality) savePlayback({ ...playback, mobileQuality: quality });
+  /** Qualité d'un réseau (#365) : `wifiQuality` (non facturé) ou `cellularQuality`. */
+  function setNetworkQuality(network: NetworkQualityKey, quality: MobileQuality) {
+    if (playback && quality !== playback[network]) savePlayback({ ...playback, [network]: quality });
+  }
+
+  function toggleLowBatteryQuality() {
+    if (playback) savePlayback({ ...playback, lowBatteryQuality: !playback.lowBatteryQuality });
   }
 
   function toggleExclusive() {
@@ -421,23 +428,42 @@
     <div class="group">
       <h2>{t.settings.quality}</h2>
       <p class="hint">{t.settings.mobileQualityHint}</p>
-      <div class="cache-sizes mobile-qualities" role="radiogroup" aria-label={t.settings.quality}>
-        {#each MOBILE_QUALITIES as quality (quality)}
-          <button
-            class="cache-size hires-mode"
-            class:selected={playback?.mobileQuality === quality}
-            role="radio"
-            aria-checked={playback?.mobileQuality === quality}
-            disabled={playback === null}
-            onclick={() => setMobileQuality(quality)}
-          >
-            {t.settings.mobileQualities[quality].label}
-          </button>
-        {/each}
-      </div>
-      <p class="note">
-        {playback ? `${t.settings.mobileQualities[playback.mobileQuality].note} ${t.settings.mobileQualityNext}` : ""}
-      </p>
+      {#each NETWORKS as network (network)}
+        <h3 class="network-quality">{t.settings.networks[network]}</h3>
+        <div class="cache-sizes mobile-qualities" role="radiogroup" aria-label={t.settings.networks[network]}>
+          {#each MOBILE_QUALITIES as quality (quality)}
+            <button
+              class="cache-size hires-mode"
+              class:selected={playback?.[network] === quality}
+              role="radio"
+              aria-checked={playback?.[network] === quality}
+              disabled={playback === null}
+              onclick={() => setNetworkQuality(network, quality)}
+            >
+              {t.settings.mobileQualities[quality].label}
+            </button>
+          {/each}
+        </div>
+        <p class="note">{playback ? t.settings.mobileQualities[playback[network]].note : ""}</p>
+      {/each}
+      <label class="setting-row low-battery-quality">
+        <span class="text">
+          <span class="setting-label">{t.settings.lowBatteryQuality}</span>
+          <span class="hint">{t.settings.lowBatteryQualityHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={playback?.lowBatteryQuality === true}
+          role="switch"
+          aria-checked={playback?.lowBatteryQuality === true}
+          aria-label={t.settings.lowBatteryQuality}
+          disabled={playback === null}
+          onclick={toggleLowBatteryQuality}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+      <p class="note">{t.settings.mobileQualityNext}</p>
     </div>
     {/if}
     <div class="group">
@@ -732,6 +758,21 @@
     margin: 12px 0 0;
     font-size: 12px;
     color: var(--text-muted);
+  }
+
+  /* Qualité par réseau (#365, Android) : sous-titres de la même section. */
+  .network-quality {
+    margin: 18px 0 10px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .network-quality:first-of-type {
+    margin-top: 0;
+  }
+
+  .low-battery-quality {
+    margin-top: 20px;
   }
 
   .cache-sizes {

@@ -150,6 +150,11 @@ export const fr = {
     },
   },
   mobileQualityNext: "Pris en compte à partir du titre suivant.",
+  networks: { wifiQuality: "En Wi-Fi", cellularQuality: "En données mobiles" },
+  lowBatteryQuality: "Baisser la qualité quand la batterie est faible",
+  lowBatteryQualityHint:
+    "Sous 50 % : Haute au plus. Sous 20 % ou avec l'économiseur de batterie : Basse. " +
+    "Rien ne change pendant la charge.",
   hiresEdition: "Édition hi-res",
   hiresModes: {
     auto: {
@@ -402,6 +407,11 @@ export const en: typeof fr = {
     },
   },
   mobileQualityNext: "Applies from the next track.",
+  networks: { wifiQuality: "On Wi-Fi", cellularQuality: "On mobile data" },
+  lowBatteryQuality: "Lower the quality when the battery is low",
+  lowBatteryQualityHint:
+    "Below 50%: High at most. Below 20% or with battery saver: Low. " +
+    "Nothing changes while charging.",
   hiresEdition: "Hi-res edition",
   hiresModes: {
     auto: {

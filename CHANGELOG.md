@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.28
+
+- Android : une qualité en Wi-Fi et une autre en données mobiles, et un réglage qui baisse la qualité quand la batterie est faible (Haute sous 50 %, Basse sous 20 % ou avec l'économiseur de batterie, rien pendant la charge) (#365).
+
 ## 0.5.27
 
 - Android : deux qualités de plus dans Réglages › Lecture, Basse (AAC 96 kbit/s) et Max (FLAC jusqu'à 24 bits / 192 kHz, avec l'édition hi-res comme sur le bureau) (#366).

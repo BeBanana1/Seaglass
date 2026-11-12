@@ -257,7 +257,9 @@ let playback: PlaybackSettings = {
   autoRadio: radioSeed !== null,
   pauseOnUnplug: true,
   resumeOnLaunch: false,
-  mobileQuality: "lossless",
+  wifiQuality: "lossless",
+  cellularQuality: "lossless",
+  lowBatteryQuality: false,
   normalization: normalizationParam ?? "off",
   exclusive: params.has("exclusive"),
 };

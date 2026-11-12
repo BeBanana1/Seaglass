@@ -35,9 +35,14 @@ pub struct PlaybackSettings {
     pub pause_on_unplug: bool,
     /// Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut.
     pub resume_on_launch: bool,
-    /// Android : qualité demandée à TIDAL (#325, #366), Lossless par défaut. Sans effet sur
-    /// le bureau, toujours en Hi-Res Lossless.
-    pub mobile_quality: MobileQuality,
+    /// Android : qualité demandée à TIDAL sur un réseau non facturé à l'usage (Wi-Fi, #365,
+    /// #366), Lossless par défaut. Sans effet sur le bureau, toujours en Hi-Res Lossless.
+    pub wifi_quality: MobileQuality,
+    /// Android : qualité sur un réseau facturé (données mobiles, partage de connexion, #365).
+    pub cellular_quality: MobileQuality,
+    /// Android : plafonner la qualité quand la batterie est faible (#365, `player::quality`).
+    /// Désactivé par défaut.
+    pub low_battery_quality: bool,
 }
 
 impl Default for PlaybackSettings {
@@ -51,7 +56,9 @@ impl Default for PlaybackSettings {
             auto_radio: false,
             pause_on_unplug: true,
             resume_on_launch: false,
-            mobile_quality: MobileQuality::default(),
+            wifi_quality: MobileQuality::default(),
+            cellular_quality: MobileQuality::default(),
+            low_battery_quality: false,
         }
     }
 }
@@ -124,13 +131,34 @@ impl PlaybackSettings {
         let Some(store) = store else {
             return Self::default();
         };
-        match store.get_setting::<Self>(KEY) {
+        let saved = store
+            .get_setting::<serde_json::Value>(KEY)
+            .map_err(|e| e.to_string())
+            .and_then(|saved| {
+                saved
+                    .map(Self::from_saved)
+                    .transpose()
+                    .map_err(|e| e.to_string())
+            });
+        match saved {
             Ok(saved) => saved.unwrap_or_default(),
             Err(e) => {
                 tracing::warn!("réglages de lecture illisibles, valeurs par défaut : {e}");
                 Self::default()
             }
         }
+    }
+
+    /// Lit les réglages enregistrés. `mobileQuality` (une seule qualité, 0.5.22 à 0.5.27)
+    /// devient la qualité des deux réseaux (#365).
+    fn from_saved(mut saved: serde_json::Value) -> serde_json::Result<Self> {
+        if let Some(map) = saved.as_object_mut()
+            && let Some(old) = map.remove("mobileQuality")
+        {
+            map.entry("wifiQuality").or_insert_with(|| old.clone());
+            map.entry("cellularQuality").or_insert(old);
+        }
+        serde_json::from_value(saved)
     }
 
     pub fn save(&self, store: &Store) -> crate::store::Result<()> {
@@ -157,7 +185,7 @@ mod tests {
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false,"mobileQuality":"lossless"}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false,"wifiQuality":"lossless","cellularQuality":"lossless","lowBatteryQuality":false}"#
         );
         assert!(!s.auto_radio, "radio automatique désactivée par défaut");
         assert!(!s.exclusive, "mode exclusif désactivé par défaut");
@@ -174,21 +202,21 @@ mod tests {
     #[test]
     fn mobile_quality_is_lossless_unless_asked() {
         let read =
-            |json: &str| serde_json::from_str::<PlaybackSettings>(json).map(|s| s.mobile_quality);
+            |json: &str| serde_json::from_str::<PlaybackSettings>(json).map(|s| s.wifi_quality);
         assert_eq!(read("{}").unwrap(), MobileQuality::Lossless);
         assert_eq!(
-            read(r#"{"mobileQuality":"high"}"#).unwrap(),
+            read(r#"{"wifiQuality":"high"}"#).unwrap(),
             MobileQuality::High
         );
         assert_eq!(
-            read(r#"{"mobileQuality":"low"}"#).unwrap(),
+            read(r#"{"wifiQuality":"low"}"#).unwrap(),
             MobileQuality::Low
         );
         assert_eq!(
-            read(r#"{"mobileQuality":"max"}"#).unwrap(),
+            read(r#"{"wifiQuality":"max"}"#).unwrap(),
             MobileQuality::Max
         );
-        assert!(read(r#"{"mobileQuality":"hires"}"#).is_err());
+        assert!(read(r#"{"wifiQuality":"hires"}"#).is_err());
         assert_eq!(MobileQuality::Low.audio_quality(), AudioQuality::Low);
         assert_eq!(MobileQuality::High.audio_quality(), AudioQuality::High);
         assert_eq!(
@@ -201,6 +229,27 @@ mod tests {
         );
         assert!(MobileQuality::Low < MobileQuality::High);
         assert!(MobileQuality::Lossless < MobileQuality::Max);
+    }
+
+    #[test]
+    fn single_mobile_quality_becomes_both_networks() {
+        let read = |json: &str| {
+            let s = PlaybackSettings::from_saved(serde_json::from_str(json).unwrap()).unwrap();
+            (s.wifi_quality, s.cellular_quality, s.low_battery_quality)
+        };
+        assert_eq!(
+            read(r#"{"mobileQuality":"high"}"#),
+            (MobileQuality::High, MobileQuality::High, false)
+        );
+        assert_eq!(
+            read(r#"{"wifiQuality":"max","cellularQuality":"low","lowBatteryQuality":true}"#),
+            (MobileQuality::Max, MobileQuality::Low, true)
+        );
+        assert_eq!(
+            read("{}"),
+            (MobileQuality::Lossless, MobileQuality::Lossless, false)
+        );
+        assert!(PlaybackSettings::from_saved(serde_json::json!({"mobileQuality": "x"})).is_err());
     }
 
     #[test]
