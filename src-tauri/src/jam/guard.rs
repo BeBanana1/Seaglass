@@ -36,12 +36,26 @@ const MAX_GUESTS: usize = 4096;
 const MAX_OFFERED: usize = 5000;
 const WINDOW: Duration = Duration::from_secs(60);
 
+/// Commandes du propriétaire par minute (télécommande, #336) : un curseur de volume ou de
+/// position en envoie une par geste, jamais une rafale.
+pub const COMMANDS_PER_MINUTE: usize = 120;
+
 /// 32⁶ ≈ 1,07 milliard de codes.
 pub fn new_code() -> String {
+    code_of_len(CODE_LEN)
+}
+
+/// Code de `len` caractères de l'alphabet sans ambiguïté (5 bits chacun).
+pub fn code_of_len(len: usize) -> String {
     let mut rng = rand::rng();
-    (0..CODE_LEN)
+    (0..len)
         .map(|_| ALPHABET[rng.random_range(0..ALPHABET.len())] as char)
         .collect()
+}
+
+/// Vrai si `code` n'a que des caractères de l'alphabet (code relu dans les réglages).
+pub fn is_code(code: &str, len: usize) -> bool {
+    code.len() == len && code.bytes().all(|b| ALPHABET.contains(&b))
 }
 
 /// Compare un code saisi (casse, espaces et tirets ignorés) en temps constant.
@@ -68,6 +82,8 @@ pub enum Action {
     Add,
     Control,
     Remove,
+    /// Commande du propriétaire (télécommande, #336).
+    Command,
 }
 
 impl Action {
@@ -77,6 +93,7 @@ impl Action {
             Self::Add => ADDS_PER_MINUTE,
             Self::Control => CONTROLS_PER_MINUTE,
             Self::Remove => REMOVES_PER_MINUTE,
+            Self::Command => COMMANDS_PER_MINUTE,
         }
     }
 }
@@ -88,6 +105,7 @@ struct Counters {
     adds: VecDeque<Instant>,
     controls: VecDeque<Instant>,
     removes: VecDeque<Instant>,
+    commands: VecDeque<Instant>,
 }
 
 impl Counters {
@@ -97,6 +115,7 @@ impl Counters {
             Action::Add => &mut self.adds,
             Action::Control => &mut self.controls,
             Action::Remove => &mut self.removes,
+            Action::Command => &mut self.commands,
         }
     }
 
@@ -113,9 +132,15 @@ impl Counters {
     }
 
     fn idle(&self, now: Instant) -> bool {
-        [&self.searches, &self.adds, &self.controls, &self.removes]
-            .iter()
-            .all(|q| q.back().is_none_or(|t| now.duration_since(*t) >= WINDOW))
+        [
+            &self.searches,
+            &self.adds,
+            &self.controls,
+            &self.removes,
+            &self.commands,
+        ]
+        .iter()
+        .all(|q| q.back().is_none_or(|t| now.duration_since(*t) >= WINDOW))
     }
 }
 

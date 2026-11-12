@@ -59,7 +59,7 @@ seaglass/
       ├─ engine.rs           # contrat du moteur de lecture (`Op`, `Event`, trait `Engine`)
       ├─ media3.rs           # moteur Media3 d'Android (plugin `plugins/seaglass-mobile`)
       ├─ apk_update.rs       # mises à jour de l'app Android (manifeste `android.json`, APK)
-      ├─ jam/                # Jam (#25) : api.rs (règles communes), server.rs (réseau local), relay.rs (en ligne), page/
+      ├─ jam/                # Jam (#25) : api.rs (règles communes), server.rs (réseau local), relay.rs (en ligne), page/, remote/ (télécommande, #336)
       ├─ logs/               # journal sur disque, rapports de plantage (#192)
       ├─ i18n.rs             # langue effective, messages traduits (`tr`, `trf!`), locale TIDAL
       ├─ commands/           # auth.rs, player.rs, catalog.rs, settings.rs : valident l'entrée puis délèguent
@@ -113,7 +113,7 @@ Notes d'implémentation, lues à la demande : endpoints vérifiés, mesures, pi�
 | [`docs/systeme.md`](docs/systeme.md) | SMTC, MPRIS, présence Discord, zone de notification, lancement au démarrage, journaux et rapports de plantage | `integrations/` (bureau), `logs/` |
 | [`docs/linux.md`](docs/linux.md) | ce qui diffère sous Linux (sortie audio, arrêt de mpv, exclusif), construire et tester dans WSL | le code `cfg(not(windows))` du bureau, un paquet Linux |
 | [`docs/android.md`](docs/android.md) | état de l'app Android, moteur Media3, session média, pont natif, secrets, mise en page tactile, distribution de l'APK, construire et tester sur le S21 | `media3.rs`, `android.rs`, `plugins/seaglass-mobile/`, `gen/android/`, les styles `data-platform="android"` |
-| [`docs/jam.md`](docs/jam.md) | Jam locale et en ligne, API des invités, garde-fous, relais, liens d'autres services | `jam/`, `foreign/`, `relay/` |
+| [`docs/jam.md`](docs/jam.md) | Jam locale et en ligne, API des invités, garde-fous, relais, liens d'autres services, télécommande | `jam/`, `foreign/`, `relay/` |
 | [`docs/release.md`](docs/release.md) | installeur NSIS, mpv embarqué, mises à jour, signature, scripts de release, release Gitea, CI et runner | `scripts/`, `updater.rs`, `tauri*.conf.json`, `.gitea/`, `ci/` |
 | [`docs/audits.md`](docs/audits.md) | audits passés et ce qu'ils ont écarté | une question de sécurité ou de performances déjà tranchée |
 

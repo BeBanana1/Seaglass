@@ -672,6 +672,16 @@ export interface Toast {
 export type JamMode = "online" | "local";
 export type JamConnection = "connecting" | "online" | "reconnecting" | "failed";
 
+/** Télécommande allumée (#336), bureau seulement. */
+export interface RemoteStatus {
+  url: string;
+  /** Code de propriétaire, 12 caractères. */
+  code: string;
+  /** Faux si aucune adresse du réseau local n'a été trouvée. */
+  lan: boolean;
+  qrSvg: string | null;
+}
+
 /** Jam (#25) : adresse et code à donner aux invités. */
 export interface JamStatus {
   mode: JamMode;
@@ -755,6 +765,13 @@ export const commands = {
   /** Exclut un invité (ses titres en attente sont retirés) ou le réadmet (#288). */
   setJamGuestBanned: (id: number, banned: boolean) =>
     invoke<JamStatus | null>("set_jam_guest_banned", { id, banned }),
+  /** Télécommande (#336) : `null` si elle est éteinte. */
+  remoteStatus: () => invoke<RemoteStatus | null>("remote_status"),
+  /** Allume la télécommande (choix et code retenus). */
+  startRemote: () => invoke<RemoteStatus>("start_remote"),
+  stopRemote: () => invoke<void>("stop_remote"),
+  /** Nouveau code : les téléphones appairés sont déconnectés. */
+  renewRemoteCode: () => invoke<RemoteStatus | null>("renew_remote_code"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
   /** Autres versions et autres albums de l'artiste (#350), album affiché exclu. */

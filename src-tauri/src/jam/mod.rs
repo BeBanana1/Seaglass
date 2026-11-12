@@ -18,6 +18,7 @@ mod http;
 mod members;
 mod protocol;
 mod relay;
+pub mod remote;
 mod rules;
 mod server;
 #[cfg(test)]

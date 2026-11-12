@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="dark" />
+    <title>Seaglass</title>
+    <link rel="stylesheet" href="jam.css" />
+    <link rel="stylesheet" href="remote.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Seaglass <span data-t="brand"></span></h1>
+      </header>
+
+      <section id="join" hidden>
+        <p class="lead" data-t="lead"></p>
+        <form id="join-form" autocomplete="off">
+          <label for="code" data-t="codeLabel"></label>
+          <input id="code" maxlength="20" autocapitalize="characters" spellcheck="false" enterkeyhint="go" />
+          <button type="submit" data-t="connect"></button>
+          <p id="join-error" class="error" role="alert" hidden></p>
+        </form>
+      </section>
+
+      <section id="remote" hidden>
+        <div id="player" class="player">
+          <div id="now" class="now" aria-live="polite"></div>
+          <div class="seek">
+            <span id="elapsed" class="time">0:00</span>
+            <input id="position" type="range" min="0" max="0" step="1" value="0" />
+            <span id="total" class="time">0:00</span>
+          </div>
+          <!-- Icônes de l'app (components/Icon.svelte). -->
+          <div class="transport">
+            <button id="shuffle" type="button" class="toggle">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.3 4.3a1 1 0 0 1 1.4 0l2.5 2.5a1 1 0 0 1 0 1.4l-2.5 2.5a1 1 0 1 1-1.4-1.4l.8-.8h-1.2c-1.1 0-2 .5-2.6 1.4l-4.3 6.4A5 5 0 0 1 4.9 18.5H4a1 1 0 1 1 0-2h.9c1.1 0 2-.5 2.6-1.4l4.3-6.4a5 5 0 0 1 4.1-2.2h1.2l-.8-.8a1 1 0 0 1 0-1.4zM4 5.5h.9a5 5 0 0 1 4 2l.4.5a1 1 0 1 1-1.6 1.2l-.4-.5a3 3 0 0 0-2.4-1.2H4a1 1 0 1 1 0-2zm11.7 9.6a1 1 0 0 1 1.4 0l2.5 2.5a1 1 0 0 1 0 1.4l-2.5 2.5a1 1 0 0 1-1.4-1.4l.8-.8h-1.2a5 5 0 0 1-4-2l-.4-.5a1 1 0 1 1 1.6-1.2l.4.5c.5.7 1.4 1.2 2.4 1.2h1.2l-.8-.8a1 1 0 0 1 0-1.4z"/></svg>
+            </button>
+            <button id="previous" type="button" class="round">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5a1 1 0 0 1 1 1v4.6l9.5-5.5A1 1 0 0 1 18 6v12a1 1 0 0 1-1.5.87L7 13.4V18a1 1 0 1 1-2 0V6a1 1 0 0 1 1-1z"/></svg>
+            </button>
+            <button id="play" type="button" class="round main"></button>
+            <button id="next" type="button" class="round">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5a1 1 0 0 0-1 1v4.6L7.5 5.1A1 1 0 0 0 6 6v12a1 1 0 0 0 1.5.87L17 13.4V18a1 1 0 1 0 2 0V6a1 1 0 0 0-1-1z"/></svg>
+            </button>
+            <button id="repeat" type="button" class="toggle">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.3 2.3a1 1 0 0 1 1.4 0l2.5 2.5a1 1 0 0 1 0 1.4l-2.5 2.5a1 1 0 1 1-1.4-1.4l.8-.8H8a3 3 0 0 0-3 3v1a1 1 0 1 1-2 0v-1a5 5 0 0 1 5-5h10.1l-.8-.8a1 1 0 0 1 0-1.4zM20 11.5a1 1 0 0 1 1 1v1a5 5 0 0 1-5 5H5.9l.8.8a1 1 0 0 1-1.4 1.4l-2.5-2.5a1 1 0 0 1 0-1.4l2.5-2.5a1 1 0 0 1 1.4 1.4l-.8.8H16a3 3 0 0 0 3-3v-1a1 1 0 0 1 1-1z"/></svg>
+              <span class="badge">1</span>
+            </button>
+          </div>
+          <div class="volume">
+            <button id="mute" type="button" class="toggle">
+              <svg class="sound" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3.2l4.2-3.5A1 1 0 0 1 13 6.3v11.4a1 1 0 0 1-1.6.8L7.2 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM15.52 9.88a1 1 0 0 1 1.42-1.42 5 5 0 0 1 0 7.08 1 1 0 0 1-1.42-1.42 3 3 0 0 0 0-4.24zM17.64 7.76a1 1 0 0 1 1.42-1.42 8 8 0 0 1 0 11.32 1 1 0 0 1-1.42-1.42 6 6 0 0 0 0-8.48z"/></svg>
+              <svg class="silent" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3.2l4.2-3.5A1 1 0 0 1 13 6.3v11.4a1 1 0 0 1-1.6.8L7.2 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM16.3 9.3a1 1 0 0 1 1.4 0l1.3 1.3 1.3-1.3a1 1 0 1 1 1.4 1.4L20.4 12l1.3 1.3a1 1 0 0 1-1.4 1.4L19 13.4l-1.3 1.3a1 1 0 0 1-1.4-1.4l1.3-1.3-1.3-1.3a1 1 0 0 1 0-1.4z"/></svg>
+            </button>
+            <input id="volume" type="range" min="0" max="100" step="1" value="100" />
+            <span id="volume-value" class="time">100</span>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <button id="tab-queue" type="button" role="tab" class="tab" data-t="tabQueue"></button>
+          <button id="tab-search" type="button" role="tab" class="tab" data-t="tabSearch"></button>
+          <button id="tab-playlists" type="button" role="tab" class="tab" data-t="tabPlaylists"></button>
+        </div>
+
+        <div id="pane-queue" class="pane">
+          <h2 id="manual-title" data-t="manual"></h2>
+          <ul id="manual" class="tracks"></ul>
+          <h2 id="upcoming-title" data-t="upcoming"></h2>
+          <ul id="upcoming" class="tracks"></ul>
+          <p id="queue-empty" class="muted" data-t="queueEmpty" hidden></p>
+        </div>
+
+        <div id="pane-search" class="pane" hidden>
+          <form id="search-form" class="search" role="search" autocomplete="off">
+            <input id="query" type="search" maxlength="300" enterkeyhint="search" />
+            <button id="clear" type="button" class="clear" hidden>✕</button>
+          </form>
+          <p id="search-status" class="muted status" aria-live="polite" hidden></p>
+          <h2 id="hits-tracks-title" data-t="tracks" hidden></h2>
+          <ul id="hits-tracks" class="tracks"></ul>
+          <h2 id="hits-albums-title" data-t="albums" hidden></h2>
+          <ul id="hits-albums" class="tracks"></ul>
+          <h2 id="hits-playlists-title" data-t="playlists" hidden></h2>
+          <ul id="hits-playlists" class="tracks"></ul>
+        </div>
+
+        <div id="pane-playlists" class="pane" hidden>
+          <ul id="playlists" class="tracks"></ul>
+          <p id="playlists-status" class="muted" hidden></p>
+        </div>
+
+        <p class="who">
+          <button id="forget" type="button" class="link" data-t="forget"></button>
+        </p>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script src="remote.js"></script>
+  </body>
+</html>

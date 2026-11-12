@@ -1,0 +1,181 @@
+/* Télécommande (#336) : complète jam.css (couleurs, champs, listes, onglets). */
+
+.player {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 12px -16px 0;
+  padding: 12px 16px 8px;
+  background: var(--bg);
+}
+
+.now {
+  margin-bottom: 8px;
+}
+
+.now .album {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.seek,
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.time {
+  flex: none;
+  min-width: 3.2em;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+input[type="range"] {
+  flex: 1;
+  min-height: 40px;
+  padding: 0;
+  border: none;
+  background: none;
+  accent-color: var(--accent);
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.transport .round {
+  width: 56px;
+  min-height: 56px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--text);
+  background: var(--raised);
+  font-size: 1.2rem;
+}
+
+.transport .main {
+  width: 72px;
+  min-height: 72px;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  font-size: 1.6rem;
+}
+
+.toggle {
+  width: 48px;
+  min-height: 44px;
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+.toggle.on {
+  color: var(--accent);
+}
+
+.transport svg,
+.volume svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.transport .round svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* Répéter un titre : « 1 » sur l'icône. */
+#repeat {
+  position: relative;
+}
+
+#repeat .badge {
+  display: none;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+#repeat.one .badge {
+  display: block;
+}
+
+#mute .silent,
+#mute.silent .sound {
+  display: none;
+}
+
+#mute.silent .silent {
+  display: inline;
+}
+
+.transport button:disabled {
+  opacity: 0.35;
+}
+
+.player.loading .now {
+  opacity: 0.6;
+}
+
+.pane[hidden],
+h2[hidden] {
+  display: none;
+}
+
+.tabs {
+  margin-top: 8px;
+}
+
+/* Ligne cliquable : lire ce titre de la file, cet album, cette playlist. */
+.track .open {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  background: none;
+  font-weight: inherit;
+}
+
+.track .actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.track .small {
+  width: 44px;
+  min-height: 40px;
+  padding: 0;
+  color: var(--text);
+  background: var(--raised);
+  font-weight: 400;
+}
+
+.track .small svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  vertical-align: middle;
+}
+
+.track .small.done {
+  color: var(--accent);
+}

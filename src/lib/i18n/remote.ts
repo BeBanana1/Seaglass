@@ -1,0 +1,35 @@
+// Télécommande (#336) : Réglages › Application.
+
+export const fr = {
+  title: "Télécommande",
+  hint: "Pilotez la lecture de cet ordinateur depuis le navigateur de votre téléphone : pause, titres suivants, volume, file, albums et playlists. Sur le même Wi-Fi seulement.",
+  enable: "Télécommande",
+  enableHint: "Reste allumée d'un lancement à l'autre, avec le même code.",
+  qr: "QR code de la télécommande",
+  address: "Adresse",
+  code: "Code",
+  copy: "Copier l'adresse",
+  copied: "Adresse copiée",
+  renew: "Nouveau code",
+  renewed: "Nouveau code : scannez de nouveau le QR code sur vos téléphones",
+  howTo: "Scannez le QR code une fois avec votre téléphone : il garde le code. Ce code donne le contrôle de la lecture, ne le partagez pas ; « Nouveau code » déconnecte les téléphones déjà appairés.",
+  noLan: "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent ouvrir la télécommande.",
+  firewall: "Au premier allumage, Windows demande d'autoriser Seaglass : acceptez pour les réseaux privés.",
+};
+
+export const en: typeof fr = {
+  title: "Remote",
+  hint: "Control this computer's playback from your phone's browser: pause, skip, volume, queue, albums and playlists. Same Wi-Fi only.",
+  enable: "Remote",
+  enableHint: "Stays on from one launch to the next, with the same code.",
+  qr: "Remote QR code",
+  address: "Address",
+  code: "Code",
+  copy: "Copy address",
+  copied: "Address copied",
+  renew: "New code",
+  renewed: "New code: scan the QR code again on your phones",
+  howTo: "Scan the QR code once with your phone: it keeps the code. This code gives control of playback, do not share it; “New code” disconnects the phones already paired.",
+  noLan: "No local network found: only browsers on this computer can open the remote.",
+  firewall: "The first time it is turned on, Windows asks to allow Seaglass: accept for private networks.",
+};
