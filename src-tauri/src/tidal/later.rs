@@ -136,7 +136,7 @@ impl TidalClient {
         let (tracks, albums, artists, playlists) = tokio::try_join!(
             self.later_tracks(&tracks),
             self.later_albums(&albums),
-            self.later_artists(&artists),
+            self.artists_by_id(&artists),
             self.later_playlists(&playlists),
         )?;
         Ok(assemble(entries, tracks, albums, artists, playlists))
@@ -185,7 +185,9 @@ impl TidalClient {
             .collect())
     }
 
-    async fn later_artists(&self, ids: &[u64]) -> Result<HashMap<u64, ArtistSummary>> {
+    /// Artistes par identifiant (« Plus tard », photos des statistiques d'écoute, #326) ; un
+    /// artiste disparu est absent du résultat.
+    pub async fn artists_by_id(&self, ids: &[u64]) -> Result<HashMap<u64, ArtistSummary>> {
         let mut futures = Vec::new();
         for &id in ids {
             let path = format!("artists/{id}");

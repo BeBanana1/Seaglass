@@ -28,6 +28,7 @@
     highlighted = false,
     addedBy,
     laterButton = false,
+    note,
   }: {
     track: Track;
     /** Numéro affiché devant le titre (position dans l'album ou la playlist). */
@@ -53,6 +54,8 @@
     addedBy?: string;
     /** Liste « Plus tard » (#249) : signet plein à côté du cœur, pour retirer le titre en un clic. */
     laterButton?: boolean;
+    /** Courte mention sous les artistes (nombre d'écoutes des statistiques, #326). */
+    note?: string;
   } = $props();
 
   const laterTarget = $derived({ kind: "track" as const, id: track.id });
@@ -159,6 +162,7 @@
           >{/each}{/if}</span
     >
     {#if addedBy}<span class="added-by">{t.jam.addedBy(addedBy)}</span>{/if}
+    {#if note}<span class="note">{note}</span>{/if}
   </div>
   {#if !compact}
     <span class="album">
@@ -399,6 +403,11 @@
   }
 
   .title,
+  .note {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
   .added-by {
     overflow: hidden;
     white-space: nowrap;

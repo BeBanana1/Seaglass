@@ -27,7 +27,7 @@ pub struct PlayHistory {
     pub top: Vec<AlbumSummary>,
 }
 
-fn now_ms() -> i64 {
+pub(super) fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as i64)
@@ -36,7 +36,11 @@ fn now_ms() -> i64 {
 fn load(store: &Store) -> crate::store::Result<PlayHistory> {
     Ok(PlayHistory {
         recent: store.recent_albums(RECENT_LIMIT)?,
-        top: store.top_albums(now_ms() - TOP_WINDOW_MS, TOP_MIN_PLAYS, TOP_LIMIT)?,
+        top: store
+            .top_albums(now_ms() - TOP_WINDOW_MS, TOP_MIN_PLAYS, TOP_LIMIT)?
+            .into_iter()
+            .map(|(album, _)| album)
+            .collect(),
     })
 }
 

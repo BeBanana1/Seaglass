@@ -10,6 +10,7 @@ pub mod later;
 pub mod link;
 pub mod logs;
 pub mod play_history;
+pub mod play_stats;
 pub mod player;
 pub mod project;
 pub mod search_history;

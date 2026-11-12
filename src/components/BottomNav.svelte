@@ -19,6 +19,8 @@
   // Bibliothèque › Titres est l'onglet Likes, les autres onglets de la bibliothèque l'onglet Bibliothèque.
   function isActive(route: Route): boolean {
     const here = current();
+    // Statistiques (#326) : page de la bibliothèque.
+    if (here.name === "stats") return route.name === "library" && route.tab !== "tracks";
     if (here.name !== route.name) return false;
     if (here.name === "library" && route.name === "library") return (here.tab === "tracks") === (route.tab === "tracks");
     return true;

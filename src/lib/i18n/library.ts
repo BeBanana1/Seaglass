@@ -52,6 +52,24 @@ export const fr = {
     duration: "Durée",
   },
 
+  // Statistiques d'écoute locales (#326).
+  stats: {
+    open: "Statistiques",
+    title: "Statistiques d'écoute",
+    periods: { week: "7 jours", month: "30 jours", year: "12 mois", all: "Tout" },
+    plays: (n: number) => `${num(n)} ${n > 1 ? "écoutes" : "écoute"}`,
+    time: (hours: number, minutes: number) => (hours > 0 ? `${num(hours)} h ${minutes} min` : `${minutes} min`),
+    timeLabel: "Temps d'écoute",
+    playsLabel: "Écoutes",
+    unknown: (n: number) =>
+      `${num(n)} ${n > 1 ? "écoutes antérieures" : "écoute antérieure"} à la 0.5.33 sans durée connue.`,
+    tracks: "Titres",
+    albums: "Albums",
+    artists: "Artistes",
+    empty: "Aucune écoute sur cette période. Un titre compte une fois joué à moitié (ou 4 minutes).",
+    note: "Calculées sur cet appareil, à partir de son historique d'écoute : rien n'est envoyé ailleurs. Elles sont effacées avec l'historique (déconnexion, Réglages › Application).",
+  },
+
   picker: {
     title: "Ajouter à une playlist",
     filter: "Filtrer vos playlists",
@@ -112,6 +130,22 @@ export const en: typeof fr = {
     artist: "Artist",
     album: "Album",
     duration: "Duration",
+  },
+
+  stats: {
+    open: "Stats",
+    title: "Listening stats",
+    periods: { week: "7 days", month: "30 days", year: "12 months", all: "All time" },
+    plays: (n: number) => `${num(n)} ${n === 1 ? "play" : "plays"}`,
+    time: (hours: number, minutes: number) => (hours > 0 ? `${num(hours)} h ${minutes} min` : `${minutes} min`),
+    timeLabel: "Listening time",
+    playsLabel: "Plays",
+    unknown: (n: number) => `${num(n)} ${n === 1 ? "play" : "plays"} from before 0.5.33 with no known duration.`,
+    tracks: "Tracks",
+    albums: "Albums",
+    artists: "Artists",
+    empty: "No plays in this period. A track counts once half of it (or 4 minutes) has played.",
+    note: "Computed on this device from its listening history: nothing is sent anywhere. They are cleared along with the history (sign-out, Settings › App).",
   },
 
   picker: {

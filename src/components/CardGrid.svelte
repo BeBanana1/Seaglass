@@ -6,12 +6,15 @@
     items,
     title,
     row = false,
+    notes,
     more,
   }: {
     items: MediaItem[];
     title?: string;
     /** Une seule ligne défilante (accueil, recherche) plutôt qu'une grille. */
     row?: boolean;
+    /** Mention sous chaque carte (nombre d'écoutes des statistiques, #326), dans l'ordre de `items`. */
+    notes?: string[];
     /** Lien à droite du titre (« Voir l'artiste », #350). */
     more?: { label: string; onclick: () => void };
   } = $props();
@@ -27,7 +30,14 @@
     {:else if title}<h2>{title}</h2>{/if}
     <div class="items" class:row>
       {#each items as item, i (`${item.kind}-${i}`)}
-        <Card {item} />
+        {#if notes}
+          <div class="noted">
+            <Card {item} />
+            <span class="card-note">{notes[i]}</span>
+          </div>
+        {:else}
+          <Card {item} />
+        {/if}
       {/each}
     </div>
   </section>
@@ -70,6 +80,18 @@
   .items {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  }
+
+  .noted {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .card-note {
+    margin: -6px 12px 8px;
+    font-size: 12px;
+    color: var(--text-muted);
   }
 
   .items.row {

@@ -632,6 +632,20 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   clear_search_history: () => (searchHistory = []),
   play_history: () => ({ recent: playedAlbums, top: playedAlbums.slice(0, 2) }),
   clear_play_history: () => void (playedAlbums = []),
+  play_stats: ({ period }) => {
+    if (playedAlbums.length === 0) return { plays: 0, seconds: 0, unknown: 0, tracks: [], albums: [], artists: [] };
+    const scale = ({ week: 1, month: 4, year: 30, all: 40 } as Record<string, number>)[String(period)] ?? 1;
+    const tracks = fx.search.tracks.slice(0, 12).map((item, i) => ({ item, plays: (12 - i) * scale }));
+    const artists = fx.search.artists.slice(0, 6).map((a, i) => ({ item: a, plays: (9 - i) * scale }));
+    return {
+      plays: tracks.reduce((n, t) => n + t.plays, 0),
+      seconds: tracks.reduce((n, t) => n + t.plays * t.item.duration, 0),
+      unknown: period === "all" ? 37 : 0,
+      tracks,
+      albums: playedAlbums.map((item, i) => ({ item, plays: (8 - i) * scale })),
+      artists,
+    };
+  },
   jam_status: () => jam,
   jam_online_available: () => true,
   start_jam: (args) => (jam ??= mockJam(args.mode === "local" ? "local" : "online")),
@@ -1152,6 +1166,7 @@ export function initialView(): {
     mix: { name: "mix", id: mixPage.mix.id },
     radio: { name: "radio", seed: radioPage.seed, id: radioPage.id },
     library: { name: "library", tab: (params.get("tab") as LibraryTab) ?? "playlists" },
+    stats: { name: "stats" },
     search: { name: "search" },
     feed: { name: "feed" },
     settings: { name: "settings", section: (params.get("tab") as SettingsSection) ?? "appearance" },
