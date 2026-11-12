@@ -243,6 +243,16 @@ pub struct PlaylistSummary {
     pub mine: bool,
 }
 
+/// Dossier de playlists de la bibliothèque (#331). Un seul niveau : pas de sous-dossier.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistFolder {
+    pub id: String,
+    pub name: String,
+    /// Uuids des playlists rangées (les vôtres et celles que vous suivez).
+    pub playlists: Vec<String>,
+}
+
 /// Mix généré par le service (My Mix, Daily Discovery, mix d'artiste…). Son contenu
 /// change dans le temps : il n'est jamais mis en cache.
 #[derive(Debug, Clone, PartialEq, Serialize)]

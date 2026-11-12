@@ -49,6 +49,7 @@ import type {
   PlaybackSettings,
   PlayerState,
   PlaylistPage,
+  PlaylistFolder,
   PlaylistSummary,
   QueueView,
   RadioPage,
@@ -396,6 +397,17 @@ const liked = new Set<number>(fx.library.tracks.map((t) => t.id));
 const favAlbums = [...(fx.library.albums as AlbumSummary[])];
 const favArtists = [...(fx.library.artists as ArtistSummary[])];
 const libPlaylists = [...fx.library.playlists];
+
+// Dossiers de playlists (#331) : aucun par défaut (rien ne doit s'afficher), un dossier de
+// démonstration avec `?folders=1`.
+let mockFolders: PlaylistFolder[] =
+  params.get("folders") === "1"
+    ? [{ id: "f0000000-0000-4000-8000-000000000001", name: "Soirées", playlists: libPlaylists.slice(0, 2).map((p) => p.uuid) }]
+    : [];
+
+function unfile(uuids: string[]) {
+  mockFolders = mockFolders.map((f) => ({ ...f, playlists: f.playlists.filter((u) => !uuids.includes(u)) }));
+}
 
 function likedIds(): LikedIds {
   return {
@@ -906,6 +918,28 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       if (p) Object.assign(p, { title: page.playlist.title, description: page.playlist.description });
     }
   },
+  playlist_folders: () =>
+    [...mockFolders]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((f) => ({ ...f, playlists: [...f.playlists] })),
+  create_folder: ({ name, uuids }) => {
+    const list = [...(uuids as string[])];
+    unfile(list);
+    const folder: PlaylistFolder = { id: crypto.randomUUID(), name: String(name).trim(), playlists: list };
+    mockFolders = [...mockFolders, folder];
+    return { ...folder, playlists: [...list] };
+  },
+  rename_folder: ({ id, name }) => {
+    mockFolders = mockFolders.map((f) => (f.id === id ? { ...f, name: String(name).trim() } : f));
+  },
+  move_to_folder: ({ uuids, folderId }) => {
+    const list = [...(uuids as string[])];
+    unfile(list);
+    mockFolders = mockFolders.map((f) => (f.id === folderId ? { ...f, playlists: [...f.playlists, ...list] } : f));
+  },
+  delete_folder: ({ id }) => {
+    mockFolders = mockFolders.filter((f) => f.id !== id);
+  },
   delete_playlist: ({ uuid }) => {
     cachedPlaylists.delete(String(uuid));
     ownPages.delete(String(uuid));
@@ -1339,6 +1373,7 @@ export function initialView(): {
     radio: { name: "radio", seed: radioPage.seed, id: radioPage.id },
     library: { name: "library", tab: (params.get("tab") as LibraryTab) ?? "playlists" },
     stats: { name: "stats" },
+    folder: { name: "folder", id: "f0000000-0000-4000-8000-000000000001" },
     smart: { name: "smart", list: (params.get("list") as SmartList) ?? "topMonth" },
     search: { name: "search" },
     feed: { name: "feed" },

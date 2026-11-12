@@ -20,6 +20,8 @@ export type Route =
   | { name: "album"; id: number; track?: number }
   | { name: "artist"; id: number }
   | { name: "playlist"; uuid: string }
+  /** Dossier de playlists de la bibliothèque (#331). */
+  | { name: "folder"; id: string }
   | { name: "mix"; id: string }
   | { name: "radio"; seed: RadioSeed; id: number };
 

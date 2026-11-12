@@ -25,6 +25,8 @@ export const fr = {
   artistBlocked: (name: string) => `${name} ne sera plus proposé`,
   trackInfo: "Infos du titre",
   copyLink: "Copier le lien",
+  // Dossiers de playlists (#331).
+  moveToFolder: "Déplacer vers un dossier…",
   pin: "Épingler dans la barre latérale",
   unpin: "Désépingler de la barre latérale",
   // Favoris des albums, artistes et playlists (#81), en-têtes et menu des cartes.
@@ -74,6 +76,7 @@ export const en: typeof fr = {
   artistBlocked: (name: string) => `${name} won't be suggested any more`,
   trackInfo: "Track info",
   copyLink: "Copy link",
+  moveToFolder: "Move to folder…",
   pin: "Pin to sidebar",
   unpin: "Unpin from sidebar",
   open: "Open",

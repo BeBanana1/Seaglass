@@ -15,6 +15,8 @@
 //!   `live_cleanup.rs` (`live_cleanup_apply` **crée puis supprime une playlist**).
 //! - `cargo test live_collection -- --ignored --nocapture` : écritures dans la bibliothèque,
 //!   dans `live_collection.rs` (**modifie le compte**).
+//! - `cargo test live_folders -- --ignored --nocapture` : dossiers de playlists (#331), dans
+//!   `live_folders.rs` (**crée puis supprime un dossier et deux playlists**).
 //! - `cargo test dump_ui_fixtures -- --ignored` : écrit `src/lib/mock/fixtures.json`
 //!   (gitignoré, contient la bibliothèque du compte) pour prévisualiser l'UI hors Tauri.
 

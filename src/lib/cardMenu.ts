@@ -3,6 +3,8 @@
 import type { LikeTarget, MediaItem } from "./ipc";
 import { isFavorite, toggleFavorite } from "./stores/likes.svelte";
 import { isSavedForLater, toggleLater } from "./stores/later.svelte";
+import { library } from "./stores/library.svelte";
+import { openFolderPicker } from "./stores/folders.svelte";
 import { go, type Route } from "./stores/nav.svelte";
 import type { MenuEntry } from "./stores/menu.svelte";
 import { pushToast } from "./stores/toasts.svelte";
@@ -85,6 +87,15 @@ export function cardMenu(item: MediaItem): MenuEntry[] {
       label: saved ? m.removeFromLater : m.saveForLater,
       icon: saved ? "bookmarkFilled" : "bookmark",
       action: () => toggleLater(later),
+    });
+  }
+
+  // Dossiers (#331) : seulement une playlist de la bibliothèque (la vôtre ou suivie).
+  if (item.kind === "playlist" && library.playlists.items?.some((p) => p.uuid === item.uuid)) {
+    entries.push({
+      label: m.moveToFolder,
+      icon: "folder",
+      action: () => openFolderPicker({ uuids: [item.uuid], label: item.title }),
     });
   }
 

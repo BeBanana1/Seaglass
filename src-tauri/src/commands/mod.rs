@@ -9,6 +9,7 @@ pub mod collection;
 pub mod drive;
 #[cfg(desktop)]
 pub mod export;
+pub mod folders;
 pub mod jam;
 pub mod later;
 pub mod link;

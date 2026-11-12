@@ -13,7 +13,7 @@
     { key: "home", route: { name: "home" }, match: ["home"] },
     { key: "feed", route: { name: "feed" }, match: ["feed"] },
     { key: "search", route: { name: "search" }, match: ["search"] },
-    { key: "library", route: { name: "library", tab: "playlists" }, match: ["library", "stats", "smart"] },
+    { key: "library", route: { name: "library", tab: "playlists" }, match: ["library", "stats", "smart", "folder"] },
     { key: "settings", route: { name: "settings", section: "appearance" }, match: ["settings"] },
   ];
 

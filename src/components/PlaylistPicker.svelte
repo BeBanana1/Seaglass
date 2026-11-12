@@ -5,6 +5,7 @@
   import { t } from "../lib/i18n.svelte";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
   import { closePlaylistPicker, notePlaylistChange, picker } from "../lib/stores/playlistPicker.svelte";
+  import { folders, loadFolders } from "../lib/stores/folders.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import Icon from "./Icon.svelte";
 
@@ -29,6 +30,7 @@
       .ownPlaylists()
       .then((p) => (playlists = p))
       .catch((e) => (error = String(e)));
+    void loadFolders();
     requestAnimationFrame(() => filterInput?.focus());
   });
 
@@ -40,6 +42,18 @@
     const q = query.trim().toLocaleLowerCase("fr");
     const all = playlists ?? [];
     return q ? all.filter((p) => p.title.toLocaleLowerCase("fr").includes(q)) : all;
+  });
+
+  // Dossiers (#331) : sans filtre, vos playlists hors dossier puis celles de chaque dossier
+  // sous son nom. Sans dossier (ou pendant un filtre), une seule liste, sans en-tête.
+  const groups = $derived.by((): { key: string; name: string | null; playlists: PlaylistSummary[] }[] => {
+    const list = folders.items ?? [];
+    if (query.trim() || list.length === 0) return [{ key: "", name: null, playlists: shown }];
+    const filed = new Set(list.flatMap((f) => f.playlists));
+    const grouped = list
+      .map((f) => ({ key: f.id, name: f.name, playlists: shown.filter((p) => f.playlists.includes(p.uuid)) }))
+      .filter((g) => g.playlists.length > 0);
+    return [{ key: "", name: null, playlists: shown.filter((p) => !filed.has(p.uuid)) }, ...grouped];
   });
 
   function done(uuid: string) {
@@ -155,18 +169,23 @@
         {:else if shown.length === 0}
           <p class="sub">{t.library.picker.noMatch(query.trim())}</p>
         {:else}
-          {#each shown as playlist (playlist.uuid)}
-            <button class="picker-item" onclick={() => add(playlist)} disabled={busy}>
-              <span class="thumb">
-                {#if playlist.imageUrl}<img src={playlist.imageUrl} alt="" loading="lazy" />{:else}<Icon
-                    name="queue"
-                  />{/if}
-              </span>
-              <span class="name">{playlist.title}</span>
-              {#if playlist.numberOfTracks !== null}
-                <span class="count">{t.common.tracks(playlist.numberOfTracks)}</span>
-              {/if}
-            </button>
+          {#each groups as group (group.key)}
+            {#if group.name !== null}
+              <p class="picker-folder"><Icon name="folder" size={14} /> {group.name}</p>
+            {/if}
+            {#each group.playlists as playlist (playlist.uuid)}
+              <button class="picker-item" onclick={() => add(playlist)} disabled={busy}>
+                <span class="thumb">
+                  {#if playlist.imageUrl}<img src={playlist.imageUrl} alt="" loading="lazy" />{:else}<Icon
+                      name="queue"
+                    />{/if}
+                </span>
+                <span class="name">{playlist.title}</span>
+                {#if playlist.numberOfTracks !== null}
+                  <span class="count">{t.common.tracks(playlist.numberOfTracks)}</span>
+                {/if}
+              </button>
+            {/each}
           {/each}
         {/if}
       </div>
@@ -323,6 +342,18 @@
 
   .error {
     color: var(--danger);
+  }
+
+  .picker-folder {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 12px 8px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
   }
 
   :global([data-theme="studio"]) input,
