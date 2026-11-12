@@ -557,7 +557,11 @@ export interface PlaybackSettings {
   /** Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut. */
   resumeOnLaunch: boolean;
   /** Android : qualité demandée (#325), Lossless par défaut. Sans effet sur le bureau. */
-  mobileQuality: MobileQuality;
+  /** Android (#365) : réseau non facturé (Wi-Fi) et facturé (données mobiles). */
+  wifiQuality: MobileQuality;
+  cellularQuality: MobileQuality;
+  /** Android (#365) : plafond quand la batterie est faible. */
+  lowBatteryQuality: boolean;
 }
 
 export interface UpdateInfo {

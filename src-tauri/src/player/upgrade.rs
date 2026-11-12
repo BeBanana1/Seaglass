@@ -122,7 +122,7 @@ impl Player {
         }
         let (track, format) = (track.clone(), format.clone());
         let (tidal, tx, request) = (self.tidal.clone(), self.tx.clone(), self.offer_req);
-        let quality = self.quality;
+        let quality = self.quality.ceiling();
         tauri::async_runtime::spawn(async move {
             if let Some(offer) = find_offer(&tidal, &track, quality, &format).await {
                 let _ = tx.send(Cmd::HiresOffer { request, offer }).await;
