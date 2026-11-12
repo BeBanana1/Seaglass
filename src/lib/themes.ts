@@ -30,6 +30,7 @@ export const THEME_INFO: ThemeInfo[] = [
   { id: "aero", scheme: "light", family: "aero" },
   { id: "alloy", scheme: "light", family: "alloy" },
   { id: "alloy-dark", scheme: "dark", family: "alloy" },
+  { id: "midnight", scheme: "dark", family: "midnight" },
 ];
 
 export const THEMES: Theme[] = THEME_INFO.map((t) => t.id);

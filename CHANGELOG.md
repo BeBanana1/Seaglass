@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.41
+
+- Nouveau thème Minuit : noir pur, filets fins, aucun décor, la pochette est la seule couleur. Sur un écran OLED (comme celui de la plupart des téléphones), le noir éteint les pixels (#338).
+
 ## 0.5.40
 
 - Page Apparence réorganisée : le thème actuel en haut, avec sa variante claire ou sombre et sa couleur d'accent, puis une galerie compacte en dernier, filtrable (tous, favoris, clairs, sombres). Une étoile met un thème en favori, en tête de la galerie (#390).

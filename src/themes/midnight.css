@@ -1,0 +1,17 @@
+/* Minuit (#338) : noir OLED. Tout le thème est dans ses jetons (`app.css`) ; ne reste ici que
+   le bandeau d'accueil, dont le fond teinté par la pochette allumait une large surface : il
+   passe en noir cerné d'un filet, la pochette du bandeau reste la seule couleur. */
+
+:root[data-theme="midnight"] .hero {
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+:root[data-theme="midnight"] .hero .bg {
+  display: none;
+}
+
+:root[data-theme="midnight"] :is(.hero .label, .hero .meta) {
+  color: var(--text-muted);
+}
