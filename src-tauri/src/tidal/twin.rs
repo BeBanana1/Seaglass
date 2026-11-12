@@ -210,6 +210,7 @@ mod tests {
                 color: None,
             },
             explicit: false,
+            ai: false,
             hires,
             isrc: Some("USEE11300353".into()),
         }
@@ -227,6 +228,7 @@ mod tests {
             number_of_tracks: None,
             album_type: None,
             explicit: false,
+            ai: false,
             hires,
         }
     }

@@ -71,6 +71,8 @@ pub(super) struct RawTrack {
     duration: u32,
     #[serde(default)]
     explicit: bool,
+    /// Musique générée par IA selon le service (#369, champ non documenté vu le 2026-11-12).
+    ai: Option<bool>,
     #[serde(default)]
     artists: Vec<RawArtist>,
     /// Absent dans certains flux (titres de l'accueil) : ces titres sont ignorés.
@@ -119,6 +121,7 @@ pub(super) struct RawAlbumFull {
     pub kind: Option<String>,
     #[serde(default)]
     pub explicit: bool,
+    ai: Option<bool>,
     media_metadata: Option<RawMediaMetadata>,
     pub duration: Option<u32>,
     pub copyright: Option<String>,
@@ -223,6 +226,7 @@ impl RawTrack {
                 color: hex_color(album.vibrant_color),
             },
             explicit: self.explicit,
+            ai: self.ai.unwrap_or(false),
             hires: has_hires(self.media_metadata.as_ref()),
             isrc: self.isrc.filter(|i| !i.is_empty()),
         })
@@ -281,6 +285,7 @@ impl From<RawAlbumFull> for AlbumSummary {
             number_of_tracks: raw.number_of_tracks,
             album_type: raw.kind,
             explicit: raw.explicit,
+            ai: raw.ai.unwrap_or(false),
             hires: has_hires(raw.media_metadata.as_ref()),
         }
     }
@@ -357,6 +362,23 @@ mod tests {
         let t = tracks(raw);
         assert_eq!(t.len(), 1);
         assert_eq!(t[0].id, TrackId(2));
+    }
+
+    /// `ai` vrai, faux, `null` ou absent (#369) : seul `true` marque le titre.
+    #[test]
+    fn ai_flag_is_read() {
+        let raw: Vec<RawTrack> = serde_json::from_str(
+            r#"[{"id":1,"title":"a","duration":10,"ai":true,"album":{"id":3,"title":"c"}},
+                {"id":2,"title":"b","duration":10,"ai":false,"album":{"id":3,"title":"c"}},
+                {"id":3,"title":"c","duration":10,"ai":null,"album":{"id":3,"title":"c"}},
+                {"id":4,"title":"d","duration":10,"album":{"id":3,"title":"c"}}]"#,
+        )
+        .unwrap();
+        let ai: Vec<bool> = tracks(raw).iter().map(|t| t.ai).collect();
+        assert_eq!(ai, [true, false, false, false]);
+        let album: RawAlbumFull =
+            serde_json::from_str(r#"{"id":1,"title":"a","ai":true}"#).unwrap();
+        assert!(AlbumSummary::from(album).ai);
     }
 
     #[test]

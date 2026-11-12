@@ -79,6 +79,10 @@ pub struct Track {
     pub artists: Vec<ArtistRef>,
     pub album: AlbumRef,
     pub explicit: bool,
+    /// Généré par IA selon le service (champ `ai`, #369). Absent des titres enregistrés
+    /// avant la 0.5.29.
+    #[serde(default)]
+    pub ai: bool,
     /// Disponible en 24 bits (tag `HIRES_LOSSLESS`).
     pub hires: bool,
     /// Identifiant de l'enregistrement, commun à toutes ses éditions (#18). Absent des
@@ -209,6 +213,9 @@ pub struct AlbumSummary {
     /// `ALBUM`, `EP` ou `SINGLE`.
     pub album_type: Option<String>,
     pub explicit: bool,
+    /// Généré par IA selon le service (champ `ai`, #369).
+    #[serde(default)]
+    pub ai: bool,
     pub hires: bool,
 }
 

@@ -213,6 +213,9 @@ let ui: UiSettings = {
   zoom: 100,
   // `?motion=reduced|full` : animations réduites ou forcées (#351).
   motion: (params.get("motion") as UiSettings["motion"]) ?? "system",
+  // `?explicit=hide` : contenu explicite masqué (#368) ; `?ai=show` : musique générée par
+  // IA affichée (#369). Le backend factice ne filtre pas.
+  content: { hideExplicit: params.get("explicit") === "hide", hideAi: params.get("ai") !== "show" },
 };
 
 /** « Système » du backend factice : la langue du navigateur. */
@@ -1168,6 +1171,7 @@ function synthetic(): Fixtures {
     artists: [{ id: 1, name: "Artiste de démonstration" }],
     album: { id: 1, title: "Album de démonstration", coverUrl: null, color: "#4f95b0" },
     explicit: false,
+    ai: false,
     hires: id % 2 === 0,
   });
   const tracks = Array.from({ length: 12 }, (_, i) => track(i + 1, `Titre ${i + 1}`));
@@ -1185,6 +1189,7 @@ function synthetic(): Fixtures {
     numberOfTracks: 12,
     albumType: "ALBUM",
     explicit: false,
+    ai: false,
     hires: true,
   };
   return {

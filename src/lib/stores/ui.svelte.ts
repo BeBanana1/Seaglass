@@ -4,6 +4,7 @@
 import {
   commands,
   type CloseAction,
+  type ContentFilter,
   type HomeSection,
   type Motion,
   type Pin,
@@ -36,6 +37,7 @@ export const ui = $state<{
     sorts: [],
     zoom: 100,
     motion: "system",
+    content: { hideExplicit: false, hideAi: true },
   },
   nowPlayingPanel: null,
 });
@@ -144,6 +146,18 @@ export async function setAccent(accent: string | null) {
 export async function setDiscord(discord: boolean) {
   const previous = ui.settings;
   ui.settings = { ...ui.settings, discord };
+  try {
+    await commands.setUiSettings(ui.settings);
+  } catch (e) {
+    ui.settings = previous;
+    throw e;
+  }
+}
+
+/** Filtre de contenu (#368), appliqué par le backend aux listes chargées ensuite. */
+export async function setContentFilter(content: ContentFilter) {
+  const previous = ui.settings;
+  ui.settings = { ...ui.settings, content };
   try {
     await commands.setUiSettings(ui.settings);
   } catch (e) {

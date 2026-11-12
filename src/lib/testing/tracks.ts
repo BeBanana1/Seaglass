@@ -16,6 +16,7 @@ export function entry(
     version: null,
     duration: 180,
     explicit: false,
+    ai: false,
     hires: false,
     addedAt: null,
     ...rest,

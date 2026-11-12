@@ -201,6 +201,7 @@ mod tests {
                 color: None,
             },
             explicit: false,
+            ai: false,
             hires: false,
             isrc: None,
         };

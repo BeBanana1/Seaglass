@@ -176,6 +176,16 @@ export const fr = {
     "Quand la file se termine, enchaîner sur la radio du dernier titre, sans blanc. " +
     "Sans effet en mode répétition.",
 
+  content: "Contenu",
+  hideExplicit: "Masquer le contenu explicite",
+  hideExplicitHint:
+    "Les titres et albums marqués « E » disparaissent de la recherche, des pages, de l'accueil, " +
+    "des mixes et des radios. Vos favoris et vos playlists restent complets.",
+  hideAi: "Masquer la musique générée par IA",
+  hideAiHint:
+    "Titres et albums que le service marque comme générés par IA (badge « IA »). Même portée : " +
+    "vos favoris et vos playlists restent complets. Le marquage vient du service et peut en manquer.",
+
   startup: "Démarrage",
   autostart: "Lancer Seaglass à l'ouverture de session",
   autostartHint:
@@ -430,6 +440,16 @@ export const en: typeof fr = {
   autoRadioHint:
     "When the queue ends, carry on with the last track's radio, without a gap. " +
     "No effect while repeat is on.",
+
+  content: "Content",
+  hideExplicit: "Hide explicit content",
+  hideExplicitHint:
+    "Tracks and albums marked “E” disappear from search, pages, home, mixes and radios. " +
+    "Your favourites and your own playlists stay complete.",
+  hideAi: "Hide AI-generated music",
+  hideAiHint:
+    "Tracks and albums the service marks as AI-generated (“AI” badge). Same scope: your " +
+    "favourites and your own playlists stay complete. The label comes from the service and may miss some.",
 
   startup: "Startup",
   autostart: "Launch Seaglass when you sign in",

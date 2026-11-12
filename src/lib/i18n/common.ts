@@ -3,6 +3,8 @@
 import { num } from "./state.svelte";
 
 export const fr = {
+  /** Badge des titres et albums générés par IA (#369). */
+  ai: "IA",
   nav: {
     home: "Accueil",
     feed: "Fil d'actualité",
@@ -39,6 +41,7 @@ export const fr = {
 };
 
 export const en: typeof fr = {
+  ai: "AI",
   nav: {
     home: "Home",
     feed: "Feed",

@@ -64,6 +64,8 @@
           {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button>
         {/each}
         <span class="details">{details.map((d) => ` · ${d}`).join("")}</span>
+        {#if album.explicit}<span class="badge muted">E</span>{/if}
+        {#if album.ai}<span class="badge muted">{t.common.ai}</span>{/if}
         {#if album.hires}<span class="badge">HI-RES</span>{/if}
       {/snippet}
     </PageHeader>

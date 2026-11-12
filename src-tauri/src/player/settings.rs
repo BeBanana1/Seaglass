@@ -149,7 +149,7 @@ impl PlaybackSettings {
         }
     }
 
-    /// Lit les réglages enregistrés. `mobileQuality` (une seule qualité, 0.5.22 à 0.5.27)
+    /// Lit les réglages enregistrés. `mobileQuality` (une seule qualité, 0.5.22 à 0.5.29)
     /// devient la qualité des deux réseaux (#365).
     fn from_saved(mut saved: serde_json::Value) -> serde_json::Result<Self> {
         if let Some(map) = saved.as_object_mut()
