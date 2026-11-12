@@ -124,6 +124,7 @@ mod tests {
             number_of_tracks: None,
             album_type: None,
             explicit: false,
+            ai: false,
             hires: false,
         }
     }

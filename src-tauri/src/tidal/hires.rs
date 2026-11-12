@@ -132,6 +132,7 @@ mod tests {
                 color: None,
             },
             explicit: false,
+            ai: false,
             hires,
             isrc: Some("USSM19902991".into()),
         }

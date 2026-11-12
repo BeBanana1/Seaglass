@@ -65,6 +65,7 @@
         {/each}
         <span class="details">{details.map((d) => ` · ${d}`).join("")}</span>
         {#if album.explicit}<span class="badge muted">E</span>{/if}
+        {#if album.ai}<span class="badge muted">{t.common.ai}</span>{/if}
         {#if album.hires}<span class="badge">HI-RES</span>{/if}
       {/snippet}
     </PageHeader>

@@ -32,6 +32,8 @@ export interface Track {
   artists: ArtistRef[];
   album: AlbumRef;
   explicit: boolean;
+  /** Généré par IA selon le service (#369). */
+  ai: boolean;
   hires: boolean;
   /** Identifiant de l'enregistrement, commun à ses éditions. */
   isrc?: string | null;
@@ -256,6 +258,8 @@ export interface AlbumSummary {
   /** `ALBUM`, `EP` ou `SINGLE`. */
   albumType: string | null;
   explicit: boolean;
+  /** Généré par IA selon le service (#369). */
+  ai: boolean;
   hires: boolean;
 }
 
@@ -500,6 +504,8 @@ export interface UiSettings {
 /** Ce que le backend retire des listes proposées (pas des favoris ni de ses playlists). */
 export interface ContentFilter {
   hideExplicit: boolean;
+  /** Masqué par défaut (#369). */
+  hideAi: boolean;
 }
 
 export type CloseAction = "quit" | "tray";

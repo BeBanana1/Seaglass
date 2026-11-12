@@ -241,6 +241,7 @@ fn album_of(track: &Track) -> AlbumSummary {
         number_of_tracks: None,
         album_type: None,
         explicit: track.explicit,
+        ai: track.ai,
         hires: track.hires,
     }
 }
