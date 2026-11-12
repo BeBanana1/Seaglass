@@ -147,6 +147,7 @@
     <span class="title">
       {fullTitle(track)}
       {#if track.explicit}<span class="badge muted">E</span>{/if}
+      {#if track.ai}<span class="badge muted">{t.common.ai}</span>{/if}
       {#if track.hires}<span class="badge">HI-RES</span>{/if}
     </span>
     <!-- Android (#180) : les artistes ne sont pas des liens, l'appui tombe sur la ligne et lance

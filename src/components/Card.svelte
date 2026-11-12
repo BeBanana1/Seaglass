@@ -4,6 +4,7 @@
   import { cardMenu, cardRoute } from "../lib/cardMenu";
   import { menu, menuPosition, openMenu } from "../lib/stores/menu.svelte";
   import { go } from "../lib/stores/nav.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   let { item }: { item: MediaItem } = $props();
 
@@ -35,6 +36,7 @@
   <span class="title">
     {mediaTitle(item)}
     {#if item.kind === "album" && item.explicit}<span class="badge muted">E</span>{/if}
+    {#if item.kind === "album" && item.ai}<span class="badge muted">{t.common.ai}</span>{/if}
     {#if item.kind === "album" && item.hires}<span class="badge">HI-RES</span>{/if}
   </span>
   <span class="sub">{mediaSubtitle(item)}</span>

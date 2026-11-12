@@ -20,6 +20,7 @@ fn track(id: u64) -> Track {
             color: None,
         },
         explicit: false,
+        ai: false,
         hires: true,
         isrc: None,
     }

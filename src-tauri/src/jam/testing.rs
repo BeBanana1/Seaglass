@@ -38,6 +38,7 @@ pub fn track(id: u64) -> Track {
             color: None,
         },
         explicit: false,
+        ai: false,
         hires: false,
         isrc: None,
     }
@@ -58,6 +59,7 @@ pub fn album(id: u64) -> AlbumSummary {
         number_of_tracks: Some(35),
         album_type: Some("ALBUM".into()),
         explicit: false,
+        ai: false,
         hires: false,
     }
 }

@@ -6,6 +6,11 @@ use crate::tidal::models::{
 
 const HIDE_EXPLICIT: ContentFilter = ContentFilter {
     hide_explicit: true,
+    hide_ai: false,
+};
+const NOTHING: ContentFilter = ContentFilter {
+    hide_explicit: false,
+    hide_ai: false,
 };
 
 fn track(id: u64, explicit: bool) -> Track {
@@ -27,6 +32,7 @@ fn track(id: u64, explicit: bool) -> Track {
             color: None,
         },
         explicit,
+        ai: false,
         hires: false,
         isrc: None,
     }
@@ -44,6 +50,7 @@ fn album(id: u64, explicit: bool) -> AlbumSummary {
         number_of_tracks: None,
         album_type: None,
         explicit,
+        ai: false,
         hires: false,
     }
 }
@@ -75,11 +82,38 @@ fn playlist(mine: bool) -> PlaylistPage {
     }
 }
 
+fn ai_track(id: u64) -> Track {
+    Track {
+        ai: true,
+        ..track(id, false)
+    }
+}
+
 #[test]
-fn default_filter_hides_nothing() {
-    let mut tracks = vec![track(1, true), track(2, false)];
+fn default_filter_hides_ai_but_not_explicit() {
+    let mut tracks = vec![track(1, true), ai_track(2), track(3, false)];
     tracks.filter_with(&ContentFilter::default());
+    assert_eq!(ids(&tracks), [1, 3]);
+}
+
+#[test]
+fn disabled_filter_hides_nothing() {
+    let mut tracks = vec![track(1, true), ai_track(2)];
+    tracks.filter_with(&NOTHING);
     assert_eq!(ids(&tracks), [1, 2]);
+}
+
+#[test]
+fn ai_albums_leave_artist_lists() {
+    let mut albums = vec![
+        AlbumSummary {
+            ai: true,
+            ..album(1, false)
+        },
+        album(2, false),
+    ];
+    albums.filter_with(&ContentFilter::default());
+    assert_eq!(albums.iter().map(|a| a.id).collect::<Vec<_>>(), [2]);
 }
 
 #[test]
@@ -156,6 +190,7 @@ fn hidden_twin_album_becomes_none() {
 fn settings_without_content_field_read_as_default() {
     let filter: ContentFilter = serde_json::from_str("{}").unwrap();
     assert_eq!(filter, ContentFilter::default());
+    // Réglage enregistré en 0.5.28, avant #369 : l'IA est masquée.
     let filter: ContentFilter = serde_json::from_str(r#"{"hideExplicit":true}"#).unwrap();
-    assert!(filter.hide_explicit);
+    assert!(filter.hide_explicit && filter.hide_ai);
 }

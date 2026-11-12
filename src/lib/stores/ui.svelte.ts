@@ -37,7 +37,7 @@ export const ui = $state<{
     sorts: [],
     zoom: 100,
     motion: "system",
-    content: { hideExplicit: false },
+    content: { hideExplicit: false, hideAi: true },
   },
   nowPlayingPanel: null,
 });

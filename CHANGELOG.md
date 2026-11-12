@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.29
+
+- Musique générée par IA : badge « IA » sur les titres et albums que le service marque ainsi, et réglage « Masquer la musique générée par IA », activé par défaut, avec la même portée que le filtre explicite (#369).
+
 ## 0.5.28
 
 - Réglage « Masquer le contenu explicite » (Réglages › Lecture) : les titres et albums explicites disparaissent de la recherche, des pages, de l'accueil, des mixes, des radios et de la Jam ; vos favoris et vos playlists restent complets. Badge « E » sur les albums (#368).

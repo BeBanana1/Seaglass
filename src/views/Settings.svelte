@@ -115,6 +115,14 @@
     }
   }
 
+  async function toggleHideAi() {
+    try {
+      await setContentFilter({ ...ui.settings.content, hideAi: !ui.settings.content.hideAi });
+    } catch (e) {
+      fail(e);
+    }
+  }
+
   function fail(e: unknown) {
     pushToast({ level: "error", message: String(e) });
   }
@@ -517,6 +525,22 @@
           aria-checked={ui.settings.content.hideExplicit}
           aria-label={t.settings.hideExplicit}
           onclick={toggleHideExplicit}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.hideAi}</span>
+          <span class="hint">{t.settings.hideAiHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={ui.settings.content.hideAi}
+          role="switch"
+          aria-checked={ui.settings.content.hideAi}
+          aria-label={t.settings.hideAi}
+          onclick={toggleHideAi}
         >
           <span class="knob"></span>
         </button>

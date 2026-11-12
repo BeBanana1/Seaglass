@@ -1,5 +1,5 @@
-//! Filtre du contenu proposé par le service (#368) : titres et albums explicites masqués
-//! sur demande.
+//! Filtre du contenu proposé par le service : titres et albums explicites (#368) ou générés
+//! par IA (#369, masqués par défaut) retirés des listes.
 //!
 //! Le filtre s'applique à ce que le service propose (recherche, pages album / artiste,
 //! playlists des autres, mixes, radios, accueil, fil d'actualité, Jam, radio automatique),
@@ -19,14 +19,28 @@ use crate::tidal::models::{
     PlaylistPage, RadioPage, SearchResults, Track,
 };
 
+// Valeurs de `ContentFilter::default()` jusqu'au premier `apply`.
 static HIDE_EXPLICIT: AtomicBool = AtomicBool::new(false);
+static HIDE_AI: AtomicBool = AtomicBool::new(true);
 
 /// Réglage « contenu » : ce qui est masqué dans ce que le service propose.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct ContentFilter {
     /// Masque les titres et albums marqués explicites (`explicit`). Désactivé par défaut.
     pub hide_explicit: bool,
+    /// Masque les titres et albums générés par IA selon le service (`ai`, #369). Activé par
+    /// défaut, réglages enregistrés avant la 0.5.29 compris.
+    pub hide_ai: bool,
+}
+
+impl Default for ContentFilter {
+    fn default() -> Self {
+        Self {
+            hide_explicit: false,
+            hide_ai: true,
+        }
+    }
 }
 
 impl ContentFilter {
@@ -34,20 +48,22 @@ impl ContentFilter {
     pub fn current() -> Self {
         Self {
             hide_explicit: HIDE_EXPLICIT.load(Ordering::Relaxed),
+            hide_ai: HIDE_AI.load(Ordering::Relaxed),
         }
     }
 
     /// Rend ce réglage effectif pour les listes suivantes.
     pub fn apply(self) {
         HIDE_EXPLICIT.store(self.hide_explicit, Ordering::Relaxed);
+        HIDE_AI.store(self.hide_ai, Ordering::Relaxed);
     }
 
     pub fn allows_track(&self, track: &Track) -> bool {
-        !(self.hide_explicit && track.explicit)
+        !(self.hide_explicit && track.explicit || self.hide_ai && track.ai)
     }
 
     pub fn allows_album(&self, album: &AlbumSummary) -> bool {
-        !(self.hide_explicit && album.explicit)
+        !(self.hide_explicit && album.explicit || self.hide_ai && album.ai)
     }
 
     fn allows_item(&self, item: &MediaItem) -> bool {

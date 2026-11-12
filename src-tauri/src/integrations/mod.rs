@@ -207,6 +207,7 @@ mod tests {
                     color: None,
                 },
                 explicit: false,
+                ai: false,
                 hires: true,
                 isrc: None,
             }),
