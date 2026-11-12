@@ -6,61 +6,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Seaglass {{VERSION}}</title>
-<style>
-  :root {
-    --bg: #eef3f2;
-    --panel: #ffffff;
-    --text: #17201f;
-    --muted: #5b6b69;
-    --line: #d5dfdd;
-    --accent: #2f8f83;
-    --accent-contrast: #ffffff;
-    color-scheme: light dark;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0f1615;
-      --panel: #172120;
-      --text: #e4eeec;
-      --muted: #93a6a3;
-      --line: #263331;
-      --accent: #5cc4b6;
-      --accent-contrast: #08201d;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 16px/1.55 "Segoe UI", system-ui, sans-serif;
-  }
-  main { max-width: 640px; margin: 0 auto; padding: 56px 16px 40px; }
-  h1 { margin: 0; font-size: 2.2rem; letter-spacing: -0.02em; }
-  .tagline { margin: 4px 0 28px; color: var(--muted); }
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 24px;
-    margin-bottom: 20px;
-  }
-  .download {
-    display: inline-block;
-    padding: 12px 22px;
-    border-radius: 10px;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    font-weight: 600;
-    text-decoration: none;
-  }
-  .download:hover { filter: brightness(1.08); }
-  .meta { margin: 12px 0 0; color: var(--muted); font-size: 0.9rem; }
-  h2 { margin: 0 0 10px; font-size: 1.05rem; }
-  ul, ol { margin: 0; padding-left: 1.2em; }
-  li + li { margin-top: 4px; }
-  footer { color: var(--muted); font-size: 0.85rem; }
-</style>
+<link rel="stylesheet" href="download-page.css?v={{VERSION}}">
 </head>
 <body>
 <main>
@@ -72,7 +18,7 @@
     <p class="meta">Version {{VERSION}} · {{DATE}} · {{SIZE}} Mo</p>
   </section>
 
-  <!-- Rempli par le script en bas de page depuis android.json (release-android.ps1),
+  <!-- Rempli par download-page.js depuis android.json (release-android.ps1),
        publié indépendamment de cette page. -->
   <section class="card" id="android" hidden>
     <a class="download" id="android-link" href="#">Télécharger pour Android</a>
@@ -80,7 +26,7 @@
     <p class="meta">Android 7 ou plus récent, processeur 64 bits (ARM). Au premier téléchargement, autoriser le navigateur à installer des applications ; ensuite, l'app propose elle-même ses mises à jour.</p>
   </section>
 
-  <!-- Rempli par le script en bas de page depuis linux.json (release-linux.ps1), comme Android. -->
+  <!-- Rempli par download-page.js depuis linux.json (release-linux.ps1), comme Android. -->
   <section class="card" id="linux" hidden>
     <a class="download" id="linux-link" href="#">Télécharger pour Linux (AppImage)</a>
     <p class="meta" id="linux-meta"></p>
@@ -114,21 +60,6 @@
 
   <footer>Client non officiel, non affilié à TIDAL. Licence GPL-3.0.</footer>
 </main>
-<script>
-  // Android et Linux sont publiés indépendamment de cette page : leur carte n'apparaît que
-  // si leur manifeste est en ligne et désigne une adresse HTTPS.
-  for (const id of ["android", "linux"]) {
-    fetch(`${id}.json`, { cache: "no-cache" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((m) => {
-        if (!m || typeof m.url !== "string" || !m.url.startsWith("https://")) return;
-        document.getElementById(`${id}-link`).href = m.url;
-        const size = (m.size / 1048576).toLocaleString("fr-FR", { maximumFractionDigits: 1 });
-        document.getElementById(`${id}-meta`).textContent = `Version ${m.version} · ${size} Mo`;
-        document.getElementById(id).hidden = false;
-      })
-      .catch(() => {});
-  }
-</script>
+<script src="download-page.js?v={{VERSION}}"></script>
 </body>
 </html>

@@ -27,6 +27,7 @@
   import Search from "./views/Search.svelte";
   import Library from "./views/Library.svelte";
   import Stats from "./views/Stats.svelte";
+  import SmartList from "./views/SmartList.svelte";
   import Album from "./views/Album.svelte";
   import Artist from "./views/Artist.svelte";
   import Playlist from "./views/Playlist.svelte";
@@ -404,6 +405,8 @@
         <Library tab={route.tab} />
       {:else if route.name === "stats"}
         <Stats />
+      {:else if route.name === "smart"}
+        <SmartList list={route.list} />
       {:else if route.name === "album"}
         <Album id={route.id} track={route.track} />
       {:else if route.name === "artist"}

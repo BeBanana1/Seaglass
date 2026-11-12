@@ -1,7 +1,8 @@
 <script lang="ts">
   // Statistiques d'écoute locales (#326) : tout est calculé par le backend (`play_stats`),
   // la page n'affiche que le résultat de la période choisie.
-  import { commands, type MediaItem, type PlayStats, type StatsPeriod } from "../lib/ipc";
+  import { commands, SMART_LISTS, type MediaItem, type PlayStats, type StatsPeriod } from "../lib/ipc";
+  import { go } from "../lib/stores/nav.svelte";
   import CardGrid from "../components/CardGrid.svelte";
   import TrackList from "../components/TrackList.svelte";
   import Icon from "../components/Icon.svelte";
@@ -56,6 +57,16 @@
 
 <section class="stats">
   <h1>{t.library.stats.title}</h1>
+  <!-- Playlists intelligentes locales (#383), calculées sur le même historique. -->
+  <h2 class="smart-title">{t.views.smart.title}</h2>
+  <div class="smart-lists">
+    {#each SMART_LISTS as list (list)}
+      <button class="smart-link" onclick={() => go({ name: "smart", list })}>
+        <span class="smart-name">{t.views.smart.names[list]}</span>
+        <span class="smart-rule">{t.views.smart.rules[list]}</span>
+      </button>
+    {/each}
+  </div>
   <div class="tabs" role="tablist">
     {#each PERIODS as id (id)}
       <button role="tab" aria-selected={id === period} class:active={id === period} onclick={() => (period = id)}>
@@ -130,6 +141,41 @@
     display: flex;
     gap: 6px;
     margin: 16px 10px 20px;
+  }
+
+  .smart-title {
+    margin: 20px 10px 10px;
+  }
+
+  .smart-lists {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 0 10px 8px;
+  }
+
+  .smart-link {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 10px);
+    background: var(--bg-raised);
+    text-align: left;
+  }
+
+  .smart-link:hover {
+    background: var(--bg-hover);
+  }
+
+  .smart-name {
+    font-weight: 600;
+  }
+
+  .smart-rule {
+    font-size: 12px;
+    color: var(--text-muted);
   }
 
   .tabs button {

@@ -13,6 +13,7 @@ use serde::Serialize;
 use super::CmdResult;
 use super::settings::pins::Pin;
 use crate::i18n::tr;
+use crate::store::SmartList;
 
 /// Raccourcis dynamiques : les lanceurs n'en affichent pas plus de quatre ou cinq, raccourci
 /// « Mode conduite » compris.
@@ -49,6 +50,13 @@ fn label(pin: &Pin) -> String {
         Pin::Mix { .. } => "Mix".into(),
         Pin::LikedTracks => tr("Titres likés", "Liked tracks").into(),
         Pin::Later => tr("Plus tard", "Later").into(),
+        Pin::Smart { list } => match list {
+            SmartList::TopMonth => tr("Mes 50 du mois", "My top 50 this month"),
+            SmartList::OnRepeat => tr("En boucle en ce moment", "On repeat"),
+            SmartList::Forgotten => tr("Oubliés", "Forgotten favorites"),
+            SmartList::NeverPlayed => tr("Likés jamais écoutés", "Liked, never played"),
+        }
+        .into(),
     }
 }
 

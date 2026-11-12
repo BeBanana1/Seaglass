@@ -1,6 +1,7 @@
 //! Persistance SQLite : file d'attente, position de lecture, réglages et métadonnées des
 //! titres en file ; copies des listes affichées (`snapshots`, #181) ; historique d'écoute
-//! (`plays`, #202) et ses statistiques (`stats`, #326).
+//! (`plays`, #202), ses statistiques (`stats`, #326) et les playlists intelligentes
+//! (`smart`, #383).
 //!
 //! La table `tracks` ne contient que les titres référencés par la file sauvegardée : chaque
 //! sauvegarde de la file n'écrit que les titres absents et supprime ceux qui ne sont plus
@@ -19,11 +20,14 @@ use crate::player::volume::Volume;
 use crate::tidal::models::{Track, TrackId};
 
 mod plays;
+mod smart;
 mod snapshots;
 mod stats;
 
 pub use plays::Play;
+pub use smart::SmartList;
 pub use snapshots::SnapshotLimit;
+pub use stats::CountedTrack;
 
 const SCHEMA: &str = "
     PRAGMA journal_mode = WAL;

@@ -138,7 +138,7 @@ impl TidalClient {
     /// `tracks` sans ce qui est bloqué. Les listes sont lues au premier appel ; si elles
     /// sont indisponibles, rien n'est retiré (les radios du service filtrent déjà) et la
     /// lecture sera retentée au prochain appel.
-    pub(super) async fn without_blocked(&self, mut tracks: Vec<Track>) -> Vec<Track> {
+    pub async fn without_blocked(&self, mut tracks: Vec<Track>) -> Vec<Track> {
         if !self.blocks.loaded()
             && let Err(e) = self.blocked().await
         {

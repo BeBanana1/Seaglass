@@ -1,4 +1,5 @@
-//! Raccourcis épinglés (#10) : playlists, mixes, titres likés et « Plus tard ». Barre latérale
+//! Raccourcis épinglés (#10) : playlists, mixes, titres likés, « Plus tard » et playlists
+//! intelligentes (#383). Barre latérale
 //! sur le bureau, tuiles du mode conduite sur Android (#193). Logique pure : la liste est
 //! stockée dans `UiSettings::pins`, dans l'ordre d'affichage.
 //!
@@ -8,6 +9,7 @@
 use std::collections::HashSet;
 
 use crate::i18n::{tr, trf};
+use crate::store::SmartList;
 use serde::{Deserialize, Serialize};
 
 /// Nombre maximal d'épingles.
@@ -31,6 +33,10 @@ pub enum Pin {
     LikedTracks,
     /// Bibliothèque › Plus tard (#244).
     Later,
+    /// Playlist intelligente locale (#383).
+    Smart {
+        list: SmartList,
+    },
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -55,6 +61,7 @@ impl Pin {
             Pin::Mix { id, .. } => id,
             Pin::LikedTracks => "liked-tracks",
             Pin::Later => "later",
+            Pin::Smart { list } => list.key(),
         }
     }
 }
@@ -84,7 +91,7 @@ pub fn normalize(pins: Vec<Pin>) -> Result<Vec<Pin>, PinError> {
                     title: clean_title(&title),
                 }
             }
-            Pin::LikedTracks | Pin::Later => pin,
+            Pin::LikedTracks | Pin::Later | Pin::Smart { .. } => pin,
         };
         if seen.insert(pin.key().to_owned()) {
             out.push(pin);

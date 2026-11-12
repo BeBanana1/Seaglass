@@ -152,6 +152,7 @@ pub fn run() {
             commands::link::open_link_settings,
             commands::play_history::clear_play_history,
             commands::play_stats::play_stats,
+            commands::smart_lists::smart_list,
             commands::catalog::library_tracks,
             commands::catalog::library_albums,
             commands::catalog::library_artists,

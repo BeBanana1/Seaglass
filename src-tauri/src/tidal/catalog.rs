@@ -106,6 +106,11 @@ impl TidalClient {
     /// Titres favoris, du plus récent au plus ancien, avec la date du like.
     pub async fn favorite_tracks(&self) -> Result<LibraryList<TrackEntry>> {
         let raw: LibraryList<RawFavorite<RawTrack>> = self.favorites("tracks").await?;
+        self.availability.record(
+            raw.items
+                .iter()
+                .map(|f| (f.item.track_id(), f.item.streamable())),
+        );
         let list = map_list(raw, |items| {
             self.remember_entries(raw::favorite_entries(items))
         });

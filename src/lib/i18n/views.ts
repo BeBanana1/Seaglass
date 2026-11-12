@@ -139,6 +139,26 @@ export const fr = {
     artistRadio: "Des titres proches de cet artiste.",
     empty: "Aucun titre disponible.",
   },
+  // Playlists intelligentes locales (#383).
+  smart: {
+    title: "Listes intelligentes",
+    eyebrow: "Liste intelligente",
+    names: {
+      topMonth: "Mes 50 du mois",
+      onRepeat: "En boucle en ce moment",
+      forgotten: "Oubliés",
+      neverPlayed: "Likés jamais écoutés",
+    },
+    rules: {
+      topMonth: "Vos titres les plus écoutés sur les 30 derniers jours.",
+      onRepeat: "Écoutés au moins 3 fois ces 7 derniers jours.",
+      forgotten: "Écoutés au moins 5 fois, mais plus depuis 6 mois.",
+      neverPlayed: "Vos titres likés que cet appareil n'a jamais joués.",
+    },
+    scope: "Calculée à partir des écoutes de cet appareil. Ajoutez-la à une playlist pour la garder telle quelle.",
+    empty: "Rien pour l'instant : la liste se remplira avec vos écoutes sur cet appareil.",
+  },
+
   header: {
     playNext: "Lire ensuite",
     addToQueue: "Ajouter à la file",
@@ -319,6 +339,25 @@ export const en: typeof fr = {
     artistRadio: "Tracks similar to this artist.",
     empty: "No tracks available.",
   },
+  smart: {
+    title: "Smart lists",
+    eyebrow: "Smart list",
+    names: {
+      topMonth: "My top 50 this month",
+      onRepeat: "On repeat",
+      forgotten: "Forgotten favorites",
+      neverPlayed: "Liked, never played",
+    },
+    rules: {
+      topMonth: "Your most played tracks over the last 30 days.",
+      onRepeat: "Played at least 3 times in the last 7 days.",
+      forgotten: "Played at least 5 times, but not in the last 6 months.",
+      neverPlayed: "Your liked tracks this device has never played.",
+    },
+    scope: "Computed from this device's listening history. Add it to a playlist to keep it as it is.",
+    empty: "Nothing yet: this list fills up as you listen on this device.",
+  },
+
   header: {
     playNext: "Play next",
     addToQueue: "Add to queue",

@@ -240,6 +240,10 @@ impl RawTrack {
             .unwrap_or_default()
     }
 
+    pub(super) fn track_id(&self) -> TrackId {
+        TrackId(self.id)
+    }
+
     /// Lisible en streaming (`false` seulement si l'API le dit explicitement).
     pub(super) fn streamable(&self) -> bool {
         self.stream_ready != Some(false) && self.allow_streaming != Some(false)
