@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.46
+
+- Nouveau thème Ordinateur de bord : les écrans de vaisseau de la science-fiction des années 70-80, ambre sur fond presque noir, étiquettes numérotées, blocs de couleur et bandes d'avertissement. La chaîne audio de « En lecture » devient un schéma de systèmes avec voyants, un voyant rouge fixe veille près du bouton lecture et le démarrage déroule une séquence d'auto-test (#339).
+
 ## 0.5.45
 
 - Nouveau thème Séance : la salle de cinéma, noir de salle, rideaux de velours rouge, titres en capitales de générique. « En lecture » passe en format large avec le titre en carton-titre ; un repère de changement de bobine apparaît sur la pochette dans les 30 dernières secondes, le chargement est un décompte d'amorce et la chaîne audio une fiche technique de projection (#339).

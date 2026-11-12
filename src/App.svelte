@@ -382,7 +382,8 @@
     {#if session && !platform.mobile}<div class="panel nav"><Sidebar /></div>{/if}
     <main class="panel" bind:this={main}>
       {#if !ready}
-        <p class="muted">{t.common.loading}</p>
+        <!-- `.boot` : écran de démarrage, que certains thèmes décorent (Ordinateur de bord, #339). -->
+        <p class="muted boot">{t.common.loading}</p>
       {:else if route.name === "settings"}
         <Settings section={route.section} onLogout={session ? logout : undefined} />
       {:else if !session}

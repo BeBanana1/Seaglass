@@ -988,6 +988,61 @@
   --meta-family: var(--font-mono);
 }
 
+/* --- Ordinateur de bord : écrans de vaisseau de la SF des années 70-80 (themes/onboard.css) */
+/* Presque noir, texte ambre pâle, accent ambre (remplaçable). Les couleurs des blocs
+   (`--ob-red`, `--ob-orange`, `--ob-yellow`, `--ob-teal`) sont fixes, pour les étiquettes
+   numérotées, les voyants et les bandes d'avertissement ; elles ne portent jamais de texte. */
+:root[data-theme="onboard"] {
+  color-scheme: dark;
+  --ob-red: #e0412c;
+  --ob-orange: #f0862a;
+  --ob-yellow: #f2c230;
+  --ob-teal: #3fa79a;
+  --ob-cut: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  --ob-hazard: repeating-linear-gradient(-45deg, var(--ob-yellow) 0 6px, #0b0c0b 6px 12px);
+  --bg: #0b0c0b;
+  /* Opaque : le décor (relevés, cadrans) ne doit pas transparaître sous le texte. */
+  --surface: #151612;
+  --dialog-bg: #151612;
+  --bg-raised: rgb(243 214 162 / 0.05);
+  --bg-hover: rgb(243 214 162 / 0.09);
+  --border: rgb(243 214 162 / 0.16);
+  --text: #f3d6a2;
+  --text-muted: #b0946a;
+  --accent: #ffae3b;
+  --accent-strong: #ffc977;
+  --accent-contrast: #0b0c0b;
+  --danger: #ff7a62;
+  --ok: #8fd6a8;
+  --warn: var(--ob-yellow);
+  --radius: 0;
+  --radius-pill: 0;
+  --radius-card: 0;
+  --radius-cover: 0;
+  --panel-radius: 0;
+  --dialog-radius: 0;
+  --popover-radius: 0;
+  --control-clip: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  --panel-blur: none;
+  --panel-border: 1px solid rgb(243 214 162 / 0.22);
+  --panel-shadow: none;
+  --dialog-border: 1px solid rgb(243 214 162 / 0.35);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow: 0 0 0 4px #0b0c0b, 0 0 0 5px rgb(243 214 162 / 0.2);
+  --popover-shadow: 0 0 0 3px #0b0c0b, 0 0 0 4px rgb(243 214 162 / 0.2);
+  --shadow-cover: 0 0 0 1px rgb(243 214 162 / 0.3), 0 0 0 5px #0b0c0b, 0 0 0 6px rgb(243 214 162 / 0.14);
+  --shadow-inset: inset 0 0 0 1px rgb(243 214 162 / 0.2);
+  --control-bg: rgb(243 214 162 / 0.06);
+  --focus-ring: 2px solid var(--ob-yellow);
+  --shell-gap: 8px;
+  --display-family: "Bahnschrift SemiBold Condensed", "Bahnschrift", "Arial Narrow", sans-serif;
+  --display-weight: 600;
+  --display-tracking: 0.06em;
+  --label-transform: uppercase;
+  --label-tracking: 0.16em;
+  --meta-family: var(--font-mono);
+}
+
 * {
   box-sizing: border-box;
 }
