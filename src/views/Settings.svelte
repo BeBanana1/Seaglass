@@ -32,6 +32,7 @@
   import { platform } from "../lib/platform.svelte";
   import { jam } from "../lib/stores/jam.svelte";
   import JamPanel from "../components/JamPanel.svelte";
+  import RemotePanel from "../components/RemotePanel.svelte";
   import BlockedList from "../components/BlockedList.svelte";
 
   let { section, onLogout }: { section: SettingsSection; onLogout?: () => void } = $props();
@@ -697,6 +698,15 @@
       <h2>{t.jam.title}</h2>
       <p class="hint">{t.jam.hint}</p>
       <JamPanel />
+    </div>
+    {/if}
+
+    <!-- #336 : télécommande depuis un téléphone, réseau local, bureau seulement. -->
+    {#if desktop}
+    <div class="group remote">
+      <h2>{t.remote.title}</h2>
+      <p class="hint">{t.remote.hint}</p>
+      <RemotePanel />
     </div>
     {/if}
 

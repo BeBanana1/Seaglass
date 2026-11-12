@@ -24,8 +24,7 @@ const MAX_CACHED_TRACKS: usize = 20_000;
 
 impl TidalClient {
     /// Page complète de la playlist, revalidée par son ETag si elle est déjà gardée.
-    // L'app passe par `playlist_since` ; sert aux tests réels.
-    #[cfg_attr(not(test), allow(dead_code))]
+    /// L'UI passe par `playlist_since` ; sert à la télécommande (#336) et aux tests réels.
     pub async fn playlist(&self, uuid: &str) -> Result<PlaylistPage> {
         self.playlist_since(uuid, None).await?.ok_or_else(|| {
             TidalError::Decode(format!("playlists/{uuid} : page absente sans révision"))

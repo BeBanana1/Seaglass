@@ -11,13 +11,14 @@
 //! `EventSource` ne pose pas d'en-tête). Tant qu'une page écoute, l'état du lecteur est
 //! relu toutes les secondes et aussitôt après un ajout ; il n'est envoyé que s'il change.
 
+use std::future::Future;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{Semaphore, watch};
+use tokio::sync::{Notify, Semaphore, watch};
 
 use super::api::{BACKEND_TIMEOUT, Backend, Core};
 use super::http::{Method, Request, Response, query_param, read_request, write_response};
@@ -34,26 +35,86 @@ const KEEPALIVE: Duration = Duration::from_secs(20);
 
 const PAGE: &str = include_str!("page/index.html");
 const SCRIPT: &str = include_str!("page/jam.js");
-const STYLE: &str = include_str!("page/jam.css");
+pub(super) const STYLE: &str = include_str!("page/jam.css");
 
-struct Shared {
+/// Ce qu'un serveur local sert : la page des invités de la Jam, ou celle de la télécommande
+/// (#336). Le serveur ne connaît que ce trait : les droits de chaque page restent dans son
+/// API, et aucune ne peut appeler les commandes de l'autre.
+pub trait Site: Send + Sync + 'static {
+    /// Fichier fixe de la page (`GET`), `None` = 404.
+    fn file(&self, path: &str) -> Option<Response>;
+    /// Adresse bloquée ou code faux (compté comme un essai raté) : la réponse d'erreur.
+    fn check_code(&self, ip: IpAddr, given: &str) -> Result<(), Response>;
+    /// Appel `POST /api/<…>`, `path` compris, code de l'en-tête `X-Jam-Code`.
+    fn api(
+        &self,
+        path: &str,
+        code: Option<&str>,
+        body: &[u8],
+        ip: IpAddr,
+    ) -> impl Future<Output = Response> + Send;
+    /// État poussé aux pages ouvertes, `None` si le lecteur ne répond pas.
+    fn state_json(&self) -> impl Future<Output = Option<String>> + Send;
+    /// Relire l'état sans attendre.
+    fn refresh(&self) -> &Notify;
+}
+
+/// Page des invités de la Jam.
+struct JamSite<B> {
     core: Arc<Core>,
-    /// Dernier état envoyé (JSON). L'émetteur vit dans `serve` : la Jam arrêtée, il
-    /// disparaît et les flux ouverts se terminent.
+    backend: Arc<B>,
+}
+
+impl<B: Backend> Site for JamSite<B> {
+    fn file(&self, path: &str) -> Option<Response> {
+        match path {
+            "/" => Some(Response::new(200, "text/html; charset=utf-8", PAGE)),
+            "/jam.js" => Some(Response::new(200, "text/javascript; charset=utf-8", SCRIPT)),
+            "/jam.css" => Some(Response::new(200, "text/css; charset=utf-8", STYLE)),
+            _ => None,
+        }
+    }
+
+    fn check_code(&self, ip: IpAddr, given: &str) -> Result<(), Response> {
+        self.core.check_code(ip, given)
+    }
+
+    async fn api(&self, path: &str, code: Option<&str>, body: &[u8], ip: IpAddr) -> Response {
+        self.core.api(path, code, body, ip, &*self.backend).await
+    }
+
+    async fn state_json(&self) -> Option<String> {
+        self.core.state_json(&*self.backend).await
+    }
+
+    fn refresh(&self) -> &Notify {
+        &self.core.refresh
+    }
+}
+
+struct Shared<S> {
+    site: Arc<S>,
+    /// Dernier état envoyé (JSON). L'émetteur vit dans `serve_site` : le serveur arrêté,
+    /// il disparaît et les flux ouverts se terminent.
     updates: watch::Receiver<Arc<str>>,
 }
 
 /// Sert la Jam jusqu'à ce que la tâche soit annulée (fin de la Jam).
 pub async fn serve<B: Backend>(listener: TcpListener, core: Arc<Core>, backend: Arc<B>) {
+    serve_site(listener, Arc::new(JamSite { core, backend })).await;
+}
+
+/// Sert `site` jusqu'à ce que la tâche soit annulée.
+pub async fn serve_site<S: Site>(listener: TcpListener, site: Arc<S>) {
     let (tx, rx) = watch::channel(Arc::<str>::from(""));
-    let shared = Arc::new(Shared { core, updates: rx });
+    let shared = Arc::new(Shared { site, updates: rx });
     tokio::select! {
-        () = accept_loop(listener, Arc::clone(&shared), Arc::clone(&backend)) => {}
-        () = push_loop(tx, &shared, &*backend) => {}
+        () = accept_loop(listener, Arc::clone(&shared)) => {}
+        () = push_loop(tx, &shared) => {}
     }
 }
 
-async fn accept_loop<B: Backend>(listener: TcpListener, shared: Arc<Shared>, backend: Arc<B>) {
+async fn accept_loop<S: Site>(listener: TcpListener, shared: Arc<Shared<S>>) {
     let slots = Arc::new(Semaphore::new(MAX_CONNECTIONS));
     let streams = Arc::new(Semaphore::new(MAX_STREAMS));
     loop {
@@ -69,7 +130,6 @@ async fn accept_loop<B: Backend>(listener: TcpListener, shared: Arc<Shared>, bac
             continue;
         };
         let shared = Arc::clone(&shared);
-        let backend = Arc::clone(&backend);
         let streams = Arc::clone(&streams);
         tokio::spawn(async move {
             let Ok(Some(req)) = tokio::time::timeout(IO_TIMEOUT, read_request(&mut stream)).await
@@ -81,7 +141,7 @@ async fn accept_loop<B: Backend>(listener: TcpListener, shared: Arc<Shared>, bac
                 // Un flux dure : il libère la place des requêtes ordinaires.
                 drop(permit);
                 let given = query_param(&req.head.query, "code").unwrap_or("");
-                if let Err(response) = shared.core.check_code(ip, given) {
+                if let Err(response) = shared.site.check_code(ip, given) {
                     let _ =
                         tokio::time::timeout(IO_TIMEOUT, write_response(&mut stream, &response))
                             .await;
@@ -94,14 +154,13 @@ async fn accept_loop<B: Backend>(listener: TcpListener, shared: Arc<Shared>, bac
                             .await;
                     return;
                 };
-                shared.core.refresh.notify_one();
+                shared.site.refresh().notify_one();
                 stream_events(stream, shared.updates.clone()).await;
                 return;
             }
-            let response =
-                tokio::time::timeout(BACKEND_TIMEOUT, route(req, ip, &shared, &*backend))
-                    .await
-                    .unwrap_or_else(|_| Response::error(502, "backend"));
+            let response = tokio::time::timeout(BACKEND_TIMEOUT, route(req, ip, &shared))
+                .await
+                .unwrap_or_else(|_| Response::error(502, "backend"));
             let _ = tokio::time::timeout(IO_TIMEOUT, write_response(&mut stream, &response)).await;
             drop(permit);
         });
@@ -109,17 +168,17 @@ async fn accept_loop<B: Backend>(listener: TcpListener, shared: Arc<Shared>, bac
 }
 
 /// Relit l'état du lecteur pendant qu'au moins une page écoute, et le publie s'il change.
-async fn push_loop<B: Backend>(tx: watch::Sender<Arc<str>>, shared: &Shared, backend: &B) {
+async fn push_loop<S: Site>(tx: watch::Sender<Arc<str>>, shared: &Shared<S>) {
     loop {
         tokio::select! {
             () = tokio::time::sleep(PUSH_INTERVAL) => {}
-            () = shared.core.refresh.notified() => {}
+            () = shared.site.refresh().notified() => {}
         }
         // `Shared` garde un récepteur : au-delà, des pages écoutent.
         if tx.receiver_count() <= 1 {
             continue;
         }
-        let Some(json) = shared.core.state_json(backend).await else {
+        let Some(json) = shared.site.state_json().await else {
             continue;
         };
         tx.send_if_modified(|current| {
@@ -177,16 +236,13 @@ fn client_ip(addr: SocketAddr) -> IpAddr {
     }
 }
 
-async fn route<B: Backend>(req: Request, ip: IpAddr, shared: &Shared, backend: &B) -> Response {
+async fn route<S: Site>(req: Request, ip: IpAddr, shared: &Shared<S>) -> Response {
     match (req.head.method, req.head.path.as_str()) {
-        (Method::Get, "/") => Response::new(200, "text/html; charset=utf-8", PAGE),
-        (Method::Get, "/jam.js") => Response::new(200, "text/javascript; charset=utf-8", SCRIPT),
-        (Method::Get, "/jam.css") => Response::new(200, "text/css; charset=utf-8", STYLE),
         (Method::Post, path) if path.starts_with("/api/") => {
             let code = req.head.code.as_deref();
-            shared.core.api(path, code, &req.body, ip, backend).await
+            shared.site.api(path, code, &req.body, ip).await
         }
-        (Method::Get, _) => Response::not_found(),
+        (Method::Get, path) => shared.site.file(path).unwrap_or_else(Response::not_found),
         _ => Response::error(405, "method"),
     }
 }
@@ -327,6 +383,16 @@ mod tests {
         let second = next_data().await;
         assert_eq!(second["queue"][0]["id"], 1);
         assert_eq!(second["queue"][0]["by"], "Max");
+    }
+
+    #[tokio::test]
+    async fn guests_never_reach_the_owner_commands() {
+        let (addr, _) = start().await;
+        // Commandes de la télécommande (#336) : inconnues du serveur de la Jam.
+        for path in ["/api/next", "/api/seek", "/api/volume", "/api/play-album"] {
+            assert_eq!(call(addr, "POST", path, CODE, "{}").await.0, 404, "{path}");
+        }
+        assert_eq!(call(addr, "GET", "/remote.js", "", "").await.0, 404);
     }
 
     #[tokio::test]

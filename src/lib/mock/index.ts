@@ -646,6 +646,15 @@ let jam: ReturnType<typeof mockJam> | null =
     : jamParam === "local"
       ? mockJam("local")
       : null;
+/** Télécommande (#336) : `?remote=1` l'affiche allumée. */
+let remoteCode = "H4KX9QMT2WZP";
+const mockRemote = () => ({
+  url: "http://192.168.1.20:47801/",
+  code: remoteCode,
+  lan: true,
+  qrSvg: fakeQr,
+});
+let remote: ReturnType<typeof mockRemote> | null = params.get("remote") === "1" ? mockRemote() : null;
 
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => {
@@ -717,6 +726,13 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   jam_online_available: () => true,
   start_jam: (args) => (jam ??= mockJam(args.mode === "local" ? "local" : "online")),
   stop_jam: () => void (jam = null),
+  remote_status: () => remote,
+  start_remote: () => (remote ??= mockRemote()),
+  stop_remote: () => void (remote = null),
+  renew_remote_code: () => {
+    remoteCode = "QZ7M3KD8XF2N";
+    return remote ? (remote = mockRemote()) : null;
+  },
   set_jam_rules: (args) =>
     jam ? (jam = { ...jam, rules: args.rules as NonNullable<typeof jam>["rules"] }) : null,
   set_jam_adds_open: (args) => (jam ? (jam = { ...jam, addsOpen: args.open === true }) : null),

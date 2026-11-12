@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.38
+
+- Bureau : télécommande. Pilotez la lecture de l'ordinateur depuis le navigateur de votre téléphone, sur le même Wi-Fi : lecture / pause, titres précédent et suivant, position, volume, aléatoire, répétition, file d'attente, recherche, albums et playlists. À allumer dans Réglages › Application ; le QR code se scanne une fois, « Nouveau code » déconnecte les téléphones (#336).
+
 ## 0.5.37
 
 - Nettoyer une de vos playlists ou vos titres likés : doublons (même titre, ou même chanson dans une autre édition) et titres retirés du catalogue, avec la même chanson dans une version disponible pour les remplacer ; on coche ce qu'on garde, on applique, et « Annuler » reste possible (#382).

@@ -50,6 +50,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         // Jam (#25) : arrêtée tant que l'hôte ne la démarre pas.
         .manage(jam::JamState::default())
+        // Télécommande (#336) : rallumée plus bas si elle l'était.
+        .manage(jam::remote::RemoteState::default())
         .setup(|app| {
             #[cfg(target_os = "android")]
             if let Err(e) = android::init_tls() {
@@ -112,6 +114,7 @@ pub fn run() {
             });
             #[cfg(desktop)]
             {
+                commands::remote::restore(app.handle());
                 updater::spawn(app.handle().clone(), Arc::clone(&mpv_process));
                 app.manage(mpv_process);
             }
@@ -241,6 +244,10 @@ pub fn run() {
             commands::jam::set_jam_adds_open,
             commands::jam::set_jam_guest_banned,
             commands::jam::stop_jam,
+            commands::remote::remote_status,
+            commands::remote::start_remote,
+            commands::remote::stop_remote,
+            commands::remote::renew_remote_code,
             #[cfg(desktop)]
             commands::window::fullscreen,
             #[cfg(desktop)]
