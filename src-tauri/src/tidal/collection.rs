@@ -11,6 +11,7 @@
 //!   DELETE `…/items/{index}`, POST `…/items/{index}` (`toIndex`, déplacement, #201), avec
 //!   l'ETag de `playlists/{uuid}` en `If-None-Match`. Titre et description : POST v1
 //!   `playlists/{uuid}` (#201).
+//! - Écritures par lots de la sélection multiple (#332) : `batch.rs`.
 
 use reqwest::Method;
 use serde::Deserialize;
@@ -45,6 +46,10 @@ macro_rules! retry_stale {
         }
     }};
 }
+
+// Après la macro : `batch` s'en sert.
+mod batch;
+
 /// Lectures de l'ETag en attendant une réplique à jour (`fresh_etag`, `settle`).
 const VERSION_ATTEMPTS: usize = 6;
 const VERSION_DELAY: std::time::Duration = std::time::Duration::from_millis(250);

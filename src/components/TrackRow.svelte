@@ -2,7 +2,7 @@
   import { commands, type Track } from "../lib/ipc";
   import { coverSmall, formatTime, fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
-  import { closeMenu, menu, menuPosition, openMenu } from "../lib/stores/menu.svelte";
+  import { closeMenu, menu, menuPosition, openMenu, type MenuEntry } from "../lib/stores/menu.svelte";
   import { trackMenu } from "../lib/trackMenu";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
@@ -31,6 +31,10 @@
     addedBy,
     laterButton = false,
     note,
+    selected = false,
+    selecting = false,
+    onSelect,
+    selectionMenu,
   }: {
     track: Track;
     /** Numéro affiché devant le titre (position dans l'album ou la playlist). */
@@ -58,6 +62,14 @@
     laterButton?: boolean;
     /** Courte mention sous les artistes (nombre d'écoutes des statistiques, #326). */
     note?: string;
+    /** Titre coché dans la sélection multiple (#332). */
+    selected?: boolean;
+    /** Sélection en cours dans la liste : sur Android, un appui coche au lieu de lire. */
+    selecting?: boolean;
+    /** Liste qui permet la sélection : `toggle` (Ctrl+clic, appui), `extend` (Maj+clic). */
+    onSelect?: (how: "toggle" | "extend") => void;
+    /** Menu d'un titre sélectionné : actions sur toute la sélection. */
+    selectionMenu?: () => MenuEntry[];
   } = $props();
 
   const laterTarget = $derived({ kind: "track" as const, id: track.id });
@@ -73,7 +85,16 @@
 
   // Les mêmes entrées au clic droit et sur le bouton « … » (#52).
   function entries() {
-    return trackMenu(track, { onPlay, onRemove, onMoveUp, onMoveDown, queueable: actions, onRemoveFromPlaylist });
+    if (selected && selectionMenu) return selectionMenu();
+    return trackMenu(track, {
+      onPlay,
+      onRemove,
+      onMoveUp,
+      onMoveDown,
+      queueable: actions,
+      onRemoveFromPlaylist,
+      onSelect: onSelect && (() => onSelect("toggle")),
+    });
   }
 
   function onContextmenu(e: MouseEvent) {
@@ -85,15 +106,27 @@
 
   // Android (#24) : un appui sur la ligne lance le titre (double-clic sur le bureau), hors
   // boutons et liens. L'appui long émet `contextmenu` et ouvre le menu.
+  // Sélection multiple (#332) : Ctrl+clic et Maj+clic sur le bureau ; sur Android, pendant
+  // une sélection, l'appui coche ou décoche au lieu de lire.
   function onTap(e: MouseEvent) {
-    if (!platform.mobile || !onPlay) return;
     if ((e.target as HTMLElement).closest("button, a, input")) return;
-    onPlay();
+    if (onSelect && !platform.mobile && (e.ctrlKey || e.metaKey || e.shiftKey)) {
+      onSelect(e.shiftKey ? "extend" : "toggle");
+      return;
+    }
+    if (!platform.mobile) return;
+    if (selecting && onSelect) onSelect("toggle");
+    else onPlay?.();
+  }
+
+  // Maj+clic ne doit pas sélectionner le texte entre deux lignes.
+  function onMousedown(e: MouseEvent) {
+    if (onSelect && e.shiftKey && !platform.mobile) e.preventDefault();
   }
 
   // Android (#174) : glisser vers la droite ajoute le titre à la file. Pas sur les lignes de la
-  // file elle-même ni de « À suivre » (sans actions de file).
-  const swipeable = $derived(platform.mobile && actions && !onRemove);
+  // file elle-même ni de « À suivre » (sans actions de file), ni pendant une sélection.
+  const swipeable = $derived(platform.mobile && actions && !onRemove && !selecting);
 
   async function swipeToQueue() {
     try {
@@ -123,11 +156,13 @@
   class:no-cover={!showCover}
   class:menu-open={menuOpen}
   class:swipeable
+  class:selected
   bind:this={rowEl}
   use:swipeRight={{ enabled: swipeable, onSwipe: swipeToQueue }}
   role="listitem"
-  ondblclick={platform.mobile ? undefined : onPlay}
+  ondblclick={platform.mobile || selecting ? undefined : onPlay}
   onclick={onTap}
+  onmousedown={onMousedown}
   oncontextmenu={onContextmenu}
 >
   {#snippet nowBars()}
@@ -142,6 +177,7 @@
       <img src={coverSmall(track.album)} alt="" loading="lazy" />
     {/if}
     {#if active && number === undefined}{@render nowBars()}{/if}
+    {#if selected}<span class="selected-mark" aria-hidden="true"><Icon name="check" size={18} /></span>{/if}
     {#if onPlay}
       <button class="cover-play" onclick={onPlay} aria-label={t.views.row.play(track.title)}>
         <Icon name="play" size={16} />
@@ -304,6 +340,30 @@
 
   .row.active .title {
     color: var(--accent);
+  }
+
+  /* Sélection multiple (#332) : fond plus marqué que la ligne en cours, liseré complet et
+     coche sur la pochette. */
+  .row.selected,
+  .row.selected:hover {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+
+  .selected-mark {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: color-mix(in srgb, var(--accent) 70%, rgb(0 0 0 / 0.4));
+    pointer-events: none;
+  }
+
+  .cover.hidden .selected-mark {
+    color: var(--accent);
+    background: none;
   }
 
   .now-bars {
@@ -529,11 +589,11 @@
   /* Au doigt, la ligne touchée garde `:hover` jusqu'au prochain appui ailleurs : pas de fond
      de survol. La ligne en cours garde le sien (#291 : lancer un titre effaçait son fond
      jusqu'à l'appui suivant, sur Pause par exemple). */
-  :global(:root[data-platform="android"]) .row:hover:not(.menu-open, .active) {
+  :global(:root[data-platform="android"]) .row:hover:not(.menu-open, .active, .selected) {
     background: none;
   }
 
-  :global(:root[data-platform="android"]) .row.active:hover:not(.menu-open) {
+  :global(:root[data-platform="android"]) .row.active:hover:not(.menu-open, .selected) {
     background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 

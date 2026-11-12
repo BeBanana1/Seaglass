@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { commands, type PlaylistPage } from "../lib/ipc";
+  import { commands, type PlaylistPage, type TrackId } from "../lib/ipc";
   import { formatLongDuration, fullTitle, playlistSubtitle } from "../lib/format";
   import {
     filterTracks,
@@ -109,6 +109,30 @@
     }
     // Rechargée même en cas d'échec : un refus signifie que la playlist a changé.
     notePlaylistChange(uuid);
+  }
+
+  // Sélection multiple (#332) : toutes les positions affichées des titres sélectionnés, en
+  // une requête ; annulable, chaque titre revient à sa position.
+  async function removeSelected(ids: ReadonlySet<TrackId>) {
+    const playlist = uuid;
+    const items = shown
+      .filter((l) => ids.has(l.track.id))
+      .map((l) => ({ index: l.position - 1, trackId: l.track.id }));
+    if (items.length === 0) return;
+    try {
+      await commands.removeManyFromPlaylist(playlist, items);
+      pushUndoToast(t.menu.selection.removed(items.length), async () => {
+        try {
+          await commands.restoreManyToPlaylist(playlist, items);
+        } catch (e) {
+          pushToast({ level: "error", message: String(e) });
+        }
+        notePlaylistChange(playlist);
+      });
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+    notePlaylistChange(playlist);
   }
 
   async function restore(playlist: string, position: number, id: number) {
@@ -221,6 +245,7 @@
         source={{ kind: "playlist", uuid: page.playlist.uuid, title: page.playlist.title }}
         numbering={platform.mobile ? "none" : "index"}
         onRemoveFromPlaylist={page.playlist.mine ? removeAt : undefined}
+        onRemoveSelected={page.playlist.mine ? removeSelected : undefined}
         onMove={reorderable ? moveTrack : undefined}
       />
     {/if}

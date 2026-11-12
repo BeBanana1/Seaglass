@@ -25,6 +25,8 @@ export interface TrackMenuOptions {
   onRemoveFromPlaylist?: () => void;
   /** Après un blocage confirmé (#334) : « En lecture » passe au titre suivant. */
   onBlocked?: () => void;
+  /** Liste qui permet la sélection multiple (#332) : « Sélectionner ». */
+  onSelect?: () => void;
 }
 
 /** Lien public du titre, à partager. */
@@ -59,11 +61,12 @@ async function copyLink(track: Track) {
 
 export function trackMenu(
   track: Track,
-  { onPlay, onRemove, onMoveUp, onMoveDown, queueable = true, onRemoveFromPlaylist, onBlocked }: TrackMenuOptions,
+  { onPlay, onRemove, onMoveUp, onMoveDown, queueable = true, onRemoveFromPlaylist, onBlocked, onSelect }: TrackMenuOptions,
 ): MenuEntry[] {
   const m = t.menu;
   const entries: MenuEntry[] = [];
   if (onPlay) entries.push({ label: m.play, icon: "play", action: onPlay });
+  if (onSelect) entries.push({ label: m.select, icon: "check", action: onSelect });
   if (onMoveUp) entries.push({ label: m.moveUp, icon: "up", action: onMoveUp });
   if (onMoveDown) entries.push({ label: m.moveDown, icon: "down", action: onMoveDown });
   if (onRemove) {

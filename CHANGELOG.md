@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.56
+
+- Sélection multiple de titres : Ctrl+clic, Maj+clic et Ctrl+A sur le bureau, « Sélectionner » à l'appui long sur Android, puis lire ensuite, ajouter à la file ou à une playlist, liker ou retirer de la playlist en une fois (#332).
+
 ## 0.5.55
 
 - Bureau : export de la bibliothèque (titres likés, albums, artistes, playlists) en JSON et CSV dans Documents › Seaglass, depuis Réglages › Application (#330).

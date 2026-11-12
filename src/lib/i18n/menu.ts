@@ -35,6 +35,20 @@ export const fr = {
   following: "Suivi",
   unfollow: "Ne plus suivre",
   artistRadio: "Radio de l'artiste",
+  // Sélection multiple (#332) : menu d'un titre sélectionné et barre d'actions.
+  select: "Sélectionner",
+  selection: {
+    count: (n: number) => (n > 1 ? `${n} titres sélectionnés` : "1 titre sélectionné"),
+    label: (n: number) => (n > 1 ? `${n} titres` : "1 titre"),
+    likeAll: "Ajouter aux titres likés",
+    unlikeAll: "Retirer des titres likés",
+    selectAll: "Tout sélectionner",
+    clear: "Annuler la sélection",
+    queued: (n: number) => (n > 1 ? `${n} titres ajoutés à la file` : "1 titre ajouté à la file"),
+    liked: (n: number) => (n > 1 ? `${n} titres likés` : "1 titre liké"),
+    unliked: (n: number) => (n > 1 ? `${n} titres retirés des favoris` : "1 titre retiré des favoris"),
+    removed: (n: number) => (n > 1 ? `${n} titres retirés de la playlist` : "1 titre retiré de la playlist"),
+  },
 };
 
 export const en: typeof fr = {
@@ -69,4 +83,17 @@ export const en: typeof fr = {
   following: "Following",
   unfollow: "Unfollow",
   artistRadio: "Artist radio",
+  select: "Select",
+  selection: {
+    count: (n: number) => (n > 1 ? `${n} tracks selected` : "1 track selected"),
+    label: (n: number) => (n > 1 ? `${n} tracks` : "1 track"),
+    likeAll: "Add to liked tracks",
+    unlikeAll: "Remove from liked tracks",
+    selectAll: "Select all",
+    clear: "Clear selection",
+    queued: (n: number) => (n > 1 ? `${n} tracks added to the queue` : "1 track added to the queue"),
+    liked: (n: number) => (n > 1 ? `${n} tracks liked` : "1 track liked"),
+    unliked: (n: number) => (n > 1 ? `${n} tracks removed from liked tracks` : "1 track removed from liked tracks"),
+    removed: (n: number) => (n > 1 ? `${n} tracks removed from the playlist` : "1 track removed from the playlist"),
+  },
 };

@@ -35,6 +35,77 @@ pub async fn set_liked(
     Ok(())
 }
 
+/// Ajoute ou retire plusieurs titres des favoris (sélection multiple, #332).
+#[tauri::command]
+pub async fn set_tracks_liked(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    track_ids: Vec<TrackId>,
+    liked: bool,
+) -> CmdResult<()> {
+    if track_ids.is_empty() || track_ids.len() > MAX_ADD {
+        return Err(format!("1 à {MAX_ADD} titres"));
+    }
+    state
+        .tidal
+        .set_tracks_liked(&track_ids, liked)
+        .await
+        .map_err(err)?;
+    emit_likes(&app, &state).await;
+    Ok(())
+}
+
+/// Une position dans une playlist et le titre attendu à cette position.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistItem {
+    index: usize,
+    track_id: TrackId,
+}
+
+fn playlist_items(uuid: &str, items: &[PlaylistItem]) -> Result<Vec<(usize, TrackId)>, String> {
+    if !is_uuid(uuid) {
+        return Err("identifiant de playlist invalide".into());
+    }
+    if items.is_empty() || items.len() > MAX_ADD {
+        return Err(format!("1 à {MAX_ADD} titres"));
+    }
+    Ok(items.iter().map(|i| (i.index, i.track_id)).collect())
+}
+
+/// Retire plusieurs titres d'une playlist (#332) ; tout est refusé si l'un d'eux n'est plus
+/// à sa position.
+#[tauri::command]
+pub async fn remove_many_from_playlist(
+    state: State<'_, AppState>,
+    uuid: String,
+    items: Vec<PlaylistItem>,
+) -> CmdResult<()> {
+    let items = playlist_items(&uuid, &items)?;
+    super::snapshots::forget_playlist(&state, &uuid);
+    state
+        .tidal
+        .remove_many_from_playlist(&uuid, &items)
+        .await
+        .map_err(err)
+}
+
+/// Annule un retrait par lot : chaque titre revient à sa position ; renvoie le nombre remis.
+#[tauri::command]
+pub async fn restore_many_to_playlist(
+    state: State<'_, AppState>,
+    uuid: String,
+    items: Vec<PlaylistItem>,
+) -> CmdResult<usize> {
+    let items = playlist_items(&uuid, &items)?;
+    super::snapshots::forget_playlist(&state, &uuid);
+    state
+        .tidal
+        .restore_many_to_playlist(&uuid, &items)
+        .await
+        .map_err(err)
+}
+
 /// Les playlists modifiables (créées par l'utilisateur), pour « Ajouter à une playlist ».
 #[tauri::command]
 pub async fn own_playlists(state: State<'_, AppState>) -> CmdResult<Vec<PlaylistSummary>> {

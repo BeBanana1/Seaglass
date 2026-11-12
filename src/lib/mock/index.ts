@@ -594,6 +594,7 @@ const longPlaylist: PlaylistPage | null = longCount
 const cachedPlaylists = new Map<string, PlaylistPage>();
 /** Dernier titre retiré d'une playlist, pour l'annulation (#349). */
 let removedFromPlaylist: PlaylistPage["tracks"][number] | null = null;
+let removedMany: PlaylistPage["tracks"][number][] = [];
 const homeFirstPage = Math.ceil(fx.home.length / 2);
 
 /** `?slow=<ms>` : latence de la commande `playlist`, pour voir « Chargement… » (#152). */
@@ -799,6 +800,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   likes: () => likedIds(),
   // Les arguments sont des proxys Svelte : copiés en JSON avant d'être gardés.
   set_liked: ({ target, liked: on }) => setLiked(JSON.parse(JSON.stringify(target)), Boolean(on)),
+  set_tracks_liked: ({ trackIds, liked: on }) => {
+    for (const id of trackIds as number[]) setLiked({ kind: "track", id }, Boolean(on));
+  },
   blocked: () => structuredClone(blocked),
   set_blocked: ({ target, blocked: on }) => setBlocked(JSON.parse(JSON.stringify(target)), Boolean(on)),
   later_ids: () => laterIds(),
@@ -854,6 +858,33 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     page.playlist.numberOfTracks = page.tracks.length;
     removedFromPlaylist = null;
     return true;
+  },
+  // Sélection multiple (#332) : positions retirées gardées pour l'annulation.
+  remove_many_from_playlist: ({ uuid, items }) => {
+    cachedPlaylists.delete(String(uuid));
+    const page = ownPage(String(uuid));
+    const list = [...(items as { index: number; trackId: number }[])].sort((a, b) => b.index - a.index);
+    if (!page || list.some((i) => page.tracks[i.index]?.id !== i.trackId)) {
+      throw new Error("la playlist a changé, rouvrez-la avant de la modifier");
+    }
+    removedMany = list.map((i) => page.tracks.splice(i.index, 1)[0]);
+    page.playlist.numberOfTracks = page.tracks.length;
+  },
+  restore_many_to_playlist: ({ uuid, items }) => {
+    cachedPlaylists.delete(String(uuid));
+    const page = ownPage(String(uuid));
+    if (!page) return 0;
+    const list = [...(items as { index: number; trackId: number }[])].sort((a, b) => a.index - b.index);
+    let restored = 0;
+    for (const item of list) {
+      const entry = removedMany.find((e) => e.id === item.trackId);
+      if (!entry) continue;
+      page.tracks.splice(item.index, 0, entry);
+      restored++;
+    }
+    removedMany = [];
+    page.playlist.numberOfTracks = page.tracks.length;
+    return restored;
   },
   move_in_playlist: ({ uuid, from, to, trackId }) => {
     cachedPlaylists.delete(String(uuid));

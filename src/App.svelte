@@ -41,6 +41,8 @@
   import PlayerBar from "./components/PlayerBar.svelte";
   import BottomNav from "./components/BottomNav.svelte";
   import MiniPlayer from "./components/MiniPlayer.svelte";
+  import SelectionBar from "./components/SelectionBar.svelte";
+  import { selection } from "./lib/stores/selection.svelte";
   import Toasts from "./components/Toasts.svelte";
   import UpdatePrompt from "./components/UpdatePrompt.svelte";
   import ContextMenu from "./components/ContextMenu.svelte";
@@ -139,6 +141,7 @@
       jam.dialogOpen ||
       driveOpen ||
       nowPlayingOpen ||
+      selection.count > 0 ||
       listSearch.active ||
       canGoBack() ||
       (!!session && current().name !== "home")
@@ -154,6 +157,8 @@
     // Paroles ou file en plein écran (#173) : Retour revient d'abord à « En lecture ».
     else if (nowPlayingOpen && ui.nowPlayingPanel) ui.nowPlayingPanel = null;
     else if (nowPlayingOpen) closeNowPlaying();
+    // Sélection multiple (#332) : Retour la vide avant de quitter la page.
+    else if (selection.count > 0) selection.clear();
     else if (listSearch.active) exitListSearch();
     else if (canGoBack()) back();
     else replace({ name: "home" });
@@ -243,6 +248,8 @@
     if (e.key === "Escape") {
       if (appWindow.fullscreen) setFullscreen(false);
       else if (nowPlayingOpen) nowPlayingOpen = false;
+      // Les dialogues et le menu gèrent leur propre Échap.
+      else if (!menu.open && !picker.request && !trackInfo.track) selection.clear();
       return;
     }
     // Taille de l'interface (#337), comme dans un navigateur ; Android a son propre réglage.
@@ -272,6 +279,10 @@
       requestAnimationFrame(() =>
         document.querySelector<HTMLInputElement>('input[type="search"]')?.focus(),
       );
+    } else if (e.ctrlKey && e.key.toLowerCase() === "a" && !typing && !nowPlayingOpen && !menu.open) {
+      // Sélection multiple (#332) : toute la liste affichée (filtrée) ; sans liste de titres
+      // sur la page, Ctrl+A garde son sens habituel.
+      if (selection.selectAll()) e.preventDefault();
     } else if (e.key === " " && !typing && !target.closest("button")) {
       e.preventDefault();
       commands.togglePause();
@@ -439,7 +450,11 @@
 
   {#if platform.mobile}
     {#if session && !typing}
-      <MiniPlayer onOpenNowPlaying={() => (nowPlayingOpen = true)} />
+      {#if selection.count > 0}
+        <SelectionBar />
+      {:else}
+        <MiniPlayer onOpenNowPlaying={() => (nowPlayingOpen = true)} />
+      {/if}
       <div class="panel bottom"><BottomNav /></div>
     {/if}
   {:else}
@@ -464,6 +479,9 @@
       if (JSON.stringify(target) !== JSON.stringify(current())) go(target);
     }}
   />
+{/if}
+{#if session && !platform.mobile && selection.count > 0 && !nowPlayingOpen}
+  <SelectionBar />
 {/if}
 <Toasts />
 <UpdatePrompt />

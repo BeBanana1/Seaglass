@@ -3,9 +3,12 @@
   import { player } from "../lib/stores/player.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import TrackRow from "./TrackRow.svelte";
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import { keyboardMove, Reorder } from "../lib/reorder.svelte";
   import { platform } from "../lib/platform.svelte";
+  import { selection, type SelectionList } from "../lib/stores/selection.svelte";
+  import { selectionMenu } from "../lib/selectionActions";
+  import type { TrackId } from "../lib/ipc";
 
   let {
     tracks,
@@ -18,6 +21,7 @@
     highlight,
     onMove,
     notes,
+    onRemoveSelected,
   }: {
     /** Contexte de lecture : lire un titre met toute la liste en file, dans cet ordre. */
     tracks: Track[];
@@ -40,7 +44,38 @@
     onMove?: (from: number, to: number) => Promise<boolean>;
     /** Mention propre à chaque ligne (`TrackRow` › `note`), dans l'ordre de `tracks`. */
     notes?: string[];
+    /** Une de vos playlists : « Retirer de la playlist » sur la sélection multiple (#332). */
+    onRemoveSelected?: (ids: ReadonlySet<TrackId>) => Promise<void>;
   } = $props();
+
+  // Sélection multiple (#332) : la liste s'inscrit tant qu'elle est montée ; la quitter
+  // (changement de page) vide sa sélection.
+  const handle: SelectionList = {
+    tracks: () => tracks,
+    get removeFromPlaylist() {
+      return onRemoveSelected;
+    },
+  };
+
+  $effect(() => {
+    selection.register(handle);
+    return () => selection.unregister(handle);
+  });
+
+  // Filtre ou rechargement : les titres qui ne sont plus affichés sortent de la sélection.
+  $effect(() => {
+    const ids = tracks.map((t) => t.id);
+    untrack(() => selection.prune(handle, ids));
+  });
+
+  // Ne change qu'au début et à la fin d'une sélection : les lignes ne se redessinent pas à
+  // chaque titre coché.
+  const selecting = $derived(selection.owner === handle && selection.count > 0);
+
+  function select(id: TrackId, how: "toggle" | "extend") {
+    if (how === "extend") selection.extend(handle, id);
+    else selection.toggle(handle, id);
+  }
 
   let list = $state<HTMLElement>();
   const reorder = new Reorder((from, to) => move(from, to));
@@ -98,6 +133,10 @@
     highlighted={highlight === track.id}
     laterButton={source?.kind === "later"}
     note={notes?.[i]}
+    selected={selection.isSelected(handle, track.id)}
+    {selecting}
+    onSelect={(how) => select(track.id, how)}
+    {selectionMenu}
     onPlay={() => play(i)}
     onRemoveFromPlaylist={onRemoveFromPlaylist && (() => onRemoveFromPlaylist(i))}
     onMoveUp={onMove && i > 0 ? () => move(i, i - 1) : undefined}
