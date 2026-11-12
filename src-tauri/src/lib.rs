@@ -241,6 +241,14 @@ pub fn run() {
             #[cfg(desktop)]
             commands::window::set_fullscreen,
             #[cfg(desktop)]
+            commands::mini_player::open_mini_player,
+            #[cfg(desktop)]
+            commands::mini_player::close_mini_player,
+            #[cfg(desktop)]
+            commands::mini_player::mini_player_on_top,
+            #[cfg(desktop)]
+            commands::mini_player::set_mini_player_on_top,
+            #[cfg(desktop)]
             updater::update_status,
             #[cfg(desktop)]
             updater::updates_available,
@@ -261,6 +269,12 @@ pub fn run() {
             // Tauri quitte sans exécuter les destructeurs : dernière sauvegarde de la file
             // (#260), puis arrêt de mpv. Une mise à jour reportée (« Plus tard »)
             // s'installe à ce moment-là.
+            // Quitter avec le mini-lecteur ouvert (#384) : sa position est gardée tant que la
+            // fenêtre existe encore.
+            #[cfg(desktop)]
+            if let RunEvent::ExitRequested { .. } = _event {
+                commands::mini_player::on_exit(_app);
+            }
             #[cfg(desktop)]
             if let RunEvent::Exit = _event {
                 flush_player(_app);
@@ -309,6 +323,12 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
             {
                 api.prevent_close();
                 let _ = window.hide();
+            }
+            // Mini-lecteur (#384) : sa fermeture ramène la fenêtre principale.
+            WindowEvent::CloseRequested { .. }
+                if window.label() == commands::mini_player::LABEL =>
+            {
+                commands::mini_player::on_close_requested(window)
             }
             // Clic sur l'icône de la zone de notification : cacher si au premier plan (#226).
             WindowEvent::Focused(focused) if window.label() == "main" => tray::note_focus(*focused),

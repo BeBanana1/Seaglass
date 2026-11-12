@@ -252,6 +252,12 @@
       return;
     }
     if (!session) return;
+    // Mini-lecteur du bureau (#384).
+    if (e.ctrlKey && e.key.toLowerCase() === "m" && !platform.mobile) {
+      e.preventDefault();
+      commands.openMiniPlayer().catch((err) => pushToast({ level: "error", message: String(err) }));
+      return;
+    }
     if ((e.ctrlKey && e.key.toLowerCase() === "k") || (e.key === "/" && !typing)) {
       e.preventDefault();
       nowPlayingOpen = false;

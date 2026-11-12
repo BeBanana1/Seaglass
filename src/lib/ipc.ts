@@ -885,6 +885,12 @@ export const commands = {
   fullscreen: () => invoke<boolean>("fullscreen"),
   /** Renvoie l'état relu ; la suite arrive aussi par `fullscreen`. */
   setFullscreen: (fullscreen: boolean) => invoke<boolean>("set_fullscreen", { fullscreen }),
+  /** Mini-lecteur du bureau (#384) : l'ouvrir cache la fenêtre principale, le fermer la réaffiche. */
+  openMiniPlayer: () => invoke<void>("open_mini_player"),
+  closeMiniPlayer: () => invoke<void>("close_mini_player"),
+  miniPlayerOnTop: () => invoke<boolean>("mini_player_on_top"),
+  /** Renvoie l'état retenu. */
+  setMiniPlayerOnTop: (onTop: boolean) => invoke<boolean>("set_mini_player_on_top", { onTop }),
   updateStatus: () => invoke<UpdateInfo | null>("update_status"),
   /** Faux sous Linux hors d'une AppImage : mises à jour à faire à la main (#314). */
   updatesAvailable: () => invoke<boolean>("updates_available"),

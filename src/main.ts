@@ -1,6 +1,7 @@
 import { mount } from "svelte";
 import App from "./App.svelte";
-import { initPlatform } from "./lib/platform.svelte";
+import MiniWindow from "./views/MiniWindow.svelte";
+import { initPlatform, isMiniWindow } from "./lib/platform.svelte";
 import "./app.css";
 import "./themes/acidwave.css";
 import "./themes/surreal.css";
@@ -17,4 +18,6 @@ const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");
 
 // La plateforme choisit la mise en page (tactile sur Android) : lue avant le premier rendu.
-initPlatform().finally(() => mount(App, { target }));
+// La fenêtre du mini-lecteur (#384) monte sa propre vue, sans le reste de l'app.
+const Root = isMiniWindow() ? MiniWindow : App;
+initPlatform().finally(() => mount(Root, { target }));
