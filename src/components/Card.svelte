@@ -34,6 +34,7 @@
   </div>
   <span class="title">
     {mediaTitle(item)}
+    {#if item.kind === "album" && item.explicit}<span class="badge muted">E</span>{/if}
     {#if item.kind === "album" && item.hires}<span class="badge">HI-RES</span>{/if}
   </span>
   <span class="sub">{mediaSubtitle(item)}</span>

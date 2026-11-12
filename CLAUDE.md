@@ -55,6 +55,7 @@ seaglass/
    ├─ mpv/seaglass.conf        # config mpv dédiée à l'app
    └─ src/
       ├─ lib.rs              # setup Tauri, lancement des tâches
+      ├─ content.rs          # filtre du contenu proposé (explicite, #368)
       ├─ engine.rs           # contrat du moteur de lecture (`Op`, `Event`, trait `Engine`)
       ├─ media3.rs           # moteur Media3 d'Android (plugin `plugins/seaglass-mobile`)
       ├─ apk_update.rs       # mises à jour de l'app Android (manifeste `android.json`, APK)

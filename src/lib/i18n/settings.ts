@@ -171,6 +171,12 @@ export const fr = {
     "Quand la file se termine, enchaîner sur la radio du dernier titre, sans blanc. " +
     "Sans effet en mode répétition.",
 
+  content: "Contenu",
+  hideExplicit: "Masquer le contenu explicite",
+  hideExplicitHint:
+    "Les titres et albums marqués « E » disparaissent de la recherche, des pages, de l'accueil, " +
+    "des mixes et des radios. Vos favoris et vos playlists restent complets.",
+
   startup: "Démarrage",
   autostart: "Lancer Seaglass à l'ouverture de session",
   autostartHint:
@@ -420,6 +426,12 @@ export const en: typeof fr = {
   autoRadioHint:
     "When the queue ends, carry on with the last track's radio, without a gap. " +
     "No effect while repeat is on.",
+
+  content: "Content",
+  hideExplicit: "Hide explicit content",
+  hideExplicitHint:
+    "Tracks and albums marked “E” disappear from search, pages, home, mixes and radios. " +
+    "Your favourites and your own playlists stay complete.",
 
   startup: "Startup",
   autostart: "Launch Seaglass when you sign in",

@@ -3,6 +3,7 @@ mod android;
 #[cfg(any(target_os = "android", test))]
 mod apk_update;
 mod commands;
+mod content;
 mod engine;
 mod foreign;
 mod i18n;

@@ -7,6 +7,7 @@ use tauri::{AppHandle, State};
 use super::settings::home_layout::HomeSection;
 use super::snapshots::{self, LibraryTab};
 use super::{AppState, CmdResult, err, settings};
+use crate::content::filtered;
 use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
@@ -32,17 +33,22 @@ pub async fn search(state: State<'_, AppState>, query: String) -> CmdResult<Sear
     }
     // L'historique n'est pas tenu ici : l'UI cherche pendant la frappe (#248) et
     // n'enregistre que la requête retenue (`note_search_history`).
-    state.tidal.search(query, SEARCH_LIMIT).await.map_err(err)
+    state
+        .tidal
+        .search(query, SEARCH_LIMIT)
+        .await
+        .map(filtered)
+        .map_err(err)
 }
 
 #[tauri::command]
 pub async fn album(state: State<'_, AppState>, id: u64) -> CmdResult<AlbumPage> {
-    state.tidal.album(id).await.map_err(err)
+    state.tidal.album(id).await.map(filtered).map_err(err)
 }
 
 #[tauri::command]
 pub async fn artist(state: State<'_, AppState>, id: u64) -> CmdResult<ArtistPage> {
-    state.tidal.artist(id).await.map_err(err)
+    state.tidal.artist(id).await.map(filtered).map_err(err)
 }
 
 /// Page à jour de la playlist, ou `null` si elle n'a pas changé depuis `revision` (la
@@ -67,7 +73,7 @@ pub async fn playlist(
     if let Some(page) = &page {
         snapshots::save_playlist(&state, page);
     }
-    Ok(page)
+    Ok(filtered(page))
 }
 
 pub(super) fn check_playlist_uuid(uuid: &str) -> CmdResult<()> {
@@ -81,7 +87,7 @@ pub(super) fn check_playlist_uuid(uuid: &str) -> CmdResult<()> {
 /// Biographie, artistes similaires et « Apparaît sur » (#205), après la page elle-même.
 #[tauri::command]
 pub async fn artist_extra(state: State<'_, AppState>, id: u64) -> CmdResult<ArtistExtra> {
-    Ok(state.tidal.artist_extra(id).await)
+    Ok(filtered(state.tidal.artist_extra(id).await))
 }
 
 #[tauri::command]
@@ -89,12 +95,12 @@ pub async fn mix(state: State<'_, AppState>, id: String) -> CmdResult<MixPage> {
     if !is_mix_id(&id) {
         return Err(tr("identifiant de mix invalide", "invalid mix ID").into());
     }
-    state.tidal.mix(&id).await.map_err(err)
+    state.tidal.mix(&id).await.map(filtered).map_err(err)
 }
 
 #[tauri::command]
 pub async fn radio(state: State<'_, AppState>, seed: RadioSeed, id: u64) -> CmdResult<RadioPage> {
-    state.tidal.radio(seed, id).await.map_err(err)
+    state.tidal.radio(seed, id).await.map(filtered).map_err(err)
 }
 
 #[tauri::command]
@@ -187,11 +193,12 @@ pub async fn home_rest(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>
 
 /// « Écoutés dans Seaglass » (#202) en tête du flux : la disposition enregistrée s'applique
 /// ensuite comme aux lignes de TIDAL.
+/// Le filtre de contenu (#368) s'applique aux deux.
 fn with_local_row(state: &AppState, mut rows: Vec<HomeRow>) -> Vec<HomeRow> {
     if let Some(row) = super::play_history::home_row(state) {
         rows.insert(0, row);
     }
-    rows
+    filtered(rows)
 }
 
 /// Paroles d'un titre ; `None` si TIDAL n'en a pas (ce n'est pas une erreur).
@@ -232,13 +239,18 @@ pub async fn hires_twin_album(
     state: State<'_, AppState>,
     album_id: u64,
 ) -> CmdResult<Option<AlbumSummary>> {
-    state.tidal.hires_twin_album(album_id).await.map_err(err)
+    state
+        .tidal
+        .hires_twin_album(album_id)
+        .await
+        .map(filtered)
+        .map_err(err)
 }
 
 /// Sorties récentes des artistes suivis.
 #[tauri::command]
 pub async fn feed(state: State<'_, AppState>) -> CmdResult<Vec<FeedItem>> {
-    state.tidal.feed().await.map_err(err)
+    state.tidal.feed().await.map(filtered).map_err(err)
 }
 
 /// UUID au format `8-4-4-4-12` (hexadécimal), seul format de playlist accepté dans l'URL.

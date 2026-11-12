@@ -16,6 +16,7 @@ use tauri::State;
 
 use super::catalog::check_playlist_uuid;
 use super::{AppState, CmdResult};
+use crate::content::filtered;
 use crate::store::{SnapshotLimit, Store};
 use crate::tidal::models::{
     AlbumSummary, ArtistSummary, LibraryList, PlaylistPage, PlaylistSummary, TrackEntry,
@@ -72,13 +73,13 @@ pub async fn cached_playlist(
 ) -> CmdResult<Option<PlaylistPage>> {
     check_playlist_uuid(&uuid)?;
     if let Some(page) = state.tidal.cached_playlist(&uuid) {
-        return Ok(Some(page));
+        return Ok(Some(filtered(page)));
     }
     let page: Option<PlaylistPage> = load(state.store.clone(), playlist_key(&uuid)).await;
     if let Some(page) = &page {
         state.tidal.restore_playlist(&uuid, page.clone());
     }
-    Ok(page)
+    Ok(filtered(page))
 }
 
 /// Copie de l'onglet enregistrée au dernier chargement complet, `None` sans copie.

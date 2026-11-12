@@ -14,7 +14,16 @@
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { copyText, pushToast } from "../lib/stores/toasts.svelte";
-  import { MOTIONS, setCloseAction, setDiscord, setMotion, setZoom, ui, ZOOM_LEVELS } from "../lib/stores/ui.svelte";
+  import {
+    MOTIONS,
+    setCloseAction,
+    setContentFilter,
+    setDiscord,
+    setMotion,
+    setZoom,
+    ui,
+    ZOOM_LEVELS,
+  } from "../lib/stores/ui.svelte";
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
   import AccentPicker from "../components/AccentPicker.svelte";
@@ -93,6 +102,14 @@
   async function toggleDiscord() {
     try {
       await setDiscord(!ui.settings.discord);
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  async function toggleHideExplicit() {
+    try {
+      await setContentFilter({ ...ui.settings.content, hideExplicit: !ui.settings.content.hideExplicit });
     } catch (e) {
       fail(e);
     }
@@ -480,6 +497,26 @@
           aria-label={t.settings.autoRadio}
           disabled={playback === null}
           onclick={toggleAutoRadio}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+    </div>
+    <!-- #368 : filtre de contenu, appliqué côté Rust aux listes chargées ensuite. -->
+    <div class="group">
+      <h2>{t.settings.content}</h2>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.hideExplicit}</span>
+          <span class="hint">{t.settings.hideExplicitHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={ui.settings.content.hideExplicit}
+          role="switch"
+          aria-checked={ui.settings.content.hideExplicit}
+          aria-label={t.settings.hideExplicit}
+          onclick={toggleHideExplicit}
         >
           <span class="knob"></span>
         </button>

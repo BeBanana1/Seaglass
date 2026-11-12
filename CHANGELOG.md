@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.28
+
+- Réglage « Masquer le contenu explicite » (Réglages › Lecture) : les titres et albums explicites disparaissent de la recherche, des pages, de l'accueil, des mixes, des radios et de la Jam ; vos favoris et vos playlists restent complets. Badge « E » sur les albums (#368).
+
 ## 0.5.27
 
 - Android : deux qualités de plus dans Réglages › Lecture, Basse (AAC 96 kbit/s) et Max (FLAC jusqu'à 24 bits / 192 kHz, avec l'édition hi-res comme sur le bureau) (#366).

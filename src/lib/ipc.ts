@@ -493,6 +493,13 @@ export interface UiSettings {
   zoom: number;
   /** Animations de l'interface (#351). */
   motion: Motion;
+  /** Contenu masqué dans ce que le service propose (#368) ; filtré côté Rust. */
+  content: ContentFilter;
+}
+
+/** Ce que le backend retire des listes proposées (pas des favoris ni de ses playlists). */
+export interface ContentFilter {
+  hideExplicit: boolean;
 }
 
 export type CloseAction = "quit" | "tray";
