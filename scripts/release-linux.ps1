@@ -119,6 +119,19 @@ if (-not $PublishOnly) {
     Remove-Item $imageOut, $sigOut -ErrorAction SilentlyContinue
     $wslRoot = & $toWsl $root
     $wslOut = & $toWsl $out
+    # Seuls les fichiers du dépôt partent dans WSL (#418) : lire /mnt/g y coûte cher par
+    # fichier, et l'arbre contient des dizaines de milliers de fichiers inutiles au build
+    # (worktrees, `relay/target`, builds Android). Fichiers suivis et non suivis non
+    # ignorés (build de test avec -AllowDirty), sauf ceux supprimés, plus `.env` et `dist/`.
+    $buildDir = Join-Path $root 'release\.build'
+    New-Item -ItemType Directory -Force $buildDir | Out-Null
+    $fileList = Join-Path $buildDir 'linux-files.txt'
+    $files = @(git -c core.quotepath=off ls-files --cached --others --exclude-standard | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf })
+    if ($LASTEXITCODE -ne 0 -or -not $files) { Fail "liste des fichiers du dépôt impossible à obtenir" }
+    $files += '.env'
+    $files += @(Get-ChildItem dist -Recurse -File | ForEach-Object { (Resolve-Path -Relative $_.FullName).Substring(2) -replace '\\', '/' })
+    [System.IO.File]::WriteAllText($fileList, (($files | Sort-Object -Unique) -join "`n") + "`n", [System.Text.UTF8Encoding]::new($false))
+    $wslFileList = & $toWsl $fileList
     # Clé et mot de passe passés à WSL par l'environnement (WSLENV), jamais par un fichier ;
     # retirés dès la fin du build.
     $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content $keyPath -Raw).Trim()
@@ -127,7 +140,7 @@ if (-not $PublishOnly) {
     $env:WSLENV = (@($env:WSLENV, 'TAURI_SIGNING_PRIVATE_KEY', 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD') | Where-Object { $_ }) -join ':'
     try {
         # Sortie affichée telle quelle (pas capturée) ; le nom de l'AppImage est connu d'avance.
-        wsl.exe -d $distro --cd $wslRoot bash scripts/linux-build.sh $wslRoot $wslOut $glibcMax
+        wsl.exe -d $distro --cd $wslRoot bash scripts/linux-build.sh $wslRoot $wslOut $glibcMax $wslFileList
         $buildExit = $LASTEXITCODE
     } finally {
         Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY, Env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue
