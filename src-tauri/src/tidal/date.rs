@@ -48,6 +48,18 @@ pub(super) fn timestamp_ms(text: &str) -> Option<i64> {
     Some(seconds * 1000 + millis)
 }
 
+/// Minuit UTC d'une date `AAAA-MM-JJ` (`releaseDate` des albums), en millisecondes.
+pub(super) fn date_ms(text: &str) -> Option<i64> {
+    let mut parts = text.trim().splitn(3, '-');
+    let year: i64 = parts.next()?.parse().ok()?;
+    let month: u32 = parts.next()?.parse().ok()?;
+    let day: u32 = parts.next()?.parse().ok()?;
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+        return None;
+    }
+    Some(days_from_civil(year, month, day) * 86_400_000)
+}
+
 /// Millisecondes d'une fraction de seconde (`872` → 872, `8` → 800), tronquée au-delà.
 fn fraction_ms(fraction: &str) -> Option<i64> {
     if fraction.is_empty() {
@@ -100,5 +112,13 @@ mod tests {
         assert_eq!(timestamp_ms("2024-13-12T00:00:00Z"), None);
         assert_eq!(timestamp_ms("2024-04-12T00:00:00+1"), None);
         assert_eq!(timestamp_ms("2024-04-12T00:00:00.x"), None);
+    }
+
+    #[test]
+    fn release_dates() {
+        assert_eq!(date_ms("1970-01-02"), Some(86_400_000));
+        assert_eq!(date_ms("2000-02-29"), Some(951_782_400_000));
+        assert_eq!(date_ms("2024-13-01"), None);
+        assert_eq!(date_ms(""), None);
     }
 }

@@ -61,6 +61,8 @@ pub struct TidalClient {
     pub(super) playlists: PlaylistCache,
     pub(super) versions: super::versions::PlaylistVersions,
     pub(super) home: super::home::HomeCache,
+    /// Sorties récentes des artistes suivis (#415).
+    pub(super) releases: super::releases::ReleasesCache,
 }
 
 impl TidalClient {
@@ -85,6 +87,7 @@ impl TidalClient {
             playlists: PlaylistCache::default(),
             versions: Default::default(),
             home: Default::default(),
+            releases: Default::default(),
         })
     }
 

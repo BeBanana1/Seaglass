@@ -55,6 +55,8 @@ pub fn run() {
         .manage(jam::JamState::default())
         // Télécommande (#336) : rallumée plus bas si elle l'était.
         .manage(jam::remote::RemoteState::default())
+        // Fil d'actualité (#415) : clés du dernier fil lu.
+        .manage(commands::feed::FeedState::default())
         .setup(|app| {
             #[cfg(target_os = "android")]
             if let Err(e) = android::init_tls() {
@@ -115,6 +117,8 @@ pub fn run() {
                 player,
                 store,
             });
+            // Après `AppState`, qu'elle lit : pastille des nouveautés (#415).
+            commands::feed::spawn_watch(app.handle().clone());
             #[cfg(desktop)]
             {
                 // Après `AppState` : le gestionnaire des raccourcis globaux (#413) y prend le lecteur.
@@ -165,7 +169,8 @@ pub fn run() {
             commands::catalog::library_playlists,
             commands::catalog::home,
             commands::catalog::home_rest,
-            commands::catalog::feed,
+            commands::feed::feed,
+            commands::feed::mark_feed_seen,
             commands::catalog::lyrics,
             commands::catalog::track_info,
             commands::catalog::album_credits,

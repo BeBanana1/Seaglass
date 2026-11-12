@@ -28,6 +28,8 @@ mod live_cleanup;
 #[cfg(test)]
 mod live_collection;
 #[cfg(test)]
+mod live_feed;
+#[cfg(test)]
 mod live_folders;
 #[cfg(test)]
 mod live_later;
@@ -44,6 +46,7 @@ mod paging;
 mod playlist;
 mod rank;
 mod raw;
+mod releases;
 pub mod soundtracks;
 mod twin;
 mod versions;

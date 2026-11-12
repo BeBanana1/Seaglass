@@ -4,10 +4,11 @@
   import { albumKind } from "../lib/format";
   import Card from "../components/Card.svelte";
   import { i18n, locale, t } from "../lib/i18n.svelte";
+  import { feed } from "../lib/stores/feed.svelte";
 
   // Gardé entre deux visites, comme l'accueil : le fil ne bouge qu'une fois par jour.
-  // Rechargé si la langue change (sous-titres des mixes).
-  if (cachedLang !== i18n.lang) cached = null;
+  // Rechargé si la langue change (sous-titres des mixes) ou s'il y a des nouveautés (#415).
+  if (cachedLang !== i18n.lang || feed.unseen > 0) cached = null;
   let items = $state<FeedItem[] | null>(cached);
   let error = $state<string | null>(null);
 
@@ -50,8 +51,15 @@
   onMount(async () => {
     if (items) return;
     try {
-      items = cached = await commands.feed();
+      const loaded = await commands.feed();
+      items = loaded;
       cachedLang = i18n.lang;
+      // Ouvrir la page vaut lecture (#415) : les pastilles « Nouveau » restent affichées
+      // pendant cette visite, pas à la suivante.
+      cached = loaded.map((entry) => ({ ...entry, seen: true }));
+      if (loaded.some((entry) => !entry.seen)) {
+        commands.markFeedSeen().catch((e) => console.warn("fil non marqué comme vu", e));
+      }
     } catch (e) {
       error = String(e);
     }

@@ -10,6 +10,7 @@
   import { closeJamDialog, initJam, jam } from "./lib/stores/jam.svelte";
   import JamDialog from "./components/JamDialog.svelte";
   import { clearLater, initLater, loadLater } from "./lib/stores/later.svelte";
+  import { clearFeed, initFeed } from "./lib/stores/feed.svelte";
   import { initUi, ui } from "./lib/stores/ui.svelte";
   import { initActions, runAction, setActionContext } from "./lib/actions";
   import { togglePalette } from "./lib/stores/palette.svelte";
@@ -85,7 +86,7 @@
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
     void initActions();
-    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initWindow(), initJam()]);
+    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initFeed(), initWindow(), initJam()]);
     initEggs();
     await restoreSession();
     ready = true;
@@ -101,6 +102,7 @@
       session = null;
       clearLikes();
       clearLater();
+      clearFeed();
       pushToast({ level: "error", message: t.views.login.sessionLost });
     });
     if (platform.mobile) {
@@ -356,6 +358,7 @@
     session = null;
     clearLikes();
     clearLater();
+    clearFeed();
     clearFolders();
   }
 
