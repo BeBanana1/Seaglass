@@ -354,6 +354,96 @@ async fn live_playlist_insert() {
     deleted.unwrap();
 }
 
+/// Sélection multiple (#332) : retrait de plusieurs positions en une requête, annulation,
+/// puis like et retrait de plusieurs titres absents des favoris.
+/// `cargo test live_batch -- --ignored --nocapture`
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis, crée puis supprime une playlist"]
+async fn live_batch() {
+    let client = client().await;
+    let album = client.album(ALBUM_ID).await.unwrap();
+    let ids: Vec<TrackId> = album.tracks.iter().map(|t| t.id).take(6).collect();
+    assert_eq!(ids.len(), 6);
+    let uuid = client
+        .create_playlist("Seaglass test (à supprimer)", "Créée par un test")
+        .await
+        .unwrap();
+    let result = check_batch_remove(&client, &uuid, &ids).await;
+    let deleted = client.delete_playlist(&uuid).await;
+
+    let liked = server_ids(&client).await.unwrap();
+    let fresh: Vec<TrackId> = ids
+        .iter()
+        .copied()
+        .filter(|id| !liked.tracks.contains(id))
+        .take(3)
+        .collect();
+    let likes = check_batch_likes(&client, &fresh).await;
+    // Retrait systématique : ces titres n'étaient pas dans les favoris avant le test.
+    let cleanup = client.set_tracks_liked(&fresh, false).await;
+
+    result.unwrap();
+    deleted.unwrap();
+    likes.unwrap();
+    cleanup.unwrap();
+}
+
+async fn check_batch_remove(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Check {
+    let tracks = async || -> Result<Vec<TrackId>, String> {
+        let page = client.playlist(uuid).await.map_err(err)?;
+        Ok(page.tracks.into_iter().map(|t| t.track.id).collect())
+    };
+    client.add_to_playlist(uuid, ids).await.map_err(err)?;
+    // Mauvais titre attendu à une des positions : rien n'est retiré.
+    let wrong = client
+        .remove_many_from_playlist(uuid, &[(1, ids[1]), (3, ids[2])])
+        .await;
+    if !matches!(wrong, Err(super::TidalError::Conflict(_))) || tracks().await? != ids {
+        return Err(format!("retrait par lot non vérifié : {wrong:?}"));
+    }
+    let picked = [(4, ids[4]), (0, ids[0]), (2, ids[2])];
+    client
+        .remove_many_from_playlist(uuid, &picked)
+        .await
+        .map_err(err)?;
+    let after = tracks().await?;
+    println!("retrait des positions 0, 2, 4 : {after:?}");
+    if after != [ids[1], ids[3], ids[5]] {
+        return Err(format!("retrait par lot : {after:?}"));
+    }
+    let restored = client
+        .restore_many_to_playlist(uuid, &picked)
+        .await
+        .map_err(err)?;
+    let after = tracks().await?;
+    println!("remise : {restored} titres, {after:?}");
+    if restored != 3 || after != ids {
+        return Err(format!("remise par lot : {after:?}"));
+    }
+    Ok(())
+}
+
+async fn check_batch_likes(client: &TidalClient, ids: &[TrackId]) -> Check {
+    if ids.len() < 2 {
+        return Err("pas assez de titres hors favoris".into());
+    }
+    client.set_tracks_liked(ids, true).await.map_err(err)?;
+    let after = server_ids(client).await?;
+    println!(
+        "like de {ids:?} : {}",
+        ids.iter().all(|id| after.tracks.contains(id))
+    );
+    if !ids.iter().all(|id| after.tracks.contains(id)) {
+        return Err("like par lot incomplet".into());
+    }
+    client.set_tracks_liked(ids, false).await.map_err(err)?;
+    let after = server_ids(client).await?;
+    if ids.iter().any(|id| after.tracks.contains(id)) {
+        return Err("retrait des favoris par lot incomplet".into());
+    }
+    Ok(())
+}
+
 async fn check_insert(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Check {
     let tracks = async || -> Result<Vec<TrackId>, String> {
         let page = client.playlist(uuid).await.map_err(err)?;

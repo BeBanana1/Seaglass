@@ -351,6 +351,12 @@ export interface Blocked {
 }
 
 /** Tous les favoris, en identifiants (événement `likes`). */
+/** Position dans une playlist (0 = premier) et titre attendu à cette position (#332). */
+export interface PlaylistItem {
+  index: number;
+  trackId: TrackId;
+}
+
 export interface LikedIds {
   tracks: TrackId[];
   albums: number[];
@@ -840,6 +846,9 @@ export const commands = {
   likes: () => invoke<LikedIds>("likes"),
   /** Ajoute aux favoris ou retire ; l'événement `likes` suit la confirmation. */
   setLiked: (target: LikeTarget, liked: boolean) => invoke<void>("set_liked", { target, liked }),
+  /** Plusieurs titres ajoutés aux favoris ou retirés en une fois (sélection, #332). */
+  setTracksLiked: (trackIds: TrackId[], liked: boolean) =>
+    invoke<void>("set_tracks_liked", { trackIds, liked }),
   /** Titres et artistes bloqués (#334), lus chez le service. */
   blocked: () => invoke<Blocked>("blocked"),
   /** Bloque ou débloque un titre ou un artiste. */
@@ -862,6 +871,12 @@ export const commands = {
   /** `index` : position dans la playlist (0 = premier) ; refusé si un autre titre s'y trouve. */
   removeFromPlaylist: (uuid: string, index: number, trackId: TrackId) =>
     invoke<void>("remove_from_playlist", { uuid, index, trackId }),
+  /** Retire plusieurs positions (#332) ; tout est refusé si l'une a changé. */
+  removeManyFromPlaylist: (uuid: string, items: PlaylistItem[]) =>
+    invoke<void>("remove_many_from_playlist", { uuid, items }),
+  /** Annule un retrait par lot ; renvoie le nombre de titres remis. */
+  restoreManyToPlaylist: (uuid: string, items: PlaylistItem[]) =>
+    invoke<number>("restore_many_to_playlist", { uuid, items }),
   /** Remet un titre retiré à sa position (annulation, #349) ; `false` si rien n'a été ajouté. */
   restoreToPlaylist: (uuid: string, index: number, trackId: TrackId) =>
     invoke<boolean>("restore_to_playlist", { uuid, index, trackId }),
