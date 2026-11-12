@@ -265,6 +265,30 @@ export const fr = {
   discordHint:
     "Vos contacts voient « Écoute Seaglass » avec le titre, l'artiste et la pochette. Rien en pause. L'app Discord doit être ouverte sur ce PC.",
 
+  globalShortcuts: "Raccourcis globaux",
+  globalShortcutsEnable: "Piloter Seaglass depuis n'importe quelle app",
+  globalShortcutsHint:
+    "Ces combinaisons marchent même quand la fenêtre n'a pas le focus. Les touches média du clavier n'en ont pas besoin.",
+  globalActions: {
+    playPause: "Lecture / pause",
+    next: "Titre suivant",
+    previous: "Titre précédent",
+    volumeUp: "Monter le volume",
+    volumeDown: "Baisser le volume",
+    like: "Aimer le titre en cours",
+    showWindow: "Afficher la fenêtre",
+  },
+  shortcutNone: "Aucun",
+  shortcutRecord: (action: string) => `Choisir le raccourci : ${action}`,
+  shortcutRecording: "Appuyez sur une combinaison…",
+  shortcutClear: (action: string) => `Retirer le raccourci : ${action}`,
+  shortcutTaken: "Déjà utilisé par une autre application.",
+  shortcutDuplicate: (action: string) => `Déjà utilisé pour « ${action} ».`,
+  shortcutNeedsModifier: "Ajoutez Ctrl, Alt ou Windows.",
+  shortcutUnsupported: "Cette touche ne peut pas servir de raccourci global.",
+  shortcutRecordHint: "Échap pour annuler, Retour arrière pour retirer.",
+  shortcutsReset: "Combinaisons par défaut",
+
   updates: "Mises à jour",
   checkUpdates: "Vérifier les mises à jour",
   upToDate: "Seaglass est à jour.",
@@ -610,6 +634,30 @@ export const en: typeof fr = {
   discordPresence: "Show what you're playing on Discord",
   discordHint:
     "Your friends see “Listening to Seaglass” with the title, artist and cover. Nothing while paused. The Discord app must be running on this PC.",
+
+  globalShortcuts: "Global shortcuts",
+  globalShortcutsEnable: "Control Seaglass from any app",
+  globalShortcutsHint:
+    "These combinations work even when the window isn't focused. The keyboard's media keys don't need them.",
+  globalActions: {
+    playPause: "Play / pause",
+    next: "Next track",
+    previous: "Previous track",
+    volumeUp: "Volume up",
+    volumeDown: "Volume down",
+    like: "Like the current track",
+    showWindow: "Show the window",
+  },
+  shortcutNone: "None",
+  shortcutRecord: (action: string) => `Choose the shortcut: ${action}`,
+  shortcutRecording: "Press a combination…",
+  shortcutClear: (action: string) => `Remove the shortcut: ${action}`,
+  shortcutTaken: "Already used by another application.",
+  shortcutDuplicate: (action: string) => `Already used for “${action}”.`,
+  shortcutNeedsModifier: "Add Ctrl, Alt or Windows.",
+  shortcutUnsupported: "This key can't be used as a global shortcut.",
+  shortcutRecordHint: "Esc to cancel, Backspace to remove.",
+  shortcutsReset: "Default combinations",
 
   updates: "Updates",
   checkUpdates: "Check for updates",

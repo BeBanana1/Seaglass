@@ -27,7 +27,7 @@ const MAX_LEN: usize = 256 * 1024;
 /// Clés de lecture liées à la machine : jamais exportées ni importées.
 const PLAYBACK_LOCAL: [&str; 2] = ["audioDevice", "exclusive"];
 /// Réglages du bureau seulement (Android : ignorés à l'import).
-const UI_DESKTOP: [&str; 3] = ["closeAction", "discord", "zoom"];
+const UI_DESKTOP: [&str; 4] = ["closeAction", "discord", "zoom", "globalShortcuts"];
 const PLAYBACK_DESKTOP: [&str; 3] = ["cacheSize", "pauseOnUnplug", "resumeOnLaunch"];
 /// Réglages d'Android seulement (bureau : ignorés à l'import).
 const PLAYBACK_ANDROID: [&str; 3] = ["wifiQuality", "cellularQuality", "lowBatteryQuality"];

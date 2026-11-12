@@ -117,6 +117,9 @@ pub fn run() {
             });
             #[cfg(desktop)]
             {
+                // Après `AppState` : le gestionnaire des raccourcis globaux (#413) y prend le lecteur.
+                integrations::hotkeys::init(app.handle());
+                integrations::hotkeys::apply(app.handle(), &ui_settings.global_shortcuts);
                 commands::remote::restore(app.handle());
                 updater::spawn(app.handle().clone(), Arc::clone(&mpv_process));
                 app.manage(mpv_process);
@@ -237,6 +240,7 @@ pub fn run() {
             commands::player::queue_track_ids,
             commands::settings::ui_settings,
             commands::settings::set_ui_settings,
+            commands::settings::global_shortcuts_status,
             commands::settings::backup::export_settings,
             commands::settings::backup::import_settings,
             commands::settings::language,

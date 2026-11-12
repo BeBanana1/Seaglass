@@ -54,6 +54,17 @@ impl Volume {
         }
     }
 
+    /// Monte ou baisse d'un cran (raccourcis globaux, #413), à partir du niveau entendu :
+    /// 0 si le son est coupé. Baisser un son coupé ne change rien.
+    pub fn step(&mut self, delta: i8) {
+        if self.muted && delta < 0 {
+            return;
+        }
+        let base = if self.muted { 0 } else { i16::from(self.level) };
+        let next = (base + i16::from(delta)).clamp(0, i16::from(MAX_LEVEL));
+        self.set_level(u8::try_from(next).unwrap_or(MAX_LEVEL));
+    }
+
     /// Coupe ou rétablit le son. Rétablir à 0 remonterait à un silence : le niveau repart
     /// alors de `UNMUTE_LEVEL`.
     pub fn set_muted(&mut self, muted: bool) {
@@ -163,5 +174,56 @@ mod tests {
     fn serializes_for_the_ui() {
         let json = serde_json::to_string(&Volume::default()).unwrap();
         assert_eq!(json, r#"{"level":100,"muted":false}"#);
+    }
+
+    #[test]
+    fn step_moves_from_what_is_heard() {
+        let mut v = Volume {
+            level: 98,
+            muted: false,
+        };
+        v.step(5);
+        assert_eq!(
+            v,
+            Volume {
+                level: 100,
+                muted: false
+            }
+        );
+        v.step(-5);
+        assert_eq!(v.level, 95);
+        let mut low = Volume {
+            level: 3,
+            muted: false,
+        };
+        low.step(-5);
+        assert_eq!(
+            low,
+            Volume {
+                level: 0,
+                muted: false
+            }
+        );
+        // Coupé : monter repart de 0 et rétablit le son, baisser ne change rien.
+        let mut muted = Volume {
+            level: 60,
+            muted: true,
+        };
+        muted.step(-5);
+        assert_eq!(
+            muted,
+            Volume {
+                level: 60,
+                muted: true
+            }
+        );
+        muted.step(5);
+        assert_eq!(
+            muted,
+            Volume {
+                level: 5,
+                muted: false
+            }
+        );
     }
 }
