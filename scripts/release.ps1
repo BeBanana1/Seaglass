@@ -10,7 +10,8 @@
      l'updater (`pnpm tauri build`).
   4. Range les fichiers à publier dans `release/` :
        release/latest.json                       manifeste lu par l'updater
-       release/index.html                        page de téléchargement (lien stable)
+       release/index.html                        page de téléchargement (lien stable),
+                                                 publiée avec scripts/download-page.css et .js
        release/<version>/Seaglass_<version>_x64-setup.exe
   5. Avec -Publish : copie `release/` vers SEAGLASS_RELEASE_DEST, pose et pousse le tag
      git `v<version>` (sauf s'il est déjà sur HEAD : release Android), puis crée la release
@@ -206,6 +207,9 @@ if (-not $Publish) {
 
 Step "publication vers $env:SEAGLASS_RELEASE_DEST"
 $dest = $env:SEAGLASS_RELEASE_DEST
+# Fichiers statiques de la page, pris dans ce commit (pas de build) : ils portent le
+# même nom à chaque version, la page les charge avec « ?v=<version> ».
+$pageAssets = @('css', 'js') | ForEach-Object { Join-Path $PSScriptRoot "download-page.$_" }
 # latest.json peut aussi annoncer l'AppImage (#314) : elle doit déjà être en ligne.
 Assert-ManifestOnline $manifestPath $dest @('windows-x86_64')
 # Le manifeste part en dernier : l'updater ne voit la version qu'une fois l'installeur en place.
@@ -222,15 +226,19 @@ if ($dest -match '^[^\\/:]{2,}:') {
     # remet à 755 / 644 avant de rendre la version visible.
     ssh $sshHost "chmod 755 '$remotePath/$version' && chmod 644 '$remotePath/$version'/*"
     if ($LASTEXITCODE -ne 0) { Fail "échec du réglage des droits sur le serveur" }
+    # Styles et script avant la page qui les charge (la CSP du serveur interdit le code en ligne).
+    scp $pageAssets "$dest/"
+    if ($LASTEXITCODE -ne 0) { Fail "échec de scp (styles et script de la page)" }
     scp $pagePath "$dest/index.html"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (page de téléchargement)" }
     scp $manifestPath "$dest/latest.json"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (manifeste)" }
-    ssh $sshHost "chmod 644 '$remotePath/index.html' '$remotePath/latest.json'"
+    ssh $sshHost "chmod 644 '$remotePath/index.html' '$remotePath/latest.json' '$remotePath/download-page.css' '$remotePath/download-page.js'"
 } else {
     New-Item -ItemType Directory -Force $dest | Out-Null
     New-Item -ItemType Directory -Force (Join-Path $dest $version) | Out-Null
     Copy-Item (Join-Path $out $setupName), (Join-Path $out "$setupName.sig") (Join-Path $dest $version) -Force
+    Copy-Item $pageAssets $dest -Force
     Copy-Item $pagePath (Join-Path $dest 'index.html') -Force
     Copy-Item $manifestPath (Join-Path $dest 'latest.json') -Force
 }
