@@ -365,6 +365,123 @@ pub struct PlaylistPage {
     pub revision: Option<String>,
 }
 
+/// Changement proposé par « Nettoyer » (#382). `index` = position dans la liste lue
+/// (0 = premier titre).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum CleanupItem {
+    /// Copie d'un titre déjà présent à `kept_index` : même titre (`same_track`) ou même
+    /// chanson dans une autre édition.
+    #[serde(rename_all = "camelCase")]
+    Duplicate {
+        index: usize,
+        track: Track,
+        kept_index: usize,
+        /// Le titre gardé.
+        kept: Box<Track>,
+        same_track: bool,
+    },
+    /// Titre retiré du catalogue, avec la même chanson dans une édition lisible si on en
+    /// trouve une.
+    #[serde(rename_all = "camelCase")]
+    Unavailable {
+        index: usize,
+        track: Track,
+        replacement: Option<Box<Track>>,
+    },
+}
+
+impl CleanupItem {
+    /// Ce que l'accepter fait : retirer le doublon ou l'indisponible sans remplaçant,
+    /// remplacer sinon.
+    pub fn op(&self) -> ListOp {
+        match self {
+            Self::Unavailable {
+                index,
+                track,
+                replacement: Some(with),
+            } => ListOp::Replace {
+                index: *index,
+                track_id: track.id,
+                with: with.id,
+            },
+            Self::Duplicate { index, track, .. } | Self::Unavailable { index, track, .. } => {
+                ListOp::Remove {
+                    index: *index,
+                    track_id: track.id,
+                }
+            }
+        }
+    }
+}
+
+/// Changement proposé, avec l'opération qui l'applique (l'UI la renvoie telle quelle).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CleanupChange {
+    #[serde(flatten)]
+    pub item: CleanupItem,
+    pub op: ListOp,
+    /// Coché d'office. Pas un indisponible sans remplaçant : le retirer est définitif (le
+    /// service refuse de le rajouter), et il reviendra peut-être au catalogue.
+    pub suggested: bool,
+}
+
+impl From<CleanupItem> for CleanupChange {
+    fn from(item: CleanupItem) -> Self {
+        Self {
+            op: item.op(),
+            suggested: !matches!(
+                item,
+                CleanupItem::Unavailable {
+                    replacement: None,
+                    ..
+                }
+            ),
+            item,
+        }
+    }
+}
+
+/// Ce que « Nettoyer » propose pour une liste, dans l'ordre de la liste.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CleanupReport {
+    pub items: Vec<CleanupChange>,
+    /// Titres lus.
+    pub scanned: usize,
+}
+
+/// Modification d'une liste (#382). Pour une playlist, `index` = position au moment où
+/// l'opération s'applique ; les favoris l'ignorent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "op", rename_all = "camelCase")]
+pub enum ListOp {
+    #[serde(rename_all = "camelCase")]
+    Remove { index: usize, track_id: TrackId },
+    #[serde(rename_all = "camelCase")]
+    Insert { index: usize, track_id: TrackId },
+    /// `track_id` laisse sa place à `with`.
+    #[serde(rename_all = "camelCase")]
+    Replace {
+        index: usize,
+        track_id: TrackId,
+        with: TrackId,
+    },
+}
+
+/// Résultat d'une suite de modifications : arrêtée à la première erreur.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListOpsResult {
+    pub applied: usize,
+    /// Opérations sautées : titre que le service refuse de rajouter (retiré du catalogue).
+    pub skipped: usize,
+    /// Opérations qui défont celles appliquées, dans l'ordre où les appliquer.
+    pub undo: Vec<ListOp>,
+    pub error: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MixPage {

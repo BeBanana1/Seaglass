@@ -15,6 +15,7 @@
   import TrackTools from "../components/TrackTools.svelte";
   import PinButton from "../components/PinButton.svelte";
   import Icon from "../components/Icon.svelte";
+  import CleanupDialog from "../components/CleanupDialog.svelte";
   import { listSort, saveListSort } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -28,6 +29,8 @@
   let { tab }: { tab: LibraryTab } = $props();
 
   let query = $state("");
+  // « Nettoyer » les titres likés (#382).
+  let cleaning = $state(false);
   // Tri mémorisé (#93), lu à l'ouverture de la bibliothèque.
   let sort = $state<TrackSort>(listSort("likedTracks", TRACK_DEFAULT_SORT));
 
@@ -109,6 +112,9 @@
       <h1>{likesPage ? t.library.likedTracks : t.library.title}</h1>
       <div class="top-actions">
         {#if tab === "tracks"}<PinButton pin={{ kind: "likedTracks" }} />{/if}
+        {#if tab === "tracks"}
+          <button class="refresh" onclick={() => (cleaning = true)}>{t.views.cleanup.action}</button>
+        {/if}
         {#if tab === "later"}<PinButton pin={{ kind: "later" }} />{/if}
         <!-- Statistiques d'écoute locales (#326). -->
         {#if !likesPage}<button class="refresh" onclick={() => go({ name: "stats" })}>{t.library.stats.open}</button>{/if}
@@ -154,6 +160,17 @@
       </p>
     {/if}
     {@render content()}
+  {/if}
+  {#if cleaning}
+    <CleanupDialog
+      title={t.views.cleanup.likedTitle}
+      positions={false}
+      load={commands.likedCleanup}
+      apply={commands.cleanLiked}
+      undo={commands.cleanLiked}
+      onClose={() => (cleaning = false)}
+      onChanged={() => loadLibrary("tracks", true)}
+    />
   {/if}
 </section>
 

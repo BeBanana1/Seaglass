@@ -107,6 +107,32 @@ export const fr = {
   playlist: {
     removed: (title: string) => `« ${title} » retiré de la playlist`,
   },
+  cleanup: {
+    action: "Nettoyer",
+    playlistTitle: "Nettoyer la playlist",
+    likedTitle: "Nettoyer les titres likés",
+    scanning: "Recherche des doublons et des titres indisponibles…",
+    nothing: (n: number) =>
+      `Rien à nettoyer parmi ${num(n)} ${n > 1 ? "titres" : "titre"} : aucun doublon, aucun titre indisponible.`,
+    duplicates: (n: number) => `Doublons (${num(n)})`,
+    unavailable: (n: number) => `Titres indisponibles (${num(n)})`,
+    position: (n: number) => `n° ${num(n)}`,
+    sameTrack: "Déjà présent",
+    edition: (title: string) => `Autre édition de « ${title} »`,
+    replaceWith: "Remplacé par",
+    noReplacement: "Aucune autre version trouvée : il sera retiré",
+    irreversible:
+      "« Annuler » ne pourra pas remettre un titre indisponible retiré ou remplacé : le service refuse de le rajouter.",
+    apply: (n: number) => `Appliquer (${num(n)})`,
+    applying: "Application…",
+    done: (n: number) => `${num(n)} ${n > 1 ? "changements appliqués" : "changement appliqué"}`,
+    partial: (n: number, error: string) =>
+      `${num(n)} ${n > 1 ? "changements appliqués" : "changement appliqué"}, puis : ${error}`,
+    undone: (n: number, skipped: number) =>
+      skipped > 0
+        ? `${num(n)} ${n > 1 ? "changements annulés" : "changement annulé"} ; ${num(skipped)} ${skipped > 1 ? "titres indisponibles n'ont" : "titre indisponible n'a"} pas pu revenir`
+        : `${num(n)} ${n > 1 ? "changements annulés" : "changement annulé"}`,
+  },
   mix: {
     radio: "Radio",
     trackRadio: "Des titres proches de ce morceau.",
@@ -130,6 +156,7 @@ export const fr = {
     cancel: "Annuler",
     saved: "Playlist modifiée",
     deleteAction: "Supprimer la playlist…",
+    cleanupAction: "Nettoyer la playlist…",
     deleteTitle: "Supprimer la playlist ?",
     deleteConfirm: (title: string) =>
       `« ${title} » sera supprimée de votre bibliothèque TIDAL, sur tous vos appareils. C'est définitif.`,
@@ -261,6 +288,31 @@ export const en: typeof fr = {
   playlist: {
     removed: (title: string) => `“${title}” removed from the playlist`,
   },
+  cleanup: {
+    action: "Clean up",
+    playlistTitle: "Clean up the playlist",
+    likedTitle: "Clean up liked tracks",
+    scanning: "Looking for duplicates and unavailable tracks…",
+    nothing: (n: number) =>
+      `Nothing to clean up in ${num(n)} ${n === 1 ? "track" : "tracks"}: no duplicates, no unavailable tracks.`,
+    duplicates: (n: number) => `Duplicates (${num(n)})`,
+    unavailable: (n: number) => `Unavailable tracks (${num(n)})`,
+    position: (n: number) => `#${num(n)}`,
+    sameTrack: "Already there",
+    edition: (title: string) => `Another edition of “${title}”`,
+    replaceWith: "Replaced with",
+    noReplacement: "No other version found: it will be removed",
+    irreversible:
+      "“Undo” cannot bring back an unavailable track once removed or replaced: the service refuses to add it again.",
+    apply: (n: number) => `Apply (${num(n)})`,
+    applying: "Applying…",
+    done: (n: number) => `${num(n)} ${n === 1 ? "change" : "changes"} applied`,
+    partial: (n: number, error: string) => `${num(n)} ${n === 1 ? "change" : "changes"} applied, then: ${error}`,
+    undone: (n: number, skipped: number) =>
+      skipped > 0
+        ? `${num(n)} ${n === 1 ? "change" : "changes"} undone; ${num(skipped)} unavailable ${skipped === 1 ? "track" : "tracks"} could not come back`
+        : `${num(n)} ${n === 1 ? "change" : "changes"} undone`,
+  },
   mix: {
     radio: "Radio",
     trackRadio: "Tracks similar to this song.",
@@ -284,6 +336,7 @@ export const en: typeof fr = {
     cancel: "Cancel",
     saved: "Playlist updated",
     deleteAction: "Delete playlist…",
+    cleanupAction: "Clean up the playlist…",
     deleteTitle: "Delete this playlist?",
     deleteConfirm: (title: string) =>
       `“${title}” will be deleted from your TIDAL library, on all your devices. This cannot be undone.`,

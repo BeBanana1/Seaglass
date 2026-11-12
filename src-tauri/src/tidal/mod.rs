@@ -7,6 +7,7 @@ pub mod auth;
 mod blocks;
 pub mod cache;
 mod catalog;
+mod cleanup;
 mod collection;
 mod credits;
 mod date;
@@ -20,6 +21,8 @@ mod likes;
 mod live_auth;
 #[cfg(test)]
 mod live_blocks;
+#[cfg(test)]
+mod live_cleanup;
 #[cfg(test)]
 mod live_collection;
 #[cfg(test)]
