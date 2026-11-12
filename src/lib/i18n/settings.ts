@@ -102,6 +102,10 @@ export const fr = {
       name: "Séance",
       description: "La salle de cinéma : noir de salle, velours rouge, cartons-titres ivoire, « En lecture » en format large.",
     },
+    onboard: {
+      name: "Ordinateur de bord",
+      description: "Écrans de vaisseau de la science-fiction des années 70-80 : ambre, blocs numérotés, voyants et cadrans.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -421,6 +425,10 @@ export const en: typeof fr = {
     seance: {
       name: "Showing",
       description: "The movie theater: dark auditorium, red velvet, ivory title cards, widescreen Now Playing.",
+    },
+    onboard: {
+      name: "Ship Computer",
+      description: "Starship screens from 1970s-80s science fiction: amber, numbered blocks, indicator lights and dials.",
     },
   },
 

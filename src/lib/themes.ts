@@ -35,6 +35,7 @@ export const THEME_INFO: ThemeInfo[] = [
   { id: "artdeco", scheme: "dark", family: "artdeco" },
   { id: "cassette", scheme: "dark", family: "cassette" },
   { id: "seance", scheme: "dark", family: "seance" },
+  { id: "onboard", scheme: "dark", family: "onboard" },
 ];
 
 export const THEMES: Theme[] = THEME_INFO.map((t) => t.id);

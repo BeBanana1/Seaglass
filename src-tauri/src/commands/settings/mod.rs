@@ -74,6 +74,8 @@ pub enum Theme {
     Cassette,
     /// La salle de cinéma : noir de salle, velours rouge, cartons-titres ivoire (#339).
     Seance,
+    /// Écrans de vaisseau de la SF des années 70-80 : ambre, blocs numérotés, voyants (#339).
+    Onboard,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -441,6 +443,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Cassette);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"seance"}"#).unwrap();
         assert_eq!(s.theme, Theme::Seance);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"onboard"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Onboard);
     }
 
     #[test]

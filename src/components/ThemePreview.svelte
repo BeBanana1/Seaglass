@@ -563,6 +563,29 @@
     background: #e65a5e;
   }
 
+  /* Console : blocs de couleur en bas, panneaux cernés d'ambre. */
+  .preview.onboard {
+    border-radius: 0;
+    background:
+      linear-gradient(90deg, #e0412c 0 8%, #f0862a 8% 16%, #f2c230 16% 24%, #3fa79a 24% 32%, transparent 32%) left
+        92% / 100% 6% no-repeat,
+      #0b0c0b;
+  }
+
+  .onboard :is(.side, .main, .bar) {
+    border-radius: 0;
+    background: #151612;
+    border: 1px solid rgb(243 214 162 / 0.3);
+  }
+
+  .onboard .h {
+    background: #f3d6a2;
+  }
+
+  .onboard .l {
+    background: #ffae3b;
+  }
+
   /* La pochette, seule touche de couleur. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);
