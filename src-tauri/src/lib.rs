@@ -142,6 +142,7 @@ pub fn run() {
             commands::catalog::radio,
             commands::catalog::library_mixes,
             commands::catalog::artist_extra,
+            commands::catalog::album_related,
             commands::play_history::play_history,
             commands::link::take_shared_link,
             commands::link::link_handling,

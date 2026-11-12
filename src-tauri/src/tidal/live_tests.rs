@@ -5,6 +5,7 @@
 //! - `cargo test live_track_info -- --ignored --nocapture` : infos détaillées d'un titre (#3).
 //! - `cargo test live_track_credits -- --ignored --nocapture` : crédits d'un titre (#84).
 //! - `cargo test live_album_credits -- --ignored --nocapture` : crédits d'un album (#206).
+//! - `cargo test live_album_related -- --ignored --nocapture` : autres versions d'un album (#350).
 //! - `cargo test live_hires_twin_album -- --ignored --nocapture` : album jumeau hi-res (#59).
 //! - `cargo test live_locale -- --ignored --nocapture` : titres de l'accueil en anglais (#7).
 //! - `cargo test live_home_pages -- --ignored --nocapture` : toutes les pages de l'accueil (#207).
@@ -515,6 +516,28 @@ async fn live_artist_extra() {
     assert!(links > 0, "aucun lien interne reconnu");
     assert!(!extra.similar.is_empty());
     assert!(!extra.appears_on.is_empty());
+}
+
+/// Bas de la page d'album (#350) : *Nevermind* (77610756) a 5 autres éditions (2026-11-12),
+/// *Thriller 25* (1632061) répond 404 (absent du pays) et ne donne rien.
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_album_related() {
+    let client = client().await;
+    for id in [77_610_756, ALBUM_ID, 20_767_338, 1_632_061] {
+        let start = std::time::Instant::now();
+        let related = client.album_related(id).await;
+        println!("{id} en {:?}", start.elapsed());
+        for a in &related.versions {
+            println!("  version : {} {} (hi-res {})", a.id, a.title, a.hires);
+        }
+        println!("  {} autres albums de l'artiste", related.by_artist.len());
+        assert!(related.versions.iter().all(|a| a.id != id));
+        assert!(related.by_artist.iter().all(|a| a.id != id));
+    }
+    let nevermind = client.album_related(77_610_756).await;
+    assert!(nevermind.versions.len() >= 3, "versions de Nevermind");
+    assert!(!nevermind.by_artist.is_empty());
 }
 
 /// Liens d'autres services collés dans la Jam (#229) : contacte Deezer, Spotify, Apple et

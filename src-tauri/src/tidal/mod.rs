@@ -1,5 +1,6 @@
 //! Tout ce qui touche à l'API privée TIDAL. Le reste de l'app ne dépend que de `models`.
 
+mod album_related;
 pub mod api;
 mod artist_extra;
 pub mod auth;

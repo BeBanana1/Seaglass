@@ -11,9 +11,9 @@ use crate::content::filtered;
 use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
-    AlbumCreditGroup, AlbumPage, AlbumSummary, ArtistExtra, ArtistPage, ArtistSummary, FeedItem,
-    HomeRow, LibraryList, Lyrics, MixPage, MixSummary, PlaylistPage, PlaylistSummary, RadioPage,
-    RadioSeed, SearchResults, TrackEntry, TrackId, TrackInfo,
+    AlbumCreditGroup, AlbumPage, AlbumRelated, AlbumSummary, ArtistExtra, ArtistPage,
+    ArtistSummary, FeedItem, HomeRow, LibraryList, Lyrics, MixPage, MixSummary, PlaylistPage,
+    PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry, TrackId, TrackInfo,
 };
 
 pub(super) const MAX_QUERY_LEN: usize = 200;
@@ -44,6 +44,12 @@ pub async fn search(state: State<'_, AppState>, query: String) -> CmdResult<Sear
 #[tauri::command]
 pub async fn album(state: State<'_, AppState>, id: u64) -> CmdResult<AlbumPage> {
     state.tidal.album(id).await.map(filtered).map_err(err)
+}
+
+/// Autres versions de l'album et autres albums de l'artiste (#350), après la page elle-même.
+#[tauri::command]
+pub async fn album_related(state: State<'_, AppState>, id: u64) -> CmdResult<AlbumRelated> {
+    Ok(filtered(state.tidal.album_related(id).await))
 }
 
 #[tauri::command]
