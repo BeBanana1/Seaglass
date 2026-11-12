@@ -53,6 +53,12 @@ pub struct PlayerState {
     /// mpv ne tourne pas (lancement raté ou arrêt), avec sa cause probable (#92). Dans
     /// l'état plutôt qu'en toast : l'échec au lancement précède l'écoute de la webview.
     pub mpv_issue: Option<MpvIssue>,
+    /// Le titre courant vient d'une bande originale choisie (clin d'œil #399), recalculé à
+    /// chaque émission.
+    pub soundtrack: bool,
+    /// La file s'est arrêtée d'elle-même, rien ne suit (clin d'œil #399) ; remis à faux au
+    /// chargement suivant. `idle` ne suffit pas : il vaut aussi au démarrage.
+    pub ended: bool,
 }
 
 impl PlayerState {

@@ -39,3 +39,4 @@ Notes d'implémentation de Seaglass, lues à la demande (index dans [`CLAUDE.md`
 
 - Cyberpunk : « En lecture » vide (`.empty` de `NowPlaying.svelte`) montre une neige de télévision fixe, sous `:root[data-eggs][data-theme="cyberpunk"]`.
 - Désert : `data-egg-walk` sur `<html>` pendant les 10 premières secondes d'un album ; les `.now-bars i` de `TrackRow` passent en `steps()` à durées inégales. Voir « Clins d'œil » dans `interface.md`.
+- Séance : carton « Fin » (`EndCard.svelte`) quand la file s'achève. Ordinateur de bord : refus polis du lecteur (`Toast.kind`).

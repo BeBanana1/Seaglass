@@ -41,6 +41,7 @@ mod paging;
 mod playlist;
 mod rank;
 mod raw;
+pub mod soundtracks;
 mod twin;
 mod versions;
 

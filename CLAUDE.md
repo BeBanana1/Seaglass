@@ -63,7 +63,7 @@ seaglass/
       ├─ logs/               # journal sur disque, rapports de plantage (#192)
       ├─ i18n.rs             # langue effective, messages traduits (`tr`, `trf!`), locale TIDAL
       ├─ commands/           # auth.rs, player.rs, catalog.rs, settings.rs : valident l'entrée puis délèguent
-      ├─ tidal/              # auth.rs, api.rs, catalog.rs, home.rs (accueil paginé), playlist.rs (pages gardées), mix.rs (mixes, radios), hires.rs + twin.rs (éditions hi-res), credits.rs, raw.rs (JSON bruts), paging.rs (listes paginées), models.rs, cache.rs, manifest.rs (DRM)
+      ├─ tidal/              # auth.rs, api.rs, catalog.rs, home.rs (accueil paginé), playlist.rs (pages gardées), mix.rs (mixes, radios), hires.rs + twin.rs (éditions hi-res), credits.rs, raw.rs (JSON bruts), paging.rs (listes paginées), models.rs, cache.rs, manifest.rs (DRM), soundtracks.rs (bandes originales choisies, #399)
       ├─ player/             # actor.rs, queue.rs, state.rs
       ├─ mpv/                # engine.rs (moteur mpv), process.rs, ipc.rs, events.rs, serve.rs (MPD servis en HTTP local)
       ├─ store/              # SQLite (dont snapshots.rs : copies des listes)

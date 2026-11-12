@@ -27,6 +27,8 @@ const initial: PlayerState = {
   normalization: null,
   sleep: null,
   mpvIssue: null,
+  soundtrack: false,
+  ended: false,
 };
 
 /** L'état est remplacé à chaque `player-state` (~4 Hz pendant la lecture) : `$state.raw`, sans
@@ -46,6 +48,9 @@ class PlayerStore {
   playing = $state(false);
   /** La position avance : ni pause, ni chargement, ni attente du cache, ni arrêt. */
   advancing = $state(false);
+  /** Clins d'œil (#399) : bande originale en cours, file terminée. */
+  soundtrack = $state(false);
+  ended = $state(false);
 }
 
 export const player = new PlayerStore();
@@ -75,6 +80,8 @@ function apply(s: PlayerState) {
   player.currentTrackId = next.track?.id ?? null;
   player.playing = !!next.track && !next.paused && !next.idle;
   player.advancing = !next.paused && !next.buffering && !next.loading && !next.idle;
+  player.soundtrack = next.soundtrack;
+  player.ended = next.ended;
 }
 
 export async function initPlayer() {

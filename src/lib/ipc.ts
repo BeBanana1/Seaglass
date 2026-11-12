@@ -207,6 +207,10 @@ export interface PlayerState {
   sleep: SleepState | null;
   /** mpv ne tourne pas, avec sa cause probable (#92) ; `null` quand tout va bien. */
   mpvIssue: MpvIssue | null;
+  /** Titre d'une bande originale choisie à la main (clin d'œil #399). */
+  soundtrack: boolean;
+  /** La file s'est arrêtée d'elle-même, rien ne suit (clin d'œil #399). */
+  ended: boolean;
 }
 
 /**
@@ -670,6 +674,8 @@ export interface SessionInfo {
 export interface Toast {
   level: "error" | "info";
   message: string;
+  /** Refus du lecteur (clin d'œil #399), que l'UI peut habiller selon le thème. */
+  kind?: "unplayable" | "stopped";
 }
 
 /** Jam (#25) : en ligne par le relais, ou sur le réseau local. */

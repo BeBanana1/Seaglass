@@ -136,6 +136,10 @@ pub enum Slot {
 struct Toast {
     level: &'static str,
     message: String,
+    /// Refus du lecteur (clin d'œil #399) : l'UI peut l'habiller selon le thème, le message
+    /// reste celui-ci.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    kind: Option<&'static str>,
 }
 
 pub(super) struct Player {
@@ -570,6 +574,10 @@ impl Player {
         s.repeat = self.queue.repeat();
         s.has_previous = self.queue.has_previous();
         s.has_next = self.queue.peek_next().is_some();
+        s.soundtrack = s
+            .track
+            .as_ref()
+            .is_some_and(|t| crate::tidal::soundtracks::is_soundtrack(t.album.id));
 
         if self.queue_dirty {
             self.queue_dirty = false;
@@ -592,7 +600,24 @@ impl Player {
     }
 
     pub(super) fn toast(&self, level: &'static str, message: String) {
+        self.toast_kind(level, None, message);
+    }
+
+    /// Toast d'un refus nommé (`unplayable`, `stopped`), voir `Toast::kind`.
+    pub(super) fn toast_kind(
+        &self,
+        level: &'static str,
+        kind: Option<&'static str>,
+        message: String,
+    ) {
         tracing::warn!("{message}");
-        let _ = self.app.emit("toast", Toast { level, message });
+        let _ = self.app.emit(
+            "toast",
+            Toast {
+                level,
+                message,
+                kind,
+            },
+        );
     }
 }
