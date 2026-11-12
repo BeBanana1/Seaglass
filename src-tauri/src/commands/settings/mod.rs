@@ -3,6 +3,7 @@
 
 pub mod accent;
 pub mod backup;
+pub mod eggs;
 pub mod favorites;
 pub mod home_layout;
 pub mod pins;
@@ -21,6 +22,7 @@ use crate::player::output::AudioDevices;
 use crate::player::{Cmd, PlaybackSettings};
 use crate::store::Store;
 use accent::Accents;
+use eggs::EasterEggs;
 use home_layout::{HomeLayout, SectionPref};
 use pins::Pin;
 use sorts::{ListSort, TrackSort};
@@ -117,6 +119,8 @@ pub struct UiSettings {
     pub zoom: Zoom,
     /// Animations de l'interface (#351) : suivre le système, les réduire ou les garder.
     pub motion: Motion,
+    /// Clins d'œil de l'interface (#399), activés par défaut.
+    pub easter_eggs: EasterEggs,
     /// Contenu masqué dans ce que le service propose (#368).
     pub content: ContentFilter,
 }

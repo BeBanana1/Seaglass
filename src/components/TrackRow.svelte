@@ -12,6 +12,7 @@
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { swipeRight } from "../lib/swipe";
   import { player } from "../lib/stores/player.svelte";
+  import { eggs } from "../lib/eggs/eggs.svelte";
 
   let {
     track,
@@ -133,7 +134,7 @@
     <span class="now-bars" class:paused={!player.playing} aria-hidden="true"><i></i><i></i><i></i></span>
   {/snippet}
   {#if number !== undefined}
-    <span class="number">{#if active}{@render nowBars()}{:else}{number}{/if}</span>
+    <span class="number">{#if active}{@render nowBars()}{:else if number === 13 && eggs.date === "friday13"}12<sup class="bis">{t.eggs.thirteen}</sup>{:else}{number}{/if}</span>
   {/if}
   <div class="cover" class:hidden={!showCover}>
     {#if track.album.coverUrl}
@@ -263,6 +264,12 @@
     color: var(--text-muted);
   }
 
+  /* Vendredi 13 (#399) : la piste 13 devient « 12 bis », comme les étages d'hôtel. */
+  .bis {
+    font-size: 0.65em;
+    white-space: nowrap;
+  }
+
   .link:hover {
     color: var(--text);
     text-decoration: underline;
@@ -335,6 +342,11 @@
     to {
       transform: scaleY(1);
     }
+  }
+
+  /* Recherche « silence » (#399) : les barres se figent un instant. */
+  :global(:root[data-egg="silence"]) .now-bars i {
+    animation-play-state: paused;
   }
 
   :global(:root[data-motion="reduced"]) .now-bars i {

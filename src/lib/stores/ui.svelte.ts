@@ -36,6 +36,7 @@ export const ui = $state<{
     sorts: [],
     zoom: 100,
     motion: "system",
+    easterEggs: true,
     content: { hideExplicit: false, hideAi: true },
   },
   nowPlayingPanel: null,
@@ -157,6 +158,18 @@ export async function toggleFavoriteTheme(family: Theme) {
 export async function setDiscord(discord: boolean) {
   const previous = ui.settings;
   ui.settings = { ...ui.settings, discord };
+  try {
+    await commands.setUiSettings(ui.settings);
+  } catch (e) {
+    ui.settings = previous;
+    throw e;
+  }
+}
+
+/** Clins d'œil (#399) : la date et les recherches les relisent aussitôt. */
+export async function setEasterEggs(easterEggs: boolean) {
+  const previous = ui.settings;
+  ui.settings = { ...ui.settings, easterEggs };
   try {
     await commands.setUiSettings(ui.settings);
   } catch (e) {

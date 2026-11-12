@@ -583,6 +583,8 @@ export interface UiSettings {
   zoom: number;
   /** Animations de l'interface (#351). */
   motion: Motion;
+  /** Clins d'œil de l'interface (#399), activés par défaut ; voir `lib/eggs/`. */
+  easterEggs: boolean;
   /** Contenu masqué dans ce que le service propose (#368) ; filtré côté Rust. */
   content: ContentFilter;
 }

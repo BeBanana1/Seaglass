@@ -17,6 +17,8 @@ export const fr = {
     "Fonds animés, fondus et transitions. « Système » suit le réglage « réduire les " +
     "animations » de l'appareil.",
   motions: { system: "Système", reduced: "Réduites", full: "Complètes" },
+  eggs: "Clins d'œil",
+  eggsHint: "Petites surprises discrètes selon la date ou certaines recherches. Jamais de son.",
   theme: "Thème",
   themeHint: "Le thème s'applique tout de suite et reste enregistré.",
   themeVariant: "Variante",
@@ -357,6 +359,8 @@ export const en: typeof fr = {
     "Animated backdrops, fades and transitions. \"System\" follows the device's " +
     "\"reduce motion\" setting.",
   motions: { system: "System", reduced: "Reduced", full: "Full" },
+  eggs: "Easter eggs",
+  eggsHint: "Small, discreet surprises on certain dates or searches. Never any sound.",
   theme: "Theme",
   themeHint: "The theme applies right away and is saved.",
   themeVariant: "Variant",

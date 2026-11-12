@@ -19,6 +19,7 @@
     setCloseAction,
     setContentFilter,
     setDiscord,
+    setEasterEggs,
     setMotion,
     setZoom,
     ui,
@@ -367,6 +368,25 @@
           </button>
         {/each}
       </div>
+    </div>
+    <!-- #399 : clins d'œil (dates, recherches), activés par défaut. -->
+    <div class="group">
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.eggs}</span>
+          <span class="hint">{t.settings.eggsHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={ui.settings.easterEggs}
+          role="switch"
+          aria-checked={ui.settings.easterEggs}
+          aria-label={t.settings.eggs}
+          onclick={() => setEasterEggs(!ui.settings.easterEggs).catch(fail)}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
     </div>
     {#if desktop}
     <div class="group">

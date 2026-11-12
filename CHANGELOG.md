@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.51
+
+- Clins d'œil : petits détails dans l'en-tête certains jours et effets brefs pour quelques recherches, sans son. Désactivables dans Réglages › Apparence (#399).
+
 ## 0.5.50
 
 - Nouveau thème Générique : le papier découpé des génériques des années 50-60, aplats orange, rouges et crème sur papier noir, panneaux coupés aux ciseaux, titres de travers en étiquettes collées. La barre de progression est une ligne brisée et le chargement une spirale (#339).
