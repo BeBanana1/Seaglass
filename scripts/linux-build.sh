@@ -1,11 +1,13 @@
 #!/bin/bash
 # Construit l'AppImage dans la distribution WSL de build (#313), appelé par release-linux.ps1.
 #
-#   linux-build.sh <arbre source (/mnt/…)> <dossier de sortie (/mnt/…)> <glibc maximale>
+#   linux-build.sh <arbre source (/mnt/…)> <dossier de sortie (/mnt/…)> <glibc maximale> \
+#                  <liste des fichiers à copier (/mnt/…)>
 #
-# L'arbre est recopié dans ~/seaglass-release (compiler sur /mnt est très lent), `target/`
-# y est gardé d'un build à l'autre. `dist/` (construit sous Windows) et `.env` font partie
-# de la copie. Le build échoue si le binaire ou une bibliothèque embarquée exige une glibc
+# Les fichiers de la liste (chemins relatifs à l'arbre source, écrite par release-linux.ps1)
+# sont recopiés dans ~/seaglass-release (compiler sur /mnt est très lent), `target/` y est
+# gardé d'un build à l'autre. `dist/` (construit sous Windows) et `.env` sont dans la
+# liste. Le build échoue si le binaire ou une bibliothèque embarquée exige une glibc
 # plus récente que <glibc maximale> : l'AppImage ne démarrerait pas sur les distributions
 # annoncées.
 set -euo pipefail
@@ -13,17 +15,21 @@ set -euo pipefail
 src=$1
 out=$2
 glibc_max=$3
+files=$4
 work="$HOME/seaglass-release"
 
 # shellcheck disable=SC1091
 source "$HOME/.cargo/env"
 
 echo "==> copie de l'arbre dans $work"
-mkdir -p "$work"
-rsync -a --delete \
-    --exclude /.git --exclude /node_modules --exclude /release --exclude /spike \
-    --exclude /src-tauri/target --exclude /src-tauri/gen --exclude /src-tauri/binaries \
-    "$src/" "$work/"
+# Seuls les fichiers de la liste sont copiés (#418) : chaque fichier lu sur /mnt coûte cher.
+# La copie précédente est vidée, sauf `src-tauri/target` ; les dates sont conservées, donc
+# cargo ne recompile que ce qui a changé.
+mkdir -p "$work/src-tauri"
+find "$work" -mindepth 1 -maxdepth 1 ! -name src-tauri -exec rm -rf {} +
+find "$work/src-tauri" -mindepth 1 -maxdepth 1 ! -name target -exec rm -rf {} +
+rsync -a --files-from="$files" "$src/" "$work/"
+echo "    $(wc -l < "$files") fichiers"
 
 echo "==> build de l'AppImage"
 # Frontend déjà construit. L'AppImage est signée pour l'updater (#314) : la clé et son mot

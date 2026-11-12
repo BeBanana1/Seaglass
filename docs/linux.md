@@ -93,7 +93,12 @@ Debian 12, Mint 21, Fedora 36 et plus récentes (annoncé sur la page de téléc
   `scripts/linux-build-setup.sh` en utilisateur (rustup, `tauri-cli`).
 - **Build** : `powershell -File scripts/release-linux.ps1` (appelé par `release-all.ps1`,
   qui accepte `-SkipLinux`). `pnpm build` sous Windows, puis `scripts/linux-build.sh` dans
-  la distribution : copie de l'arbre dans `~/seaglass-release` (`target/` gardé),
+  la distribution : copie dans `~/seaglass-release` des seuls fichiers du dépôt
+  (`git ls-files`, plus `.env` et `dist/`, liste dans `release/.build/linux-files.txt`),
+  après avoir vidé la copie précédente sauf `src-tauri/target` (#418). Lire `/mnt/g` coûte
+  cher par fichier : l'ancien `rsync` de tout l'arbre emportait `.claude/worktrees` (88 000
+  fichiers, 62 Go) et `relay/target`, et c'était l'étape la plus lente du build ; la copie de ~560
+  fichiers prend environ 8 s. Puis
   `cargo tauri build --bundles appimage`, signée pour l'updater (#314, clé par `WSLENV`), puis
   **contrôle de la glibc** : le plus haut `GLIBC_x.y` exigé par le binaire et par les `.so`
   de l'`AppDir` doit être ≤ `SEAGLASS_LINUX_GLIBC_MAX` (2.35 par défaut), sinon le build
