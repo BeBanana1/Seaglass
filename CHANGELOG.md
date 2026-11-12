@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.43
+
+- Nouveau thème Art déco : bleu nuit, filets dorés, éventails aux angles, titres en capitales géométriques, boutons en cartouches à pans coupés ; dans « En lecture », la pochette est encadrée comme une affiche (#338).
+
 ## 0.5.42
 
 - Nouveau thème Estampe : gravure japonaise sur papier washi, encre indigo, titres en serif, cadres doubles, vagues et soleil en aplats, cachet vermillon (#338).

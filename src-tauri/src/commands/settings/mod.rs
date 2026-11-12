@@ -68,6 +68,8 @@ pub enum Theme {
     Midnight,
     /// Estampe japonaise : papier washi, encre indigo, cachet vermillon, vagues en aplats (#338).
     Estampe,
+    /// Art déco : bleu nuit, filets dorés, éventails aux angles, cartouches à pans coupés (#338).
+    Artdeco,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -429,6 +431,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Midnight);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"estampe"}"#).unwrap();
         assert_eq!(s.theme, Theme::Estampe);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"artdeco"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Artdeco);
     }
 
     #[test]

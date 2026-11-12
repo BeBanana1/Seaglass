@@ -90,6 +90,10 @@ export const fr = {
       name: "Estampe",
       description: "Gravure japonaise sur papier washi : encre indigo, vagues en aplats, cachet vermillon.",
     },
+    artdeco: {
+      name: "Art déco",
+      description: "Affiche des années 1920 : bleu nuit, filets dorés, éventails, capitales géométriques.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -397,6 +401,10 @@ export const en: typeof fr = {
     estampe: {
       name: "Estampe",
       description: "A Japanese woodblock print on washi paper: indigo ink, flat waves, a vermilion seal.",
+    },
+    artdeco: {
+      name: "Art Deco",
+      description: "A 1920s poster: midnight blue, gold rules, fans, geometric capitals.",
     },
   },
 

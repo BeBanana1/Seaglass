@@ -498,6 +498,28 @@
     background: #2f5f84;
   }
 
+  .preview.artdeco {
+    border-radius: 0;
+    background:
+      repeating-conic-gradient(from -60deg at 50% 120%, rgb(201 162 74 / 0.18) 0 2deg, transparent 2deg 8deg) 0 0 / 100% 100%,
+      #0a111e;
+  }
+
+  .artdeco :is(.side, .main, .bar) {
+    border-radius: 0;
+    background: rgb(12 20 35 / 0.92);
+    border: 1px solid rgb(201 162 74 / 0.5);
+    box-shadow: inset 0 0 0 2px #0c1423, inset 0 0 0 3px rgb(201 162 74 / 0.2);
+  }
+
+  .artdeco .h {
+    background: #ece4d0;
+  }
+
+  .artdeco .l {
+    background: #c9a24a;
+  }
+
   /* La pochette, seule touche de couleur. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);
