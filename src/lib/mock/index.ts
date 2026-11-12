@@ -221,6 +221,8 @@ let ui: UiSettings = {
   zoom: 100,
   // `?motion=reduced|full` : animations réduites ou forcées (#351).
   motion: (params.get("motion") as UiSettings["motion"]) ?? "system",
+  // `?eggs=off` : clins d'œil désactivés (#399) ; `?date=` et `?egg=` dans `lib/eggs/`.
+  easterEggs: params.get("eggs") !== "off",
   // `?explicit=hide` : contenu explicite masqué (#368) ; `?ai=show` : musique générée par
   // IA affichée (#369). Le backend factice ne filtre pas.
   content: { hideExplicit: params.get("explicit") === "hide", hideAi: params.get("ai") !== "show" },

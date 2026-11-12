@@ -42,7 +42,7 @@
     <Icon name="next" {size} />
   </button>
   <button
-    class="toggle"
+    class="toggle repeat"
     class:on={s.repeat !== "off"}
     onclick={() => commands.setRepeat(nextRepeat[s.repeat])}
     title={t.player.repeat[s.repeat]}
@@ -100,6 +100,29 @@
     height: 4px;
     border-radius: 50%;
     background: currentColor;
+  }
+
+  /* Clins d'œil (#399). Recherche « play it again » : la répétition clignote une fois. */
+  :global(:root[data-egg="playItAgain"]) .repeat {
+    animation: egg-blink 0.6s ease-in-out 2;
+  }
+
+  @keyframes egg-blink {
+    50% {
+      color: var(--accent);
+      transform: scale(1.25);
+    }
+  }
+
+  :global(:root[data-motion="reduced"][data-egg="playItAgain"]) .repeat {
+    animation: none;
+    color: var(--accent);
+  }
+
+  /* 25 mars : l'anneau de la répétition rougeoie au survol, finement gravé. */
+  :global(:root[data-date-egg="mountDoom"]) .repeat:hover {
+    color: #ff6a2a;
+    filter: drop-shadow(0 0 3px #ff4a1a) drop-shadow(0 0 1px #ffd36b);
   }
 
   .one {

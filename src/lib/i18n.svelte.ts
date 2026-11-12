@@ -7,6 +7,7 @@
 import { commands, type Lang, type LanguagePref } from "./ipc";
 import * as common from "./i18n/common";
 import * as drive from "./i18n/drive";
+import * as eggs from "./i18n/eggs";
 import * as format from "./i18n/format";
 import * as library from "./i18n/library";
 import * as menu from "./i18n/menu";
@@ -23,6 +24,7 @@ export { i18n, locale, num } from "./i18n/state.svelte";
 const fr = {
   common: common.fr,
   drive: drive.fr,
+  eggs: eggs.fr,
   format: format.fr,
   library: library.fr,
   menu: menu.fr,
@@ -39,6 +41,7 @@ export type Dict = typeof fr;
 const en: Dict = {
   common: common.en,
   drive: drive.en,
+  eggs: eggs.en,
   format: format.en,
   library: library.en,
   menu: menu.en,

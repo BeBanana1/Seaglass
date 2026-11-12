@@ -47,6 +47,9 @@
   import PlaylistPicker from "./components/PlaylistPicker.svelte";
   import TrackInfo from "./components/TrackInfo.svelte";
   import Icon from "./components/Icon.svelte";
+  import EggMark from "./components/EggMark.svelte";
+  import { eggs, initEggs } from "./lib/eggs/eggs.svelte";
+  import { romanVersion } from "./lib/eggs/registry";
 
   let session = $state<SessionInfo | null>(null);
   let ready = $state(false);
@@ -63,6 +66,7 @@
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
     await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initWindow(), initJam()]);
+    initEggs();
     await restoreSession();
     ready = true;
     void noticeCrash();
@@ -339,6 +343,8 @@
 
 <div class="shell" class:mobile={platform.mobile}>
   <header>
+    <!-- #399 : recherche « seaglass », une vague traverse l'en-tête une fois. -->
+    {#if eggs.search === "seaglass"}<span class="egg-wave" aria-hidden="true"><span></span></span>{/if}
     <div class="left">
       {#if session || route.name === "settings"}
         <button class="back" onclick={back} disabled={!canGoBack()} aria-label={t.common.back} title={t.common.backHint}>
@@ -347,8 +353,10 @@
       {/if}
       <!-- Nom et version sur une même ligne de base, centrés ensemble sur les boutons (#183). -->
       <span class="wordmark">
-        <span class="brand display">Seaglass</span>
-        <span class="version mono">v{__APP_VERSION__}</span>
+        <span class="brand display">Seaglass<EggMark /></span>
+        <!-- #399 : le 1er avril, la version s'écrit en chiffres romains. -->
+        <span class="version mono">v{eggs.date === "aprilFools" ? romanVersion(__APP_VERSION__) : __APP_VERSION__}</span>
+        {#if eggs.date === "groundhog"}<span class="version mono egg-note">{t.eggs.groundhog}</span>{/if}
       </span>
     </div>
     {#if platform.mobile}
@@ -583,8 +591,92 @@
   }
 
   .brand {
+    position: relative;
     font-size: 17px;
     color: var(--accent);
+  }
+
+  /* Clins d'œil (#399) : couleur du nom certains jours, plus forte que celle des thèmes. */
+  :global(:root[data-date-egg="halloween"]) .brand {
+    color: #ff7a1a;
+    -webkit-text-fill-color: #ff7a1a;
+  }
+
+  :global(:root[data-date-egg="jazz"]) .brand {
+    color: #3f6fd8;
+    -webkit-text-fill-color: #3f6fd8;
+  }
+
+  /* Recherche « sorceleur » : le nom vibre brièvement, comme un médaillon. */
+  :global(:root[data-egg="witcher"]) .brand {
+    animation: egg-shake 0.5s linear 2;
+  }
+
+  @keyframes egg-shake {
+    0%,
+    100% {
+      translate: 0;
+    }
+    20%,
+    60% {
+      translate: -1.5px 0;
+    }
+    40%,
+    80% {
+      translate: 1.5px 0;
+    }
+  }
+
+  /* 21 décembre : du givre sur les bords de l'en-tête. */
+  :global(:root[data-date-egg="winter"]) header {
+    box-shadow:
+      inset 0 3px 6px -3px rgb(220 240 255 / 0.7),
+      inset 0 -3px 6px -3px rgb(220 240 255 / 0.5);
+  }
+
+  header {
+    position: relative;
+  }
+
+  .egg-wave {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .egg-wave span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 40%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--accent) 22%, transparent) 45%,
+      color-mix(in oklab, var(--accent) 35%, transparent) 50%,
+      transparent
+    );
+    translate: -100% 0;
+    animation: egg-wave 1.6s ease-in-out 1 forwards;
+  }
+
+  @keyframes egg-wave {
+    to {
+      translate: 260% 0;
+    }
+  }
+
+  .shell.mobile .egg-note {
+    display: none;
+  }
+
+  :global(:root[data-motion="reduced"]) .egg-wave {
+    display: none;
+  }
+
+  :global(:root[data-motion="reduced"][data-egg="witcher"]) .brand {
+    animation: none;
   }
 
   .version {

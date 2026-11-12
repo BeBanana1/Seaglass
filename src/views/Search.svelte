@@ -23,6 +23,7 @@
   import { t } from "../lib/i18n.svelte";
   import { ui } from "../lib/stores/ui.svelte";
   import { openTidalLink } from "../lib/links";
+  import { eggs, searched } from "../lib/eggs/eggs.svelte";
 
   const COLLAPSED_TRACKS = 8;
   /** Pause de frappe avant de chercher (#248), comme la page de la Jam. */
@@ -93,6 +94,8 @@
     saved.query = query;
     searching = true;
     error = null;
+    // #399 : un mot précis joue un clin d'œil bref, la recherche part quand même.
+    searched(query);
     try {
       const results = await commands.search(query);
       if (id !== seq) return;
@@ -159,7 +162,38 @@
       spellcheck="false"
       autofocus
     />
+    <!-- #399 : effets brefs de certaines recherches, par-dessus et autour du champ. -->
+    {#if eggs.search === "rosebud"}
+      <span class="egg flakes" aria-hidden="true">
+        {#each [8, 21, 34, 47, 60, 73, 86] as left, i (left)}
+          <i style="left: {left}%; animation-delay: {(i % 3) * 0.2}s"></i>
+        {/each}
+      </span>
+    {:else if eggs.search === "mellon"}
+      <svg class="egg arch" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M2 30V18C2 8 30 1 50 1s48 7 48 17v12" pathLength="1" />
+      </svg>
+    {:else if eggs.search === "spice"}
+      <span class="egg grains" aria-hidden="true">
+        {#each [12, 25, 38, 52, 66, 80] as left, i (left)}
+          <i style="left: {left}%; animation-delay: {i * 0.12}s"></i>
+        {/each}
+      </span>
+    {/if}
   </form>
+  {#if eggs.search === "answer"}
+    <p class="egg-line">{t.eggs.answer}</p>
+  {/if}
+  {#if eggs.search === "origami"}
+    <!-- Une petite licorne pliée, posée dans un coin. -->
+    <svg class="egg origami" viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
+      <path d="M8 34 14 20l8 2z" fill="#d9d4c7" />
+      <path d="M14 20 22 22l6-10z" fill="#bdb6a6" />
+      <path d="M22 22 28 12l6 2z" fill="#e8e3d6" />
+      <path d="M28 12l4-8 1 9z" fill="#a8a190" />
+      <path d="M22 22l2 12h-4z" fill="#bdb6a6" />
+    </svg>
+  {/if}
 
   {#if showHistory && history.length > 0}
     <div class="search-history">
@@ -230,7 +264,128 @@
   }
 
   form {
+    position: relative;
+    max-width: 520px;
     margin: 0 10px 20px;
+  }
+
+  /* Clins d'œil (#399). Aucun ne bloque le champ ni ne se rejoue. */
+  .egg {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .flakes,
+  .grains {
+    inset: 0;
+    overflow: hidden;
+    border-radius: 999px;
+  }
+
+  .flakes i {
+    position: absolute;
+    top: -4px;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--text);
+    opacity: 0.7;
+    animation: egg-fall 1.4s linear 1 forwards;
+  }
+
+  @keyframes egg-fall {
+    to {
+      translate: 6px 44px;
+      opacity: 0;
+    }
+  }
+
+  .grains {
+    inset: auto 0 -10px;
+    height: 10px;
+    overflow: visible;
+  }
+
+  .grains i {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: #c8743a;
+    animation: egg-slide 1.5s ease-out 1 forwards;
+  }
+
+  @keyframes egg-slide {
+    to {
+      translate: 18px 6px;
+      opacity: 0;
+    }
+  }
+
+  /* Recherche « épice » : l'accent vire au cannelle le temps de l'effet. */
+  :global(:root[data-egg="spice"]) {
+    --accent: #c8743a !important;
+  }
+
+  .arch {
+    left: -6px;
+    right: -6px;
+    bottom: 50%;
+    width: calc(100% + 12px);
+    height: 34px;
+  }
+
+  .arch path {
+    fill: none;
+    stroke: color-mix(in oklab, var(--accent) 70%, #fff);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+    filter: drop-shadow(0 0 3px var(--accent));
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: egg-draw 1.2s ease-out 1 forwards;
+  }
+
+  @keyframes egg-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .egg-line {
+    margin: -12px 10px 16px 24px;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  .origami {
+    position: fixed;
+    right: 36px;
+    bottom: 120px;
+    animation: egg-fade 1.8s ease-in-out 1 forwards;
+  }
+
+  @keyframes egg-fade {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    25%,
+    75% {
+      opacity: 1;
+    }
+  }
+
+  /* Animations réduites : la variante fixe, qui s'en va avec l'effet. */
+  :global(:root[data-motion="reduced"]) .egg,
+  :global(:root[data-motion="reduced"]) .egg :is(i, path) {
+    animation: none;
+  }
+
+  :global(:root[data-motion="reduced"]) .arch path {
+    stroke-dashoffset: 0;
   }
 
   input {
