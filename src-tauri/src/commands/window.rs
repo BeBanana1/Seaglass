@@ -60,10 +60,18 @@ fn notify(app: &AppHandle, state: bool) {
 
 /// Agrandit la fenêtre (déjà en plein écran natif) d'un pixel vers un bord de son écran.
 /// tao ne la recale sur l'écran que si elle change d'écran, ce qui n'est pas le cas ici.
+///
+/// `SetWindowPos` direct plutôt que `set_position` / `set_size` : ceux de tao effacent son
+/// drapeau « maximisé », et la sortie du plein écran repassait alors par la fenêtre restaurée
+/// avant de se maximiser. Appelé sur le thread de la fenêtre, après le passage en plein écran.
 #[cfg(windows)]
 fn overflow(window: &WebviewWindow) -> tauri::Result<()> {
-    use tauri::{PhysicalPosition, PhysicalSize};
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        SWP_NOACTIVATE, SWP_NOOWNERZORDER, SWP_NOZORDER, SetWindowPos,
+    };
 
+    let hwnd = window.hwnd()?.0 as isize;
     let Some(monitor) = window.current_monitor()? else {
         return Ok(());
     };
@@ -75,8 +83,17 @@ fn overflow(window: &WebviewWindow) -> tauri::Result<()> {
         .filter(|r| *r != screen)
         .collect();
     let r = overflowed(screen, &others);
-    window.set_position(PhysicalPosition::new(r.x, r.y))?;
-    window.set_size(PhysicalSize::new(r.w, r.h))
+    let (w, h) = (
+        i32::try_from(r.w).unwrap_or(i32::MAX),
+        i32::try_from(r.h).unwrap_or(i32::MAX),
+    );
+    window.run_on_main_thread(move || {
+        let flags = SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER;
+        // SAFETY : `hwnd` est la fenêtre principale, vivante tant que l'app tourne.
+        if let Err(e) = unsafe { SetWindowPos(HWND(hwnd as *mut _), None, r.x, r.y, w, h, flags) } {
+            tracing::warn!("plein écran : SetWindowPos a échoué : {e}");
+        }
+    })
 }
 
 /// Rectangle d'écran en pixels physiques.
