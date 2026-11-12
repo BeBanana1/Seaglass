@@ -66,6 +66,8 @@ pub enum Theme {
     AlloyDark,
     /// Noir OLED : fond noir pur, filets fins, ni flou ni décor ; la pochette seule en couleur (#338).
     Midnight,
+    /// Estampe japonaise : papier washi, encre indigo, cachet vermillon, vagues en aplats (#338).
+    Estampe,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -425,6 +427,8 @@ mod tests {
         assert_eq!(s.theme, Theme::AlloyDark);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"midnight"}"#).unwrap();
         assert_eq!(s.theme, Theme::Midnight);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"estampe"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Estampe);
     }
 
     #[test]

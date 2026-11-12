@@ -86,6 +86,10 @@ export const fr = {
       name: "Minuit",
       description: "Noir pur, filets fins, aucun décor : la pochette est la seule couleur. Économe sur les écrans OLED.",
     },
+    estampe: {
+      name: "Estampe",
+      description: "Gravure japonaise sur papier washi : encre indigo, vagues en aplats, cachet vermillon.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -389,6 +393,10 @@ export const en: typeof fr = {
     midnight: {
       name: "Midnight",
       description: "Pure black, hairlines, no decoration: the cover art is the only color. Easy on OLED screens.",
+    },
+    estampe: {
+      name: "Estampe",
+      description: "A Japanese woodblock print on washi paper: indigo ink, flat waves, a vermilion seal.",
     },
   },
 

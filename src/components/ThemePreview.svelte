@@ -475,6 +475,29 @@
     background: #8c8c8c;
   }
 
+  .preview.estampe {
+    border-radius: 0;
+    background:
+      radial-gradient(circle at 86% 22%, #c13b24 0 9%, transparent 10%),
+      repeating-radial-gradient(circle at 0 100%, #2f5f84 0 2px, transparent 2px 6px) left bottom / 40% 45% no-repeat,
+      linear-gradient(#e4dcc9, #f2eadb 30%);
+  }
+
+  .estampe :is(.side, .main, .bar) {
+    border-radius: 0;
+    background: rgb(248 243 231 / 0.9);
+    border: 1px solid rgb(31 53 80 / 0.55);
+    box-shadow: inset 0 0 0 2px #f8f3e7, inset 0 0 0 3px rgb(31 53 80 / 0.2);
+  }
+
+  .estampe .h {
+    background: #1b2a3d;
+  }
+
+  .estampe .l {
+    background: #2f5f84;
+  }
+
   /* La pochette, seule touche de couleur. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);
