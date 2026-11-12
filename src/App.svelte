@@ -48,6 +48,7 @@
   import TrackInfo from "./components/TrackInfo.svelte";
   import Icon from "./components/Icon.svelte";
   import EggMark from "./components/EggMark.svelte";
+  import EggLayer from "./components/EggLayer.svelte";
   import { eggs, initEggs } from "./lib/eggs/eggs.svelte";
   import { romanVersion } from "./lib/eggs/registry";
 
@@ -340,6 +341,7 @@
 />
 
 <div class="backdrop-layer"><Backdrop /></div>
+<EggLayer />
 
 <div class="shell" class:mobile={platform.mobile}>
   <header>

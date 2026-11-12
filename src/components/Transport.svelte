@@ -3,6 +3,7 @@
   import { player } from "../lib/stores/player.svelte";
   import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
+  import { eggs } from "../lib/eggs/eggs.svelte";
 
   let { large = false }: { large?: boolean } = $props();
 
@@ -48,7 +49,8 @@
     title={t.player.repeat[s.repeat]}
   >
     <Icon name="repeat" size={size - 2} />
-    {#if s.repeat === "one"}<span class="one">1</span>{/if}
+    <!-- #399 : le même titre 10 fois de suite, le 1 devient ∞. -->
+    {#if s.repeat === "one"}<span class="one" class:infinite={eggs.infinite}>{eggs.infinite ? "∞" : "1"}</span>{/if}
   </button>
 </div>
 
@@ -100,6 +102,12 @@
     height: 4px;
     border-radius: 50%;
     background: currentColor;
+  }
+
+  .one.infinite {
+    top: -5px;
+    right: -8px;
+    font-size: 12px;
   }
 
   /* Clins d'œil (#399). Recherche « play it again » : la répétition clignote une fois. */

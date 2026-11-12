@@ -23,6 +23,11 @@
   import { listSearch } from "../lib/stores/listSearch.svelte";
   import { t } from "../lib/i18n.svelte";
   import { platform } from "../lib/platform.svelte";
+  import { ui } from "../lib/stores/ui.svelte";
+
+  /** Clin d'œil (#399) : une playlist vide sur dix annonce une piste introuvable. Tiré une
+   *  fois par page ouverte. */
+  const missingTrack = Math.random() < 0.1 || (import.meta.env.DEV && location.search.includes("egg=404"));
 
   const SORT_KEYS: SortKey[] = ["position", "added", "title", "artist", "album", "duration"];
   const DEFAULT_SORT = PLAYLIST_DEFAULT_SORT;
@@ -207,6 +212,8 @@
     <!-- Android : pas de numéros, ils encombrent plus qu'ils n'aident (#162). -->
     {#if shown.length === 0 && query.trim()}
       <p class="muted empty">{t.library.noMatch(query.trim())}</p>
+    {:else if page.tracks.length === 0}
+      <p class="muted empty">{missingTrack && ui.settings.easterEggs ? t.eggs.track404 : t.library.empty}</p>
     {:else}
       <TrackList
         tracks={shown.map((l) => l.track)}
