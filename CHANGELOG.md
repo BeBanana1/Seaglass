@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.59
+
+- Windows : le plein écran (F11) ne prend plus de retard au survol après quelques secondes (#191).
+
 ## 0.5.58
 
 - Importer une playlist Deezer, Spotify ou Apple Music en collant son lien : aperçu des titres trouvés sur TIDAL, à vérifier ou introuvables, puis lecture ou création d'une playlist (#328).
