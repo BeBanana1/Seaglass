@@ -20,6 +20,7 @@ pub mod project;
 pub mod search_history;
 pub mod settings;
 pub mod shortcuts;
+pub mod smart_lists;
 pub mod snapshots;
 #[cfg(desktop)]
 pub mod window;

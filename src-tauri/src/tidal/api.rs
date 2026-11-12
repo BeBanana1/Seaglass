@@ -56,6 +56,8 @@ pub struct TidalClient {
     pub(super) later: Likes,
     /// Titres et artistes bloqués (#334), pour filtrer mixes et radios.
     pub(super) blocks: super::blocks::Blocks,
+    /// Titres lisibles ou non, retenus pour la session (#383).
+    pub(super) availability: super::availability::Availability,
     pub(super) playlists: PlaylistCache,
     pub(super) versions: super::versions::PlaylistVersions,
     pub(super) home: super::home::HomeCache,
@@ -79,6 +81,7 @@ impl TidalClient {
             likes: Likes::default(),
             later: Likes::default(),
             blocks: Default::default(),
+            availability: Default::default(),
             playlists: PlaylistCache::default(),
             versions: Default::default(),
             home: Default::default(),
@@ -143,6 +146,7 @@ impl TidalClient {
         self.likes.clear();
         self.later.clear();
         self.blocks.clear();
+        self.availability.clear();
         self.playlists.clear();
         self.versions.clear();
     }

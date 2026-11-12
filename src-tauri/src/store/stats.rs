@@ -16,6 +16,9 @@ pub struct Totals {
     pub unknown: i64,
 }
 
+/// Titre de l'historique, ses métadonnées si elles sont enregistrées, son nombre d'écoutes.
+pub type CountedTrack = (TrackId, Option<Track>, i64);
+
 /// Artiste du classement.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TopArtist {
@@ -26,22 +29,34 @@ pub struct TopArtist {
 }
 
 impl Store {
-    /// Titres les plus écoutés, avec leurs métadonnées si elles sont enregistrées (`None` :
-    /// écoute d'avant la 0.5.33, à compléter par `save_played_tracks`). À égalité, le plus
-    /// récemment écouté d'abord.
+    /// Titres les plus écoutés depuis `since`, avec au moins `min_plays` écoutes, et leurs
+    /// métadonnées si elles sont enregistrées (`None` : écoute d'avant la 0.5.33, à
+    /// compléter par `save_played_tracks`). À égalité, le plus récemment écouté d'abord.
     pub fn top_tracks(
         &self,
         since: i64,
+        min_plays: i64,
         limit: usize,
-    ) -> Result<Vec<(TrackId, Option<Track>, i64)>> {
-        let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
-        let mut stmt = db.conn.prepare(
+    ) -> Result<Vec<CountedTrack>> {
+        self.counted_tracks(
             "SELECT p.track_id, t.json, COUNT(*) AS n, MAX(p.id) AS last FROM plays p
              LEFT JOIN played_tracks t ON t.id = p.track_id
              WHERE p.played_at >= ?1
-             GROUP BY p.track_id ORDER BY n DESC, last DESC LIMIT ?2",
-        )?;
-        let rows = stmt.query_map(params![since, limit as i64], |r| {
+             GROUP BY p.track_id HAVING n >= ?2 ORDER BY n DESC, last DESC LIMIT ?3",
+            params![since, min_plays, limit as i64],
+        )
+    }
+
+    /// Requête dont les colonnes 0 à 2 sont l'id du titre, sa copie JSON (ou `NULL`) et un
+    /// nombre d'écoutes. Une copie illisible (autre version) compte comme absente.
+    pub(super) fn counted_tracks(
+        &self,
+        sql: &str,
+        args: impl rusqlite::Params,
+    ) -> Result<Vec<CountedTrack>> {
+        let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
+        let mut stmt = db.conn.prepare(sql)?;
+        let rows = stmt.query_map(args, |r| {
             Ok((
                 r.get::<_, i64>(0)?,
                 r.get::<_, Option<String>>(1)?,
@@ -146,7 +161,7 @@ mod tests {
         }
         let tracks = |since| {
             store
-                .top_tracks(since, 10)
+                .top_tracks(since, 1, 10)
                 .unwrap()
                 .into_iter()
                 .map(|(id, t, n)| (id.0, t.map(|t| t.title), n))
@@ -205,13 +220,13 @@ mod tests {
                 )
                 .unwrap();
         }
-        let top = store.top_tracks(0, 10).unwrap();
+        let top = store.top_tracks(0, 1, 10).unwrap();
         assert_eq!(top.len(), 1);
         assert!(top[0].1.is_none());
         assert_eq!(store.play_totals(0).unwrap().unknown, 1);
         assert_eq!(store.unknown_tracks(10).unwrap(), [TrackId(5)]);
         store.save_played_tracks(&[track(5, 10, 110)]).unwrap();
-        let top = store.top_tracks(0, 10).unwrap();
+        let top = store.top_tracks(0, 1, 10).unwrap();
         assert_eq!(top[0].1.as_ref().map(|t| t.id), Some(TrackId(5)));
         assert!(store.unknown_tracks(10).unwrap().is_empty());
         assert_eq!(

@@ -248,7 +248,8 @@ export type PlaySource =
   | { kind: "artist"; id: number; name: string }
   | { kind: "likedTracks" }
   | { kind: "later" }
-  | { kind: "search"; query: string };
+  | { kind: "search"; query: string }
+  | { kind: "smart"; list: SmartList };
 
 export interface AlbumSummary {
   id: number;
@@ -416,6 +417,14 @@ export interface PlayStats {
   artists: Counted<ArtistSummary>[];
 }
 
+/**
+ * Playlist intelligente locale (#383), calculée par le backend sur l'historique de cet
+ * appareil (et les titres likés pour `neverPlayed`).
+ */
+export type SmartList = "topMonth" | "onRepeat" | "forgotten" | "neverPlayed";
+
+export const SMART_LISTS: SmartList[] = ["topMonth", "onRepeat", "forgotten", "neverPlayed"];
+
 /** Clé de la section d'accueil « Écoutés dans Seaglass ». */
 export const PLAY_HISTORY_KEY = "SEAGLASS_RECENT";
 
@@ -530,7 +539,8 @@ export type Pin =
   | { kind: "playlist"; uuid: string; title: string }
   | { kind: "mix"; id: string; title: string }
   | { kind: "likedTracks" }
-  | { kind: "later" };
+  | { kind: "later" }
+  | { kind: "smart"; list: SmartList };
 
 /** Critères de tri d'une liste de titres (#1, #2). */
 export type SortKey = "position" | "added" | "title" | "artist" | "album" | "duration";
@@ -731,6 +741,7 @@ export const commands = {
   playHistory: () => invoke<PlayHistory>("play_history"),
   clearPlayHistory: () => invoke<void>("clear_play_history"),
   playStats: (period: StatsPeriod) => invoke<PlayStats>("play_stats", { period }),
+  smartList: (list: SmartList) => invoke<Track[]>("smart_list", { list }),
   /** Jam locale (#25), bureau seulement : `null` si aucune Jam ne tourne. */
   jamStatus: () => invoke<JamStatus | null>("jam_status"),
   jamOnlineAvailable: () => invoke<boolean>("jam_online_available"),

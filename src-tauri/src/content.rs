@@ -2,7 +2,8 @@
 //! par IA (#369, masqués par défaut) retirés des listes.
 //!
 //! Le filtre s'applique à ce que le service propose (recherche, pages album / artiste,
-//! playlists des autres, mixes, radios, accueil, fil d'actualité, Jam, radio automatique),
+//! playlists des autres, mixes, radios, accueil, fil d'actualité, Jam, radio automatique,
+//! playlists intelligentes locales #383, calculées par l'app),
 //! jamais à ce que l'utilisateur a enregistré lui-même (favoris, ses propres playlists) :
 //! il les a choisis, et les modifications d'une playlist passent par la position des titres.
 //!

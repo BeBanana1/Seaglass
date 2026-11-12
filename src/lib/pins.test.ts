@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   libraryTracks: vi.fn(),
   mix: vi.fn(),
   saveForLater: vi.fn(),
+  smartList: vi.fn(),
   playTracks: vi.fn(),
   sorts: new Map<string, TrackSort>(),
 }));
@@ -18,6 +19,7 @@ vi.mock("./ipc", () => ({
     libraryTracks: mocks.libraryTracks,
     mix: mocks.mix,
     saveForLater: mocks.saveForLater,
+    smartList: mocks.smartList,
     playTracks: mocks.playTracks,
   },
 }));
@@ -64,6 +66,13 @@ describe("playPin", () => {
     mocks.saveForLater.mockResolvedValue({ items: [{ kind: "album", id: 9 }, { kind: "track", ...old }] });
     await playPin({ kind: "later" }, false);
     expect(mocks.playTracks).toHaveBeenCalledWith([old.id], 0, false, { kind: "later" });
+  });
+
+  it("lit une playlist intelligente dans l'ordre du backend (#383)", async () => {
+    mocks.smartList.mockResolvedValue([recent, old]);
+    await playPin({ kind: "smart", list: "onRepeat" }, false);
+    expect(mocks.smartList).toHaveBeenCalledWith("onRepeat");
+    expect(mocks.playTracks).toHaveBeenCalledWith([recent.id, old.id], 0, false, { kind: "smart", list: "onRepeat" });
   });
 
   it("refuse une source vide sans rien lire", async () => {

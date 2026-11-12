@@ -33,6 +33,10 @@ describe("playedFrom", () => {
       label: "Titres likés",
       route: { name: "library", tab: "tracks" },
     });
+    expect(playedFrom({ kind: "smart", list: "topMonth" })).toEqual({
+      label: "Mes 50 du mois",
+      route: { name: "smart", list: "topMonth" },
+    });
     i18n.lang = "en";
     expect(playedFrom({ kind: "search", query: "jazz" })).toEqual({
       label: "Search “jazz”",

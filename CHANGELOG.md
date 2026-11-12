@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.38
+
+- Playlists intelligentes calculées sur cet appareil : « Mes 50 du mois », « En boucle en ce moment », « Oubliés » et « Likés jamais écoutés ». On les ouvre depuis les statistiques, on peut les épingler et les ajouter à une playlist (#383).
+
 ## 0.5.37
 
 - Nettoyer une de vos playlists ou vos titres likés : doublons (même titre, ou même chanson dans une autre édition) et titres retirés du catalogue, avec la même chanson dans une version disponible pour les remplacer ; on coche ce qu'on garde, on applique, et « Annuler » reste possible (#382).

@@ -55,6 +55,7 @@ import type {
   SearchResults,
   SleepRequest,
   SleepState,
+  SmartList,
   StreamFormat,
   Theme,
   Track,
@@ -713,6 +714,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       artists,
     };
   },
+  // Playlists intelligentes (#383) : vides tant que l'historique l'est, comme le vrai backend.
+  smart_list: ({ list }) => {
+    if (playedAlbums.length === 0) return [];
+    const offset = ({ topMonth: 0, onRepeat: 2, forgotten: 4, neverPlayed: 6 } as Record<string, number>)[String(list)] ?? 0;
+    return fx.search.tracks.slice(offset, offset + 8);
+  },
   jam_status: () => jam,
   jam_online_available: () => true,
   start_jam: (args) => (jam ??= mockJam(args.mode === "local" ? "local" : "online")),
@@ -1256,6 +1263,7 @@ export function initialView(): {
     radio: { name: "radio", seed: radioPage.seed, id: radioPage.id },
     library: { name: "library", tab: (params.get("tab") as LibraryTab) ?? "playlists" },
     stats: { name: "stats" },
+    smart: { name: "smart", list: (params.get("list") as SmartList) ?? "topMonth" },
     search: { name: "search" },
     feed: { name: "feed" },
     settings: { name: "settings", section: (params.get("tab") as SettingsSection) ?? "appearance" },
