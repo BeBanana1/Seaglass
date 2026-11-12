@@ -1,0 +1,195 @@
+/* Thème Désert (#339) : space opera des sables. Calme et monumental.
+   Jetons (sable, ocres, brun brûlé, bleu profond rare) dans app.css ; ici, ce que les jetons
+   ne disent pas : titres fins et très espacés, glyphes géométriques devant la navigation,
+   progression en trace dans le sable, chargement en ondulation de dune.
+   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+
+:root[data-theme="desert"] {
+  /* Ondulation de dune : une vague douce, répétée (masque du chargement). */
+  --ds-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 8'%3E%3Cpath d='M0 5 Q4 1 8 5 T16 5' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E");
+}
+
+/* Titres monumentaux : fins, capitales, très espacés. */
+:root[data-theme="desert"] h1 {
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+:root[data-theme="desert"] h2 {
+  font-family: var(--display-family);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+:root[data-theme="desert"] .brand {
+  font-family: var(--display-family);
+  font-weight: 300;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="desert"] .badge {
+  border-radius: 999px;
+  color: var(--text);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--text-muted);
+}
+
+:root[data-theme="desert"] .row.active .title {
+  color: var(--accent);
+}
+
+/* Navigation : texte espacé et glyphe géométrique (cercle, triangle, carré, losange) devant
+   chaque entrée ; Réglages prend l'hexagone. La page active est soulignée, pas remplie. */
+:root[data-theme="desert"] nav > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: 0.08em;
+}
+
+:root[data-theme="desert"] nav > button::before {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  background: currentColor;
+  opacity: 0.75;
+}
+
+:root[data-theme="desert"] nav > button:nth-of-type(1)::before {
+  border-radius: 50%;
+}
+
+:root[data-theme="desert"] nav > button:nth-of-type(2)::before {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+:root[data-theme="desert"] nav > button:nth-of-type(3)::before {
+  transform: scale(0.85);
+}
+
+:root[data-theme="desert"] nav > button:nth-of-type(4)::before {
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+:root[data-theme="desert"] nav > button.settings::before {
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+:root[data-theme="desert"] :is(nav button.active, nav .pin.active) {
+  color: var(--text);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--text);
+}
+
+:root[data-theme="desert"] .tabs button.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme="desert"] .theme-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+:root[data-theme="desert"] .lyrics-line.active {
+  color: var(--accent);
+}
+
+:root[data-theme="desert"] .like-button.liked {
+  color: var(--accent);
+}
+
+/* Lecture : le seul aplat bleu profond de l'écran. */
+:root[data-theme="desert"] .transport .play {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+/* --- Progression : une trace dans le sable -------------------------------------------
+   La piste est une bande de sable lisse ; la partie lue garde des empreintes en quinconce
+   (deux rangées d'ovales décalés) dans un sillon plus sombre. */
+:root[data-theme="desert"] .progress .track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(122 63 29 / 0.1);
+  box-shadow: none;
+}
+
+:root[data-theme="desert"] .progress.large .track {
+  height: 10px;
+  border-radius: 5px;
+}
+
+:root[data-theme="desert"] .progress .fill {
+  box-shadow: none;
+  background:
+    radial-gradient(ellipse 2.5px 1.6px at 4px 30%, var(--ds-burnt) 90%, transparent) 0 0 / 14px 100% repeat-x,
+    radial-gradient(ellipse 2.5px 1.6px at 11px 70%, var(--ds-burnt) 90%, transparent) 0 0 / 14px 100% repeat-x,
+    rgb(122 63 29 / 0.16);
+  opacity: 0.85;
+}
+
+:root[data-theme="desert"] .volume .fill {
+  background: var(--ds-burnt);
+}
+
+/* --- Chargement : ondulation de dune ---------------------------------------------------
+   À la place de la roue, une vague qui glisse doucement de droite à gauche. */
+:root[data-theme="desert"] .spinner {
+  border: none;
+  border-radius: 0;
+  background: currentColor;
+  -webkit-mask: var(--ds-wave) 0 50% / 8px 4px repeat-x;
+  mask: var(--ds-wave) 0 50% / 8px 4px repeat-x;
+  animation: ds-ripple 1.2s linear infinite;
+}
+
+@keyframes ds-ripple {
+  to {
+    -webkit-mask-position: -8px 50%;
+    mask-position: -8px 50%;
+  }
+}
+
+/* Chaîne audio : fine, sans cadre lourd. */
+:root[data-theme="desert"] .signal {
+  border: none;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+:root[data-theme="desert"] .signal .label {
+  letter-spacing: 0.24em;
+}
+
+:root[data-theme="desert"] .verdict {
+  border-radius: 999px;
+}
+
+/* Bandeau d'accueil : grande surface vide, sans le fond teinté. */
+:root[data-theme="desert"] .hero {
+  color: var(--text);
+  background: rgb(243 232 210 / 0.7);
+}
+
+:root[data-theme="desert"] .hero .bg {
+  display: none;
+}
+
+:root[data-theme="desert"] :is(.hero .label, .hero .meta) {
+  color: var(--text-muted);
+}
+
+/* « En lecture » : titre fin et très espacé, comme gravé. */
+:root[data-theme="desert"] .now-playing .info h1 {
+  font-weight: 200;
+  letter-spacing: 0.18em;
+}

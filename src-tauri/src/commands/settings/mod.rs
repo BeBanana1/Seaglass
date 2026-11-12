@@ -80,6 +80,8 @@ pub enum Theme {
     Noir,
     /// Grand hôtel : comédie pastel et symétrique, rose poudré et bordeaux, cartouches (#339).
     Hotel,
+    /// Désert : sable, ocres, horizon bas, accent bleu profond rare (#339).
+    Desert,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -453,6 +455,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Noir);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"hotel"}"#).unwrap();
         assert_eq!(s.theme, Theme::Hotel);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"desert"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Desert);
     }
 
     #[test]

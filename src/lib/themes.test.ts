@@ -16,7 +16,7 @@ describe("catalogue des thèmes", () => {
 describe("galleryFamilies", () => {
   it("une vignette par famille, dans l'ordre du catalogue", () => {
     const all = galleryFamilies("all", []);
-    expect(all).toHaveLength(21);
+    expect(all).toHaveLength(22);
     expect(all).not.toContain("alloy-dark");
     expect(all.slice(0, 3)).toEqual(["seaglass", "studio", "atelier"]);
   });

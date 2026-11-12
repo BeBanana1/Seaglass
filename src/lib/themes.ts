@@ -38,6 +38,7 @@ export const THEME_INFO: ThemeInfo[] = [
   { id: "onboard", scheme: "dark", family: "onboard" },
   { id: "noir", scheme: "dark", family: "noir" },
   { id: "hotel", scheme: "light", family: "hotel" },
+  { id: "desert", scheme: "light", family: "desert" },
 ];
 
 export const THEMES: Theme[] = THEME_INFO.map((t) => t.id);
