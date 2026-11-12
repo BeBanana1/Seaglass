@@ -1,0 +1,143 @@
+/* Thème Film noir (#339) : noir et blanc strict, gris argentiques, un seul accent.
+   Jetons dans app.css ; ici, ce que les jetons ne disent pas : titres d'affiche des années 40,
+   informations à la machine à écrire, toasts en télégrammes, pochettes en tirage photo.
+   Les pochettes et photos restent en couleur (pas de teinte imposée, comme #110).
+   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+
+/* Titres d'affiche : serif condensé, capitales. */
+:root[data-theme="noir"] h1 {
+  text-transform: uppercase;
+}
+
+:root[data-theme="noir"] h2 {
+  font-family: var(--nr-typewriter);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+:root[data-theme="noir"] .brand {
+  font-family: var(--display-family);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Informations à la machine à écrire : sous-titres, métadonnées, durées. */
+:root[data-theme="noir"] :is(.meta, .sub, .time, .duration, .who, .played-from) {
+  font-family: var(--nr-typewriter);
+}
+
+:root[data-theme="noir"] .badge {
+  border-radius: 0;
+  color: var(--bg);
+  background: var(--text);
+}
+
+:root[data-theme="noir"] .row.active .title {
+  color: var(--accent);
+}
+
+:root[data-theme="noir"] :is(nav button.active, nav .pin.active) {
+  color: var(--accent);
+  background: var(--bg-hover);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+:root[data-theme="noir"] .tabs button.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme="noir"] .theme-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+:root[data-theme="noir"] .lyrics-line.active {
+  color: var(--accent-strong);
+}
+
+:root[data-theme="noir"] .like-button.liked {
+  color: var(--accent);
+}
+
+/* Lecture : rond blanc, icône noire. */
+:root[data-theme="noir"] .transport .play {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme="noir"] .progress .fill {
+  box-shadow: none;
+}
+
+/* Chaîne audio : fiche dactylographiée, filet fin. */
+:root[data-theme="noir"] .signal {
+  border-radius: 0;
+  backdrop-filter: none;
+}
+
+:root[data-theme="noir"] .signal .label {
+  font-family: var(--nr-typewriter);
+}
+
+:root[data-theme="noir"] .verdict {
+  border-radius: 0;
+}
+
+/* Bandeau d'accueil : à plat, sans le fond teinté par la pochette (elle seule garde la couleur). */
+:root[data-theme="noir"] .hero {
+  color: var(--text);
+  background: #141414;
+  border: 1px solid var(--border);
+  border-radius: 0;
+}
+
+:root[data-theme="noir"] .hero .bg {
+  display: none;
+}
+
+:root[data-theme="noir"] :is(.hero .label, .hero .meta) {
+  color: var(--text-muted);
+}
+
+/* « En lecture » : le titre en affiche, l'artiste comme un générique tapé à la machine. */
+:root[data-theme="noir"] .now-playing .info h1 {
+  color: var(--accent-strong);
+}
+
+/* --- Toasts en télégrammes -------------------------------------------------------------
+   Bande de papier, texte tapé en capitales, « STOP » final (mot des télégrammes, en français
+   comme en anglais). Une erreur garde le même papier, avec un filet noir plus épais. */
+:root[data-theme="noir"] .toast {
+  border: 1px solid #b9b4a7;
+  border-radius: 0;
+  font-family: var(--nr-typewriter);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nr-ink);
+  background:
+    linear-gradient(transparent 0 3px, rgb(0 0 0 / 0.08) 3px 4px, transparent 4px) top / 100% 100% no-repeat,
+    var(--nr-paper);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.6);
+}
+
+:root[data-theme="noir"] .toast::after {
+  content: " STOP";
+  font-weight: 700;
+}
+
+:root[data-theme="noir"] .toast.error {
+  border-left: 5px solid var(--nr-ink);
+  color: var(--nr-ink);
+  background: var(--nr-paper);
+}
+
+:root[data-theme="noir"] .toast .toast-action {
+  color: var(--nr-ink);
+  text-decoration: underline;
+}

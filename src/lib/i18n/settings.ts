@@ -106,6 +106,10 @@ export const fr = {
       name: "Ordinateur de bord",
       description: "Écrans de vaisseau de la science-fiction des années 70-80 : ambre, blocs numérotés, voyants et cadrans.",
     },
+    noir: {
+      name: "Film noir",
+      description: "Noir et blanc strict, ombres de stores vénitiens, machine à écrire ; seules les pochettes restent en couleur.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -429,6 +433,10 @@ export const en: typeof fr = {
     onboard: {
       name: "Ship Computer",
       description: "Starship screens from 1970s-80s science fiction: amber, numbered blocks, indicator lights and dials.",
+    },
+    noir: {
+      name: "Film Noir",
+      description: "Strict black and white, venetian blind shadows, typewriter type; only the covers keep their color.",
     },
   },
 

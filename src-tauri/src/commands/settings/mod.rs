@@ -76,6 +76,8 @@ pub enum Theme {
     Seance,
     /// Écrans de vaisseau de la SF des années 70-80 : ambre, blocs numérotés, voyants (#339).
     Onboard,
+    /// Film noir : noir et blanc strict, stores vénitiens, machine à écrire (#339).
+    Noir,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -445,6 +447,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Seance);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"onboard"}"#).unwrap();
         assert_eq!(s.theme, Theme::Onboard);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"noir"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Noir);
     }
 
     #[test]

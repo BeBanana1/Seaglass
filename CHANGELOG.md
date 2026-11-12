@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.47
+
+- Nouveau thème Film noir : noir et blanc strict, ombres de stores vénitiens en biais, titres d'affiche des années 40 et informations à la machine à écrire ; seules les pochettes restent en couleur. Les notifications arrivent en télégrammes, une fumée immobile monte dans « En lecture » et la recherche sans résultat a son détective fatigué (#339).
+
 ## 0.5.46
 
 - Nouveau thème Ordinateur de bord : les écrans de vaisseau de la science-fiction des années 70-80, ambre sur fond presque noir, étiquettes numérotées, blocs de couleur et bandes d'avertissement. La chaîne audio de « En lecture » devient un schéma de systèmes avec voyants, un voyant rouge fixe veille près du bouton lecture et le démarrage déroule une séquence d'auto-test (#339).

@@ -21,6 +21,7 @@
   import CardGrid from "../components/CardGrid.svelte";
   import TrackList from "../components/TrackList.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { ui } from "../lib/stores/ui.svelte";
   import { openTidalLink } from "../lib/links";
 
   const COLLAPSED_TRACKS = 8;
@@ -199,7 +200,7 @@
   {:else if searching && !r}
     <p class="muted">{t.views.search.searching}</p>
   {:else if empty && !searching}
-    <p class="muted">{t.views.search.noResults}</p>
+    <p class="muted">{ui.settings.theme === "noir" ? t.views.search.noResultsNoir : t.views.search.noResults}</p>
   {/if}
 
   <!-- Un clic dans les résultats retient la requête (#248) : c'est celle qu'on cherchait. -->
