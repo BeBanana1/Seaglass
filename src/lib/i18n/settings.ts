@@ -19,6 +19,14 @@ export const fr = {
   motions: { system: "Système", reduced: "Réduites", full: "Complètes" },
   theme: "Thème",
   themeHint: "Le thème s'applique tout de suite et reste enregistré.",
+  themeVariant: "Variante",
+  themeSchemes: { light: "Clair", dark: "Sombre" },
+  themeFavoriteAdd: "Ajouter aux favoris",
+  themeFavoriteRemove: "Retirer des favoris",
+  themeGallery: "Tous les thèmes",
+  themeFilter: "Afficher",
+  themeFilters: { all: "Tous", favorites: "Favoris", light: "Clairs", dark: "Sombres" },
+  themeNoFavorites: "Aucun favori pour l'instant : l'étoile du thème actuel l'ajoute ici.",
   themes: {
     seaglass: {
       name: "Verre de mer",
@@ -311,6 +319,14 @@ export const en: typeof fr = {
   motions: { system: "System", reduced: "Reduced", full: "Full" },
   theme: "Theme",
   themeHint: "The theme applies right away and is saved.",
+  themeVariant: "Variant",
+  themeSchemes: { light: "Light", dark: "Dark" },
+  themeFavoriteAdd: "Add to favorites",
+  themeFavoriteRemove: "Remove from favorites",
+  themeGallery: "All themes",
+  themeFilter: "Show",
+  themeFilters: { all: "All", favorites: "Favorites", light: "Light", dark: "Dark" },
+  themeNoFavorites: "No favorites yet: the star on the current theme adds it here.",
   themes: {
     seaglass: {
       name: "Seaglass",

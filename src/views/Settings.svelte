@@ -26,7 +26,7 @@
   } from "../lib/stores/ui.svelte";
   import { setLanguage, t } from "../lib/i18n.svelte";
   import ThemePicker from "../components/ThemePicker.svelte";
-  import AccentPicker from "../components/AccentPicker.svelte";
+  import CurrentTheme from "../components/CurrentTheme.svelte";
   import ChangelogList from "../components/ChangelogList.svelte";
   import OutputDevicePicker from "../components/OutputDevicePicker.svelte";
   import { platform } from "../lib/platform.svelte";
@@ -349,7 +349,7 @@
     <div class="group">
       <h2>{t.settings.theme}</h2>
       <p class="hint">{t.settings.themeHint}</p>
-      <ThemePicker />
+      <CurrentTheme />
     </div>
     <div class="group">
       <h2>{t.settings.motion}</h2>
@@ -367,11 +367,6 @@
           </button>
         {/each}
       </div>
-    </div>
-    <div class="group">
-      <h2>{t.settings.accent}</h2>
-      <p class="hint">{t.settings.accentHint}</p>
-      <AccentPicker />
     </div>
     {#if desktop}
     <div class="group">
@@ -392,6 +387,11 @@
       </div>
     </div>
     {/if}
+    <!-- Galerie en dernier (#390) : plus aucun réglage caché sous elle. -->
+    <div class="group">
+      <h2>{t.settings.themeGallery}</h2>
+      <ThemePicker />
+    </div>
   {:else if section === "playback"}
     {#if desktop}
     <div class="group">

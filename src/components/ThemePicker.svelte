@@ -1,52 +1,121 @@
-<!-- Choix du thème (section Apparence des réglages), avec une miniature de chacun. -->
+<!-- Galerie des thèmes (section Apparence des réglages, #390) : vignettes compactes, une par
+     famille (les variantes claire / sombre se choisissent dans `CurrentTheme`), filtres et
+     favoris en tête. La description passe en infobulle et dans le bloc du thème actuel. -->
 <script lang="ts">
-  import { setTheme, THEMES, ui } from "../lib/stores/ui.svelte";
+  import { setTheme, ui } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { familyOf, GALLERY_FILTERS, galleryFamilies, variantFor, type GalleryFilter } from "../lib/themes";
   import type { Theme } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
+  import Icon from "./Icon.svelte";
+  import ThemePreview from "./ThemePreview.svelte";
+
+  let filter = $state<GalleryFilter>("all");
+  let grid = $state<HTMLDivElement>();
+
+  const current = $derived(ui.settings.theme);
+  const currentFamily = $derived(familyOf(current));
+  const favorites = $derived(ui.settings.favoriteThemes);
+  const families = $derived(galleryFamilies(filter, favorites));
+  // Tabulation : la vignette du thème actuel, sinon la première affichée.
+  const tabStop = $derived(families.includes(currentFamily) ? currentFamily : families[0]);
 
   async function choose(theme: Theme) {
+    if (theme === current) return;
     try {
       await setTheme(theme);
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
   }
+
+  /** Nombre de colonnes réellement affichées, pour Haut / Bas. */
+  function columns(): number {
+    if (!grid) return 1;
+    return getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length || 1;
+  }
+
+  // Les flèches déplacent le focus sans appliquer le thème (Espace ou Entrée le fait) :
+  // appliquer un thème remonte son fond décoratif, trop coûteux à chaque pression.
+  function onKeydown(e: KeyboardEvent) {
+    const cards = [...(grid?.querySelectorAll<HTMLButtonElement>(".theme-card") ?? [])];
+    const from = cards.indexOf(document.activeElement as HTMLButtonElement);
+    if (from < 0) return;
+    const step: Record<string, number> = {
+      ArrowLeft: -1,
+      ArrowRight: 1,
+      ArrowUp: -columns(),
+      ArrowDown: columns(),
+      Home: -from,
+      End: cards.length - 1 - from,
+    };
+    if (!(e.key in step)) return;
+    e.preventDefault();
+    const to = Math.min(cards.length - 1, Math.max(0, from + step[e.key]));
+    cards[to].focus();
+  }
 </script>
 
-<div class="themes" role="radiogroup" aria-label={t.settings.theme}>
-  {#each THEMES as id (id)}
-    {@const theme = { id, ...t.settings.themes[id] }}
+<div class="cache-sizes theme-filters" role="radiogroup" aria-label={t.settings.themeFilter}>
+  {#each GALLERY_FILTERS as f (f)}
     <button
-      class="theme-card"
-      class:selected={ui.settings.theme === theme.id}
-      onclick={() => choose(theme.id)}
+      class="cache-size"
+      class:selected={filter === f}
       role="radio"
-      aria-checked={ui.settings.theme === theme.id}
+      aria-checked={filter === f}
+      onclick={() => (filter = f)}
     >
-      <span class="preview {theme.id}" aria-hidden="true">
-        <span class="side"></span>
-        <span class="main"><span class="h"></span><span class="l"></span><span class="l short"></span></span>
-        <span class="bar"></span>
-      </span>
-      <span class="name">{theme.name}</span>
-      <span class="desc">{theme.description}</span>
+      {t.settings.themeFilters[f]}
     </button>
   {/each}
 </div>
 
+{#if families.length === 0}
+  <p class="empty">{t.settings.themeNoFavorites}</p>
+{:else}
+  <!-- svelte-ignore a11y_interactive_supports_focus -->
+  <div class="themes" role="radiogroup" aria-label={t.settings.themeGallery} bind:this={grid} onkeydown={onKeydown}>
+    {#each families as family (family)}
+      {@const theme = variantFor(family, current, filter)}
+      {@const selected = family === currentFamily}
+      <button
+        class="theme-card"
+        class:selected
+        role="radio"
+        aria-checked={selected}
+        tabindex={family === tabStop ? 0 : -1}
+        title={t.settings.themes[theme].description}
+        onclick={() => choose(theme)}
+      >
+        <ThemePreview {theme} />
+        <span class="name">
+          <span class="label">{t.settings.themes[family].name}</span>
+          {#if favorites.includes(family)}
+            <Icon name="starFilled" size={13} />
+          {/if}
+        </span>
+      </button>
+    {/each}
+  </div>
+{/if}
+
 <style>
+  .theme-filters {
+    margin-bottom: 14px;
+  }
+
   .themes {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+    gap: 10px;
   }
 
   .theme-card {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 10px;
+    min-width: 0;
+    padding: 6px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     text-align: left;
@@ -62,436 +131,63 @@
   }
 
   .name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 2px;
+    font-size: 13px;
     font-weight: 600;
+    color: var(--text);
   }
 
-  .desc {
-    font-size: 12px;
+  .name :global(svg) {
+    flex-shrink: 0;
+    color: var(--accent);
+  }
+
+  .label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .empty {
+    margin: 0;
+    font-size: 13px;
     color: var(--text-muted);
   }
 
-  /* Miniatures dessinées en CSS, indépendantes du thème courant. */
-  .preview {
-    display: grid;
-    grid-template-columns: 22% 1fr;
-    grid-template-rows: 1fr 18%;
+  /* Mêmes sélecteurs que ceux des réglages (styles des thèmes compris). */
+  .cache-sizes {
+    display: inline-flex;
+    flex-wrap: wrap;
     gap: 4px;
-    height: 110px;
-    padding: 6px;
-    border-radius: 6px;
-    overflow: hidden;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
   }
 
-  .side {
-    grid-row: 1;
-    border-radius: 4px;
+  .cache-size {
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    color: var(--text-muted);
   }
 
-  .main {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 8px;
-    border-radius: 4px;
+  .cache-size:hover:not(.selected) {
+    color: var(--text);
+    background: var(--bg-hover);
   }
 
-  .h {
-    width: 60%;
-    height: 9px;
-    border-radius: 2px;
+  .cache-size.selected {
+    color: var(--accent-contrast);
+    background: var(--accent);
   }
 
-  .l {
-    width: 85%;
-    height: 5px;
-    border-radius: 2px;
-    opacity: 0.6;
-  }
-
-  .l.short {
-    width: 50%;
-  }
-
-  .bar {
-    grid-column: 1 / -1;
-    border-radius: 4px;
-  }
-
-  .preview.seaglass {
-    background:
-      radial-gradient(circle at 20% 20%, #4f95b0, transparent 60%),
-      radial-gradient(circle at 80% 90%, #2c5c6b, transparent 60%),
-      #061012;
-  }
-
-  .seaglass .side,
-  .seaglass .main,
-  .seaglass .bar {
-    background: rgb(255 255 255 / 0.12);
-    border: 1px solid rgb(255 255 255 / 0.12);
-  }
-
-  .seaglass .h {
-    background: #e9fffa;
-  }
-
-  .seaglass .l {
-    background: #b8d8d0;
-  }
-
-  .preview.studio {
-    gap: 1px;
-    padding: 0;
-    border-radius: 0;
-    background: #26262b;
-  }
-
-  .studio .side,
-  .studio .main,
-  .studio .bar {
-    border-radius: 0;
-    background: #0f0f11;
-  }
-
-  .studio .h {
-    background: #ffb547;
-  }
-
-  .studio .l {
-    background: #85858f;
-  }
-
-  .preview.atelier {
-    gap: 0;
-    padding: 0;
-    background: #f3efe6;
-    border: 1px solid #dcd3c1;
-  }
-
-  .atelier .side {
-    border-right: 1px solid #dcd3c1;
-    border-radius: 0;
-  }
-
-  .atelier .bar {
-    border-top: 1px solid #1c1a16;
-    border-radius: 0;
-  }
-
-  .atelier .h {
-    height: 12px;
-    background: #1c1a16;
-  }
-
-  .atelier .l {
-    background: #6d675b;
-  }
-
-  .preview.acidwave {
-    gap: 3px;
-    background:
-      radial-gradient(circle at 15% 15%, rgb(200 255 0 / 0.55), transparent 50%),
-      radial-gradient(circle at 85% 70%, rgb(255 43 214 / 0.55), transparent 50%),
-      #050507;
-  }
-
-  .acidwave .side,
-  .acidwave .main,
-  .acidwave .bar {
-    border-radius: 2px;
-    background: rgb(8 8 12 / 0.75);
-    border: 1px solid rgb(200 255 0 / 0.35);
-  }
-
-  .acidwave .h {
-    background: linear-gradient(180deg, #fff, #4d5560 50%, #eef3f7);
-    box-shadow: 0 0 6px rgb(200 255 0 / 0.6);
-  }
-
-  .acidwave .l {
-    background: #c8ff00;
-  }
-
-  .preview.surreal {
-    position: relative;
-    gap: 5px;
-    padding: 8px;
-    border-radius: 12px;
-    background:
-      radial-gradient(circle at 72% 62%, #f6b38a 0 16%, transparent 17%),
-      linear-gradient(180deg, #e8d9f0, #fbe7d8 70%);
-  }
-
-  .surreal .side,
-  .surreal .main,
-  .surreal .bar {
-    border-radius: 10px;
-    background: rgb(255 250 244 / 0.8);
-    box-shadow: 0 6px 10px -6px rgb(61 42 77 / 0.5);
-  }
-
-  .surreal .h {
-    background: #3d2a4d;
-    border-radius: 6px;
-  }
-
-  .surreal .l {
-    background: #b49cbf;
-  }
-
-  .preview.solarpunk {
-    gap: 5px;
-    padding: 8px;
-    border-radius: 12px;
-    background:
-      radial-gradient(circle at 82% 18%, #f3cf6b 0 14%, transparent 15%),
-      radial-gradient(ellipse at 0% 100%, #2e6b3d 0 26%, transparent 27%),
-      radial-gradient(ellipse at 100% 100%, #3f8a4f 0 22%, transparent 23%),
-      linear-gradient(180deg, #f8efcc, #e6eecf 75%);
-  }
-
-  .solarpunk .side,
-  .solarpunk .main,
-  .solarpunk .bar {
-    border-radius: 9px;
-    background: rgb(251 249 236 / 0.82);
-    box-shadow: 0 6px 10px -6px rgb(24 64 36 / 0.45);
-  }
-
-  .solarpunk .main {
-    border-radius: 18px 18px 9px 9px;
-  }
-
-  .solarpunk .h {
-    background: #15301d;
-    border-radius: 6px;
-  }
-
-  .solarpunk .l {
-    background: #2c7a41;
-  }
-
-  .preview.cyberpunk {
-    gap: 3px;
-    border-radius: 0;
-    background:
-      linear-gradient(180deg, transparent 62%, rgb(255 42 109 / 0.35)),
-      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.35) 0 1px, transparent 1px 3px),
-      #06070d;
-  }
-
-  .cyberpunk .side,
-  .cyberpunk .main,
-  .cyberpunk .bar {
-    border-radius: 0;
-    background: rgb(9 11 20 / 0.85);
-    border: 1px solid rgb(0 229 255 / 0.45);
-  }
-
-  .cyberpunk .main {
-    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-  }
-
-  .cyberpunk .h {
-    background: #fcee0a;
-    box-shadow: 2px 0 0 rgb(255 42 109 / 0.7);
-  }
-
-  .cyberpunk .l {
-    background: #00e5ff;
-  }
-
-  .preview.neumorph,
-  .preview.neumorph-dark {
-    gap: 7px;
-    padding: 9px;
-    border-radius: 12px;
-    background: #e3e7ed;
-  }
-
-  .preview.neumorph-dark {
-    background: #24272e;
-  }
-
-  .neumorph :is(.side, .main, .bar) {
-    border-radius: 8px;
-    background: #e3e7ed;
-    box-shadow:
-      3px 3px 6px rgb(150 162 184 / 0.6),
-      -3px -3px 6px rgb(255 255 255 / 0.9);
-  }
-
-  .neumorph-dark :is(.side, .main, .bar) {
-    border-radius: 8px;
-    background: #24272e;
-    box-shadow:
-      3px 3px 6px rgb(0 0 0 / 0.5),
-      -3px -3px 6px rgb(255 255 255 / 0.06);
-  }
-
-  .neumorph .h {
-    background: #252b36;
-  }
-
-  .neumorph .l {
-    background: #3f56c9;
-  }
-
-  .neumorph-dark .h {
-    background: #e4e8ef;
-  }
-
-  .neumorph-dark .l {
-    background: #8fa2ff;
-  }
-
-  .preview.terminal {
-    gap: 3px;
-    border-radius: 0;
-    background:
-      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.3) 0 1px, transparent 1px 3px),
-      radial-gradient(ellipse at center, #0a130a, #020402 80%);
-  }
-
-  .terminal :is(.side, .main, .bar) {
-    border-radius: 0;
-    background: transparent;
-    border: 1px solid rgb(65 255 122 / 0.45);
-  }
-
-  .terminal .h {
-    width: 55%;
-    background: #41ff7a;
-    box-shadow: 0 0 6px rgb(65 255 122 / 0.7);
-  }
-
-  .preview.riso {
-    gap: 5px;
-    padding: 8px;
-    border-radius: 4px;
-    background:
-      radial-gradient(circle at 12% 18%, rgb(200 22 111 / 0.55) 0 22%, transparent 23%),
-      radial-gradient(circle at 88% 88%, rgb(11 95 165 / 0.5) 0 20%, transparent 21%),
-      #f4efe4;
-  }
-
-  .riso :is(.side, .main, .bar) {
-    border-radius: 3px;
-    background: #faf7f0;
-    border: 1.5px solid #1d1a2b;
-    box-shadow: 3px 3px 0 rgb(11 95 165 / 0.45);
-  }
-
-  .riso .h {
-    background: #1d1a2b;
-    box-shadow: 2px 1px 0 rgb(200 22 111 / 0.6);
-  }
-
-  .riso .l {
-    background: linear-gradient(transparent 40%, rgb(200 22 111 / 0.5) 40%);
-  }
-
-  .preview.bauhaus {
-    gap: 4px;
-    padding: 7px;
-    border-radius: 0;
-    background:
-      radial-gradient(circle at 92% 8%, #c8231a 0 24%, transparent 25%),
-      radial-gradient(circle at 0% 100%, #f2b80d 0 26%, transparent 27%),
-      #f1ece0;
-  }
-
-  .bauhaus :is(.side, .main, .bar) {
-    border-radius: 0;
-    background: #f7f3ea;
-    border: 1.5px solid #141414;
-  }
-
-  .bauhaus .h {
-    background: #141414;
-  }
-
-  .bauhaus .l {
-    background: #1d4fa0;
-  }
-
-  .preview.aero {
-    gap: 4px;
-    border-radius: 0;
-    background:
-      linear-gradient(90deg, transparent 88%, #f2ee1d 88%),
-      radial-gradient(circle, rgb(31 47 53 / 0.25) 0.8px, transparent 1.2px) 0 0 / 6px 6px,
-      #d3eaee;
-  }
-
-  .aero :is(.side, .main, .bar) {
-    border-radius: 0;
-    background: #e3f2f4;
-  }
-
-  .aero .h {
-    background: #1f2f35;
-    box-shadow: 0 4px 0 -1px #e3f2f4, 0 6px 0 -1px #1f2f35;
-  }
-
-  .aero .l {
-    background: #465b62;
-  }
-
-  .aero .bar {
-    box-shadow: inset 4px 0 0 #f2ee1d, inset 6px 0 0 #1f2f35;
-  }
-
-  .terminal .l {
-    background: repeating-linear-gradient(90deg, rgb(65 255 122 / 0.6) 0 4px, transparent 4px 6px);
-  }
-
-  .preview.alloy,
-  .preview.alloy-dark {
-    gap: 4px;
-    border-radius: 0;
-    background: linear-gradient(172deg, #eef1f3, #c6ccd2 45%, #dde1e5 55%, #b3bac2);
-  }
-
-  .preview.alloy-dark {
-    background: linear-gradient(172deg, #3c4148, #22262b 45%, #30353b 55%, #191c20);
-  }
-
-  :is(.alloy, .alloy-dark) :is(.side, .main) {
-    border-radius: 0;
-    background: rgb(234 237 240 / 0.6);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
-    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
-  }
-
-  .alloy-dark :is(.side, .main) {
-    background: rgb(38 42 48 / 0.85);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
-  }
-
-  :is(.alloy, .alloy-dark) .bar {
-    border-radius: 0;
-    background:
-      linear-gradient(90deg, #c3261f 0 10px, transparent 10px),
-      repeating-linear-gradient(-55deg, rgb(255 255 255 / 0.18) 0 1px, transparent 1px 4px) right 4px center / 18px 70% no-repeat,
-      #121417;
-    clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px);
-  }
-
-  .alloy .h {
-    background: #15181c;
-  }
-
-  .alloy .l {
-    background: #4a5159;
-  }
-
-  .alloy-dark .h {
-    background: #e6e9ec;
-  }
-
-  .alloy-dark .l {
-    background: #ffb21e;
+  /* Téléphone : trois vignettes par rangée. */
+  :global(:root[data-platform="android"]) .themes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
 
   :global([data-theme="studio"]) .theme-card {
