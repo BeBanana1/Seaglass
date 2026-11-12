@@ -324,7 +324,7 @@
       {/if}
       {#if queueOpen}
         <aside class="panel np-panel np-queue" aria-label={t.player.queue}>
-          <h2>{t.player.queue}</h2>
+          <h2>{ui.settings.theme === "hotel" ? t.player.queueHotel : t.player.queue}</h2>
           <QueueList current={false} />
         </aside>
       {/if}

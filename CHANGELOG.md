@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.48
+
+- Nouveau thème Grand hôtel : comédie pastel et symétrique, rose poudré, bordeaux et moutarde, papier peint rayé, cadres doubles à filets, étiquettes en cartouche et numéros de piste en médaillons. Les sections de l'accueil sont numérotées en chapitres, la file s'intitule « Programme », une clé de concierge accompagne les réglages et « En lecture » est centré (#339).
+
 ## 0.5.47
 
 - Nouveau thème Film noir : noir et blanc strict, ombres de stores vénitiens en biais, titres d'affiche des années 40 et informations à la machine à écrire ; seules les pochettes restent en couleur. Les notifications arrivent en télégrammes, une fumée immobile monte dans « En lecture » et la recherche sans résultat a son détective fatigué (#339).

@@ -1091,6 +1091,69 @@
   --meta-family: var(--nr-typewriter);
 }
 
+/* --- Grand hôtel : comédie pastel et symétrique (voir themes/hotel.css) ------------- */
+/* Rose poudré, bordeaux pour le texte et l'accent (remplaçable), moutarde et bleu pâle fixes
+   pour le décor (`--gh-mustard`, `--gh-blue`) : seul le bordeaux est posé dessus. Clair, très
+   ordonné : cadres doubles à filets, étiquettes en cartouche. */
+:root[data-theme="hotel"] {
+  color-scheme: light;
+  --gh-burgundy: #4e1424;
+  --gh-mustard: #d6a23c;
+  --gh-blue: #a9c8d8;
+  --gh-rose: #e7b9bf;
+  --gh-cream: #fbf1ef;
+  --bg: #f4e1e1;
+  --surface: rgb(251 241 239 / 0.94);
+  --dialog-bg: var(--gh-cream);
+  --bg-raised: rgb(78 20 36 / 0.05);
+  --bg-hover: rgb(78 20 36 / 0.09);
+  --border: rgb(78 20 36 / 0.2);
+  --text: var(--gh-burgundy);
+  --text-muted: #7a4250;
+  --accent: #8e2240;
+  --accent-strong: #6e1530;
+  --accent-contrast: #ffffff;
+  --danger: #a3241c;
+  --ok: #3d6b4a;
+  --warn: #8a5a00;
+  --radius: 3px;
+  --radius-pill: 999px;
+  --radius-card: 2px;
+  --radius-cover: 2px;
+  --panel-radius: 4px;
+  --dialog-radius: 4px;
+  --popover-radius: 3px;
+  --panel-blur: none;
+  /* Cadre double : filet bordeaux, marge crème, filet rose. */
+  --panel-border: 1px solid var(--gh-burgundy);
+  --panel-shadow:
+    inset 0 0 0 4px var(--gh-cream),
+    inset 0 0 0 5px var(--gh-rose);
+  --dialog-border: 1px solid var(--gh-burgundy);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow:
+    inset 0 0 0 4px var(--gh-cream),
+    inset 0 0 0 5px var(--gh-rose),
+    0 20px 50px rgb(78 20 36 / 0.25);
+  --popover-shadow: 0 10px 28px rgb(78 20 36 / 0.22);
+  /* Pochettes encadrées comme une gravure au mur : passe-partout crème et filet bordeaux. */
+  --shadow-cover:
+    0 0 0 5px var(--gh-cream),
+    0 0 0 6px var(--gh-burgundy),
+    0 10px 24px rgb(78 20 36 / 0.2);
+  --shadow-raised: 0 1px 0 rgb(78 20 36 / 0.25);
+  --shadow-inset: inset 0 0 0 1px rgb(78 20 36 / 0.25);
+  --control-bg: var(--gh-cream);
+  --focus-ring: 2px solid var(--gh-mustard);
+  --shell-gap: 12px;
+  --display-family: "Copperplate Gothic Bold", "Copperplate Gothic Light", Copperplate, "Trajan Pro", Georgia, serif;
+  --display-weight: 400;
+  --display-tracking: 0.12em;
+  --label-transform: uppercase;
+  --label-tracking: 0.2em;
+  --meta-family: var(--font-ui);
+}
+
 * {
   box-sizing: border-box;
 }

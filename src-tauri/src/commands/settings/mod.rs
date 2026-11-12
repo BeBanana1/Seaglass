@@ -78,6 +78,8 @@ pub enum Theme {
     Onboard,
     /// Film noir : noir et blanc strict, stores vénitiens, machine à écrire (#339).
     Noir,
+    /// Grand hôtel : comédie pastel et symétrique, rose poudré et bordeaux, cartouches (#339).
+    Hotel,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -449,6 +451,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Onboard);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"noir"}"#).unwrap();
         assert_eq!(s.theme, Theme::Noir);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"hotel"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Hotel);
     }
 
     #[test]

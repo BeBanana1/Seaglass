@@ -16,6 +16,7 @@
   import SeanceHall from "./SeanceHall.svelte";
   import OnboardDeck from "./OnboardDeck.svelte";
   import NoirBlinds from "./NoirBlinds.svelte";
+  import HotelWallpaper from "./HotelWallpaper.svelte";
 
   let { context = "shell" }: { context?: "shell" | "nowplaying" } = $props();
 
@@ -54,6 +55,8 @@
     <OnboardDeck {intense} />
   {:else if theme === "noir"}
     <NoirBlinds {intense} />
+  {:else if theme === "hotel"}
+    <HotelWallpaper {intense} />
   {/if}
 </div>
 
