@@ -323,7 +323,7 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
     builder
 }
 
-/// SMTC (touches média, panneau Windows), branché sur la fenêtre principale, MPRIS sous Linux, et icône de
+/// SMTC (touches média, panneau Windows) et boutons de la miniature, branchés sur la fenêtre principale, MPRIS sous Linux, et icône de
 /// la zone de notification ; session média sur Android. Un échec est journalisé sans empêcher l'app de démarrer.
 fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<player::Cmd>) {
     let mut observers = integrations::Observers::default();
@@ -342,9 +342,19 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
             .get_webview_window("main")
             .ok_or_else(|| "fenêtre principale introuvable".to_owned())
             .and_then(|w| w.hwnd().map_err(|e| e.to_string()));
-        match hwnd.and_then(|h| integrations::smtc::start(h.0 as isize, player.clone())) {
+        match hwnd
+            .clone()
+            .and_then(|h| integrations::smtc::start(h.0 as isize, player.clone()))
+        {
             Ok(smtc) => observers.smtc = Some(smtc),
             Err(e) => tracing::warn!("SMTC indisponible : {e}"),
+        }
+        // Boutons sous la miniature (#333) : `setup` tourne sur le thread de la fenêtre.
+        match hwnd
+            .and_then(|h| integrations::thumbbar::start(app.handle(), h.0 as isize, player.clone()))
+        {
+            Ok(bar) => observers.thumbbar = Some(bar),
+            Err(e) => tracing::warn!("boutons de la miniature indisponibles : {e}"),
         }
     }
     #[cfg(target_os = "linux")]

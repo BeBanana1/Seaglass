@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.31
+
+- Windows : boutons Précédent, Lecture / Pause et Suivant sous la miniature de la fenêtre dans la barre des tâches, grisés quand l'action n'est pas possible et adaptés au thème clair ou sombre (#333).
+
 ## 0.5.30
 
 - Android : une qualité en Wi-Fi et une autre en données mobiles, et un réglage qui baisse la qualité quand la batterie est faible (Haute sous 50 %, Basse sous 20 % ou avec l'économiseur de batterie, rien pendant la charge) (#365).
