@@ -393,6 +393,22 @@ pub enum LikeTarget {
     Mix { id: String },
 }
 
+/// Ce qu'on peut bloquer (#334) : ni proposé par les mixes ni par les radios.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum BlockTarget {
+    Track { id: TrackId },
+    Artist { id: u64 },
+}
+
+/// Titres et artistes bloqués, du plus récent au plus ancien.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Blocked {
+    pub tracks: Vec<Track>,
+    pub artists: Vec<ArtistSummary>,
+}
+
 /// Tous les favoris, en identifiants (événement `likes`). Chaque liste est triée.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]

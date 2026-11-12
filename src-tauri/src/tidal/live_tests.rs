@@ -9,6 +9,8 @@
 //! - `cargo test live_hires_twin_album -- --ignored --nocapture` : album jumeau hi-res (#59).
 //! - `cargo test live_locale -- --ignored --nocapture` : titres de l'accueil en anglais (#7).
 //! - `cargo test live_home_pages -- --ignored --nocapture` : toutes les pages de l'accueil (#207).
+//! - `cargo test live_blocks -- --ignored --nocapture` : blocages, dans `live_blocks.rs`
+//!   (**modifie le compte**, puis le remet en état).
 //! - `cargo test live_collection -- --ignored --nocapture` : écritures dans la bibliothèque,
 //!   dans `live_collection.rs` (**modifie le compte**).
 //! - `cargo test dump_ui_fixtures -- --ignored` : écrit `src/lib/mock/fixtures.json`

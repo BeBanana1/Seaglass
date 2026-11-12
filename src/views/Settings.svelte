@@ -32,6 +32,7 @@
   import { platform } from "../lib/platform.svelte";
   import { jam } from "../lib/stores/jam.svelte";
   import JamPanel from "../components/JamPanel.svelte";
+  import BlockedList from "../components/BlockedList.svelte";
 
   let { section, onLogout }: { section: SettingsSection; onLogout?: () => void } = $props();
 
@@ -595,6 +596,12 @@
           <span class="knob"></span>
         </button>
       </label>
+    </div>
+    <!-- #334 : blocages enregistrés chez le service (menu d'un titre pour bloquer). -->
+    <div class="group">
+      <h2>{t.settings.blocked}</h2>
+      <p class="hint">{t.settings.blockedHint}</p>
+      <BlockedList />
     </div>
     {#if desktop}
     <div class="group">

@@ -1,13 +1,13 @@
 // Entrées du menu contextuel d'un titre (#52). Chaque action passe par une commande du backend.
 
-import { commands, type Track } from "./ipc";
+import { commands, type BlockTarget, type Track } from "./ipc";
 import { fullTitle } from "./format";
 import { isLiked, toggleLike } from "./stores/likes.svelte";
 import { isSavedForLater, toggleLater } from "./stores/later.svelte";
 import { go } from "./stores/nav.svelte";
 import { openPlaylistPicker } from "./stores/playlistPicker.svelte";
 import type { MenuEntry } from "./stores/menu.svelte";
-import { pushToast } from "./stores/toasts.svelte";
+import { pushToast, pushUndoToast } from "./stores/toasts.svelte";
 import { openTrackInfo } from "./stores/trackInfo.svelte";
 import { t } from "./i18n.svelte";
 
@@ -23,6 +23,8 @@ export interface TrackMenuOptions {
   queueable?: boolean;
   /** Titre d'une de vos playlists : « Retirer de cette playlist ». */
   onRemoveFromPlaylist?: () => void;
+  /** Après un blocage confirmé (#334) : « En lecture » passe au titre suivant. */
+  onBlocked?: () => void;
 }
 
 /** Lien public du titre, à partager. */
@@ -38,6 +40,18 @@ async function run(action: () => Promise<unknown>) {
   }
 }
 
+/** Bloque (#334), puis propose d'annuler : le blocage vaut sur tous les appareils. */
+async function block(target: BlockTarget, message: string, onBlocked?: () => void) {
+  try {
+    await commands.setBlocked(target, true);
+  } catch (e) {
+    pushToast({ level: "error", message: String(e) });
+    return;
+  }
+  onBlocked?.();
+  pushUndoToast(message, () => run(() => commands.setBlocked(target, false)));
+}
+
 async function copyLink(track: Track) {
   await navigator.clipboard.writeText(trackLink(track));
   pushToast({ level: "info", message: t.common.linkCopied });
@@ -45,7 +59,7 @@ async function copyLink(track: Track) {
 
 export function trackMenu(
   track: Track,
-  { onPlay, onRemove, onMoveUp, onMoveDown, queueable = true, onRemoveFromPlaylist }: TrackMenuOptions,
+  { onPlay, onRemove, onMoveUp, onMoveDown, queueable = true, onRemoveFromPlaylist, onBlocked }: TrackMenuOptions,
 ): MenuEntry[] {
   const m = t.menu;
   const entries: MenuEntry[] = [];
@@ -104,6 +118,21 @@ export function trackMenu(
     "separator",
     { label: m.trackInfo, icon: "info", action: () => openTrackInfo(track) },
     { label: m.copyLink, icon: "link", action: () => run(() => copyLink(track)) },
+    "separator",
+    {
+      label: m.blockTrack,
+      icon: "block",
+      action: () => block({ kind: "track", id: track.id }, m.trackBlocked(fullTitle(track)), onBlocked),
+    },
   );
+  // Artiste principal seulement : un invité se bloque depuis un de ses propres titres.
+  const main = track.artists[0];
+  if (main) {
+    entries.push({
+      label: m.blockArtist(main.name),
+      icon: "block",
+      action: () => block({ kind: "artist", id: main.id }, m.artistBlocked(main.name), onBlocked),
+    });
+  }
   return entries;
 }

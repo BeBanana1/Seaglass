@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.35
+
+- Bloquer un titre ou un artiste depuis le menu d'un titre ou « En lecture » : il n'est plus proposé par les mixes ni par les radios, sur tous les appareils ; liste et « Débloquer » dans Réglages › Lecture (#334).
+
 ## 0.5.34
 
 - Sauvegarde des réglages (Réglages › Application) : copier ses réglages d'interface et de lecture en texte, puis les coller dans Seaglass sur un autre appareil ; ce qui ne s'applique pas à l'appareil est ignoré et signalé (#352).
