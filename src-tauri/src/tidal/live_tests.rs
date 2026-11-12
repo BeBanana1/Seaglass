@@ -555,38 +555,67 @@ async fn live_foreign_links() {
     }
 }
 
-/// `cargo test live_high_quality -- --ignored --nocapture` : flux `HIGH` du client PKCE
-/// (#325) : type de manifeste, codec, absence de DRM, gain de normalisation.
+/// `cargo test live_mobile_qualities -- --ignored --nocapture` : les quatre paliers du client
+/// PKCE (#325, #366) : type de manifeste, codec, format, absence de DRM, gain de
+/// normalisation. 97320484 est un titre hi-res (24/96).
 #[tokio::test]
 #[ignore = "réseau et session TIDAL requis"]
-async fn live_high_quality() {
+async fn live_mobile_qualities() {
     use super::models::{AudioQuality, StreamSource};
 
     let client = client().await;
-    for id in [LYRICS_TRACK, NO_LYRICS_TRACK, TrackId(1_632_061)] {
-        let lossless = client.stream(id, AudioQuality::Lossless).await.unwrap();
-        // `stream` refuse un manifeste ou un segment d'initialisation chiffré.
-        let high = client.stream(id, AudioQuality::High).await.unwrap();
-        let kind = match &high.source {
-            StreamSource::Dash(mpd) => {
-                let shape: String = mpd
-                    .split('<')
-                    .filter(|tag| !tag.starts_with('/'))
-                    .map(|tag| tag.split([' ', '>']).next().unwrap_or_default())
-                    .collect::<Vec<_>>()
-                    .join(" ");
-                format!("MPD ({shape})")
+    for id in [
+        LYRICS_TRACK,
+        NO_LYRICS_TRACK,
+        TrackId(1_632_061),
+        TrackId(97_320_484),
+    ] {
+        println!("{id}");
+        let mut gains = Vec::new();
+        for quality in [
+            AudioQuality::Low,
+            AudioQuality::High,
+            AudioQuality::Lossless,
+            AudioQuality::HiResLossless,
+        ] {
+            // `stream` refuse un manifeste ou un segment d'initialisation chiffré.
+            let stream = client.stream(id, quality).await.unwrap();
+            let kind = match &stream.source {
+                StreamSource::Dash(mpd) => {
+                    let shape: String = mpd
+                        .split('<')
+                        .filter(|tag| !tag.starts_with('/'))
+                        .map(|tag| tag.split([' ', '>']).next().unwrap_or_default())
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    format!("MPD ({shape})")
+                }
+                StreamSource::Direct(_) => "URL directe (BTS)".to_owned(),
+            };
+            let f = &stream.format;
+            println!(
+                "  {:<16} → {:?} {} {:?}/{:?} {:?} kbps, gain {:?}
+    {kind}",
+                quality.as_api_str(),
+                f.quality,
+                f.codec,
+                f.bit_depth,
+                f.sample_rate,
+                f.bitrate,
+                stream.gain
+            );
+            match quality {
+                AudioQuality::Low | AudioQuality::High => {
+                    assert_eq!(f.quality, quality);
+                    assert!(f.codec.starts_with("mp4a"), "AAC attendu");
+                }
+                _ => assert!(f.codec.contains("flac"), "FLAC attendu"),
             }
-            StreamSource::Direct(_) => "URL directe (BTS)".to_owned(),
-        };
-        println!("{id} : {kind}");
-        println!("  HIGH     : {:?} gain {:?}", high.format, high.gain);
-        println!(
-            "  LOSSLESS : {:?} gain {:?}",
-            lossless.format, lossless.gain
+            gains.push(stream.gain);
+        }
+        assert!(
+            gains.windows(2).all(|w| w[0] == w[1]),
+            "même gain dans toutes les qualités"
         );
-        assert_eq!(high.format.quality, AudioQuality::High);
-        assert!(high.format.codec.starts_with("mp4a"), "AAC attendu");
-        assert_eq!(high.gain, lossless.gain, "même gain dans les deux qualités");
     }
 }

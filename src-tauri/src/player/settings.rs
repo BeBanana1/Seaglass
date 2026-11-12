@@ -35,8 +35,8 @@ pub struct PlaybackSettings {
     pub pause_on_unplug: bool,
     /// Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut.
     pub resume_on_launch: bool,
-    /// Android : qualité demandée à TIDAL (#325), Lossless par défaut. Sans effet sur le
-    /// bureau, toujours en Hi-Res Lossless.
+    /// Android : qualité demandée à TIDAL (#325, #366), Lossless par défaut. Sans effet sur
+    /// le bureau, toujours en Hi-Res Lossless.
     pub mobile_quality: MobileQuality,
 }
 
@@ -56,21 +56,29 @@ impl Default for PlaybackSettings {
     }
 }
 
-/// Qualité de lecture sur Android (#325). L'écoute y passe par le Bluetooth, qui réencode le
-/// son : « Haute » (AAC 320 kbit/s) demande environ trois fois moins de données que le FLAC.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// Qualité de lecture sur Android (#325, #366), les paliers de l'API TIDAL. L'écoute y passe
+/// souvent par le Bluetooth, qui réencode le son : « Haute » (AAC 320 kbit/s) demande
+/// environ trois fois moins de données que le FLAC, « Basse » (HE-AAC 96 kbit/s) dix fois
+/// moins. Ordre croissant : `Ord` sert à plafonner (#365).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum MobileQuality {
+    Low,
+    High,
     #[default]
     Lossless,
-    High,
+    /// FLAC jusqu'à 24 bits / 192 kHz, édition hi-res comprise comme sur le bureau. Android
+    /// ramène le 24 bits à 16 bits (pas de sortie flottante), la fréquence reste.
+    Max,
 }
 
 impl MobileQuality {
     pub fn audio_quality(self) -> AudioQuality {
         match self {
-            Self::Lossless => AudioQuality::Lossless,
+            Self::Low => AudioQuality::Low,
             Self::High => AudioQuality::High,
+            Self::Lossless => AudioQuality::Lossless,
+            Self::Max => AudioQuality::HiResLossless,
         }
     }
 }
@@ -172,12 +180,27 @@ mod tests {
             read(r#"{"mobileQuality":"high"}"#).unwrap(),
             MobileQuality::High
         );
-        assert!(read(r#"{"mobileQuality":"low"}"#).is_err());
+        assert_eq!(
+            read(r#"{"mobileQuality":"low"}"#).unwrap(),
+            MobileQuality::Low
+        );
+        assert_eq!(
+            read(r#"{"mobileQuality":"max"}"#).unwrap(),
+            MobileQuality::Max
+        );
+        assert!(read(r#"{"mobileQuality":"hires"}"#).is_err());
+        assert_eq!(MobileQuality::Low.audio_quality(), AudioQuality::Low);
+        assert_eq!(MobileQuality::High.audio_quality(), AudioQuality::High);
         assert_eq!(
             MobileQuality::Lossless.audio_quality(),
             AudioQuality::Lossless
         );
-        assert_eq!(MobileQuality::High.audio_quality(), AudioQuality::High);
+        assert_eq!(
+            MobileQuality::Max.audio_quality(),
+            AudioQuality::HiResLossless
+        );
+        assert!(MobileQuality::Low < MobileQuality::High);
+        assert!(MobileQuality::Lossless < MobileQuality::Max);
     }
 
     #[test]

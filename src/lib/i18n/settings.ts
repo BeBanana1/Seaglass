@@ -139,8 +139,15 @@ export const fr = {
     "En Bluetooth, le son est réencodé par le téléphone : la qualité Haute s'entend comme le " +
     "Lossless et demande environ trois fois moins de données.",
   mobileQualities: {
-    lossless: { label: "Lossless", note: "FLAC 16 bits / 44,1 kHz, environ 1 Mbit/s." },
+    low: { label: "Basse", note: "AAC 96 kbit/s, environ dix fois moins de données que le Lossless." },
     high: { label: "Haute", note: "AAC 320 kbit/s. Moins de données mobiles et de batterie." },
+    lossless: { label: "Lossless", note: "FLAC 16 bits / 44,1 kHz, environ 1 Mbit/s." },
+    max: {
+      label: "Max",
+      note:
+        "FLAC jusqu'à 24 bits / 192 kHz quand le titre existe en hi-res, jusqu'à 5 Mbit/s. " +
+        "Android ramène le son à 16 bits ; utile surtout avec un DAC USB.",
+    },
   },
   mobileQualityNext: "Pris en compte à partir du titre suivant.",
   hiresEdition: "Édition hi-res",
@@ -384,8 +391,15 @@ export const en: typeof fr = {
     "Over Bluetooth the phone re-encodes the sound: High sounds like Lossless and needs " +
     "about a third of the data.",
   mobileQualities: {
-    lossless: { label: "Lossless", note: "FLAC 16-bit / 44.1 kHz, about 1 Mbit/s." },
+    low: { label: "Low", note: "AAC 96 kbit/s, about a tenth of the data of Lossless." },
     high: { label: "High", note: "AAC 320 kbit/s. Less mobile data and battery." },
+    lossless: { label: "Lossless", note: "FLAC 16-bit / 44.1 kHz, about 1 Mbit/s." },
+    max: {
+      label: "Max",
+      note:
+        "FLAC up to 24-bit / 192 kHz when the track exists in hi-res, up to 5 Mbit/s. " +
+        "Android brings the sound down to 16 bits; mostly useful with a USB DAC.",
+    },
   },
   mobileQualityNext: "Applies from the next track.",
   hiresEdition: "Hi-res edition",
