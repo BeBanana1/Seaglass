@@ -26,6 +26,8 @@ import type {
   AlbumSummary,
   ArtistPage,
   ArtistSummary,
+  BlockTarget,
+  Blocked,
   FeedItem,
   HomeLayout,
   HomeRow,
@@ -461,6 +463,23 @@ function setSavedForLater(target: LikeTarget, on: boolean) {
   emit("later", laterIds());
 }
 
+// Blocages (#334) : un titre et un artiste de démonstration, plus récent en tête.
+const blocked: Blocked = {
+  tracks: fx.search.tracks.slice(-1).map((t) => ({ ...t })),
+  artists: fx.search.artists.slice(-1).map((a) => ({ ...a })),
+};
+
+function setBlocked(target: BlockTarget, on: boolean) {
+  if (target.kind === "track") {
+    const id = Number(target.id);
+    const known = [...fx.search.tracks, ...fx.album.tracks, ...fx.library.tracks];
+    toggleIn(blocked.tracks, known, (t) => t.id === id, on);
+  } else {
+    const known = [fx.artist.artist, ...fx.search.artists];
+    toggleIn(blocked.artists, known, (a) => a.id === Number(target.id), on);
+  }
+}
+
 const own: PlaylistSummary[] = fx.library.playlists.filter((p) => p.mine);
 if (params.has("mine") && !own.some((p) => p.uuid === fx.playlist.playlist.uuid)) {
   own.unshift({ ...fx.playlist.playlist, mine: true, editorial: false });
@@ -698,6 +717,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   likes: () => likedIds(),
   // Les arguments sont des proxys Svelte : copiés en JSON avant d'être gardés.
   set_liked: ({ target, liked: on }) => setLiked(JSON.parse(JSON.stringify(target)), Boolean(on)),
+  blocked: () => structuredClone(blocked),
+  set_blocked: ({ target, blocked: on }) => setBlocked(JSON.parse(JSON.stringify(target)), Boolean(on)),
   later_ids: () => laterIds(),
   save_for_later: () => libraryList([...laterItems]),
   set_saved_for_later: ({ target, saved }) =>

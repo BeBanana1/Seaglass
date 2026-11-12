@@ -27,6 +27,8 @@
   import { platform } from "../lib/platform.svelte";
   import { appWindow, toggleFullscreen } from "../lib/stores/window.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { closeMenu, menu, openMenu } from "../lib/stores/menu.svelte";
+  import { trackMenu } from "../lib/trackMenu";
 
   let { onClose }: { onClose: () => void } = $props();
 
@@ -67,6 +69,20 @@
   const anyOpen = $derived(lyricsOpen || queueOpen);
   /** Android (#173) : un panneau ouvert remplace toute la vue au lieu de s'ajouter dessous. */
   const sheet = $derived(platform.mobile && anyOpen);
+
+  let moreButton = $state<HTMLButtonElement | null>(null);
+
+  function toggleMore(track: Track) {
+    if (!moreButton) return;
+    if (menu.open?.from === moreButton) return closeMenu();
+    const rect = moreButton.getBoundingClientRect();
+    const entries = trackMenu(track, {
+      queueable: false,
+      // Le titre bloqué (ou celui de l'artiste bloqué) est celui qu'on écoute : on le passe.
+      onBlocked: () => commands.next().catch((e) => pushToast({ level: "error", message: String(e) })),
+    });
+    openMenu({ x: rect.left, y: rect.bottom + 4, entries, from: moreButton });
+  }
 
   function toggle(p: "queue" | "lyrics") {
     let lyrics = lyricsOpen;
@@ -224,6 +240,17 @@
                 </button>
                 <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
                   <Icon name="info" size={20} />
+                </button>
+                <!-- #334 : menu du titre en cours (blocages compris) ; bloquer passe au suivant. -->
+                <button
+                  class="now-add"
+                  bind:this={moreButton}
+                  onclick={() => toggleMore(track)}
+                  title={t.views.row.more}
+                  aria-label={t.views.row.more}
+                  aria-haspopup="menu"
+                >
+                  <Icon name="more" size={20} />
                 </button>
                 <!-- #25 : accès rapide à la Jam, allumé tant qu'elle tourne. -->
                 {#if jamAvailable(!platform.mobile)}

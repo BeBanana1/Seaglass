@@ -4,6 +4,7 @@
 //! `mixes/{id}/items` (`{ item, type: "track" }` paginé), v2 `favorites/mixes` (paginé par
 //! curseur), `tracks/{id}/radio` et `artists/{id}/radio` (pages de titres). Un même mix
 //! arrive sous trois formes selon l'endpoint : voir `RawMix`.
+//! Titres et artistes bloqués retirés des mixes et des radios (#334, `blocks.rs`).
 
 use std::collections::HashMap;
 
@@ -47,7 +48,9 @@ impl TidalClient {
         Ok(MixPage {
             mix,
             image_large_url,
-            tracks: self.remember(raw::tracks(track_items(items))),
+            tracks: self
+                .without_blocked(self.remember(raw::tracks(track_items(items))))
+                .await,
         })
     }
 
@@ -123,7 +126,9 @@ impl TidalClient {
             id,
             title,
             image_url,
-            tracks: self.remember(raw::tracks(tracks)),
+            tracks: self
+                .without_blocked(self.remember(raw::tracks(tracks)))
+                .await,
         })
     }
 }

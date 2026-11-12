@@ -4,6 +4,7 @@ mod album_related;
 pub mod api;
 mod artist_extra;
 pub mod auth;
+mod blocks;
 pub mod cache;
 mod catalog;
 mod collection;
@@ -17,6 +18,8 @@ mod later;
 mod likes;
 #[cfg(test)]
 mod live_auth;
+#[cfg(test)]
+mod live_blocks;
 #[cfg(test)]
 mod live_collection;
 #[cfg(test)]

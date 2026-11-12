@@ -317,6 +317,15 @@ export type LikeTarget =
   | { kind: "playlist"; uuid: string }
   | { kind: "mix"; id: string };
 
+/** Ce qu'on peut bloquer (#334) : ni proposé par les mixes ni par les radios. */
+export type BlockTarget = { kind: "track"; id: TrackId } | { kind: "artist"; id: number };
+
+/** Titres et artistes bloqués, du plus récent au plus ancien. */
+export interface Blocked {
+  tracks: Track[];
+  artists: ArtistSummary[];
+}
+
 /** Tous les favoris, en identifiants (événement `likes`). */
 export interface LikedIds {
   tracks: TrackId[];
@@ -742,6 +751,10 @@ export const commands = {
   likes: () => invoke<LikedIds>("likes"),
   /** Ajoute aux favoris ou retire ; l'événement `likes` suit la confirmation. */
   setLiked: (target: LikeTarget, liked: boolean) => invoke<void>("set_liked", { target, liked }),
+  /** Titres et artistes bloqués (#334), lus chez le service. */
+  blocked: () => invoke<Blocked>("blocked"),
+  /** Bloque ou débloque un titre ou un artiste. */
+  setBlocked: (target: BlockTarget, blocked: boolean) => invoke<void>("set_blocked", { target, blocked }),
   /** Identifiants de « Plus tard » (#196), mis à jour ensuite par l'événement `later`. */
   laterIds: () => invoke<LikedIds>("later_ids"),
   /** Toute la liste « Plus tard », du plus récent au plus ancien. */

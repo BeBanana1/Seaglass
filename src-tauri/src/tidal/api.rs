@@ -54,6 +54,8 @@ pub struct TidalClient {
     pub(super) likes: Likes,
     /// Identifiants de « Plus tard » (#196), mêmes ensembles que les favoris.
     pub(super) later: Likes,
+    /// Titres et artistes bloqués (#334), pour filtrer mixes et radios.
+    pub(super) blocks: super::blocks::Blocks,
     pub(super) playlists: PlaylistCache,
     pub(super) versions: super::versions::PlaylistVersions,
     pub(super) home: super::home::HomeCache,
@@ -76,6 +78,7 @@ impl TidalClient {
             hires: HiresCache::default(),
             likes: Likes::default(),
             later: Likes::default(),
+            blocks: Default::default(),
             playlists: PlaylistCache::default(),
             versions: Default::default(),
             home: Default::default(),
@@ -139,6 +142,7 @@ impl TidalClient {
     fn forget_account(&self) {
         self.likes.clear();
         self.later.clear();
+        self.blocks.clear();
         self.playlists.clear();
         self.versions.clear();
     }

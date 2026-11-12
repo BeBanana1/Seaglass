@@ -185,6 +185,16 @@ export const fr = {
   hideAiHint:
     "Titres et albums que le service marque comme générés par IA (badge « IA »). Même portée : " +
     "vos favoris et vos playlists restent complets. Le marquage vient du service et peut en manquer.",
+  // #334 : blocages enregistrés chez le service.
+  blocked: "Titres et artistes bloqués",
+  blockedHint:
+    "Ils ne sont plus proposés par les mixes ni par les radios, sur tous vos appareils. Ils restent " +
+    "lisibles depuis un album ou une playlist. Pour bloquer, passez par le menu « … » d'un titre.",
+  showBlocked: "Afficher la liste",
+  blockedTracks: "Titres",
+  blockedArtists: "Artistes",
+  blockedEmpty: "Rien n'est bloqué.",
+  unblock: "Débloquer",
 
   startup: "Démarrage",
   autostart: "Lancer Seaglass à l'ouverture de session",
@@ -462,6 +472,15 @@ export const en: typeof fr = {
   hideAiHint:
     "Tracks and albums the service marks as AI-generated (“AI” badge). Same scope: your " +
     "favourites and your own playlists stay complete. The label comes from the service and may miss some.",
+  blocked: "Blocked tracks and artists",
+  blockedHint:
+    "Mixes and radios no longer suggest them, on all your devices. They can still be played from " +
+    "an album or a playlist. To block one, use a track's “…” menu.",
+  showBlocked: "Show the list",
+  blockedTracks: "Tracks",
+  blockedArtists: "Artists",
+  blockedEmpty: "Nothing is blocked.",
+  unblock: "Unblock",
 
   startup: "Startup",
   autostart: "Launch Seaglass when you sign in",

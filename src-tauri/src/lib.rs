@@ -167,6 +167,8 @@ pub fn run() {
             #[cfg(desktop)]
             commands::logs::open_log_dir,
             commands::catalog::hires_twin_album,
+            commands::blocks::blocked,
+            commands::blocks::set_blocked,
             commands::collection::likes,
             commands::collection::set_liked,
             commands::collection::own_playlists,

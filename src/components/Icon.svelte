@@ -42,6 +42,9 @@
     // Croissant : disque de rayon 9 moins un disque de rayon 7 décalé en haut à droite.
     moon: "M11.1 3.05A9 9 0 1 0 20.96 12.9 7 7 0 0 1 11.1 3.05z",
     info: "M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 6a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-6a1 1 0 0 1 1-1zm0-3.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z",
+    // Blocage (#334) : anneau et barre en diagonale, de même sens (union en `nonzero`).
+    block:
+      "M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM8.46 7.05l8.49 8.49-1.41 1.41-8.49-8.49z",
     close: "M6.3 6.3a1 1 0 0 1 1.4 0L12 10.6l4.3-4.3a1 1 0 1 1 1.4 1.4L13.4 12l4.3 4.3a1 1 0 0 1-1.4 1.4L12 13.4l-4.3 4.3a1 1 0 0 1-1.4-1.4l4.3-4.3-4.3-4.3a1 1 0 0 1 0-1.4z",
     // Plein écran de la fenêtre (#131) : coins vers l'extérieur, puis vers l'intérieur.
     fullscreen:

@@ -1,6 +1,7 @@
 //! Commandes Tauri : valident l'entrée puis délèguent à `tidal` ou envoient un `Cmd`.
 
 pub mod auth;
+pub mod blocks;
 pub mod catalog;
 pub mod changelog;
 pub mod collection;
