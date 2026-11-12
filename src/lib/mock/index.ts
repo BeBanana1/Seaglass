@@ -958,6 +958,23 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   ],
   current_log: () => "2026-11-11T10:00:00Z  INFO seaglass_lib: Seaglass (aperçu)\n",
   open_log_dir: () => null,
+  // #330 : progression simulée sur trois playlists.
+  export_library: async () => {
+    for (let done = 0; done <= 3; done++) {
+      emit("library-export", { done, total: 3 });
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    return {
+      dir: "C:\\Users\\aperçu\\Documents\\Seaglass\\export-2026-11-12-182600",
+      tracks: 120,
+      albums: 14,
+      artists: 9,
+      playlists: 3,
+      failed: [],
+      truncated: false,
+    };
+  },
+  cancel_library_export: () => null,
   export_settings: () => JSON.stringify({ format: "seaglass-settings", version: 1, ui }, null, 2),
   import_settings: () => ({ applied: ["ui.theme"], ignored: ["playback.wifiQuality"] }),
   reset_home_layout: () => (ui.home = { order: [], hidden: [], featuredHidden: false }),
@@ -1166,7 +1183,8 @@ export async function invoke<T>(cmd: string, args: Record<string, unknown> = {})
   const delay =
     cmd === "playlist" ? slowPlaylist : cmd === "home_rest" || cmd.endsWith("_cleanup") ? 500 : 0;
   await new Promise((r) => setTimeout(r, 120 + delay));
-  return structuredClone(handler(args)) as T;
+  // Un gestionnaire peut être asynchrone (progression émise en route, #330).
+  return structuredClone(await handler(args)) as T;
 }
 
 export async function listen<T>(event: string, cb: (e: { payload: T }) => void) {

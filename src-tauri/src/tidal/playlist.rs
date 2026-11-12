@@ -13,7 +13,7 @@ use std::sync::Mutex;
 
 use super::api::{API_V1, Call, TidalClient};
 use super::catalog::{MAX_TRACKS, PAGE_SIZE};
-use super::models::PlaylistPage;
+use super::models::{PlaylistPage, TrackEntry};
 use super::raw::{self, RawPlaylist, RawTrack};
 use super::{Result, TidalError};
 
@@ -83,6 +83,20 @@ impl TidalClient {
             .get_all::<RawTrack>(&tracks_path, &[], PAGE_SIZE, MAX_TRACKS)
             .await?;
         Ok(Some(self.keep(uuid, head, etag, tracks).await))
+    }
+
+    /// Titres d'une playlist dans l'ordre, pour l'export de la bibliothèque (#330) : la copie
+    /// gardée si elle est à jour, sinon une lecture qui ne remplace pas les pages gardées
+    /// (un export de 200 playlists viderait le cache des 20 dernières ouvertes).
+    pub async fn playlist_tracks(&self, uuid: &str) -> Result<Vec<TrackEntry>> {
+        if self.playlists.get(uuid).is_some() {
+            return Ok(self.playlist(uuid).await?.tracks);
+        }
+        let tracks_path = format!("playlists/{uuid}/tracks");
+        let tracks = self
+            .get_all::<RawTrack>(&tracks_path, &[], PAGE_SIZE, MAX_TRACKS)
+            .await?;
+        Ok(raw::playlist_entries(tracks))
     }
 
     /// En-tête de la playlist et son ETag.

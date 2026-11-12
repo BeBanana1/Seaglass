@@ -309,6 +309,16 @@ export const fr = {
   logUnavailable: "Journal indisponible",
   crashed: "Seaglass s'est fermé de façon inattendue — copier le rapport",
 
+  libraryExport: "Exporter la bibliothèque",
+  libraryExportHint:
+    "Titres likés, albums, artistes et playlists (avec leurs titres), en JSON et en CSV dans Documents\\Seaglass. Métadonnées seulement : aucun fichier audio.",
+  exportLibrary: "Exporter",
+  exportProgress: (done: number, total: number) => `Playlists : ${done} / ${total}`,
+  exportDone: (playlists: number, tracks: number) =>
+    `Bibliothèque exportée : ${tracks} titre${tracks > 1 ? "s" : ""} likés, ${playlists} playlist${playlists > 1 ? "s" : ""}`,
+  exportFailed: (titles: string[]) => `Playlists illisibles, laissées de côté : ${titles.join(", ")}`,
+  exportTruncated: "Une liste dépasse 10 000 éléments : seuls les plus récents sont exportés.",
+
   backup: "Sauvegarde des réglages",
   backupHint:
     "Thème, couleurs, épingles, accueil, tris et réglages de lecture, en texte à coller dans Seaglass sur un autre appareil. Ni compte, ni file, ni historique.",
@@ -644,6 +654,16 @@ export const en: typeof fr = {
   crashCopied: "Crash report copied",
   logUnavailable: "Log unavailable",
   crashed: "Seaglass closed unexpectedly — copy the report",
+
+  libraryExport: "Export library",
+  libraryExportHint:
+    "Liked tracks, albums, artists and playlists (with their tracks), as JSON and CSV in Documents\\Seaglass. Metadata only: no audio files.",
+  exportLibrary: "Export",
+  exportProgress: (done: number, total: number) => `Playlists: ${done} / ${total}`,
+  exportDone: (playlists: number, tracks: number) =>
+    `Library exported: ${tracks} liked track${tracks > 1 ? "s" : ""}, ${playlists} playlist${playlists > 1 ? "s" : ""}`,
+  exportFailed: (titles: string[]) => `Unreadable playlists, skipped: ${titles.join(", ")}`,
+  exportTruncated: "A list has more than 10,000 items: only the most recent are exported.",
 
   backup: "Settings backup",
   backupHint:

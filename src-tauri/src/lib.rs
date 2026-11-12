@@ -5,6 +5,8 @@ mod apk_update;
 mod commands;
 mod content;
 mod engine;
+#[cfg(desktop)]
+mod export;
 mod foreign;
 mod i18n;
 mod integrations;
@@ -18,6 +20,7 @@ mod store;
 mod tidal;
 #[cfg(desktop)]
 mod updater;
+mod utc;
 
 use std::sync::Arc;
 
@@ -170,6 +173,10 @@ pub fn run() {
             commands::logs::current_log,
             #[cfg(desktop)]
             commands::logs::open_log_dir,
+            #[cfg(desktop)]
+            commands::export::export_library,
+            #[cfg(desktop)]
+            commands::export::cancel_library_export,
             commands::catalog::hires_twin_album,
             commands::blocks::blocked,
             commands::blocks::set_blocked,

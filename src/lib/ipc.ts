@@ -6,6 +6,25 @@ import { invoke, listen, type UnlistenFn } from "./transport";
 export type TrackId = number;
 
 /** Résultat d'un import de réglages (#352). */
+/** #330 : export de la bibliothèque terminé (dossier déjà ouvert). */
+export interface LibraryExportReport {
+  dir: string;
+  tracks: number;
+  albums: number;
+  artists: number;
+  playlists: number;
+  /** Titres des playlists illisibles, laissées de côté. */
+  failed: string[];
+  /** Une liste au moins est coupée au plafond de chargement. */
+  truncated: boolean;
+}
+
+/** #330 : playlists lues sur le total. */
+export interface LibraryExportProgress {
+  done: number;
+  total: number;
+}
+
 export interface ImportReport {
   applied: string[];
   ignored: string[];
@@ -933,6 +952,9 @@ export const commands = {
   changelog: () => invoke<Release[]>("changelog"),
   /** Bureau : dossier des journaux dans l'explorateur. */
   openLogDir: () => invoke<void>("open_log_dir"),
+  /** Bureau (#330) : exporte la bibliothèque en JSON et CSV dans Documents\Seaglass. */
+  exportLibrary: () => invoke<LibraryExportReport>("export_library"),
+  cancelLibraryExport: () => invoke<void>("cancel_library_export"),
   /** Remplace les épingles ; renvoie la liste enregistrée (validée, sans doublons). */
   setPins: (pins: Pin[]) => invoke<Pin[]>("set_pins", { pins }),
   /** Mémorise le tri d'une liste (`null` : l'oublie) ; renvoie les tris enregistrés. */
@@ -998,6 +1020,9 @@ export const events = {
   /** Bureau : le téléchargement de l'installeur a échoué (message de l'erreur, #187). */
   onUpdateFailed: (cb: (message: string) => void): Promise<UnlistenFn> =>
     listen<string>("update-failed", (e) => cb(e.payload)),
+  /** #330 : progression de l'export de la bibliothèque. */
+  onLibraryExport: (cb: (p: LibraryExportProgress) => void): Promise<UnlistenFn> =>
+    listen<LibraryExportProgress>("library-export", (e) => cb(e.payload)),
   onLikes: (cb: (ids: LikedIds) => void): Promise<UnlistenFn> =>
     listen<LikedIds>("likes", (e) => cb(e.payload)),
   onLater: (cb: (ids: LikedIds) => void): Promise<UnlistenFn> =>
