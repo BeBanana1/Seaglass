@@ -64,6 +64,8 @@ pub enum Theme {
     /// Alliage en version sombre, gunmetal (#175).
     #[serde(rename = "alloy-dark")]
     AlloyDark,
+    /// Noir OLED : fond noir pur, filets fins, ni flou ni décor ; la pochette seule en couleur (#338).
+    Midnight,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -421,6 +423,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Alloy);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"alloy-dark"}"#).unwrap();
         assert_eq!(s.theme, Theme::AlloyDark);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"midnight"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Midnight);
     }
 
     #[test]

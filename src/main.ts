@@ -13,6 +13,7 @@ import "./themes/riso.css";
 import "./themes/bauhaus.css";
 import "./themes/aero.css";
 import "./themes/alloy.css";
+import "./themes/midnight.css";
 
 const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");

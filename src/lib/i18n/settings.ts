@@ -82,6 +82,10 @@ export const fr = {
       name: "Alliage sombre",
       description: "La même carrosserie en gunmetal, calandre en grille, pour le soir.",
     },
+    midnight: {
+      name: "Minuit",
+      description: "Noir pur, filets fins, aucun décor : la pochette est la seule couleur. Économe sur les écrans OLED.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -381,6 +385,10 @@ export const en: typeof fr = {
     "alloy-dark": {
       name: "Alloy dark",
       description: "The same bodywork in gunmetal, with a mesh grille, for the evening.",
+    },
+    midnight: {
+      name: "Midnight",
+      description: "Pure black, hairlines, no decoration: the cover art is the only color. Easy on OLED screens.",
     },
   },
 

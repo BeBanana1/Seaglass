@@ -457,4 +457,26 @@
   .alloy-dark .l {
     background: #ffb21e;
   }
+
+  .preview.midnight {
+    background: #000;
+  }
+
+  .midnight :is(.side, .main, .bar) {
+    background: #000;
+    border: 1px solid rgb(255 255 255 / 0.16);
+  }
+
+  .midnight .h {
+    background: #d4d4d4;
+  }
+
+  .midnight .l {
+    background: #8c8c8c;
+  }
+
+  /* La pochette, seule touche de couleur. */
+  .midnight .bar {
+    background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);
+  }
 </style>

@@ -718,6 +718,45 @@
   --control-bg: linear-gradient(#3a3f46, #2a2e34);
 }
 
+/* --- Minuit : noir OLED (#338) ------------------------------------------------------- */
+/* Noir pur partout (un pixel noir est éteint sur un écran AMOLED) : panneaux, barre et
+   dialogues se distinguent par un filet fin, jamais par une surface, un flou ou une ombre.
+   Pas de fond ; `themes/midnight.css` ne fait qu'éteindre le bandeau d'accueil. L'accent
+   vient de la pochette, mêlé à 60 % de gris clair pour rester au-dessus de 4,5:1 même avec une pochette noire. */
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --bg: #000;
+  --surface: #000;
+  --dialog-bg: #000;
+  --bg-raised: rgb(255 255 255 / 0.06);
+  --bg-hover: rgb(255 255 255 / 0.09);
+  --border: rgb(255 255 255 / 0.14);
+  --text: #d4d4d4;
+  --text-muted: #8c8c8c;
+  --accent: color-mix(in oklab, var(--album) 40%, #f2f2f2);
+  --accent-strong: color-mix(in oklab, var(--album) 25%, white);
+  --accent-contrast: #000;
+  --radius: 6px;
+  --radius-card: 4px;
+  --panel-radius: 10px;
+  --dialog-radius: 10px;
+  --popover-radius: 8px;
+  --panel-blur: none;
+  --panel-border: 1px solid var(--border);
+  --panel-shadow: none;
+  --dialog-border: 1px solid rgb(255 255 255 / 0.22);
+  --dialog-surface: #000;
+  --dialog-shadow: none;
+  --popover-shadow: none;
+  --shadow-cover: none;
+  --control-bg: transparent;
+  --shell-gap: 6px;
+  --display-weight: 600;
+  --display-tracking: -0.01em;
+  --display-family: var(--font-display);
+  --label-transform: none;
+}
+
 * {
   box-sizing: border-box;
 }
