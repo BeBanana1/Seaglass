@@ -82,6 +82,8 @@ pub enum Theme {
     Hotel,
     /// Désert : sable, ocres, horizon bas, accent bleu profond rare (#339).
     Desert,
+    /// Générique en papier découpé des années 50-60 : papier noir, découpes orange et rouges (#339).
+    Generique,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -457,6 +459,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Hotel);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"desert"}"#).unwrap();
         assert_eq!(s.theme, Theme::Desert);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"generique"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Generique);
     }
 
     #[test]

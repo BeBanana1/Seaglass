@@ -652,6 +652,28 @@
     background: #1f3a6b;
   }
 
+  /* Découpes orange et rouge de travers sur papier noir. */
+  .preview.generique {
+    border-radius: 0;
+    background:
+      linear-gradient(-8deg, transparent 78%, #c8321a 78% 86%, transparent 86%),
+      linear-gradient(20deg, transparent 62%, #e8761c 62%),
+      #161412;
+  }
+
+  .generique :is(.side, .main, .bar) {
+    border-radius: 0;
+    background: #221e1a;
+  }
+
+  .generique .h {
+    background: #efe4cc;
+  }
+
+  .generique .l {
+    background: #ef7d24;
+  }
+
   /* La pochette, seule touche de couleur. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);

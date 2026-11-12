@@ -1204,6 +1204,64 @@
   --meta-family: var(--font-ui);
 }
 
+/* --- Générique : papier découpé des années 50-60 (voir themes/generique.css) -------- */
+/* Papier noir, découpes orange, rouges et crème. Distinct de Bauhaus (crème, grille,
+   primaires, construit) : fond sombre, bords coupés aux ciseaux, rien d'aligné ni de
+   symétrique. Accent orange remplaçable (texte noir dessus) ; le rouge (`--gq-red`) et le
+   crème des découpes (`--gq-cream`) restent fixes et ne portent pas de petit texte. */
+:root[data-theme="generique"] {
+  color-scheme: dark;
+  --gq-orange: #e8761c;
+  --gq-red: #c8321a;
+  --gq-cream: #efe4cc;
+  --gq-black: #161412;
+  /* Coupe aux ciseaux : quatre coins légèrement de travers, jamais deux pareils. */
+  --gq-cut: polygon(0.6% 1.4%, 99.2% 0, 100% 97.8%, 1.2% 100%);
+  --gq-cut-b: polygon(1.4% 0, 100% 1.8%, 98.6% 100%, 0 98.2%);
+  --bg: var(--gq-black);
+  --surface: #221e1a;
+  --dialog-bg: #221e1a;
+  --bg-raised: rgb(239 228 204 / 0.05);
+  --bg-hover: rgb(239 228 204 / 0.09);
+  --border: rgb(239 228 204 / 0.14);
+  --text: var(--gq-cream);
+  --text-muted: #ad9f86;
+  --accent: #ef7d24;
+  --accent-strong: #f59a52;
+  --accent-contrast: var(--gq-black);
+  --danger: #ff8466;
+  --ok: #b7c77a;
+  --warn: #f0c050;
+  --radius: 0;
+  --radius-pill: 0;
+  --radius-card: 0;
+  --radius-cover: 0;
+  --panel-radius: 0;
+  --dialog-radius: 0;
+  --popover-radius: 0;
+  --control-clip: polygon(3% 0, 100% 8%, 97% 100%, 0 90%);
+  --panel-blur: none;
+  --panel-border: none;
+  --panel-shadow: none;
+  --dialog-border: none;
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow: 10px 12px 0 var(--gq-orange);
+  --popover-shadow: 6px 8px 0 var(--gq-red);
+  /* Pochettes posées sur une découpe orange décalée, comme deux papiers collés. */
+  --shadow-cover: 9px 11px 0 var(--gq-orange);
+  --shadow-raised: none;
+  --shadow-inset: none;
+  --control-bg: rgb(239 228 204 / 0.08);
+  --focus-ring: 2px solid var(--gq-cream);
+  --shell-gap: 12px;
+  --display-family: "Franklin Gothic Demi Cond", "Bahnschrift SemiBold Condensed", Impact, "Arial Narrow", sans-serif;
+  --display-weight: 700;
+  --display-tracking: 0.01em;
+  --label-transform: uppercase;
+  --label-tracking: 0.12em;
+  --meta-family: var(--font-ui);
+}
+
 * {
   box-sizing: border-box;
 }

@@ -118,6 +118,10 @@ export const fr = {
       name: "Désert",
       description: "Space opera des sables : ocres, sable et ciel pâle, horizon bas, typographie fine et très espacée.",
     },
+    generique: {
+      name: "Générique",
+      description: "Papier découpé des années 50-60 : aplats orange, rouges et crème sur papier noir, coupes de travers, ligne brisée.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -453,6 +457,10 @@ export const en: typeof fr = {
     desert: {
       name: "Desert",
       description: "A space opera of sand: ochres, dunes and pale sky, a low horizon, thin and widely spaced type.",
+    },
+    generique: {
+      name: "Title Sequence",
+      description: "1950s-60s cut paper: orange, red and cream shapes on black paper, crooked cuts, a jagged line.",
     },
   },
 

@@ -22,6 +22,7 @@ import "./themes/onboard.css";
 import "./themes/noir.css";
 import "./themes/hotel.css";
 import "./themes/desert.css";
+import "./themes/generique.css";
 
 const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");
