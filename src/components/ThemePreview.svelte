@@ -586,6 +586,29 @@
     background: #ffae3b;
   }
 
+  /* Ombres de store en biais sur le noir. */
+  .preview.noir {
+    border-radius: 0;
+    background:
+      repeating-linear-gradient(160deg, rgb(255 255 255 / 0.1) 0 4px, transparent 4px 9px) right top / 60% 70%
+        no-repeat,
+      #0c0c0c;
+  }
+
+  .noir :is(.side, .main, .bar) {
+    border-radius: 0;
+    background: #171717;
+    border: 1px solid rgb(255 255 255 / 0.1);
+  }
+
+  .noir .h {
+    background: #d9d9d9;
+  }
+
+  .noir .l {
+    background: #f2f2f2;
+  }
+
   /* La pochette, seule touche de couleur. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);

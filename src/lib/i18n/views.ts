@@ -51,6 +51,8 @@ export const fr = {
     placeholder: "Titres, artistes, albums, playlists…",
     searching: "Recherche…",
     noResults: "Aucun résultat.",
+    /** Thème Film noir (#339) : la même chose, dite par un détective fatigué. */
+    noResultsNoir: "Rien. Pas une empreinte, pas un témoin. La ville a avalé votre piste, comme les autres.",
     tracks: "Titres",
     showLess: "Afficher moins",
     showAll: (n: number) => `Afficher les ${num(n)} titres`,
@@ -252,6 +254,7 @@ export const en: typeof fr = {
     placeholder: "Tracks, artists, albums, playlists…",
     searching: "Searching…",
     noResults: "No results.",
+    noResultsNoir: "Nothing. Not a print, not a witness. The city swallowed your lead, like all the others.",
     tracks: "Tracks",
     showLess: "Show less",
     showAll: (n: number) => `Show all ${num(n)} tracks`,

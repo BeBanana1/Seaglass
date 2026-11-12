@@ -1043,6 +1043,54 @@
   --meta-family: var(--font-mono);
 }
 
+/* --- Film noir : noir et blanc strict (voir themes/noir.css) ------------------------ */
+/* Gris argentiques, un seul accent (blanc par défaut, remplaçable) ; les pochettes et les
+   photos restent en couleur, seules touches de couleur de l'écran. */
+:root[data-theme="noir"] {
+  color-scheme: dark;
+  --nr-paper: #e6e2d8;
+  --nr-ink: #1a1a1a;
+  --nr-typewriter: "Courier New", "Courier Prime", Courier, monospace;
+  --bg: #0c0c0c;
+  --surface: rgb(23 23 23 / 0.92);
+  --dialog-bg: #171717;
+  --bg-raised: rgb(255 255 255 / 0.05);
+  --bg-hover: rgb(255 255 255 / 0.09);
+  --border: rgb(255 255 255 / 0.13);
+  --text: #d9d9d9;
+  --text-muted: #8f8f8f;
+  --accent: #f2f2f2;
+  --accent-strong: #ffffff;
+  --accent-contrast: #0c0c0c;
+  --danger: #e0e0e0;
+  --ok: #bdbdbd;
+  --warn: #a8a8a8;
+  --radius: 2px;
+  --radius-pill: 2px;
+  --radius-card: 0;
+  --radius-cover: 0;
+  --panel-radius: 0;
+  --dialog-radius: 0;
+  --popover-radius: 0;
+  --panel-blur: none;
+  --panel-border: 1px solid rgb(255 255 255 / 0.08);
+  --panel-shadow: 0 18px 40px rgb(0 0 0 / 0.6);
+  --dialog-border: 1px solid rgb(255 255 255 / 0.2);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow: 0 30px 80px rgb(0 0 0 / 0.8);
+  --popover-shadow: 0 14px 34px rgb(0 0 0 / 0.7);
+  /* Ombre portée dure, en biais, comme sous une lampe de bureau. */
+  --shadow-cover: 14px 18px 0 rgb(0 0 0 / 0.55);
+  --focus-ring: 2px solid var(--accent);
+  --shell-gap: 10px;
+  --display-family: "Bodoni MT Condensed", "Bodoni MT", Didot, Georgia, serif;
+  --display-weight: 700;
+  --display-tracking: 0.04em;
+  --label-transform: uppercase;
+  --label-tracking: 0.18em;
+  --meta-family: var(--nr-typewriter);
+}
+
 * {
   box-sizing: border-box;
 }
