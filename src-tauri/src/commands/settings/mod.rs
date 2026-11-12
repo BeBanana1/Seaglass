@@ -5,6 +5,7 @@ pub mod accent;
 pub mod backup;
 pub mod eggs;
 pub mod favorites;
+pub mod global_shortcuts;
 pub mod home_layout;
 pub mod pins;
 pub mod sorts;
@@ -123,6 +124,8 @@ pub struct UiSettings {
     pub easter_eggs: EasterEggs,
     /// Contenu masqué dans ce que le service propose (#368).
     pub content: ContentFilter,
+    /// Raccourcis clavier globaux (#413, bureau), désactivés par défaut.
+    pub global_shortcuts: global_shortcuts::GlobalShortcuts,
 }
 
 /// `System` suit « réduire les animations » du système (`prefers-reduced-motion`).
@@ -213,9 +216,37 @@ fn store_and_apply(app: &AppHandle, state: &AppState, settings: &UiSettings) -> 
     settings.apply_to_backend();
     #[cfg(desktop)]
     zoom::apply(app, settings.zoom);
+    #[cfg(desktop)]
+    crate::integrations::hotkeys::apply(app, &settings.global_shortcuts);
     #[cfg(not(desktop))]
     let _ = app;
     Ok(())
+}
+
+/// Raccourcis globaux (#413) : possibles ici, et actions dont la combinaison n'a pas pu être
+/// enregistrée (prise par une autre app).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlobalShortcutsStatus {
+    available: bool,
+    failed: Vec<global_shortcuts::GlobalAction>,
+}
+
+#[tauri::command]
+pub async fn global_shortcuts_status(app: AppHandle) -> CmdResult<GlobalShortcutsStatus> {
+    #[cfg(desktop)]
+    return Ok(GlobalShortcutsStatus {
+        available: crate::integrations::hotkeys::available(&app),
+        failed: crate::integrations::hotkeys::failed(),
+    });
+    #[cfg(not(desktop))]
+    {
+        let _ = app;
+        Ok(GlobalShortcutsStatus {
+            available: false,
+            failed: Vec::new(),
+        })
+    }
 }
 
 /// Langue effective : celle du réglage, ou celle du système pour `system`.

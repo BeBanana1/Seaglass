@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.61
+
+- Bureau : raccourcis clavier globaux, désactivés par défaut (lecture/pause, suivant, précédent, volume, aimer le titre, afficher la fenêtre), combinaisons modifiables dans Réglages › Application ; une combinaison prise par une autre app est signalée (#413).
+
 ## 0.5.60
 
 - Bureau : palette de commandes (Ctrl+K) pour aller à une page, lancer une action (lecture, minuteur, mode exclusif, thème, fenêtre…) ou chercher un titre, un album, un artiste ou une playlist ; `/` ouvre toujours la page Recherche (#412).

@@ -90,6 +90,12 @@
     await restoreSession();
     ready = true;
     void noticeCrash();
+    // Raccourci global « Aimer » (#413) : exécuté ici, par le registre des actions.
+    if (!platform.mobile) {
+      void events.onGlobalShortcut((action) => {
+        if (action === "like") runAction("play.like");
+      });
+    }
     void events.onSessionLost(() => {
       if (!session) return;
       session = null;

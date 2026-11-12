@@ -10,6 +10,8 @@
 
 #[cfg(desktop)]
 pub mod discord;
+#[cfg(desktop)]
+pub mod hotkeys;
 #[cfg(any(target_os = "android", test))]
 pub mod media_session;
 #[cfg(any(target_os = "linux", test))]

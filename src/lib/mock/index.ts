@@ -232,6 +232,19 @@ let ui: UiSettings = {
   // `?explicit=hide` : contenu explicite masqué (#368) ; `?ai=show` : musique générée par
   // IA affichée (#369). Le backend factice ne filtre pas.
   content: { hideExplicit: params.get("explicit") === "hide", hideAi: params.get("ai") !== "show" },
+  // `?hotkeys=1` : raccourcis globaux activés (#413) ; `?hotkeys=taken` : le premier est pris.
+  globalShortcuts: {
+    enabled: params.has("hotkeys"),
+    bindings: {
+      playPause: "Ctrl+Alt+Space",
+      next: "Ctrl+Alt+ArrowRight",
+      previous: "Ctrl+Alt+ArrowLeft",
+      volumeUp: "Ctrl+Alt+ArrowUp",
+      volumeDown: "Ctrl+Alt+ArrowDown",
+      like: "Ctrl+Alt+KeyL",
+      showWindow: "Ctrl+Alt+KeyS",
+    },
+  },
 };
 
 /** « Système » du backend factice : la langue du navigateur. */
@@ -1099,6 +1112,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   autostart_enabled: () => autostart,
   discord_available: () => true,
   exclusive_available: () => true,
+  global_shortcuts_status: () => ({
+    available: true,
+    failed: ui.globalShortcuts.enabled && params.get("hotkeys") === "taken" ? ["playPause"] : [],
+  }),
   // `?notification=1` : appui sur la notification d'Android au lancement (#163, #240), une fois.
   take_now_playing_request: () => {
     const asked = params.get("notification") === "1" && !notificationTaken;

@@ -5,6 +5,7 @@ import {
   commands,
   type CloseAction,
   type ContentFilter,
+  type GlobalShortcuts,
   type HomeSection,
   type Motion,
   type Pin,
@@ -38,6 +39,7 @@ export const ui = $state<{
     motion: "system",
     easterEggs: true,
     content: { hideExplicit: false, hideAi: true },
+    globalShortcuts: { enabled: false, bindings: {} },
   },
   nowPlayingPanel: null,
 });
@@ -182,6 +184,19 @@ export async function setEasterEggs(easterEggs: boolean) {
 export async function setContentFilter(content: ContentFilter) {
   const previous = ui.settings;
   ui.settings = { ...ui.settings, content };
+  try {
+    await commands.setUiSettings(ui.settings);
+  } catch (e) {
+    ui.settings = previous;
+    throw e;
+  }
+}
+
+/** Raccourcis globaux (#413) : enregistrés par le backend, qui renvoie ensuite ceux qu'il n'a
+ *  pas pu prendre (`globalShortcutsStatus`). */
+export async function setGlobalShortcuts(globalShortcuts: GlobalShortcuts) {
+  const previous = ui.settings;
+  ui.settings = { ...ui.settings, globalShortcuts };
   try {
     await commands.setUiSettings(ui.settings);
   } catch (e) {

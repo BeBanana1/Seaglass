@@ -654,6 +654,25 @@ export interface UiSettings {
   easterEggs: boolean;
   /** Contenu masqué dans ce que le service propose (#368) ; filtré côté Rust. */
   content: ContentFilter;
+  /** Raccourcis clavier globaux (#413, bureau). */
+  globalShortcuts: GlobalShortcuts;
+}
+
+/** Action d'un raccourci global (#413). */
+export type GlobalAction = "playPause" | "next" | "previous" | "volumeUp" | "volumeDown" | "like" | "showWindow";
+
+/** Combinaisons écrites `Ctrl+Alt+Space` (modificateurs puis `KeyboardEvent.code`) ; action
+ *  sans combinaison : absente. */
+export interface GlobalShortcuts {
+  enabled: boolean;
+  bindings: Partial<Record<GlobalAction, string>>;
+}
+
+export interface GlobalShortcutsStatus {
+  /** Le système offre des raccourcis globaux (faux sur Android, ou sans serveur X). */
+  available: boolean;
+  /** Combinaisons non enregistrées : prises par une autre app, ou touche inconnue. */
+  failed: GlobalAction[];
 }
 
 /** Ce que le backend retire des listes proposées (pas des favoris ni de ses playlists). */
@@ -995,6 +1014,7 @@ export const commands = {
   queueTrackIds: () => invoke<number[]>("queue_track_ids"),
   uiSettings: () => invoke<UiSettings>("ui_settings"),
   setUiSettings: (settings: UiSettings) => invoke<void>("set_ui_settings", { settings }),
+  globalShortcutsStatus: () => invoke<GlobalShortcutsStatus>("global_shortcuts_status"),
   /** Langue effective (réglage, ou langue du système). */
   language: () => invoke<Lang>("language"),
   /** Enregistre le réglage ; renvoie la langue effective. */
@@ -1108,6 +1128,9 @@ export const events = {
   onOpenPin: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-pin", () => cb()),
   /** Android : lien partagé prêt ; il se prend par `takeSharedLink` (#203). */
   onSharedLink: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-link", () => cb()),
+  /** Raccourci global exécuté par l'UI (#413) : « Aimer » seulement. */
+  onGlobalShortcut: (cb: (action: GlobalAction) => void): Promise<UnlistenFn> =>
+    listen<GlobalAction>("global-shortcut", (e) => cb(e.payload)),
   onFullscreen: (cb: (fullscreen: boolean) => void): Promise<UnlistenFn> =>
     listen<boolean>("fullscreen", (e) => cb(e.payload)),
   /** TIDAL a refusé le rafraîchissement en cours de route : reconnexion nécessaire (#259). */

@@ -21,6 +21,7 @@
     setContentFilter,
     setDiscord,
     setEasterEggs,
+    setGlobalShortcuts,
     setMotion,
     setZoom,
     ui,
@@ -38,6 +39,7 @@
   import BlockedList from "../components/BlockedList.svelte";
   import CreditsRoll from "../components/CreditsRoll.svelte";
   import { playbackSettingsChanged } from "../lib/stores/palette.svelte";
+  import GlobalShortcutsList from "../components/GlobalShortcutsList.svelte";
 
   let { section, onLogout }: { section: SettingsSection; onLogout?: () => void } = $props();
 
@@ -68,6 +70,8 @@
   let autostart = $state<boolean | null>(null);
   let autostartBusy = $state(false);
   let discordAvailable = $state(false);
+  // Raccourcis globaux (#413) : le système les offre (pas sous Linux sans serveur X).
+  let globalShortcutsAvailable = $state(false);
   let changelogOpen = $state(false);
   /** Clin d'œil (#399) : 7 clics de suite sur la version lancent le générique de fin. */
   let creditsOpen = $state(false);
@@ -107,6 +111,7 @@
   $effect(() => {
     if (section === "app" && desktop) {
       commands.discordAvailable().then((v) => (discordAvailable = v), fail);
+      commands.globalShortcutsStatus().then((s) => (globalShortcutsAvailable = s.available), fail);
       commands.updatesAvailable().then((v) => (updatesAvailable = v), fail);
     }
   });
@@ -128,6 +133,15 @@
   async function toggleDiscord() {
     try {
       await setDiscord(!ui.settings.discord);
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  async function toggleGlobalShortcuts() {
+    try {
+      const current = ui.settings.globalShortcuts;
+      await setGlobalShortcuts({ ...current, enabled: !current.enabled });
     } catch (e) {
       fail(e);
     }
@@ -730,6 +744,32 @@
           <span class="knob"></span>
         </button>
       </label>
+    </div>
+    {/if}
+
+    <!-- #413 : raccourcis globaux, actifs hors de la fenêtre (bureau seulement). -->
+    {#if desktop && globalShortcutsAvailable}
+    <div class="group global-shortcuts-group">
+      <h2>{t.settings.globalShortcuts}</h2>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.globalShortcutsEnable}</span>
+          <span class="hint">{t.settings.globalShortcutsHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={ui.settings.globalShortcuts.enabled}
+          role="switch"
+          aria-checked={ui.settings.globalShortcuts.enabled}
+          aria-label={t.settings.globalShortcutsEnable}
+          onclick={toggleGlobalShortcuts}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+      {#if ui.settings.globalShortcuts.enabled}
+        <GlobalShortcutsList />
+      {/if}
     </div>
     {/if}
 
