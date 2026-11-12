@@ -730,6 +730,9 @@ export interface PlaybackSettings {
   pauseOnUnplug: boolean;
   /** Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut. */
   resumeOnLaunch: boolean;
+  /** Bureau : volume, normalisation et mode exclusif retenus par périphérique de sortie
+   *  (#416). Désactivé par défaut. */
+  deviceProfiles: boolean;
   /** Android : qualité demandée (#325), Lossless par défaut. Sans effet sur le bureau. */
   /** Android (#365) : réseau non facturé (Wi-Fi) et facturé (données mobiles). */
   wifiQuality: MobileQuality;
@@ -1120,6 +1123,9 @@ export const events = {
     listen<LikedIds>("later", (e) => cb(e.payload)),
   onAudioDevices: (cb: (d: AudioDevices) => void): Promise<UnlistenFn> =>
     listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
+  /** Réglages de lecture changés par le backend (profil d'un périphérique de sortie, #416) :
+   *  à relire. */
+  onPlaybackSettings: (cb: () => void): Promise<UnlistenFn> => listen<null>("playback-settings", () => cb()),
   /** Android : appui sur la notification (#163) ; la demande se prend par `takeNowPlayingRequest`. */
   onOpenNowPlaying: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-now-playing", () => cb()),
   /** Android : mode conduite demandé (#193) ; la demande se prend par `takeDriveRequest`. */

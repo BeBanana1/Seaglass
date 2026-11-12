@@ -97,6 +97,21 @@
     if (playbackSettingsChanged.count > 0) void loadPlayback();
   });
 
+  // Profil d'un périphérique de sortie appliqué par le backend (#416) : normalisation et
+  // mode exclusif ont pu changer.
+  $effect(() => {
+    let unlisten: (() => void) | undefined;
+    let alive = true;
+    void events.onPlaybackSettings(() => void loadPlayback()).then((u) => {
+      if (alive) unlisten = u;
+      else u();
+    });
+    return () => {
+      alive = false;
+      unlisten?.();
+    };
+  });
+
   $effect(() => {
     if (section === "playback" && playback === null) loadPlayback();
     if (section === "app" && autostart === null && desktop) loadAutostart();
@@ -230,6 +245,10 @@
 
   function toggleExclusive() {
     if (playback) savePlayback({ ...playback, exclusive: !playback.exclusive });
+  }
+
+  function toggleDeviceProfiles() {
+    if (playback) savePlayback({ ...playback, deviceProfiles: !playback.deviceProfiles });
   }
 
   function togglePauseOnUnplug() {
@@ -466,6 +485,23 @@
           aria-label={t.settings.pauseOnUnplug}
           disabled={playback === null}
           onclick={togglePauseOnUnplug}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.deviceProfiles}</span>
+          <span class="hint">{t.settings.deviceProfilesHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={playback?.deviceProfiles === true}
+          role="switch"
+          aria-checked={playback?.deviceProfiles === true}
+          aria-label={t.settings.deviceProfiles}
+          disabled={playback === null}
+          onclick={toggleDeviceProfiles}
         >
           <span class="knob"></span>
         </button>

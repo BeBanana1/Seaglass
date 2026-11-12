@@ -7,6 +7,7 @@ pub mod normalize;
 pub mod output;
 mod persist;
 mod playback;
+mod profiles;
 mod quality;
 pub mod queue;
 mod radio;

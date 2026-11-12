@@ -35,6 +35,9 @@ pub struct PlaybackSettings {
     pub pause_on_unplug: bool,
     /// Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut.
     pub resume_on_launch: bool,
+    /// Bureau : volume, normalisation et mode exclusif retenus par périphérique de sortie
+    /// (#416, `player::profiles`). Désactivé par défaut : réglages globaux.
+    pub device_profiles: bool,
     /// Android : qualité demandée à TIDAL sur un réseau non facturé à l'usage (Wi-Fi, #365,
     /// #366), Lossless par défaut. Sans effet sur le bureau, toujours en Hi-Res Lossless.
     pub wifi_quality: MobileQuality,
@@ -56,6 +59,7 @@ impl Default for PlaybackSettings {
             auto_radio: false,
             pause_on_unplug: true,
             resume_on_launch: false,
+            device_profiles: false,
             wifi_quality: MobileQuality::default(),
             cellular_quality: MobileQuality::default(),
             low_battery_quality: false,
@@ -185,7 +189,7 @@ mod tests {
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false,"wifiQuality":"lossless","cellularQuality":"lossless","lowBatteryQuality":false}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false,"deviceProfiles":false,"wifiQuality":"lossless","cellularQuality":"lossless","lowBatteryQuality":false}"#
         );
         assert!(!s.auto_radio, "radio automatique désactivée par défaut");
         assert!(!s.exclusive, "mode exclusif désactivé par défaut");
@@ -197,6 +201,7 @@ mod tests {
             !s.resume_on_launch,
             "pas de reprise au lancement par défaut (#353)"
         );
+        assert!(!s.device_profiles, "réglages globaux par défaut (#416)");
     }
 
     #[test]

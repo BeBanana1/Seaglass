@@ -23,6 +23,7 @@ impl Player {
         }
         tracing::info!("mode exclusif : {on}");
         self.state.exclusive = on;
+        self.note_device_profile();
         self.engine_op(Op::Exclusive(on)).await;
         let before = self.normalizer.effective();
         self.normalizer.bypass = on;

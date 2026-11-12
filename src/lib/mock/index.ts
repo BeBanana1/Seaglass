@@ -289,6 +289,7 @@ let playback: PlaybackSettings = {
   autoRadio: radioSeed !== null,
   pauseOnUnplug: true,
   resumeOnLaunch: false,
+  deviceProfiles: params.has("profiles"),
   wifiQuality: "lossless",
   cellularQuality: "lossless",
   lowBatteryQuality: false,

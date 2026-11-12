@@ -28,9 +28,14 @@ const MAX_LEN: usize = 256 * 1024;
 const PLAYBACK_LOCAL: [&str; 2] = ["audioDevice", "exclusive"];
 /// Réglages du bureau seulement (Android : ignorés à l'import).
 const UI_DESKTOP: [&str; 4] = ["closeAction", "discord", "zoom", "globalShortcuts"];
-const PLAYBACK_DESKTOP: [&str; 3] = ["cacheSize", "pauseOnUnplug", "resumeOnLaunch"];
+const PLAYBACK_DESKTOP: &[&str] = &[
+    "cacheSize",
+    "pauseOnUnplug",
+    "resumeOnLaunch",
+    "deviceProfiles",
+];
 /// Réglages d'Android seulement (bureau : ignorés à l'import).
-const PLAYBACK_ANDROID: [&str; 3] = ["wifiQuality", "cellularQuality", "lowBatteryQuality"];
+const PLAYBACK_ANDROID: &[&str] = &["wifiQuality", "cellularQuality", "lowBatteryQuality"];
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Backup {
@@ -101,7 +106,7 @@ fn import(
     ui.pins = pins::normalize(ui.pins).map_err(err)?;
 
     let mut playback_skip: Vec<&str> = PLAYBACK_LOCAL.to_vec();
-    playback_skip.extend(if desktop {
+    playback_skip.extend_from_slice(if desktop {
         PLAYBACK_ANDROID
     } else {
         PLAYBACK_DESKTOP

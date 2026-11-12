@@ -330,6 +330,7 @@ impl Player {
 
     pub(super) async fn on_volume_changed(&mut self) {
         self.persist_volume = true;
+        self.note_device_profile();
         self.apply_volume().await;
     }
 

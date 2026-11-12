@@ -168,6 +168,11 @@ export const fr = {
   pauseOnUnplugHint:
     "Casque débranché, DAC éteint ou casque Bluetooth déconnecté : la lecture s'arrête au " +
     "lieu de continuer sur les haut-parleurs.",
+  deviceProfiles: "Réglages propres à chaque sortie",
+  deviceProfilesHint:
+    "Volume, normalisation et mode exclusif sont retenus pour chaque périphérique (DAC, " +
+    "casque, enceintes) et reviennent quand il redevient la sortie, y compris en sortie par " +
+    "défaut quand Windows en change.",
   resumeOnLaunch: "Reprendre la lecture au lancement",
   resumeOnLaunchHint:
     "Seaglass reprend le dernier titre là où il s'était arrêté. Jamais quand il est lancé " +
@@ -541,6 +546,11 @@ export const en: typeof fr = {
   pauseOnUnplugHint:
     "Headphones unplugged, DAC switched off or Bluetooth headset disconnected: playback " +
     "stops instead of carrying on through the speakers.",
+  deviceProfiles: "Separate settings for each output",
+  deviceProfilesHint:
+    "Volume, normalization and exclusive mode are remembered for each device (DAC, " +
+    "headphones, speakers) and come back when it is the output again, including on the " +
+    "default output when Windows switches it.",
   resumeOnLaunch: "Resume playback on launch",
   resumeOnLaunchHint:
     "Seaglass picks the last track up where it stopped. Never when it is launched at " +
