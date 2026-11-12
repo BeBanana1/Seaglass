@@ -1,6 +1,6 @@
 // Navigation interne : une pile de routes, sans URL (l'app n'a qu'une fenêtre).
 
-import type { RadioSeed } from "../ipc";
+import type { RadioSeed, SmartList } from "../ipc";
 
 export type LibraryTab = "playlists" | "mixes" | "albums" | "artists" | "tracks" | "later";
 
@@ -13,6 +13,8 @@ export type Route =
   | { name: "library"; tab: LibraryTab }
   /** Statistiques d'écoute locales (#326), ouvertes depuis la bibliothèque. */
   | { name: "stats" }
+  /** Playlist intelligente locale (#383). */
+  | { name: "smart"; list: SmartList }
   | { name: "settings"; section: SettingsSection }
   /** `track` : titre mis en évidence (lien collé, #203). */
   | { name: "album"; id: number; track?: number }

@@ -36,6 +36,7 @@
     mix: "radio",
     likedTracks: "heartFilled",
     later: "bookmarkFilled",
+    smart: "queue",
   };
 
   /** La tuile est la source du titre en cours. */
@@ -43,6 +44,7 @@
     if (!source || source.kind !== pin.kind) return false;
     if (pin.kind === "playlist") return source.kind === "playlist" && source.uuid === pin.uuid;
     if (pin.kind === "mix") return source.kind === "mix" && source.id === pin.id;
+    if (pin.kind === "smart") return source.kind === "smart" && source.list === pin.list;
     return true;
   }
 

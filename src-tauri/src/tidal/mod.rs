@@ -4,6 +4,7 @@ mod album_related;
 pub mod api;
 mod artist_extra;
 pub mod auth;
+pub mod availability;
 mod blocks;
 pub mod cache;
 mod catalog;

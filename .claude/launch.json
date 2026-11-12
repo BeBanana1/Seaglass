@@ -4,7 +4,12 @@
     {
       "name": "ui-preview",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["vite", "--port", "1420", "--strictPort"],
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "1420",
+        "--strictPort"
+      ],
       "port": 1420
     }
   ]

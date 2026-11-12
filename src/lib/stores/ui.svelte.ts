@@ -220,7 +220,10 @@ export async function resetHomeLayout() {
 
 /** Identité d'une épingle (clé de liste) : deux épingles de même clé sont la même. */
 export function pinKey(pin: Pin): string {
-  return pin.kind === "playlist" ? `playlist:${pin.uuid}` : pin.kind === "mix" ? `mix:${pin.id}` : pin.kind;
+  if (pin.kind === "playlist") return `playlist:${pin.uuid}`;
+  if (pin.kind === "mix") return `mix:${pin.id}`;
+  if (pin.kind === "smart") return `smart:${pin.list}`;
+  return pin.kind;
 }
 
 const samePin = (a: Pin, b: Pin) => pinKey(a) === pinKey(b);

@@ -3,6 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::store::SmartList;
 use crate::tidal::models::RadioSeed;
 
 /// Longueur maximale d'un titre ou d'une requête gardés (ils viennent de l'UI).
@@ -42,6 +43,10 @@ pub enum PlaySource {
     Later,
     Search {
         query: String,
+    },
+    /// Playlist intelligente locale (#383).
+    Smart {
+        list: SmartList,
     },
 }
 
@@ -86,6 +91,7 @@ impl PlaySource {
             },
             Self::LikedTracks => Self::LikedTracks,
             Self::Later => Self::Later,
+            Self::Smart { list } => Self::Smart { list },
             Self::Search { query } => Self::Search {
                 query: label(query)?,
             },

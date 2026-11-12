@@ -75,7 +75,7 @@ pub async fn play_stats(state: State<'_, AppState>, period: StatsPeriod) -> CmdR
         return Ok(PlayStats::default());
     };
     let since = period.since(now_ms());
-    let top = blocking(&store, move |s| s.top_tracks(since, TRACK_LIMIT)).await?;
+    let top = blocking(&store, move |s| s.top_tracks(since, 1, TRACK_LIMIT)).await?;
     let missing: Vec<TrackId> = top
         .iter()
         .filter(|(_, track, _)| track.is_none())
@@ -181,7 +181,7 @@ async fn artists(
         .collect())
 }
 
-async fn blocking<T: Send + 'static>(
+pub(super) async fn blocking<T: Send + 'static>(
     store: &Arc<Store>,
     f: impl FnOnce(&Store) -> crate::store::Result<T> + Send + 'static,
 ) -> CmdResult<T> {
@@ -194,7 +194,7 @@ async fn blocking<T: Send + 'static>(
 
 /// Métadonnées des titres manquants (cache du catalogue, sinon TIDAL), par petits lots. Un
 /// échec est ignoré : le titre sera retenté à la prochaine ouverture.
-async fn fetch(tidal: &Arc<TidalClient>, ids: &[TrackId]) -> Vec<Track> {
+pub(super) async fn fetch(tidal: &Arc<TidalClient>, ids: &[TrackId]) -> Vec<Track> {
     let mut out = Vec::new();
     for chunk in ids.chunks(FETCH_PARALLEL) {
         let mut set = tokio::task::JoinSet::new();

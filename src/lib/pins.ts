@@ -15,6 +15,8 @@ export function pinRoute(pin: Pin): Route {
       return { name: "playlist", uuid: pin.uuid };
     case "mix":
       return { name: "mix", id: pin.id };
+    case "smart":
+      return { name: "smart", list: pin.list };
     default:
       return { name: "library", tab: pinTab(pin) };
   }
@@ -30,6 +32,8 @@ export function pinLabel(pin: Pin): string {
       return t.library.tabs.later;
     case "likedTracks":
       return t.library.likedTracks;
+    case "smart":
+      return t.views.smart.names[pin.list];
   }
 }
 
@@ -40,6 +44,8 @@ export function pinSource(pin: Pin): PlaySource {
       return { kind: "playlist", uuid: pin.uuid, title: pin.title };
     case "mix":
       return { kind: "mix", id: pin.id, title: pin.title };
+    case "smart":
+      return { kind: "smart", list: pin.list };
     default:
       return { kind: pin.kind };
   }
@@ -62,6 +68,8 @@ async function pinTracks(pin: Pin): Promise<TrackId[]> {
       return (await commands.mix(pin.id)).tracks.map((track) => track.id);
     case "later":
       return (await commands.saveForLater()).items.flatMap((item) => (item.kind === "track" ? [item.id] : []));
+    case "smart":
+      return (await commands.smartList(pin.list)).map((track) => track.id);
   }
 }
 
