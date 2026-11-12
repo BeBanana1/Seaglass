@@ -26,8 +26,8 @@
 
   let { section, onLogout }: { section: SettingsSection; onLogout?: () => void } = $props();
 
-  // Android (#24) : ni sortie audio ni cache (réglages de mpv), qualité fixée à Lossless (pas
-  // d'édition hi-res), ni fenêtre, démarrage auto ou mises à jour (réglages du bureau).
+  // Android (#24) : ni sortie audio ni cache (réglages de mpv), qualité choisie parmi les
+  // paliers de TIDAL (#366), ni fenêtre, démarrage auto ou mises à jour (réglages du bureau).
   const desktop = $derived(!platform.mobile);
 
   const sections: SettingsSection[] = ["appearance", "playback", "app"];
@@ -40,7 +40,7 @@
 
   const HIRES_MODES: HiresUpgrade[] = ["auto", "ask", "off"];
 
-  const MOBILE_QUALITIES: MobileQuality[] = ["lossless", "high"];
+  const MOBILE_QUALITIES: MobileQuality[] = ["low", "high", "lossless", "max"];
   const NORMALIZATION_MODES: Normalization[] = ["off", "track", "album"];
   let playback = $state<PlaybackSettings | null>(null);
   const cacheSize = $derived(playback?.cacheSize ?? null);
