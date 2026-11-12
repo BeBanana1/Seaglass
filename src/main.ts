@@ -14,6 +14,7 @@ import "./themes/bauhaus.css";
 import "./themes/aero.css";
 import "./themes/alloy.css";
 import "./themes/midnight.css";
+import "./themes/estampe.css";
 
 const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");

@@ -1,0 +1,93 @@
+/* Thème Estampe (#338) : gravure japonaise.
+   Jetons (papier, encres, cadres doubles) dans app.css ; ici, ce que les jetons ne disent pas :
+   cachet vermillon, titres, bandeau d'accueil en estampe encadrée.
+   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+
+/* Cachet : petit carré vermillon à coins adoucis après le nom de l'app. */
+:root[data-theme="estampe"] .brand {
+  font-family: var(--display-family);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--es-indigo);
+}
+
+:root[data-theme="estampe"] .brand::after {
+  content: "";
+  display: inline-block;
+  width: 0.62em;
+  height: 0.62em;
+  margin-left: 0.4em;
+  vertical-align: 0.05em;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent-contrast) 55%, transparent);
+}
+
+:root[data-theme="estampe"] .badge {
+  border-radius: 2px;
+  color: var(--es-paper);
+  background: var(--es-prussian);
+}
+
+/* Ligne en cours : liseré vermillon, fond à peine teinté (la base pose l'accent à 12 %). */
+:root[data-theme="estampe"] .row:hover {
+  background: rgb(31 53 80 / 0.06);
+}
+
+:root[data-theme="estampe"] .lyrics-line.active {
+  color: var(--es-indigo);
+}
+
+/* Commandes : le bouton de lecture devient le cachet. */
+:root[data-theme="estampe"] .transport .play {
+  border-radius: 4px;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent-contrast) 45%, transparent);
+}
+
+:root[data-theme="estampe"] .transport .play:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+:root[data-theme="estampe"] :is(.progress .fill, .volume .fill) {
+  background: var(--es-indigo);
+}
+
+:root[data-theme="estampe"] :is(.progress .track, .volume .track) {
+  background: rgb(31 53 80 / 0.14);
+}
+
+:root[data-theme="estampe"] .tabs button.active {
+  color: var(--es-paper);
+  background: var(--es-indigo);
+}
+
+:root[data-theme="estampe"] .theme-card.selected {
+  border: 1px solid var(--es-indigo);
+  box-shadow:
+    inset 0 0 0 3px var(--es-paper),
+    inset 0 0 0 4px var(--accent);
+}
+
+/* Bandeau d'accueil : planche encadrée sur papier, pochette sous passe-partout. */
+:root[data-theme="estampe"] .hero {
+  color: var(--text);
+  background: var(--es-paper);
+  border: 1px solid var(--es-indigo);
+  box-shadow:
+    inset 0 0 0 6px var(--es-paper),
+    inset 0 0 0 7px rgb(31 53 80 / 0.3);
+}
+
+:root[data-theme="estampe"] .hero .bg {
+  display: none;
+}
+
+:root[data-theme="estampe"] :is(.hero .label, .hero .meta) {
+  color: var(--text-muted);
+}
+
+:root[data-theme="estampe"] .like-button.liked {
+  color: var(--accent);
+}
