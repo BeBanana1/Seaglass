@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.60
+
+- Bureau : palette de commandes (Ctrl+K) pour aller à une page, lancer une action (lecture, minuteur, mode exclusif, thème, fenêtre…) ou chercher un titre, un album, un artiste ou une playlist ; `/` ouvre toujours la page Recherche (#412).
+
 ## 0.5.59
 
 - Windows : le plein écran (F11) ne prend plus de retard au survol après quelques secondes (#191).
