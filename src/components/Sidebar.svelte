@@ -5,6 +5,7 @@
   import { pinLabel, pinRoute, pinTab } from "../lib/pins";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { feed } from "../lib/stores/feed.svelte";
   import Icon from "./Icon.svelte";
 
   type EntryKey = keyof typeof t.common.nav;
@@ -48,6 +49,9 @@
       onclick={() => replace(entry.route)}
     >
       {t.common.nav[entry.key]}
+      {#if entry.key === "feed" && feed.unseen > 0}
+        <span class="nav-badge" title={t.views.feed.unseen(feed.unseen)}>{feed.unseen > 99 ? "99+" : feed.unseen}</span>
+      {/if}
     </button>
     {#if entry.route.name === "library" && ui.settings.pins.length > 0}
       <div class="pins">
@@ -99,6 +103,21 @@
   button.active {
     color: var(--text);
     background: var(--bg-raised);
+  }
+
+  /* Nouveautés du fil pas encore vues (#415). */
+  .nav-badge {
+    float: right;
+    min-width: 18px;
+    padding: 1px 6px;
+    box-sizing: border-box;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    color: var(--accent-contrast);
+    background: var(--accent);
   }
 
   /* Réglages en bas de la barre, à l'écart de la navigation dans le catalogue. */

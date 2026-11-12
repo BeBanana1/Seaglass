@@ -1,5 +1,5 @@
 //! Commandes de navigation : recherche, pages album / artiste / playlist / mix, radios,
-//! bibliothèque, accueil, fil d'actualité, paroles, infos d'un titre.
+//! bibliothèque, accueil, paroles, infos d'un titre. Le fil d'actualité est dans `feed.rs`.
 
 use serde::Serialize;
 use tauri::{AppHandle, State};
@@ -12,7 +12,7 @@ use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
     AlbumCreditGroup, AlbumPage, AlbumRelated, AlbumSummary, ArtistExtra, ArtistPage,
-    ArtistSummary, FeedItem, HomeRow, LibraryList, Lyrics, MixPage, MixSummary, PlaylistPage,
+    ArtistSummary, HomeRow, LibraryList, Lyrics, MixPage, MixSummary, PlaylistPage,
     PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry, TrackId, TrackInfo,
 };
 
@@ -251,12 +251,6 @@ pub async fn hires_twin_album(
         .await
         .map(filtered)
         .map_err(err)
-}
-
-/// Sorties récentes des artistes suivis.
-#[tauri::command]
-pub async fn feed(state: State<'_, AppState>) -> CmdResult<Vec<FeedItem>> {
-    state.tidal.feed().await.map(filtered).map_err(err)
 }
 
 /// UUID au format `8-4-4-4-12` (hexadécimal), seul format de playlist accepté dans l'URL.

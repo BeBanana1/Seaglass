@@ -427,7 +427,7 @@ export interface HomeFeed {
 export interface FeedItem {
   /** Date de la sortie, en millisecondes UTC. */
   occurredAt: number | null;
-  /** Déjà vue dans un client TIDAL (lu seulement). */
+  /** Déjà vue dans l'app (état local, #415 ; à la première lecture, repris de TIDAL). */
   seen: boolean;
   item: MediaItem;
 }
@@ -891,7 +891,10 @@ export const commands = {
   home: () => invoke<HomeFeed>("home"),
   /** Tout l'accueil, pages suivantes comprises : remplace la première page. */
   homeRest: () => invoke<HomeSection[]>("home_rest"),
+  /** Fil complété des sorties des artistes suivis (#415) ; émet aussi `feed-unseen`. */
   feed: () => invoke<FeedItem[]>("feed"),
+  /** Marque comme vu tout le dernier fil lu (ouverture de la page). */
+  markFeedSeen: () => invoke<void>("mark_feed_seen"),
   /** `null` si TIDAL n'a pas de paroles pour ce titre. */
   lyrics: (trackId: TrackId) => invoke<Lyrics | null>("lyrics", { trackId }),
   /** Format réel, ReplayGain, BPM… : une requête de lecture, à ne demander qu'à la demande. */
@@ -1141,6 +1144,9 @@ export const events = {
     listen<boolean>("fullscreen", (e) => cb(e.payload)),
   /** TIDAL a refusé le rafraîchissement en cours de route : reconnexion nécessaire (#259). */
   onSessionLost: (cb: () => void): Promise<UnlistenFn> => listen<null>("session-lost", () => cb()),
+  /** Nombre de nouveautés du fil pas encore vues (#415). */
+  onFeedUnseen: (cb: (count: number) => void): Promise<UnlistenFn> =>
+    listen<number>("feed-unseen", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>
     listen<Toast>("toast", (e) => cb(e.payload)),
 };

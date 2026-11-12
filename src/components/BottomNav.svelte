@@ -3,6 +3,7 @@
   // Les titres likés y ont leur onglet (#143), les réglages sont dans l'en-tête.
   import { current, replace, type Route } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { feed } from "../lib/stores/feed.svelte";
   import Icon, { type IconName } from "./Icon.svelte";
 
   type TabKey = keyof typeof t.common.tabs;
@@ -36,7 +37,12 @@
       aria-current={active ? "page" : undefined}
       onclick={() => replace(tab.route)}
     >
-      <Icon name={tab.icon} size={22} />
+      <span class="tab-icon">
+        <Icon name={tab.icon} size={22} />
+        {#if tab.key === "feed" && feed.unseen > 0}
+          <span class="tab-dot" aria-label={t.views.feed.unseen(feed.unseen)}></span>
+        {/if}
+      </span>
       <span class="tab-label">{t.common.tabs[tab.key]}</span>
     </button>
   {/each}
@@ -61,6 +67,22 @@
 
   .tab.active {
     color: var(--accent);
+  }
+
+  .tab-icon {
+    position: relative;
+    display: flex;
+  }
+
+  /* Nouveautés du fil pas encore vues (#415). */
+  .tab-dot {
+    position: absolute;
+    top: -1px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
   }
 
   .tab-label {

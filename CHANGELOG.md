@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.63
+
+- Fil d'actualité complété des sorties récentes des artistes suivis que TIDAL n'y met pas, avec un compteur des nouveautés pas encore vues dans la navigation (#415).
+
 ## 0.5.62
 
 - Bureau : réglages propres à chaque sortie audio, désactivés par défaut (Réglages › Lecture › Sortie audio) : volume, normalisation et mode exclusif retenus par périphérique et rétablis quand il redevient la sortie, y compris derrière la sortie par défaut (#416).

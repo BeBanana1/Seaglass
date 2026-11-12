@@ -713,7 +713,15 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     more: homeFirstPage < fx.home.length,
   }),
   home_rest: () => arrangeHome(withPlayed(fx.home), ui.home),
-  feed: () => fx.feed ?? [],
+  feed: () => {
+    const items = fx.feed ?? [];
+    emit("feed-unseen", items.filter((i) => !i.seen).length);
+    return items;
+  },
+  mark_feed_seen: () => {
+    fx.feed = (fx.feed ?? []).map((i) => ({ ...i, seen: true }));
+    emit("feed-unseen", 0);
+  },
   lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
   track_info: ({ trackId }) => mockTrackInfo(Number(trackId)),
   album_credits: () => mockAlbumCredits(),
@@ -1298,6 +1306,10 @@ export async function listen<T>(event: string, cb: (e: { payload: T }) => void) 
   const set = listeners.get(event) ?? new Set();
   set.add(cb as Listener);
   listeners.set(event, set);
+  // Lecture du fil en fond au lancement (#415), comme `commands::feed::spawn_watch`.
+  if (event === "feed-unseen") {
+    setTimeout(() => emit("feed-unseen", (fx.feed ?? []).filter((i) => !i.seen).length), 500);
+  }
   return () => set.delete(cb as Listener);
 }
 
