@@ -16,6 +16,8 @@ pub mod media_session;
 pub mod mpris;
 #[cfg(windows)]
 pub mod smtc;
+#[cfg(windows)]
+pub mod thumbbar;
 #[cfg(desktop)]
 pub mod tray;
 
@@ -57,6 +59,8 @@ pub fn take_drive_request() -> bool {
 pub struct Observers {
     #[cfg(windows)]
     pub smtc: Option<smtc::SmtcHandle>,
+    #[cfg(windows)]
+    pub thumbbar: Option<thumbbar::ThumbBarHandle>,
     #[cfg(target_os = "linux")]
     pub mpris: Option<mpris::MprisHandle>,
     #[cfg(desktop)]
@@ -72,6 +76,10 @@ impl Observers {
         #[cfg(windows)]
         if let Some(smtc) = &self.smtc {
             smtc.update(NowPlaying::from_player(state));
+        }
+        #[cfg(windows)]
+        if let Some(thumbbar) = &self.thumbbar {
+            thumbbar.update(state);
         }
         #[cfg(target_os = "linux")]
         if let Some(mpris) = &self.mpris {
