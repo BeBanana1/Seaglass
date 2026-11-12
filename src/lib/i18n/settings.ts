@@ -249,6 +249,18 @@ export const fr = {
   logUnavailable: "Journal indisponible",
   crashed: "Seaglass s'est fermé de façon inattendue — copier le rapport",
 
+  backup: "Sauvegarde des réglages",
+  backupHint:
+    "Thème, couleurs, épingles, accueil, tris et réglages de lecture, en texte à coller dans Seaglass sur un autre appareil. Ni compte, ni file, ni historique.",
+  copySettings: "Copier mes réglages",
+  settingsCopied: "Réglages copiés",
+  importSettings: "Importer…",
+  importPlaceholder: "Collez ici des réglages copiés depuis Seaglass",
+  applyImport: "Appliquer",
+  settingsImported: (applied: number, ignored: string[]) =>
+    `${applied} réglage${applied > 1 ? "s" : ""} repris` +
+    (ignored.length ? ` ; ignorés : ${ignored.join(", ")}` : ""),
+
   about: "À propos",
   account: "Compte",
   disclaimer: "Client non officiel, non affilié à TIDAL.",
@@ -513,6 +525,18 @@ export const en: typeof fr = {
   crashCopied: "Crash report copied",
   logUnavailable: "Log unavailable",
   crashed: "Seaglass closed unexpectedly — copy the report",
+
+  backup: "Settings backup",
+  backupHint:
+    "Theme, colours, pins, home, sorting and playback settings, as text to paste into Seaglass on another device. No account, queue or history.",
+  copySettings: "Copy my settings",
+  settingsCopied: "Settings copied",
+  importSettings: "Import…",
+  importPlaceholder: "Paste settings copied from Seaglass here",
+  applyImport: "Apply",
+  settingsImported: (applied: number, ignored: string[]) =>
+    `${applied} setting${applied > 1 ? "s" : ""} restored` +
+    (ignored.length ? `; ignored: ${ignored.join(", ")}` : ""),
 
   about: "About",
   account: "Account",

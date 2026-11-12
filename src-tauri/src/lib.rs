@@ -209,6 +209,8 @@ pub fn run() {
             commands::player::queue_track_ids,
             commands::settings::ui_settings,
             commands::settings::set_ui_settings,
+            commands::settings::backup::export_settings,
+            commands::settings::backup::import_settings,
             commands::settings::language,
             commands::settings::set_language,
             commands::settings::set_home_layout,

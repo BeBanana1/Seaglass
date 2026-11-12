@@ -260,6 +260,30 @@
     void copyText(commands.currentLog, t.settings.logCopied, t.settings.logUnavailable);
   }
 
+  // #352 : sauvegarde des réglages par le presse-papiers ; `null` = zone d'import fermée.
+  let importText = $state<string | null>(null);
+  let importing = $state(false);
+
+  function copySettings() {
+    void copyText(commands.exportSettings, t.settings.settingsCopied, t.settings.logUnavailable);
+  }
+
+  async function applyImport() {
+    if (importText === null || !importText.trim() || importing) return;
+    importing = true;
+    try {
+      const report = await commands.importSettings(importText);
+      pushToast({ level: "info", message: t.settings.settingsImported(report.applied.length, report.ignored) });
+      importText = null;
+      // Tout relire depuis le backend : thème, langue, épingles, réglages de lecture.
+      setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+      fail(e);
+    } finally {
+      importing = false;
+    }
+  }
+
   function copyCrash() {
     void copyText(commands.lastCrashReport, t.settings.crashCopied, t.settings.noCrash);
   }
@@ -709,6 +733,25 @@
       </div>
     </div>
 
+    <!-- #352 : réglages copiés en JSON, collés sur un autre appareil. -->
+    <div class="group">
+      <h2>{t.settings.backup}</h2>
+      <p class="hint">{t.settings.backupHint}</p>
+      <div class="project-links">
+        <button class="update-check" onclick={copySettings}>{t.settings.copySettings}</button>
+        {#if importText === null}
+        <button class="update-check" onclick={() => (importText = "")}>{t.settings.importSettings}</button>
+        {/if}
+      </div>
+      {#if importText !== null}
+      <textarea class="import-text mono" rows="6" spellcheck="false" placeholder={t.settings.importPlaceholder} bind:value={importText}></textarea>
+      <div class="project-links">
+        <button class="update-check" onclick={applyImport} disabled={importing || !importText.trim()}>{t.settings.applyImport}</button>
+        <button class="update-check" onclick={() => (importText = null)}>{t.common.cancel}</button>
+      </div>
+      {/if}
+    </div>
+
     <div class="group">
       <h2>{t.settings.updates}</h2>
       <div class="setting-row">
@@ -977,6 +1020,20 @@
   .app-name {
     font-weight: 600;
     color: var(--text);
+  }
+
+  .import-text {
+    display: block;
+    width: 100%;
+    max-width: 640px;
+    margin: 12px 0;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    background: var(--bg-raised);
+    font-size: 12px;
+    resize: vertical;
   }
 
   .project-links {
