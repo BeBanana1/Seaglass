@@ -14,6 +14,7 @@ use tokio::sync::{mpsc, oneshot};
 use super::listen::ListenTracker;
 use super::normalize::Normalizer;
 use super::output::{AudioDevices, Output};
+use super::profiles::{self, Profiles};
 use super::quality::QualityPolicy;
 use super::queue::{Queue, QueuePart, Repeat};
 use super::radio::AutoRadio;
@@ -189,6 +190,8 @@ pub(super) struct Player {
     pub(super) output: Output,
     /// Pause quand le périphérique utilisé disparaît (#348).
     pub(super) pause_on_unplug: bool,
+    /// Réglages audio retenus par périphérique de sortie (#416).
+    pub(super) profiles: Profiles,
     /// Échéance du minuteur de mise en veille en durée (#85, état dans `state.sleep`).
     pub(super) sleep_deadline: Option<Instant>,
     /// Radio automatique en fin de file (#78).
@@ -197,6 +200,7 @@ pub(super) struct Player {
     pub(super) persist_queue: bool,
     pub(super) persist_position: bool,
     pub(super) persist_volume: bool,
+    pub(super) persist_profiles: bool,
     pub(super) last_persist: Instant,
     /// Dernière écriture lancée : une sauvegarde de fermeture l'attend pour ne pas être
     /// écrasée par des données plus anciennes (#260).
@@ -220,6 +224,8 @@ pub fn spawn(
         let (events_tx, events_rx) = mpsc::channel(256);
         let settings = PlaybackSettings::load(store.as_deref());
         let output = Output::new(settings.audio_device.clone());
+        let device_profiles =
+            Profiles::new(settings.device_profiles, profiles::load(store.as_deref()));
         let exclusive = super::exclusive::supported() && settings.exclusive;
         let mut engine = launch
             .start(
@@ -281,12 +287,14 @@ pub fn spawn(
             normalizer: Normalizer::new(settings.normalization, exclusive),
             output,
             pause_on_unplug: settings.pause_on_unplug,
+            profiles: device_profiles,
             sleep_deadline: None,
             radio: AutoRadio::new(settings.auto_radio),
             queue_dirty: true,
             persist_queue: false,
             persist_position: false,
             persist_volume: false,
+            persist_profiles: false,
             last_persist: Instant::now(),
             last_write: None,
             listen: ListenTracker::default(),
@@ -446,9 +454,13 @@ impl Player {
                 self.radio.enabled = settings.auto_radio;
                 self.pause_on_unplug = settings.pause_on_unplug;
                 self.apply_cache_size(settings.cache_size).await;
+                // Profils par périphérique (#416) : normalisation et exclusif sont notés
+                // pour la sortie en cours avant qu'un changement de sortie n'applique le
+                // profil de la suivante.
+                self.set_device_profiles(settings.device_profiles);
                 self.set_normalization(settings.normalization).await;
-                self.set_audio_device(settings.audio_device).await;
                 self.set_exclusive(settings.exclusive).await;
+                self.set_audio_device(settings.audio_device).await;
             }
             Cmd::AnswerHiresOffer(accept) => self.answer_hires_offer(accept).await,
             Cmd::SetSleepTimer(request) => self.set_sleep_timer(request).await,

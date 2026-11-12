@@ -112,13 +112,16 @@ impl Player {
     }
 
     pub(super) fn persist_if_due(&mut self) {
-        let only_position = !(self.persist_queue || self.persist_volume);
+        let only_position = !(self.persist_queue || self.persist_volume || self.persist_profiles);
         let interval = if only_position && !self.state.paused {
             POSITION_INTERVAL
         } else {
             PERSIST_INTERVAL
         };
-        if !(self.persist_queue || self.persist_position || self.persist_volume)
+        if !(self.persist_queue
+            || self.persist_position
+            || self.persist_volume
+            || self.persist_profiles)
             || self.last_persist.elapsed() < interval
         {
             return;
@@ -148,7 +151,11 @@ impl Player {
     /// Écriture de ce qui est marqué à sauvegarder, à lancer hors de l'acteur ; `None` sans
     /// store ou sans rien à écrire.
     fn write(&mut self) -> Option<impl FnOnce() + Send + 'static> {
-        if !(self.persist_queue || self.persist_position || self.persist_volume) {
+        if !(self.persist_queue
+            || self.persist_position
+            || self.persist_volume
+            || self.persist_profiles)
+        {
             return None;
         }
         let store = self.store.as_ref().map(Arc::clone)?;
@@ -158,7 +165,11 @@ impl Player {
         let tidal = Arc::clone(&self.tidal);
         let position = self.state.time_pos;
         let volume = self.persist_volume.then_some(self.state.volume);
+        let profiles = self
+            .persist_profiles
+            .then(|| self.profiles.entries().to_vec());
         self.persist_queue = false;
+        self.persist_profiles = false;
         self.persist_position = false;
         self.persist_volume = false;
         self.last_persist = Instant::now();
@@ -172,6 +183,9 @@ impl Player {
                 && let Err(e) = store.save_volume(volume)
             {
                 tracing::warn!("sauvegarde du volume impossible : {e}");
+            }
+            if let Some(profiles) = profiles {
+                super::profiles::save(&store, &profiles);
             }
         })
     }

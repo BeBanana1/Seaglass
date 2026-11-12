@@ -73,6 +73,16 @@ impl Output {
         }
     }
 
+    /// Identifiant du périphérique qui sert : le choix, ou en `auto` celui du système
+    /// (inconnu sous Linux).
+    pub(super) fn in_use(&self) -> Option<String> {
+        if self.applied == AUTO {
+            self.system_default.clone()
+        } else {
+            Some(self.applied.clone())
+        }
+    }
+
     /// Nouvelle liste de mpv. Renvoie le nom du périphérique qui servait jusque-là (le
     /// choix, ou celui du système en `auto`) s'il vient d'en disparaître : débranché (#348).
     /// Un changement du périphérique par défaut dont l'ancien reste listé ne compte pas.
@@ -81,13 +91,9 @@ impl Output {
         list: Vec<AudioDevice>,
         system_default: Option<String>,
     ) -> Option<String> {
-        let in_use = if self.applied == AUTO {
-            self.system_default.as_deref()
-        } else {
-            Some(self.applied.as_str())
-        };
-        let lost = in_use
-            .and_then(|id| device::find(self.list.as_deref()?, id))
+        let lost = self
+            .in_use()
+            .and_then(|id| device::find(self.list.as_deref()?, &id))
             .filter(|d| device::find(&list, &d.id).is_none())
             .map(|d| d.name.clone());
         self.list = Some(list);
@@ -228,6 +234,7 @@ impl Player {
             self.toast("info", message);
         }
         self.state.output_device = Some(self.output.describe());
+        self.sync_device_profile().await;
     }
 }
 

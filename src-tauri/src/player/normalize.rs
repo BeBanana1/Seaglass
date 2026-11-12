@@ -110,6 +110,7 @@ impl Player {
     pub(super) async fn set_normalization(&mut self, mode: Normalization) {
         let before = self.normalizer.effective();
         self.normalizer.mode = mode;
+        self.note_device_profile();
         self.on_normalization_changed(before).await;
     }
 

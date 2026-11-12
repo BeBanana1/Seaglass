@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.62
+
+- Bureau : réglages propres à chaque sortie audio, désactivés par défaut (Réglages › Lecture › Sortie audio) : volume, normalisation et mode exclusif retenus par périphérique et rétablis quand il redevient la sortie, y compris derrière la sortie par défaut (#416).
+
 ## 0.5.61
 
 - Bureau : raccourcis clavier globaux, désactivés par défaut (lecture/pause, suivant, précédent, volume, aimer le titre, afficher la fenêtre), combinaisons modifiables dans Réglages › Application ; une combinaison prise par une autre app est signalée (#413).
