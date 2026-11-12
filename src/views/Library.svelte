@@ -1,7 +1,7 @@
 <script lang="ts">
   import { commands, type MediaItem, type PlaySource, type Track } from "../lib/ipc";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
-  import { replace, type LibraryTab } from "../lib/stores/nav.svelte";
+  import { go, replace, type LibraryTab } from "../lib/stores/nav.svelte";
   import {
     filterTracks,
     LIKED_DEFAULT_SORT,
@@ -110,6 +110,8 @@
       <div class="top-actions">
         {#if tab === "tracks"}<PinButton pin={{ kind: "likedTracks" }} />{/if}
         {#if tab === "later"}<PinButton pin={{ kind: "later" }} />{/if}
+        <!-- Statistiques d'écoute locales (#326). -->
+        {#if !likesPage}<button class="refresh" onclick={() => go({ name: "stats" })}>{t.library.stats.open}</button>{/if}
         <button class="refresh" onclick={() => loadLibrary(tab, true)} disabled={slot.loading}>
           {t.library.refresh}
         </button>

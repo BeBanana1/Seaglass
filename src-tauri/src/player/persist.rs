@@ -199,14 +199,14 @@ impl Player {
         };
         let album = album_of(track);
         let source = self.queue.source().cloned();
-        let id = track.id;
+        let track = track.clone();
         let played_at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_millis() as i64);
         tokio::task::spawn_blocking(move || {
             let play = Play {
-                track: id,
-                album: Some(&album),
+                track: &track,
+                album: &album,
                 source: source.as_ref(),
                 played_at,
             };

@@ -17,6 +17,7 @@
     source,
     highlight,
     onMove,
+    notes,
   }: {
     /** Contexte de lecture : lire un titre met toute la liste en file, dans cet ordre. */
     tracks: Track[];
@@ -37,6 +38,8 @@
      * déplacement a eu lieu.
      */
     onMove?: (from: number, to: number) => Promise<boolean>;
+    /** Mention propre à chaque ligne (`TrackRow` › `note`), dans l'ordre de `tracks`. */
+    notes?: string[];
   } = $props();
 
   let list = $state<HTMLElement>();
@@ -94,6 +97,7 @@
     active={player.currentTrackId === track.id}
     highlighted={highlight === track.id}
     laterButton={source?.kind === "later"}
+    note={notes?.[i]}
     onPlay={() => play(i)}
     onRemoveFromPlaylist={onRemoveFromPlaylist && (() => onRemoveFromPlaylist(i))}
     onMoveUp={onMove && i > 0 ? () => move(i, i - 1) : undefined}

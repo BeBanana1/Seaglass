@@ -380,6 +380,27 @@ export interface PlayHistory {
   top: AlbumSummary[];
 }
 
+/** Période des statistiques d'écoute (#326) : fenêtres glissantes de 7, 30, 365 jours. */
+export type StatsPeriod = "week" | "month" | "year" | "all";
+
+export interface Counted<T> {
+  item: T;
+  plays: number;
+}
+
+/** Statistiques d'écoute locales (#326), propres à cet appareil. */
+export interface PlayStats {
+  plays: number;
+  /** Temps d'écoute approché (somme des durées des titres écoutés), en secondes. */
+  seconds: number;
+  /** Écoutes de durée inconnue (antérieures à la 0.5.31), absentes de `seconds`. */
+  unknown: number;
+  tracks: Counted<Track>[];
+  albums: Counted<AlbumSummary>[];
+  /** Photo demandée une fois à TIDAL, puis gardée avec l'historique. */
+  artists: Counted<ArtistSummary>[];
+}
+
 /** Clé de la section d'accueil « Écoutés dans Seaglass ». */
 export const PLAY_HISTORY_KEY = "SEAGLASS_RECENT";
 
@@ -656,6 +677,7 @@ export const commands = {
   /** Historique d'écoute local (#202) : albums récents et les plus écoutés. */
   playHistory: () => invoke<PlayHistory>("play_history"),
   clearPlayHistory: () => invoke<void>("clear_play_history"),
+  playStats: (period: StatsPeriod) => invoke<PlayStats>("play_stats", { period }),
   /** Jam locale (#25), bureau seulement : `null` si aucune Jam ne tourne. */
   jamStatus: () => invoke<JamStatus | null>("jam_status"),
   jamOnlineAvailable: () => invoke<boolean>("jam_online_available"),

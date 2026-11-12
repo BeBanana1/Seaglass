@@ -11,6 +11,8 @@ export type Route =
   | { name: "feed" }
   | { name: "search" }
   | { name: "library"; tab: LibraryTab }
+  /** Statistiques d'écoute locales (#326), ouvertes depuis la bibliothèque. */
+  | { name: "stats" }
   | { name: "settings"; section: SettingsSection }
   /** `track` : titre mis en évidence (lien collé, #203). */
   | { name: "album"; id: number; track?: number }

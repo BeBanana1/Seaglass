@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.31
+
+- Statistiques d'écoute (Bibliothèque › Statistiques) : titres, albums et artistes les plus écoutés et temps d'écoute sur 7 jours, 30 jours, 12 mois ou tout l'historique, calculés sur l'appareil ; l'historique garde maintenant 50 000 écoutes (#326).
+
 ## 0.5.30
 
 - Android : une qualité en Wi-Fi et une autre en données mobiles, et un réglage qui baisse la qualité quand la batterie est faible (Haute sous 50 %, Basse sous 20 % ou avec l'économiseur de batterie, rien pendant la charge) (#365).
