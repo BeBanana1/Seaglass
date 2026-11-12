@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.26
+
+- Android : le widget d'écran d'accueil et les raccourcis d'épingles de l'icône, annoncés en 0.5.24 et 0.5.25, manquaient dans l'app publiée (elle avait été construite avec une ancienne copie de son code Android) ; ils y sont maintenant (#370).
+
 ## 0.5.25
 
 - Android : widget d'écran d'accueil avec la pochette, le titre, l'artiste et les boutons Précédent, Lecture / Pause et Suivant ; un appui sur la pochette ouvre « En lecture » (#329).
