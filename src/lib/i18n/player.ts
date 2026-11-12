@@ -5,6 +5,8 @@ export const fr = {
   openNowPlaying: "Vue « En lecture »",
   signalPath: "Chaîne audio",
   queue: "File d'attente",
+  /** Titre de la file dans le thème Grand hôtel (#339). */
+  queueHotel: "Programme",
   shuffleOn: "Lecture aléatoire : activée",
   shuffleOff: "Lecture aléatoire : désactivée",
   repeat: { off: "Répéter : désactivé", all: "Répéter : tout", one: "Répéter : ce titre" },
@@ -85,6 +87,7 @@ export const en: typeof fr = {
   openNowPlaying: "“Now playing” view",
   signalPath: "Signal path",
   queue: "Queue",
+  queueHotel: "Programme",
   shuffleOn: "Shuffle: on",
   shuffleOff: "Shuffle: off",
   repeat: { off: "Repeat: off", all: "Repeat: all", one: "Repeat: this track" },

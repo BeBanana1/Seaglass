@@ -20,6 +20,7 @@ import "./themes/cassette.css";
 import "./themes/seance.css";
 import "./themes/onboard.css";
 import "./themes/noir.css";
+import "./themes/hotel.css";
 
 const target = document.getElementById("app");
 if (!target) throw new Error("#app introuvable");

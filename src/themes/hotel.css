@@ -1,0 +1,204 @@
+/* Thème Grand hôtel (#339) : comédie pastel et symétrique, aux antipodes d'Acidwave.
+   Jetons (rose poudré, bordeaux, cadres doubles) dans app.css ; ici, ce que les jetons ne
+   disent pas : étiquettes en cartouche façon signalétique d'hôtel, numéros de piste en
+   médaillons, sections de l'accueil numérotées en chapitres, clé de concierge pour les
+   réglages, « En lecture » centré.
+   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+
+:root[data-theme="hotel"] {
+  /* Clé de concierge : anneau, tige, deux dents (masque, prend la couleur du texte). */
+  --gh-key: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='12' r='4'/%3E%3Cpath d='M11 12h11M18 12v3M21 12v4'/%3E%3C/svg%3E");
+}
+
+/* Enseignes : capitales espacées. */
+:root[data-theme="hotel"] h1 {
+  text-transform: uppercase;
+}
+
+:root[data-theme="hotel"] h2 {
+  font-family: var(--display-family);
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="hotel"] .brand {
+  font-family: var(--display-family);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Cartouches : pastilles en ovale cerné, comme un panneau « Réception ». */
+:root[data-theme="hotel"] .badge {
+  padding-inline: 6px;
+  border: 1px solid var(--gh-burgundy);
+  border-radius: 999px;
+  color: var(--gh-burgundy);
+  background: var(--gh-mustard);
+}
+
+/* Numéros de piste en médaillons : rond crème cerné de bordeaux, chiffre centré. */
+:root[data-theme="hotel"] .row .number {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--gh-burgundy);
+  border-radius: 50%;
+  font-size: 11px;
+  text-align: center;
+  color: var(--gh-burgundy);
+  background: var(--gh-cream);
+  box-shadow: inset 0 0 0 2px var(--gh-cream), inset 0 0 0 3px var(--gh-rose);
+}
+
+:root[data-theme="hotel"] .row.active .number {
+  border-color: var(--accent);
+  background: var(--gh-rose);
+}
+
+:root[data-theme="hotel"] .row.active .title {
+  color: var(--accent);
+}
+
+:root[data-theme="hotel"] :is(nav button.active, nav .pin.active) {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  box-shadow: none;
+}
+
+/* La clé de concierge devant « Réglages », en bas de la barre latérale. */
+:root[data-theme="hotel"] nav button.settings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+:root[data-theme="hotel"] nav button.settings::before {
+  content: "";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  -webkit-mask: var(--gh-key) center / contain no-repeat;
+  mask: var(--gh-key) center / contain no-repeat;
+}
+
+:root[data-theme="hotel"] .tabs button.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme="hotel"] .theme-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+:root[data-theme="hotel"] .lyrics-line.active {
+  color: var(--accent);
+}
+
+:root[data-theme="hotel"] .like-button.liked {
+  color: var(--accent);
+}
+
+/* Lecture : rond bordeaux à double filet. */
+:root[data-theme="hotel"] .transport .play {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  box-shadow:
+    0 0 0 2px var(--gh-cream),
+    0 0 0 3px var(--accent);
+}
+
+:root[data-theme="hotel"] .progress .track {
+  background: var(--gh-rose);
+}
+
+:root[data-theme="hotel"] .progress .fill {
+  box-shadow: none;
+}
+
+/* --- Accueil : chapitres ---------------------------------------------------------------
+   Chaque section porte son numéro de chapitre en chiffres romains, centré entre deux
+   filets, au-dessus du titre (sans texte à traduire). */
+:root[data-theme="hotel"] section:has(> .home-head) {
+  counter-reset: gh-chapter;
+}
+
+:root[data-theme="hotel"] section:has(> .home-head) h2 {
+  counter-increment: gh-chapter;
+}
+
+:root[data-theme="hotel"] section:has(> .home-head) h2::before {
+  content: "— " counter(gh-chapter, upper-roman) " —";
+  display: block;
+  margin-bottom: 4px;
+  font-size: 15px;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+}
+
+/* Bandeau d'accueil : cadre double, rayé, sans le fond teinté. */
+:root[data-theme="hotel"] .hero {
+  color: var(--text);
+  background: var(--gh-cream);
+  border: 1px solid var(--gh-burgundy);
+  box-shadow:
+    inset 0 0 0 5px var(--gh-cream),
+    inset 0 0 0 6px var(--gh-mustard);
+}
+
+:root[data-theme="hotel"] .hero .bg {
+  display: none;
+}
+
+:root[data-theme="hotel"] :is(.hero .label, .hero .meta) {
+  color: var(--text-muted);
+}
+
+/* --- « En lecture » : tout centré ----------------------------------------------------- */
+:root[data-theme="hotel"] .now-playing .info {
+  align-items: center;
+  text-align: center;
+}
+
+:root[data-theme="hotel"] .now-playing .info > .label {
+  padding: 3px 14px;
+  border: 1px solid var(--gh-burgundy);
+  border-radius: 999px;
+  color: var(--gh-burgundy);
+  background: var(--gh-mustard);
+}
+
+:root[data-theme="hotel"] .now-playing :is(.now-actions, .who, .played-from) {
+  justify-content: center;
+}
+
+:root[data-theme="hotel"] .now-playing .now-actions {
+  margin-left: 0;
+}
+
+:root[data-theme="hotel"] .now-playing .controls {
+  width: 100%;
+}
+
+:root[data-theme="hotel"] .signal {
+  border: 1px solid var(--gh-burgundy);
+  border-radius: 2px;
+  background: var(--gh-cream);
+  box-shadow:
+    inset 0 0 0 4px var(--gh-cream),
+    inset 0 0 0 5px var(--gh-rose);
+  backdrop-filter: none;
+}
+
+:root[data-theme="hotel"] .signal .path {
+  justify-content: center;
+}
+
+:root[data-theme="hotel"] .verdict {
+  border-radius: 999px;
+}

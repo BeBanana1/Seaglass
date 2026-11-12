@@ -110,6 +110,10 @@ export const fr = {
       name: "Film noir",
       description: "Noir et blanc strict, ombres de stores vénitiens, machine à écrire ; seules les pochettes restent en couleur.",
     },
+    hotel: {
+      name: "Grand hôtel",
+      description: "Comédie pastel et symétrique : rose poudré, bordeaux et moutarde, cadres doubles, cartouches et médaillons.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -437,6 +441,10 @@ export const en: typeof fr = {
     noir: {
       name: "Film Noir",
       description: "Strict black and white, venetian blind shadows, typewriter type; only the covers keep their color.",
+    },
+    hotel: {
+      name: "Grand Hotel",
+      description: "A pastel, symmetrical comedy: powder pink, burgundy and mustard, double frames, cartouches and medallions.",
     },
   },
 

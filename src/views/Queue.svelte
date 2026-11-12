@@ -1,10 +1,12 @@
 <script lang="ts">
   import QueueList from "../components/QueueList.svelte";
   import { t } from "../lib/i18n.svelte";
+  import { ui } from "../lib/stores/ui.svelte";
 </script>
 
 <aside>
-  <h2>{t.player.queue}</h2>
+  <!-- Grand hôtel (#339) : la file s'intitule « Programme ». -->
+  <h2>{ui.settings.theme === "hotel" ? t.player.queueHotel : t.player.queue}</h2>
   <QueueList />
 </aside>
 

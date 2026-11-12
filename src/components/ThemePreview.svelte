@@ -609,6 +609,28 @@
     background: #f2f2f2;
   }
 
+  /* Papier peint rayé rose, lambris bordeaux. */
+  .preview.hotel {
+    border-radius: 2px;
+    background:
+      linear-gradient(transparent 86%, #d6a23c 86% 88%, #6a1d31 88%),
+      repeating-linear-gradient(90deg, #f4e1e1 0 6px, #e7b9bf 6px 10px);
+  }
+
+  .hotel :is(.side, .main, .bar) {
+    border-radius: 2px;
+    background: #fbf1ef;
+    border: 1px solid #4e1424;
+  }
+
+  .hotel .h {
+    background: #4e1424;
+  }
+
+  .hotel .l {
+    background: #8e2240;
+  }
+
   /* La pochette, seule touche de couleur. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);
