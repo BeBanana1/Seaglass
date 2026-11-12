@@ -520,8 +520,11 @@ export type CacheSize = 32 | 64 | 128 | 256;
 
 export type HiresUpgrade = "auto" | "ask" | "off";
 
-/** Qualité de lecture sur Android (#325) : FLAC 16/44,1 ou AAC 320 kbit/s. */
-export type MobileQuality = "lossless" | "high";
+/**
+ * Qualité de lecture sur Android (#325, #366), paliers de TIDAL : AAC 96 et 320 kbit/s, FLAC
+ * 16/44,1, FLAC hi-res jusqu'à 24/192.
+ */
+export type MobileQuality = "low" | "high" | "lossless" | "max";
 
 /** Normalisation du volume par ReplayGain (#82). */
 export type Normalization = "off" | "track" | "album";
