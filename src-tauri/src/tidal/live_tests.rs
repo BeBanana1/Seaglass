@@ -584,6 +584,52 @@ async fn live_foreign_links() {
     }
 }
 
+/// `cargo test live_import_playlists -- --ignored --nocapture` : import d'une playlist
+/// Deezer, Spotify et Apple Music (#328), lecture seule : nom, titres lus, sûrs, douteux,
+/// introuvables, durée.
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_import_playlists() {
+    use crate::foreign::{import::match_all, playlist_ref, playlists::fetch};
+
+    let client = client().await;
+    for link in [
+        "https://www.deezer.com/fr/playlist/908622995",
+        "https://open.spotify.com/playlist/37i9dQZF1DX4UtSsGT1Sbe",
+        "https://music.apple.com/us/playlist/todays-hits/pl.f4d106fed2bd41149aaacabb233eb5eb",
+    ] {
+        let started = std::time::Instant::now();
+        let playlist = playlist_ref(link).await.unwrap().unwrap();
+        let listing = fetch(&playlist).await.unwrap();
+        let (name, total, read) = (listing.name.clone(), listing.total, listing.entries.len());
+        let matched = match_all(&client, listing.entries, &|_| {}, &|| false)
+            .await
+            .unwrap();
+        let sure = matched.iter().filter(|m| m.sure).count();
+        let missing = matched.iter().filter(|m| m.track.is_none()).count();
+        println!(
+            "{name} ({}) : {read} lus sur {total}, {sure} sûrs, {} douteux, {missing} introuvables, en {:?}",
+            playlist.service(),
+            read - sure - missing,
+            started.elapsed()
+        );
+        for m in matched.iter().filter(|m| !m.sure) {
+            println!(
+                "  {} / {:?} → {:?}",
+                m.entry.wanted.title,
+                m.entry.wanted.artist,
+                m.track
+                    .as_ref()
+                    .map(|t| format!("{} / {} ({} s)", t.title, t.artists[0].name, t.duration))
+            );
+        }
+        assert!(
+            read > 0 && sure * 2 > read,
+            "trop peu de titres sûrs pour {link}"
+        );
+    }
+}
+
 /// `cargo test live_mobile_qualities -- --ignored --nocapture` : les quatre paliers du client
 /// PKCE (#325, #366) : type de manifeste, codec, format, absence de DRM, gain de
 /// normalisation. 97320484 est un titre hi-res (24/96).

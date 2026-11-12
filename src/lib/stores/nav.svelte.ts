@@ -23,6 +23,8 @@ export type Route =
   /** Dossier de playlists de la bibliothèque (#331). */
   | { name: "folder"; id: string }
   | { name: "mix"; id: string }
+  /** Playlist d'un autre service à importer (#328). */
+  | { name: "import"; link: string }
   | { name: "radio"; seed: RadioSeed; id: number };
 
 const MAX_HISTORY = 50;

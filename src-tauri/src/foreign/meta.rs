@@ -101,10 +101,11 @@ pub fn youtube(title: &str, author: &str) -> Wanted {
             ..Wanted::default()
         };
     }
-    let cleaned = strip_decorations(title);
+    // Le « - » sépare ici l'artiste du titre : pas de coupe de version avant de le lire.
+    let cleaned = strip_brackets(title);
     match cleaned.split_once(" - ") {
         Some((artist, song)) => Wanted {
-            title: song.trim().to_owned(),
+            title: strip_decorations(song),
             artist: Some(artist.trim().to_owned()),
             ..Wanted::default()
         },
@@ -117,8 +118,61 @@ pub fn youtube(title: &str, author: &str) -> Wanted {
     }
 }
 
-/// Titre sans ce qui est entre parenthèses ou crochets, ni « ft. … » / « feat. … » final.
+/// Mots qui, après « - », désignent une version et non le titre (« Dreams - 2004 Remaster »,
+/// « Danger Zone - From "Top Gun" », écriture de Spotify, #328).
+const VERSION_WORDS: [&str; 26] = [
+    "remaster",
+    "remastered",
+    "remasterisé",
+    "version",
+    "mono",
+    "stereo",
+    "edit",
+    "live",
+    "from",
+    "single",
+    "demo",
+    "acoustic",
+    "instrumental",
+    "bonus",
+    "anniversary",
+    "deluxe",
+    "soundtrack",
+    "theme",
+    "mix",
+    "remix",
+    "take",
+    "recording",
+    "radio",
+    "extended",
+    "original",
+    "mixed",
+];
+
+/// Titre sans ce qui est entre parenthèses ou crochets, ni « ft. … » / « feat. … » final, ni
+/// suffixe de version après « - ».
 pub fn strip_decorations(title: &str) -> String {
+    strip_version_suffix(&strip_brackets(title))
+}
+
+/// Coupe au premier « - » suivi d'un mot de version ; « Hey - You » reste entier.
+fn strip_version_suffix(title: &str) -> String {
+    let mut from = 0;
+    while let Some(i) = title[from..].find(" - ").map(|i| i + from) {
+        let suffix = title[i + 3..].to_lowercase();
+        let versioned = suffix
+            .split(|c: char| !c.is_alphanumeric())
+            .any(|w| VERSION_WORDS.contains(&w));
+        if versioned && i > 0 {
+            return title[..i].trim().to_owned();
+        }
+        from = i + 3;
+    }
+    title.to_owned()
+}
+
+/// Titre sans ce qui est entre parenthèses ou crochets, ni « ft. … » / « feat. … » final.
+fn strip_brackets(title: &str) -> String {
     let mut out = String::new();
     let mut depth = 0u32;
     for c in title.chars() {
@@ -188,6 +242,11 @@ mod tests {
         let topic = youtube("Get Lucky (feat. Pharrell Williams)", "Daft Punk - Topic");
         assert_eq!(topic.query(), "Get Lucky Daft Punk");
 
+        // « Live » appartient au titre ici : l'artiste reste lu avant le « - ».
+        let live = youtube("Nirvana - Lithium Live", "NirvanaVEVO");
+        assert_eq!(live.artist.as_deref(), Some("Nirvana"));
+        assert_eq!(live.title, "Lithium Live");
+
         let bare = youtube("Creep [Remastered]", "RadioheadVEVO");
         assert_eq!(bare.query(), "Creep Radiohead");
     }
@@ -199,6 +258,19 @@ mod tests {
             "Get Lucky"
         );
         assert_eq!(strip_decorations("Stay feat. Justin Bieber"), "Stay");
+        // Suffixes de version à la Spotify (#328).
+        assert_eq!(strip_decorations("Dreams - 2004 Remaster"), "Dreams");
+        assert_eq!(strip_decorations("Paranoid - 2012 - Remaster"), "Paranoid");
+        assert_eq!(
+            strip_decorations("Danger Zone - From \"Top Gun\" Original Soundtrack"),
+            "Danger Zone"
+        );
+        assert_eq!(
+            strip_decorations("Layla - 40th Anniversary Version / 2010 Remastered"),
+            "Layla"
+        );
+        assert_eq!(strip_decorations("Hey - You"), "Hey - You");
+        assert_eq!(strip_decorations("- Live"), "- Live");
         // « İ » s'allonge en minuscules (2 → 3 octets) : la coupe reste au bon endroit (#262).
         assert_eq!(strip_decorations("İstanbul feat. Ayla"), "İstanbul");
         assert_eq!(strip_decorations("İİİ Song feat. X"), "İİİ Song");

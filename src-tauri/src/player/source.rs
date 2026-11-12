@@ -48,6 +48,12 @@ pub enum PlaySource {
     Smart {
         list: SmartList,
     },
+    /// Playlist d'un autre service, lue sans être enregistrée (#328) : `link` = adresse
+    /// propre de la playlist, pour rouvrir l'import.
+    Import {
+        link: String,
+        title: String,
+    },
 }
 
 impl PlaySource {
@@ -92,6 +98,14 @@ impl PlaySource {
             Self::LikedTracks => Self::LikedTracks,
             Self::Later => Self::Later,
             Self::Smart { list } => Self::Smart { list },
+            Self::Import { link, title } => {
+                // Relue comme un lien collé : seule une adresse de playlist reconnue passe.
+                let link = crate::foreign::playlist_ref_offline(&link)?.url();
+                Self::Import {
+                    link,
+                    title: label(title)?,
+                }
+            }
             Self::Search { query } => Self::Search {
                 query: label(query)?,
             },
@@ -159,6 +173,27 @@ mod tests {
         assert_eq!(
             PlaySource::LikedTracks.sanitize(any_uuid),
             Some(PlaySource::LikedTracks)
+        );
+    }
+
+    /// #328 : seule une adresse de playlist reconnue passe, rendue propre.
+    #[test]
+    fn sanitize_import_links() {
+        let import = |link: &str| PlaySource::Import {
+            link: link.into(),
+            title: "Été".into(),
+        };
+        assert_eq!(
+            import("https://www.deezer.com/fr/playlist/42?utm=x").sanitize(any_uuid),
+            Some(import("https://www.deezer.com/playlist/42"))
+        );
+        assert_eq!(
+            import("https://exemple.com/playlist/42").sanitize(any_uuid),
+            None
+        );
+        assert_eq!(
+            import("https://www.deezer.com/track/42").sanitize(any_uuid),
+            None
         );
     }
 }

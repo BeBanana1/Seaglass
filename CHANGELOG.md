@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.58
+
+- Importer une playlist Deezer, Spotify ou Apple Music en collant son lien : aperçu des titres trouvés sur TIDAL, à vérifier ou introuvables, puis lecture ou création d'une playlist (#328).
+
 ## 0.5.57
 
 - Dossiers de playlists : affichés dans Bibliothèque › Playlists et dans « Ajouter à une playlist », créés, renommés et supprimés depuis l'app, « Déplacer vers un dossier… » dans le menu d'une playlist ; rien ne change sans dossier (#331).

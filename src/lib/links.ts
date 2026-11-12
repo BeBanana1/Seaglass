@@ -20,6 +20,9 @@ function openTarget(target: LinkTarget) {
     case "mix":
       go({ name: "mix", id: target.id });
       break;
+    case "import":
+      go({ name: "import", link: target.link });
+      break;
   }
 }
 

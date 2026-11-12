@@ -132,7 +132,7 @@ fn is_truncated(
 /// Attend toutes les futures, au plus `limit` à la fois (démarrées dans l'ordre), et renvoie
 /// leurs résultats dans l'ordre d'entrée ; la première erreur abandonne les autres.
 /// Équivalent de `buffered(limit)` + `try_collect` sans la crate `futures`.
-pub(super) async fn try_join_bounded<F, T, E>(
+pub(crate) async fn try_join_bounded<F, T, E>(
     futures: impl IntoIterator<Item = F>,
     limit: usize,
 ) -> std::result::Result<Vec<T>, E>

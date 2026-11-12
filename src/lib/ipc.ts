@@ -141,7 +141,36 @@ export type LinkTarget =
   | { kind: "album"; id: number; track: TrackId | null }
   | { kind: "artist"; id: number }
   | { kind: "playlist"; uuid: string }
-  | { kind: "mix"; id: string };
+  | { kind: "mix"; id: string }
+  /** Playlist d'un autre service à importer (#328) : adresse propre, relue par `importPlaylist`. */
+  | { kind: "import"; link: string };
+
+/** Import d'une playlist d'un autre service (#328) : un titre d'origine et sa correspondance. */
+export interface ImportItem {
+  title: string;
+  artist: string | null;
+  /** `null` : rien de ressemblant sur TIDAL. */
+  track: Track | null;
+  /** Titre, artiste et durée concordent (ou même ISRC) ; sinon à vérifier. */
+  sure: boolean;
+}
+
+export type ImportService = "deezer" | "spotify" | "apple";
+
+export interface ImportPreview {
+  name: string;
+  service: ImportService;
+  /** Titres de la playlist chez le service. */
+  total: number;
+  /** Titres lus : moins que `total` si le service n'en montre qu'une partie (Spotify : 100). */
+  read: number;
+  items: ImportItem[];
+}
+
+export interface ImportProgress {
+  done: number;
+  total: number;
+}
 
 /** Crédits d'un album entier (#206). */
 export interface AlbumCreditGroup {
@@ -272,7 +301,8 @@ export type PlaySource =
   | { kind: "likedTracks" }
   | { kind: "later" }
   | { kind: "search"; query: string }
-  | { kind: "smart"; list: SmartList };
+  | { kind: "smart"; list: SmartList }
+  | { kind: "import"; link: string; title: string };
 
 export interface AlbumSummary {
   id: number;
@@ -846,6 +876,11 @@ export const commands = {
   trackInfo: (trackId: TrackId) => invoke<TrackInfo>("track_info", { trackId }),
   /** Lien TIDAL contenu dans un texte collé, ou `null` (un titre est résolu en son album). */
   openLink: (text: string) => invoke<LinkTarget | null>("open_link", { text }),
+  /** Lit une playlist d'un autre service et cherche ses titres (#328) ; avancement par
+   *  `onImportProgress`. Rien n'est enregistré. */
+  importPlaylist: (link: string) => invoke<ImportPreview>("import_playlist", { link }),
+  /** Arrête l'import en cours (page quittée). */
+  cancelImport: () => invoke<void>("cancel_import"),
   /** Crédits de tout l'album, à la demande (une requête par page de 100 titres). */
   albumCredits: (albumId: number) => invoke<AlbumCreditGroup[]>("album_credits", { albumId }),
   /** Album hi-res au même titre, pour un album qui ne l'est pas (#59). */
@@ -1054,6 +1089,9 @@ export const events = {
   onUpdateFailed: (cb: (message: string) => void): Promise<UnlistenFn> =>
     listen<string>("update-failed", (e) => cb(e.payload)),
   /** #330 : progression de l'export de la bibliothèque. */
+  /** Import d'une playlist (#328) : titres cherchés sur TIDAL. */
+  onImportProgress: (cb: (p: ImportProgress) => void): Promise<UnlistenFn> =>
+    listen<ImportProgress>("import-progress", (e) => cb(e.payload)),
   onLibraryExport: (cb: (p: LibraryExportProgress) => void): Promise<UnlistenFn> =>
     listen<LibraryExportProgress>("library-export", (e) => cb(e.payload)),
   onLikes: (cb: (ids: LikedIds) => void): Promise<UnlistenFn> =>

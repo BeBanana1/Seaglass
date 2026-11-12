@@ -12,6 +12,8 @@ const MAX_TEXT_LEN: usize = 2_000;
 pub enum Kind {
     Track,
     Album,
+    /// Playlist à importer (#328) ; la Jam ne les prend pas.
+    Playlist,
 }
 
 /// Ce que désigne un lien collé.
@@ -29,6 +31,15 @@ pub enum Source {
         country: String,
     },
     YouTube(String),
+    /// Playlist Apple Music (#328) : `pl.<hex>` (éditoriale) ou `pl.u-<…>` (d'un utilisateur) ;
+    /// `slug` = nom dans l'adresse, sans lequel Apple redirige.
+    ApplePlaylist {
+        id: String,
+        slug: String,
+        country: String,
+    },
+    /// Playlist YouTube Music : reconnue pour répondre qu'elle ne peut pas être importée.
+    YouTubePlaylist,
     /// Lien court à suivre (une redirection vers l'un des liens ci-dessus).
     Short(Url),
 }
@@ -83,7 +94,14 @@ fn parse_word(word: &str) -> Option<Source> {
         "open.spotify.com" | "play.spotify.com" => spotify(&segments),
         "music.apple.com" => apple(&url, &segments),
         "music.youtube.com" | "youtube.com" | "m.youtube.com" => {
-            youtube_id(url.query_pairs().find(|(k, _)| k == "v")?.1.as_ref())
+            let param = |name: &str| url.query_pairs().find(|(k, _)| k == name).map(|p| p.1);
+            match param("v") {
+                Some(v) => youtube_id(&v),
+                None if segments.first() == Some(&"playlist") && param("list").is_some() => {
+                    Some(Source::YouTubePlaylist)
+                }
+                None => None,
+            }
         }
         "youtu.be" => youtube_id(segments.first()?),
         h if SHORT_HOSTS.contains(&h) && !segments.is_empty() => {
@@ -106,18 +124,20 @@ fn kind(word: &str) -> Option<Kind> {
     match word {
         "track" | "song" => Some(Kind::Track),
         "album" => Some(Kind::Album),
+        "playlist" => Some(Kind::Playlist),
         _ => None,
     }
 }
 
-/// `deezer.com[/fr]/track/<id>`, `…/album/<id>`.
+/// `deezer.com[/fr]/track/<id>`, `…/album/<id>`, `…/playlist/<id>`.
 fn deezer(segments: &[&str]) -> Option<Source> {
     segments
         .windows(2)
         .find_map(|p| Some(Source::Deezer(kind(p[0])?, number(p[1])?)))
 }
 
-/// `open.spotify.com[/intl-fr]/track/<id>` : identifiant base62 de 22 caractères.
+/// `open.spotify.com[/intl-fr]/track/<id>` (`album`, `playlist`) : identifiant base62 de 22
+/// caractères.
 fn spotify(segments: &[&str]) -> Option<Source> {
     segments.windows(2).find_map(|p| {
         let id = p[1];
@@ -127,12 +147,30 @@ fn spotify(segments: &[&str]) -> Option<Source> {
     })
 }
 
-/// `music.apple.com/<pays>/album/<nom>/<id>[?i=<titre>]`, `…/song/<nom>/<id>`.
+/// `music.apple.com/<pays>/album/<nom>/<id>[?i=<titre>]`, `…/song/<nom>/<id>`,
+/// `…/playlist/<nom>/pl.<id>`.
 fn apple(url: &Url, segments: &[&str]) -> Option<Source> {
     let country = segments
         .first()
         .filter(|c| c.len() == 2 && c.chars().all(|ch| ch.is_ascii_alphabetic()))?;
-    let kind = segments.iter().find_map(|s| kind(s))?;
+    if let [_, "playlist", slug, id] = segments {
+        let valid_slug = !slug.is_empty()
+            && slug.len() <= 200
+            && slug.chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
+        let valid_id = id.len() <= 64
+            && id.strip_prefix("pl.").is_some_and(|rest| {
+                !rest.is_empty() && rest.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+            });
+        return (valid_slug && valid_id).then(|| Source::ApplePlaylist {
+            id: (*id).to_owned(),
+            slug: slug.to_ascii_lowercase(),
+            country: country.to_ascii_lowercase(),
+        });
+    }
+    let kind = segments
+        .iter()
+        .find_map(|s| kind(s))
+        .filter(|k| *k != Kind::Playlist)?;
     let last = number(segments.last()?)?;
     let track = url
         .query_pairs()
@@ -226,6 +264,57 @@ mod tests {
             find("http://link.deezer.com/s/30ADZ2"),
             Some(Source::Short(u)) if u.scheme() == "https"
         ));
+    }
+
+    #[test]
+    fn playlists() {
+        assert_eq!(
+            find("https://www.deezer.com/fr/playlist/908622995?utm=x"),
+            Some(Source::Deezer(Kind::Playlist, 908622995))
+        );
+        assert_eq!(
+            find("https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=abc"),
+            Some(Source::Spotify(
+                Kind::Playlist,
+                "37i9dQZF1DXcBWIGoYBM5M".into()
+            ))
+        );
+        assert_eq!(
+            find(
+                "https://music.apple.com/us/playlist/todays-hits/pl.f4d106fed2bd41149aaacabb233eb5eb"
+            ),
+            Some(Source::ApplePlaylist {
+                id: "pl.f4d106fed2bd41149aaacabb233eb5eb".into(),
+                slug: "todays-hits".into(),
+                country: "us".into()
+            })
+        );
+        assert_eq!(
+            find("https://music.apple.com/FR/playlist/ete/pl.u-AbC123"),
+            Some(Source::ApplePlaylist {
+                id: "pl.u-AbC123".into(),
+                slug: "ete".into(),
+                country: "fr".into()
+            })
+        );
+        assert_eq!(
+            find("https://music.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI"),
+            Some(Source::YouTubePlaylist)
+        );
+        // Une vidéo jouée dans une playlist reste la vidéo.
+        assert_eq!(
+            find("https://music.youtube.com/watch?v=5NV6Rdv1a3I&list=PLx"),
+            Some(Source::YouTube("5NV6Rdv1a3I".into()))
+        );
+        for bad in [
+            "https://music.apple.com/us/playlist/x/pl.",
+            "https://music.apple.com/us/playlist/x/12345",
+            "https://music.apple.com/us/playlist/x%2F../pl.abc",
+            "https://music.apple.com/us/playlist/pl.abc",
+            "https://music.youtube.com/playlist",
+        ] {
+            assert_eq!(find(bad), None, "{bad}");
+        }
     }
 
     #[test]

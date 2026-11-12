@@ -29,6 +29,8 @@ function fromSource(s: PlaySource): PlayedFrom {
       return { label: t.views.nowPlaying.searchFor(s.query), route: { name: "search" } };
     case "smart":
       return { label: t.views.smart.names[s.list], route: { name: "smart", list: s.list } };
+    case "import":
+      return { label: s.title, route: { name: "import", link: s.link } };
   }
 }
 
