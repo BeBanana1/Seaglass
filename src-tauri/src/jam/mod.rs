@@ -28,6 +28,7 @@ use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, UdpSocket};
 use std::sync::{Arc, Mutex};
 
+use crate::content::filtered;
 use qrcode::QrCode;
 use qrcode::render::svg;
 use serde::{Deserialize, Serialize};
@@ -396,6 +397,7 @@ impl Backend for AppBackend {
         self.tidal
             .search(&query, SEARCH_LIMIT)
             .await
+            .map(filtered)
             .map(|r| Hits {
                 tracks: r.tracks,
                 albums: r.albums,
@@ -406,8 +408,8 @@ impl Backend for AppBackend {
     async fn link(&self, text: String) -> Result<Hits, String> {
         match crate::foreign::resolve(&self.tidal, &text).await {
             Some(Ok(found)) => Ok(Hits {
-                tracks: found.tracks,
-                albums: found.albums,
+                tracks: filtered(found.tracks),
+                albums: filtered(found.albums),
             }),
             Some(Err(e)) => Err(trf!("lien illisible : {}", "unreadable link: {}", e)),
             None => Ok(Hits::default()),
@@ -418,7 +420,7 @@ impl Backend for AppBackend {
         self.tidal
             .album(id)
             .await
-            .map(|page| page.tracks)
+            .map(|page| filtered(page.tracks))
             .map_err(|e| e.to_string())
     }
 

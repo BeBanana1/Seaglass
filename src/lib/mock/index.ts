@@ -213,6 +213,8 @@ let ui: UiSettings = {
   zoom: 100,
   // `?motion=reduced|full` : animations réduites ou forcées (#351).
   motion: (params.get("motion") as UiSettings["motion"]) ?? "system",
+  // `?explicit=hide` : contenu explicite masqué (#368 ; le backend factice ne filtre pas).
+  content: { hideExplicit: params.get("explicit") === "hide" },
 };
 
 /** « Système » du backend factice : la langue du navigateur. */

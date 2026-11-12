@@ -13,6 +13,7 @@ use tauri::{AppHandle, State};
 use tauri_plugin_autostart::ManagerExt;
 
 use super::{AppState, CmdResult, err};
+use crate::content::ContentFilter;
 use crate::i18n::{self, Lang, LanguagePref, tr};
 use crate::player::output::AudioDevices;
 use crate::player::{Cmd, PlaybackSettings};
@@ -91,6 +92,8 @@ pub struct UiSettings {
     pub zoom: Zoom,
     /// Animations de l'interface (#351) : suivre le système, les réduire ou les garder.
     pub motion: Motion,
+    /// Contenu masqué dans ce que le service propose (#368).
+    pub content: ContentFilter,
 }
 
 /// `System` suit « réduire les animations » du système (`prefers-reduced-motion`).
@@ -122,6 +125,7 @@ impl UiSettings {
 
     /// Reporte les réglages lus par le backend hors des commandes (fermeture de la fenêtre).
     pub(crate) fn apply_to_backend(&self) {
+        self.content.apply();
         #[cfg(desktop)]
         crate::integrations::tray::set_close_to_tray(self.close_action == CloseAction::Tray);
         #[cfg(desktop)]

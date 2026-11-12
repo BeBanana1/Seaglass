@@ -46,7 +46,13 @@ impl Player {
             let result = tidal
                 .radio(RadioSeed::Track, seed.0)
                 .await
-                .map(|page| page.tracks.into_iter().map(|t| t.id).collect())
+                .map(|page| {
+                    // Le filtre de contenu (#368) vaut aussi pour la radio automatique.
+                    crate::content::filtered(page.tracks)
+                        .into_iter()
+                        .map(|t| t.id)
+                        .collect()
+                })
                 .map_err(|e| e.to_string());
             let _ = tx
                 .send(Cmd::RadioResolved {
