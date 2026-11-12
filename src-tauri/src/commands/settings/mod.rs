@@ -3,6 +3,7 @@
 
 pub mod accent;
 pub mod backup;
+pub mod favorites;
 pub mod home_layout;
 pub mod pins;
 pub mod sorts;
@@ -81,6 +82,9 @@ pub struct UiSettings {
     /// `theme` par `migrate_accent`.
     #[serde(skip_serializing, deserialize_with = "accent::legacy")]
     accent: Option<String>,
+    /// Thèmes favoris (#390), identifiants de famille, en tête de la galerie des réglages.
+    #[serde(deserialize_with = "favorites::favorites")]
+    pub favorite_themes: Vec<Theme>,
     /// Langue de l'app (#7) ; `system` suit la langue d'affichage de Windows.
     pub language: LanguagePref,
     /// Tri mémorisé par playlist et pour les titres likés, le plus récent en tête (#93).

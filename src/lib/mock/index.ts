@@ -209,6 +209,8 @@ let ui: UiSettings = {
   ],
   // `?accent=ff5c8a` : couleur d'accent personnalisée du thème affiché.
   accents: params.get("accent") ? { [(params.get("theme") as Theme) ?? "seaglass"]: `#${params.get("accent")}` } : {},
+  // `?favorites=alloy,terminal` : thèmes favoris (#390).
+  favoriteThemes: (params.get("favorites")?.split(",") ?? []) as Theme[],
   // `?lang=en` : interface en anglais.
   language: (params.get("lang") as LanguagePref) ?? "system",
   // `?tray=1` : fermer la fenêtre la réduit dans la zone de notification (#83).

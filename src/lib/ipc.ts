@@ -569,6 +569,8 @@ export interface UiSettings {
   pins: Pin[];
   /** Couleur d'accent `#rrggbb` de chaque thème (#250) ; thème absent : celle de son CSS. */
   accents: Partial<Record<Theme, string>>;
+  /** Familles de thèmes favorites (#390), en tête de la galerie ; voir `lib/themes.ts`. */
+  favoriteThemes: Theme[];
   /** Langue choisie (#7) ; `system` suit la langue d'affichage de Windows. */
   language: LanguagePref;
   /** Fermer la fenêtre : quitter, ou réduire dans la zone de notification (#83). */

@@ -13,9 +13,7 @@ import {
   type UiSettings,
 } from "../ipc";
 import { motionReduced } from "../motion";
-
-/** Thèmes dans l'ordre du sélecteur ; noms et descriptions dans `i18n/settings.ts`. */
-export const THEMES: Theme[] = ["seaglass", "studio", "atelier", "acidwave", "surreal", "solarpunk", "cyberpunk", "neumorph", "neumorph-dark", "terminal", "riso", "bauhaus", "aero", "alloy", "alloy-dark"];
+import { toggleFavorite } from "../themes";
 
 /** Panneaux latéraux de la vue « En lecture » : file d'attente, paroles, ou les deux côte à côte
  *  (fenêtre large seulement, #119 ; ailleurs « both » montre les paroles). */
@@ -31,6 +29,7 @@ export const ui = $state<{
     home: { order: [], hidden: [], featuredHidden: false },
     pins: [],
     accents: {},
+    favoriteThemes: [],
     language: "system",
     closeAction: "quit",
     discord: false,
@@ -140,6 +139,18 @@ export async function setAccent(accent: string | null) {
   ui.settings = { ...ui.settings, accents };
   apply();
   await commands.setUiSettings(ui.settings);
+}
+
+/** Ajoute ou retire une famille de thèmes des favoris (#390). */
+export async function toggleFavoriteTheme(family: Theme) {
+  const previous = ui.settings;
+  ui.settings = { ...ui.settings, favoriteThemes: toggleFavorite(ui.settings.favoriteThemes, family) };
+  try {
+    await commands.setUiSettings(ui.settings);
+  } catch (e) {
+    ui.settings = previous;
+    throw e;
+  }
 }
 
 /** Présence Discord (#215), appliquée aussitôt par le backend. */
