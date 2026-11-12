@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.5.31"
+version = "0.5.33"
 description = "Seaglass, client de streaming non officiel"
 authors = ["bebanana"]
 edition = "2024"
@@ -73,12 +73,16 @@ windows = { version = "0.62", features = [
     "Storage_Streams",
     "Win32_Foundation",
     "Win32_Globalization",
+    "Win32_Graphics_Gdi",
     "Win32_Media_Audio",
     "Win32_Security",
+    "Win32_System_Registry",
     "Win32_System_Com",
     "Win32_System_JobObjects",
     "Win32_System_Threading",
     "Win32_System_WinRT",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
 ] }
 
 # ThinLTO sur les 16 unités par défaut : parallèle, là où une LTO complète sur une seule unité

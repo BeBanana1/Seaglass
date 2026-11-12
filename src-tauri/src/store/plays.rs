@@ -20,7 +20,7 @@ pub const MAX_PLAYS: i64 = 50_000;
 const PRUNE_BATCH: i64 = 1_000;
 
 /// Forme d'origine (#202), complétée par `migrate`. La colonne `album` (copie JSON par
-/// ligne) n'est plus remplie depuis la 0.5.31.
+/// ligne) n'est plus remplie depuis la 0.5.33.
 pub(super) const SCHEMA: &str = "
     CREATE TABLE IF NOT EXISTS plays (
         id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -365,7 +365,7 @@ pub(super) mod tests {
     fn migrates_old_rows() {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(SCHEMA).unwrap();
-        // Forme d'avant la 0.5.31 : pas de colonnes d'artiste ni de durée.
+        // Forme d'avant la 0.5.33 : pas de colonnes d'artiste ni de durée.
         conn.execute_batch(
             "DROP TABLE plays;
              CREATE TABLE plays (

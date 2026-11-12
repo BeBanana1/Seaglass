@@ -665,6 +665,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   hires_twin_album: () =>
     hiresTwin ? { ...fx.album.album, id: fx.album.album.id + 1, title: `${fx.album.album.title} (Hi-Res)`, hires: true } : null,
   artist: () => fx.artist,
+  album_related: () => ({
+    versions: fx.search.albums.slice(0, 4).map((a, i) => ({ ...a, id: a.id + 1000 + i, title: `${fx.album.album.title} (Deluxe ${i + 1})` })),
+    byArtist: fx.artist.albums.filter((a) => a.id !== fx.album.album.id).slice(0, 10),
+  }),
   artist_extra: () => ({
     bio: {
       source: "TiVo",

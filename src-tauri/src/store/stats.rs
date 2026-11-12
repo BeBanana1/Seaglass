@@ -12,7 +12,7 @@ pub struct Totals {
     pub plays: i64,
     /// Somme des durées des titres écoutés, en secondes.
     pub seconds: i64,
-    /// Écoutes de durée inconnue (enregistrées avant la 0.5.31, titre pas encore complété).
+    /// Écoutes de durée inconnue (enregistrées avant la 0.5.33, titre pas encore complété).
     pub unknown: i64,
 }
 
@@ -27,7 +27,7 @@ pub struct TopArtist {
 
 impl Store {
     /// Titres les plus écoutés, avec leurs métadonnées si elles sont enregistrées (`None` :
-    /// écoute d'avant la 0.5.31, à compléter par `save_played_tracks`). À égalité, le plus
+    /// écoute d'avant la 0.5.33, à compléter par `save_played_tracks`). À égalité, le plus
     /// récemment écouté d'abord.
     pub fn top_tracks(
         &self,
@@ -102,7 +102,7 @@ impl Store {
         Ok(())
     }
 
-    /// Titres écoutés dont les métadonnées manquent (écoutes d'avant la 0.5.31).
+    /// Titres écoutés dont les métadonnées manquent (écoutes d'avant la 0.5.33).
     pub fn unknown_tracks(&self, limit: usize) -> Result<Vec<TrackId>> {
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let mut stmt = db.conn.prepare(
@@ -196,7 +196,7 @@ mod tests {
     fn old_plays_are_completed() {
         let store = Store::in_memory().unwrap();
         {
-            // Écoute d'avant la 0.5.31 : ni titre enregistré ni durée.
+            // Écoute d'avant la 0.5.33 : ni titre enregistré ni durée.
             let db = store.db.lock().unwrap();
             db.conn
                 .execute(

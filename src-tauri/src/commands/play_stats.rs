@@ -1,6 +1,6 @@
 //! Statistiques d'écoute locales (#326) : titres, albums et artistes les plus écoutés sur
 //! une période, temps d'écoute. Calculées en SQL sur l'historique de cet appareil
-//! (`store::stats`) ; seuls les titres d'anciennes écoutes (avant la 0.5.31, enregistrées
+//! (`store::stats`) ; seuls les titres d'anciennes écoutes (avant la 0.5.33, enregistrées
 //! sans leurs métadonnées) et les photos des artistes sont demandés à TIDAL, une fois, puis
 //! enregistrés. L'API v1 n'a pas de lecture groupée des titres (`tracks?ids=` répond 400
 //! « ISRC is missing », vérifié le 2026-11-12) : ceux du classement sont complétés tout de

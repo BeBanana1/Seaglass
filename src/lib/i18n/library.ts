@@ -62,7 +62,7 @@ export const fr = {
     timeLabel: "Temps d'écoute",
     playsLabel: "Écoutes",
     unknown: (n: number) =>
-      `${num(n)} ${n > 1 ? "écoutes antérieures" : "écoute antérieure"} à la 0.5.31 sans durée connue.`,
+      `${num(n)} ${n > 1 ? "écoutes antérieures" : "écoute antérieure"} à la 0.5.33 sans durée connue.`,
     tracks: "Titres",
     albums: "Albums",
     artists: "Artistes",
@@ -140,7 +140,7 @@ export const en: typeof fr = {
     time: (hours: number, minutes: number) => (hours > 0 ? `${num(hours)} h ${minutes} min` : `${minutes} min`),
     timeLabel: "Listening time",
     playsLabel: "Plays",
-    unknown: (n: number) => `${num(n)} ${n === 1 ? "play" : "plays"} from before 0.5.31 with no known duration.`,
+    unknown: (n: number) => `${num(n)} ${n === 1 ? "play" : "plays"} from before 0.5.33 with no known duration.`,
     tracks: "Tracks",
     albums: "Albums",
     artists: "Artists",

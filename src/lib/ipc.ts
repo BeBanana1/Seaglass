@@ -393,7 +393,7 @@ export interface PlayStats {
   plays: number;
   /** Temps d'écoute approché (somme des durées des titres écoutés), en secondes. */
   seconds: number;
-  /** Écoutes de durée inconnue (antérieures à la 0.5.31), absentes de `seconds`. */
+  /** Écoutes de durée inconnue (antérieures à la 0.5.33), absentes de `seconds`. */
   unknown: number;
   tracks: Counted<Track>[];
   albums: Counted<AlbumSummary>[];
@@ -409,6 +409,12 @@ export type BioPart =
   | { kind: "text"; text: string }
   | { kind: "artist"; text: string; id: number }
   | { kind: "album"; text: string; id: number };
+
+/** Bas de la page d'album (#350), chargé après elle : chaque liste peut être vide. */
+export interface AlbumRelated {
+  versions: AlbumSummary[];
+  byArtist: AlbumSummary[];
+}
 
 /** Compléments de la page d'artiste (#205), chargés après elle. */
 export interface ArtistExtra {
@@ -693,6 +699,8 @@ export const commands = {
     invoke<JamStatus | null>("set_jam_guest_banned", { id, banned }),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
+  /** Autres versions et autres albums de l'artiste (#350), album affiché exclu. */
+  albumRelated: (id: number) => invoke<AlbumRelated>("album_related", { id }),
   /** Biographie, similaires, « Apparaît sur » (#205) : chaque partie peut être vide. */
   artistExtra: (id: number) => invoke<ArtistExtra>("artist_extra", { id }),
   /** `null` si la playlist n'a pas changé depuis `revision` (#152). */

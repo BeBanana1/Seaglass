@@ -11,9 +11,17 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
-## 0.5.31
+## 0.5.33
 
 - Statistiques d'écoute (Bibliothèque › Statistiques) : titres, albums et artistes les plus écoutés et temps d'écoute sur 7 jours, 30 jours, 12 mois ou tout l'historique, calculés sur l'appareil ; l'historique garde maintenant 50 000 écoutes (#326).
+
+## 0.5.32
+
+- Page d'album : rangées « Autres versions » (deluxe, remaster, anniversaire…) et « Plus de <artiste> » en bas de page (#350).
+
+## 0.5.31
+
+- Windows : boutons Précédent, Lecture / Pause et Suivant sous la miniature de la fenêtre dans la barre des tâches, grisés quand l'action n'est pas possible et adaptés au thème clair ou sombre (#333).
 
 ## 0.5.30
 
