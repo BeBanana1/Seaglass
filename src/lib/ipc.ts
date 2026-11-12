@@ -310,6 +310,14 @@ export interface PlaylistSummary {
   mine: boolean;
 }
 
+/** Dossier de playlists de la bibliothèque (#331), un seul niveau. */
+export interface PlaylistFolder {
+  id: string;
+  name: string;
+  /** Uuids des playlists rangées (les vôtres et celles que vous suivez). */
+  playlists: string[];
+}
+
 /** Mix généré par le service (My Mix, Daily Discovery, mix d'artiste…). */
 export interface MixSummary {
   id: string;
@@ -887,6 +895,16 @@ export const commands = {
   editPlaylist: (uuid: string, title: string, description: string) =>
     invoke<void>("edit_playlist", { uuid, title, description }),
   deletePlaylist: (uuid: string) => invoke<void>("delete_playlist", { uuid }),
+  /** Dossiers de playlists (#331), triés par nom ; vide si l'utilisateur n'en a pas. */
+  playlistFolders: () => invoke<PlaylistFolder[]>("playlist_folders"),
+  /** Crée un dossier à la racine, avec ces playlists dedans. */
+  createFolder: (name: string, uuids: string[]) => invoke<PlaylistFolder>("create_folder", { name, uuids }),
+  renameFolder: (id: string, name: string) => invoke<void>("rename_folder", { id, name }),
+  /** Range des playlists dans un dossier, ou les ressort à la racine (`folderId` nul). */
+  moveToFolder: (uuids: string[], folderId: string | null) =>
+    invoke<void>("move_to_folder", { uuids, folderId }),
+  /** Supprime un dossier ; ses playlists sont gardées, à la racine. */
+  deleteFolder: (id: string) => invoke<void>("delete_folder", { id }),
   /** Doublons et titres indisponibles d'une de vos playlists (#382). */
   playlistCleanup: (uuid: string) => invoke<CleanupReport>("playlist_cleanup", { uuid }),
   /** Applique les changements choisis (positions du rapport, dans n'importe quel ordre). */

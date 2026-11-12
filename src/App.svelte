@@ -15,6 +15,7 @@
   import { closeTrackInfo, openTrackInfo, trackInfo } from "./lib/stores/trackInfo.svelte";
   import { closeMenu, menu } from "./lib/stores/menu.svelte";
   import { closePlaylistPicker, picker } from "./lib/stores/playlistPicker.svelte";
+  import { clearFolders, closeFolderPicker, folderPicker } from "./lib/stores/folders.svelte";
   import { platform } from "./lib/platform.svelte";
   import { appWindow, initWindow, setFullscreen, toggleFullscreen } from "./lib/stores/window.svelte";
   import { initBackButton } from "./lib/backButton";
@@ -28,6 +29,7 @@
   import Library from "./views/Library.svelte";
   import Stats from "./views/Stats.svelte";
   import SmartList from "./views/SmartList.svelte";
+  import Folder from "./views/Folder.svelte";
   import Album from "./views/Album.svelte";
   import Artist from "./views/Artist.svelte";
   import Playlist from "./views/Playlist.svelte";
@@ -47,6 +49,7 @@
   import UpdatePrompt from "./components/UpdatePrompt.svelte";
   import ContextMenu from "./components/ContextMenu.svelte";
   import PlaylistPicker from "./components/PlaylistPicker.svelte";
+  import FolderPicker from "./components/FolderPicker.svelte";
   import TrackInfo from "./components/TrackInfo.svelte";
   import Icon from "./components/Icon.svelte";
   import EggMark from "./components/EggMark.svelte";
@@ -137,6 +140,7 @@
     return (
       !!menu.open ||
       !!picker.request ||
+      !!folderPicker.request ||
       !!trackInfo.track ||
       jam.dialogOpen ||
       driveOpen ||
@@ -151,6 +155,7 @@
   function closeTop() {
     if (menu.open) closeMenu();
     else if (picker.request) closePlaylistPicker();
+    else if (folderPicker.request) closeFolderPicker();
     else if (trackInfo.track) closeTrackInfo();
     else if (jam.dialogOpen) closeJamDialog();
     else if (driveOpen) driveOpen = false;
@@ -330,6 +335,7 @@
     session = null;
     clearLikes();
     clearLater();
+    clearFolders();
   }
 
   const route = $derived(current());
@@ -431,6 +437,8 @@
         <Stats />
       {:else if route.name === "smart"}
         <SmartList list={route.list} />
+      {:else if route.name === "folder"}
+        <Folder id={route.id} />
       {:else if route.name === "album"}
         <Album id={route.id} track={route.track} />
       {:else if route.name === "artist"}
@@ -487,6 +495,7 @@
 <UpdatePrompt />
 <ContextMenu />
 <PlaylistPicker />
+<FolderPicker />
 <TrackInfo />
 <JamDialog />
 

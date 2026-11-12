@@ -13,6 +13,7 @@ mod collection;
 mod credits;
 mod date;
 mod feed;
+mod folders;
 mod hires;
 pub mod home;
 mod info;
@@ -26,6 +27,8 @@ mod live_blocks;
 mod live_cleanup;
 #[cfg(test)]
 mod live_collection;
+#[cfg(test)]
+mod live_folders;
 #[cfg(test)]
 mod live_later;
 #[cfg(test)]

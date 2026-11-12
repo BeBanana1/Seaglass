@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.57
+
+- Dossiers de playlists : affichés dans Bibliothèque › Playlists et dans « Ajouter à une playlist », créés, renommés et supprimés depuis l'app, « Déplacer vers un dossier… » dans le menu d'une playlist ; rien ne change sans dossier (#331).
+
 ## 0.5.56
 
 - Sélection multiple de titres : Ctrl+clic, Maj+clic et Ctrl+A sur le bureau, « Sélectionner » à l'appui long sur Android, puis lire ensuite, ajouter à la file ou à une playlist, liker ou retirer de la playlist en une fois (#332).

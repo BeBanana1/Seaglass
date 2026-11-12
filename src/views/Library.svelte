@@ -16,6 +16,8 @@
   import PinButton from "../components/PinButton.svelte";
   import Icon from "../components/Icon.svelte";
   import CleanupDialog from "../components/CleanupDialog.svelte";
+  import FolderCards from "../components/FolderCards.svelte";
+  import { folders, loadFolders, rootPlaylists } from "../lib/stores/folders.svelte";
   import { listSort, saveListSort } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -84,6 +86,8 @@
     slow = false;
     const timer = setTimeout(() => (slow = true), LOADING_DELAY_MS);
     loadLibrary(tab);
+    // Dossiers de playlists (#331) : une petite requête, rien d'affiché s'il n'y en a pas.
+    if (tab === "playlists") loadFolders();
     return () => clearTimeout(timer);
   });
 
@@ -92,7 +96,8 @@
   const cards = $derived.by((): MediaItem[] => {
     switch (tab) {
       case "playlists":
-        return (library.playlists.items ?? []).map((p) => ({ kind: "playlist", ...p }));
+        // Les playlists rangées dans un dossier n'apparaissent que dans leur dossier (#331).
+        return rootPlaylists(library.playlists.items ?? []).map((p) => ({ kind: "playlist", ...p }));
       case "mixes":
         return (library.mixes.items ?? []).map((m) => ({ kind: "mix", ...m }));
       case "albums":
@@ -118,7 +123,14 @@
         {#if tab === "later"}<PinButton pin={{ kind: "later" }} />{/if}
         <!-- Statistiques d'écoute locales (#326). -->
         {#if !likesPage}<button class="refresh" onclick={() => go({ name: "stats" })}>{t.library.stats.open}</button>{/if}
-        <button class="refresh" onclick={() => loadLibrary(tab, true)} disabled={slot.loading}>
+        <button
+          class="refresh"
+          onclick={() => {
+            loadLibrary(tab, true);
+            if (tab === "playlists") loadFolders(true);
+          }}
+          disabled={slot.loading}
+        >
           {t.library.refresh}
         </button>
       </div>
@@ -148,7 +160,7 @@
     <p class="error">{slot.error}</p>
   {:else if !slot.items}
     {#if slow}<p class="muted">{t.common.loading}</p>{/if}
-  {:else if slot.items.length === 0}
+  {:else if slot.items.length === 0 && !(tab === "playlists" && folders.items?.length)}
     <p class="muted">{tab === "later" ? t.library.later.empty : t.library.empty}</p>
   {:else}
     {#if slot.truncated && tab === "later"}
@@ -218,6 +230,9 @@
       <TrackList tracks={shownTracks.map((l) => l.track)} source={{ kind: "likedTracks" }} />
     {/if}
   {:else}
+    {#if tab === "playlists" && folders.items}
+      <FolderCards items={folders.items} playlists={library.playlists.items ?? []} />
+    {/if}
     <CardGrid items={cards} />
   {/if}
 {/snippet}
