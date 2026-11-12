@@ -72,6 +72,8 @@ pub enum Theme {
     Artdeco,
     /// Hi-fi des années 70-80 : noyer, orange brûlé, façades d'ampli, bobines et vumètres (#338).
     Cassette,
+    /// La salle de cinéma : noir de salle, velours rouge, cartons-titres ivoire (#339).
+    Seance,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -437,6 +439,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Artdeco);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"cassette"}"#).unwrap();
         assert_eq!(s.theme, Theme::Cassette);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"seance"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Seance);
     }
 
     #[test]

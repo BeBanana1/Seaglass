@@ -4,6 +4,8 @@
   import { formatTime } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
 
+  const ENDING_SECONDS = 30;
+
   let { large = false }: { large?: boolean } = $props();
 
   let position = $state(0);
@@ -19,6 +21,9 @@
   const ratio = $derived(duration ? Math.min(shown / duration, 1) : 0);
   /** Le texte du temps ne change qu'à la seconde : pas de recalcul à chaque image. */
   const shownText = $derived(formatTime(Math.floor(shown)));
+  /** Dernières secondes du titre, quand le suivant est préchargé (même seuil de 30 s que
+   *  l'acteur) : simple repère que les thèmes peuvent montrer (Séance, #339). */
+  const ending = $derived(duration > ENDING_SECONDS && duration - shown <= ENDING_SECONDS);
 
   async function seekTo(value: number) {
     dragging = null;
@@ -26,7 +31,7 @@
   }
 </script>
 
-<div class="progress" class:large>
+<div class="progress" class:large class:ending>
   <span class="time mono">{shownText}</span>
   <div class="track" style:--ratio={ratio}>
     <div class="fill"></div>

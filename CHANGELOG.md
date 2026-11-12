@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.45
+
+- Nouveau thème Séance : la salle de cinéma, noir de salle, rideaux de velours rouge, titres en capitales de générique. « En lecture » passe en format large avec le titre en carton-titre ; un repère de changement de bobine apparaît sur la pochette dans les 30 dernières secondes, le chargement est un décompte d'amorce et la chaîne audio une fiche technique de projection (#339).
+
 ## 0.5.44
 
 - Nouveau thème Cassette : chaîne hi-fi des années 70, noyer, orange brûlé, bandes de jaquette. La barre de progression est une bande qui passe d'une bobine à l'autre, et la chaîne audio de « En lecture » s'affiche en vumètres à aiguille (#338).

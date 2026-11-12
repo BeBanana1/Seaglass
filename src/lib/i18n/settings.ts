@@ -98,6 +98,10 @@ export const fr = {
       name: "Cassette",
       description: "Chaîne hi-fi des années 70 : noyer, orange brûlé, façades d'ampli, bobines et vumètres.",
     },
+    seance: {
+      name: "Séance",
+      description: "La salle de cinéma : noir de salle, velours rouge, cartons-titres ivoire, « En lecture » en format large.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -413,6 +417,10 @@ export const en: typeof fr = {
     cassette: {
       name: "Cassette",
       description: "A 1970s hi-fi system: walnut, burnt orange, amplifier faceplates, tape reels and VU meters.",
+    },
+    seance: {
+      name: "Showing",
+      description: "The movie theater: dark auditorium, red velvet, ivory title cards, widescreen Now Playing.",
     },
   },
 

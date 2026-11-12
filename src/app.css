@@ -935,6 +935,59 @@
   --meta-family: var(--font-mono);
 }
 
+/* --- Séance : la salle de cinéma (voir themes/seance.css) -------------------------- */
+/* Noir de salle, ivoire des cartons-titres, accent rouge (remplaçable). Le velours
+   (`--se-velvet`, `--se-velvet-deep`) reste fixe pour le décor et ne porte jamais de texte. */
+:root[data-theme="seance"] {
+  color-scheme: dark;
+  --se-velvet: #7c141c;
+  --se-velvet-deep: #3a070c;
+  --se-ivory: #efe6d2;
+  --se-screen: #f6efe0;
+  --bg: #0e0a0b;
+  --surface: rgb(26 18 20 / 0.9);
+  --dialog-bg: #1a1214;
+  --bg-raised: rgb(239 230 210 / 0.05);
+  --bg-hover: rgb(239 230 210 / 0.09);
+  --border: rgb(239 230 210 / 0.12);
+  --text: var(--se-ivory);
+  --text-muted: #a89b86;
+  --accent: #e65a5e;
+  --accent-strong: #f38a8b;
+  --accent-contrast: #0e0a0b;
+  --danger: #ff8f84;
+  --ok: #b6c98a;
+  --warn: #e7c06a;
+  --radius: 4px;
+  --radius-pill: 4px;
+  --radius-card: 6px;
+  /* Coins d'une image projetée : légèrement arrondis. */
+  --radius-cover: 10px;
+  --panel-radius: 8px;
+  --dialog-radius: 8px;
+  --popover-radius: 4px;
+  --panel-blur: none;
+  --panel-border: 1px solid rgb(239 230 210 / 0.08);
+  --panel-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
+  --dialog-border: 1px solid rgb(239 230 210 / 0.16);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow: 0 30px 80px rgb(0 0 0 / 0.7);
+  --popover-shadow: 0 14px 34px rgb(0 0 0 / 0.6);
+  /* Pochettes éclairées comme un écran : un halo ivoire très faible. */
+  --shadow-cover:
+    0 0 0 1px rgb(239 230 210 / 0.06),
+    0 0 60px rgb(246 239 224 / 0.08),
+    0 24px 60px rgb(0 0 0 / 0.6);
+  --focus-ring: 2px solid var(--se-ivory);
+  --shell-gap: 10px;
+  --display-family: Didot, "Bodoni MT", "Bodoni 72", Georgia, serif;
+  --display-weight: 400;
+  --display-tracking: 0.08em;
+  --label-transform: uppercase;
+  --label-tracking: 0.22em;
+  --meta-family: var(--font-mono);
+}
+
 * {
   box-sizing: border-box;
 }
