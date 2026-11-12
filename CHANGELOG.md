@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.34
+
+- Sauvegarde des réglages (Réglages › Application) : copier ses réglages d'interface et de lecture en texte, puis les coller dans Seaglass sur un autre appareil ; ce qui ne s'applique pas à l'appareil est ignoré et signalé (#352).
+
 ## 0.5.33
 
 - Statistiques d'écoute (Bibliothèque › Statistiques) : titres, albums et artistes les plus écoutés et temps d'écoute sur 7 jours, 30 jours, 12 mois ou tout l'historique, calculés sur l'appareil ; l'historique garde maintenant 50 000 écoutes (#326).

@@ -846,6 +846,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   ],
   current_log: () => "2026-11-11T10:00:00Z  INFO seaglass_lib: Seaglass (aperçu)\n",
   open_log_dir: () => null,
+  export_settings: () => JSON.stringify({ format: "seaglass-settings", version: 1, ui }, null, 2),
+  import_settings: () => ({ applied: ["ui.theme"], ignored: ["playback.wifiQuality"] }),
   reset_home_layout: () => (ui.home = { order: [], hidden: [], featuredHidden: false }),
   // Copie JSON : l'UI envoie des proxys Svelte, que `structuredClone` refuse.
   set_pins: ({ pins }) => (ui.pins = JSON.parse(JSON.stringify(pins))),

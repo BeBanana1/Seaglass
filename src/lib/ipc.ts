@@ -5,6 +5,12 @@ import { invoke, listen, type UnlistenFn } from "./transport";
 
 export type TrackId = number;
 
+/** Résultat d'un import de réglages (#352). */
+export interface ImportReport {
+  applied: string[];
+  ignored: string[];
+}
+
 export interface ArtistRef {
   id: number;
   name: string;
@@ -826,6 +832,10 @@ export const commands = {
   lastCrashReport: () => invoke<string | null>("last_crash_report"),
   /** Fin du journal de ce lancement. */
   currentLog: () => invoke<string | null>("current_log"),
+  /** #352 : réglages de cet appareil en JSON, à coller ailleurs. */
+  exportSettings: () => invoke<string>("export_settings"),
+  /** Reprend une sauvegarde collée ; clés `ui.theme`, `playback.autoRadio`… */
+  importSettings: (text: string) => invoke<ImportReport>("import_settings", { text }),
   changelog: () => invoke<Release[]>("changelog"),
   /** Bureau : dossier des journaux dans l'explorateur. */
   openLogDir: () => invoke<void>("open_log_dir"),

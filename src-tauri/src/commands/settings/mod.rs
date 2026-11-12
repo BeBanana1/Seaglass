@@ -2,6 +2,7 @@
 //! démarrage lu et écrit directement dans le système (clé `Run` du registre).
 
 pub mod accent;
+pub mod backup;
 pub mod home_layout;
 pub mod pins;
 pub mod sorts;
@@ -173,11 +174,17 @@ pub async fn set_ui_settings(
     state: State<'_, AppState>,
     settings: UiSettings,
 ) -> CmdResult<()> {
-    save(&state, &settings)?;
+    store_and_apply(&app, &state, &settings)
+}
+
+/// Enregistre les réglages d'interface et reporte ceux qui agissent hors de l'UI (langue des
+/// messages, fermeture de la fenêtre, Discord, zoom). Aussi utilisé par l'import (#352).
+fn store_and_apply(app: &AppHandle, state: &AppState, settings: &UiSettings) -> CmdResult<()> {
+    save(state, settings)?;
     i18n::set(settings.language.resolve());
     settings.apply_to_backend();
     #[cfg(desktop)]
-    zoom::apply(&app, settings.zoom);
+    zoom::apply(app, settings.zoom);
     #[cfg(not(desktop))]
     let _ = app;
     Ok(())

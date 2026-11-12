@@ -64,6 +64,15 @@ fn default_sort(list: &str) -> TrackSort {
     }
 }
 
+/// Vrai si les tris venus d'une sauvegarde (#352) sont ceux que `update` aurait pu
+/// enregistrer : listes valides, pas plus de `MAX_SORTS`.
+pub(crate) fn are_valid(sorts: &[ListSort]) -> bool {
+    sorts.len() <= MAX_SORTS
+        && sorts
+            .iter()
+            .all(|s| s.list == LIKED_TRACKS || is_uuid(&s.list))
+}
+
 /// Mémorise le tri de `list` (en tête), ou l'oublie si `sort` est `None` ou le tri par
 /// défaut : la liste ne garde que des valeurs utiles.
 pub fn update(
