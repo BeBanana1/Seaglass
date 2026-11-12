@@ -520,6 +520,27 @@
     background: #c9a24a;
   }
 
+  .preview.cassette {
+    border-radius: 3px;
+    background:
+      linear-gradient(transparent 70%, #d8692a 70% 76%, #d9a336 76% 82%, #7d7f35 82% 88%, transparent 88%),
+      #24180f;
+  }
+
+  .cassette :is(.side, .main, .bar) {
+    border-radius: 3px;
+    background: linear-gradient(#d8692a 0 2px, #d9a336 2px 4px, #7d7f35 4px 6px, #34251a 6px);
+    border: 1px solid rgb(0 0 0 / 0.6);
+  }
+
+  .cassette .h {
+    background: #f1e3c4;
+  }
+
+  .cassette .l {
+    background: #ef8a3c;
+  }
+
   /* La pochette, seule touche de couleur. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);

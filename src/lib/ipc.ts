@@ -531,7 +531,7 @@ export interface SearchResults {
   playlists: PlaylistSummary[];
 }
 
-export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal" | "solarpunk" | "cyberpunk" | "neumorph" | "neumorph-dark" | "terminal" | "riso" | "bauhaus" | "aero" | "alloy" | "alloy-dark" | "midnight" | "estampe" | "artdeco";
+export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal" | "solarpunk" | "cyberpunk" | "neumorph" | "neumorph-dark" | "terminal" | "riso" | "bauhaus" | "aero" | "alloy" | "alloy-dark" | "midnight" | "estampe" | "artdeco" | "cassette";
 
 /** Raccourci de la barre latérale (bureau) ou tuile du mode conduite (Android, #193) ; le titre
  *  d'une playlist ou d'un mix est gardé pour l'afficher sans requête. */

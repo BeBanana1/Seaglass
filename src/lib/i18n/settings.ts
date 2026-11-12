@@ -94,6 +94,10 @@ export const fr = {
       name: "Art déco",
       description: "Affiche des années 1920 : bleu nuit, filets dorés, éventails, capitales géométriques.",
     },
+    cassette: {
+      name: "Cassette",
+      description: "Chaîne hi-fi des années 70 : noyer, orange brûlé, façades d'ampli, bobines et vumètres.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -405,6 +409,10 @@ export const en: typeof fr = {
     artdeco: {
       name: "Art Deco",
       description: "A 1920s poster: midnight blue, gold rules, fans, geometric capitals.",
+    },
+    cassette: {
+      name: "Cassette",
+      description: "A 1970s hi-fi system: walnut, burnt orange, amplifier faceplates, tape reels and VU meters.",
     },
   },
 
