@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.49
+
+- Nouveau thème Désert : space opera des sables, ocres, sable et ciel pâle, horizon bas, titres fins et très espacés, glyphes géométriques devant la navigation et un bleu profond réservé au bouton lecture. La progression laisse une trace dans le sable, le chargement est une ondulation de dune et, sur le bureau, un minuscule ver passe une fois dans l'horizon à la fin d'un album (#339).
+
 ## 0.5.48
 
 - Nouveau thème Grand hôtel : comédie pastel et symétrique, rose poudré, bordeaux et moutarde, papier peint rayé, cadres doubles à filets, étiquettes en cartouche et numéros de piste en médaillons. Les sections de l'accueil sont numérotées en chapitres, la file s'intitule « Programme », une clé de concierge accompagne les réglages et « En lecture » est centré (#339).

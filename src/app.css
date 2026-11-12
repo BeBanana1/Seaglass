@@ -1154,6 +1154,56 @@
   --meta-family: var(--font-ui);
 }
 
+/* --- Désert : space opera des sables (voir themes/desert.css) ----------------------- */
+/* Sable, ocres et brun brûlé, ciel pâle ; accent bleu profond (remplaçable), très rare : le
+   thème pose peu de choses en accent. `--ds-ochre`, `--ds-burnt`, `--ds-sky` restent fixes
+   pour le décor. Calme et monumental : grandes surfaces, typographie fine et très espacée. */
+:root[data-theme="desert"] {
+  color-scheme: light;
+  --ds-ochre: #c98d4a;
+  --ds-burnt: #7a3f1d;
+  --ds-sky: #ece3d3;
+  --ds-dune: #d9bf93;
+  --bg: #e9d8b8;
+  --surface: rgb(243 232 210 / 0.9);
+  --dialog-bg: #f3e8d2;
+  --bg-raised: rgb(58 36 22 / 0.05);
+  --bg-hover: rgb(58 36 22 / 0.08);
+  --border: rgb(58 36 22 / 0.14);
+  --text: #3a2416;
+  --text-muted: #6e4f36;
+  --accent: #1f3a6b;
+  --accent-strong: #132748;
+  --accent-contrast: #ffffff;
+  --danger: #9b2c14;
+  --ok: #4d6a2c;
+  --warn: #8a5800;
+  --radius: 2px;
+  --radius-pill: 999px;
+  --radius-card: 2px;
+  --radius-cover: 2px;
+  --panel-radius: 2px;
+  --dialog-radius: 2px;
+  --popover-radius: 2px;
+  --panel-blur: none;
+  --panel-border: none;
+  --panel-shadow: 0 1px 0 rgb(58 36 22 / 0.08);
+  --dialog-border: 1px solid rgb(58 36 22 / 0.18);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow: 0 24px 60px rgb(58 36 22 / 0.22);
+  --popover-shadow: 0 12px 30px rgb(58 36 22 / 0.2);
+  /* Ombre longue et basse, soleil rasant. */
+  --shadow-cover: 18px 14px 30px rgb(122 63 29 / 0.25);
+  --focus-ring: 2px solid var(--accent);
+  --shell-gap: 14px;
+  --display-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --display-weight: 300;
+  --display-tracking: 0.32em;
+  --label-transform: uppercase;
+  --label-tracking: 0.3em;
+  --meta-family: var(--font-ui);
+}
+
 * {
   box-sizing: border-box;
 }

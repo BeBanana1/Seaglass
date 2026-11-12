@@ -631,6 +631,27 @@
     background: #8e2240;
   }
 
+  /* Ciel pâle, horizon bas, dunes. */
+  .preview.desert {
+    border-radius: 2px;
+    background:
+      radial-gradient(ellipse 80% 30% at 30% 100%, #c98d4a 60%, transparent 61%),
+      linear-gradient(#ece3d3, #e9d8b8 70%, #d9bf93 70%);
+  }
+
+  .desert :is(.side, .main, .bar) {
+    border-radius: 2px;
+    background: rgb(243 232 210 / 0.9);
+  }
+
+  .desert .h {
+    background: #3a2416;
+  }
+
+  .desert .l {
+    background: #1f3a6b;
+  }
+
   /* La pochette, seule touche de couleur. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);

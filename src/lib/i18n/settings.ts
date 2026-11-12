@@ -114,6 +114,10 @@ export const fr = {
       name: "Grand hôtel",
       description: "Comédie pastel et symétrique : rose poudré, bordeaux et moutarde, cadres doubles, cartouches et médaillons.",
     },
+    desert: {
+      name: "Désert",
+      description: "Space opera des sables : ocres, sable et ciel pâle, horizon bas, typographie fine et très espacée.",
+    },
   },
 
   accent: "Couleur d'accent",
@@ -445,6 +449,10 @@ export const en: typeof fr = {
     hotel: {
       name: "Grand Hotel",
       description: "A pastel, symmetrical comedy: powder pink, burgundy and mustard, double frames, cartouches and medallions.",
+    },
+    desert: {
+      name: "Desert",
+      description: "A space opera of sand: ochres, dunes and pale sky, a low horizon, thin and widely spaced type.",
     },
   },
 
