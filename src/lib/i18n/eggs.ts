@@ -24,6 +24,15 @@ export const fr = {
     ["Licence de Seaglass", "GPL-3.0"],
   ] as [string, string][],
   creditsEnd: "Merci d'avoir écouté jusqu'au bout.",
+  /** 29 février : dernière ligne factice de la file. */
+  hiddenTrack: "Piste cachée",
+  /** Recherche « kessel » : durée en parsecs. */
+  parsecs: (n: number) => `${n.toLocaleString("fr")} pc`,
+  /** 21 octobre : infobulle du minuteur en cadran à trois lignes. */
+  circuits: (arrival: string, now: string, departure: string) =>
+    `Arrivée     ${arrival}
+Maintenant  ${now}
+Départ      ${departure}`,
   /** Thème Séance : carton de fin de file. */
   theEnd: "Fin",
   /** Thème Ordinateur de bord : refus du lecteur, avant le message d'origine. */
@@ -51,6 +60,12 @@ export const en: typeof fr = {
     ["Seaglass license", "GPL-3.0"],
   ],
   creditsEnd: "Thanks for listening to the end.",
+  hiddenTrack: "Hidden track",
+  parsecs: (n: number) => `${n.toLocaleString("en")} pc`,
+  circuits: (arrival: string, now: string, departure: string) =>
+    `Arrival    ${arrival}
+Present    ${now}
+Departed   ${departure}`,
   theEnd: "The End",
   refusals: {
     unplayable: "I will not play this track. It is nothing personal.",

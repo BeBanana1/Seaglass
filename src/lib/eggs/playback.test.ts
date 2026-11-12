@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { countLoops, LOOPS_FOR_INFINITY, NO_LOOPS, SEQUENCE, sequenceStep, type Loops } from "./playback";
+import {
+  countLoops,
+  LOOPS_FOR_INFINITY,
+  NO_LOOPS,
+  parsecs,
+  SEQUENCE,
+  sequenceStep,
+  stationClock,
+  type Loops,
+} from "./playback";
 
 /** Joue des positions successives (durée 200 s) et renvoie le compte. */
 function play(positions: number[], repeatOne = true, id = 7, start: Loops = NO_LOOPS): Loops {
@@ -43,5 +52,30 @@ describe("sequenceStep", () => {
 
   it("un ↑ de trop ne casse pas le début", () => {
     expect(run(["ArrowUp", "ArrowUp", "ArrowUp", ...SEQUENCE.slice(2)])).toBe(SEQUENCE.length);
+  });
+});
+
+describe("stationClock", () => {
+  it("fait la minute en 58,5 s puis s'arrête", () => {
+    expect(stationClock(0, 300)).toBe(0);
+    expect(stationClock(29.25, 300)).toBeCloseTo(30);
+    expect(stationClock(58.5, 300)).toBeCloseTo(60);
+    expect(stationClock(59.5, 300)).toBe(60);
+  });
+
+  it("repart à la minute pleine", () => {
+    expect(stationClock(60, 300)).toBe(60);
+    expect(stationClock(61, 300)).toBeGreaterThan(61);
+  });
+
+  it("ne dépasse jamais la durée", () => {
+    expect(stationClock(119, 119.5)).toBe(119.5);
+  });
+});
+
+describe("parsecs", () => {
+  it("une minute vaut un parsec, au dixième", () => {
+    expect(parsecs(60)).toBe(1);
+    expect(parsecs(213)).toBe(3.6);
   });
 });

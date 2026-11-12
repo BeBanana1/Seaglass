@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.54
+
+- Clins d'œil, derniers détails : piste cachée dans la file le 29 février, minuteur en cadran le 21 octobre, barre de progression en horloge de gare le 1er août, et une recherche qui compte en parsecs (#399).
+
 ## 0.5.53
 
 - Clins d'œil, fin : « En lecture » en format large sur une sélection de bandes originales de films, carton « Fin » quand la file s'achève avec le thème Séance, et refus d'une politesse inquiétante avec le thème Ordinateur de bord (#399).

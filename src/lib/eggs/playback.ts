@@ -50,3 +50,22 @@ export function sequenceStep(progress: number, key: string): number {
   if (k === SEQUENCE[progress]) return progress + 1;
   return k === SEQUENCE[0] ? (progress === 2 ? 2 : 1) : 0;
 }
+
+/** Tour du cadran d'une horloge de gare : la trotteuse fait le tour en 58,5 s. */
+const STATION_LAP = 58.5;
+
+/** 1er août : position montrée par la barre de progression, comme la trotteuse d'une
+ *  horloge de gare. Chaque minute est parcourue en 58,5 s, la barre s'arrête sur la minute
+ *  pleine, puis repart quand la vraie minute est passée. Jamais au-delà de `duration`. */
+export function stationClock(pos: number, duration: number): number {
+  if (pos <= 0) return 0;
+  const minute = Math.floor(pos / 60) * 60;
+  const shown = minute + Math.min(((pos - minute) * 60) / STATION_LAP, 60);
+  return duration > 0 ? Math.min(shown, duration) : shown;
+}
+
+/** Recherche « kessel » : une durée en parsecs, unité fantaisiste (une minute vaut un
+ *  parsec), arrondie au dixième. */
+export function parsecs(seconds: number): number {
+  return Math.round((seconds / 60) * 10) / 10;
+}
