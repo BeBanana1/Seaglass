@@ -24,6 +24,13 @@ export const fr = {
     ["Licence de Seaglass", "GPL-3.0"],
   ] as [string, string][],
   creditsEnd: "Merci d'avoir écouté jusqu'au bout.",
+  /** Thème Séance : carton de fin de file. */
+  theEnd: "Fin",
+  /** Thème Ordinateur de bord : refus du lecteur, avant le message d'origine. */
+  refusals: {
+    unplayable: "Je ne lirai pas ce titre. Ce n'est rien de personnel.",
+    stopped: "J'ai arrêté la lecture, pour votre bien. Tout est sous contrôle.",
+  },
 };
 
 export const en: typeof fr = {
@@ -44,4 +51,9 @@ export const en: typeof fr = {
     ["Seaglass license", "GPL-3.0"],
   ],
   creditsEnd: "Thanks for listening to the end.",
+  theEnd: "The End",
+  refusals: {
+    unplayable: "I will not play this track. It is nothing personal.",
+    stopped: "I have stopped playback, for your own good. Everything is under control.",
+  },
 };

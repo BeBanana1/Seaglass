@@ -35,6 +35,7 @@ impl Player {
         self.next_loaded = None;
         self.loaded = false;
         self.state.loading = true;
+        self.state.ended = false;
         self.state.track = self.tidal.cache.get(id);
         self.state.stream = None;
         self.state.hires_offer = None;
@@ -247,13 +248,14 @@ impl Player {
 
     /// Le titre courant ne peut pas être lu : toast, puis titre suivant.
     async fn on_track_failed(&mut self, message: String) {
-        self.toast("error", message);
+        self.toast_kind("error", Some("unplayable"), message);
         self.failures += 1;
         self.loaded = false;
         if self.failures >= MAX_FAILURES {
             self.failures = 0;
-            self.toast(
+            self.toast_kind(
                 "error",
+                Some("stopped"),
                 tr(
                     "trop d'échecs consécutifs, lecture arrêtée",
                     "too many consecutive failures, playback stopped",

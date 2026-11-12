@@ -1,5 +1,6 @@
 import { commands, events, type Toast } from "../ipc";
 import { t } from "../i18n.svelte";
+import { ui } from "./ui.svelte";
 
 const LIFETIME_MS = 6000;
 /** Toast avec action (#192) : le temps de lire et de cliquer. */
@@ -31,8 +32,15 @@ export function pushUndoToast(message: string, undo: () => void) {
   pushToast({ level: "info", message, action: undo, actionLabel: t.common.undo, lifetimeMs: UNDO_LIFETIME_MS });
 }
 
+/** Clin d'œil (#399), thème Ordinateur de bord : un refus du lecteur s'excuse d'une
+ *  politesse inquiétante. Le message d'origine suit, tel quel, pour que l'erreur reste claire. */
+function dressed(toast: Toast): Toast {
+  if (!toast.kind || !ui.settings.easterEggs || ui.settings.theme !== "onboard") return toast;
+  return { ...toast, message: `${t.eggs.refusals[toast.kind]} ${toast.message}` };
+}
+
 export async function initToasts() {
-  await events.onToast(pushToast);
+  await events.onToast((toast) => pushToast(dressed(toast)));
 }
 
 /** Copie un texte du backend ; `null` = indisponible. */

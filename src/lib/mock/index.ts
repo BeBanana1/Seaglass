@@ -197,6 +197,10 @@ const state: PlayerState = {
   normalization: null,
   sleep: mockSleep(params.get("sleep")),
   /** `?mpv=cpu`, `?mpv=stopped` ou `?mpv=missing` : bandeau « mpv ne tourne pas » (#92, #261). */
+  // `?ended=1` : file terminée (carton « Fin » du thème Séance, #399). Bande originale :
+  // vraie pour l'album d'Interstellar des fixtures, comme la liste du backend.
+  soundtrack: context[index]?.album.id === 156749593,
+  ended: params.has("ended"),
   mpvIssue: ({ cpu: "cpuUnsupported", stopped: "stopped", missing: "missing" } as const)[params.get("mpv") ?? ""] ?? null,
 };
 
@@ -349,6 +353,8 @@ function setCurrent(track: Track | undefined) {
     duration: track.duration,
     paused: false,
     idle: false,
+    soundtrack: track.album.id === 156749593,
+    ended: false,
     hiresOffer:
       !track.hires && hiresOfferParam !== null && playback.hiresUpgrade === "ask" ? offerFormat(hiresOfferParam) : null,
     // Avec `?hiresedition=…` et le réglage actif, un titre non hi-res est « remplacé » par

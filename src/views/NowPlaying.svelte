@@ -120,6 +120,8 @@
   aria-label={t.views.nowPlaying.title}
 >
   <Backdrop context="nowplaying" />
+  <!-- #399 : bande originale choisie (liste du backend), la vue passe en format large. -->
+  {#if player.soundtrack && ui.settings.easterEggs}<div class="egg-scope" aria-hidden="true"></div>{/if}
   <div class="top-actions" class:with-panel={anyOpen}>
     <button
       class="lyrics-toggle"
@@ -341,6 +343,47 @@
     overflow: hidden;
     background: var(--bg);
     animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* Format large : deux bandes noires glissent en haut et en bas, une fois, puis restent. */
+  .egg-scope::before,
+  .egg-scope::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    /* Au-dessus de la mise en page (1), sous les boutons du haut (2, placés après). */
+    z-index: 2;
+    height: 9vh;
+    background: #000;
+    pointer-events: none;
+    animation: egg-scope 1.2s ease-out 1 both;
+  }
+
+  .egg-scope::before {
+    top: 0;
+    --from: -100%;
+  }
+
+  .egg-scope::after {
+    bottom: 0;
+    --from: 100%;
+  }
+
+  @keyframes egg-scope {
+    from {
+      translate: 0 var(--from);
+    }
+  }
+
+  :global(:root[data-motion="reduced"]) .egg-scope::before,
+  :global(:root[data-motion="reduced"]) .egg-scope::after {
+    animation: none;
+  }
+
+  /* Android : la barre d'état et la navigation tiennent déjà les bords. */
+  :global(:root[data-platform="android"]) .egg-scope {
+    display: none;
   }
 
   .now-playing.lyrics-open {

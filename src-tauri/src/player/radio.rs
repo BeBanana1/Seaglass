@@ -69,6 +69,8 @@ impl Player {
     pub(super) fn on_queue_end(&mut self) {
         self.maybe_request_radio();
         self.radio.waiting = self.radio.pending;
+        // Sans radio en route, la file est vraiment terminée (carton « Fin », #399).
+        self.state.ended = !self.radio.waiting;
     }
 
     pub(super) async fn on_radio_resolved(
@@ -84,9 +86,14 @@ impl Player {
         let waiting = std::mem::take(&mut self.radio.waiting);
         let tracks = match result {
             Ok(tracks) => tracks,
-            Err(e) => return tracing::warn!("radio de {seed} indisponible : {e}"),
+            Err(e) => {
+                // La file attendait cette radio : elle s'arrête là.
+                self.state.ended |= waiting;
+                return tracing::warn!("radio de {seed} indisponible : {e}");
+            }
         };
         if !self.radio.enabled || !self.queue.extend_with_radio(seed, &tracks) {
+            self.state.ended |= waiting;
             return;
         }
         tracing::info!("file prolongée par la radio de {seed}");
