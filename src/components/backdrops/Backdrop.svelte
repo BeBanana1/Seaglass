@@ -18,6 +18,7 @@
   import NoirBlinds from "./NoirBlinds.svelte";
   import HotelWallpaper from "./HotelWallpaper.svelte";
   import DesertHorizon from "./DesertHorizon.svelte";
+  import GeneriqueCutouts from "./GeneriqueCutouts.svelte";
 
   let { context = "shell" }: { context?: "shell" | "nowplaying" } = $props();
 
@@ -60,6 +61,8 @@
     <HotelWallpaper {intense} />
   {:else if theme === "desert"}
     <DesertHorizon {intense} />
+  {:else if theme === "generique"}
+    <GeneriqueCutouts {intense} />
   {/if}
 </div>
 

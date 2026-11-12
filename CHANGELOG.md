@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.50
+
+- Nouveau thème Générique : le papier découpé des génériques des années 50-60, aplats orange, rouges et crème sur papier noir, panneaux coupés aux ciseaux, titres de travers en étiquettes collées. La barre de progression est une ligne brisée et le chargement une spirale (#339).
+
 ## 0.5.49
 
 - Nouveau thème Désert : space opera des sables, ocres, sable et ciel pâle, horizon bas, titres fins et très espacés, glyphes géométriques devant la navigation et un bleu profond réservé au bouton lecture. La progression laisse une trace dans le sable, le chargement est une ondulation de dune et, sur le bureau, un minuscule ver passe une fois dans l'horizon à la fin d'un album (#339).
