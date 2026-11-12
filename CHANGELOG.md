@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.55
+
+- Bureau : export de la bibliothèque (titres likés, albums, artistes, playlists) en JSON et CSV dans Documents › Seaglass, depuis Réglages › Application (#330).
+
 ## 0.5.54
 
 - Clins d'œil, derniers détails : piste cachée dans la file le 29 février, minuteur en cadran le 21 octobre, barre de progression en horloge de gare le 1er août, et une recherche qui compte en parsecs (#399).

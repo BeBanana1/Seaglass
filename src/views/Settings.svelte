@@ -14,6 +14,7 @@
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { copyText, pushToast } from "../lib/stores/toasts.svelte";
+  import { cancelLibraryExport, libraryExport, startLibraryExport } from "../lib/stores/libraryExport.svelte";
   import {
     MOTIONS,
     setCloseAction,
@@ -782,6 +783,22 @@
         {/if}
       </div>
     </div>
+
+    <!-- #330 : bibliothèque exportée en JSON et CSV (bureau : dossier Documents). -->
+    {#if desktop}
+    <div class="group">
+      <h2>{t.settings.libraryExport}</h2>
+      <p class="hint">{t.settings.libraryExportHint}</p>
+      <div class="project-links">
+        {#if libraryExport.running}
+        <span class="hint">{t.settings.exportProgress(libraryExport.done, libraryExport.total)}</span>
+        <button class="update-check" onclick={cancelLibraryExport}>{t.common.cancel}</button>
+        {:else}
+        <button class="update-check" onclick={startLibraryExport}>{t.settings.exportLibrary}</button>
+        {/if}
+      </div>
+    </div>
+    {/if}
 
     <!-- #352 : réglages copiés en JSON, collés sur un autre appareil. -->
     <div class="group">
