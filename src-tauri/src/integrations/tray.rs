@@ -1,6 +1,6 @@
 //! Icône de la zone de notification (#83) : clic gauche = afficher la fenêtre, ou la
 //! cacher si elle est déjà au premier plan (#226), menu avec
-//! le titre en cours, Lecture/Pause, Suivant, Précédent, Afficher, Quitter. Les commandes
+//! le titre en cours, Lecture/Pause, Suivant, Précédent, Afficher, Mini-lecteur (#384), Quitter. Les commandes
 //! passent par `Cmd`, comme SMTC ; le menu est tenu à jour en observateur de l'acteur.
 //!
 //! Réglage « Fermer la fenêtre » : avec `tray`, fermer la fenêtre principale la cache au
@@ -16,6 +16,7 @@ use tauri::{AppHandle, Manager, Wry};
 use tokio::sync::mpsc;
 
 use super::{NowPlaying, PlaybackStatus};
+use crate::commands::mini_player;
 use crate::i18n::{self, tr};
 use crate::player::{Cmd, PlayerState};
 
@@ -86,8 +87,18 @@ pub fn show_on_second_launch(args: impl IntoIterator<Item = String>) -> bool {
     !args.into_iter().any(|a| a == MINIMIZED_ARG)
 }
 
-/// Affiche, restaure et met au premier plan la fenêtre principale.
+/// Affiche la fenêtre principale. Le mini-lecteur (#384) la remplace : il se ferme, et sa
+/// fermeture la réaffiche aussi.
 pub fn show_main(app: &AppHandle) {
+    if let Some(mini) = app.get_webview_window(mini_player::LABEL) {
+        let _ = mini.close();
+    }
+    reveal_main(app);
+}
+
+/// Affiche, restaure et met au premier plan la fenêtre principale, sans toucher au
+/// mini-lecteur.
+pub fn reveal_main(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.unminimize();
@@ -105,6 +116,7 @@ struct TrayView {
     has_next: bool,
     has_previous: bool,
     show: &'static str,
+    mini: &'static str,
     quit: &'static str,
     next: &'static str,
     previous: &'static str,
@@ -141,6 +153,7 @@ impl TrayView {
             has_next: np.has_next,
             has_previous: np.has_previous,
             show: tr("Afficher Seaglass", "Show Seaglass"),
+            mini: tr("Mini-lecteur", "Mini player"),
             quit: tr("Quitter", "Quit"),
             next: tr("Suivant", "Next"),
             previous: tr("Précédent", "Previous"),
@@ -166,6 +179,7 @@ pub struct TrayHandle {
     next: MenuItem<Wry>,
     previous: MenuItem<Wry>,
     show: MenuItem<Wry>,
+    mini: MenuItem<Wry>,
     quit: MenuItem<Wry>,
     /// Dernière vue appliquée : le menu n'est touché que si elle change (l'état arrive à
     /// ~4 Hz pendant la lecture).
@@ -197,6 +211,7 @@ impl TrayHandle {
         self.previous.set_text(v.previous)?;
         self.previous.set_enabled(v.has_previous)?;
         self.show.set_text(v.show)?;
+        self.mini.set_text(v.mini)?;
         self.quit.set_text(v.quit)?;
         self.tray.set_tooltip(Some(&v.tooltip))
     }
@@ -210,6 +225,7 @@ pub fn create(app: &AppHandle, player: mpsc::Sender<Cmd>) -> tauri::Result<TrayH
     let next = MenuItem::with_id(app, "next", v.next, false, None::<&str>)?;
     let previous = MenuItem::with_id(app, "previous", v.previous, false, None::<&str>)?;
     let show = MenuItem::with_id(app, "show", v.show, true, None::<&str>)?;
+    let mini = MenuItem::with_id(app, "mini", v.mini, true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", v.quit, true, None::<&str>)?;
     let menu = Menu::with_items(
         app,
@@ -221,6 +237,7 @@ pub fn create(app: &AppHandle, player: mpsc::Sender<Cmd>) -> tauri::Result<TrayH
             &previous,
             &PredefinedMenuItem::separator(app)?,
             &show,
+            &mini,
             &quit,
         ],
     )?;
@@ -234,6 +251,7 @@ pub fn create(app: &AppHandle, player: mpsc::Sender<Cmd>) -> tauri::Result<TrayH
                 "next" => Cmd::Next,
                 "previous" => Cmd::Previous,
                 "show" => return show_main(app),
+                "mini" => return mini_player::open_in_background(app),
                 "quit" => return app.exit(0),
                 _ => return,
             };
@@ -263,6 +281,7 @@ pub fn create(app: &AppHandle, player: mpsc::Sender<Cmd>) -> tauri::Result<TrayH
         next,
         previous,
         show,
+        mini,
         quit,
         last: Mutex::new(None),
     })

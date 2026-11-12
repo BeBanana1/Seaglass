@@ -300,6 +300,7 @@ function applyExclusive() {
 applyExclusive();
 let autostart = params.has("autostart");
 let fullscreen = params.has("fullscreen");
+let miniOnTop = true;
 
 type Listener = (e: { payload: unknown }) => void;
 const listeners = new Map<string, Set<Listener>>();
@@ -928,6 +929,14 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     fullscreen = Boolean(on);
     emit("fullscreen", fullscreen);
     return fullscreen;
+  },
+  // Hors Tauri, une seule page : le mini-lecteur se prévisualise avec `?mini`.
+  open_mini_player: () => undefined,
+  close_mini_player: () => undefined,
+  mini_player_on_top: () => miniOnTop,
+  set_mini_player_on_top: ({ onTop }) => {
+    miniOnTop = Boolean(onTop);
+    return miniOnTop;
   },
   set_autostart: ({ enabled }) => {
     autostart = Boolean(enabled);

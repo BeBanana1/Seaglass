@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { commands } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
   import { coverSmall, fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
@@ -57,6 +58,9 @@
     </button>
     <SleepTimer />
     <Volume />
+    <button class="toggle" onclick={() => commands.openMiniPlayer()} title={t.player.miniPlayer}>
+      <Icon name="miniPlayer" />
+    </button>
     <button class="toggle" class:on={queueOpen} onclick={onToggleQueue} title={t.player.queue}>
       <Icon name="queue" />
     </button>

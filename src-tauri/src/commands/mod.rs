@@ -10,6 +10,8 @@ pub mod jam;
 pub mod later;
 pub mod link;
 pub mod logs;
+#[cfg(desktop)]
+pub mod mini_player;
 pub mod play_history;
 pub mod play_stats;
 pub mod player;

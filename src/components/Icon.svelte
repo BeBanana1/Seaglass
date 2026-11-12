@@ -66,6 +66,9 @@
     chevronRight: "M9.3 5.3a1 1 0 0 1 1.4 0l6 6a1 1 0 0 1 0 1.4l-6 6a1 1 0 0 1-1.4-1.4l5.3-5.3-5.3-5.3a1 1 0 0 1 0-1.4z",
     // Mode conduite (#193) : vitre et roues en creux (sens inverse de la carrosserie).
     car: "M6.6 5.7A2 2 0 0 1 8.5 4.5h7a2 2 0 0 1 1.9 1.2L19 9.6h.5A1.5 1.5 0 0 1 21 11.1V17a1 1 0 0 1-1 1h-1v1a1 1 0 0 1-2 0v-1H7v1a1 1 0 0 1-2 0v-1H4a1 1 0 0 1-1-1v-5.9a1.5 1.5 0 0 1 1.5-1.5H5zM8.5 6.5 7.2 9.6h9.6l-1.3-3.1zM7 12.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z",
+    // Mini-lecteur (#384) : cadre avec une petite fenêtre pleine en bas à droite.
+    miniPlayer:
+      "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v12h16V6zm8 6h6v4h-6z",
     volume: speaker + waveSmall + waveLarge,
     volumeLow: speaker + waveSmall,
     volumeMute:

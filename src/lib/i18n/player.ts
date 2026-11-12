@@ -19,6 +19,9 @@ export const fr = {
   mute: "Couper le son",
   unmute: "Rétablir le son",
   position: "Position",
+  miniPlayer: "Mini-lecteur (Ctrl+M)",
+  miniOnTop: "Toujours au premier plan",
+  miniBack: "Revenir à la grande fenêtre (Échap)",
 
   hiresAvailable: (format: string) => `Édition ${format} disponible`,
   hiresListen: (format: string) => `Écouter en ${format}`,
@@ -96,6 +99,9 @@ export const en: typeof fr = {
   mute: "Mute",
   unmute: "Unmute",
   position: "Position",
+  miniPlayer: "Mini player (Ctrl+M)",
+  miniOnTop: "Always on top",
+  miniBack: "Back to the full window (Esc)",
 
   hiresAvailable: (format: string) => `${format} edition available`,
   hiresListen: (format: string) => `Listen in ${format}`,
