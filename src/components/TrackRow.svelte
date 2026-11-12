@@ -344,6 +344,20 @@
     }
   }
 
+  /* Thème Désert (#399) : au début d'un album, les barres battent sans rythme régulier. */
+  :global(:root[data-egg-walk]) .now-bars i {
+    animation-timing-function: steps(3, jump-none);
+    animation-duration: 0.53s;
+  }
+
+  :global(:root[data-egg-walk]) .now-bars i:nth-child(2) {
+    animation-duration: 1.27s;
+  }
+
+  :global(:root[data-egg-walk]) .now-bars i:nth-child(3) {
+    animation-duration: 0.81s;
+  }
+
   /* Recherche « silence » (#399) : les barres se figent un instant. */
   :global(:root[data-egg="silence"]) .now-bars i {
     animation-play-state: paused;

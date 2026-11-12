@@ -168,7 +168,8 @@ function offerFormat(album: string): StreamFormat {
 }
 
 const state: PlayerState = {
-  track: context[index] ?? null,
+  // `?idle=1` : rien en lecture (vue « En lecture » vide, #399).
+  track: params.has("idle") ? null : (context[index] ?? null),
   stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100, bitrate: 1854, hiresEdition },
   output: { format: "s32", samplerate: 44100, channelCount: 2 },
   // Calculé plus bas, selon le mode exclusif factice.
@@ -180,7 +181,7 @@ const state: PlayerState = {
   loading: false,
   paused: params.has("paused"),
   buffering: false,
-  idle: false,
+  idle: params.has("idle"),
   timePos: 48,
   duration: context[index]?.duration ?? 0,
   shuffle: false,

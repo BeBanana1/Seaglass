@@ -1,3 +1,8 @@
+<script lang="ts" module>
+  // Clin d'œil (#399) : minuteur réglé sur une heure ici, partagé par la barre et « En lecture ».
+  const chosen = $state({ hour: false });
+</script>
+
 <script lang="ts">
   // Minuteur de mise en veille (#85) : bouton lune, menu des durées, temps restant affiché
   // tant qu'il est actif. L'échéance vient du backend (`player-state`), le compte à rebours
@@ -9,6 +14,7 @@
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
+  import { ui } from "../lib/stores/ui.svelte";
 
   const DURATIONS = [15, 30, 45, 60, 90];
 
@@ -29,10 +35,15 @@
 
   const remaining = $derived(endsAt === null ? null : formatTime(Math.max(0, endsAt - now) / 1000));
   const label = $derived(
-    remaining !== null ? t.player.sleepIn(remaining) : sleep ? t.player.sleepAtEnd : t.player.sleepTimer,
+    remaining !== null
+      ? t.player.sleepIn(remaining) + (chosen.hour && ui.settings.easterEggs ? t.eggs.sevenYears : "")
+      : sleep
+        ? t.player.sleepAtEnd
+        : t.player.sleepTimer,
   );
 
   async function set(timer: SleepRequest | null) {
+    chosen.hour = timer?.kind === "minutes" && timer.minutes === 60;
     try {
       await commands.setSleepTimer(timer);
     } catch (e) {

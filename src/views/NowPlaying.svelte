@@ -585,6 +585,22 @@
     color: var(--text-muted);
   }
 
+  /* Clin d'œil (#399), thème Cyberpunk : rien en lecture, l'écran montre une neige de
+     télévision fixe (bruit SVG, sans animation). */
+  :global(:root[data-eggs][data-theme="cyberpunk"]) .empty {
+    display: grid;
+    place-items: center;
+    width: min(100%, 360px);
+    aspect-ratio: 4 / 3;
+    padding: 16px;
+    border: 1px solid var(--border);
+    background:
+      linear-gradient(rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.35)),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    color: #e6f7ff;
+    text-shadow: 0 0 6px #000;
+  }
+
   /* Panneau latéral : sous la vue par défaut (fenêtre étroite), à droite si la place le permet. */
   .np-panel {
     position: relative;

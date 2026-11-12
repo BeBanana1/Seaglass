@@ -5,6 +5,7 @@
   import { player, stepVolume } from "../lib/stores/player.svelte";
   import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
+  import { ui } from "../lib/stores/ui.svelte";
 
   const v = $derived(player.state.volume);
   /** Valeur en cours de glissement, pour que le curseur ne saute pas entre deux états. */
@@ -13,6 +14,8 @@
   const icon = $derived(shown === 0 ? "volumeMute" : shown < 50 ? "volumeLow" : "volume");
   // Silencieux (coupé ou à 0) : l'icône rétablit le son ; le backend remonte un niveau à 0.
   const label = $derived(shown === 0 ? t.player.unmute : t.player.mute);
+  // Clin d'œil (#399) : au maximum, l'étiquette monte jusqu'à 11. L'accessibilité garde 100 %.
+  const levelText = $derived(shown === 100 && ui.settings.easterEggs ? "11" : t.format.percent(shown));
 
   let root: HTMLDivElement;
 
@@ -33,7 +36,7 @@
   }
 </script>
 
-<div class="volume" bind:this={root} title={t.player.volumeHint(t.format.percent(shown))}>
+<div class="volume" bind:this={root} title={t.player.volumeHint(levelText)}>
   <button
     class="mute"
     class:off={shown === 0}

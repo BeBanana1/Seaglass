@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.52
+
+- Clins d'œil, suite : volume à 11, ∞ sur la répétition après dix écoutes du même titre, générique de fin caché dans Réglages › Application, pochettes en gros pixels au clavier, piste introuvable dans une playlist vide, minuteur d'une heure, et deux détails propres aux thèmes Cyberpunk et Désert (#399).
+
 ## 0.5.51
 
 - Clins d'œil : petits détails dans l'en-tête certains jours et effets brefs pour quelques recherches, sans son. Désactivables dans Réglages › Apparence (#399).

@@ -35,6 +35,7 @@
   import JamPanel from "../components/JamPanel.svelte";
   import RemotePanel from "../components/RemotePanel.svelte";
   import BlockedList from "../components/BlockedList.svelte";
+  import CreditsRoll from "../components/CreditsRoll.svelte";
 
   let { section, onLogout }: { section: SettingsSection; onLogout?: () => void } = $props();
 
@@ -66,6 +67,18 @@
   let autostartBusy = $state(false);
   let discordAvailable = $state(false);
   let changelogOpen = $state(false);
+  /** Clin d'œil (#399) : 7 clics de suite sur la version lancent le générique de fin. */
+  let creditsOpen = $state(false);
+  let versionClicks = 0;
+  let versionTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function clickVersion() {
+    clearTimeout(versionTimer);
+    versionTimer = setTimeout(() => (versionClicks = 0), 1500);
+    if (++versionClicks < 7) return;
+    versionClicks = 0;
+    if (ui.settings.easterEggs) creditsOpen = true;
+  }
   // Faux sous Linux hors d'une AppImage (#314) : pas de bouton « Vérifier ».
   let updatesAvailable = $state(true);
   let exclusiveAvailable = $state(false);
@@ -827,7 +840,9 @@
     </div>
     <div class="group about">
       <h2>{t.settings.about}</h2>
-      <p><span class="app-name">Seaglass</span> <span class="mono">v{__APP_VERSION__}</span></p>
+      <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+      <p><span class="app-name">Seaglass</span> <span class="mono" onclick={clickVersion}>v{__APP_VERSION__}</span></p>
+      {#if creditsOpen}<CreditsRoll onClose={() => (creditsOpen = false)} />{/if}
       <p><strong>{t.settings.disclaimer}</strong></p>
       <p>{t.settings.streamingOnly}</p>
       <p>{t.settings.license}</p>
