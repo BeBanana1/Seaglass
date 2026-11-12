@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { commands, events, type SessionInfo } from "./lib/ipc";
-  import { initPlayer, player, stepVolume } from "./lib/stores/player.svelte";
+  import { initPlayer, player } from "./lib/stores/player.svelte";
   import { initQueue, queue } from "./lib/stores/queue.svelte";
   import { playedFrom } from "./lib/playSource";
   import { playPin } from "./lib/pins";
@@ -10,14 +10,17 @@
   import { closeJamDialog, initJam, jam } from "./lib/stores/jam.svelte";
   import JamDialog from "./components/JamDialog.svelte";
   import { clearLater, initLater, loadLater } from "./lib/stores/later.svelte";
-  import { initUi, stepZoom, ui } from "./lib/stores/ui.svelte";
+  import { initUi, ui } from "./lib/stores/ui.svelte";
+  import { initActions, runAction, setActionContext } from "./lib/actions";
+  import { togglePalette } from "./lib/stores/palette.svelte";
+  import CommandPalette from "./components/CommandPalette.svelte";
   import { initLanguage, t } from "./lib/i18n.svelte";
   import { closeTrackInfo, openTrackInfo, trackInfo } from "./lib/stores/trackInfo.svelte";
   import { closeMenu, menu } from "./lib/stores/menu.svelte";
   import { closePlaylistPicker, picker } from "./lib/stores/playlistPicker.svelte";
   import { clearFolders, closeFolderPicker, folderPicker } from "./lib/stores/folders.svelte";
   import { platform } from "./lib/platform.svelte";
-  import { appWindow, initWindow, setFullscreen, toggleFullscreen } from "./lib/stores/window.svelte";
+  import { appWindow, initWindow, setFullscreen } from "./lib/stores/window.svelte";
   import { initBackButton } from "./lib/backButton";
   import { exitListSearch, listSearch } from "./lib/stores/listSearch.svelte";
   import { openSharedLink, openTidalLink } from "./lib/links";
@@ -71,8 +74,17 @@
   // Android : un champ de texte a le focus, donc le clavier est ouvert (#151).
   let typing = $state(false);
 
+  // Registre des actions (#412) : ce qu'il ne peut faire sans `App` (panneaux, session).
+  setActionContext({
+    loggedIn: () => !!session,
+    openNowPlaying: () => (nowPlayingOpen = true),
+    closeNowPlaying: () => (nowPlayingOpen = false),
+    toggleQueue: () => (queueOpen = !queueOpen),
+  });
+
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
+    void initActions();
     await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initWindow(), initJam()]);
     initEggs();
     await restoreSession();
@@ -104,6 +116,7 @@
         view.lyrics && view.queue ? "both" : view.lyrics ? "lyrics" : view.queue ? "queue" : null;
       if (view.trackInfo && player.state.track) openTrackInfo(player.state.track);
       driveOpen = view.drive;
+      if (view.palette) togglePalette();
     }
   });
 
@@ -248,55 +261,56 @@
     // d'abord, comme une vidéo, puis ferme la vue au second appui.
     if (e.key === "F11" && !platform.mobile) {
       e.preventDefault();
-      toggleFullscreen();
+      runAction("window.fullscreen");
       return;
     }
     if (e.key === "Escape") {
       if (appWindow.fullscreen) setFullscreen(false);
       else if (nowPlayingOpen) nowPlayingOpen = false;
-      // Les dialogues et le menu gèrent leur propre Échap.
+      // Les dialogues, la palette et le menu gèrent leur propre Échap.
       else if (!menu.open && !picker.request && !trackInfo.track) selection.clear();
       return;
     }
     // Taille de l'interface (#337), comme dans un navigateur ; Android a son propre réglage.
     if (e.ctrlKey && !platform.mobile && ["+", "=", "-", "0"].includes(e.key)) {
       e.preventDefault();
-      stepZoom(e.key === "0" ? 0 : e.key === "-" ? -1 : 1).catch(() => {});
+      runAction(e.key === "0" ? "window.zoomReset" : e.key === "-" ? "window.zoomOut" : "window.zoomIn");
       return;
     }
     // Les réglages restent accessibles déconnecté (thème, cache).
     if (e.ctrlKey && e.key === ",") {
       e.preventDefault();
-      nowPlayingOpen = false;
-      openSettings();
+      runAction("go.settings");
       return;
     }
     if (!session) return;
     // Mini-lecteur du bureau (#384).
     if (e.ctrlKey && e.key.toLowerCase() === "m" && !platform.mobile) {
       e.preventDefault();
-      commands.openMiniPlayer().catch((err) => pushToast({ level: "error", message: String(err) }));
+      runAction("window.mini");
       return;
     }
-    if ((e.ctrlKey && e.key.toLowerCase() === "k") || (e.key === "/" && !typing)) {
+    // Palette de commandes (#412) sur le bureau ; Android garde la page Recherche.
+    if (e.ctrlKey && e.key.toLowerCase() === "k") {
       e.preventDefault();
-      nowPlayingOpen = false;
-      if (current().name !== "search") replace({ name: "search" });
-      requestAnimationFrame(() =>
-        document.querySelector<HTMLInputElement>('input[type="search"]')?.focus(),
-      );
+      if (platform.mobile) runAction("go.search");
+      else togglePalette();
+    } else if (e.key === "/" && !typing) {
+      e.preventDefault();
+      runAction("go.search");
     } else if (e.ctrlKey && e.key.toLowerCase() === "a" && !typing && !nowPlayingOpen && !menu.open) {
       // Sélection multiple (#332) : toute la liste affichée (filtrée) ; sans liste de titres
       // sur la page, Ctrl+A garde son sens habituel.
       if (selection.selectAll()) e.preventDefault();
     } else if (e.key === " " && !typing && !target.closest("button")) {
       e.preventDefault();
+      // Pas par `runAction` : sans titre chargé, Espace part quand même au backend.
       commands.togglePause();
     } else if (e.altKey && e.key === "ArrowLeft") {
-      back();
+      runAction("go.back");
     } else if (e.ctrlKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && !typing) {
       e.preventDefault();
-      stepVolume(e.key === "ArrowUp" ? 1 : -1);
+      runAction(e.key === "ArrowUp" ? "play.volumeUp" : "play.volumeDown");
     }
   }
 
@@ -398,7 +412,7 @@
     {:else}
     <div class="actions">
       {#if session}
-        <button class="search-hint" onclick={() => replace({ name: "search" })}>
+        <button class="search-hint" onclick={() => (platform.mobile ? runAction("go.search") : togglePalette())}>
           {t.common.searchHint} <kbd>Ctrl K</kbd>
         </button>
       {/if}
@@ -501,6 +515,7 @@
 <FolderPicker />
 <TrackInfo />
 <JamDialog />
+{#if session && !platform.mobile}<CommandPalette />{/if}
 
 <style>
   /* Fond propre au thème (vide pour Studio et Atelier). */

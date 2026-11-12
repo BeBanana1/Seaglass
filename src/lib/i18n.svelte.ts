@@ -11,6 +11,7 @@ import * as eggs from "./i18n/eggs";
 import * as format from "./i18n/format";
 import * as library from "./i18n/library";
 import * as menu from "./i18n/menu";
+import * as palette from "./i18n/palette";
 import * as player from "./i18n/player";
 import * as settings from "./i18n/settings";
 import * as info from "./i18n/info";
@@ -28,6 +29,7 @@ const fr = {
   format: format.fr,
   library: library.fr,
   menu: menu.fr,
+  palette: palette.fr,
   player: player.fr,
   settings: settings.fr,
   info: info.fr,
@@ -45,6 +47,7 @@ const en: Dict = {
   format: format.en,
   library: library.en,
   menu: menu.en,
+  palette: palette.en,
   player: player.en,
   settings: settings.en,
   info: info.en,

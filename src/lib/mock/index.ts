@@ -1388,6 +1388,7 @@ export function initialView(): {
   lyrics: boolean;
   trackInfo: boolean;
   drive: boolean;
+  palette: boolean;
 } {
   const routes: Record<string, Route> = {
     album: { name: "album", id: fx.album.album.id },
@@ -1411,6 +1412,7 @@ export function initialView(): {
     lyrics: params.has("lyrics"),
     trackInfo: params.has("trackinfo"),
     drive: params.has("drive"),
+    palette: params.has("palette"),
   };
 }
 

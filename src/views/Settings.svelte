@@ -37,6 +37,7 @@
   import RemotePanel from "../components/RemotePanel.svelte";
   import BlockedList from "../components/BlockedList.svelte";
   import CreditsRoll from "../components/CreditsRoll.svelte";
+  import { playbackSettingsChanged } from "../lib/stores/palette.svelte";
 
   let { section, onLogout }: { section: SettingsSection; onLogout?: () => void } = $props();
 
@@ -85,6 +86,12 @@
   let exclusiveAvailable = $state(false);
   // Android 12+ (#203) : liens TIDAL donnés à l'app ; `null` = rien à régler ou pas encore lu.
   let links = $state<{ enabled: boolean } | null>(null);
+
+  // Mode exclusif changé depuis la palette (#412) : relu, sinon le prochain réglage
+  // enregistré ici remettrait l'ancienne valeur.
+  $effect(() => {
+    if (playbackSettingsChanged.count > 0) void loadPlayback();
+  });
 
   $effect(() => {
     if (section === "playback" && playback === null) loadPlayback();
