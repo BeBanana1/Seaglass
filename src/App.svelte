@@ -29,6 +29,7 @@
   import Library from "./views/Library.svelte";
   import Stats from "./views/Stats.svelte";
   import SmartList from "./views/SmartList.svelte";
+  import Import from "./views/Import.svelte";
   import Folder from "./views/Folder.svelte";
   import Album from "./views/Album.svelte";
   import Artist from "./views/Artist.svelte";
@@ -437,6 +438,8 @@
         <Stats />
       {:else if route.name === "smart"}
         <SmartList list={route.list} />
+      {:else if route.name === "import"}
+        {#key route.link}<Import link={route.link} />{/key}
       {:else if route.name === "folder"}
         <Folder id={route.id} />
       {:else if route.name === "album"}

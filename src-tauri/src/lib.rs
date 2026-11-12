@@ -167,6 +167,8 @@ pub fn run() {
             commands::catalog::track_info,
             commands::catalog::album_credits,
             commands::link::open_link,
+            commands::import::import_playlist,
+            commands::import::cancel_import,
             commands::changelog::changelog,
             commands::logs::take_crash_notice,
             commands::logs::last_crash_report,

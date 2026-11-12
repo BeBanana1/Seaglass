@@ -11,10 +11,15 @@
 //! Seuls ces hôtes sont contactés, avec le seul identifiant tiré du lien ; un lien court
 //! n'est suivi que vers un lien reconnu. L'invité confirme toujours le résultat : rien
 //! n'est ajouté d'office.
+//!
+//! Les liens de **playlist** (#328) ne servent pas à la Jam : ils ouvrent l'import
+//! (`playlists.rs` lit les titres, `import.rs` cherche leurs correspondances).
 
+pub mod import;
 mod links;
 mod matching;
 mod meta;
+pub mod playlists;
 
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -26,6 +31,7 @@ pub use links::find;
 use links::{Kind, Source, redirect_target};
 use matching::{rank_albums, rank_editions, rank_tracks};
 use meta::Wanted;
+use playlists::PlaylistRef;
 
 use crate::tidal::TidalClient;
 use crate::tidal::models::{AlbumSummary, Track, TrackId};
@@ -62,6 +68,25 @@ fn net(e: reqwest::Error) -> String {
     e.without_url().to_string()
 }
 
+/// Playlist d'un autre service désignée par le texte collé (lien court suivi) ; `None` si le
+/// texte n'en contient pas.
+pub async fn playlist_ref(text: &str) -> Option<Result<PlaylistRef, String>> {
+    let mut source = find(text)?;
+    for _ in 0..MAX_HOPS {
+        let Source::Short(url) = &source else { break };
+        source = match follow(url).await {
+            Ok(next) => next,
+            Err(e) => return Some(Err(e)),
+        };
+    }
+    PlaylistRef::of(&source).map(Ok)
+}
+
+/// Comme `playlist_ref`, sans réseau : un lien court n'est pas suivi.
+pub fn playlist_ref_offline(text: &str) -> Option<PlaylistRef> {
+    PlaylistRef::of(&find(text)?)
+}
+
 /// Titres ou albums TIDAL d'un lien collé ; `None` si le texte n'en contient pas.
 pub async fn resolve(tidal: &TidalClient, text: &str) -> Option<Result<Found, String>> {
     let source = find(text)?;
@@ -83,7 +108,14 @@ async fn resolve_source(tidal: &TidalClient, mut source: Source) -> Result<Found
             albums: vec![tidal.album_summary(id).await.map_err(terr)?],
             ..Found::default()
         }),
-        Source::TidalOther | Source::Short(_) => Ok(Found::default()),
+        // Une playlist s'importe depuis l'app (#328), pas dans la Jam.
+        Source::TidalOther
+        | Source::Short(_)
+        | Source::Tidal(Kind::Playlist, _)
+        | Source::Deezer(Kind::Playlist, _)
+        | Source::Spotify(Kind::Playlist, _)
+        | Source::ApplePlaylist { .. }
+        | Source::YouTubePlaylist => Ok(Found::default()),
         Source::Deezer(Kind::Track, id) => {
             let t: DeezerTrack = json(&format!("https://api.deezer.com/track/{id}")).await?;
             let wanted = t.wanted();
@@ -152,6 +184,7 @@ async fn resolve_source(tidal: &TidalClient, mut source: Source) -> Result<Found
                     };
                     search_track(tidal, &wanted).await
                 }
+                Kind::Playlist => Ok(Found::default()),
                 Kind::Album => {
                     let wanted = Wanted {
                         title: item.collection_name.unwrap_or_default(),

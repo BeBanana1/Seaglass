@@ -39,6 +39,11 @@ describe("openTidalLink", () => {
       [{ kind: "artist", id: 5 }, { name: "artist", id: 5 }],
       [{ kind: "playlist", uuid: "u-1" }, { name: "playlist", uuid: "u-1" }],
       [{ kind: "mix", id: "m-1" }, { name: "mix", id: "m-1" }],
+      // #328 : playlist d'un autre service → page d'import.
+      [
+        { kind: "import", link: "https://www.deezer.com/playlist/42" },
+        { name: "import", link: "https://www.deezer.com/playlist/42" },
+      ],
     ];
     for (const [target, route] of cases) {
       mocks.openLink.mockResolvedValue(target);

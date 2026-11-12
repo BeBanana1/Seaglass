@@ -50,6 +50,8 @@ mod versions;
 
 pub use api::TidalClient;
 pub use catalog::LIBRARY_MAX;
+/// Utilitaire générique (aucun format TIDAL) : resservi par l'import de playlists (#328).
+pub(crate) use paging::try_join_bounded;
 
 use crate::i18n::{tr, trf};
 

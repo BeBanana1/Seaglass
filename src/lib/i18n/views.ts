@@ -135,6 +135,27 @@ export const fr = {
         ? `${num(n)} ${n > 1 ? "changements annulés" : "changement annulé"} ; ${num(skipped)} ${skipped > 1 ? "titres indisponibles n'ont" : "titre indisponible n'a"} pas pu revenir`
         : `${num(n)} ${n > 1 ? "changements annulés" : "changement annulé"}`,
   },
+  // Import d'une playlist d'un autre service (#328).
+  import: {
+    eyebrow: "Playlist à importer",
+    services: { deezer: "Deezer", spotify: "Spotify", apple: "Apple Music" },
+    from: (service: string) => `Depuis ${service}`,
+    reading: "Lecture de la playlist…",
+    matching: (done: number, total: number) => `Recherche des titres sur TIDAL : ${num(done)} / ${num(total)}`,
+    partial: (read: number, total: number) =>
+      `Seuls les ${num(read)} premiers titres sur ${num(total)} ont pu être lus.`,
+    kept: (n: number) => `${num(n)} ${n > 1 ? "titres retenus" : "titre retenu"}`,
+    found: "Trouvés",
+    toCheck: "À vérifier",
+    toCheckHint: "Correspondance incertaine : cochez les titres à garder.",
+    originally: "À l'origine",
+    missing: "Introuvables sur TIDAL",
+    create: "Créer une playlist",
+    creating: "Création…",
+    created: (name: string) => `Playlist « ${name} » créée`,
+    nothingKept: "Aucun titre retenu.",
+    retry: "Réessayer",
+  },
   mix: {
     radio: "Radio",
     trackRadio: "Des titres proches de ce morceau.",
@@ -335,6 +356,25 @@ export const en: typeof fr = {
       skipped > 0
         ? `${num(n)} ${n === 1 ? "change" : "changes"} undone; ${num(skipped)} unavailable ${skipped === 1 ? "track" : "tracks"} could not come back`
         : `${num(n)} ${n === 1 ? "change" : "changes"} undone`,
+  },
+  import: {
+    eyebrow: "Playlist to import",
+    services: { deezer: "Deezer", spotify: "Spotify", apple: "Apple Music" },
+    from: (service: string) => `From ${service}`,
+    reading: "Reading the playlist…",
+    matching: (done: number, total: number) => `Finding tracks on TIDAL: ${num(done)} / ${num(total)}`,
+    partial: (read: number, total: number) => `Only the first ${num(read)} of ${num(total)} tracks could be read.`,
+    kept: (n: number) => `${num(n)} ${n === 1 ? "track" : "tracks"} kept`,
+    found: "Found",
+    toCheck: "To check",
+    toCheckHint: "Uncertain match: tick the tracks to keep.",
+    originally: "Originally",
+    missing: "Not found on TIDAL",
+    create: "Create playlist",
+    creating: "Creating…",
+    created: (name: string) => `Playlist “${name}” created`,
+    nothingKept: "No tracks kept.",
+    retry: "Retry",
   },
   mix: {
     radio: "Radio",

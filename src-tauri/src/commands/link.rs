@@ -11,6 +11,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 use super::catalog::{is_mix_id, is_uuid};
 use super::{AppState, CmdResult, err};
+use crate::foreign::playlists::{self, PlaylistRef};
 use crate::i18n::tr;
 use crate::tidal::TidalClient;
 use crate::tidal::models::TrackId;
@@ -36,6 +37,11 @@ pub enum LinkTarget {
     },
     Mix {
         id: String,
+    },
+    /// Playlist d'un autre service à importer (#328) : `link` = adresse propre, relue par
+    /// `import_playlist`.
+    Import {
+        link: String,
     },
 }
 
@@ -160,7 +166,15 @@ pub async fn open_link_settings() -> CmdResult<()> {
 
 async fn resolve(tidal: &TidalClient, text: &str) -> CmdResult<Option<LinkTarget>> {
     let Some(link) = parse(text) else {
-        return Ok(None);
+        // Playlist d'un autre service (#328) : la page d'import s'ouvre.
+        return match crate::foreign::playlist_ref(text).await {
+            Some(Ok(PlaylistRef::YouTube)) => Err(playlists::youtube_unsupported()),
+            Some(Ok(playlist)) => Ok(Some(LinkTarget::Import {
+                link: playlist.url(),
+            })),
+            Some(Err(e)) => Err(e),
+            None => Ok(None),
+        };
     };
     Ok(Some(match link {
         Link::Track(id) => {

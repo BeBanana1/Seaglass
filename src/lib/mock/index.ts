@@ -705,6 +705,13 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   album_credits: () => mockAlbumCredits(),
   // Approximation du parseur Rust : un titre ouvre toujours l'album de démonstration.
   open_link: ({ text }) => {
+    // #328 : une playlist d'un autre service ouvre l'import.
+    if (/(deezer\.com|open\.spotify\.com|music\.apple\.com)\/.*playlist/i.test(String(text))) {
+      return { kind: "import", link: String(text).trim() };
+    }
+    if (/youtube\.com\/playlist/i.test(String(text))) {
+      throw "Les playlists YouTube Music ne peuvent pas être importées : YouTube ne les montre pas sans compte";
+    }
     const m = /tidal\.com\/(?:browse\/)?(track|album|artist|playlist|mix)\/([\w-]+)/i.exec(String(text));
     if (!m) return null;
     const [, kind, id] = m;
@@ -712,6 +719,23 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (kind === "playlist" || kind === "mix") return kind === "playlist" ? { kind, uuid: id } : { kind, id };
     return { kind, id: Number(id) };
   },
+  // #328 : progression simulée, puis des titres trouvés, à vérifier et introuvables.
+  import_playlist: async () => {
+    const pool = [...fx.search.tracks, ...fx.album.tracks];
+    const total = Math.min(pool.length, 12);
+    for (let done = 0; done <= total; done += 3) {
+      emit("import-progress", { done, total });
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    const items = pool.slice(0, total).map((track, i) => ({
+      title: track.title + (i % 5 === 3 ? " - 2011 Remaster" : ""),
+      artist: track.artists[0]?.name ?? null,
+      track: i % 6 === 5 ? null : track,
+      sure: i % 5 !== 3,
+    }));
+    return { name: "Playlist d'un ami", service: "spotify", total: 150, read: 100, items };
+  },
+  cancel_import: () => undefined,
   search: ({ query }) => {
     const q = String(query).trim().replace(/\s+/g, " ");
     if (!q) return { tracks: [], albums: [], artists: [], playlists: [] };
@@ -1375,6 +1399,7 @@ export function initialView(): {
     stats: { name: "stats" },
     folder: { name: "folder", id: "f0000000-0000-4000-8000-000000000001" },
     smart: { name: "smart", list: (params.get("list") as SmartList) ?? "topMonth" },
+    import: { name: "import", link: "https://open.spotify.com/playlist/37i9dQZF1DX4UtSsGT1Sbe" },
     search: { name: "search" },
     feed: { name: "feed" },
     settings: { name: "settings", section: (params.get("tab") as SettingsSection) ?? "appearance" },

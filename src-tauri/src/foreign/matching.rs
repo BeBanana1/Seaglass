@@ -82,6 +82,22 @@ pub fn rank_tracks(mut tracks: Vec<Track>, wanted: &Wanted) -> Vec<Track> {
     tracks
 }
 
+/// Ce que vaut le meilleur candidat d'une recherche pour un import (#328) : `None` si son nom
+/// ne ressemble pas au titre voulu (rien de trouvé), `Some(true)` si titre, artiste et durée
+/// (quand elle est connue) concordent, `Some(false)` s'il est douteux.
+pub fn verdict(track: &Track, wanted: &Wanted) -> Option<bool> {
+    let title = title_score(&track.title, &wanted.title);
+    if title == 0 {
+        return None;
+    }
+    let artist =
+        wanted.artist.is_none() || artist_score(&track.artists, wanted.artist.as_deref()) > 0;
+    let duration = wanted
+        .duration
+        .is_none_or(|d| track.duration.abs_diff(d) <= DURATION_SLACK);
+    Some(title == 4 && artist && duration)
+}
+
 /// Éditions d'un même ISRC : celle de l'album du lien d'abord, compilations ensuite.
 pub fn rank_editions(mut tracks: Vec<Track>, album: Option<&str>) -> Vec<Track> {
     let album = album.map(normalize);
@@ -190,6 +206,24 @@ mod tests {
             ids(&rank_editions(found, Some("Random Access Memories"))),
             vec![2, 1]
         );
+    }
+
+    #[test]
+    fn import_verdicts() {
+        let wanted = Wanted {
+            title: "Dreams - 2004 Remaster".into(),
+            artist: Some("Fleetwood Mac".into()),
+            album: None,
+            duration: Some(258),
+        };
+        let same = track(1, "Dreams (2004 Remaster)", "Fleetwood Mac", "Rumours", 257);
+        assert_eq!(verdict(&same, &wanted), Some(true));
+        let longer = track(2, "Dreams (Live)", "Fleetwood Mac", "Live", 290);
+        assert_eq!(verdict(&longer, &wanted), Some(false));
+        let other = track(3, "Dreams", "The Cranberries", "Everybody Else", 258);
+        assert_eq!(verdict(&other, &wanted), Some(false));
+        let unrelated = track(4, "Go Your Own Way", "Fleetwood Mac", "Rumours", 258);
+        assert_eq!(verdict(&unrelated, &wanted), None);
     }
 
     #[test]
