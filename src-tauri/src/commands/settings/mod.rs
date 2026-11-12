@@ -70,6 +70,8 @@ pub enum Theme {
     Estampe,
     /// Art déco : bleu nuit, filets dorés, éventails aux angles, cartouches à pans coupés (#338).
     Artdeco,
+    /// Hi-fi des années 70-80 : noyer, orange brûlé, façades d'ampli, bobines et vumètres (#338).
+    Cassette,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -433,6 +435,8 @@ mod tests {
         assert_eq!(s.theme, Theme::Estampe);
         let s: UiSettings = serde_json::from_str(r#"{"theme":"artdeco"}"#).unwrap();
         assert_eq!(s.theme, Theme::Artdeco);
+        let s: UiSettings = serde_json::from_str(r#"{"theme":"cassette"}"#).unwrap();
+        assert_eq!(s.theme, Theme::Cassette);
     }
 
     #[test]

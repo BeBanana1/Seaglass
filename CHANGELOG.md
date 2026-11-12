@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.44
+
+- Nouveau thème Cassette : chaîne hi-fi des années 70, noyer, orange brûlé, bandes de jaquette. La barre de progression est une bande qui passe d'une bobine à l'autre, et la chaîne audio de « En lecture » s'affiche en vumètres à aiguille (#338).
+
 ## 0.5.43
 
 - Nouveau thème Art déco : bleu nuit, filets dorés, éventails aux angles, titres en capitales géométriques, boutons en cartouches à pans coupés ; dans « En lecture », la pochette est encadrée comme une affiche (#338).

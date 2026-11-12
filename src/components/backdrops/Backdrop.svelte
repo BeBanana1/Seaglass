@@ -12,6 +12,7 @@
   import AlloyBody from "./AlloyBody.svelte";
   import EstampeScene from "./EstampeScene.svelte";
   import DecoScene from "./DecoScene.svelte";
+  import CassetteDeck from "./CassetteDeck.svelte";
 
   let { context = "shell" }: { context?: "shell" | "nowplaying" } = $props();
 
@@ -42,6 +43,8 @@
     <EstampeScene {intense} />
   {:else if theme === "artdeco"}
     <DecoScene {intense} />
+  {:else if theme === "cassette"}
+    <CassetteDeck {intense} />
   {/if}
 </div>
 

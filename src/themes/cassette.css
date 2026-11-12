@@ -1,0 +1,261 @@
+/* Thème Cassette (#338) : chaîne hi-fi des années 70-80.
+   Jetons (noyer, façades, crème, orange brûlé) dans app.css ; ici, ce que les jetons ne
+   disent pas : bandes de jaquette, étiquettes de façade, progression en bande qui passe d'une
+   bobine à l'autre, chaîne audio en vumètres à aiguille.
+   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+
+/* Cadran de vumètre (crème, échelle, zone rouge, « VU ») ; l'aiguille est un pseudo-élément. */
+:root[data-theme="cassette"] {
+  --cs-reel-tape: #8a5a34;
+  --cs-meter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 50'%3E%3Crect width='100' height='50' rx='3' fill='%23efe2bf'/%3E%3Cpath d='M22.4 24.9 A36 36 0 0 1 65.2 15.4' fill='none' stroke='%233a2a1c' stroke-width='1.2'/%3E%3Cpath d='M65.2 15.4 A36 36 0 0 1 77.6 24.9' fill='none' stroke='%23c2381e' stroke-width='3'/%3E%3Cg stroke='%233a2a1c' stroke-width='1'%3E%3Cpath d='M22.4 24.9 L18.6 21.6 M34.8 15.4 L32.7 10.8 M50 12 L50 7 M65.2 15.4 L67.3 10.8'/%3E%3C/g%3E%3Cpath d='M77.6 24.9 L81.4 21.6' stroke='%23c2381e' stroke-width='1'/%3E%3Ctext x='50' y='38' font-family='Georgia,serif' font-size='9' font-weight='700' text-anchor='middle' fill='%233a2a1c'%3EVU%3C/text%3E%3C/svg%3E");
+}
+
+/* Façades : bandes de jaquette (orange, moutarde, olive) en haut de chaque panneau. */
+:root[data-theme="cassette"] .panel {
+  background-image: var(--cs-stripes);
+  background-size: 100% 6px;
+  background-repeat: no-repeat;
+}
+
+/* Titres de section en étiquettes de façade : petites capitales espacées, trait orange. */
+:root[data-theme="cassette"] h2 {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+:root[data-theme="cassette"] h2::after {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 2px;
+  margin-top: 6px;
+  background: var(--accent);
+}
+
+:root[data-theme="cassette"] .brand {
+  font-family: var(--display-family);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+:root[data-theme="cassette"] .badge {
+  border-radius: 2px;
+  color: var(--cs-window);
+  background: var(--cs-mustard);
+}
+
+:root[data-theme="cassette"] .row.active .title {
+  color: var(--accent);
+}
+
+:root[data-theme="cassette"] :is(nav button.active, nav .pin.active) {
+  color: var(--text);
+  background: var(--bg-hover);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Lecture : touche de platine orange, en relief. */
+:root[data-theme="cassette"] .transport .play {
+  border-radius: 4px;
+  color: var(--accent-contrast);
+  background: linear-gradient(var(--accent-strong), var(--accent) 40%);
+  box-shadow:
+    0 3px 0 color-mix(in srgb, var(--accent) 45%, black),
+    inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+
+:root[data-theme="cassette"] .transport .play:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 45%, black);
+}
+
+/* Progression : fenêtre de cassette. La bande lue (orange) part de la bobine de gauche, qui
+   se vide, vers celle de droite, qui se remplit ; les deux suivent `--ratio` (Progress). */
+:root[data-theme="cassette"] .progress .track {
+  height: 14px;
+  border-radius: 7px;
+  background:
+    linear-gradient(var(--cs-tape), var(--cs-tape)) center / 100% 2px no-repeat,
+    var(--cs-window);
+  box-shadow:
+    inset 0 1px 3px rgb(0 0 0 / 0.8),
+    0 0 0 1px rgb(241 227 196 / 0.18);
+}
+
+:root[data-theme="cassette"] .progress.large .track {
+  height: 24px;
+  border-radius: 12px;
+}
+
+:root[data-theme="cassette"] .progress .fill {
+  inset: calc(50% - 1px) auto auto 0;
+  height: 2px;
+  border-radius: 0;
+  background: var(--accent);
+  box-shadow: none;
+}
+
+:root[data-theme="cassette"] .progress .track::before,
+:root[data-theme="cassette"] .progress .track::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  /* Moyeu crème, trou sombre, la bande enroulée (plus ou moins épaisse), et le rebord
+     transparent de la bobine en filet clair. */
+  background:
+    radial-gradient(
+      closest-side,
+      var(--text) 0 20%,
+      var(--cs-window) 20% 30%,
+      var(--cs-reel-tape) 30% calc(30% + var(--cs-reel) * 62%),
+      transparent calc(30% + var(--cs-reel) * 62%)
+    ),
+    radial-gradient(closest-side, transparent 0 90%, rgb(241 227 196 / 0.45) 90% 100%, transparent 100%);
+}
+
+:root[data-theme="cassette"] .progress .track::before {
+  left: 1px;
+  --cs-reel: calc(1 - var(--ratio));
+}
+
+:root[data-theme="cassette"] .progress .track::after {
+  right: 1px;
+  --cs-reel: var(--ratio);
+}
+
+:root[data-theme="cassette"] .volume .track {
+  border-radius: 2px;
+  background: var(--cs-window);
+}
+
+:root[data-theme="cassette"] .volume .fill {
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* Chaîne audio de « En lecture » : chaque étape devient un vumètre à aiguille. */
+:root[data-theme="cassette"] .signal {
+  border: 1px solid rgb(0 0 0 / 0.55);
+  border-radius: 6px;
+  background:
+    var(--cs-stripes) top / 100% 6px no-repeat,
+    linear-gradient(#3d2c20, #2e2117);
+  backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgb(241 227 196 / 0.1);
+}
+
+:root[data-theme="cassette"] .signal .path:not(.dense) .node {
+  position: relative;
+  padding-top: 56px;
+}
+
+:root[data-theme="cassette"] .signal .path:not(.dense) .node::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 92px;
+  height: 46px;
+  border-radius: 3px;
+  background: var(--cs-meter) center / 100% 100% no-repeat;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.4),
+    0 0 0 3px #1c140e;
+}
+
+:root[data-theme="cassette"] .signal .path:not(.dense) .node::after {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: 45px;
+  width: 1.5px;
+  height: 33px;
+  background: #2a1c12;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--cs-needle, -28deg));
+}
+
+:root[data-theme="cassette"] .signal .path:not(.dense) .node:nth-child(3)::after {
+  --cs-needle: -12deg;
+}
+
+:root[data-theme="cassette"] .signal .path:not(.dense) .node:nth-child(5)::after {
+  --cs-needle: -20deg;
+}
+
+/* Pendant la lecture, les aiguilles oscillent doucement (décor : aucune mesure réelle).
+   Figées sur Android (#158) et avec les animations réduites (règle de app.css). */
+:root[data-theme="cassette"][data-playing="true"] .signal .path:not(.dense) .node::after {
+  animation: cs-needle 1.7s ease-in-out infinite alternate;
+}
+
+:root[data-theme="cassette"][data-playing="true"] .signal .path:not(.dense) .node:nth-child(3)::after {
+  animation-duration: 1.3s;
+  animation-delay: -0.4s;
+}
+
+:root[data-theme="cassette"][data-playing="true"] .signal .path:not(.dense) .node:nth-child(5)::after {
+  animation-duration: 2.1s;
+  animation-delay: -0.9s;
+}
+
+:root[data-theme="cassette"][data-platform="android"] .signal .path:not(.dense) .node::after {
+  animation: none;
+}
+
+@keyframes cs-needle {
+  from {
+    transform: rotate(calc(var(--cs-needle, -28deg) - 6deg));
+  }
+  to {
+    transform: rotate(calc(var(--cs-needle, -28deg) + 14deg));
+  }
+}
+
+:root[data-theme="cassette"] .verdict {
+  border-radius: 3px;
+}
+
+:root[data-theme="cassette"] .tabs button.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme="cassette"] .theme-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+:root[data-theme="cassette"] .lyrics-line.active {
+  color: var(--accent-strong);
+}
+
+/* Bandeau d'accueil : façade avec bandes de jaquette en bas, sans le fond teinté. */
+:root[data-theme="cassette"] .hero {
+  color: var(--text);
+  background:
+    var(--cs-stripes) bottom / 100% 6px no-repeat,
+    linear-gradient(#3d2c20, #2e2117);
+  border: 1px solid rgb(0 0 0 / 0.55);
+  box-shadow: inset 0 1px 0 rgb(241 227 196 / 0.1);
+}
+
+:root[data-theme="cassette"] .hero .bg {
+  display: none;
+}
+
+:root[data-theme="cassette"] :is(.hero .label, .hero .meta) {
+  color: var(--text-muted);
+}
+
+:root[data-theme="cassette"] .like-button.liked {
+  color: var(--accent);
+}

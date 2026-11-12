@@ -872,6 +872,69 @@
   --label-tracking: 0.2em;
 }
 
+/* --- Cassette : hi-fi des années 70-80 (voir themes/cassette.css) -------------------- */
+/* Noyer sombre, façades d'ampli brunes, crème pour le texte, orange brûlé pour l'accent
+   (remplaçable). Moutarde et olive (`--cs-mustard`, `--cs-olive`) restent fixes, pour les
+   bandes de jaquette ; elles ne portent jamais de texte. */
+:root[data-theme="cassette"] {
+  color-scheme: dark;
+  --cs-mustard: #d9a336;
+  --cs-olive: #7d7f35;
+  --cs-orange: #d8692a;
+  --cs-tape: #5b3a22;
+  --cs-window: #1a120c;
+  --cs-stripes: linear-gradient(
+    var(--cs-orange) 0 2px,
+    var(--cs-mustard) 2px 4px,
+    var(--cs-olive) 4px 6px
+  );
+  --bg: #24180f;
+  --surface: rgb(52 37 26 / 0.94);
+  --dialog-bg: #34251a;
+  --bg-raised: rgb(241 227 196 / 0.05);
+  --bg-hover: rgb(241 227 196 / 0.08);
+  --border: rgb(241 227 196 / 0.14);
+  --text: #f1e3c4;
+  --text-muted: #c0aa86;
+  --accent: #ef8a3c;
+  --accent-strong: #f6a868;
+  --accent-contrast: #24180f;
+  --danger: #ff8a70;
+  --ok: #b9c46a;
+  --warn: var(--cs-mustard);
+  --radius: 4px;
+  --radius-pill: 4px;
+  --radius-card: 3px;
+  --radius-cover: 3px;
+  --panel-radius: 6px;
+  --dialog-radius: 6px;
+  --popover-radius: 4px;
+  --panel-blur: none;
+  /* Façade : liseré clair en haut, ombre franche dessous, comme une tôle vissée. */
+  --panel-border: 1px solid rgb(0 0 0 / 0.55);
+  --panel-shadow:
+    inset 0 1px 0 rgb(241 227 196 / 0.1),
+    0 6px 18px rgb(0 0 0 / 0.35);
+  --dialog-border: 1px solid rgb(0 0 0 / 0.6);
+  --dialog-surface: var(--dialog-bg);
+  --dialog-shadow:
+    inset 0 1px 0 rgb(241 227 196 / 0.12),
+    0 24px 60px rgb(0 0 0 / 0.55);
+  --popover-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
+  --shadow-cover: 0 6px 16px rgb(0 0 0 / 0.45);
+  --shadow-raised: 0 2px 0 rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(241 227 196 / 0.12);
+  --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 0.6);
+  --control-bg: linear-gradient(#45332a, #34251a);
+  --focus-ring: 2px solid var(--cs-mustard);
+  --shell-gap: 10px;
+  --display-weight: 700;
+  --display-tracking: -0.01em;
+  --display-family: "Cooper Black", "Rockwell Extra Bold", Rockwell, Georgia, serif;
+  --label-transform: uppercase;
+  --label-tracking: 0.14em;
+  --meta-family: var(--font-mono);
+}
+
 * {
   box-sizing: border-box;
 }
