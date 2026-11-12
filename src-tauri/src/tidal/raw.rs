@@ -54,7 +54,7 @@ pub(super) struct RawSearch {
 }
 
 impl<T> RawPage<T> {
-    fn empty() -> Self {
+    pub(super) fn empty() -> Self {
         Self {
             items: Vec::new(),
             total_number_of_items: Some(0),

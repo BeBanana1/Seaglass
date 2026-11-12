@@ -4,6 +4,7 @@ pub mod auth;
 pub mod blocks;
 pub mod catalog;
 pub mod changelog;
+pub mod cleanup;
 pub mod collection;
 pub mod drive;
 pub mod jam;

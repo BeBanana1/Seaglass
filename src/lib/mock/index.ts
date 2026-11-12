@@ -28,6 +28,7 @@ import type {
   ArtistSummary,
   BlockTarget,
   Blocked,
+  CleanupReport,
   FeedItem,
   HomeLayout,
   HomeRow,
@@ -38,6 +39,8 @@ import type {
   LibraryList,
   LikedIds,
   LikeTarget,
+  ListOp,
+  ListOpsResult,
   Lyrics,
   MixPage,
   MixSummary,
@@ -487,6 +490,50 @@ if (params.has("mine") && !own.some((p) => p.uuid === fx.playlist.playlist.uuid)
 }
 const ownPages = new Map<string, PlaylistPage>();
 
+/** Rapport factice de « Nettoyer » (#382) : un indisponible remplacé, un doublon d'édition,
+ *  un indisponible sans remplaçant (non coché), après un court délai (`invoke`). */
+function cleanupReport(tracks: Track[]): CleanupReport {
+  const [a, b, c, d, e] = tracks;
+  return a && b && c && d && e
+      ? {
+          scanned: tracks.length,
+          items: [
+            {
+              kind: "unavailable",
+              index: 1,
+              track: b,
+              replacement: e,
+              suggested: true,
+              op: { op: "replace", index: 1, trackId: b.id, with: e.id },
+            },
+            {
+              kind: "duplicate",
+              index: 2,
+              track: c,
+              keptIndex: 0,
+              kept: a,
+              sameTrack: false,
+              suggested: true,
+              op: { op: "remove", index: 2, trackId: c.id },
+            },
+            {
+              kind: "unavailable",
+              index: 3,
+              track: d,
+              replacement: null,
+              suggested: false,
+              op: { op: "remove", index: 3, trackId: d.id },
+            },
+          ],
+        }
+      : { scanned: tracks.length, items: [] };
+}
+
+/** Rien n'est modifié : tout est annoncé appliqué, et annulable (un titre « ne revient pas »). */
+function cleanupResult(ops: ListOp[], undoing: boolean): ListOpsResult {
+  return { applied: ops.length, skipped: undoing ? 1 : 0, undo: undoing ? [] : [...ops].reverse(), error: null };
+}
+
 /** Page d'une de vos playlists, créée au premier accès avec les titres de démonstration. */
 function ownPage(uuid: string): PlaylistPage | undefined {
   let page = ownPages.get(uuid);
@@ -746,6 +793,15 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     addToOwn(uuid, [...(trackIds as number[])]);
     return uuid;
   },
+  playlist_cleanup: ({ uuid }) => cleanupReport(ownPage(String(uuid))?.tracks ?? []),
+  clean_playlist: ({ ops }) => cleanupResult(ops as ListOp[], false),
+  undo_playlist_cleanup: ({ ops }) => cleanupResult(ops as ListOp[], true),
+  liked_cleanup: () => cleanupReport(fx.library.tracks),
+  clean_liked: ({ ops }) =>
+    cleanupResult(
+      ops as ListOp[],
+      (ops as ListOp[]).some((o) => o.op === "insert"),
+    ),
   remove_from_playlist: ({ uuid, index, trackId }) => {
     cachedPlaylists.delete(String(uuid));
     const page = ownPage(String(uuid));
@@ -1073,7 +1129,8 @@ export async function invoke<T>(cmd: string, args: Record<string, unknown> = {})
   if (!handler) throw new Error(`commande factice inconnue : ${cmd}`);
   // Petite latence pour voir les états de chargement.
   // `home_rest` lit une page de plus (~0,5 s pour de vrai).
-  const delay = cmd === "playlist" ? slowPlaylist : cmd === "home_rest" ? 500 : 0;
+  const delay =
+    cmd === "playlist" ? slowPlaylist : cmd === "home_rest" || cmd.endsWith("_cleanup") ? 500 : 0;
   await new Promise((r) => setTimeout(r, 120 + delay));
   return structuredClone(handler(args)) as T;
 }

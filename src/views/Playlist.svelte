@@ -14,6 +14,7 @@
   import TrackList from "../components/TrackList.svelte";
   import TrackTools from "../components/TrackTools.svelte";
   import PlaylistEditor from "../components/PlaylistEditor.svelte";
+  import CleanupDialog from "../components/CleanupDialog.svelte";
   import { isPinned, listSort, refreshPinTitle, saveListSort, togglePin } from "../lib/stores/ui.svelte";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
   import { back } from "../lib/stores/nav.svelte";
@@ -36,6 +37,7 @@
   let query = $state("");
   let sort = $state<TrackSort>(DEFAULT_SORT);
   let editing = $state(false);
+  let cleaning = $state(false);
   let moving = false;
 
   $effect(() => {
@@ -45,6 +47,7 @@
     slow = false;
     query = "";
     editing = false;
+    cleaning = false;
     // Tri mémorisé pour cette playlist (#93) ; le filtre repart vide.
     sort = untrack(() => listSort(target, DEFAULT_SORT));
     const timer = setTimeout(() => (slow = true), LOADING_DELAY_MS);
@@ -220,6 +223,22 @@
         onClose={() => (editing = false)}
         onSaved={saved}
         onDeleted={deleted}
+        onCleanup={() => {
+          editing = false;
+          cleaning = true;
+        }}
+      />
+    {/if}
+    {#if cleaning}
+      {@const target = page.playlist.uuid}
+      <CleanupDialog
+        title={t.views.cleanup.playlistTitle}
+        positions
+        load={() => commands.playlistCleanup(target)}
+        apply={(ops) => commands.cleanPlaylist(target, ops)}
+        undo={(ops) => commands.undoPlaylistCleanup(target, ops)}
+        onClose={() => (cleaning = false)}
+        onChanged={() => notePlaylistChange(target)}
       />
     {/if}
   {/if}

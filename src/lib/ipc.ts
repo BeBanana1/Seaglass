@@ -446,6 +446,38 @@ export interface PlaylistPage {
   revision: string | null;
 }
 
+/** Changement proposé par « Nettoyer » (#382) ; `index` = position dans la liste lue,
+ *  `op` = ce que l'accepter fait (renvoyé tel quel). */
+export type CleanupItem = (
+  | { kind: "duplicate"; index: number; track: Track; keptIndex: number; kept: Track; sameTrack: boolean }
+  | { kind: "unavailable"; index: number; track: Track; replacement: Track | null }
+) & {
+  op: ListOp;
+  /** Coché d'office (pas un indisponible sans remplaçant, dont le retrait est définitif). */
+  suggested: boolean;
+};
+
+export interface CleanupReport {
+  items: CleanupItem[];
+  /** Titres lus. */
+  scanned: number;
+}
+
+/** Modification d'une liste (#382) ; les favoris ignorent `index`. */
+export type ListOp =
+  | { op: "remove"; index: number; trackId: TrackId }
+  | { op: "insert"; index: number; trackId: TrackId }
+  | { op: "replace"; index: number; trackId: TrackId; with: TrackId };
+
+export interface ListOpsResult {
+  applied: number;
+  /** Titres que le service refuse de rajouter (retirés du catalogue). */
+  skipped: number;
+  /** De quoi annuler, à rendre tel quel. */
+  undo: ListOp[];
+  error: string | null;
+}
+
 /** Paroles (`tidal/models.rs` : `Lyrics`). */
 export interface Lyrics {
   trackId: TrackId;
@@ -783,6 +815,17 @@ export const commands = {
   editPlaylist: (uuid: string, title: string, description: string) =>
     invoke<void>("edit_playlist", { uuid, title, description }),
   deletePlaylist: (uuid: string) => invoke<void>("delete_playlist", { uuid }),
+  /** Doublons et titres indisponibles d'une de vos playlists (#382). */
+  playlistCleanup: (uuid: string) => invoke<CleanupReport>("playlist_cleanup", { uuid }),
+  /** Applique les changements choisis (positions du rapport, dans n'importe quel ordre). */
+  cleanPlaylist: (uuid: string, ops: ListOp[]) => invoke<ListOpsResult>("clean_playlist", { uuid, ops }),
+  /** Annule : `ops` = le `undo` du nettoyage. */
+  undoPlaylistCleanup: (uuid: string, ops: ListOp[]) =>
+    invoke<ListOpsResult>("undo_playlist_cleanup", { uuid, ops }),
+  /** Doublons et titres indisponibles des titres likés (#382). */
+  likedCleanup: () => invoke<CleanupReport>("liked_cleanup"),
+  /** Applique des changements aux titres likés, ou les annule ; l'événement `likes` suit. */
+  cleanLiked: (ops: ListOp[]) => invoke<ListOpsResult>("clean_liked", { ops }),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false, source: PlaySource | null = null) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),

@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.37
+
+- Nettoyer une de vos playlists ou vos titres likés : doublons (même titre, ou même chanson dans une autre édition) et titres retirés du catalogue, avec la même chanson dans une version disponible pour les remplacer ; on coche ce qu'on garde, on applique, et « Annuler » reste possible (#382).
+
 ## 0.5.36
 
 - Bureau : mini-lecteur, une petite fenêtre avec la pochette, le titre, Précédent, Lecture / Pause, Suivant et le cœur, au premier plan au choix, qui remplace la grande fenêtre jusqu'à ce qu'on y revienne ; ouvert par le bouton de la barre de lecture, Ctrl+M ou la zone de notification, et rouvert à la même place (#384).

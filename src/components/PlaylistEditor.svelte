@@ -11,11 +11,14 @@
     onClose,
     onSaved,
     onDeleted,
+    onCleanup,
   }: {
     playlist: PlaylistSummary;
     onClose: () => void;
     onSaved: (title: string, description: string) => void;
     onDeleted: () => void;
+    /** Ouvre « Nettoyer » (#382) à la place de ce dialogue. */
+    onCleanup: () => void;
   } = $props();
 
   const e = t.views.playlistEdit;
@@ -107,6 +110,9 @@
           <span>{e.description}</span>
           <textarea rows="4" maxlength="2000" bind:value={description}></textarea>
         </label>
+        <button type="button" class="cleanup-link" onclick={onCleanup} disabled={busy}>
+          {e.cleanupAction}
+        </button>
         <div class="buttons">
           <button type="button" class="delete-link" onclick={() => (confirming = true)} disabled={busy}>
             {e.deleteAction}
@@ -254,8 +260,16 @@
     color: var(--danger);
   }
 
-  .delete-link:hover:not(:disabled) {
+  .delete-link:hover:not(:disabled),
+  .cleanup-link:hover:not(:disabled) {
     text-decoration: underline;
+  }
+
+  .cleanup-link {
+    align-self: flex-start;
+    padding: 0;
+    font-weight: 500;
+    color: var(--accent);
   }
 
   :global([data-theme="studio"]) input,
