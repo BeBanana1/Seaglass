@@ -43,6 +43,7 @@ use lan::lan_ip;
 
 use crate::i18n::{tr, trf};
 use crate::player::Cmd;
+use crate::player::blind::{Answer, BlindCmd, Refusal};
 use crate::tidal::TidalClient;
 use crate::tidal::models::{Track, TrackId};
 use api::{Backend, Core, Hits, Snapshot};
@@ -453,12 +454,46 @@ impl Backend for AppBackend {
             .await
             .map_err(|_| stopped())?;
         let queue = rx.await.map_err(|_| stopped())?;
+        // La partie n'est demandée que si l'état en annonce une (#441).
+        let blind = if player.blind_test {
+            let (tx, rx) = oneshot::channel();
+            self.player
+                .send(Cmd::BlindTest(BlindCmd::Get(tx)))
+                .await
+                .map_err(|_| stopped())?;
+            rx.await.map_err(|_| stopped())?
+        } else {
+            None
+        };
         Ok(Snapshot {
             now: player.track,
             paused: player.paused,
             manual: queue.manual,
             upcoming: queue.upcoming,
+            blind,
         })
+    }
+
+    async fn blind_answer(
+        &self,
+        key: String,
+        name: Option<String>,
+        round: usize,
+        answer: Answer,
+    ) -> Result<Result<u32, Refusal>, String> {
+        let (reply, rx) = oneshot::channel();
+        let cmd = BlindCmd::GuestAnswer {
+            key,
+            name,
+            round,
+            answer,
+            reply,
+        };
+        self.player
+            .send(Cmd::BlindTest(cmd))
+            .await
+            .map_err(|_| stopped())?;
+        rx.await.map_err(|_| stopped())
     }
 
     fn guests_changed(&self, guests: &Guests) {

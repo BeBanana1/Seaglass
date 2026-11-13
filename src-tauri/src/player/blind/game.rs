@@ -6,6 +6,7 @@ use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 
 use super::answer::{self, title_key};
+use super::players::{HOST_KEY, Pending, PlayerResult, Players, Refusal};
 use crate::tidal::models::Track;
 
 /// Durée d'un extrait, en secondes.
@@ -57,19 +58,39 @@ pub struct Choice {
     pub artist: String,
 }
 
-/// Une manche révélée.
+/// Une manche révélée : la réponse de l'hôte (s'il joue) et le résultat de chacun.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RoundResult {
     pub track: Track,
     pub title: bool,
     pub artist: bool,
+    /// Points de l'hôte, bonus du plus rapide compris.
     pub points: u32,
     /// Saisie libre telle que tapée.
     pub answer: Option<String>,
     /// Proposition choisie et bonne proposition (mode `Choices`).
     pub chosen: Option<usize>,
     pub correct: Option<usize>,
+    /// Tous les joueurs, du plus de points au moins (#441).
+    pub players: Vec<PlayerResult>,
+}
+
+/// Qui joue : l'hôte seul, ou avec les invités de la Jam (#441).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Party {
+    pub jam: bool,
+    /// L'hôte répond aussi ; sinon il anime seulement (à plusieurs).
+    pub host_plays: bool,
+}
+
+#[cfg(test)]
+impl Party {
+    pub const SOLO: Self = Self {
+        jam: false,
+        host_plays: true,
+    };
 }
 
 #[derive(Debug)]
@@ -83,6 +104,7 @@ struct Round {
 #[derive(Debug)]
 pub struct Game {
     pub mode: Mode,
+    pub party: Party,
     /// Titres candidats, dans l'ordre du tirage ; `next` est le prochain à jouer.
     pool: Vec<Track>,
     next: usize,
@@ -91,9 +113,7 @@ pub struct Game {
     round: Option<Round>,
     pub phase: Phase,
     results: Vec<RoundResult>,
-    pub score: u32,
-    pub streak: u32,
-    pub best_streak: u32,
+    players: Players,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,6 +129,7 @@ impl Game {
         pool: Vec<Track>,
         mode: Mode,
         rounds: usize,
+        party: Party,
         rng: &mut impl Rng,
     ) -> Result<Self, GameError> {
         let mut seen = std::collections::HashSet::new();
@@ -122,17 +143,21 @@ impl Game {
             return Err(GameError::TooFewTracks);
         }
         pool.shuffle(rng);
+        // Seul, l'hôte joue forcément.
+        let party = Party {
+            host_plays: party.host_plays || !party.jam,
+            ..party
+        };
         let mut game = Self {
             mode,
+            party,
             rounds: rounds.clamp(1, pool.len()),
             pool,
             next: 0,
             round: None,
             phase: Phase::Guess,
             results: Vec::new(),
-            score: 0,
-            streak: 0,
-            best_streak: 0,
+            players: Players::new(party.host_plays),
         };
         game.deal(rng);
         Ok(game)
@@ -211,53 +236,93 @@ impl Game {
         &self.results
     }
 
+    pub fn players(&self) -> &Players {
+        &self.players
+    }
+
+    /// Score, série et meilleure série de l'hôte.
+    pub fn host_score(&self) -> (u32, u32, u32) {
+        self.players.host_score()
+    }
+
     /// Le titre doit rester masqué (UI, intégrations système, Jam).
     pub fn hides_track(&self) -> bool {
         self.phase == Phase::Guess
     }
 
-    /// Réponse à la manche en cours : révèle la manche. Sans effet hors de `Guess`.
-    pub fn answer(&mut self, answer: Answer) -> Option<&RoundResult> {
-        if self.phase != Phase::Guess {
-            return None;
+    /// Réponse d'un joueur (`HOST_KEY` pour l'hôte, clé de la Jam pour un invité) à la
+    /// manche en cours. Seul, la manche est révélée aussitôt ; à plusieurs, quand tous les
+    /// joueurs ont répondu. Renvoie l'identifiant du joueur.
+    pub fn answer(
+        &mut self,
+        key: &str,
+        name: Option<&str>,
+        answer: Answer,
+    ) -> Result<u32, Refusal> {
+        if self.phase != Phase::Guess || (key != HOST_KEY && !self.party.jam) {
+            return Err(Refusal::Closed);
         }
-        let round = self.round.as_ref()?;
-        let mut result = RoundResult {
-            track: round.track.clone(),
+        let round = self.round.as_ref().ok_or(Refusal::Closed)?;
+        let pending = self.judge(round, answer);
+        let id = self.players.record(key, name, pending)?;
+        if !self.party.jam || self.players.all_answered() {
+            self.reveal();
+        }
+        Ok(id)
+    }
+
+    fn judge(&self, round: &Round, answer: Answer) -> Pending {
+        let mut pending = Pending {
             title: false,
             artist: false,
             points: 0,
             answer: None,
             chosen: None,
-            correct: (self.mode == Mode::Choices).then_some(round.correct),
         };
         match answer {
             Answer::Text { text } => {
                 let verdict = answer::check(&text, &round.track);
-                result.title = verdict.title;
-                result.artist = verdict.artist;
-                result.answer = Some(text);
+                pending.title = verdict.title;
+                pending.artist = verdict.artist;
+                pending.answer = Some(text);
             }
             Answer::Choice { index } if self.mode == Mode::Choices => {
                 let right = index == round.correct;
-                result.title = right;
-                result.artist = right;
-                result.chosen = Some(index);
+                pending.title = right;
+                pending.artist = right;
+                pending.chosen = Some(index);
             }
             Answer::Choice { .. } | Answer::Pass => {}
         }
-        result.points =
-            u32::from(result.title) * TITLE_POINTS + u32::from(result.artist) * ARTIST_POINTS;
-        self.score += result.points;
-        if result.points > 0 {
-            self.streak += 1;
-            self.best_streak = self.best_streak.max(self.streak);
-        } else {
-            self.streak = 0;
+        pending.points =
+            u32::from(pending.title) * TITLE_POINTS + u32::from(pending.artist) * ARTIST_POINTS;
+        pending
+    }
+
+    /// Révèle la manche en cours (tous ont répondu, l'hôte le demande, délai écoulé) ;
+    /// faux hors de `Guess`.
+    pub fn reveal(&mut self) -> bool {
+        if self.phase != Phase::Guess {
+            return false;
         }
-        self.results.push(result);
+        let Some(round) = &self.round else {
+            return false;
+        };
+        let host = self.players.host_pending().cloned();
+        let players = self.players.settle(self.party.jam);
+        let host_points = players.iter().find(|p| p.host).map_or(0, |p| p.points);
+        self.results.push(RoundResult {
+            track: round.track.clone(),
+            title: host.as_ref().is_some_and(|h| h.title),
+            artist: host.as_ref().is_some_and(|h| h.artist),
+            points: host_points,
+            answer: host.as_ref().and_then(|h| h.answer.clone()),
+            chosen: host.as_ref().and_then(|h| h.chosen),
+            correct: (self.mode == Mode::Choices).then_some(round.correct),
+            players,
+        });
         self.phase = Phase::Revealed;
-        self.results.last()
+        true
     }
 
     /// Manche suivante après une révélation ; faux si la partie est finie.
@@ -355,6 +420,12 @@ mod tests {
             .collect()
     }
 
+    /// Réponse de l'hôte seul : la manche révélée.
+    fn solo(game: &mut Game, answer: Answer) -> Option<RoundResult> {
+        game.answer(HOST_KEY, None, answer).ok()?;
+        game.results().last().cloned()
+    }
+
     fn rng() -> StdRng {
         StdRng::seed_from_u64(7)
     }
@@ -363,26 +434,26 @@ mod tests {
     fn needs_four_different_titles() {
         let mut rng = rng();
         assert_eq!(
-            Game::new(pool(3), Mode::Typing, 5, &mut rng).err(),
+            Game::new(pool(3), Mode::Typing, 5, Party::SOLO, &mut rng).err(),
             Some(GameError::TooFewTracks)
         );
         // Doublons et éditions du même titre ne comptent qu'une fois.
         let mut same = pool(3);
         same.push(track(1, "Song 1", "Artist 1"));
         same.push(track(9, "Song 1 (Remastered)", "Artist 1"));
-        assert!(Game::new(same, Mode::Typing, 5, &mut rng).is_err());
-        assert!(Game::new(pool(4), Mode::Typing, 5, &mut rng).is_ok());
+        assert!(Game::new(same, Mode::Typing, 5, Party::SOLO, &mut rng).is_err());
+        assert!(Game::new(pool(4), Mode::Typing, 5, Party::SOLO, &mut rng).is_ok());
     }
 
     #[test]
     fn rounds_are_drawn_without_replacement() {
         let mut rng = rng();
-        let mut game = Game::new(pool(6), Mode::Typing, 10, &mut rng).unwrap();
+        let mut game = Game::new(pool(6), Mode::Typing, 10, Party::SOLO, &mut rng).unwrap();
         assert_eq!(game.rounds(), 6, "pas plus de manches que de titres");
         let mut seen = Vec::new();
         loop {
             seen.push(game.track().unwrap().id);
-            game.answer(Answer::Pass);
+            solo(&mut game, Answer::Pass);
             if !game.next_round(&mut rng) {
                 break;
             }
@@ -398,30 +469,35 @@ mod tests {
     #[test]
     fn typing_scores_title_and_artist() {
         let mut rng = rng();
-        let mut game = Game::new(pool(5), Mode::Typing, 3, &mut rng).unwrap();
+        let mut game = Game::new(pool(5), Mode::Typing, 3, Party::SOLO, &mut rng).unwrap();
         let t = game.track().unwrap().clone();
         assert!(game.hides_track());
-        let r = game
-            .answer(Answer::Text {
+        let r = solo(
+            &mut game,
+            Answer::Text {
                 text: t.title.clone(),
-            })
-            .unwrap();
+            },
+        )
+        .unwrap();
         assert_eq!((r.title, r.artist, r.points), (true, false, 2));
         assert!(!game.hides_track());
         // Une seule réponse par manche.
-        assert!(game.answer(Answer::Pass).is_none());
+        assert!(solo(&mut game, Answer::Pass).is_none());
 
         assert!(game.next_round(&mut rng));
         let t = game.track().unwrap().clone();
         let text = format!("{} {}", t.artists[0].name, t.title);
-        assert_eq!(game.answer(Answer::Text { text }).unwrap().points, 3);
-        assert_eq!((game.score, game.streak, game.best_streak), (5, 2, 2));
+        assert_eq!(solo(&mut game, Answer::Text { text }).unwrap().points, 3);
+        assert_eq!(game.host_score(), (5, 2, 2));
 
         assert!(game.next_round(&mut rng));
-        game.answer(Answer::Text {
-            text: "rien à voir".into(),
-        });
-        assert_eq!((game.score, game.streak, game.best_streak), (5, 0, 2));
+        solo(
+            &mut game,
+            Answer::Text {
+                text: "rien à voir".into(),
+            },
+        );
+        assert_eq!(game.host_score(), (5, 0, 2));
         assert!(!game.next_round(&mut rng));
         assert_eq!(game.results().len(), 3);
     }
@@ -429,7 +505,7 @@ mod tests {
     #[test]
     fn choices_hold_the_answer_once() {
         let mut rng = rng();
-        let mut game = Game::new(pool(8), Mode::Choices, 4, &mut rng).unwrap();
+        let mut game = Game::new(pool(8), Mode::Choices, 4, Party::SOLO, &mut rng).unwrap();
         for _ in 0..4 {
             let id = game.track().unwrap().id;
             let choices = game.choices().to_vec();
@@ -441,46 +517,126 @@ mod tests {
                 .map(|(i, _)| i)
                 .collect();
             assert_eq!(right.len(), 1);
-            let r = game.answer(Answer::Choice { index: right[0] }).unwrap();
+            let r = solo(&mut game, Answer::Choice { index: right[0] }).unwrap();
             assert_eq!(
                 (r.points, r.chosen, r.correct),
                 (3, Some(right[0]), Some(right[0]))
             );
             game.next_round(&mut rng);
         }
-        assert_eq!(game.score, 12);
+        assert_eq!(game.host_score().0, 12);
     }
 
     #[test]
     fn a_wrong_choice_scores_nothing() {
         let mut rng = rng();
-        let mut game = Game::new(pool(4), Mode::Choices, 1, &mut rng).unwrap();
+        let mut game = Game::new(pool(4), Mode::Choices, 1, Party::SOLO, &mut rng).unwrap();
         let wrong = (0..4).find(|i| game.choices()[*i].title != game.track().unwrap().title);
-        let r = game
-            .answer(Answer::Choice {
+        let r = solo(
+            &mut game,
+            Answer::Choice {
                 index: wrong.unwrap(),
-            })
-            .unwrap();
+            },
+        )
+        .unwrap();
         assert_eq!(r.points, 0);
         // Une proposition n'est pas une réponse valable en saisie libre.
-        let mut game = Game::new(pool(4), Mode::Typing, 1, &mut rng).unwrap();
-        assert_eq!(game.answer(Answer::Choice { index: 0 }).unwrap().points, 0);
+        let mut game = Game::new(pool(4), Mode::Typing, 1, Party::SOLO, &mut rng).unwrap();
+        assert_eq!(
+            solo(&mut game, Answer::Choice { index: 0 }).unwrap().points,
+            0
+        );
     }
 
     #[test]
     fn an_unplayable_track_is_replaced() {
         let mut rng = rng();
-        let mut game = Game::new(pool(5), Mode::Typing, 5, &mut rng).unwrap();
+        let mut game = Game::new(pool(5), Mode::Typing, 5, Party::SOLO, &mut rng).unwrap();
         let first = game.track().unwrap().id;
         assert!(game.replace_track(&mut rng));
         assert_ne!(game.track().unwrap().id, first);
         assert_eq!(game.round_number(), 1);
         // Plus rien pour remplacer : la partie s'arrête sur les manches jouées.
-        game.answer(Answer::Pass);
+        solo(&mut game, Answer::Pass);
         assert!(game.next_round(&mut rng));
         while game.replace_track(&mut rng) {}
         assert_eq!(game.phase, Phase::Finished);
         assert_eq!(game.rounds(), 1);
+    }
+
+    const JAM: Party = Party {
+        jam: true,
+        host_plays: true,
+    };
+
+    #[test]
+    fn with_guests_the_round_waits_for_everyone() {
+        let mut rng = rng();
+        let mut game = Game::new(pool(6), Mode::Typing, 3, JAM, &mut rng).unwrap();
+        let title = game.track().unwrap().title.clone();
+        assert_eq!(game.answer("lea", Some("Léa"), Answer::Pass), Ok(1));
+        assert!(game.hides_track(), "l'hôte n'a pas répondu");
+        assert_eq!(
+            game.answer(
+                HOST_KEY,
+                None,
+                Answer::Text {
+                    text: title.clone()
+                }
+            ),
+            Ok(0)
+        );
+        // Tous les joueurs connus ont répondu : révélée.
+        assert!(!game.hides_track());
+        let r = game.results().last().unwrap();
+        assert_eq!(r.points, 3, "titre + bonus du plus rapide");
+        assert_eq!(r.players.len(), 2);
+        assert_eq!(
+            game.answer("max", None, Answer::Pass),
+            Err(Refusal::Closed),
+            "trop tard"
+        );
+
+        // L'hôte révèle sans attendre Léa.
+        assert!(game.next_round(&mut rng));
+        let title = game.track().unwrap().title.clone();
+        game.answer(HOST_KEY, None, Answer::Text { text: title })
+            .unwrap();
+        assert!(game.hides_track());
+        assert!(game.reveal());
+        let lea = game
+            .results()
+            .last()
+            .unwrap()
+            .players
+            .iter()
+            .find(|p| p.id == 1)
+            .cloned();
+        assert_eq!(lea.map(|p| (p.answered, p.points)), Some((false, 0)));
+        assert_eq!(game.host_score(), (6, 2, 2));
+    }
+
+    #[test]
+    fn a_host_who_watches_reveals_on_the_guests() {
+        let mut rng = rng();
+        let party = Party {
+            jam: true,
+            host_plays: false,
+        };
+        let mut game = Game::new(pool(6), Mode::Typing, 2, party, &mut rng).unwrap();
+        assert_eq!(
+            game.answer(HOST_KEY, None, Answer::Pass),
+            Err(Refusal::Closed)
+        );
+        game.answer("lea", None, Answer::Pass).unwrap();
+        assert!(!game.hides_track(), "Léa était la seule joueuse");
+        assert_eq!(game.results().last().unwrap().points, 0);
+        // Seul, un invité ne peut pas répondre.
+        let mut solo_game = Game::new(pool(6), Mode::Typing, 2, Party::SOLO, &mut rng).unwrap();
+        assert_eq!(
+            solo_game.answer("lea", None, Answer::Pass),
+            Err(Refusal::Closed)
+        );
     }
 
     #[test]

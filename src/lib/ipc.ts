@@ -233,6 +233,36 @@ export interface BlindChoice {
   artist: string;
 }
 
+/** Joueur d'une partie (#441) : l'hôte (`id` 0) ou un invité de la Jam. */
+export interface BlindPlayer {
+  id: number;
+  /** Prénom donné dans la Jam ; `null` : « Invité <id> ». */
+  name: string | null;
+  host: boolean;
+  score: number;
+  streak: number;
+  bestStreak: number;
+  /** A répondu à la manche en cours. */
+  answered: boolean;
+}
+
+export interface BlindPlayerResult {
+  id: number;
+  name: string | null;
+  host: boolean;
+  answered: boolean;
+  title: boolean;
+  artist: boolean;
+  points: number;
+  /** Premier à trouver le titre (bonus compris dans `points`). */
+  fastest: boolean;
+}
+
+export interface BlindParty {
+  jam: boolean;
+  hostPlays: boolean;
+}
+
 export interface BlindRoundResult {
   track: Track;
   title: boolean;
@@ -241,6 +271,8 @@ export interface BlindRoundResult {
   answer: string | null;
   chosen: number | null;
   correct: number | null;
+  /** Tous les joueurs, du plus de points au moins (#441). */
+  players: BlindPlayerResult[];
 }
 
 /** Partie tenue par le backend (événement `blind-test`) ; le titre de la manche n'y est
@@ -260,6 +292,11 @@ export interface BlindTestView {
   clipLength: number;
   choices: BlindChoice[];
   results: BlindRoundResult[];
+  party: BlindParty;
+  /** Classement ; l'hôte seul en solo. */
+  players: BlindPlayer[];
+  /** Révélation automatique prévue (ms depuis l'epoch), à plusieurs. */
+  revealAt: number | null;
 }
 
 export interface PlayerState {
@@ -1078,8 +1115,11 @@ export const commands = {
   /** Applique des changements aux titres likés, ou les annule ; l'événement `likes` suit. */
   cleanLiked: (ops: ListOp[]) => invoke<ListOpsResult>("clean_liked", { ops }),
   /** Blind test (#434) : partie de `rounds` manches tirées dans `trackIds`. */
-  blindTestStart: (trackIds: TrackId[], mode: BlindMode, rounds: number, title: string) =>
-    invoke<void>("blind_test_start", { trackIds, mode, rounds, title }),
+  /** Avec `jam`, les invités de la Jam en cours jouent aussi (#441). */
+  blindTestStart: (trackIds: TrackId[], mode: BlindMode, rounds: number, title: string, jam = false, hostPlays = true) =>
+    invoke<void>("blind_test_start", { trackIds, mode, rounds, title, jam, hostPlays }),
+  /** Révèle la manche sans attendre les réponses qui manquent (à plusieurs). */
+  blindTestReveal: () => invoke<void>("blind_test_reveal"),
   blindTestAnswer: (answer: BlindAnswer) => invoke<void>("blind_test_answer", { answer }),
   blindTestReplay: () => invoke<void>("blind_test_replay"),
   blindTestNext: () => invoke<void>("blind_test_next"),

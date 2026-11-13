@@ -65,6 +65,10 @@ impl Core {
             Ok(Err(e)) => return Err(backend_error(&e)),
             Err(_) => return Err(backend_error("lecteur sans réponse")),
         };
+        // Blind test avec les invités (#441) : la file attend la fin de la partie.
+        if snapshot.jam_game().is_some() {
+            return Err(Response::error(403, "game"));
+        }
         let manual: Vec<u64> = snapshot.manual.iter().map(|t| t.id.0).collect();
         let (pending, total) = self
             .guests

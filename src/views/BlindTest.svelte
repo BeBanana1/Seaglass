@@ -11,11 +11,18 @@
   import { pushToast } from "../lib/stores/toasts.svelte";
   import Icon from "../components/Icon.svelte";
   import LikeButton from "../components/LikeButton.svelte";
+  import BlindScoreboard from "../components/BlindScoreboard.svelte";
+  import { jam } from "../lib/stores/jam.svelte";
 
   const ROUND_OPTIONS = [5, 10, 20];
 
   let mode = $state<BlindMode>("typing");
   let rounds = $state(10);
+  /** À plusieurs, par la Jam (#441). */
+  let withJam = $state(true);
+  let hostPlays = $state(true);
+  /** Secondes avant la révélation automatique (à plusieurs). */
+  let revealIn = $state(0);
   let text = $state("");
   let busy = $state(false);
   let input = $state<HTMLInputElement | null>(null);
@@ -27,6 +34,11 @@
   const result = $derived<BlindRoundResult | null>(view?.phase === "revealed" ? (view.results.at(-1) ?? null) : null);
   const lastRound = $derived(!!view && view.round >= view.rounds);
   const clipOver = $derived(view?.phase === "guess" && clip >= 1 && player.state.paused);
+  const multi = $derived(!!view?.party.jam);
+  const hostPlaying = $derived(!view || view.party.hostPlays);
+  /** L'hôte peut encore répondre à la manche. */
+  const hostCanAnswer = $derived(!!view && hostPlaying && !view.players.find((p) => p.host)?.answered);
+  const jamRunning = $derived(!!jam.status);
   const roundChoices = $derived(pool ? ROUND_OPTIONS.filter((n, i) => i === 0 || n <= pool.trackIds.length) : []);
 
   async function run(action: () => Promise<unknown>) {
@@ -47,9 +59,12 @@
     if (again && view) {
       mode = view.mode;
       rounds = view.rounds;
+      withJam = view.party.jam;
+      hostPlays = view.party.hostPlays;
     }
     const count = Math.min(rounds, pool.trackIds.length);
-    run(() => commands.blindTestStart(pool.trackIds, mode, count, pool.title));
+    const together = withJam && jamRunning;
+    run(() => commands.blindTestStart(pool.trackIds, mode, count, pool.title, together, together ? hostPlays : true));
   }
 
   function answer(a: BlindAnswer) {
@@ -70,6 +85,19 @@
       text = "";
       tick().then(() => input?.focus());
     } else if (!round) lastRoundShown = 0;
+  });
+
+  // Compte à rebours de la révélation automatique, à plusieurs.
+  $effect(() => {
+    const at = view?.phase === "guess" ? view.revealAt : null;
+    if (!at) {
+      revealIn = 0;
+      return;
+    }
+    const update = () => (revealIn = Math.max(0, Math.ceil((at - Date.now()) / 1000)));
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
   });
 
   // Barre de l'extrait : position interpolée comme la barre de lecture.
@@ -96,8 +124,8 @@
     {#if view}
       <div class="stats">
         <span>{t.blindTest.round(view.round, view.rounds)}</span>
-        <span class="score">{t.blindTest.score(view.score, view.maxScore)}</span>
-        {#if view.streak > 1}<span class="streak">{t.blindTest.streak(view.streak)}</span>{/if}
+        {#if hostPlaying}<span class="score">{t.blindTest.score(view.score, view.maxScore)}</span>{/if}
+        {#if hostPlaying && view.streak > 1}<span class="streak">{t.blindTest.streak(view.streak)}</span>{/if}
         <button class="quit" onclick={() => run(() => commands.blindTestQuit())}>{t.blindTest.quit}</button>
       </div>
     {/if}
@@ -123,6 +151,23 @@
             {/each}
           </div>
         </fieldset>
+        {#if jamRunning}
+          <fieldset class="together">
+            <label class="check">
+              <input type="checkbox" bind:checked={withJam} />
+              {t.blindTest.withJam}
+            </label>
+            {#if withJam}
+              <label class="check">
+                <input type="checkbox" bind:checked={hostPlays} />
+                {t.blindTest.hostPlays}
+              </label>
+              <p class="hint small">{t.blindTest.withJamHint}</p>
+            {/if}
+          </fieldset>
+        {:else}
+          <p class="hint small">{t.blindTest.noJam}</p>
+        {/if}
         <button class="primary" disabled={busy} onclick={() => start()}><Icon name="play" size={16} /> {t.blindTest.play}</button>
         <p class="hint small">{t.blindTest.queueKept}</p>
       </div>
@@ -142,7 +187,9 @@
         <Icon name="repeat" size={16} /> {t.blindTest.replay}
       </button>
 
-      {#if view.mode === "typing"}
+      {#if !hostCanAnswer}
+        <p class="status">{hostPlaying ? t.blindTest.waiting : t.blindTest.hosting}</p>
+      {:else if view.mode === "typing"}
         <form class="answer" onsubmit={submit}>
           <input
             bind:this={input}
@@ -166,14 +213,23 @@
           {/each}
         </div>
       {/if}
-      <button class="link pass" disabled={busy} onclick={() => answer({ kind: "pass" })}>{t.blindTest.pass}</button>
+      {#if hostCanAnswer}
+        <button class="link pass" disabled={busy} onclick={() => answer({ kind: "pass" })}>{t.blindTest.pass}</button>
+      {/if}
+      {#if multi}
+        <button class="primary" disabled={busy} onclick={() => run(() => commands.blindTestReveal())}>{t.blindTest.reveal}</button>
+        {#if revealIn > 0}<p class="hint small">{t.blindTest.revealIn(revealIn)}</p>{/if}
+        <BlindScoreboard players={view.players} showAnswered />
+      {/if}
     </div>
   {:else if view.phase === "revealed" && result}
     <div class="round revealed">
       <div class="cover">
         {#if coverLarge(result.track.album)}<img src={coverLarge(result.track.album)} alt="" />{/if}
       </div>
-      <p class="verdict" class:good={result.points > 0}>{verdict(result)} <span class="points">{t.blindTest.points(result.points)}</span></p>
+      {#if hostPlaying}
+        <p class="verdict" class:good={result.points > 0}>{verdict(result)} <span class="points">{t.blindTest.points(result.points)}</span></p>
+      {/if}
       <div class="answer-track">
         <span class="track-title" class:found={result.title}>{fullTitle(result.track)}</span>
         <span class="track-artist" class:found={result.artist}>{artistNames(result.track)}</span>
@@ -186,12 +242,14 @@
       <button class="primary" disabled={busy} onclick={() => run(() => commands.blindTestNext())}>
         {lastRound ? t.blindTest.seeScore : t.blindTest.next} <Icon name="next" size={16} />
       </button>
+      {#if multi}<BlindScoreboard players={view.players} round={result.players} />{/if}
     </div>
   {:else if view.phase === "finished"}
     <div class="summary">
       <h2>{t.blindTest.finished}</h2>
-      <p class="final">{t.blindTest.score(view.score, view.maxScore)}</p>
-      {#if view.bestStreak > 1}<p class="hint">{t.blindTest.bestStreak(view.bestStreak)}</p>{/if}
+      {#if hostPlaying}<p class="final">{t.blindTest.score(view.score, view.maxScore)}</p>{/if}
+      {#if multi}<BlindScoreboard players={view.players} />{/if}
+      {#if hostPlaying && view.bestStreak > 1}<p class="hint">{t.blindTest.bestStreak(view.bestStreak)}</p>{/if}
       <ol class="results">
         {#each view.results as r, i (i)}
           <li class:good={r.points > 0}>
@@ -200,8 +258,10 @@
               <span class="track-title">{fullTitle(r.track)}</span>
               <span class="track-artist">{artistNames(r.track)}</span>
             </span>
-            <span class="result-verdict">{verdict(r)}</span>
-            <span class="points">{t.blindTest.points(r.points)}</span>
+            {#if hostPlaying}
+              <span class="result-verdict">{verdict(r)}</span>
+              <span class="points">{t.blindTest.points(r.points)}</span>
+            {/if}
           </li>
         {/each}
       </ol>
@@ -304,6 +364,17 @@
     font-weight: 600;
   }
 
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .check input {
+    accent-color: var(--accent);
+  }
+
   .segmented {
     display: inline-flex;
     align-self: flex-start;
@@ -358,6 +429,12 @@
 
   .secondary:hover {
     background: var(--bg-hover);
+  }
+
+  .round :global(.blind-scoreboard) {
+    max-width: 480px;
+    margin-top: 12px;
+    text-align: left;
   }
 
   .round {

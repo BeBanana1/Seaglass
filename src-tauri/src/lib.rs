@@ -226,6 +226,7 @@ pub fn run() {
             commands::blind_test::blind_test_start,
             commands::blind_test::blind_test_answer,
             commands::blind_test::blind_test_replay,
+            commands::blind_test::blind_test_reveal,
             commands::blind_test::blind_test_next,
             commands::blind_test::blind_test_quit,
             commands::blind_test::blind_test_state,

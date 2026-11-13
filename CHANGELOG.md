@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.71
+
+- Blind test à plusieurs : les invités de la Jam répondent depuis leur téléphone, classement en direct, bonus pour le plus rapide, l'hôte joue ou anime (#441).
+
 ## 0.5.70
 
 - Blind test : depuis une playlist, un mix, un album, une liste intelligente ou les titres likés, devinez le titre ou l'artiste d'extraits de 15 s, en saisie libre ou parmi 4 propositions, avec score et série. Le titre reste masqué partout (écran verrouillé, Discord, notification) jusqu'à la réponse, et la file revient à la fin (#434).

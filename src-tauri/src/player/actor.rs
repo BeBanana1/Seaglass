@@ -340,6 +340,7 @@ impl Player {
                 _ = tick.tick() => {
                     self.persist_if_due();
                     self.check_sleep_timer().await;
+                    self.check_blind_deadline().await;
                 }
             }
             self.emit();

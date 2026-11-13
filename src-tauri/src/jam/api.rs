@@ -5,6 +5,7 @@
 //! rendre les réponses.
 
 mod adds;
+mod blind;
 
 use std::collections::HashMap;
 use std::future::Future;
@@ -22,6 +23,7 @@ use super::http::Response;
 use super::members::{GuestInfo, owner_key};
 use super::rules::JamRules;
 use super::view::{GuestAlbum, GuestState, GuestTrack};
+use crate::player::blind::{Answer, BlindTestView, Refusal};
 use crate::tidal::models::{AlbumSummary, Track, TrackId};
 
 /// Délai d'une réponse qui attend TIDAL ou le lecteur.
@@ -44,6 +46,15 @@ pub struct Snapshot {
     pub manual: Vec<Track>,
     /// Suite du contexte.
     pub upcoming: Vec<Track>,
+    /// Blind test en cours (#434), titre masqué tant que la manche n'est pas révélée.
+    pub blind: Option<BlindTestView>,
+}
+
+impl Snapshot {
+    /// Blind test ouvert aux invités de la Jam (#441) ; une partie en solo ne les regarde pas.
+    pub fn jam_game(&self) -> Option<&BlindTestView> {
+        self.blind.as_ref().filter(|b| b.party.jam)
+    }
 }
 
 /// Résultats d'une recherche de la Jam.
@@ -68,6 +79,15 @@ pub trait Backend: Send + Sync + 'static {
     /// Lecture (`false`) ou pause (`true`), demandée par un invité (#222).
     fn set_paused(&self, paused: bool) -> impl Future<Output = Result<(), String>> + Send;
     fn state(&self) -> impl Future<Output = Result<Snapshot, String>> + Send;
+    /// Réponse d'un invité au blind test (#441) : son identifiant de joueur, ou le refus
+    /// de la partie.
+    fn blind_answer(
+        &self,
+        key: String,
+        name: Option<String>,
+        round: usize,
+        answer: Answer,
+    ) -> impl Future<Output = Result<Result<u32, Refusal>, String>> + Send;
     /// Les ajouts des invités ont changé : l'UI de l'hôte affiche les noms dans la file.
     fn guests_changed(&self, guests: &Guests);
 }
@@ -272,6 +292,7 @@ impl Core {
             "/api/add-album" => self.add_album(body, ip, &key, backend).await,
             "/api/remove" => self.remove(body, ip, &key, backend).await,
             "/api/pause" => self.pause(body, ip, &key, backend).await,
+            "/api/blind-answer" => self.blind_answer(body, ip, &key, backend).await,
             _ => Response::not_found(),
         }
     }

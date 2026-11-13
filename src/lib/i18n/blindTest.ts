@@ -44,6 +44,22 @@ export const fr = {
   quit: "Quitter la partie",
   /** Barre de lecture et palette pendant une partie. */
   inProgress: "Blind test en cours",
+  // À plusieurs, par la Jam (#441).
+  withJam: "Avec les invités de la Jam",
+  withJamHint: "Ils répondent depuis la page de la Jam sur leur téléphone. Le plus rapide à trouver le titre gagne 1 point de plus ; la manche est révélée quand tout le monde a répondu, ou 20 s après la fin de l'extrait.",
+  noJam: "Démarrez une Jam pour jouer avec vos invités.",
+  hostPlays: "Je joue aussi",
+  reveal: "Révéler",
+  revealIn: (s: number) => `Révélation dans ${s} s`,
+  waiting: "Réponse envoyée. On attend les autres…",
+  hosting: "Vos invités répondent depuis la Jam.",
+  ranking: "Classement",
+  host: "Vous",
+  guest: (id: number) => `Invité ${id}`,
+  answered: "a répondu",
+  fastest: "le plus rapide",
+  noAnswer: "Pas de réponse",
+  noPlayers: "Personne n'a encore répondu.",
 };
 
 const pointsEn = (n: number) => (n === 0 ? "0 points" : `+${n} point${n > 1 ? "s" : ""}`);
@@ -87,4 +103,19 @@ export const en: typeof fr = {
   again: "Play again",
   quit: "Quit the game",
   inProgress: "Blind test in progress",
+  withJam: "With the Jam guests",
+  withJamHint: "They answer from the Jam page on their phone. The fastest to name the title gets 1 extra point; the round is revealed when everyone has answered, or 20 s after the clip ends.",
+  noJam: "Start a Jam to play with your guests.",
+  hostPlays: "I play too",
+  reveal: "Reveal",
+  revealIn: (s: number) => `Reveal in ${s} s`,
+  waiting: "Answer sent. Waiting for the others…",
+  hosting: "Your guests answer from the Jam.",
+  ranking: "Ranking",
+  host: "You",
+  guest: (id: number) => `Guest ${id}`,
+  answered: "answered",
+  fastest: "fastest",
+  noAnswer: "No answer",
+  noPlayers: "Nobody has answered yet.",
 };

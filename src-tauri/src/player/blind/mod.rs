@@ -1,12 +1,16 @@
 //! Blind test (#434) : l'acteur joue des extraits d'une liste et masque le titre tant que la
 //! manche n'est pas révélée. La file d'avant la partie est mise de côté (`saved`) : c'est
 //! elle qui est sauvegardée, affichée et modifiée par « Ajouter à la file » pendant la
-//! partie, et elle revient en pause à la fin.
+//! partie, et elle revient en pause à la fin. À plusieurs (#441), les invités de la Jam
+//! répondent depuis leur téléphone (`jam.rs`).
 
 mod answer;
 mod game;
+mod jam;
+mod players;
 
 use std::borrow::Cow;
+use std::time::Instant;
 
 use serde::Serialize;
 use tauri::Emitter;
@@ -18,8 +22,9 @@ use super::state::PlayerState;
 use crate::engine::Op;
 use crate::i18n::trf;
 use crate::tidal::models::{Track, TrackId};
-pub use game::{Answer, Mode};
-use game::{CLIP_LENGTH, Choice, Game, GameError, MIN_POOL, Phase, ROUND_POINTS, RoundResult};
+pub use game::{Answer, Choice, Mode, Party, Phase, RoundResult};
+use game::{CLIP_LENGTH, Game, GameError, MIN_POOL, ROUND_POINTS};
+pub use players::{HOST_KEY, PlayerResult, PlayerView, Refusal};
 
 /// Manches possibles par partie.
 pub const MAX_ROUNDS: usize = 50;
@@ -31,12 +36,27 @@ pub enum BlindCmd {
         rounds: usize,
         /// Nom de la liste d'origine, affiché.
         title: String,
+        /// Seul, ou avec les invités de la Jam (#441).
+        party: Party,
         reply: oneshot::Sender<Result<(), String>>,
     },
+    /// Réponse de l'hôte.
     Answer(Answer),
+    /// Réponse d'un invité de la Jam (#441) à la manche `round` ; renvoie son identifiant
+    /// de joueur.
+    GuestAnswer {
+        /// Clé de l'invité dans la Jam (jeton du navigateur ou adresse), jamais affichée.
+        key: String,
+        name: Option<String>,
+        round: usize,
+        answer: Answer,
+        reply: oneshot::Sender<Result<u32, Refusal>>,
+    },
     /// Réécoute l'extrait depuis son début.
     Replay,
-    /// Manche suivante (ou passer, si la manche n'est pas révélée).
+    /// Révèle la manche sans attendre les autres réponses (à plusieurs).
+    Reveal,
+    /// Manche suivante (ou passer / révéler, si la manche n'est pas révélée).
     Next,
     Quit,
     Get(oneshot::Sender<Option<BlindTestView>>),
@@ -48,6 +68,8 @@ pub(super) struct BlindTest {
     /// File d'avant la partie et position de son titre courant.
     pub(super) saved: Queue,
     saved_position: f64,
+    /// À plusieurs : révélation automatique, `REVEAL_AFTER` après la fin de l'extrait.
+    reveal_at: Option<(Instant, i64)>,
 }
 
 /// État de la partie envoyé à l'UI (`blind-test`). Le titre de la manche en cours n'y est
@@ -55,39 +77,48 @@ pub(super) struct BlindTest {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlindTestView {
-    title: String,
-    mode: Mode,
-    phase: Phase,
-    round: usize,
-    rounds: usize,
-    score: u32,
-    max_score: u32,
-    streak: u32,
-    best_streak: u32,
-    clip_start: f64,
-    clip_length: f64,
-    choices: Vec<Choice>,
+    pub title: String,
+    pub mode: Mode,
+    pub phase: Phase,
+    pub round: usize,
+    pub rounds: usize,
+    pub score: u32,
+    pub max_score: u32,
+    pub streak: u32,
+    pub best_streak: u32,
+    pub clip_start: f64,
+    pub clip_length: f64,
+    pub choices: Vec<Choice>,
     /// Manches révélées, la dernière étant la manche en cours une fois révélée.
-    results: Vec<RoundResult>,
+    pub results: Vec<RoundResult>,
+    pub party: Party,
+    /// Classement (#441) ; l'hôte seul en solo.
+    pub players: Vec<PlayerView>,
+    /// Révélation automatique prévue (ms depuis l'epoch), à plusieurs.
+    pub reveal_at: Option<i64>,
 }
 
 impl BlindTest {
     fn view(&self) -> BlindTestView {
         let g = &self.game;
+        let (score, streak, best_streak) = g.host_score();
         BlindTestView {
             title: self.title.clone(),
             mode: g.mode,
             phase: g.phase,
             round: g.round_number(),
             rounds: g.rounds(),
-            score: g.score,
+            score,
             max_score: g.rounds() as u32 * ROUND_POINTS,
-            streak: g.streak,
-            best_streak: g.best_streak,
+            streak,
+            best_streak,
             clip_start: g.clip_start(),
             clip_length: CLIP_LENGTH,
             choices: g.choices().to_vec(),
             results: g.results().to_vec(),
+            party: g.party,
+            players: g.players().views(),
+            reveal_at: self.reveal_at.map(|(_, ms)| ms),
         }
     }
 }
@@ -114,12 +145,28 @@ impl Player {
                 mode,
                 rounds,
                 title,
+                party,
                 reply,
             } => {
-                let started = self.start_blind_test(tracks, mode, rounds, title);
+                let started = self.start_blind_test(tracks, mode, rounds, title, party);
                 let _ = reply.send(started);
             }
-            BlindCmd::Answer(answer) => self.blind_answer(answer).await,
+            BlindCmd::Answer(answer) => {
+                let _ = self.blind_answer(HOST_KEY, None, None, answer).await;
+            }
+            BlindCmd::GuestAnswer {
+                key,
+                name,
+                round,
+                answer,
+                reply,
+            } => {
+                let result = self
+                    .blind_answer(&key, name.as_deref(), Some(round), answer)
+                    .await;
+                let _ = reply.send(result);
+            }
+            BlindCmd::Reveal => self.blind_reveal().await,
             BlindCmd::Replay => self.blind_replay().await,
             BlindCmd::Next => self.blind_next().await,
             BlindCmd::Quit => self.end_blind_test().await,
@@ -191,9 +238,10 @@ impl Player {
         mode: Mode,
         rounds: usize,
         title: String,
+        party: Party,
     ) -> Result<(), String> {
         let pool: Vec<Track> = crate::content::filtered(self.tidal.cache.get_many(tracks));
-        let game = Game::new(pool, mode, rounds.min(MAX_ROUNDS), &mut self.rng).map_err(
+        let game = Game::new(pool, mode, rounds.min(MAX_ROUNDS), party, &mut self.rng).map_err(
             |GameError::TooFewTracks| {
                 trf!(
                     "il faut au moins {MIN_POOL} titres différents pour un blind test",
@@ -206,12 +254,17 @@ impl Player {
             Some(previous) => (previous.saved, previous.saved_position),
             None => (std::mem::take(&mut self.queue), self.state.time_pos),
         };
-        tracing::info!("blind test : {} manches ({mode:?})", game.rounds());
+        tracing::info!(
+            "blind test : {} manches ({mode:?}, Jam : {})",
+            game.rounds(),
+            party.jam
+        );
         self.blind = Some(BlindTest {
             game,
             title,
             saved,
             saved_position,
+            reveal_at: None,
         });
         self.play_round();
         Ok(())
@@ -220,9 +273,10 @@ impl Player {
     /// Charge l'extrait de la manche en cours, seul dans la file du moteur.
     fn play_round(&mut self) {
         self.blind_dirty = true;
-        let Some(blind) = &self.blind else {
+        let Some(blind) = &mut self.blind else {
             return;
         };
+        blind.reveal_at = None;
         let (Some(track), start) = (blind.game.track(), blind.game.clip_start()) else {
             return;
         };
@@ -247,6 +301,7 @@ impl Player {
             // Fixé tout de suite : les positions suivantes ne redemandent pas la pause.
             self.state.paused = true;
             self.engine_op(Op::SetPaused(true)).await;
+            self.start_reveal_countdown();
         }
     }
 
@@ -257,17 +312,40 @@ impl Player {
         })
     }
 
-    async fn blind_answer(&mut self, answer: Answer) {
-        let Some(blind) = &mut self.blind else {
-            return;
-        };
-        if blind.game.answer(answer).is_none() {
-            return;
+    /// Réponse d'un joueur ; `round` (invités) écarte une réponse arrivée après la manche.
+    async fn blind_answer(
+        &mut self,
+        key: &str,
+        name: Option<&str>,
+        round: Option<usize>,
+        answer: Answer,
+    ) -> Result<u32, Refusal> {
+        let blind = self.blind.as_mut().ok_or(Refusal::Closed)?;
+        if round.is_some_and(|r| r != blind.game.round_number()) {
+            return Err(Refusal::Closed);
+        }
+        let id = blind.game.answer(key, name, answer)?;
+        self.blind_dirty = true;
+        if !self.masks_track() {
+            self.on_blind_revealed().await;
+        }
+        Ok(id)
+    }
+
+    /// Manche révélée : le titre continue jusqu'à la suivante.
+    async fn on_blind_revealed(&mut self) {
+        if let Some(blind) = &mut self.blind {
+            blind.reveal_at = None;
         }
         self.blind_dirty = true;
-        // Manche révélée : le titre continue jusqu'à la suivante.
         if self.loaded && self.state.paused {
             self.engine_op(Op::SetPaused(false)).await;
+        }
+    }
+
+    async fn blind_reveal(&mut self) {
+        if self.blind.as_mut().is_some_and(|b| b.game.reveal()) {
+            self.on_blind_revealed().await;
         }
     }
 
@@ -287,14 +365,21 @@ impl Player {
         }
     }
 
-    /// Suivant : passe la manche si elle n'est pas révélée, sinon lance la suivante (ou
-    /// termine la partie).
+    /// Suivant : passe la manche (seul) ou la révèle (à plusieurs) si elle ne l'est pas,
+    /// sinon lance la suivante (ou termine la partie).
     pub(super) async fn blind_next(&mut self) {
-        let Some(phase) = self.blind.as_ref().map(|b| b.game.phase) else {
+        let Some((phase, jam)) = self
+            .blind
+            .as_ref()
+            .map(|b| (b.game.phase, b.game.party.jam))
+        else {
             return;
         };
         match phase {
-            Phase::Guess => self.blind_answer(Answer::Pass).await,
+            Phase::Guess if jam => self.blind_reveal().await,
+            Phase::Guess => {
+                let _ = self.blind_answer(HOST_KEY, None, None, Answer::Pass).await;
+            }
             Phase::Revealed => {
                 let more = self
                     .blind
