@@ -22,6 +22,7 @@ pub mod play_history;
 pub mod play_stats;
 pub mod player;
 pub mod project;
+pub mod recap;
 pub mod remote;
 pub mod search_history;
 pub mod settings;

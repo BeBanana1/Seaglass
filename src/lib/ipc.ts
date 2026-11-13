@@ -484,6 +484,35 @@ export interface PlayStats {
   artists: Counted<ArtistSummary>[];
 }
 
+/** Période de la rétrospective (#417) : mois civil, ou année entière sans `month`. */
+export interface RecapPeriod {
+  year: number;
+  month: number | null;
+}
+
+/** Rétrospective d'un mois ou d'une année (#417), calculée sur l'historique de cet appareil. */
+export interface Recap {
+  plays: number;
+  seconds: number;
+  unknown: number;
+  /** Jours avec au moins une écoute. */
+  days: number;
+  tracks: Counted<Track>[];
+  albums: Counted<AlbumSummary>[];
+  artists: Counted<ArtistSummary>[];
+  /** Artistes sans aucune écoute avant la période. */
+  newArtists: Counted<ArtistSummary>[];
+  newArtistCount: number;
+  newTrackCount: number;
+  /** Écoutes par jour de la semaine, lundi en premier. */
+  weekdays: number[];
+  /** Écoutes par heure locale, de 0 à 23. */
+  hours: number[];
+  /** 0 = lundi. */
+  topWeekday: number | null;
+  topHour: number | null;
+}
+
 /**
  * Playlist intelligente locale (#383), calculée par le backend sur l'historique de cet
  * appareil (et les titres likés pour `neverPlayed`).
@@ -846,6 +875,8 @@ export const commands = {
   playHistory: () => invoke<PlayHistory>("play_history"),
   clearPlayHistory: () => invoke<void>("clear_play_history"),
   playStats: (period: StatsPeriod) => invoke<PlayStats>("play_stats", { period }),
+  recapPeriods: () => invoke<RecapPeriod[]>("recap_periods"),
+  recap: (year: number, month: number | null) => invoke<Recap>("recap", { year, month }),
   smartList: (list: SmartList) => invoke<Track[]>("smart_list", { list }),
   /** Jam locale (#25), bureau seulement : `null` si aucune Jam ne tourne. */
   jamStatus: () => invoke<JamStatus | null>("jam_status"),

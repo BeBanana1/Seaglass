@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.64
+
+- Rétrospective du mois et de l'année, ouverte depuis les statistiques : temps d'écoute, jours d'écoute, titre et artiste de la période, découvertes, jour et heure d'écoute préférés, classements (#417).
+
 ## 0.5.63
 
 - Fil d'actualité complété des sorties récentes des artistes suivis que TIDAL n'y met pas, avec un compteur des nouveautés pas encore vues dans la navigation (#415).

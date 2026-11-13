@@ -113,6 +113,7 @@ export const ACTIONS: Action[] = [
     goAction(`go.library.${tab}`, () => a().libraryTab(t.library.tabs[tab]), { name: "library", tab }, ["library"]),
   ),
   goAction("go.stats", () => a().stats, { name: "stats" }, ["stats"]),
+  goAction("go.recap", () => a().recap, { name: "recap" }, ["recap", "wrapped", "rétrospective", "bilan"]),
   {
     id: "go.settings",
     group: "go",

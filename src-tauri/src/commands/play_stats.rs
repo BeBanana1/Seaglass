@@ -15,7 +15,7 @@ use tauri::State;
 
 use super::play_history::now_ms;
 use super::{AppState, CmdResult, err};
-use crate::store::Store;
+use crate::store::{CountedTrack, Span, Store, TopArtist};
 use crate::tidal::TidalClient;
 use crate::tidal::models::{AlbumSummary, ArtistSummary, Track, TrackId};
 
@@ -74,31 +74,12 @@ pub async fn play_stats(state: State<'_, AppState>, period: StatsPeriod) -> CmdR
     let Some(store) = state.store.clone() else {
         return Ok(PlayStats::default());
     };
-    let since = period.since(now_ms());
-    let top = blocking(&store, move |s| s.top_tracks(since, 1, TRACK_LIMIT)).await?;
-    let missing: Vec<TrackId> = top
-        .iter()
-        .filter(|(_, track, _)| track.is_none())
-        .map(|(id, _, _)| *id)
-        .collect();
-    let fetched = fetch(&state.tidal, &missing).await;
-    if !fetched.is_empty() {
-        let save = fetched.clone();
-        if let Err(e) = blocking(&store, move |s| s.save_played_tracks(&save)).await {
-            tracing::warn!("titres de l'historique non complétés : {e}");
-        }
-    }
-    let tracks = top
-        .into_iter()
-        .filter_map(|(id, track, plays)| {
-            // Titre introuvable (retiré du catalogue) : absent du classement.
-            let item = track.or_else(|| fetched.iter().find(|t| t.id == id).cloned())?;
-            Some(Counted { item, plays })
-        })
-        .collect();
+    let span = Span::since(period.since(now_ms()));
+    let top = blocking(&store, move |s| s.top_tracks(span, 1, TRACK_LIMIT)).await?;
+    let tracks = complete(&state.tidal, &store, top).await;
     let mut stats = blocking(&store, move |s| {
-        let totals = s.play_totals(since)?;
-        let albums = s.top_albums(since, 1, CARD_LIMIT)?;
+        let totals = s.play_totals(span)?;
+        let albums = s.top_albums(span, 1, CARD_LIMIT)?;
         Ok(PlayStats {
             plays: totals.plays,
             seconds: totals.seconds,
@@ -112,11 +93,45 @@ pub async fn play_stats(state: State<'_, AppState>, period: StatsPeriod) -> CmdR
         })
     })
     .await?;
-    stats.artists = artists(&state.tidal, &store, since).await?;
-    if stats.unknown > 0 && !BACKFILL_STARTED.swap(true, Ordering::Relaxed) {
-        tauri::async_runtime::spawn(backfill(state.tidal.clone(), store));
+    stats.artists = artists(&state.tidal, &store, span, CARD_LIMIT).await?;
+    if stats.unknown > 0 {
+        start_backfill(&state.tidal, &store);
     }
     Ok(stats)
+}
+
+/// Lance `backfill` une fois par session.
+pub(super) fn start_backfill(tidal: &Arc<TidalClient>, store: &Arc<Store>) {
+    if !BACKFILL_STARTED.swap(true, Ordering::Relaxed) {
+        tauri::async_runtime::spawn(backfill(tidal.clone(), store.clone()));
+    }
+}
+
+/// Classement des titres : ceux d'anciennes écoutes enregistrées sans métadonnées sont
+/// demandés à TIDAL et enregistrés ; un titre introuvable (retiré du catalogue) en sort.
+pub(super) async fn complete(
+    tidal: &Arc<TidalClient>,
+    store: &Arc<Store>,
+    top: Vec<CountedTrack>,
+) -> Vec<Counted<Track>> {
+    let missing: Vec<TrackId> = top
+        .iter()
+        .filter(|(_, track, _)| track.is_none())
+        .map(|(id, _, _)| *id)
+        .collect();
+    let fetched = fetch(tidal, &missing).await;
+    if !fetched.is_empty() {
+        let save = fetched.clone();
+        if let Err(e) = blocking(store, move |s| s.save_played_tracks(&save)).await {
+            tracing::warn!("titres de l'historique non complétés : {e}");
+        }
+    }
+    top.into_iter()
+        .filter_map(|(id, track, plays)| {
+            let item = track.or_else(|| fetched.iter().find(|t| t.id == id).cloned())?;
+            Some(Counted { item, plays })
+        })
+        .collect()
 }
 
 /// Complète les titres des anciennes écoutes hors du classement (durée, pour le temps
@@ -137,14 +152,24 @@ async fn backfill(tidal: Arc<TidalClient>, store: Arc<Store>) {
     }
 }
 
-/// Artistes du classement, avec leur photo : celles qui n'ont jamais été demandées le sont
-/// à TIDAL puis enregistrées (un échec laisse l'artiste sans photo, retenté plus tard).
-async fn artists(
+/// Artistes du classement, avec leur photo.
+pub(super) async fn artists(
     tidal: &Arc<TidalClient>,
     store: &Arc<Store>,
-    since: i64,
+    span: Span,
+    limit: usize,
 ) -> CmdResult<Vec<Counted<ArtistSummary>>> {
-    let top = blocking(store, move |s| s.top_artists(since, CARD_LIMIT)).await?;
+    let top = blocking(store, move |s| s.top_artists(span, limit)).await?;
+    Ok(pictured(tidal, store, top).await)
+}
+
+/// Photos des artistes : celles qui n'ont jamais été demandées le sont à TIDAL puis
+/// enregistrées (un échec laisse l'artiste sans photo, retenté plus tard).
+pub(super) async fn pictured(
+    tidal: &Arc<TidalClient>,
+    store: &Arc<Store>,
+    top: Vec<TopArtist>,
+) -> Vec<Counted<ArtistSummary>> {
     let missing: Vec<u64> = top
         .iter()
         .filter(|a| !a.picture_known)
@@ -167,8 +192,7 @@ async fn artists(
             Err(e) => tracing::debug!("photos des artistes indisponibles : {e}"),
         }
     }
-    Ok(top
-        .into_iter()
+    top.into_iter()
         .map(|mut a| {
             if let Some(found) = found.get(&a.artist.id) {
                 a.artist.picture_url = found.picture_url.clone();
@@ -178,7 +202,7 @@ async fn artists(
                 plays: a.plays,
             }
         })
-        .collect())
+        .collect()
 }
 
 pub(super) async fn blocking<T: Send + 'static>(

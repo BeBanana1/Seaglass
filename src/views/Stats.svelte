@@ -56,7 +56,11 @@
 </script>
 
 <section class="stats">
-  <h1>{t.library.stats.title}</h1>
+  <div class="stats-head">
+    <h1>{t.library.stats.title}</h1>
+    <!-- Rétrospective du mois et de l'année (#417). -->
+    <button class="secondary stats-recap" onclick={() => go({ name: "recap" })}>{t.library.recap.open}</button>
+  </div>
   <!-- Playlists intelligentes locales (#383), calculées sur le même historique. -->
   <h2 class="smart-title">{t.views.smart.title}</h2>
   <div class="smart-lists">
@@ -133,8 +137,24 @@
   }
 
   h1 {
-    margin: 0 10px;
+    margin: 0;
     font-size: 26px;
+  }
+
+  .stats-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 10px;
+  }
+
+  .stats-recap {
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    clip-path: var(--control-clip);
   }
 
   .tabs {

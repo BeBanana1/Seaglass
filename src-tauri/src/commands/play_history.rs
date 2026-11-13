@@ -7,7 +7,7 @@ use tauri::State;
 
 use super::{AppState, CmdResult, err};
 use crate::i18n::tr;
-use crate::store::Store;
+use crate::store::{Span, Store};
 use crate::tidal::models::{AlbumSummary, HomeRow, MediaItem};
 
 /// Clé de la section d'accueil, stable comme celles du flux de TIDAL (personnalisable).
@@ -37,7 +37,11 @@ fn load(store: &Store) -> crate::store::Result<PlayHistory> {
     Ok(PlayHistory {
         recent: store.recent_albums(RECENT_LIMIT)?,
         top: store
-            .top_albums(now_ms() - TOP_WINDOW_MS, TOP_MIN_PLAYS, TOP_LIMIT)?
+            .top_albums(
+                Span::since(now_ms() - TOP_WINDOW_MS),
+                TOP_MIN_PLAYS,
+                TOP_LIMIT,
+            )?
             .into_iter()
             .map(|(album, _)| album)
             .collect(),
