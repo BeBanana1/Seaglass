@@ -56,6 +56,7 @@ impl Volume {
 
     /// Monte ou baisse d'un cran (raccourcis globaux, #413), à partir du niveau entendu :
     /// 0 si le son est coupé. Baisser un son coupé ne change rien.
+    #[cfg(any(desktop, test))]
     pub fn step(&mut self, delta: i8) {
         if self.muted && delta < 0 {
             return;

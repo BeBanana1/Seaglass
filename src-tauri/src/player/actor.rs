@@ -80,7 +80,8 @@ pub enum Cmd {
     SetRepeat(Repeat),
     /// Niveau 0–100, déjà validé par la commande.
     SetVolume(u8),
-    /// Un cran de volume relatif au niveau entendu (raccourcis globaux, #413).
+    /// Un cran de volume relatif au niveau entendu (raccourcis globaux, #413, bureau seulement).
+    #[cfg(desktop)]
     StepVolume(i8),
     SetMuted(bool),
     /// Réglages de lecture enregistrés, appliqués à chaud (taille du cache mpv, édition
@@ -454,6 +455,7 @@ impl Player {
                 self.state.volume.set_level(level);
                 self.on_volume_changed().await;
             }
+            #[cfg(desktop)]
             Cmd::StepVolume(delta) => {
                 self.state.volume.step(delta);
                 self.on_volume_changed().await;

@@ -19,7 +19,17 @@ export default defineConfig({
     hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
     watch: { ignored: ["**/src-tauri/**", "**/spike/**"] },
   },
-  build: { target: "es2022" },
+  build: {
+    target: "es2022",
+    // Runtime Svelte et API Tauri dans leur propre fichier (#443) : l'app seule dépassait les
+    // 500 ko de l'avertissement de Vite. Pas de chargement différé des vues : leur CSS
+    // passerait après `themes/*.css` et casserait la cascade des thèmes (docs/themes.md).
+    rolldownOptions: {
+      output: {
+        codeSplitting: { groups: [{ name: "vendor", test: /node_modules/ }] },
+      },
+    },
+  },
   // Tests du frontend (#264) : logique pure seulement, sans DOM simulé (`pnpm test`).
   test: { include: ["src/**/*.test.ts"], environment: "node" },
 });

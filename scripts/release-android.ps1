@@ -148,8 +148,19 @@ if (-not $PublishOnly) {
 
     # --- 3. Signature -----------------------------------------------------------------------
     Step "signature"
-    $certs = & $apksigner verify --min-sdk-version 24 --print-certs --verbose $apk 2>&1
-    if ($LASTEXITCODE -ne 0) { Fail "signature de l'APK invalide :`n$($certs -join "`n")" }
+    # apksigner écrit sur stderr un avertissement du JDK (« A restricted method in
+    # java.lang.System has been called ») : sous PowerShell 5.1, avec
+    # $ErrorActionPreference = 'Stop', `2>&1` en fait une erreur bloquante (#443). Seul le
+    # code de sortie compte ici ; les lignes sont ramenées à du texte pour les filtres.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $certs = & $apksigner verify --min-sdk-version 24 --print-certs --verbose $apk 2>&1 | ForEach-Object { "$_" }
+        $verifyExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    if ($verifyExit -ne 0) { Fail "signature de l'APK invalide :`n$($certs -join "`n")" }
     if (-not ($certs -match 'Verified using v2 scheme \(APK Signature Scheme v2\): true')) { Fail "APK non signé en v2" }
     if ($certs -match 'CN=Android Debug') { Fail "APK signé par la clé de debug" }
     $certSha = ($certs | Select-String 'Signer #1 certificate SHA-256 digest: (.+)$').Matches.Groups[1].Value
