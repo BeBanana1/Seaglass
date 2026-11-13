@@ -3,7 +3,7 @@
 // (gitignoré). Sans ce fichier, un jeu minimal synthétique est utilisé.
 //
 // Paramètres d'URL : `?theme=studio|atelier|seaglass`, `?route=album|artist|playlist|
-// mix|radio|library|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
+// mix|radio|library|stats|recap|search|home|feed|settings`, `?tab=` (onglet de la bibliothèque ou section des
 // réglages : appearance|playback|app), `?nowplaying=1`, `?paused=1`, `?loggedout=1`,
 // `?queue=1`, `?update=1`, `?autostart=1`, `?tray=1`, `?volume=60|muted`, `?accent=ff5c8a`,
 // `?platform=android` (mise en page tactile, à regarder en largeur de téléphone ; avec `&drive=1`,
@@ -793,6 +793,41 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       artists,
     };
   },
+  // Rétrospective (#417) : les deux derniers mois et leur année, chiffres tirés des fixtures.
+  recap_periods: () => {
+    if (playedAlbums.length === 0) return [];
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const months = [now, prev].map((d) => ({ year: d.getFullYear(), month: d.getMonth() + 1 }));
+    const out: { year: number; month: number | null }[] = [];
+    for (const m of months) {
+      if (out.at(-1)?.year !== m.year) out.push({ year: m.year, month: null });
+      out.push(m);
+    }
+    return out;
+  },
+  recap: ({ month }) => {
+    const scale = month == null ? 12 : 1;
+    const tracks = fx.search.tracks.slice(0, 10).map((item, i) => ({ item, plays: (14 - i) * scale }));
+    const artists = fx.search.artists.slice(0, 6).map((item, i) => ({ item, plays: (11 - i) * scale }));
+    const hours = Array.from({ length: 24 }, (_, h) => Math.round((h >= 8 ? 3 : 0) + (h >= 18 ? 6 : 0) + (h === 22 ? 4 : 0)) * scale);
+    return {
+      plays: tracks.reduce((n, t) => n + t.plays, 0),
+      seconds: tracks.reduce((n, t) => n + t.plays * t.item.duration, 0),
+      unknown: 0,
+      days: month == null ? 214 : 23,
+      tracks,
+      albums: playedAlbums.map((item, i) => ({ item, plays: (9 - i) * scale })),
+      artists,
+      newArtists: artists.slice(3).map((a) => ({ ...a, plays: a.plays - 3 })),
+      newArtistCount: 7 * scale,
+      newTrackCount: 31 * scale,
+      weekdays: [5, 4, 6, 4, 9, 12, 8].map((n) => n * scale),
+      hours,
+      topWeekday: 5,
+      topHour: 22,
+    };
+  },
   // Playlists intelligentes (#383) : vides tant que l'historique l'est, comme le vrai backend.
   smart_list: ({ list }) => {
     if (playedAlbums.length === 0) return [];
@@ -1428,6 +1463,7 @@ export function initialView(): {
     radio: { name: "radio", seed: radioPage.seed, id: radioPage.id },
     library: { name: "library", tab: (params.get("tab") as LibraryTab) ?? "playlists" },
     stats: { name: "stats" },
+    recap: { name: "recap" },
     folder: { name: "folder", id: "f0000000-0000-4000-8000-000000000001" },
     smart: { name: "smart", list: (params.get("list") as SmartList) ?? "topMonth" },
     import: { name: "import", link: "https://open.spotify.com/playlist/37i9dQZF1DX4UtSsGT1Sbe" },

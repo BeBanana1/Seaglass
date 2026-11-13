@@ -13,6 +13,8 @@ export type Route =
   | { name: "library"; tab: LibraryTab }
   /** Statistiques d'écoute locales (#326), ouvertes depuis la bibliothèque. */
   | { name: "stats" }
+  /** Rétrospective du mois et de l'année (#417), ouverte depuis les statistiques. */
+  | { name: "recap" }
   /** Playlist intelligente locale (#383). */
   | { name: "smart"; list: SmartList }
   | { name: "settings"; section: SettingsSection }

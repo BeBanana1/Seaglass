@@ -32,6 +32,7 @@
   import Search from "./views/Search.svelte";
   import Library from "./views/Library.svelte";
   import Stats from "./views/Stats.svelte";
+  import Recap from "./views/Recap.svelte";
   import SmartList from "./views/SmartList.svelte";
   import Import from "./views/Import.svelte";
   import Folder from "./views/Folder.svelte";
@@ -459,6 +460,8 @@
         <Library tab={route.tab} />
       {:else if route.name === "stats"}
         <Stats />
+      {:else if route.name === "recap"}
+        <Recap />
       {:else if route.name === "smart"}
         <SmartList list={route.list} />
       {:else if route.name === "import"}

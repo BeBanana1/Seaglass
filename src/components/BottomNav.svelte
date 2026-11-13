@@ -21,7 +21,7 @@
   function isActive(route: Route): boolean {
     const here = current();
     // Statistiques (#326), playlists intelligentes (#383) et dossiers (#331) : pages de la bibliothèque.
-    if (here.name === "stats" || here.name === "smart" || here.name === "folder") return route.name === "library" && route.tab !== "tracks";
+    if (here.name === "stats" || here.name === "recap" || here.name === "smart" || here.name === "folder") return route.name === "library" && route.tab !== "tracks";
     if (here.name !== route.name) return false;
     if (here.name === "library" && route.name === "library") return (here.tab === "tracks") === (route.tab === "tracks");
     return true;

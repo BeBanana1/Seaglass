@@ -12,7 +12,7 @@ use super::play_history::now_ms;
 use super::play_stats::{blocking, fetch};
 use super::{AppState, CmdResult, err};
 use crate::content::filtered;
-use crate::store::{CountedTrack, SmartList, Store};
+use crate::store::{CountedTrack, SmartList, Span, Store};
 use crate::tidal::TidalClient;
 use crate::tidal::models::{Track, TrackEntry, TrackId};
 
@@ -53,13 +53,15 @@ pub(crate) async fn smart_tracks(
         SmartList::NeverPlayed => return never_played(tidal, store).await,
         SmartList::TopMonth => {
             let since = now - TOP_DAYS * DAY_MS;
-            let rows = blocking(store, move |s| s.top_tracks(since, 1, TOP_LIMIT * SPARE));
+            let rows = blocking(store, move |s| {
+                s.top_tracks(Span::since(since), 1, TOP_LIMIT * SPARE)
+            });
             (rows.await?, TOP_LIMIT)
         }
         SmartList::OnRepeat => {
             let since = now - REPEAT_DAYS * DAY_MS;
             let rows = blocking(store, move |s| {
-                s.top_tracks(since, REPEAT_MIN, LIMIT * SPARE)
+                s.top_tracks(Span::since(since), REPEAT_MIN, LIMIT * SPARE)
             });
             (rows.await?, LIMIT)
         }

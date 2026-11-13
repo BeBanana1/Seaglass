@@ -70,6 +70,7 @@ impl Store {
 #[cfg(test)]
 mod tests {
     use super::super::plays::tests::play;
+    use super::super::stats::Span;
     use super::*;
 
     fn ids(tracks: Vec<CountedTrack>) -> Vec<(u64, i64)> {
@@ -107,9 +108,12 @@ mod tests {
             play(&store, t, 10, at);
         }
         // Depuis 40 : titre 1 trois fois, titre 2 une seule fois, titre 3 une fois.
-        assert_eq!(ids(store.top_tracks(40, 2, 10).unwrap()), [(1, 3)]);
         assert_eq!(
-            ids(store.top_tracks(40, 1, 10).unwrap()),
+            ids(store.top_tracks(Span::since(40), 2, 10).unwrap()),
+            [(1, 3)]
+        );
+        assert_eq!(
+            ids(store.top_tracks(Span::since(40), 1, 10).unwrap()),
             [(1, 3), (3, 1), (2, 1)]
         );
     }

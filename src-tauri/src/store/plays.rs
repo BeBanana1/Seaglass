@@ -10,6 +10,7 @@
 
 use rusqlite::{Connection, params};
 
+use super::stats::Span;
 use super::{Result, Store, StoreError};
 use crate::player::source::PlaySource;
 use crate::tidal::models::{AlbumSummary, Track};
@@ -158,20 +159,20 @@ impl Store {
             .collect())
     }
 
-    /// Albums les plus écoutés depuis `since` (ms), avec au moins `min_plays` écoutes, et
+    /// Albums les plus écoutés sur `span`, avec au moins `min_plays` écoutes, et
     /// leur nombre d'écoutes.
     pub fn top_albums(
         &self,
-        since: i64,
+        span: Span,
         min_plays: i64,
         limit: usize,
     ) -> Result<Vec<(AlbumSummary, i64)>> {
         self.counted_albums(
             "SELECT a.json, MAX(p.id) AS last, COUNT(*) AS n FROM plays p
              JOIN played_albums a ON a.id = p.album_id
-             WHERE p.played_at >= ?1
-             GROUP BY p.album_id HAVING n >= ?2 ORDER BY n DESC, last DESC LIMIT ?3",
-            params![since, min_plays, limit as i64],
+             WHERE p.played_at >= ?1 AND p.played_at < ?2
+             GROUP BY p.album_id HAVING n >= ?3 ORDER BY n DESC, last DESC LIMIT ?4",
+            params![span.since, span.until, min_plays, limit as i64],
         )
     }
 
@@ -321,7 +322,7 @@ pub(super) mod tests {
         play(&store, 7, 30, 200);
         let top = |since| {
             store
-                .top_albums(since, 2, 10)
+                .top_albums(Span::since(since), 2, 10)
                 .unwrap()
                 .into_iter()
                 .map(|(a, n)| (a.id, n))
