@@ -15,6 +15,7 @@ mod api;
 mod guard;
 mod guests;
 mod http;
+mod lan;
 mod members;
 mod protocol;
 mod relay;
@@ -26,7 +27,7 @@ mod testing;
 mod view;
 
 use std::collections::HashMap;
-use std::net::{IpAddr, Ipv4Addr, UdpSocket};
+use std::net::{IpAddr, Ipv4Addr};
 use std::sync::{Arc, Mutex};
 
 use crate::content::filtered;
@@ -37,6 +38,8 @@ use tauri::{AppHandle, Emitter};
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
+
+use lan::lan_ip;
 
 use crate::i18n::{tr, trf};
 use crate::player::Cmd;
@@ -372,15 +375,6 @@ fn qr_svg(text: &str) -> Option<String> {
         .quiet_zone(true)
         .build();
     svg.find("<svg").map(|i| svg[i..].to_owned())
-}
-
-/// Adresse de cette machine sur le réseau local : celle de l'interface de la route par
-/// défaut. `connect` sur UDP ne fait que choisir la route, rien n'est envoyé.
-fn lan_ip() -> Option<IpAddr> {
-    let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).ok()?;
-    socket.connect((Ipv4Addr::new(192, 0, 2, 1), 9)).ok()?;
-    let ip = socket.local_addr().ok()?.ip();
-    (!ip.is_loopback() && !ip.is_unspecified()).then_some(ip)
 }
 
 struct AppBackend {
