@@ -20,6 +20,7 @@
 // active), `?exclusive=1` (mode exclusif WASAPI, #245), `?slow=<ms>` (ouverture d'une playlist ralentie : « Chargement… » après 300 ms,
 // copie gardée affichée aussitôt à la réouverture, #152).
 
+import { blindTestMock } from "./blindTest";
 import type {
   PlaySource,
   AlbumPage,
@@ -203,6 +204,7 @@ const state: PlayerState = {
   // vraie pour l'album d'Interstellar des fixtures, comme la liste du backend.
   soundtrack: context[index]?.album.id === 156749593,
   ended: params.has("ended"),
+  blindTest: false,
   mpvIssue: ({ cpu: "cpuUnsupported", stopped: "stopped", missing: "missing" } as const)[params.get("mpv") ?? ""] ?? null,
 };
 
@@ -337,6 +339,8 @@ const listeners = new Map<string, Set<Listener>>();
 function emit(event: string, payload: unknown) {
   listeners.get(event)?.forEach((cb) => cb({ payload: structuredClone(payload) }));
 }
+
+const blind = blindTestMock({ state, track: (id) => allTracks.get(id), emit });
 
 let mockDownloaded = params.get("update") !== "download";
 
@@ -638,8 +642,9 @@ function currentPlaylist(uuid: string): PlaylistPage {
 /** 250 ms de lecture : `?ticks=1`, ou appelée directement par une mesure (les minuteries d'une
  *  page masquée sont ralenties). */
 export function playbackTick() {
-  if (state.paused || state.idle || state.loading || !state.track) return;
+  if (state.paused || state.idle || state.loading || !(state.track || state.blindTest)) return;
   state.timePos = Math.min(state.timePos + 0.25, state.duration);
+  blind.tick();
   emit("player-state", state);
 }
 if (params.has("ticks")) setInterval(playbackTick, 250);
@@ -707,6 +712,7 @@ let linkedComputer: { host: string; syncedAt: number | null; online: boolean } |
     : null;
 
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
+  ...blind.handlers,
   auth_status: () => {
     // Session non reprise (réseau absent au lancement, #252) : écran de connexion qui réessaie.
     if (params.has("authfail")) throw new Error("réseau : error sending request");

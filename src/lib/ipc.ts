@@ -223,6 +223,45 @@ export interface OutputDevice {
   missing: string | null;
 }
 
+/** Blind test (#434) : saisie libre ou quatre propositions. */
+export type BlindMode = "typing" | "choices";
+
+export type BlindAnswer = { kind: "text"; text: string } | { kind: "choice"; index: number } | { kind: "pass" };
+
+export interface BlindChoice {
+  title: string;
+  artist: string;
+}
+
+export interface BlindRoundResult {
+  track: Track;
+  title: boolean;
+  artist: boolean;
+  points: number;
+  answer: string | null;
+  chosen: number | null;
+  correct: number | null;
+}
+
+/** Partie tenue par le backend (événement `blind-test`) ; le titre de la manche n'y est
+ *  qu'une fois révélé, dans `results`. */
+export interface BlindTestView {
+  title: string;
+  mode: BlindMode;
+  phase: "guess" | "revealed" | "finished";
+  /** Manche en cours, à partir de 1. */
+  round: number;
+  rounds: number;
+  score: number;
+  maxScore: number;
+  streak: number;
+  bestStreak: number;
+  clipStart: number;
+  clipLength: number;
+  choices: BlindChoice[];
+  results: BlindRoundResult[];
+}
+
 export interface PlayerState {
   track: Track | null;
   stream: StreamFormat | null;
@@ -259,6 +298,8 @@ export interface PlayerState {
   soundtrack: boolean;
   /** La file s'est arrêtée d'elle-même, rien ne suit (clin d'œil #399). */
   ended: boolean;
+  /** Partie de blind test en cours (#434) : `track` est nul tant que la manche n'est pas révélée. */
+  blindTest: boolean;
 }
 
 /**
@@ -1036,6 +1077,14 @@ export const commands = {
   likedCleanup: () => invoke<CleanupReport>("liked_cleanup"),
   /** Applique des changements aux titres likés, ou les annule ; l'événement `likes` suit. */
   cleanLiked: (ops: ListOp[]) => invoke<ListOpsResult>("clean_liked", { ops }),
+  /** Blind test (#434) : partie de `rounds` manches tirées dans `trackIds`. */
+  blindTestStart: (trackIds: TrackId[], mode: BlindMode, rounds: number, title: string) =>
+    invoke<void>("blind_test_start", { trackIds, mode, rounds, title }),
+  blindTestAnswer: (answer: BlindAnswer) => invoke<void>("blind_test_answer", { answer }),
+  blindTestReplay: () => invoke<void>("blind_test_replay"),
+  blindTestNext: () => invoke<void>("blind_test_next"),
+  blindTestQuit: () => invoke<void>("blind_test_quit"),
+  blindTestState: () => invoke<BlindTestView | null>("blind_test_state"),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
   playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false, source: PlaySource | null = null) =>
     invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
@@ -1170,6 +1219,8 @@ export const events = {
     listen<JamGuestsUpdate>("jam-guests", (e) => cb(e.payload)),
   onPlayerState: (cb: (s: PlayerState) => void): Promise<UnlistenFn> =>
     listen<PlayerState>("player-state", (e) => cb(e.payload)),
+  onBlindTest: (cb: (view: BlindTestView | null) => void): Promise<UnlistenFn> =>
+    listen<BlindTestView | null>("blind-test", (e) => cb(e.payload)),
   onQueueState: (cb: (q: QueueView) => void): Promise<UnlistenFn> =>
     listen<QueueView>("queue-state", (e) => cb(e.payload)),
   onUpdateReady: (cb: (u: UpdateInfo) => void): Promise<UnlistenFn> =>

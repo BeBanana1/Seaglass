@@ -31,6 +31,7 @@ pub use links::find;
 use links::{Kind, Source, redirect_target};
 use matching::{rank_albums, rank_editions, rank_tracks};
 use meta::Wanted;
+pub(crate) use meta::strip_decorations;
 use playlists::PlaylistRef;
 
 use crate::tidal::TidalClient;

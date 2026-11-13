@@ -161,9 +161,10 @@ impl Player {
         let store = self.store.as_ref().map(Arc::clone)?;
         // Seule la file est copiée : le store ne demande au cache que les titres qui ne
         // sont pas encore en base (#90).
-        let queue = self.persist_queue.then(|| self.queue.clone());
+        // Pendant un blind test (#434), la file et la position d'avant la partie.
+        let queue = self.persist_queue.then(|| self.main_queue().clone());
         let tidal = Arc::clone(&self.tidal);
-        let position = self.state.time_pos;
+        let position = self.main_position();
         let volume = self.persist_volume.then_some(self.state.volume);
         let profiles = self
             .persist_profiles
@@ -192,7 +193,11 @@ impl Player {
 
     /// Position reçue : l'écoute est enregistrée une fois le seuil franchi (`listen.rs`),
     /// hors de l'acteur.
+    /// Les extraits d'un blind test (#434) ne comptent pas.
     pub(super) fn note_listen(&mut self) {
+        if self.blind.is_some() {
+            return;
+        }
         let Some(track) = &self.state.track else {
             return;
         };

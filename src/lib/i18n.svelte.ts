@@ -5,6 +5,7 @@
 // et `en`, typé sur `fr` : une clé oubliée ou en trop fait échouer `pnpm check`.
 
 import { commands, type Lang, type LanguagePref } from "./ipc";
+import * as blindTest from "./i18n/blindTest";
 import * as common from "./i18n/common";
 import * as drive from "./i18n/drive";
 import * as eggs from "./i18n/eggs";
@@ -24,6 +25,7 @@ import { i18n } from "./i18n/state.svelte";
 export { i18n, locale, num } from "./i18n/state.svelte";
 
 const fr = {
+  blindTest: blindTest.fr,
   common: common.fr,
   drive: drive.fr,
   eggs: eggs.fr,
@@ -43,6 +45,7 @@ const fr = {
 export type Dict = typeof fr;
 
 const en: Dict = {
+  blindTest: blindTest.en,
   common: common.en,
   drive: drive.en,
   eggs: eggs.en,

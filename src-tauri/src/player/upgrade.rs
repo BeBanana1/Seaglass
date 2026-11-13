@@ -108,7 +108,8 @@ impl Player {
     pub(super) fn maybe_offer_hires(&mut self) {
         self.offer_req += 1;
         self.state.hires_offer = None;
-        if self.hires_upgrade != HiresUpgrade::Ask || !self.loaded {
+        // Pas pendant un blind test (#434) : le bandeau nommerait l'album.
+        if self.hires_upgrade != HiresUpgrade::Ask || !self.loaded || self.blind.is_some() {
             return;
         }
         let (Some(track), Some(format)) = (&self.state.track, &self.state.stream) else {

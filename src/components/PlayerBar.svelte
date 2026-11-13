@@ -3,6 +3,7 @@
   import { player } from "../lib/stores/player.svelte";
   import { coverSmall, fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
+  import { open } from "../lib/actions";
   import { t } from "../lib/i18n.svelte";
   import HiresOffer from "./HiresOffer.svelte";
   import MpvIssue from "./MpvIssue.svelte";
@@ -41,6 +42,13 @@
         </span>
       </div>
       <LikeButton {track} />
+    {:else if player.state.blindTest}
+      <button class="cover blind" onclick={() => open({ name: "blindTest" })} title={t.blindTest.inProgress}>
+        <Icon name="quiz" size={22} />
+      </button>
+      <div class="meta">
+        <button class="title link" onclick={() => open({ name: "blindTest" })}>{t.blindTest.inProgress}</button>
+      </div>
     {:else}
       <span class="sub">{t.player.nothingPlaying}</span>
     {/if}
@@ -95,6 +103,12 @@
     overflow: hidden;
     background: var(--bg-raised);
     box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
+  }
+
+  .cover.blind {
+    display: grid;
+    place-items: center;
+    color: var(--accent);
   }
 
   .cover img {

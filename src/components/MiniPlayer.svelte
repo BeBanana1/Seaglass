@@ -7,6 +7,7 @@
   import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
+  import { open } from "../lib/actions";
 
   let { onOpenNowPlaying }: { onOpenNowPlaying: () => void } = $props();
 
@@ -50,9 +51,23 @@
       <Icon name="next" size={20} />
     </button>
   </div>
+{:else if s.blindTest}
+  <!-- Blind test (#434) : titre masqué, un appui ramène à la partie. -->
+  <div class="mini-player panel">
+    <button class="mini-open" onclick={() => open({ name: "blindTest" })}>
+      <span class="mini-cover blind"><Icon name="quiz" size={22} /></span>
+      <span class="mini-meta"><span class="mini-title">{t.blindTest.inProgress}</span></span>
+    </button>
+  </div>
 {/if}
 
 <style>
+  .mini-cover.blind {
+    display: grid;
+    place-items: center;
+    color: var(--accent);
+  }
+
   .mini-player {
     position: relative;
     display: flex;

@@ -34,6 +34,8 @@
   import Stats from "./views/Stats.svelte";
   import Recap from "./views/Recap.svelte";
   import SmartList from "./views/SmartList.svelte";
+  import BlindTest from "./views/BlindTest.svelte";
+  import { initBlindTest } from "./lib/stores/blindTest.svelte";
   import Import from "./views/Import.svelte";
   import Folder from "./views/Folder.svelte";
   import Album from "./views/Album.svelte";
@@ -87,7 +89,7 @@
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
     void initActions();
-    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initFeed(), initWindow(), initJam()]);
+    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initFeed(), initWindow(), initJam(), initBlindTest()]);
     initEggs();
     await restoreSession();
     ready = true;
@@ -464,6 +466,8 @@
         <Recap />
       {:else if route.name === "smart"}
         <SmartList list={route.list} />
+      {:else if route.name === "blindTest"}
+        <BlindTest />
       {:else if route.name === "import"}
         {#key route.link}<Import link={route.link} />{/key}
       {:else if route.name === "folder"}

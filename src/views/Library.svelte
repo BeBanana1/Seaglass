@@ -1,6 +1,7 @@
 <script lang="ts">
   import { commands, type MediaItem, type PlaySource, type Track } from "../lib/ipc";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
+  import BlindTestButton from "../components/BlindTestButton.svelte";
   import { go, replace, type LibraryTab } from "../lib/stores/nav.svelte";
   import {
     filterTracks,
@@ -198,6 +199,9 @@
         <button class="secondary" onclick={() => playAll(true)}>
           <Icon name="shuffle" size={16} /> {t.common.shuffle}
         </button>
+        {#if tab === "tracks"}
+          <BlindTestButton title={t.library.likedTracks} trackIds={sortedTracks.map((l) => l.track.id)} />
+        {/if}
       </div>
     </div>
   </header>
