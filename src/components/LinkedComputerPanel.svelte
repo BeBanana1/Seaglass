@@ -121,8 +121,21 @@
     color: var(--text-muted);
   }
 
+  /* Champ sur toute la largeur, « Lier » dessous : côte à côte, le champ débordait sur le
+     bouton en largeur de téléphone. */
+  form.handoff-link {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  form.handoff-link .update-check {
+    align-self: flex-end;
+  }
+
   .handoff-input {
+    box-sizing: border-box;
     width: 100%;
+    min-width: 0;
     padding: 8px 10px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
