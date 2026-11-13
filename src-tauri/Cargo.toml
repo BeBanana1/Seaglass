@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.5.68"
+version = "0.5.69"
 description = "Seaglass, client de streaming non officiel"
 authors = ["bebanana"]
 edition = "2024"
@@ -36,6 +36,9 @@ tokio-tungstenite = { version = "0.29", default-features = false, features = ["c
 rustls = { version = "0.23", default-features = false, features = ["std", "aws_lc_rs"] }
 rustls-platform-verifier = "0.7"
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+# Transfert et historique par le relais (#430), chiffrés de bout en bout (ChaCha20-Poly1305) :
+# la crate du fournisseur de rustls ci-dessus, déjà compilée, mêmes fonctionnalités.
+aws-lc-rs = { version = "1.19", default-features = false, features = ["aws-lc-sys", "prebuilt-nasm"] }
 # QR code de la Jam (#25), rendu en SVG : sans la génération d'images par défaut.
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 tracing = "0.1.44"

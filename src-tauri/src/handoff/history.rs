@@ -49,7 +49,7 @@ pub struct SyncResponse {
     pub plays: PlayBatch,
 }
 
-fn now_ms() -> i64 {
+pub(super) fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as i64)
@@ -159,9 +159,17 @@ pub async fn sync_now(app: &AppHandle, force: bool) -> Result<Option<i64>, Strin
     let Some(store) = app.state::<AppState>().store.clone() else {
         return Ok(None);
     };
-    let Some(link) = super::load().await? else {
+    let Some(mut link) = super::load().await? else {
         return Ok(None);
     };
+    // Lien d'avant #430 ou PC sans tunnel jusque-là : demander le chemin par le relais
+    // (réseau local seulement ; sans réponse, on réessaiera à la prochaine synchro).
+    if link.relay().is_none()
+        && let Ok(Some(route)) = link.fetch_relay().await
+    {
+        super::save_relay(Some(route.clone())).await?;
+        link = link.with_relay(Some(route));
+    }
     let Ok(_guard) = RUNNING.try_lock() else {
         // Une synchro tourne déjà : elle suffit.
         return Ok(blocking(&store, Store::sync_state).await?.synced_at);

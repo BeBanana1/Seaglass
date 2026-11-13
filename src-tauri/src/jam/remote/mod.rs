@@ -8,6 +8,7 @@
 //! Bureau seulement, jamais par le relais en ligne.
 
 mod api;
+mod tunnel;
 mod view;
 
 use std::net::{IpAddr, Ipv4Addr};
@@ -30,6 +31,7 @@ use crate::tidal::TidalClient;
 use crate::tidal::models::{PlaylistSummary, SearchResults, Track};
 pub use api::OWNER_CODE_LEN;
 use api::{Command, Owner, Remote};
+pub use tunnel::{RelayRoute, TunnelSettings};
 
 /// Port préféré : l'adresse reste la même d'un lancement à l'autre (marque-page).
 const PORT: u16 = 47801;
@@ -76,6 +78,43 @@ struct Running {
     status: RemoteStatus,
     owner: Arc<Owner>,
     task: JoinHandle<()>,
+    site: Arc<RemoteSite<AppRemote>>,
+    /// Identité sur le relais (#430) ; `None` sans clé de relais compilée.
+    tunnel: Option<TunnelSettings>,
+    /// Tunnel ouvert tant que les transferts sont acceptés.
+    tunnel_task: Option<JoinHandle<()>>,
+}
+
+impl Running {
+    /// Ouvre ou ferme le tunnel du relais selon « Accepter les transferts ».
+    fn sync_tunnel(&mut self, handoff: bool) {
+        match (handoff, self.tunnel_task.is_some()) {
+            (true, false) => {
+                let config = crate::jam::relay::RelayConfig::from_env();
+                if let (Some(config), Some(settings)) = (config, self.tunnel.clone()) {
+                    self.tunnel_task = Some(tokio::spawn(tunnel::run(
+                        config,
+                        settings,
+                        Arc::clone(&self.site),
+                    )));
+                }
+            }
+            (false, true) => {
+                if let Some(task) = self.tunnel_task.take() {
+                    task.abort();
+                }
+                self.owner.set_relay(None);
+            }
+            _ => {}
+        }
+    }
+
+    fn stop(self) {
+        self.task.abort();
+        if let Some(task) = self.tunnel_task {
+            task.abort();
+        }
+    }
 }
 
 #[derive(Default)]
@@ -95,6 +134,7 @@ impl RemoteState {
         tidal: Arc<TidalClient>,
         player: mpsc::Sender<Cmd>,
         history: Option<History>,
+        tunnel: Option<TunnelSettings>,
         features: Features,
     ) -> Result<Option<RemoteStatus>, String> {
         if cfg!(mobile) {
@@ -122,7 +162,7 @@ impl RemoteState {
                 history: history.map(Arc::new),
             },
         });
-        let task = tokio::spawn(serve_site(listener, site));
+        let task = tokio::spawn(serve_site(listener, Arc::clone(&site)));
         let status = RemoteStatus {
             remote: features.remote,
             handoff: features.handoff,
@@ -141,11 +181,16 @@ impl RemoteState {
             return Ok(Some(running.status.clone()));
         }
         tracing::info!("Télécommande démarrée");
-        *slot = Some(Running {
+        let mut running = Running {
             status: status.clone(),
             owner,
             task,
-        });
+            site,
+            tunnel,
+            tunnel_task: None,
+        };
+        running.sync_tunnel(features.handoff);
+        *slot = Some(running);
         Ok(Some(status))
     }
 
@@ -158,16 +203,24 @@ impl RemoteState {
             .set_features(features.remote, features.handoff);
         running.status.remote = features.remote;
         running.status.handoff = features.handoff;
+        running.sync_tunnel(features.handoff);
         running.owner.refresh.notify_one();
         Some(running.status.clone())
     }
 
     /// Remplace le code de la télécommande en cours : les téléphones déjà appairés devront
     /// scanner le nouveau QR code.
-    pub fn set_code(&self, code: String) -> Option<RemoteStatus> {
+    pub fn set_code(&self, code: String, tunnel: Option<TunnelSettings>) -> Option<RemoteStatus> {
         let mut slot = self.0.lock().ok()?;
         let running = slot.as_mut()?;
         running.owner.set_code(code.clone());
+        // Nouvelle clé du tunnel : l'ancienne ne déchiffre plus rien.
+        if tunnel != running.tunnel {
+            running.tunnel = tunnel;
+            let handoff = running.status.handoff;
+            running.sync_tunnel(false);
+            running.sync_tunnel(handoff);
+        }
         running.status.qr_svg = qr_svg(&format!("{}#{code}", running.status.url));
         running.status.code = code;
         Some(running.status.clone())
@@ -176,7 +229,7 @@ impl RemoteState {
     /// Arrête la télécommande : port fermé, pages coupées.
     pub fn stop(&self) {
         if let Some(running) = self.0.lock().ok().and_then(|mut s| s.take()) {
-            running.task.abort();
+            running.stop();
             tracing::info!("Télécommande arrêtée");
         }
     }

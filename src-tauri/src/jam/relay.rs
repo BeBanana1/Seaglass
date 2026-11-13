@@ -51,6 +51,14 @@ impl RelayConfig {
         let url = runtime("SEAGLASS_RELAY_URL").unwrap_or_else(|| DEFAULT_URL.to_owned());
         Some(Self { url, key })
     }
+
+    /// Tunnel d'appareil (#430) : même relais, `/device` au lieu de `/host`.
+    pub fn device_url(&self) -> String {
+        match self.url.strip_suffix("/host") {
+            Some(base) => format!("{base}/device"),
+            None => format!("{}/device", self.url.trim_end_matches('/')),
+        }
+    }
 }
 
 /// Ce que la connexion annonce à `JamState` (adresse, état pour l'UI).
@@ -109,7 +117,7 @@ pub async fn run<B: Backend>(
     }
 }
 
-fn tls() -> Result<Arc<rustls::ClientConfig>, String> {
+pub(crate) fn tls() -> Result<Arc<rustls::ClientConfig>, String> {
     use rustls_platform_verifier::BuilderVerifierExt;
     let provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
     let config = rustls::ClientConfig::builder_with_provider(provider)

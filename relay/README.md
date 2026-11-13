@@ -4,6 +4,7 @@ Rend une Jam Seaglass joignable depuis Internet (#25, étape 3a) : les invités 
 
 - L'app de l'hôte se connecte en WebSocket à `/host` (connexion sortante : aucun port à ouvrir chez l'hôte, fonctionne derrière le réseau mobile).
 - Les invités ouvrent `https://jam.bebanana.ch/j/<id>/#<code>` (QR code). La page est celle de la Jam locale (`src-tauri/src/jam/page/`, embarquée à la compilation).
+- Tunnels d'appareils (#430) : un PC se connecte à `/device` (même clé) et son téléphone lié l'appelle par `POST /d/<id>`, pour le transfert de la lecture et l'historique d'écoute. Les corps sont chiffrés de bout en bout par les deux appareils : le relais ne les lit pas. Détails dans `docs/jam.md`.
 - Leurs appels (`join`, `search`, `add`, `state`) sont transmis à l'hôte, qui seul parle à TIDAL et au lecteur. Le relais sert lui-même le flux d'état (`api/events`) à partir du dernier état poussé par l'hôte.
 - Le relais ne voit passer que des titres, des prénoms et le code de la Jam : jamais de jeton TIDAL, d'URL de flux ni d'audio.
 

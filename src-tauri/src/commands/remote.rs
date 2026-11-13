@@ -8,7 +8,7 @@ use tauri::Manager;
 use tauri::{AppHandle, Emitter, State};
 
 use super::{AppState, CmdResult, err};
-use crate::jam::remote::{self, Features, RemoteState, RemoteStatus};
+use crate::jam::remote::{self, Features, RemoteState, RemoteStatus, TunnelSettings};
 use crate::store::Store;
 
 const KEY: &str = "remote";
@@ -22,6 +22,10 @@ struct RemoteSettings {
     handoff: bool,
     /// Code de propriétaire ; tiré au premier allumage, gardé ensuite.
     code: Option<String>,
+    /// Identité sur le relais et clé partagée avec le téléphone (#430) ; tirées au premier
+    /// allumage, la clé changée avec le code.
+    #[serde(default)]
+    tunnel: Option<TunnelSettings>,
 }
 
 fn load(store: Option<&Store>) -> RemoteSettings {
@@ -37,6 +41,7 @@ fn load(store: Option<&Store>) -> RemoteSettings {
     RemoteSettings {
         // Un code abîmé (édité à la main) est remplacé plutôt qu'accepté.
         code: settings.code.filter(|c| remote::is_code(c)),
+        tunnel: settings.tunnel.and_then(TunnelSettings::checked),
         ..settings
     }
 }
@@ -85,16 +90,19 @@ async fn apply(
 ) -> CmdResult<Option<RemoteStatus>> {
     let store = state.store.as_deref();
     let code = settings.code.clone().unwrap_or_else(remote::new_code);
+    let tunnel = settings.tunnel.clone().unwrap_or_else(TunnelSettings::new);
     let status = remote
         .start(
             code.clone(),
             state.tidal.clone(),
             state.player.clone(),
             history(app, state),
+            Some(tunnel.clone()),
             settings.features(),
         )
         .await?;
     settings.code = Some(code);
+    settings.tunnel = Some(tunnel);
     save(store, &settings)?;
     Ok(status)
 }
@@ -152,12 +160,19 @@ pub async fn renew_remote_code(
 ) -> CmdResult<Option<RemoteStatus>> {
     let store = state.store.as_deref();
     let code = remote::new_code();
+    let previous = load(store);
+    // Nouvelle clé du tunnel aussi (#430) : un téléphone délié ne passe plus par le relais.
+    let tunnel = previous.tunnel.clone().map(|t| TunnelSettings {
+        key: TunnelSettings::new().key,
+        ..t
+    });
     let settings = RemoteSettings {
         code: Some(code.clone()),
-        ..load(store)
+        tunnel: tunnel.clone(),
+        ..previous
     };
     save(store, &settings)?;
-    Ok(remote.set_code(code))
+    Ok(remote.set_code(code, tunnel))
 }
 
 /// Au lancement : rallume la télécommande et / ou les transferts (bureau seulement).
@@ -166,11 +181,18 @@ pub fn restore(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let state = app.state::<AppState>();
-        let settings = load(state.store.as_deref());
+        let mut settings = load(state.store.as_deref());
         let features = settings.features();
-        let (true, Some(code)) = (features.any(), settings.code) else {
+        let (true, Some(code)) = (features.any(), settings.code.clone()) else {
             return;
         };
+        // Réglages d'avant #430 : identité sur le relais tirée maintenant.
+        if settings.tunnel.is_none() {
+            settings.tunnel = Some(TunnelSettings::new());
+            if let Err(e) = save(state.store.as_deref(), &settings) {
+                tracing::warn!("Télécommande : {e}");
+            }
+        }
         let remote = app.state::<RemoteState>();
         if let Err(e) = remote
             .start(
@@ -178,6 +200,7 @@ pub fn restore(app: &AppHandle) {
                 state.tidal.clone(),
                 state.player.clone(),
                 history(&app, &state),
+                settings.tunnel,
                 features,
             )
             .await

@@ -52,6 +52,7 @@
     <div class="setting-row handoff-link">
       <span class="text">
         <span class="setting-label">{t.handoff.linkedTo(handoff.linked.host)}</span>
+        <span class="hint">{handoff.linked.online ? t.handoff.online : t.handoff.lanOnly}</span>
       </span>
       <button class="update-check" onclick={unlink}>{t.handoff.unlink}</button>
     </div>
