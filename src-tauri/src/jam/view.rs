@@ -6,6 +6,7 @@ use serde::Serialize;
 use super::api::{MAX_QUEUE, Snapshot};
 use super::guests::Guests;
 use super::rules::JamRules;
+use crate::player::blind::{Choice, Mode, Phase, PlayerResult, PlayerView};
 use crate::tidal::models::{AlbumSummary, ArtistRef, Track};
 
 fn artist_names(artists: &[ArtistRef]) -> String {
@@ -98,6 +99,64 @@ pub struct GuestState {
     pub limit: Option<u32>,
     /// File manuelle (avec le nom de l'invité) puis suite du contexte, `MAX_QUEUE` au plus.
     pub queue: Vec<GuestTrack>,
+    /// Blind test ouvert aux invités (#441).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blind: Option<GuestBlind>,
+}
+
+/// Blind test vu par les invités (#441) : jamais la réponse avant la révélation, ni les
+/// saisies des joueurs.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GuestBlind {
+    pub title: String,
+    pub mode: Mode,
+    pub phase: Phase,
+    pub round: usize,
+    pub rounds: usize,
+    pub clip_start: f64,
+    pub clip_length: f64,
+    pub choices: Vec<Choice>,
+    /// Classement, avec qui a répondu à la manche en cours.
+    pub players: Vec<PlayerView>,
+    /// Révélation automatique prévue (ms depuis l'epoch).
+    pub reveal_at: Option<i64>,
+    /// Dernière manche révélée : son titre et le résultat de chacun.
+    pub last: Option<GuestRound>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GuestRound {
+    pub round: usize,
+    pub track: GuestTrack,
+    pub players: Vec<PlayerResult>,
+}
+
+impl GuestBlind {
+    fn new(view: &crate::player::blind::BlindTestView) -> Self {
+        let last = (view.phase != Phase::Guess)
+            .then(|| view.results.last())
+            .flatten()
+            .map(|r| GuestRound {
+                round: view.results.len(),
+                track: GuestTrack::from(&r.track),
+                players: r.players.clone(),
+            });
+        Self {
+            title: view.title.clone(),
+            mode: view.mode,
+            phase: view.phase,
+            round: view.round,
+            rounds: view.rounds,
+            clip_start: view.clip_start,
+            clip_length: view.clip_length,
+            choices: view.choices.clone(),
+            players: view.players.clone(),
+            reveal_at: view.reveal_at,
+            last,
+        }
+    }
 }
 
 impl GuestState {
@@ -111,13 +170,14 @@ impl GuestState {
             now: snapshot.now.as_ref().map(GuestTrack::from),
             paused: snapshot.paused,
             controls: rules.guest_controls,
-            adds,
+            adds: adds && snapshot.jam_game().is_none(),
             albums: rules.albums,
             limit: rules.max_pending,
             queue: manual
                 .chain(snapshot.upcoming.iter().map(GuestTrack::from))
                 .take(MAX_QUEUE)
                 .collect(),
+            blind: snapshot.jam_game().map(GuestBlind::new),
         }
     }
 }

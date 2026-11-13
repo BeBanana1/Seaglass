@@ -16,6 +16,11 @@
   box-sizing: border-box;
 }
 
+/* `hidden` l'emporte sur les `display` des classes (recherche cachée pendant un blind test). */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -422,4 +427,149 @@ button:disabled {
 
 .notice.warn {
   color: var(--danger);
+}
+
+/* Blind test à plusieurs (#441). */
+.game {
+  margin: 8px 0 16px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.game-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.game-title {
+  font-weight: 700;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-status {
+  margin: 4px 0 12px;
+  font-size: 1.05rem;
+}
+
+.game-answer {
+  display: flex;
+  gap: 8px;
+}
+
+.game-answer input {
+  flex: 1;
+  min-width: 0;
+}
+
+.choices {
+  display: grid;
+  gap: 8px;
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--text);
+  background: var(--raised);
+}
+
+.choice .title,
+.choice .sub {
+  max-width: 100%;
+}
+
+.game .pass {
+  margin-top: 10px;
+}
+
+.game-reveal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.game-reveal img,
+.game-reveal .cover-empty {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.game-verdict {
+  margin: 12px 0 4px;
+  color: var(--muted);
+}
+
+.game-verdict.good strong {
+  color: var(--accent);
+}
+
+.game-countdown {
+  margin: 8px 0 0;
+}
+
+.game h2 {
+  margin-top: 18px;
+}
+
+.game-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player {
+  display: grid;
+  grid-template-columns: 1.6em minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.player.me {
+  background: var(--raised);
+}
+
+.player .rank {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.player-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player .you {
+  color: var(--muted);
+}
+
+.player .gain {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.player .gain.good {
+  color: var(--accent);
+}
+
+.player .score {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }

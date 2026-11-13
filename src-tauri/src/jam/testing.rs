@@ -4,6 +4,7 @@ use std::sync::Mutex;
 
 use super::api::{Backend, Hits, Snapshot};
 use super::guests::Guests;
+use crate::player::blind::{Answer, BlindTestView, Mode, Party, Phase, PlayerView, Refusal};
 use crate::tidal::models::{AlbumRef, AlbumSummary, ArtistRef, Track, TrackId};
 
 #[derive(Default)]
@@ -11,6 +12,52 @@ pub struct Fake {
     pub added: Mutex<Vec<u64>>,
     pub named: Mutex<Vec<(u64, String)>>,
     pub paused: Mutex<Option<bool>>,
+    /// Blind test en cours (#441) ; les réponses reçues, dans l'ordre.
+    pub blind: Mutex<Option<BlindTestView>>,
+    pub answers: Mutex<Vec<GuestAnswer>>,
+}
+
+/// Réponse reçue par le faux lecteur : clé, prénom, manche, réponse.
+pub type GuestAnswer = (String, Option<String>, usize, Answer);
+
+/// Maintenant, en ms depuis l'epoch.
+pub fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as i64)
+}
+
+/// Blind test de la manche 2 sur 5, ouvert aux invités si `jam`.
+pub fn blind_game(jam: bool) -> BlindTestView {
+    BlindTestView {
+        title: "Playlist".into(),
+        mode: Mode::Typing,
+        phase: Phase::Guess,
+        round: 2,
+        rounds: 5,
+        score: 0,
+        max_score: 15,
+        streak: 0,
+        best_streak: 0,
+        clip_start: 40.0,
+        clip_length: 15.0,
+        choices: Vec::new(),
+        results: Vec::new(),
+        party: Party {
+            jam,
+            host_plays: true,
+        },
+        players: vec![PlayerView {
+            id: 0,
+            name: None,
+            host: true,
+            score: 3,
+            streak: 1,
+            best_streak: 1,
+            answered: false,
+        }],
+        reveal_at: Some(now_ms() + 30_000),
+    }
 }
 
 pub fn track(id: u64) -> Track {
@@ -110,7 +157,33 @@ impl Backend for Fake {
             paused: self.paused.lock().unwrap().unwrap_or(false),
             manual: added.iter().map(|id| track(*id)).collect(),
             upcoming: (8..50).map(track).collect(),
+            blind: self.blind.lock().unwrap().clone(),
         })
+    }
+    /// Comme l'acteur : refusé sans partie ouverte aux invités, pour une autre manche ou en
+    /// double ; l'invité reçoit l'identifiant 1, l'autre 2.
+    async fn blind_answer(
+        &self,
+        key: String,
+        name: Option<String>,
+        round: usize,
+        answer: Answer,
+    ) -> Result<Result<u32, Refusal>, String> {
+        let open = self
+            .blind
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|b| b.party.jam && b.round == round);
+        if !open {
+            return Ok(Err(Refusal::Closed));
+        }
+        let mut answers = self.answers.lock().unwrap();
+        if answers.iter().any(|(k, ..)| *k == key) {
+            return Ok(Err(Refusal::Duplicate));
+        }
+        answers.push((key, name, round, answer));
+        Ok(Ok(answers.len() as u32))
     }
     fn guests_changed(&self, guests: &Guests) {
         let mut named: Vec<_> = guests.snapshot().into_iter().collect();

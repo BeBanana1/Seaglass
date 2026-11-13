@@ -1,8 +1,18 @@
 // Blind test (#434) dans le backend factice : de quoi parcourir les écrans de la partie.
 // La vraie logique (tirage, comparaison des réponses) est en Rust ; ici, une comparaison
-// grossière suffit.
+// grossière suffit. Avec la Jam (#441, `?jam=1`), deux invités factices jouent : Léa répond
+// dès le début de la manche et trouve l'artiste, Max ne répond jamais.
 
-import type { BlindAnswer, BlindMode, BlindRoundResult, BlindTestView, PlayerState, Track } from "../ipc";
+import type {
+  BlindAnswer,
+  BlindMode,
+  BlindPlayer,
+  BlindPlayerResult,
+  BlindRoundResult,
+  BlindTestView,
+  PlayerState,
+  Track,
+} from "../ipc";
 
 interface Deps {
   state: PlayerState;
@@ -16,6 +26,8 @@ export function blindTestMock({ state, track, emit }: Deps) {
   let view: BlindTestView | null = null;
   let rounds: Track[] = [];
   let saved: { track: Track | null; timePos: number; duration: number } | null = null;
+  /** Réponse de l'hôte à la manche en cours, jusqu'à la révélation. */
+  let hostPending: BlindRoundResult | null = null;
 
   const simple = (s: string) =>
     s
@@ -37,11 +49,18 @@ export function blindTestMock({ state, track, emit }: Deps) {
     return all.map((o) => ({ title: o.title, artist: o.artists.map((a) => a.name).join(", ") }));
   }
 
+  function sortPlayers() {
+    view?.players.sort((a, b) => b.score - a.score || a.id - b.id);
+  }
+
   function play() {
     const t = current();
     if (!view || !t) return;
     view.clipStart = Math.max(0, Math.floor(t.duration * 0.3));
     view.choices = choicesFor(t, view.mode);
+    view.revealAt = view.party.jam ? Date.now() + 35_000 : null;
+    hostPending = null;
+    for (const p of view.players) p.answered = p.name === "Léa";
     Object.assign(state, {
       track: null,
       blindTest: true,
@@ -59,6 +78,58 @@ export function blindTestMock({ state, track, emit }: Deps) {
     emit("blind-test", view);
   }
 
+  function judge(t: Track, a: BlindAnswer): BlindRoundResult {
+    const result: BlindRoundResult = { track: t, title: false, artist: false, points: 0, answer: null, chosen: null, correct: null, players: [] };
+    if (a.kind === "text") {
+      const guess = simple(a.text);
+      result.answer = a.text;
+      result.title = guess.includes(simple(t.title));
+      result.artist = t.artists.some((x) => guess.includes(simple(x.name)));
+    } else if (a.kind === "choice") {
+      const correct = view!.choices.findIndex((c) => c.title === t.title);
+      result.chosen = a.index;
+      result.title = result.artist = a.index === correct;
+    }
+    if (view!.mode === "choices") result.correct = view!.choices.findIndex((c) => c.title === t.title);
+    result.points = (result.title ? 2 : 0) + (result.artist ? 1 : 0);
+    return result;
+  }
+
+  function reveal() {
+    const t = current();
+    if (!view || !t || view.phase !== "guess") return;
+    const host = hostPending ?? { ...judge(t, { kind: "pass" }), answer: null };
+    const hostAnswered = hostPending !== null;
+    const results: BlindPlayerResult[] = view.players.map((p) => {
+      const lea = p.name === "Léa";
+      const r = p.host
+        ? { answered: hostAnswered, title: host.title, artist: host.artist, points: host.points }
+        : { answered: lea, title: false, artist: lea, points: lea ? 1 : 0 };
+      const fastest = p.host && host.title;
+      const points = r.points + (fastest ? 1 : 0);
+      p.score += points;
+      p.streak = points > 0 ? p.streak + 1 : 0;
+      p.bestStreak = Math.max(p.bestStreak, p.streak);
+      p.answered = false;
+      return { id: p.id, name: p.name, host: p.host, ...r, points, fastest };
+    });
+    results.sort((a, b) => b.points - a.points || a.id - b.id);
+    const hostResult = results.find((r) => r.host);
+    host.points = hostResult?.points ?? 0;
+    host.players = results;
+    view.results.push(host);
+    const me = view.players.find((p) => p.host);
+    view.score = me?.score ?? 0;
+    view.streak = me?.streak ?? 0;
+    view.bestStreak = me?.bestStreak ?? 0;
+    view.phase = "revealed";
+    view.revealAt = null;
+    sortPlayers();
+    Object.assign(state, { track: t, paused: false });
+    emit("player-state", state);
+    publish();
+  }
+
   return {
     /** Position avancée par `?ticks=1` : l'extrait s'arrête au bout de 15 s. */
     tick() {
@@ -67,11 +138,22 @@ export function blindTestMock({ state, track, emit }: Deps) {
       }
     },
     handlers: {
-      blind_test_start: ({ trackIds, mode, rounds: count, title }: Record<string, unknown>) => {
+      blind_test_start: ({ trackIds, mode, rounds: count, title, jam, hostPlays }: Record<string, unknown>) => {
         const pool = (trackIds as number[]).map(track).filter((t): t is Track => !!t);
         if (pool.length < 4) throw "il faut au moins 4 titres différents pour un blind test";
         rounds = pool.sort(() => Math.random() - 0.5).slice(0, Number(count));
         saved ??= { track: state.track, timePos: state.timePos, duration: state.duration };
+        const together = Boolean(jam);
+        const hostIn = !together || hostPlays !== false;
+        const player = (id: number, name: string | null, host = false): BlindPlayer => ({
+          id,
+          name,
+          host,
+          score: 0,
+          streak: 0,
+          bestStreak: 0,
+          answered: false,
+        });
         view = {
           title: String(title),
           mode: mode as BlindMode,
@@ -86,38 +168,24 @@ export function blindTestMock({ state, track, emit }: Deps) {
           clipLength: CLIP,
           choices: [],
           results: [],
+          party: { jam: together, hostPlays: hostIn },
+          players: [...(hostIn ? [player(0, null, true)] : []), ...(together ? [player(1, "Léa"), player(2, "Max")] : [])],
+          revealAt: null,
         };
         play();
         publish();
       },
       blind_test_answer: ({ answer }: Record<string, unknown>) => {
         const t = current();
-        if (!view || !t || view.phase !== "guess") return;
-        const a = answer as BlindAnswer;
-        const result: BlindRoundResult = { track: t, title: false, artist: false, points: 0, answer: null, chosen: null, correct: null };
-        if (a.kind === "text") {
-          const guess = simple(a.text);
-          result.answer = a.text;
-          result.title = guess.includes(simple(t.title));
-          result.artist = t.artists.some((x) => guess.includes(simple(x.name)));
-        } else if (a.kind === "choice") {
-          const correct = view.choices.findIndex((c) => c.title === t.title);
-          result.chosen = a.index;
-          result.correct = correct;
-          result.title = result.artist = a.index === correct;
-        } else if (view.mode === "choices") {
-          result.correct = view.choices.findIndex((c) => c.title === t.title);
-        }
-        result.points = (result.title ? 2 : 0) + (result.artist ? 1 : 0);
-        view.score += result.points;
-        view.streak = result.points > 0 ? view.streak + 1 : 0;
-        view.bestStreak = Math.max(view.bestStreak, view.streak);
-        view.results.push(result);
-        view.phase = "revealed";
-        Object.assign(state, { track: t, paused: false });
-        emit("player-state", state);
+        if (!view || !t || view.phase !== "guess" || hostPending) return;
+        hostPending = judge(t, answer as BlindAnswer);
+        const me = view.players.find((p) => p.host);
+        if (me) me.answered = true;
+        // Seul : révélé aussitôt ; à plusieurs, Max ne répond jamais, il faut « Révéler ».
+        if (!view.party.jam) return reveal();
         publish();
       },
+      blind_test_reveal: () => reveal(),
       blind_test_replay: () => {
         if (!view) return;
         Object.assign(state, { timePos: view.clipStart, paused: false });
@@ -125,7 +193,7 @@ export function blindTestMock({ state, track, emit }: Deps) {
       },
       blind_test_next: () => {
         if (!view) return;
-        if (view.phase === "guess") return;
+        if (view.phase === "guess") return view.party.jam ? reveal() : undefined;
         if (view.round >= view.rounds) {
           view.phase = "finished";
           state.paused = true;

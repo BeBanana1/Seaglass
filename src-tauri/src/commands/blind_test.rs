@@ -6,8 +6,9 @@ use tokio::sync::oneshot;
 
 use super::{AppState, CmdResult};
 use crate::i18n::{tr, trf};
+use crate::jam::JamState;
 use crate::player::Cmd;
-use crate::player::blind::{Answer, BlindCmd, BlindTestView, MAX_ROUNDS, Mode};
+use crate::player::blind::{Answer, BlindCmd, BlindTestView, MAX_ROUNDS, Mode, Party};
 use crate::tidal::models::TrackId;
 
 /// Titres acceptés au plus pour tirer les manches (les titres likés compris).
@@ -17,15 +18,32 @@ const MAX_ANSWER: usize = 200;
 
 /// Lance une partie de `rounds` manches tirées dans `track_ids` ; `title` est le nom de la
 /// liste, affiché. Une partie en cours est remplacée (la file d'avant reste celle d'avant
-/// la première).
+/// la première). Avec `jam`, les invités de la Jam en cours jouent aussi (#441) ; l'hôte
+/// répond s'il le veut (`host_plays`).
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn blind_test_start(
     state: State<'_, AppState>,
+    jam_state: State<'_, JamState>,
     track_ids: Vec<u64>,
     mode: Mode,
     rounds: usize,
     title: String,
+    jam: Option<bool>,
+    host_plays: Option<bool>,
 ) -> CmdResult<()> {
+    let jam = jam.unwrap_or(false);
+    if jam && jam_state.status().is_none() {
+        return Err(tr(
+            "aucune Jam en cours : démarrez-la pour jouer avec vos invités",
+            "no Jam running: start it to play with your guests",
+        )
+        .into());
+    }
+    let party = Party {
+        jam,
+        host_plays: host_plays.unwrap_or(true),
+    };
     if track_ids.is_empty() || track_ids.len() > MAX_POOL {
         return Err(trf!(
             "la liste doit contenir entre 1 et {MAX_POOL} titres",
@@ -47,6 +65,7 @@ pub async fn blind_test_start(
             mode,
             rounds,
             title,
+            party,
             reply,
         },
     )
@@ -70,6 +89,12 @@ pub async fn blind_test_answer(state: State<'_, AppState>, answer: Answer) -> Cm
 #[tauri::command]
 pub async fn blind_test_replay(state: State<'_, AppState>) -> CmdResult<()> {
     send(&state, BlindCmd::Replay).await
+}
+
+/// Révèle la manche sans attendre les réponses qui manquent (à plusieurs, #441).
+#[tauri::command]
+pub async fn blind_test_reveal(state: State<'_, AppState>) -> CmdResult<()> {
+    send(&state, BlindCmd::Reveal).await
 }
 
 /// Manche suivante, ou fin de partie après la dernière.

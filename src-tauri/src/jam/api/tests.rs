@@ -212,3 +212,112 @@ async fn on_the_local_network_a_ban_blocks_the_device() {
         200
     );
 }
+
+/// Blind test à plusieurs (#441) : réponses, refus, partie dans l'état, ajouts suspendus.
+#[tokio::test]
+async fn guests_answer_the_blind_test() {
+    let core = core(JamRules::default(), false);
+    let fake = Fake::default();
+    let answer = |guest: &str, round: usize, extra: Value| {
+        let mut body = json!({ "guest": guest, "round": round, "name": "Léa" });
+        if let (Some(b), Some(e)) = (body.as_object_mut(), extra.as_object()) {
+            b.extend(e.clone());
+        }
+        body
+    };
+    // Sans partie : refusé.
+    let (status, body) = call(
+        &core,
+        &fake,
+        "/api/blind-answer",
+        answer(LEA, 2, json!({})),
+        IP,
+    )
+    .await;
+    assert_eq!((status, body["error"].as_str()), (409, Some("round")));
+
+    // Une partie en solo ne regarde pas les invités : ni dans l'état, ni pour répondre.
+    *fake.blind.lock().unwrap() = Some(crate::jam::testing::blind_game(false));
+    let state = core.state_json(&fake).await.unwrap();
+    assert!(!state.contains("\"blind\""), "{state}");
+    assert_eq!(
+        call(
+            &core,
+            &fake,
+            "/api/blind-answer",
+            answer(LEA, 2, json!({})),
+            IP
+        )
+        .await
+        .0,
+        409
+    );
+
+    *fake.blind.lock().unwrap() = Some(crate::jam::testing::blind_game(true));
+    let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
+    assert_eq!(state["blind"]["round"], 2);
+    assert_eq!(state["blind"]["last"], Value::Null);
+    assert_eq!(state["adds"], false, "ajouts suspendus pendant la partie");
+
+    // Manche périmée, puis bonne manche, puis doublon.
+    assert_eq!(
+        call(
+            &core,
+            &fake,
+            "/api/blind-answer",
+            answer(LEA, 1, json!({ "text": "x" })),
+            IP
+        )
+        .await
+        .0,
+        409
+    );
+    let (status, body) = call(
+        &core,
+        &fake,
+        "/api/blind-answer",
+        answer(LEA, 2, json!({ "text": "  One More Time  " })),
+        IP,
+    )
+    .await;
+    assert_eq!((status, body["player"].as_u64()), (200, Some(1)));
+    let (status, body) = call(
+        &core,
+        &fake,
+        "/api/blind-answer",
+        answer(LEA, 2, json!({ "choice": 1 })),
+        IP,
+    )
+    .await;
+    assert_eq!((status, body["error"].as_str()), (409, Some("answered")));
+    call(
+        &core,
+        &fake,
+        "/api/blind-answer",
+        json!({ "guest": MAX, "round": 2 }),
+        OTHER_IP,
+    )
+    .await;
+    {
+        let answers = fake.answers.lock().unwrap();
+        assert_eq!(answers[0].1.as_deref(), Some("Léa"));
+        assert_eq!(
+            answers[0].3,
+            crate::player::blind::Answer::Text {
+                text: "One More Time".into()
+            }
+        );
+        assert_eq!(
+            answers[1].3,
+            crate::player::blind::Answer::Pass,
+            "réponse vide = passer"
+        );
+    }
+    // Les joueurs apparaissent chez l'hôte, qui peut les exclure.
+    assert_eq!(core.members().len(), 2);
+
+    // Ajouts refusés tant que la partie dure.
+    search(&core, &fake).await;
+    let (status, body) = add(&core, &fake, 1, LEA, IP).await;
+    assert_eq!((status, body["error"].as_str()), (403, Some("game")));
+}

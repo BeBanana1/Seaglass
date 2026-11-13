@@ -316,6 +316,126 @@ mod tests {
         assert_eq!(call(addr, "GET", "/secret", "", "").await.0, 404);
     }
 
+    /// Blind test à plusieurs (#441) : la route d'un seul segment passe aussi le relais.
+    #[tokio::test]
+    async fn guests_answer_the_blind_test_over_http() {
+        let (addr, fake) = start().await;
+        *fake.blind.lock().unwrap() = Some(crate::jam::testing::blind_game(true));
+        let body = r#"{"guest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","round":2,"text":"x"}"#;
+        let (status, reply) = call(addr, "POST", "/api/blind-answer", CODE, body).await;
+        assert_eq!((status, reply.as_str()), (200, r#"{"player":1}"#));
+        assert_eq!(
+            call(addr, "POST", "/api/blind-answer", "ZZZZZZ", body)
+                .await
+                .0,
+            401
+        );
+    }
+
+    /// Aperçu de la page des invités pendant un blind test (#441) :
+    /// `cargo test jam_blind_preview -- --ignored --nocapture`, puis l'adresse affichée
+    /// (10 min). La manche est révélée 3 s après la première réponse, puis la suivante
+    /// commence 8 s plus tard.
+    #[tokio::test]
+    #[ignore]
+    async fn jam_blind_preview() {
+        use crate::jam::testing::{blind_game, track};
+        use crate::player::blind::{Phase, PlayerResult, PlayerView, RoundResult};
+        let listener = TcpListener::bind("127.0.0.1:47898").await.unwrap();
+        let fake = Arc::new(Fake::default());
+        let mut game = blind_game(true);
+        game.players.push(PlayerView {
+            id: 2,
+            name: Some("Max".into()),
+            host: false,
+            score: 4,
+            streak: 2,
+            best_streak: 2,
+            answered: true,
+        });
+        *fake.blind.lock().unwrap() = Some(game);
+        let core = Arc::new(Core::new(CODE.into(), Arc::default()));
+        tokio::spawn(serve(listener, core, Arc::clone(&fake)));
+        println!("http://127.0.0.1:47898/#{CODE}");
+        let host = Arc::clone(&fake);
+        let script = async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                let answered = host.answers.lock().unwrap().len();
+                if answered == 0 {
+                    continue;
+                }
+                tokio::time::sleep(Duration::from_secs(3)).await;
+                let results = |id: u32, host: bool, points: u32| PlayerResult {
+                    id,
+                    name: (!host).then(|| if id == 1 { "Léa".into() } else { "Max".into() }),
+                    host,
+                    answered: true,
+                    title: points >= 2,
+                    artist: points % 2 == 1,
+                    points,
+                    fastest: points == 4,
+                };
+                {
+                    let mut blind = host.blind.lock().unwrap();
+                    let Some(game) = blind.as_mut() else { return };
+                    game.phase = Phase::Revealed;
+                    game.results.push(RoundResult {
+                        track: track(5),
+                        title: true,
+                        artist: true,
+                        points: 4,
+                        answer: None,
+                        chosen: None,
+                        correct: None,
+                        players: vec![
+                            results(0, true, 4),
+                            results(1, false, 1),
+                            results(2, false, 0),
+                        ],
+                    });
+                    game.players = vec![
+                        PlayerView {
+                            id: 0,
+                            name: None,
+                            host: true,
+                            score: 7,
+                            streak: 2,
+                            best_streak: 2,
+                            answered: false,
+                        },
+                        PlayerView {
+                            id: 2,
+                            name: Some("Max".into()),
+                            host: false,
+                            score: 4,
+                            streak: 0,
+                            best_streak: 2,
+                            answered: false,
+                        },
+                        PlayerView {
+                            id: 1,
+                            name: Some("Léa".into()),
+                            host: false,
+                            score: 1,
+                            streak: 1,
+                            best_streak: 1,
+                            answered: false,
+                        },
+                    ];
+                }
+                tokio::time::sleep(Duration::from_secs(8)).await;
+                let mut blind = host.blind.lock().unwrap();
+                let Some(game) = blind.as_mut() else { return };
+                game.phase = Phase::Guess;
+                game.round += 1;
+                game.reveal_at = Some(crate::jam::testing::now_ms() + 30_000);
+                host.answers.lock().unwrap().clear();
+            }
+        };
+        let _ = tokio::time::timeout(Duration::from_secs(600), script).await;
+    }
+
     #[tokio::test]
     async fn api_requires_the_code_and_blocks_guessing() {
         let (addr, _) = start().await;

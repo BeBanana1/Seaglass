@@ -50,11 +50,23 @@
         <div id="now" class="now" aria-live="polite"></div>
         <p id="notice" class="notice" role="status" hidden></p>
 
+        <!-- Blind test à plusieurs (#441), à la place de la recherche pendant la partie. -->
+        <section id="game" class="game" hidden>
+          <div class="game-head">
+            <span id="game-title" class="game-title"></span>
+            <span id="game-round" class="muted"></span>
+          </div>
+          <div id="game-play" class="game-play" aria-live="polite"></div>
+          <p id="game-countdown" class="muted game-countdown" hidden></p>
+          <h2 id="game-board-title" data-t="gameRanking"></h2>
+          <ol id="game-board" class="game-board"></ol>
+        </section>
+
         <form id="search-form" class="search" role="search" autocomplete="off">
           <input id="query" type="search" maxlength="300" enterkeyhint="search" />
           <button id="clear" type="button" class="clear" hidden>✕</button>
         </form>
-        <p class="hint" data-t="pasteHint"></p>
+        <p id="search-hint" class="hint" data-t="pasteHint"></p>
         <p id="search-status" class="muted status" aria-live="polite" hidden></p>
         <div id="tabs" class="tabs" role="tablist" hidden>
           <button id="tab-tracks" type="button" role="tab" class="tab"></button>

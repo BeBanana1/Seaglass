@@ -39,6 +39,8 @@ const WINDOW: Duration = Duration::from_secs(60);
 /// Commandes du propriétaire par minute (télécommande, #336) : un curseur de volume ou de
 /// position en envoie une par geste, jamais une rafale.
 pub const COMMANDS_PER_MINUTE: usize = 120;
+/// Réponses de blind test par minute (#441) : une par manche suffit largement.
+pub const ANSWERS_PER_MINUTE: usize = 30;
 
 /// 32⁶ ≈ 1,07 milliard de codes.
 pub fn new_code() -> String {
@@ -84,6 +86,8 @@ pub enum Action {
     Remove,
     /// Commande du propriétaire (télécommande, #336).
     Command,
+    /// Réponse de blind test (#441).
+    Answer,
 }
 
 impl Action {
@@ -94,6 +98,7 @@ impl Action {
             Self::Control => CONTROLS_PER_MINUTE,
             Self::Remove => REMOVES_PER_MINUTE,
             Self::Command => COMMANDS_PER_MINUTE,
+            Self::Answer => ANSWERS_PER_MINUTE,
         }
     }
 }
@@ -106,6 +111,7 @@ struct Counters {
     controls: VecDeque<Instant>,
     removes: VecDeque<Instant>,
     commands: VecDeque<Instant>,
+    answers: VecDeque<Instant>,
 }
 
 impl Counters {
@@ -116,6 +122,7 @@ impl Counters {
             Action::Control => &mut self.controls,
             Action::Remove => &mut self.removes,
             Action::Command => &mut self.commands,
+            Action::Answer => &mut self.answers,
         }
     }
 
