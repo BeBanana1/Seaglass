@@ -56,10 +56,11 @@ impl Store {
         limit: usize,
     ) -> Result<Vec<CountedTrack>> {
         self.counted_tracks(
-            "SELECT p.track_id, t.json, COUNT(*) AS n, MAX(p.id) AS last FROM plays p
+            "SELECT p.track_id, t.json, COUNT(*) AS n, MAX(p.played_at) AS last FROM plays p
              LEFT JOIN played_tracks t ON t.id = p.track_id
              WHERE p.played_at >= ?1 AND p.played_at < ?2
-             GROUP BY p.track_id HAVING n >= ?3 ORDER BY n DESC, last DESC LIMIT ?4",
+             GROUP BY p.track_id HAVING n >= ?3
+             ORDER BY n DESC, last DESC, MAX(p.id) DESC LIMIT ?4",
             params![span.since, span.until, min_plays, limit as i64],
         )
     }
@@ -108,9 +109,10 @@ impl Store {
         only_new: bool,
     ) -> Result<Vec<TopArtist>> {
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
-        // `p.artist` : colonne « nue » de SQLite, celle de la ligne de `MAX(p.id)`.
+        // `p.artist` : colonne « nue » de SQLite, celle de la ligne de `MAX(p.played_at)`
+        // (la date, pas l'id : une écoute reçue d'un autre appareil, #430, a un id récent).
         let mut stmt = db.conn.prepare(
-            "SELECT p.artist_id, p.artist, MAX(p.id) AS last, COUNT(*) AS n,
+            "SELECT p.artist_id, p.artist, MAX(p.played_at) AS last, COUNT(*) AS n,
                     a.id IS NOT NULL, a.picture
              FROM plays p LEFT JOIN played_artists a ON a.id = p.artist_id
              WHERE p.artist_id IS NOT NULL AND p.played_at >= ?1 AND p.played_at < ?2

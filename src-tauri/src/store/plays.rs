@@ -6,7 +6,7 @@
 //! dans `played_tracks` et `played_albums` (dernière copie vue, de quoi afficher une carte
 //! sans requête), élaguées avec les lignes (#326). `played_artists` garde la photo des
 //! artistes des statistiques, demandée une fois à TIDAL (`NULL` : artiste sans photo). Les
-//! statistiques sont dans `stats.rs`.
+//! statistiques sont dans `stats.rs`, l'échange avec un autre appareil dans `sync.rs` (#430).
 
 use rusqlite::{Connection, params};
 
@@ -80,6 +80,15 @@ pub(super) fn migrate(conn: &Connection) -> Result<()> {
              COMMIT;",
         )?;
     }
+    // Appareil d'origine d'une écoute reçue (#430) ; `NULL` = écoutée ici.
+    let has_device: bool = conn.query_row(
+        "SELECT COUNT(*) > 0 FROM pragma_table_info('plays') WHERE name = 'device'",
+        [],
+        |r| r.get(0),
+    )?;
+    if !has_device {
+        conn.execute_batch("ALTER TABLE plays ADD COLUMN device TEXT;")?;
+    }
     conn.execute_batch(INDEXES)?;
     Ok(())
 }
@@ -149,9 +158,9 @@ impl Store {
     pub fn recent_albums(&self, limit: usize) -> Result<Vec<AlbumSummary>> {
         Ok(self
             .counted_albums(
-                "SELECT a.json, MAX(p.id) AS last, COUNT(*) FROM plays p
+                "SELECT a.json, MAX(p.played_at) AS last, COUNT(*) FROM plays p
                  JOIN played_albums a ON a.id = p.album_id
-                 GROUP BY p.album_id ORDER BY last DESC LIMIT ?1",
+                 GROUP BY p.album_id ORDER BY last DESC, MAX(p.id) DESC LIMIT ?1",
                 params![limit as i64],
             )?
             .into_iter()
@@ -168,10 +177,11 @@ impl Store {
         limit: usize,
     ) -> Result<Vec<(AlbumSummary, i64)>> {
         self.counted_albums(
-            "SELECT a.json, MAX(p.id) AS last, COUNT(*) AS n FROM plays p
+            "SELECT a.json, MAX(p.played_at) AS last, COUNT(*) AS n FROM plays p
              JOIN played_albums a ON a.id = p.album_id
              WHERE p.played_at >= ?1 AND p.played_at < ?2
-             GROUP BY p.album_id HAVING n >= ?3 ORDER BY n DESC, last DESC LIMIT ?4",
+             GROUP BY p.album_id HAVING n >= ?3
+             ORDER BY n DESC, last DESC, MAX(p.id) DESC LIMIT ?4",
             params![span.since, span.until, min_plays, limit as i64],
         )
     }
@@ -207,17 +217,17 @@ impl Store {
     }
 }
 
-/// Garde les `MAX_PLAYS` écoutes les plus récentes, par lots de `PRUNE_BATCH`, puis retire
-/// les métadonnées que plus aucune écoute ne référence. Les ids se suivent (AUTOINCREMENT,
-/// seul le début est supprimé) : l'écart entre le premier et le dernier suffit.
-fn prune(conn: &Connection) -> Result<()> {
-    let span: Option<i64> =
-        conn.query_row("SELECT MAX(id) - MIN(id) + 1 FROM plays", [], |r| r.get(0))?;
-    if span.unwrap_or(0) <= MAX_PLAYS + PRUNE_BATCH {
+/// Garde les `MAX_PLAYS` écoutes les plus récentes **par date**, par lots de `PRUNE_BATCH`,
+/// puis retire les métadonnées que plus aucune écoute ne référence. La date plutôt que
+/// l'id : une écoute reçue d'un autre appareil (#430) arrive avec un id récent.
+pub(super) fn prune(conn: &Connection) -> Result<()> {
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM plays", [], |r| r.get(0))?;
+    if count <= MAX_PLAYS + PRUNE_BATCH {
         return Ok(());
     }
     conn.execute(
-        "DELETE FROM plays WHERE id <= (SELECT MAX(id) FROM plays) - ?1",
+        "DELETE FROM plays WHERE id IN (
+             SELECT id FROM plays ORDER BY played_at DESC, id DESC LIMIT -1 OFFSET ?1)",
         [MAX_PLAYS],
     )?;
     conn.execute_batch(

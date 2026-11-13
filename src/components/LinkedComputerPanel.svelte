@@ -1,14 +1,20 @@
 <!-- Ordinateur lié (#414), Réglages › Application, Android : lier en tapant l'adresse et le
      code de la télécommande du PC, puis « Reprendre ici » / « Continuer sur l'ordinateur »
-     (aussi dans « En lecture »). Classes `.setting-row` et `.update-check` reprises de
-     Réglages : les thèmes les habillent déjà ; propres : `.handoff-link`, `.handoff-input`,
-     `.handoff-actions`. -->
+     (aussi dans « En lecture ») et historique d'écoute synchronisé (#430). Classes
+     `.setting-row` et `.update-check` reprises de Réglages : les thèmes les habillent déjà ;
+     propres : `.handoff-link`, `.handoff-input`, `.handoff-actions`, `.handoff-history`. -->
 <script lang="ts">
   import { onMount } from "svelte";
   import { commands } from "../lib/ipc";
-  import { handoff, loadLinkedComputer, pullHere, pushToComputer } from "../lib/stores/handoff.svelte";
+  import { handoff, loadLinkedComputer, pullHere, pushToComputer, syncHistoryNow } from "../lib/stores/handoff.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
-  import { t } from "../lib/i18n.svelte";
+  import { t, locale } from "../lib/i18n.svelte";
+
+  const syncedAt = $derived(
+    handoff.linked?.syncedAt
+      ? new Date(handoff.linked.syncedAt).toLocaleString(locale(), { dateStyle: "medium", timeStyle: "short" })
+      : null,
+  );
 
   let text = $state("");
   let linking = $state(false);
@@ -62,6 +68,14 @@
         <span class="hint">{t.handoff.pushHint}</span>
       </span>
       <button class="update-check" disabled={handoff.busy} onclick={pushToComputer}>{t.handoff.push}</button>
+    </div>
+    <div class="setting-row handoff-history">
+      <span class="text">
+        <span class="setting-label">{t.handoff.history}</span>
+        <span class="hint">{syncedAt ? t.handoff.syncedAt(syncedAt) : t.handoff.neverSynced}</span>
+        <span class="hint">{t.handoff.historyHint}</span>
+      </span>
+      <button class="update-check" disabled={handoff.syncing} onclick={syncHistoryNow}>{t.handoff.sync}</button>
     </div>
   {:else}
     <form class="setting-row handoff-link" onsubmit={link}>

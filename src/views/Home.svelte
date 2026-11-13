@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { commands, PLAY_HISTORY_KEY, type AlbumSummary, type HomeSection } from "../lib/ipc";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { watchHistory } from "../lib/stores/handoff.svelte";
   import { resetHomeLayout, saveHomeLayout, setHomeFeatured, ui } from "../lib/stores/ui.svelte";
   import CardGrid from "../components/CardGrid.svelte";
   import Hero from "../components/Hero.svelte";
@@ -91,6 +92,9 @@
       console.warn("historique d'écoute", e);
     }
   }
+
+  // Écoutes reçues de l'appareil lié (#430) : la synchro du lancement suffit ici.
+  onMount(() => watchHistory(refreshPlayHistory, false));
 
   onMount(async () => {
     if (rows) {

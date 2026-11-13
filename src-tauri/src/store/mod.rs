@@ -1,7 +1,8 @@
 //! Persistance SQLite : file d'attente, position de lecture, réglages et métadonnées des
 //! titres en file ; copies des listes affichées (`snapshots`, #181) ; historique d'écoute
 //! (`plays`, #202), ses statistiques (`stats`, #326) et les playlists intelligentes
-//! (`smart`, #383) et la rétrospective du mois et de l'année (`recap`, #417).
+//! (`smart`, #383), la rétrospective du mois et de l'année (`recap`, #417) et son échange
+//! avec un autre appareil (`sync`, #430).
 //!
 //! La table `tracks` ne contient que les titres référencés par la file sauvegardée : chaque
 //! sauvegarde de la file n'écrit que les titres absents et supprime ceux qui ne sont plus
@@ -24,12 +25,14 @@ mod recap;
 mod smart;
 mod snapshots;
 mod stats;
+mod sync;
 
 pub use plays::Play;
 pub use recap::{CivilPeriod, Habits};
 pub use smart::SmartList;
 pub use snapshots::SnapshotLimit;
 pub use stats::{CountedTrack, Span, TopArtist};
+pub use sync::{BATCH as SYNC_BATCH, Outgoing, PlayBatch, SyncState};
 
 const SCHEMA: &str = "
     PRAGMA journal_mode = WAL;
@@ -96,7 +99,7 @@ impl Store {
     }
 
     #[cfg(test)]
-    fn in_memory() -> Result<Self> {
+    pub(crate) fn in_memory() -> Result<Self> {
         Self::init(Connection::open_in_memory()?)
     }
 

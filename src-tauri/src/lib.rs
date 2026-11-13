@@ -131,6 +131,8 @@ pub fn run() {
             }
             #[cfg(target_os = "android")]
             apk_update::spawn(app.handle().clone());
+            // Historique d'écoute avec l'ordinateur lié (#430), s'il y en a un.
+            handoff::history::spawn_at_launch(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -283,6 +285,7 @@ pub fn run() {
             commands::handoff::unlink_computer,
             commands::handoff::handoff_pull,
             commands::handoff::handoff_push,
+            commands::handoff::sync_history,
             commands::remote::renew_remote_code,
             #[cfg(desktop)]
             commands::window::fullscreen,

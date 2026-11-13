@@ -19,6 +19,12 @@ export const fr = {
   pulled: "Lecture reprise ici",
   pushed: "Lecture transférée sur l'ordinateur",
   menu: "Transférer la lecture",
+  history: "Historique d'écoute",
+  historyHint: "Les écoutes de chaque appareil passent sur l'autre (statistiques, rétrospective, « Écoutés dans Seaglass »), au lancement, à l'ouverture des statistiques et après un transfert. Effacer l'historique n'efface que celui de cet appareil.",
+  sync: "Synchroniser",
+  synced: "Historique synchronisé",
+  syncedAt: (when: string) => `Synchronisé le ${when}`,
+  neverSynced: "Jamais synchronisé",
 };
 
 export const en: typeof fr = {
@@ -39,4 +45,10 @@ export const en: typeof fr = {
   pulled: "Playback resumed here",
   pushed: "Playback moved to the computer",
   menu: "Transfer playback",
+  history: "Listening history",
+  historyHint: "Each device's plays show up on the other (stats, recap, “Played in Seaglass”), at launch, when opening the stats and after a transfer. Clearing the history only clears this device's.",
+  sync: "Sync",
+  synced: "History synced",
+  syncedAt: (when: string) => `Synced on ${when}`,
+  neverSynced: "Never synced",
 };

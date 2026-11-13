@@ -8,6 +8,7 @@
   import TrackList from "../components/TrackList.svelte";
   import RecapBars from "../components/RecapBars.svelte";
   import { t, num, locale } from "../lib/i18n.svelte";
+  import { watchHistory } from "../lib/stores/handoff.svelte";
 
   type Mode = "month" | "year";
 
@@ -18,16 +19,25 @@
   let recap = $state<Recap | null>(null);
   let error = $state<string | null>(null);
 
-  commands
-    .recapPeriods()
-    .then((p) => (periods = p))
-    .catch((e) => (error = String(e)));
+  /** Relu quand des écoutes arrivent de l'appareil lié (#430). */
+  let version = $state(0);
+
+  $effect(() => {
+    void version;
+    commands
+      .recapPeriods()
+      .then((p) => (periods = p))
+      .catch((e) => (error = String(e)));
+  });
+
+  $effect(() => watchHistory(() => version++));
 
   const shown = $derived((periods ?? []).filter((p) => (mode === "year") === (p.month === null)));
   const period = $derived<RecapPeriod | undefined>(shown[index]);
 
   $effect(() => {
     const asked = period;
+    void version;
     if (!asked) return;
     let stale = false;
     error = null;
