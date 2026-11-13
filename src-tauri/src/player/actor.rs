@@ -11,6 +11,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
+use super::handoff::Handoff;
 use super::listen::ListenTracker;
 use super::normalize::Normalizer;
 use super::output::{AudioDevices, Output};
@@ -94,6 +95,12 @@ pub enum Cmd {
     /// depuis le thread principal (`RunEvent::Exit`) ou l'updater, hors de tokio.
     Flush(std::sync::mpsc::Sender<()>),
     GetQueue(oneshot::Sender<QueueView>),
+    /// Transfert vers un autre appareil (#414) : instantané de la lecture, puis pause ;
+    /// `None` si rien n'est en cours.
+    TakeHandoff(oneshot::Sender<Option<Handoff>>),
+    /// Reprend une lecture transférée, déjà vérifiée (`Handoff::received`) ; répond
+    /// `false` si elle n'a pas de titre courant.
+    ApplyHandoff(Box<Handoff>, oneshot::Sender<bool>),
     /// Ordre de lecture complet, plafonné (#327).
     GetPlayOrder(usize, oneshot::Sender<Vec<TrackId>>),
     /// Périphériques de sortie connus de mpv, pour les Réglages (#79).
@@ -475,6 +482,14 @@ impl Player {
             Cmd::Flush(reply) => self.flush(reply),
             Cmd::GetQueue(reply) => {
                 let _ = reply.send(self.queue_view());
+            }
+            Cmd::TakeHandoff(reply) => {
+                let handoff = self.take_handoff().await;
+                let _ = reply.send(handoff);
+            }
+            Cmd::ApplyHandoff(handoff, reply) => {
+                let applied = self.apply_handoff(*handoff).await;
+                let _ = reply.send(applied);
             }
             Cmd::GetPlayOrder(limit, reply) => {
                 let _ = reply.send(self.queue.play_order(limit));

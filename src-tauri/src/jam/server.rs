@@ -21,7 +21,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Notify, Semaphore, watch};
 
 use super::api::{BACKEND_TIMEOUT, Backend, Core};
-use super::http::{Method, Request, Response, query_param, read_request, write_response};
+use super::http::{Head, Method, Request, Response, query_param, read_request, write_response};
 
 const MAX_CONNECTIONS: usize = 32;
 /// Pages ouvertes qui suivent l'état, en plus des requêtes ordinaires.
@@ -57,6 +57,11 @@ pub trait Site: Send + Sync + 'static {
     fn state_json(&self) -> impl Future<Output = Option<String>> + Send;
     /// Relire l'état sans attendre.
     fn refresh(&self) -> &Notify;
+    /// Vrai si `path` accepte un corps de plus de 2 Kio (`http::MAX_LARGE_BODY` au plus) ;
+    /// le code est alors vérifié avant de lire le corps.
+    fn large_body(&self, _path: &str) -> bool {
+        false
+    }
 }
 
 /// Page des invités de la Jam.
@@ -132,11 +137,22 @@ async fn accept_loop<S: Site>(listener: TcpListener, shared: Arc<Shared<S>>) {
         let shared = Arc::clone(&shared);
         let streams = Arc::clone(&streams);
         tokio::spawn(async move {
-            let Ok(Some(req)) = tokio::time::timeout(IO_TIMEOUT, read_request(&mut stream)).await
+            let ip = client_ip(addr);
+            // Gros corps (transfert de lecture) : seulement là où le site l'accepte, et avec
+            // le bon code, vérifié avant de lire.
+            let allow_large = |head: &Head| {
+                head.method == Method::Post
+                    && shared.site.large_body(&head.path)
+                    && shared
+                        .site
+                        .check_code(ip, head.code.as_deref().unwrap_or(""))
+                        .is_ok()
+            };
+            let Ok(Some(req)) =
+                tokio::time::timeout(IO_TIMEOUT, read_request(&mut stream, allow_large)).await
             else {
                 return;
             };
-            let ip = client_ip(addr);
             if req.head.method == Method::Get && req.head.path == "/api/events" {
                 // Un flux dure : il libère la place des requêtes ordinaires.
                 drop(permit);

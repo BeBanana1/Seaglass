@@ -23,7 +23,7 @@ use super::server::{STYLE, Site, serve_site};
 use super::{lan_ip, qr_svg};
 use crate::content::filtered;
 use crate::i18n::{tr, trf};
-use crate::player::{Cmd, PlayerState, QueueView};
+use crate::player::{Cmd, Handoff, PlayerState, QueueView};
 use crate::tidal::TidalClient;
 use crate::tidal::models::{PlaylistSummary, SearchResults, Track};
 pub use api::OWNER_CODE_LEN;
@@ -51,6 +51,10 @@ pub fn is_code(code: &str) -> bool {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoteStatus {
+    /// Page et commandes de la télécommande servies.
+    pub remote: bool,
+    /// Transferts de lecture acceptés (#414) ; le serveur tourne si l'un des deux l'est.
+    pub handoff: bool,
     pub url: String,
     pub code: String,
     /// Faux si aucune adresse du réseau local n'a été trouvée (`127.0.0.1`).
@@ -74,13 +78,15 @@ impl RemoteState {
         slot.as_ref().map(|r| r.status.clone())
     }
 
-    /// Démarre la télécommande avec `code`, ou renvoie celle qui tourne déjà.
+    /// Sert la télécommande et / ou les transferts avec `code` : démarre le serveur, ou
+    /// change ce que sert celui qui tourne déjà. Les deux à faux l'arrêtent (`None`).
     pub async fn start(
         &self,
         code: String,
         tidal: Arc<TidalClient>,
         player: mpsc::Sender<Cmd>,
-    ) -> Result<RemoteStatus, String> {
+        features: Features,
+    ) -> Result<Option<RemoteStatus>, String> {
         if cfg!(mobile) {
             return Err(tr(
                 "la télécommande n'existe que sur l'ordinateur",
@@ -88,17 +94,24 @@ impl RemoteState {
             )
             .to_owned());
         }
-        if let Some(status) = self.status() {
-            return Ok(status);
+        if !features.any() {
+            self.stop();
+            return Ok(None);
+        }
+        if let Some(status) = self.set_features(features) {
+            return Ok(Some(status));
         }
         let (listener, url, lan) = listen().await?;
         let owner = Arc::new(Owner::new(code.clone()));
+        owner.set_features(features.remote, features.handoff);
         let site = Arc::new(RemoteSite {
             owner: Arc::clone(&owner),
             remote: AppRemote { tidal, player },
         });
         let task = tokio::spawn(serve_site(listener, site));
         let status = RemoteStatus {
+            remote: features.remote,
+            handoff: features.handoff,
             qr_svg: qr_svg(&format!("{url}#{code}")),
             url,
             code,
@@ -111,7 +124,7 @@ impl RemoteState {
         // Deux démarrages simultanés : le premier arrivé reste.
         if let Some(running) = slot.as_ref() {
             task.abort();
-            return Ok(running.status.clone());
+            return Ok(Some(running.status.clone()));
         }
         tracing::info!("Télécommande démarrée");
         *slot = Some(Running {
@@ -119,7 +132,20 @@ impl RemoteState {
             owner,
             task,
         });
-        Ok(status)
+        Ok(Some(status))
+    }
+
+    /// Change ce que sert le serveur en cours ; `None` s'il ne tourne pas.
+    fn set_features(&self, features: Features) -> Option<RemoteStatus> {
+        let mut slot = self.0.lock().ok()?;
+        let running = slot.as_mut()?;
+        running
+            .owner
+            .set_features(features.remote, features.handoff);
+        running.status.remote = features.remote;
+        running.status.handoff = features.handoff;
+        running.owner.refresh.notify_one();
+        Some(running.status.clone())
     }
 
     /// Remplace le code de la télécommande en cours : les téléphones déjà appairés devront
@@ -139,6 +165,21 @@ impl RemoteState {
             running.task.abort();
             tracing::info!("Télécommande arrêtée");
         }
+    }
+}
+
+/// Ce que sert le serveur de la télécommande.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Features {
+    /// Page et commandes de la télécommande (#336).
+    pub remote: bool,
+    /// Transferts de lecture vers et depuis l'app Android (#414).
+    pub handoff: bool,
+}
+
+impl Features {
+    pub fn any(self) -> bool {
+        self.remote || self.handoff
     }
 }
 
@@ -174,6 +215,9 @@ struct RemoteSite<R> {
 
 impl<R: Remote> Site for RemoteSite<R> {
     fn file(&self, path: &str) -> Option<Response> {
+        if !self.owner.remote_enabled() {
+            return None;
+        }
         match path {
             "/" => Some(Response::new(200, "text/html; charset=utf-8", PAGE)),
             "/remote.js" => Some(Response::new(200, "text/javascript; charset=utf-8", SCRIPT)),
@@ -198,6 +242,10 @@ impl<R: Remote> Site for RemoteSite<R> {
 
     fn refresh(&self) -> &Notify {
         &self.owner.refresh
+    }
+
+    fn large_body(&self, path: &str) -> bool {
+        path == "/api/handoff/give" && self.owner.handoff_enabled()
     }
 }
 
@@ -289,6 +337,18 @@ impl Remote for AppRemote {
             .await
             .map(|list| list.items)
             .map_err(|e| e.to_string())
+    }
+
+    async fn take_handoff(&self) -> Result<Option<Handoff>, String> {
+        let (tx, rx) = oneshot::channel();
+        self.send(Cmd::TakeHandoff(tx)).await?;
+        rx.await.map_err(|_| stopped())
+    }
+
+    async fn give_handoff(&self, handoff: Handoff) -> Result<bool, String> {
+        let (tx, rx) = oneshot::channel();
+        self.send(Cmd::ApplyHandoff(Box::new(handoff), tx)).await?;
+        rx.await.map_err(|_| stopped())
     }
 }
 

@@ -11,6 +11,7 @@ pub mod drive;
 pub mod export;
 pub mod feed;
 pub mod folders;
+pub mod handoff;
 pub mod import;
 pub mod jam;
 pub mod later;

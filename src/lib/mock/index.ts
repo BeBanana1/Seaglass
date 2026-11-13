@@ -685,15 +685,22 @@ let jam: ReturnType<typeof mockJam> | null =
     : jamParam === "local"
       ? mockJam("local")
       : null;
-/** Télécommande (#336) : `?remote=1` l'affiche allumée. */
+/** Télécommande (#336) : `?remote=1` l'affiche allumée ; `?handoff=1` accepte les
+ *  transferts (#414). Téléphone : `?platform=android&linked=1` a un ordinateur lié. */
 let remoteCode = "H4KX9QMT2WZP";
+let remoteOn = params.get("remote") === "1";
+let handoffOn = params.get("handoff") === "1";
 const mockRemote = () => ({
+  remote: remoteOn,
+  handoff: handoffOn,
   url: "http://192.168.1.20:47801/",
   code: remoteCode,
   lan: true,
   qrSvg: fakeQr,
 });
-let remote: ReturnType<typeof mockRemote> | null = params.get("remote") === "1" ? mockRemote() : null;
+let remote: ReturnType<typeof mockRemote> | null = remoteOn || handoffOn ? mockRemote() : null;
+const remoteUpdate = () => (remote = remoteOn || handoffOn ? mockRemote() : null);
+let linkedComputer: { host: string } | null = params.get("linked") === "1" ? { host: "192.168.1.20:47801" } : null;
 
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => {
@@ -839,8 +846,18 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   start_jam: (args) => (jam ??= mockJam(args.mode === "local" ? "local" : "online")),
   stop_jam: () => void (jam = null),
   remote_status: () => remote,
-  start_remote: () => (remote ??= mockRemote()),
-  stop_remote: () => void (remote = null),
+  start_remote: () => ((remoteOn = true), remoteUpdate()),
+  stop_remote: () => ((remoteOn = false), remoteUpdate()),
+  set_handoff_accepted: ({ enabled }) => ((handoffOn = !!enabled), remoteUpdate()),
+  linked_computer: () => linkedComputer,
+  link_computer: ({ link }) => {
+    const m = /^\s*(?:http:\/\/)?([^/#\s]+)\/?[#\s]/.exec(String(link));
+    if (!m) throw new Error("adresse non reconnue : copiez-la depuis Réglages › Application › Télécommande sur l'ordinateur");
+    return (linkedComputer = { host: m[1] });
+  },
+  unlink_computer: () => void (linkedComputer = null),
+  handoff_pull: () => undefined,
+  handoff_push: () => undefined,
   renew_remote_code: () => {
     remoteCode = "QZ7M3KD8XF2N";
     return remote ? (remote = mockRemote()) : null;

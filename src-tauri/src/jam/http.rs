@@ -7,6 +7,8 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 const MAX_HEAD: usize = 8 * 1024;
 const MAX_BODY: usize = 2 * 1024;
+/// Corps d'une route qui l'accepte (`Site::large_body`) : transfert de lecture (#414).
+pub const MAX_LARGE_BODY: usize = 4 * 1024 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
@@ -34,7 +36,12 @@ pub struct Request {
 }
 
 /// Lit une requête complète ; `None` si elle est illisible, trop grande ou interrompue.
-pub async fn read_request<S: AsyncRead + Unpin>(stream: &mut S) -> Option<Request> {
+/// Un corps de plus de 2 Kio n'est lu que si `allow_large` l'accepte d'après l'en-tête
+/// (chemin, code), et jamais au-delà de `MAX_LARGE_BODY`.
+pub async fn read_request<S: AsyncRead + Unpin>(
+    stream: &mut S,
+    allow_large: impl FnOnce(&Head) -> bool,
+) -> Option<Request> {
     let mut buf = Vec::with_capacity(1024);
     let mut chunk = [0u8; 1024];
     let end = loop {
@@ -50,7 +57,9 @@ pub async fn read_request<S: AsyncRead + Unpin>(stream: &mut S) -> Option<Reques
         }
     };
     let head = parse_head(&buf[..end])?;
-    if head.content_length > MAX_BODY {
+    if head.content_length > MAX_BODY
+        && (head.content_length > MAX_LARGE_BODY || !allow_large(&head))
+    {
         return None;
     }
     let mut body = buf.split_off(end);
@@ -233,7 +242,7 @@ mod tests {
                 .unwrap();
             client.write_all(b":42}").await.unwrap();
         });
-        let req = read_request(&mut server).await.unwrap();
+        let req = read_request(&mut server, |_| false).await.unwrap();
         assert_eq!(req.body, b"{\"trackId\":42}");
     }
 
@@ -245,6 +254,43 @@ mod tests {
                 .write_all(b"POST / HTTP/1.1\r\nContent-Length: 999999\r\n\r\n")
                 .await;
         });
-        assert!(read_request(&mut server).await.is_none());
+        assert!(read_request(&mut server, |_| false).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn large_bodies_only_where_allowed() {
+        let body = vec![b'x'; 10_000];
+        let send = |path: &'static str| {
+            let body = body.clone();
+            let (mut client, server) = tokio::io::duplex(64 * 1024);
+            tokio::spawn(async move {
+                let head = format!(
+                    "POST {path} HTTP/1.1\r\nContent-Length: {}\r\n\r\n",
+                    body.len()
+                );
+                let _ = client.write_all(head.as_bytes()).await;
+                let _ = client.write_all(&body).await;
+            });
+            server
+        };
+        let allow = |head: &Head| head.path == "/api/big";
+        let mut server = send("/api/big");
+        let req = read_request(&mut server, allow).await.unwrap();
+        assert_eq!(req.body.len(), 10_000);
+        let mut server = send("/api/small");
+        assert!(read_request(&mut server, allow).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn never_beyond_the_large_limit() {
+        let (mut client, mut server) = tokio::io::duplex(64);
+        tokio::spawn(async move {
+            let head = format!(
+                "POST / HTTP/1.1\r\nContent-Length: {}\r\n\r\n",
+                MAX_LARGE_BODY + 1
+            );
+            let _ = client.write_all(head.as_bytes()).await;
+        });
+        assert!(read_request(&mut server, |_| true).await.is_none());
     }
 }

@@ -9,6 +9,7 @@
 use std::future::Future;
 use std::net::IpAddr;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 use serde::Deserialize;
@@ -21,7 +22,7 @@ use crate::jam::guard::{Action, Limits, code_matches};
 use crate::jam::http::Response;
 use crate::jam::view::{GuestAlbum, GuestTrack};
 use crate::player::volume::Volume;
-use crate::player::{PlaySource, PlayerState, QueuePart, QueueView, Repeat};
+use crate::player::{Handoff, PlaySource, PlayerState, QueuePart, QueueView, Repeat};
 use crate::tidal::models::{PlaylistSummary, SearchResults, Track, TrackId};
 
 /// Longueur du code de propriétaire : 32¹² ≈ 1,2 × 10¹⁸ codes (60 bits), contre 6
@@ -82,12 +83,20 @@ pub trait Remote: Send + Sync + 'static {
     ) -> impl Future<Output = Result<(String, Vec<Track>), String>> + Send;
     /// Playlists du compte (lecture seule).
     fn playlists(&self) -> impl Future<Output = Result<Vec<PlaylistSummary>, String>> + Send;
+    /// Instantané de la lecture puis pause (#414) ; `None` si rien n'est en cours.
+    fn take_handoff(&self) -> impl Future<Output = Result<Option<Handoff>, String>> + Send;
+    /// Reprend une lecture transférée, déjà vérifiée.
+    fn give_handoff(&self, handoff: Handoff) -> impl Future<Output = Result<bool, String>> + Send;
 }
 
 /// Télécommande en cours : code, limites, relecture de l'état.
 pub struct Owner {
     code: Mutex<String>,
     limits: Mutex<Limits>,
+    /// Page et commandes de la télécommande servies.
+    remote: AtomicBool,
+    /// Transferts de lecture acceptés (#414).
+    handoff: AtomicBool,
     /// Relire l'état sans attendre (après une commande, nouvelle page).
     pub refresh: Notify,
 }
@@ -97,8 +106,24 @@ impl Owner {
         Self {
             code: Mutex::new(code),
             limits: Mutex::new(Limits::default()),
+            remote: AtomicBool::new(true),
+            handoff: AtomicBool::new(false),
             refresh: Notify::new(),
         }
+    }
+
+    /// Ce que sert le serveur : la télécommande, les transferts, ou les deux.
+    pub fn set_features(&self, remote: bool, handoff: bool) {
+        self.remote.store(remote, Ordering::Relaxed);
+        self.handoff.store(handoff, Ordering::Relaxed);
+    }
+
+    pub fn remote_enabled(&self) -> bool {
+        self.remote.load(Ordering::Relaxed)
+    }
+
+    pub fn handoff_enabled(&self) -> bool {
+        self.handoff.load(Ordering::Relaxed)
     }
 
     /// Nouveau code : les pages ouvertes avec l'ancien sont refusées dès leur prochain appel.
@@ -124,15 +149,19 @@ impl Owner {
         Ok(())
     }
 
-    fn allow(&self, ip: IpAddr, action: Action) -> bool {
+    pub(super) fn allow(&self, ip: IpAddr, action: Action) -> bool {
         self.limits
             .lock()
             .map(|mut l| l.allow(ip, OWNER, action, Instant::now()))
             .unwrap_or(false)
     }
 
-    /// État de la télécommande en JSON, `None` si le lecteur ne répond pas.
+    /// État de la télécommande en JSON, `None` si le lecteur ne répond pas ou si la
+    /// télécommande est éteinte (transferts seuls).
     pub async fn state_json<R: Remote>(&self, remote: &R) -> Option<String> {
+        if !self.remote_enabled() {
+            return None;
+        }
         let (player, queue) = tokio::time::timeout(BACKEND_TIMEOUT, remote.state())
             .await
             .ok()?
@@ -152,8 +181,17 @@ impl Owner {
         if let Err(response) = self.check_code(ip, code.unwrap_or("")) {
             return response;
         }
+        if path == "/api/join" {
+            return ok();
+        }
+        if let Some(response) = handoff::route(self, path, body, ip, remote).await {
+            return response;
+        }
+        // Transferts seuls : rien de la télécommande n'est servi.
+        if !self.remote_enabled() {
+            return Response::not_found();
+        }
         match path {
-            "/api/join" => return ok(),
             "/api/state" => {
                 return match self.state_json(remote).await {
                     Some(json) => Response::new(200, "application/json", json),
@@ -349,7 +387,7 @@ fn ok() -> Response {
 }
 
 /// Le détail reste dans le journal : la page n'affiche qu'un message générique.
-fn backend_error(e: &str) -> Response {
+pub(super) fn backend_error(e: &str) -> Response {
     tracing::warn!("Télécommande : {e}");
     Response::error(502, "backend")
 }
@@ -421,5 +459,6 @@ struct SearchBody {
     query: String,
 }
 
+mod handoff;
 #[cfg(test)]
 mod tests;

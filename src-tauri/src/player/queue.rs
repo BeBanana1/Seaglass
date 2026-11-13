@@ -427,6 +427,7 @@ impl Queue {
     }
 }
 
+mod check;
 mod entry;
 #[cfg(test)]
 mod tests;

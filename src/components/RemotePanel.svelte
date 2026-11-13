@@ -1,7 +1,8 @@
-<!-- Télécommande (#336), Réglages › Application, bureau seulement : interrupteur, puis QR
-     code, adresse, code et « Nouveau code ». Classes `.setting-row`, `.setting-switch` et
-     `.update-check` reprises de Réglages : les thèmes les habillent déjà ; la mise en page
-     du QR code reprend celle de la Jam (`.jam-qr`, `.jam-fields`). -->
+<!-- Télécommande (#336) et transferts de lecture (#414), Réglages › Application, bureau
+     seulement : deux interrupteurs sur le même serveur, puis QR code, adresse, code et
+     « Nouveau code » dès que l'un des deux est allumé. Classes `.setting-row`,
+     `.setting-switch` et `.update-check` reprises de Réglages : les thèmes les habillent
+     déjà ; la mise en page du QR code reprend celle de la Jam (`.jam-qr`, `.jam-fields`). -->
 <script lang="ts">
   import { onMount } from "svelte";
   import { commands, type RemoteStatus } from "../lib/ipc";
@@ -10,6 +11,9 @@
 
   let status = $state<RemoteStatus | null>(null);
   let busy = $state(false);
+
+  const remoteOn = $derived(status?.remote ?? false);
+  const handoffOn = $derived(status?.handoff ?? false);
 
   onMount(async () => {
     try {
@@ -23,22 +27,20 @@
     pushToast({ level: "error", message: String(e) });
   }
 
-  async function toggle() {
+  async function change(action: () => Promise<RemoteStatus | null>) {
     if (busy) return;
     busy = true;
     try {
-      if (status) {
-        await commands.stopRemote();
-        status = null;
-      } else {
-        status = await commands.startRemote();
-      }
+      status = await action();
     } catch (e) {
       fail(e);
     } finally {
       busy = false;
     }
   }
+
+  const toggleRemote = () => change(remoteOn ? commands.stopRemote : commands.startRemote);
+  const toggleHandoff = () => change(() => commands.setHandoffAccepted(!handoffOn));
 
   async function renew() {
     try {
@@ -49,10 +51,11 @@
     }
   }
 
+  /** Adresse avec le code après `#`, comme le QR code : un téléphone l'ouvre ou la colle. */
   async function copyUrl() {
     if (!status) return;
     try {
-      await navigator.clipboard.writeText(status.url);
+      await navigator.clipboard.writeText(`${status.url}#${status.code}`);
       pushToast({ level: "info", message: t.remote.copied });
     } catch (e) {
       fail(e);
@@ -71,12 +74,30 @@
     </span>
     <button
       class="setting-switch"
-      class:on={status !== null}
+      class:on={remoteOn}
       role="switch"
-      aria-checked={status !== null}
+      aria-checked={remoteOn}
       aria-label={t.remote.enable}
       disabled={busy}
-      onclick={toggle}
+      onclick={toggleRemote}
+    >
+      <span class="knob"></span>
+    </button>
+  </div>
+
+  <div class="setting-row remote-toggle handoff-toggle">
+    <span class="text">
+      <span class="setting-label">{t.remote.handoff}</span>
+      <span class="hint">{t.remote.handoffHint}</span>
+    </span>
+    <button
+      class="setting-switch"
+      class:on={handoffOn}
+      role="switch"
+      aria-checked={handoffOn}
+      aria-label={t.remote.handoff}
+      disabled={busy}
+      onclick={toggleHandoff}
     >
       <span class="knob"></span>
     </button>
@@ -84,7 +105,7 @@
 
   {#if status}
     <div class="setting-row remote-info">
-      {#if status.qrSvg}
+      {#if status.qrSvg && remoteOn}
         <!-- SVG produit par le backend (crate qrcode) à partir de l'adresse et du code. -->
         <div class="jam-qr remote-qr" role="img" aria-label={t.remote.qr}>{@html status.qrSvg}</div>
       {/if}
@@ -99,7 +120,12 @@
         <button class="update-check" onclick={renew}>{t.remote.renew}</button>
       </div>
     </div>
-    <p class="note">{status.lan ? t.remote.howTo : t.remote.noLan}</p>
+    {#if !status.lan}
+      <p class="note">{t.remote.noLan}</p>
+    {:else}
+      {#if remoteOn}<p class="note">{t.remote.howTo}</p>{/if}
+      {#if handoffOn}<p class="note">{t.remote.handoffHowTo}</p>{/if}
+    {/if}
   {:else}
     <p class="note">{t.remote.firewall}</p>
   {/if}

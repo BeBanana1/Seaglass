@@ -17,6 +17,7 @@ import * as settings from "./i18n/settings";
 import * as info from "./i18n/info";
 import * as jam from "./i18n/jam";
 import * as remote from "./i18n/remote";
+import * as handoff from "./i18n/handoff";
 import * as views from "./i18n/views";
 import { i18n } from "./i18n/state.svelte";
 
@@ -35,6 +36,7 @@ const fr = {
   info: info.fr,
   jam: jam.fr,
   remote: remote.fr,
+  handoff: handoff.fr,
   views: views.fr,
 };
 
@@ -53,6 +55,7 @@ const en: Dict = {
   info: info.en,
   jam: jam.en,
   remote: remote.en,
+  handoff: handoff.en,
   views: views.en,
 };
 

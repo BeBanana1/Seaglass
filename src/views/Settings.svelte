@@ -36,6 +36,7 @@
   import { jam } from "../lib/stores/jam.svelte";
   import JamPanel from "../components/JamPanel.svelte";
   import RemotePanel from "../components/RemotePanel.svelte";
+  import LinkedComputerPanel from "../components/LinkedComputerPanel.svelte";
   import BlockedList from "../components/BlockedList.svelte";
   import CreditsRoll from "../components/CreditsRoll.svelte";
   import { playbackSettingsChanged } from "../lib/stores/palette.svelte";
@@ -824,6 +825,13 @@
       <h2>{t.remote.title}</h2>
       <p class="hint">{t.remote.hint}</p>
       <RemotePanel />
+    </div>
+    {:else}
+    <!-- #414 : ordinateur lié, pour reprendre ou rendre la lecture (Android). -->
+    <div class="group handoff">
+      <h2>{t.handoff.title}</h2>
+      <p class="hint">{t.handoff.hint}</p>
+      <LinkedComputerPanel />
     </div>
     {/if}
 

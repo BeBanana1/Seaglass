@@ -67,6 +67,7 @@ seaglass/
       ├─ player/             # actor.rs, queue.rs, state.rs
       ├─ mpv/                # engine.rs (moteur mpv), process.rs, ipc.rs, events.rs, serve.rs (MPD servis en HTTP local)
       ├─ store/              # SQLite (dont snapshots.rs : copies des listes)
+      ├─ handoff.rs          # transfert de la lecture avec l'ordinateur lié, côté téléphone (#414)
       ├─ foreign/            # liens d'autres services : Jam (#229, links.rs, meta.rs, matching.rs), import de playlists (#328, playlists.rs, import.rs)
       └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs, mpris/ (Linux), tray.rs, discord/ (présence Discord)
 ```

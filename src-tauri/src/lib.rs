@@ -8,6 +8,7 @@ mod engine;
 #[cfg(desktop)]
 mod export;
 mod foreign;
+mod handoff;
 mod i18n;
 mod integrations;
 mod jam;
@@ -276,6 +277,12 @@ pub fn run() {
             commands::remote::remote_status,
             commands::remote::start_remote,
             commands::remote::stop_remote,
+            commands::remote::set_handoff_accepted,
+            commands::handoff::linked_computer,
+            commands::handoff::link_computer,
+            commands::handoff::unlink_computer,
+            commands::handoff::handoff_pull,
+            commands::handoff::handoff_push,
             commands::remote::renew_remote_code,
             #[cfg(desktop)]
             commands::window::fullscreen,
