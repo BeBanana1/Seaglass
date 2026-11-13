@@ -155,6 +155,14 @@ export const ACTIONS: Action[] = [
     run: () => context.toggleQueue(),
   },
   {
+    id: "go.blindTest",
+    group: "go",
+    label: () => t.blindTest.inProgress,
+    keywords: ["blind", "test", "quiz", "jeu", "game"],
+    available: () => session() && player.state.blindTest,
+    run: () => open({ name: "blindTest" }),
+  },
+  {
     id: "go.back",
     group: "go",
     label: () => a().back,

@@ -46,10 +46,12 @@ impl Player {
     }
 
     /// Précharge le titre suivant à moins de 30 s de la fin (sauf repeat One : `loop-file`,
-    /// et minuteur « Fin du titre » : rien ne doit suivre en gapless).
+    /// et minuteur « Fin du titre » : rien ne doit suivre en gapless ; blind test : chaque
+    /// manche est chargée seule, #434).
     pub(super) fn maybe_preload(&mut self) {
         let remaining = self.state.duration - self.state.time_pos;
         if self.next_loaded.is_some()
+            || self.blind.is_some()
             || self.preloading
             || self.state.duration <= 0.0
             || remaining >= PRELOAD_BEFORE_END
@@ -252,6 +254,8 @@ impl Player {
         self.failures += 1;
         self.loaded = false;
         if self.failures >= MAX_FAILURES {
+            // Blind test (#434) : la partie s'arrête aussi, la file d'avant revient.
+            self.end_blind_test().await;
             self.failures = 0;
             self.toast_kind(
                 "error",
@@ -263,6 +267,9 @@ impl Player {
                 .into(),
             );
             self.engine_op(Op::Stop).await;
+            return;
+        }
+        if self.blind_track_failed().await {
             return;
         }
         if let Some(id) = self.queue.advance() {

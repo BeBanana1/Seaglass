@@ -6,6 +6,7 @@
   import Icon from "./Icon.svelte";
   import PinButton from "./PinButton.svelte";
   import FavoriteButton from "./FavoriteButton.svelte";
+  import BlindTestButton from "./BlindTestButton.svelte";
   import LaterButton from "./LaterButton.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
 
@@ -111,6 +112,7 @@
           </button>
         {/if}
         {#if pin}<PinButton {pin} />{/if}
+        <BlindTestButton {title} {trackIds} />
         {#if onEdit}
           <button class="secondary icon edit-playlist" onclick={onEdit} title={t.views.header.edit} aria-label={t.views.header.edit}>
             <Icon name="edit" size={18} />

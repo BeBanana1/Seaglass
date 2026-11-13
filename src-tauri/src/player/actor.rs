@@ -11,6 +11,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
+use super::blind::{self, BlindCmd, BlindTest};
 use super::handoff::Handoff;
 use super::listen::ListenTracker;
 use super::normalize::Normalizer;
@@ -114,6 +115,8 @@ pub enum Cmd {
     /// Branche les intégrations système (SMTC…), créées après l'acteur.
     /// En boîte : les poignées des intégrations alourdiraient toutes les commandes.
     AttachObservers(Box<Observers>),
+    /// Blind test (#434).
+    BlindTest(BlindCmd),
     /// Résultat d'une résolution réseau (métadonnées + flux) lancée par l'acteur.
     Resolved {
         request: u64,
@@ -214,6 +217,10 @@ pub(super) struct Player {
     pub(super) last_write: Option<tokio::task::JoinHandle<()>>,
     /// Temps réellement écouté du titre courant, pour l'historique local (#202).
     pub(super) listen: ListenTracker,
+    /// Partie de blind test en cours (#434), avec la file mise de côté.
+    pub(super) blind: Option<BlindTest>,
+    /// La partie a changé : `blind-test` part à la prochaine émission.
+    pub(super) blind_dirty: bool,
     observers: Observers,
 }
 
@@ -305,6 +312,8 @@ pub fn spawn(
             last_persist: Instant::now(),
             last_write: None,
             listen: ListenTracker::default(),
+            blind: None,
+            blind_dirty: false,
             observers: Observers::default(),
         };
         player.restore();
@@ -338,6 +347,10 @@ impl Player {
     }
 
     async fn handle_cmd(&mut self, cmd: Cmd) {
+        let cmd = match self.blind_route(cmd).await {
+            Some(cmd) => cmd,
+            None => return,
+        };
         match cmd {
             Cmd::PlayTracks {
                 ids,
@@ -358,37 +371,37 @@ impl Player {
                 }
             }
             Cmd::PlayNext(id) => {
-                self.queue.play_next(id);
+                self.main_queue_mut().play_next(id);
                 self.on_queue_changed().await;
             }
             Cmd::AddToQueue(id) => {
-                self.queue.add_to_queue(id);
+                self.main_queue_mut().add_to_queue(id);
                 self.on_queue_changed().await;
             }
             Cmd::Enqueue { ids, next } => {
                 if !ids.is_empty() {
-                    self.queue.enqueue(&ids, next);
+                    self.main_queue_mut().enqueue(&ids, next);
                     self.on_queue_changed().await;
                 }
             }
             Cmd::RemoveFromQueue(index) => {
-                let before = self.queue.clone();
-                if self.queue.remove_manual(index) {
+                let before = self.main_queue().clone();
+                if self.main_queue_mut().remove_manual(index) {
                     self.on_queue_changed().await;
                     self.undo_queue = Some(before);
                 }
             }
             Cmd::RemoveFromQueueIds(ids) => {
-                if self.queue.remove_manual_ids(&ids) > 0 {
+                if self.main_queue_mut().remove_manual_ids(&ids) > 0 {
                     self.on_queue_changed().await;
                 }
             }
             Cmd::MoveInQueue { from, to } => {
                 // Le préchargé est toujours `peek_next` : réordonner le milieu de la file ne
                 // le retire pas de mpv (gapless intact, pas de nouvelle résolution).
-                let next = self.queue.peek_next();
-                if self.queue.move_manual(from, to) {
-                    if self.queue.peek_next() == next {
+                let next = self.main_queue().peek_next();
+                if self.main_queue_mut().move_manual(from, to) {
+                    if self.main_queue().peek_next() == next {
                         self.mark_queue_dirty();
                     } else {
                         self.on_queue_changed().await;
@@ -396,8 +409,8 @@ impl Player {
                 }
             }
             Cmd::ClearQueue => {
-                let before = self.queue.clone();
-                if self.queue.clear_upcoming() {
+                let before = self.main_queue().clone();
+                if self.main_queue_mut().clear_upcoming() {
                     self.on_queue_changed().await;
                     self.undo_queue = Some(before);
                 }
@@ -419,16 +432,20 @@ impl Player {
             Cmd::SetPaused(paused) => self.set_paused(paused).await,
             Cmd::ResumeOnLaunch => self.resume_on_launch(),
             Cmd::AttachObservers(observers) => {
-                observers.notify(&self.state);
+                observers.notify(&blind::public_state(&self.state, self.masks_track()));
                 self.observers = *observers;
             }
             Cmd::Seek(secs) => self.seek(secs).await,
             Cmd::SetShuffle(on) => {
-                self.queue.set_shuffle(on, &mut self.rng);
+                let queue = match &mut self.blind {
+                    Some(b) => &mut b.saved,
+                    None => &mut self.queue,
+                };
+                queue.set_shuffle(on, &mut self.rng);
                 self.on_queue_changed().await;
             }
             Cmd::SetRepeat(repeat) => {
-                self.queue.set_repeat(repeat);
+                self.main_queue_mut().set_repeat(repeat);
                 self.apply_loop_file().await;
                 self.on_queue_changed().await;
             }
@@ -477,7 +494,8 @@ impl Player {
                 }
             }
             Cmd::GetState(reply) => {
-                let _ = reply.send(self.state.clone());
+                let state = blind::public_state(&self.state, self.masks_track());
+                let _ = reply.send(state.into_owned());
             }
             Cmd::Flush(reply) => self.flush(reply),
             Cmd::GetQueue(reply) => {
@@ -492,8 +510,9 @@ impl Player {
                 let _ = reply.send(applied);
             }
             Cmd::GetPlayOrder(limit, reply) => {
-                let _ = reply.send(self.queue.play_order(limit));
+                let _ = reply.send(self.main_queue().play_order(limit));
             }
+            Cmd::BlindTest(cmd) => self.blind_cmd(cmd).await,
             Cmd::GetAudioDevices(reply) => {
                 let _ = reply.send(self.output.devices());
             }
@@ -520,6 +539,7 @@ impl Player {
                 self.persist_position = true;
                 self.note_listen();
                 self.maybe_preload();
+                self.blind_on_position().await;
             }
             Event::Duration(d) if self.loaded => s.duration = d.unwrap_or(0.0),
             Event::Position(_) | Event::Duration(_) => {}
@@ -552,8 +572,8 @@ impl Player {
     /// toujours le même. Toute autre modification de la file l'a déjà oubliée.
     async fn restore_queue(&mut self) -> bool {
         match self.undo_queue.take() {
-            Some(before) if before.current() == self.queue.current() => {
-                self.queue = before;
+            Some(before) if before.current() == self.main_queue().current() => {
+                *self.main_queue_mut() = before;
                 self.on_queue_changed().await;
                 true
             }
@@ -573,17 +593,23 @@ impl Player {
     /// Protège de l'éviction du cache borné les titres de la file (#90) : `queue_view` et
     /// la sauvegarde les y relisent.
     pub(super) fn pin_queue_tracks(&self) {
-        self.tidal.cache.set_pinned(self.queue.referenced_ids());
+        let mut ids = self.queue.referenced_ids();
+        if let Some(blind) = &self.blind {
+            ids.extend(blind.saved.referenced_ids());
+        }
+        self.tidal.cache.set_pinned(ids);
     }
 
+    /// File de l'utilisateur, celle mise de côté pendant un blind test (#434).
     fn queue_view(&self) -> QueueView {
+        let queue = self.main_queue();
         QueueView {
-            manual: self.tidal.cache.get_many(self.queue.manual()),
+            manual: self.tidal.cache.get_many(queue.manual()),
             upcoming: self
                 .tidal
                 .cache
-                .get_many(self.queue.upcoming_context(UPCOMING_LIMIT)),
-            radio: self.queue.radio().and_then(|id| self.tidal.cache.get(id)),
+                .get_many(queue.upcoming_context(UPCOMING_LIMIT)),
+            radio: queue.radio().and_then(|id| self.tidal.cache.get(id)),
             source: self.play_source(),
         }
     }
@@ -591,44 +617,55 @@ impl Player {
     /// « Joué depuis » (#124) : la radio automatique si le titre courant en vient, sinon la
     /// source donnée avec le contexte.
     fn play_source(&self) -> Option<PlaySource> {
-        match self.queue.radio_playing() {
+        let queue = self.main_queue();
+        match queue.radio_playing() {
             Some(seed) => self.tidal.cache.get(seed).map(|track| PlaySource::Radio {
                 seed: RadioSeed::Track,
                 id: seed.0,
                 title: trf!("Radio de {}", "{} radio", track.title),
             }),
-            None => self.queue.source().cloned(),
+            None => queue.source().cloned(),
         }
     }
 
     fn emit(&mut self) {
+        let playing = self.blind.is_some();
+        let queue = self.main_queue();
+        let (shuffle, repeat) = (queue.shuffle(), queue.repeat());
         let s = &mut self.state;
-        s.shuffle = self.queue.shuffle();
-        s.repeat = self.queue.repeat();
-        s.has_previous = self.queue.has_previous();
-        s.has_next = self.queue.peek_next().is_some();
+        s.shuffle = shuffle;
+        s.repeat = repeat;
+        // Blind test : Précédent réécoute l'extrait, Suivant passe la manche.
+        s.has_previous = playing || self.queue.has_previous();
+        s.has_next = playing || self.queue.peek_next().is_some();
+        s.blind_test = playing;
         s.soundtrack = s
             .track
             .as_ref()
             .is_some_and(|t| crate::tidal::soundtracks::is_soundtrack(t.album.id));
 
+        if std::mem::take(&mut self.blind_dirty) {
+            self.emit_blind_test();
+        }
         if self.queue_dirty {
             self.queue_dirty = false;
             if let Err(e) = self.app.emit("queue-state", self.queue_view()) {
                 tracing::warn!("émission queue-state : {e}");
             }
         }
-        if self.state == self.emitted
-            || (self.emitted.differs_only_by_time(&self.state)
+        // Sans le titre tant qu'une manche de blind test n'est pas révélée (#434).
+        let state = blind::public_state(&self.state, self.masks_track());
+        if *state == self.emitted
+            || (self.emitted.differs_only_by_time(&state)
                 && self.last_emit.elapsed() < TIME_EMIT_INTERVAL)
         {
             return;
         }
-        if let Err(e) = self.app.emit("player-state", &self.state) {
+        if let Err(e) = self.app.emit("player-state", &*state) {
             tracing::warn!("émission player-state : {e}");
         }
-        self.observers.notify(&self.state);
-        self.emitted = self.state.clone();
+        self.observers.notify(&state);
+        self.emitted = state.into_owned();
         self.last_emit = Instant::now();
     }
 

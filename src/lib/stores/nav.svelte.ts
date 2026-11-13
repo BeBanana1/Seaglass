@@ -27,7 +27,9 @@ export type Route =
   | { name: "mix"; id: string }
   /** Playlist d'un autre service à importer (#328). */
   | { name: "import"; link: string }
-  | { name: "radio"; seed: RadioSeed; id: number };
+  | { name: "radio"; seed: RadioSeed; id: number }
+  /** Blind test (#434) : réglages, partie en cours ou score. */
+  | { name: "blindTest" };
 
 const MAX_HISTORY = 50;
 

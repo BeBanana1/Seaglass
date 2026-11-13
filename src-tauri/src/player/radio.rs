@@ -67,6 +67,10 @@ impl Player {
     /// Fin de file atteinte (dernier titre terminé, rien de préchargé) : la lecture
     /// reprendra à l'arrivée de la radio si elle est en route.
     pub(super) fn on_queue_end(&mut self) {
+        // Blind test (#434) : le titre révélé est allé au bout, la manche suivante attend.
+        if self.blind.is_some() {
+            return;
+        }
         self.maybe_request_radio();
         self.radio.waiting = self.radio.pending;
         // Sans radio en route, la file est vraiment terminée (carton « Fin », #399).

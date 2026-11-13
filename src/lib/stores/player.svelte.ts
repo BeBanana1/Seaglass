@@ -29,6 +29,7 @@ const initial: PlayerState = {
   mpvIssue: null,
   soundtrack: false,
   ended: false,
+  blindTest: false,
 };
 
 /** L'état est remplacé à chaque `player-state` (~4 Hz pendant la lecture) : `$state.raw`, sans

@@ -59,6 +59,9 @@ pub struct PlayerState {
     /// La file s'est arrêtée d'elle-même, rien ne suit (clin d'œil #399) ; remis à faux au
     /// chargement suivant. `idle` ne suffit pas : il vaut aussi au démarrage.
     pub ended: bool,
+    /// Partie de blind test en cours (#434) : sans `track` tant que la manche n'est pas
+    /// révélée.
+    pub blind_test: bool,
 }
 
 impl PlayerState {
