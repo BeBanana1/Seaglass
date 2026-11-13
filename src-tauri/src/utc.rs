@@ -34,7 +34,8 @@ impl Utc {
         }
     }
 
-    /// Maintenant (l'epoch si l'horloge est antérieure).
+    /// Maintenant (l'epoch si l'horloge est antérieure). Seul l'export (bureau) s'en sert.
+    #[cfg(desktop)]
     pub fn now() -> Self {
         let secs = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -53,6 +54,7 @@ impl Utc {
     }
 
     /// ISO 8601 : `AAAA-MM-JJThh:mm:ssZ`.
+    #[cfg(any(desktop, test))]
     pub fn iso(&self) -> String {
         format!("{}T{}Z", self.date(), self.time())
     }
