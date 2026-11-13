@@ -589,3 +589,38 @@ fn play_order_is_current_then_manual_then_context_capped() {
     assert_eq!(order, vec![1, 11, 10, 2]);
     assert_eq!(q.play_order(2).len(), 2);
 }
+
+#[test]
+fn at_end_ignores_repeat_all_and_waits_for_the_manual_queue() {
+    let mut q = Queue::default();
+    q.set_context(ids(0..3), 1, None, &mut rng());
+    q.set_repeat(Repeat::All);
+    assert!(!q.at_end());
+    q.advance();
+    assert!(
+        q.at_end(),
+        "dernier titre : le retour au début ne compte pas"
+    );
+    q.add_to_queue(TrackId(9));
+    assert!(!q.at_end(), "la file manuelle reste à lire");
+    assert_eq!(q.advance(), Some(TrackId(9)));
+    assert!(q.at_end());
+}
+
+#[test]
+fn at_end_follows_the_shuffled_order() {
+    let mut q = Queue::default();
+    q.set_shuffle(true, &mut rng());
+    q.set_context(ids(0..5), 2, None, &mut rng());
+    for _ in 0..4 {
+        assert!(!q.at_end());
+        q.advance();
+    }
+    assert!(q.at_end());
+    assert_eq!(q.peek_next(), None);
+}
+
+#[test]
+fn empty_queue_is_at_end() {
+    assert!(Queue::default().at_end());
+}

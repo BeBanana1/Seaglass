@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.67
+
+- Minuteur de mise en veille : pause à la fin de l'album, de la playlist ou de la file (#436).
+
 ## 0.5.66
 
 - Transfert de la lecture entre l'ordinateur et l'app Android : « Reprendre ici » et « Continuer sur l'ordinateur » depuis le téléphone, avec « Accepter les transferts » sur l'ordinateur (#414).

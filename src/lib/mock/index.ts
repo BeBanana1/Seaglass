@@ -14,7 +14,7 @@
 // `?trackinfo=1` (ouvre les infos du titre en cours), `?autoradio=1` (la suite de la file est
 // une radio automatique, réglage activé), `?long=5000` (playlist de démonstration et titres likés
 // remplacés par n titres synthétiques, 10 000 au plus), `?ticks=1` (`player-state` émis à 4 Hz
-// pendant la lecture, comme le vrai backend) : mesure des longues listes (#88), `?sleep=30|track`
+// pendant la lecture, comme le vrai backend) : mesure des longues listes (#88), `?sleep=30|track|context`
 // (minuteur de mise en veille actif), `?device=dac|missing` (périphérique de sortie choisi, branché ou
 // débranché), `?normalization=track|album` (normalisation du volume
 // active), `?exclusive=1` (mode exclusif WASAPI, #245), `?slow=<ms>` (ouverture d'une playlist ralentie : « Chargement… » après 300 ms,
@@ -156,9 +156,10 @@ const hiresOfferParam = params.get("hiresoffer");
 /** `?hirestwin=1` : la page album propose un album jumeau hi-res (#59). */
 const hiresTwin = params.has("hirestwin");
 
-/** `?sleep=30` (minuteur de 30 min) ou `?sleep=track` (fin du titre), #85. */
+/** `?sleep=30` (minuteur de 30 min), `?sleep=track` (fin du titre, #85) ou `?sleep=context` (fin de la file, #436). */
 function mockSleep(param: string | null): SleepState | null {
   if (param === "track") return { kind: "endOfTrack" };
+  if (param === "context") return { kind: "endOfContext" };
   const minutes = Number(param);
   return param && minutes > 0 ? { kind: "minutes", endsAt: Date.now() + minutes * 60_000 } : null;
 }
@@ -1266,7 +1267,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       ? null
       : req.kind === "minutes"
         ? { kind: "minutes", endsAt: Date.now() + req.minutes * 60_000 }
-        : { kind: "endOfTrack" };
+        : { kind: req.kind };
     emit("player-state", state);
   },
   restore_queue: () => {

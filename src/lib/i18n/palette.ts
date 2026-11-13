@@ -48,6 +48,11 @@ export const fr = {
     exclusiveOff: "Mode exclusif désactivé",
     sleepMinutes: (minutes: number) => `Minuteur : pause dans ${minutes} min`,
     sleepEndOfTrack: "Minuteur : pause à la fin du titre",
+    sleepEndOfContext: {
+      album: "Minuteur : pause à la fin de l'album",
+      playlist: "Minuteur : pause à la fin de la playlist",
+      queue: "Minuteur : pause à la fin de la file",
+    },
     sleepCancel: "Annuler le minuteur",
     miniPlayer: "Mini-lecteur",
     fullscreen: "Plein écran",
@@ -106,6 +111,11 @@ export const en: typeof fr = {
     exclusiveOff: "Exclusive mode off",
     sleepMinutes: (minutes: number) => `Sleep timer: pause in ${minutes} min`,
     sleepEndOfTrack: "Sleep timer: pause at the end of the track",
+    sleepEndOfContext: {
+      album: "Sleep timer: pause at the end of the album",
+      playlist: "Sleep timer: pause at the end of the playlist",
+      queue: "Sleep timer: pause at the end of the queue",
+    },
     sleepCancel: "Cancel the sleep timer",
     miniPlayer: "Mini player",
     fullscreen: "Full screen",
