@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.69
+
+- Transfert de la lecture et historique d'écoute aussi hors de chez vous : le téléphone joint l'ordinateur par le relais, chiffré de bout en bout (#430).
+
 ## 0.5.68
 
 - Historique d'écoute synchronisé entre l'ordinateur et l'app Android liée, sur le réseau local : statistiques, rétrospective et « Écoutés dans Seaglass » comptent les écoutes des deux (#430).

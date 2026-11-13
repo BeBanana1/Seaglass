@@ -62,6 +62,37 @@ pub enum ToHost {
     },
 }
 
+/// Tunnel d'appareil (#430, `GET /device`) : le PC d'un utilisateur, joignable par son
+/// téléphone lié. Les corps sont des paquets chiffrés de bout en bout, opaques ici.
+///
+/// 1. Le PC envoie `hello` avec l'identifiant et le secret qu'il a tirés lui-même.
+/// 2. Le relais répond `ready`, ou `error` (identifiant pris, relais plein).
+/// 3. Chaque `POST /d/<id>` du téléphone arrive en `request` ; le PC répond `response`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum FromDevice {
+    Hello { id: String, secret: String },
+    Response { rid: u64, status: u16, body: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum ToDevice {
+    Ready {
+        /// `https://<relais>/d/<id>` : l'adresse que le téléphone appelle.
+        url: String,
+    },
+    Request {
+        rid: u64,
+        /// Adresse du téléphone, pour les limites du PC.
+        client: String,
+        body: String,
+    },
+    Error {
+        message: String,
+    },
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -3,7 +3,9 @@
 
 export const fr = {
   title: "Ordinateur lié",
-  hint: "Reprenez sur le téléphone ce qui joue sur l'ordinateur, ou l'inverse. Sur le même Wi-Fi, avec Seaglass ouvert sur l'ordinateur et « Accepter les transferts » activé (Réglages › Application › Télécommande).",
+  hint: "Reprenez sur le téléphone ce qui joue sur l'ordinateur, ou l'inverse, avec Seaglass ouvert sur l'ordinateur et « Accepter les transferts » activé (Réglages › Application › Télécommande). Liez-les sur le même Wi-Fi ; ensuite, ça marche aussi hors de chez vous.",
+  online: "Joignable aussi hors de chez vous, par le relais (chiffré de bout en bout).",
+  lanOnly: "Sur le même réseau seulement pour l'instant : le chemin en ligne sera appris à la prochaine synchro sur place.",
   linkLabel: "Adresse de l'ordinateur",
   linkPlaceholder: "192.168.1.20:47801 XXXX-XXXX-XXXX",
   linkHint: "Tapez l'adresse et le code affichés sur l'ordinateur (Réglages › Application › Télécommande), séparés par un espace, ou collez l'adresse copiée là-bas.",
@@ -29,7 +31,9 @@ export const fr = {
 
 export const en: typeof fr = {
   title: "Linked computer",
-  hint: "Resume on the phone what plays on the computer, or the other way round. Same Wi-Fi, with Seaglass open on the computer and “Accept transfers” turned on (Settings › App › Remote).",
+  hint: "Resume on the phone what plays on the computer, or the other way round, with Seaglass open on the computer and “Accept transfers” turned on (Settings › App › Remote). Link them on the same Wi-Fi; after that, it also works away from home.",
+  online: "Also reachable away from home, through the relay (end-to-end encrypted).",
+  lanOnly: "Same network only for now: the online route will be learned at the next sync at home.",
   linkLabel: "Computer address",
   linkPlaceholder: "192.168.1.20:47801 XXXX-XXXX-XXXX",
   linkHint: "Type the address and code shown on the computer (Settings › App › Remote), separated by a space, or paste the address copied there.",

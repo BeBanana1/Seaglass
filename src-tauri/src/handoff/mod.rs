@@ -10,24 +10,38 @@
 //! et gardé dans le gestionnaire de secrets (Keystore sur Android) : le code donne le
 //! contrôle de la lecture du PC.
 //!
-//! Le même lien sert à synchroniser l'historique d'écoute (`history`, #430).
+//! Le même lien sert à synchroniser l'historique d'écoute (`history`, #430). Hors du réseau
+//! local, les deux passent par le relais, chiffrés de bout en bout (`sealed`) : l'adresse
+//! en ligne et la clé sont apprises du PC sur le réseau local et gardées avec le lien.
 
 pub mod history;
+pub mod sealed;
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot};
 
 use crate::i18n::{tr, trf};
-use crate::jam::remote::is_code;
+use crate::jam::remote::{RelayRoute, is_code};
 use crate::player::{Cmd, Handoff};
 
 const KEYRING_SERVICE: &str = "seaglass";
 const KEYRING_USER: &str = "handoff-link";
+/// Adresse en ligne et clé du tunnel (#430), JSON de `RelayRoute`.
+const KEYRING_RELAY: &str = "handoff-relay";
 /// Réseau local : au-delà, le PC est éteint ou ailleurs.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(4);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
+/// Par le relais : réseau mobile, et le relais attend le PC jusqu'à 30 s.
+const RELAY_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const RELAY_TIMEOUT: Duration = Duration::from_secs(45);
+
+/// Le dernier appel n'a trouvé le PC que par le relais : les suivants y passent d'abord
+/// (sinon chaque appel attendrait 4 s le réseau local), jusqu'au prochain lancement ou
+/// jusqu'à ce que le relais ne réponde plus.
+static PREFER_RELAY: AtomicBool = AtomicBool::new(false);
 
 /// Ordinateur lié : adresse de sa télécommande et code de propriétaire.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +49,8 @@ pub struct Link {
     /// `http://hôte:port/`.
     base: String,
     code: String,
+    /// Chemin par le relais (#430), appris sur le réseau local.
+    relay: Option<RelayRoute>,
 }
 
 /// Ce que l'UI montre de l'ordinateur lié (jamais le code).
@@ -45,6 +61,8 @@ pub struct LinkInfo {
     pub host: String,
     /// Dernière synchro réussie de l'historique (ms, #430).
     pub synced_at: Option<i64>,
+    /// Joignable aussi par le relais, hors du réseau local (#430).
+    pub online: bool,
 }
 
 impl Link {
@@ -83,7 +101,11 @@ impl Link {
             Some(port) => format!("http://{host}:{port}/"),
             None => format!("http://{host}/"),
         };
-        Some(Self { base, code })
+        Some(Self {
+            base,
+            code,
+            relay: None,
+        })
     }
 
     pub fn info(&self) -> LinkInfo {
@@ -95,6 +117,7 @@ impl Link {
         LinkInfo {
             host,
             synced_at: None,
+            online: self.relay.is_some(),
         }
     }
 
@@ -136,13 +159,75 @@ impl Link {
         })
     }
 
+    /// Chemin par le relais connu du téléphone.
+    pub fn relay(&self) -> Option<&RelayRoute> {
+        self.relay.as_ref()
+    }
+
+    pub fn with_relay(self, relay: Option<RelayRoute>) -> Self {
+        Self { relay, ..self }
+    }
+
+    /// Demande au PC, **sur le réseau local seulement**, de quoi le joindre par le relais
+    /// (#430). `None` s'il n'a pas de tunnel ouvert (pas de clé de relais, relais pas à
+    /// jour) ou s'il est trop ancien.
+    pub async fn fetch_relay(&self) -> Result<Option<RelayRoute>, String> {
+        let (status, body) = self
+            .post_lan("api/relay", None)
+            .await
+            .map_err(|_| unreachable_pc())?;
+        match status {
+            200 => Ok(serde_json::from_slice::<RelayRoute>(&body)
+                .ok()
+                .filter(|r| sealed::TunnelKey::parse(&r.key).is_some())),
+            404 => Ok(None),
+            _ => Err(refused(status, &body)),
+        }
+    }
+
+    /// Réseau local, puis relais s'il est connu (ou l'inverse si le dernier appel n'a
+    /// abouti que par le relais).
     async fn post(&self, path: &str, body: Option<Vec<u8>>) -> Result<Vec<u8>, String> {
+        let answer = match &self.relay {
+            None => self.post_lan(path, body).await,
+            Some(route) if PREFER_RELAY.load(Ordering::Relaxed) => {
+                match self.post_relay(route, path, body.as_deref()).await {
+                    Err(Unreachable) => self.post_lan(path, body).await.inspect(|_| {
+                        PREFER_RELAY.store(false, Ordering::Relaxed);
+                    }),
+                    answer => answer,
+                }
+            }
+            Some(route) => match self.post_lan(path, body.clone()).await {
+                Err(Unreachable) => {
+                    let answer = self.post_relay(route, path, body.as_deref()).await;
+                    if answer.is_ok() {
+                        tracing::info!("Transfert : ordinateur joint par le relais");
+                        PREFER_RELAY.store(true, Ordering::Relaxed);
+                    }
+                    answer
+                }
+                answer => answer,
+            },
+        };
+        let (status, body) = answer.map_err(|_| unreachable_pc())?;
+        if status == 200 {
+            return Ok(body);
+        }
+        Err(refused(status, &body))
+    }
+
+    async fn post_lan(
+        &self,
+        path: &str,
+        body: Option<Vec<u8>>,
+    ) -> Result<(u16, Vec<u8>), Unreachable> {
         let client = reqwest::Client::builder()
             .connect_timeout(CONNECT_TIMEOUT)
             .timeout(REQUEST_TIMEOUT)
             .no_proxy()
             .build()
-            .map_err(|e| e.to_string())?;
+            .map_err(|_| Unreachable)?;
         let mut request = client
             .post(format!("{}{path}", self.base))
             .header("X-Jam-Code", &self.code);
@@ -152,20 +237,77 @@ impl Link {
                 .body(body);
         }
         let response = request.send().await.map_err(|e| {
-            tracing::info!("Transfert : PC injoignable ({e})");
-            unreachable_pc()
+            tracing::info!("Transfert : PC injoignable sur le réseau local ({e})");
+            Unreachable
         })?;
         let status = response.status().as_u16();
-        let body = response.bytes().await.map_err(|_| unreachable_pc())?;
-        if status == 200 {
-            return Ok(body.to_vec());
-        }
-        let kind = serde_json::from_slice::<ErrorBody>(&body)
-            .map(|b| b.error)
-            .unwrap_or_default();
-        tracing::info!("Transfert : refus du PC ({status} {kind})");
-        Err(refusal(status, &kind))
+        let body = response.bytes().await.map_err(|_| Unreachable)?;
+        Ok((status, body.to_vec()))
     }
+
+    /// Même appel, chiffré, par le tunnel du PC sur le relais.
+    async fn post_relay(
+        &self,
+        route: &RelayRoute,
+        path: &str,
+        body: Option<&[u8]>,
+    ) -> Result<(u16, Vec<u8>), Unreachable> {
+        let key = sealed::TunnelKey::parse(&route.key).ok_or(Unreachable)?;
+        let tunnel = route.url.rsplit('/').next().unwrap_or_default();
+        let request = sealed::Request {
+            at: history::now_ms(),
+            path: format!("/{path}"),
+            code: self.code.clone(),
+            body: String::from_utf8_lossy(body.unwrap_or_default()).into_owned(),
+        };
+        let (packet, nonce) = sealed::seal_request(&key, tunnel, &request);
+        let client = reqwest::Client::builder()
+            .connect_timeout(RELAY_CONNECT_TIMEOUT)
+            .timeout(RELAY_TIMEOUT)
+            .build()
+            .map_err(|_| Unreachable)?;
+        let response = client
+            .post(&route.url)
+            .header("Content-Type", "text/plain")
+            .body(packet)
+            .send()
+            .await
+            .map_err(|e| {
+                tracing::info!("Transfert : relais injoignable ({e})");
+                Unreachable
+            })?;
+        let status = response.status().as_u16();
+        let text = response.text().await.map_err(|_| Unreachable)?;
+        match status {
+            200 => {
+                let answer =
+                    sealed::open_response(&key, tunnel, &nonce, &text).ok_or_else(|| {
+                        tracing::warn!("Transfert : réponse du relais illisible");
+                        Unreachable
+                    })?;
+                Ok((answer.status, answer.body.into_bytes()))
+            }
+            // Clé refusée par le PC (« Nouveau code ») : même effet qu'un code refusé.
+            403 => Ok((401, br#"{"error":"code"}"#.to_vec())),
+            _ => {
+                tracing::info!("Transfert : PC absent du relais ({status})");
+                Err(Unreachable)
+            }
+        }
+    }
+}
+
+/// Ni le réseau local ni le relais n'ont atteint le PC.
+#[derive(Debug)]
+struct Unreachable;
+
+/// Message d'une réponse d'erreur du PC.
+fn refused(status: u16, body: &[u8]) -> String {
+    let kind = serde_json::from_slice::<ErrorBody>(body)
+        .map(|b| b.error)
+        .unwrap_or_default();
+    tracing::info!("Transfert : refus du PC ({status} {kind})");
+    refusal(status, &kind)
 }
 
 #[derive(Deserialize)]
@@ -176,8 +318,8 @@ struct ErrorBody {
 
 fn unreachable_pc() -> String {
     tr(
-        "ordinateur injoignable : il doit être allumé, Seaglass ouvert, sur le même réseau",
-        "computer unreachable: it must be on, with Seaglass open, on the same network",
+        "ordinateur injoignable : il doit être allumé avec Seaglass ouvert (et sur le même réseau tant qu'il n'y a pas été joint une fois)",
+        "computer unreachable: it must be on with Seaglass open (and on the same network until it has been reached there once)",
     )
     .to_owned()
 }
@@ -216,10 +358,41 @@ fn keyring_entry() -> Result<keyring::Entry, String> {
 
 /// Ordinateur lié, `None` s'il n'y en a pas (ou si le lien gardé est abîmé).
 pub async fn load() -> Result<Option<Link>, String> {
-    blocking(|| match keyring_entry()?.get_password() {
-        Ok(stored) => Ok(Link::parse(&stored)),
-        Err(keyring::Error::NoEntry) => Ok(None),
-        Err(e) => Err(e.to_string()),
+    blocking(|| {
+        let link = match keyring_entry()?.get_password() {
+            Ok(stored) => Link::parse(&stored),
+            Err(keyring::Error::NoEntry) => None,
+            Err(e) => return Err(e.to_string()),
+        };
+        let Some(link) = link else { return Ok(None) };
+        // Chemin par le relais abîmé ou absent : le lien reste, sans lui.
+        let relay = relay_entry()?
+            .get_password()
+            .ok()
+            .and_then(|json| serde_json::from_str::<RelayRoute>(&json).ok());
+        Ok(Some(link.with_relay(relay)))
+    })
+    .await
+}
+
+fn relay_entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(KEYRING_SERVICE, KEYRING_RELAY).map_err(|e| e.to_string())
+}
+
+/// Garde (ou oublie) le chemin par le relais de l'ordinateur lié.
+pub async fn save_relay(route: Option<RelayRoute>) -> Result<(), String> {
+    blocking(move || {
+        let entry = relay_entry()?;
+        match route {
+            Some(route) => {
+                let json = serde_json::to_string(&route).map_err(|e| e.to_string())?;
+                entry.set_password(&json).map_err(|e| e.to_string())
+            }
+            None => match entry.delete_credential() {
+                Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+                Err(e) => Err(e.to_string()),
+            },
+        }
     })
     .await
 }
@@ -235,6 +408,8 @@ pub async fn save(link: &Link) -> Result<(), String> {
 }
 
 pub async fn clear() -> Result<(), String> {
+    save_relay(None).await?;
+    PREFER_RELAY.store(false, Ordering::Relaxed);
     blocking(|| match keyring_entry()?.delete_credential() {
         Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
         Err(e) => Err(e.to_string()),

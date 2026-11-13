@@ -43,8 +43,14 @@ pub async fn link_computer(app: AppHandle, link: String) -> CmdResult<LinkInfo> 
     })?;
     link.check().await?;
     handoff::save(&link).await?;
+    // Chemin par le relais (#430), appris ici sur le réseau local.
+    let route = link.fetch_relay().await.unwrap_or_else(|e| {
+        tracing::info!("Ordinateur lié sans chemin par le relais ({e})");
+        None
+    });
+    handoff::save_relay(route.clone()).await?;
     handoff::history::spawn(&app, None);
-    Ok(link.info())
+    Ok(link.with_relay(route).info())
 }
 
 /// Oublie l'ordinateur lié.

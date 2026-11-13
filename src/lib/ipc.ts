@@ -817,6 +817,8 @@ export interface LinkedComputer {
   host: string;
   /** Dernière synchro réussie de l'historique d'écoute (ms, #430). */
   syncedAt: number | null;
+  /** Joignable aussi hors du réseau local, par le relais (#430). */
+  online: boolean;
 }
 
 /** Jam (#25) : adresse et code à donner aux invités. */

@@ -701,8 +701,10 @@ const mockRemote = () => ({
 });
 let remote: ReturnType<typeof mockRemote> | null = remoteOn || handoffOn ? mockRemote() : null;
 const remoteUpdate = () => (remote = remoteOn || handoffOn ? mockRemote() : null);
-let linkedComputer: { host: string; syncedAt: number | null } | null =
-  params.get("linked") === "1" ? { host: "192.168.1.20:47801", syncedAt: Date.now() - 3_600_000 } : null;
+let linkedComputer: { host: string; syncedAt: number | null; online: boolean } | null =
+  params.get("linked") === "1"
+    ? { host: "192.168.1.20:47801", syncedAt: Date.now() - 3_600_000, online: true }
+    : null;
 
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   auth_status: () => {
@@ -855,7 +857,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   link_computer: ({ link }) => {
     const m = /^\s*(?:http:\/\/)?([^/#\s]+)\/?[#\s]/.exec(String(link));
     if (!m) throw new Error("adresse non reconnue : copiez-la depuis Réglages › Application › Télécommande sur l'ordinateur");
-    return (linkedComputer = { host: m[1], syncedAt: null });
+    return (linkedComputer = { host: m[1], syncedAt: null, online: true });
   },
   unlink_computer: () => void (linkedComputer = null),
   handoff_pull: () => undefined,

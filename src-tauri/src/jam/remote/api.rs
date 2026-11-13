@@ -105,6 +105,9 @@ pub struct Owner {
     handoff: AtomicBool,
     /// Relire l'état sans attendre (après une commande, nouvelle page).
     pub refresh: Notify,
+    /// Adresse en ligne et clé du tunnel du relais (#430), données au téléphone lié sur
+    /// le réseau local ; `None` tant que le tunnel n'est pas ouvert.
+    relay: Mutex<Option<super::tunnel::RelayRoute>>,
 }
 
 impl Owner {
@@ -115,6 +118,7 @@ impl Owner {
             remote: AtomicBool::new(true),
             handoff: AtomicBool::new(false),
             refresh: Notify::new(),
+            relay: Mutex::new(None),
         }
     }
 
@@ -130,6 +134,27 @@ impl Owner {
 
     pub fn handoff_enabled(&self) -> bool {
         self.handoff.load(Ordering::Relaxed)
+    }
+
+    pub fn set_relay(&self, route: Option<super::tunnel::RelayRoute>) {
+        if let Ok(mut relay) = self.relay.lock() {
+            *relay = route;
+        }
+    }
+
+    /// `POST api/relay` (#430) : de quoi joindre ce PC par le relais, chiffré. Jamais servi
+    /// par le tunnel lui-même ; 404 `relay` si le tunnel n'est pas ouvert.
+    fn relay_route(&self) -> Response {
+        if !self.handoff_enabled() {
+            return Response::error(403, "handoff");
+        }
+        match self.relay.lock().ok().and_then(|r| r.clone()) {
+            Some(route) => match serde_json::to_string(&route) {
+                Ok(json) => Response::new(200, "application/json", json),
+                Err(e) => backend_error(&e.to_string()),
+            },
+            None => Response::error(404, "relay"),
+        }
     }
 
     /// Nouveau code : les pages ouvertes avec l'ancien sont refusées dès leur prochain appel.
@@ -189,6 +214,9 @@ impl Owner {
         }
         if path == "/api/join" {
             return ok();
+        }
+        if path == "/api/relay" {
+            return self.relay_route();
         }
         if let Some(response) = handoff::route(self, path, body, ip, remote).await {
             return response;

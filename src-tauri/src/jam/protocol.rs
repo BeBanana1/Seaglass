@@ -54,6 +54,33 @@ pub enum ToHost {
     },
 }
 
+/// Tunnel d'appareil (#430, `GET /device`) : le PC joignable par son téléphone lié hors du
+/// réseau local. Les corps sont des paquets chiffrés de bout en bout (`handoff::sealed`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum FromDevice {
+    Hello { id: String, secret: String },
+    Response { rid: u64, status: u16, body: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum ToDevice {
+    Ready {
+        /// `https://<relais>/d/<id>` : l'adresse que le téléphone appelle.
+        url: String,
+    },
+    Request {
+        rid: u64,
+        /// Adresse du téléphone, pour les limites du PC.
+        client: String,
+        body: String,
+    },
+    Error {
+        message: String,
+    },
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -76,5 +103,22 @@ mod tests {
         })
         .unwrap();
         assert_eq!(ready["type"], "ready");
+    }
+
+    #[test]
+    fn device_messages_match_the_relay() {
+        let hello = serde_json::to_value(FromDevice::Hello {
+            id: "i".into(),
+            secret: "s".into(),
+        })
+        .unwrap();
+        assert_eq!(
+            hello,
+            serde_json::json!({"type": "hello", "id": "i", "secret": "s"})
+        );
+        let request: ToDevice =
+            serde_json::from_str(r#"{"type":"request","rid":3,"client":"1.2.3.4","body":"x"}"#)
+                .unwrap();
+        assert!(matches!(request, ToDevice::Request { rid: 3, .. }));
     }
 }

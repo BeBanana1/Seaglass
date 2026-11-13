@@ -5,7 +5,12 @@
 //! `/j/<id>/` (page servie ici, la même que la Jam locale) et leurs appels de l'API sont
 //! transmis à l'hôte, qui seul parle à TIDAL et au lecteur. Le relais ne voit passer que
 //! des titres, des prénoms et le code de la Jam ; jamais de jeton TIDAL ni de flux audio.
+//!
+//! Il relie aussi un PC à son téléphone lié (#430, `/device` et `/d/<id>`) : transfert de
+//! la lecture et historique d'écoute, chiffrés de bout en bout, illisibles ici.
 
+mod device;
+pub mod devices;
 mod guest;
 mod host;
 pub mod jams;
@@ -22,6 +27,7 @@ use axum::http::HeaderMap;
 use axum::routing::{get, post};
 use tokio::net::TcpListener;
 
+use devices::Devices;
 use jams::Registry;
 use limits::Rate;
 
@@ -29,6 +35,11 @@ use limits::Rate;
 const MAX_BODY: usize = 2 * 1024;
 /// Message de l'hôte (état de 20 titres, réponse de 30 résultats).
 const MAX_HOST_MESSAGE: usize = 256 * 1024;
+/// Paquet chiffré du téléphone vers son PC (lot d'historique, file transférée : 4 Mio au
+/// plus en clair, base64 compris).
+const MAX_DEVICE_BODY: usize = 8 * 1024 * 1024;
+/// Message d'un PC (réponse chiffrée, enveloppe JSON comprise).
+const MAX_DEVICE_MESSAGE: usize = 12 * 1024 * 1024;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -54,6 +65,12 @@ pub struct Config {
     pub requests_per_minute: usize,
     /// Pages ouvertes par Jam.
     pub max_streams: usize,
+    /// PC connectés en même temps (#430).
+    pub max_devices: usize,
+    /// Dont ceux d'une même adresse.
+    pub max_devices_per_address: usize,
+    /// Appels des téléphones par adresse et par minute.
+    pub device_calls_per_minute: usize,
 }
 
 impl Config {
@@ -69,6 +86,9 @@ impl Config {
             creations_per_hour: 10,
             requests_per_minute: 300,
             max_streams: 64,
+            max_devices: 200,
+            max_devices_per_address: 3,
+            device_calls_per_minute: 120,
         }
     }
 }
@@ -76,8 +96,10 @@ impl Config {
 pub(crate) struct Relay {
     config: Config,
     jams: Registry,
+    devices: Devices,
     creations: Mutex<Rate>,
     requests: Mutex<Rate>,
+    device_calls: Mutex<Rate>,
 }
 
 impl Relay {
@@ -115,7 +137,12 @@ pub async fn serve(listener: TcpListener, config: Config) -> std::io::Result<()>
             config.requests_per_minute,
             Duration::from_secs(60),
         )),
+        device_calls: Mutex::new(Rate::new(
+            config.device_calls_per_minute,
+            Duration::from_secs(60),
+        )),
         jams: Registry::default(),
+        devices: Devices::default(),
         config,
     });
     tokio::spawn(sweeper(Arc::clone(&relay)));
@@ -128,6 +155,11 @@ pub async fn serve(listener: TcpListener, config: Config) -> std::io::Result<()>
         .route("/j/{id}/jam.css", get(guest::style))
         .route("/j/{id}/api/events", get(guest::events))
         .route("/j/{id}/api/{call}", post(guest::api))
+        .route("/device", get(device::connect))
+        .route(
+            "/d/{id}",
+            post(device::call).layer(DefaultBodyLimit::max(MAX_DEVICE_BODY)),
+        )
         .layer(DefaultBodyLimit::max(MAX_BODY))
         .with_state(relay);
     axum::serve(
@@ -145,7 +177,7 @@ async fn sweeper(relay: Arc<Relay>) {
         relay
             .jams
             .sweep(now, relay.config.lifetime, relay.config.grace);
-        for rate in [&relay.creations, &relay.requests] {
+        for rate in [&relay.creations, &relay.requests, &relay.device_calls] {
             rate.lock().unwrap_or_else(|e| e.into_inner()).prune(now);
         }
     }
