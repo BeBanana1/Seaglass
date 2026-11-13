@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.65
+
+- Windows : la télécommande et la Jam sur le réseau local donnent l'adresse du réseau local, et non plus celle du VPN quand un VPN est actif (#425).
+
 ## 0.5.64
 
 - Rétrospective du mois et de l'année, ouverte depuis les statistiques : temps d'écoute, jours d'écoute, titre et artiste de la période, découvertes, jour et heure d'écoute préférés, classements (#417).
