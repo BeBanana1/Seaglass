@@ -67,7 +67,7 @@ export const fr = {
     albums: "Albums",
     artists: "Artistes",
     empty: "Aucune écoute sur cette période. Un titre compte une fois joué à moitié (ou 4 minutes).",
-    note: "Calculées sur cet appareil, à partir de son historique d'écoute : rien n'est envoyé ailleurs. Elles sont effacées avec l'historique (déconnexion, Réglages › Application).",
+    note: "Calculées sur cet appareil, à partir de l'historique d'écoute de Seaglass (avec celui de l'appareil lié, s'il y en a un) : rien n'est envoyé à TIDAL. Elles sont effacées avec l'historique (déconnexion, Réglages › Application).",
   },
 
   // Rétrospective du mois et de l'année (#417).
@@ -94,7 +94,7 @@ export const fr = {
     topHour: (hour: number) => `Vers ${hour} h`,
     hoursLabel: "Écoutes par heure",
     weekdaysLabel: "Écoutes par jour de la semaine",
-    empty: "Pas encore de rétrospective : elle se remplit avec l'historique d'écoute de cet appareil.",
+    empty: "Pas encore de rétrospective : elle se remplit avec l'historique d'écoute de Seaglass.",
     note: "Calculée sur cet appareil, en heure locale. Les découvertes sont les artistes et titres jamais écoutés avant dans Seaglass.",
   },
 
@@ -197,7 +197,7 @@ export const en: typeof fr = {
     albums: "Albums",
     artists: "Artists",
     empty: "No plays in this period. A track counts once half of it (or 4 minutes) has played.",
-    note: "Computed on this device from its listening history: nothing is sent anywhere. They are cleared along with the history (sign-out, Settings › App).",
+    note: "Computed on this device from Seaglass's listening history (including the linked device's, if any): nothing is sent to TIDAL. They are cleared along with the history (sign-out, Settings › App).",
   },
 
   recap: {
@@ -223,7 +223,7 @@ export const en: typeof fr = {
     topHour: (hour: number) => `Around ${hour}:00`,
     hoursLabel: "Plays by hour",
     weekdaysLabel: "Plays by day of the week",
-    empty: "No recap yet: it fills up with this device's listening history.",
+    empty: "No recap yet: it fills up with Seaglass's listening history.",
     note: "Computed on this device, in local time. Discoveries are artists and tracks never played before in Seaglass.",
   },
 

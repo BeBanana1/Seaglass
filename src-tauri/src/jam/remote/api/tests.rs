@@ -22,6 +22,15 @@ struct FakeRemote {
     commands: Mutex<Vec<Command>>,
     /// Transferts reçus (`give`).
     given: Mutex<Vec<Handoff>>,
+    /// Historique d'écoute du PC (#430), en mémoire.
+    history: std::sync::OnceLock<Arc<crate::store::Store>>,
+}
+
+impl FakeRemote {
+    fn history(&self) -> &Arc<crate::store::Store> {
+        self.history
+            .get_or_init(|| Arc::new(crate::store::Store::in_memory().unwrap()))
+    }
 }
 
 impl Remote for FakeRemote {
@@ -95,6 +104,12 @@ impl Remote for FakeRemote {
     async fn give_handoff(&self, handoff: Handoff) -> Result<bool, String> {
         self.given.lock().unwrap().push(handoff);
         Ok(true)
+    }
+
+    async fn sync_plays(&self, request: SyncRequest) -> Result<SyncResponse, String> {
+        crate::handoff::history::answer(self.history(), &request)
+            .map(|(response, _)| response)
+            .map_err(|e| e.to_string())
     }
 }
 
@@ -377,3 +392,4 @@ async fn remote_page_preview() {
 }
 
 mod handoff;
+mod history;

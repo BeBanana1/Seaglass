@@ -9,6 +9,10 @@
 //! Le lien (adresse et code de la télécommande, `http://…:47801/#CODE`) est collé une fois
 //! et gardé dans le gestionnaire de secrets (Keystore sur Android) : le code donne le
 //! contrôle de la lecture du PC.
+//!
+//! Le même lien sert à synchroniser l'historique d'écoute (`history`, #430).
+
+pub mod history;
 
 use std::time::Duration;
 
@@ -39,6 +43,8 @@ pub struct Link {
 pub struct LinkInfo {
     /// `192.168.1.105:47801`.
     pub host: String,
+    /// Dernière synchro réussie de l'historique (ms, #430).
+    pub synced_at: Option<i64>,
 }
 
 impl Link {
@@ -86,7 +92,10 @@ impl Link {
             .trim_start_matches("http://")
             .trim_end_matches('/')
             .to_owned();
-        LinkInfo { host }
+        LinkInfo {
+            host,
+            synced_at: None,
+        }
     }
 
     /// Forme gardée dans le gestionnaire de secrets.
@@ -112,6 +121,19 @@ impl Link {
     pub async fn give(&self, handoff: &Handoff) -> Result<(), String> {
         let body = serde_json::to_vec(handoff).map_err(|e| e.to_string())?;
         self.post("api/handoff/give", Some(body)).await.map(drop)
+    }
+
+    /// Un échange de l'historique d'écoute (#430).
+    pub async fn sync_plays(
+        &self,
+        request: &history::SyncRequest,
+    ) -> Result<history::SyncResponse, String> {
+        let body = serde_json::to_vec(request).map_err(|e| e.to_string())?;
+        let body = self.post("api/plays/sync", Some(body)).await?;
+        serde_json::from_slice(&body).map_err(|e| {
+            tracing::warn!("Historique : réponse illisible ({e})");
+            unreachable_pc()
+        })
     }
 
     async fn post(&self, path: &str, body: Option<Vec<u8>>) -> Result<Vec<u8>, String> {

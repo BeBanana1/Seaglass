@@ -1,7 +1,7 @@
 //! Ordinateur lié et transfert de la lecture (#414), côté téléphone : lier en collant
 //! l'adresse de la télécommande du PC, « Reprendre ici », « Continuer sur le PC ».
 
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use super::{AppState, CmdResult};
 use crate::handoff::{self, Link, LinkInfo};
@@ -15,14 +15,25 @@ async fn linked() -> CmdResult<Link> {
 
 /// Ordinateur lié, ou `null`.
 #[tauri::command]
-pub async fn linked_computer() -> CmdResult<Option<LinkInfo>> {
-    Ok(handoff::load().await?.map(|link| link.info()))
+pub async fn linked_computer(state: State<'_, AppState>) -> CmdResult<Option<LinkInfo>> {
+    let Some(link) = handoff::load().await? else {
+        return Ok(None);
+    };
+    let synced_at = state
+        .store
+        .as_ref()
+        .and_then(|s| s.sync_state().ok())
+        .and_then(|s| s.synced_at);
+    Ok(Some(LinkInfo {
+        synced_at,
+        ..link.info()
+    }))
 }
 
 /// Lie l'ordinateur dont `link` est l'adresse de la télécommande (avec son code après
 /// `#`) : vérifié auprès du PC avant d'être gardé.
 #[tauri::command]
-pub async fn link_computer(link: String) -> CmdResult<LinkInfo> {
+pub async fn link_computer(app: AppHandle, link: String) -> CmdResult<LinkInfo> {
     let link = Link::parse(&link).ok_or_else(|| {
         tr(
             "adresse non reconnue : copiez-la depuis Réglages › Application › Télécommande sur l'ordinateur",
@@ -32,6 +43,7 @@ pub async fn link_computer(link: String) -> CmdResult<LinkInfo> {
     })?;
     link.check().await?;
     handoff::save(&link).await?;
+    handoff::history::spawn(&app, None);
     Ok(link.info())
 }
 
@@ -43,12 +55,24 @@ pub async fn unlink_computer() -> CmdResult<()> {
 
 /// « Reprendre ici » : la lecture de l'ordinateur lié passe sur cet appareil.
 #[tauri::command]
-pub async fn handoff_pull(state: State<'_, AppState>) -> CmdResult<()> {
-    handoff::pull(&linked().await?, &state.player).await
+pub async fn handoff_pull(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    handoff::pull(&linked().await?, &state.player).await?;
+    handoff::history::spawn(&app, None);
+    Ok(())
 }
 
 /// « Continuer sur l'ordinateur » : la lecture d'ici passe sur l'ordinateur lié.
 #[tauri::command]
-pub async fn handoff_push(state: State<'_, AppState>) -> CmdResult<()> {
-    handoff::push(&linked().await?, &state.player).await
+pub async fn handoff_push(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    handoff::push(&linked().await?, &state.player).await?;
+    handoff::history::spawn(&app, None);
+    Ok(())
+}
+
+/// Synchronise l'historique d'écoute avec l'ordinateur lié (#430) : `force` pour le
+/// bouton de Réglages, sinon rien si la dernière synchro est toute récente (ouverture des
+/// statistiques). Date de la dernière synchro réussie, `null` sans ordinateur lié.
+#[tauri::command]
+pub async fn sync_history(app: AppHandle, force: bool) -> CmdResult<Option<i64>> {
+    handoff::history::sync_now(&app, force).await
 }

@@ -3,9 +3,9 @@
 //! le même code (le QR code ne se scanne qu'une fois, le téléphone reste lié).
 
 use serde::{Deserialize, Serialize};
-use tauri::State;
 #[cfg(desktop)]
-use tauri::{AppHandle, Manager};
+use tauri::Manager;
+use tauri::{AppHandle, Emitter, State};
 
 use super::{AppState, CmdResult, err};
 use crate::jam::remote::{self, Features, RemoteState, RemoteStatus};
@@ -65,7 +65,20 @@ impl RemoteSettings {
 
 /// Applique et retient `settings` : le serveur sert ce qui est activé, s'arrête si rien
 /// ne l'est. Le code retenu sert, ou un nouveau est tiré.
+/// Historique d'écoute servi au téléphone lié (#430) : l'UI recharge l'accueil et les
+/// statistiques quand des écoutes arrivent.
+fn history(app: &AppHandle, state: &AppState) -> Option<remote::History> {
+    let app = app.clone();
+    state.store.clone().map(|store| remote::History {
+        store,
+        on_added: Box::new(move |added| {
+            let _ = app.emit(crate::handoff::history::EVENT, added);
+        }),
+    })
+}
+
 async fn apply(
+    app: &AppHandle,
     state: &AppState,
     remote: &RemoteState,
     mut settings: RemoteSettings,
@@ -77,6 +90,7 @@ async fn apply(
             code.clone(),
             state.tidal.clone(),
             state.player.clone(),
+            history(app, state),
             settings.features(),
         )
         .await?;
@@ -88,6 +102,7 @@ async fn apply(
 /// Allume la télécommande (le code retenu, ou un nouveau) et retient le choix.
 #[tauri::command]
 pub async fn start_remote(
+    app: AppHandle,
     state: State<'_, AppState>,
     remote: State<'_, RemoteState>,
 ) -> CmdResult<Option<RemoteStatus>> {
@@ -95,13 +110,14 @@ pub async fn start_remote(
         enabled: true,
         ..load(state.store.as_deref())
     };
-    apply(&state, &remote, settings).await
+    apply(&app, &state, &remote, settings).await
 }
 
 /// Éteint la télécommande ; le serveur reste si les transferts sont acceptés, le code
 /// reste pour le prochain allumage.
 #[tauri::command]
 pub async fn stop_remote(
+    app: AppHandle,
     state: State<'_, AppState>,
     remote: State<'_, RemoteState>,
 ) -> CmdResult<Option<RemoteStatus>> {
@@ -109,13 +125,14 @@ pub async fn stop_remote(
         enabled: false,
         ..load(state.store.as_deref())
     };
-    apply(&state, &remote, settings).await
+    apply(&app, &state, &remote, settings).await
 }
 
 /// « Accepter les transferts » (#414) : le téléphone lié peut reprendre la lecture du PC
 /// ou la lui rendre, sans que la télécommande soit allumée.
 #[tauri::command]
 pub async fn set_handoff_accepted(
+    app: AppHandle,
     enabled: bool,
     state: State<'_, AppState>,
     remote: State<'_, RemoteState>,
@@ -124,7 +141,7 @@ pub async fn set_handoff_accepted(
         handoff: enabled,
         ..load(state.store.as_deref())
     };
-    apply(&state, &remote, settings).await
+    apply(&app, &state, &remote, settings).await
 }
 
 /// Nouveau code : les téléphones appairés doivent scanner le nouveau QR code.
@@ -156,7 +173,13 @@ pub fn restore(app: &AppHandle) {
         };
         let remote = app.state::<RemoteState>();
         if let Err(e) = remote
-            .start(code, state.tidal.clone(), state.player.clone(), features)
+            .start(
+                code,
+                state.tidal.clone(),
+                state.player.clone(),
+                history(&app, &state),
+                features,
+            )
             .await
         {
             tracing::warn!("Télécommande : {e}");

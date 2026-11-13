@@ -22,8 +22,10 @@ use super::http::Response;
 use super::server::{STYLE, Site, serve_site};
 use super::{lan_ip, qr_svg};
 use crate::content::filtered;
+use crate::handoff::history::{SyncRequest, SyncResponse};
 use crate::i18n::{tr, trf};
 use crate::player::{Cmd, Handoff, PlayerState, QueueView};
+use crate::store::Store;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{PlaylistSummary, SearchResults, Track};
 pub use api::OWNER_CODE_LEN;
@@ -63,6 +65,13 @@ pub struct RemoteStatus {
     pub qr_svg: Option<String>,
 }
 
+/// Historique d'écoute servi au téléphone lié (#430).
+pub struct History {
+    pub store: Arc<Store>,
+    /// Appelé avec le nombre d'écoutes reçues et ajoutées ici.
+    pub on_added: Box<dyn Fn(usize) + Send + Sync>,
+}
+
 struct Running {
     status: RemoteStatus,
     owner: Arc<Owner>,
@@ -85,6 +94,7 @@ impl RemoteState {
         code: String,
         tidal: Arc<TidalClient>,
         player: mpsc::Sender<Cmd>,
+        history: Option<History>,
         features: Features,
     ) -> Result<Option<RemoteStatus>, String> {
         if cfg!(mobile) {
@@ -106,7 +116,11 @@ impl RemoteState {
         owner.set_features(features.remote, features.handoff);
         let site = Arc::new(RemoteSite {
             owner: Arc::clone(&owner),
-            remote: AppRemote { tidal, player },
+            remote: AppRemote {
+                tidal,
+                player,
+                history: history.map(Arc::new),
+            },
         });
         let task = tokio::spawn(serve_site(listener, site));
         let status = RemoteStatus {
@@ -245,13 +259,14 @@ impl<R: Remote> Site for RemoteSite<R> {
     }
 
     fn large_body(&self, path: &str) -> bool {
-        path == "/api/handoff/give" && self.owner.handoff_enabled()
+        matches!(path, "/api/handoff/give" | api::HISTORY_PATH) && self.owner.handoff_enabled()
     }
 }
 
 struct AppRemote {
     tidal: Arc<TidalClient>,
     player: mpsc::Sender<Cmd>,
+    history: Option<Arc<History>>,
 }
 
 fn stopped() -> String {
@@ -349,6 +364,24 @@ impl Remote for AppRemote {
         let (tx, rx) = oneshot::channel();
         self.send(Cmd::ApplyHandoff(Box::new(handoff), tx)).await?;
         rx.await.map_err(|_| stopped())
+    }
+
+    async fn sync_plays(&self, request: SyncRequest) -> Result<SyncResponse, String> {
+        let history = self
+            .history
+            .clone()
+            .ok_or_else(|| "historique indisponible".to_owned())?;
+        tokio::task::spawn_blocking(move || {
+            let (response, added) = crate::handoff::history::answer(&history.store, &request)
+                .map_err(|e| e.to_string())?;
+            if added > 0 {
+                tracing::info!("Historique : {added} écoutes reçues du téléphone");
+                (history.on_added)(added);
+            }
+            Ok(response)
+        })
+        .await
+        .map_err(|e| e.to_string())?
     }
 }
 

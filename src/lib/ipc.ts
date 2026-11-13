@@ -815,6 +815,8 @@ export interface RemoteStatus {
 export interface LinkedComputer {
   /** `192.168.1.105:47801`. */
   host: string;
+  /** Dernière synchro réussie de l'historique d'écoute (ms, #430). */
+  syncedAt: number | null;
 }
 
 /** Jam (#25) : adresse et code à donner aux invités. */
@@ -918,6 +920,9 @@ export const commands = {
   handoffPull: () => invoke<void>("handoff_pull"),
   /** « Continuer sur l'ordinateur » : le téléphone se met en pause, le PC reprend. */
   handoffPush: () => invoke<void>("handoff_push"),
+  /** #430 : historique d'écoute échangé avec l'ordinateur lié ; date de la dernière synchro
+   *  réussie, `null` sans ordinateur lié. Sans `force`, rien si elle est toute récente. */
+  syncHistory: (force: boolean) => invoke<number | null>("sync_history", { force }),
   /** Nouveau code : les téléphones appairés sont déconnectés. */
   renewRemoteCode: () => invoke<RemoteStatus | null>("renew_remote_code"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
@@ -1152,6 +1157,9 @@ export const commands = {
 };
 
 export const events = {
+  /** #430 : écoutes reçues de l'autre appareil (nombre) : recharger l'historique affiché. */
+  onHistorySynced: (cb: (added: number) => void): Promise<UnlistenFn> =>
+    listen<number>("history-synced", (e) => cb(e.payload)),
   /** Jam (#25) : connexion au relais (connecté, reconnexion, nouvelle adresse). */
   onJamStatus: (cb: (status: JamStatus) => void): Promise<UnlistenFn> =>
     listen<JamStatus>("jam-status", (e) => cb(e.payload)),

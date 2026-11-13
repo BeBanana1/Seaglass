@@ -16,7 +16,7 @@ export const fr = {
   noLan: "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent ouvrir la télécommande.",
   firewall: "Au premier allumage, Windows demande d'autoriser Seaglass : acceptez pour les réseaux privés.",
   handoff: "Accepter les transferts",
-  handoffHint: "L'app Android liée peut reprendre ici ce qui joue sur le téléphone, ou continuer sur le téléphone ce qui joue ici.",
+  handoffHint: "L'app Android liée peut reprendre ici ce qui joue sur le téléphone, ou continuer sur le téléphone ce qui joue ici, et les deux échangent leur historique d'écoute.",
   handoffHowTo: "Sur le téléphone : Réglages › Application › Ordinateur lié, puis tapez l'adresse et le code ci-dessus.",
 };
 
@@ -36,6 +36,6 @@ export const en: typeof fr = {
   noLan: "No local network found: only browsers on this computer can open the remote.",
   firewall: "The first time it is turned on, Windows asks to allow Seaglass: accept for private networks.",
   handoff: "Accept transfers",
-  handoffHint: "The linked Android app can resume here what plays on the phone, or continue on the phone what plays here.",
+  handoffHint: "The linked Android app can resume here what plays on the phone, or continue on the phone what plays here, and both exchange their listening history.",
   handoffHowTo: "On the phone: Settings › App › Linked computer, then type the address and code above.",
 };

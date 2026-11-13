@@ -7,6 +7,7 @@
   import TrackList from "../components/TrackList.svelte";
   import Icon from "../components/Icon.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
+  import { watchHistory } from "../lib/stores/handoff.svelte";
   import { t, num } from "../lib/i18n.svelte";
 
   const PERIODS: StatsPeriod[] = ["week", "month", "year", "all"];
@@ -14,9 +15,14 @@
   let period = $state<StatsPeriod>("month");
   let stats = $state<PlayStats | null>(null);
   let error = $state<string | null>(null);
+  /** Relu quand des écoutes arrivent de l'appareil lié (#430). */
+  let version = $state(0);
+
+  $effect(() => watchHistory(() => version++));
 
   $effect(() => {
     const asked = period;
+    void version;
     let stale = false;
     error = null;
     commands

@@ -17,6 +17,7 @@ use serde::de::DeserializeOwned;
 use tokio::sync::Notify;
 
 use super::view::{RemotePlaylist, RemoteView};
+use crate::handoff::history::{SyncRequest, SyncResponse};
 use crate::jam::api::{BACKEND_TIMEOUT, MAX_QUERY_CHARS};
 use crate::jam::guard::{Action, Limits, code_matches};
 use crate::jam::http::Response;
@@ -87,6 +88,11 @@ pub trait Remote: Send + Sync + 'static {
     fn take_handoff(&self) -> impl Future<Output = Result<Option<Handoff>, String>> + Send;
     /// Reprend une lecture transférée, déjà vérifiée.
     fn give_handoff(&self, handoff: Handoff) -> impl Future<Output = Result<bool, String>> + Send;
+    /// Échange de l'historique d'écoute avec le téléphone (#430), requête déjà vérifiée.
+    fn sync_plays(
+        &self,
+        request: SyncRequest,
+    ) -> impl Future<Output = Result<SyncResponse, String>> + Send;
 }
 
 /// Télécommande en cours : code, limites, relecture de l'état.
@@ -185,6 +191,9 @@ impl Owner {
             return ok();
         }
         if let Some(response) = handoff::route(self, path, body, ip, remote).await {
+            return response;
+        }
+        if let Some(response) = history::route(self, path, body, ip, remote).await {
             return response;
         }
         // Transferts seuls : rien de la télécommande n'est servi.
@@ -460,5 +469,7 @@ struct SearchBody {
 }
 
 mod handoff;
+mod history;
+pub(super) use history::PATH as HISTORY_PATH;
 #[cfg(test)]
 mod tests;
