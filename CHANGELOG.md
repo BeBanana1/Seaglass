@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.66
+
+- Transfert de la lecture entre l'ordinateur et l'app Android : « Reprendre ici » et « Continuer sur l'ordinateur » depuis le téléphone, avec « Accepter les transferts » sur l'ordinateur (#414).
+
 ## 0.5.65
 
 - Windows : la télécommande et la Jam sur le réseau local donnent l'adresse du réseau local, et non plus celle du VPN quand un VPN est actif (#425).

@@ -2,6 +2,7 @@
 
 pub mod actor;
 mod exclusive;
+pub mod handoff;
 mod listen;
 pub mod normalize;
 pub mod output;
@@ -21,6 +22,7 @@ pub mod volume;
 
 pub use actor::{Cmd, spawn};
 pub use exclusive::supported as exclusive_supported;
+pub use handoff::Handoff;
 #[cfg(desktop)]
 pub use persist::flush_blocking;
 pub use queue::{QueuePart, Repeat};

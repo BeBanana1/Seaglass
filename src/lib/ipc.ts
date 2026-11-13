@@ -796,14 +796,25 @@ export interface Toast {
 export type JamMode = "online" | "local";
 export type JamConnection = "connecting" | "online" | "reconnecting" | "failed";
 
-/** Télécommande allumée (#336), bureau seulement. */
+/** Serveur de la télécommande (#336) en cours, bureau seulement : télécommande et / ou
+ *  transferts de lecture (#414). */
 export interface RemoteStatus {
+  /** Page et commandes de la télécommande servies. */
+  remote: boolean;
+  /** Transferts de lecture acceptés depuis l'app Android. */
+  handoff: boolean;
   url: string;
   /** Code de propriétaire, 12 caractères. */
   code: string;
   /** Faux si aucune adresse du réseau local n'a été trouvée. */
   lan: boolean;
   qrSvg: string | null;
+}
+
+/** Ordinateur lié pour les transferts de lecture (#414), côté téléphone. */
+export interface LinkedComputer {
+  /** `192.168.1.105:47801`. */
+  host: string;
 }
 
 /** Jam (#25) : adresse et code à donner aux invités. */
@@ -894,8 +905,19 @@ export const commands = {
   /** Télécommande (#336) : `null` si elle est éteinte. */
   remoteStatus: () => invoke<RemoteStatus | null>("remote_status"),
   /** Allume la télécommande (choix et code retenus). */
-  startRemote: () => invoke<RemoteStatus>("start_remote"),
-  stopRemote: () => invoke<void>("stop_remote"),
+  startRemote: () => invoke<RemoteStatus | null>("start_remote"),
+  stopRemote: () => invoke<RemoteStatus | null>("stop_remote"),
+  /** #414 : « Accepter les transferts » ; `null` si le serveur s'arrête. */
+  setHandoffAccepted: (enabled: boolean) => invoke<RemoteStatus | null>("set_handoff_accepted", { enabled }),
+  /** #414, téléphone : ordinateur lié (jamais le code). */
+  linkedComputer: () => invoke<LinkedComputer | null>("linked_computer"),
+  /** Adresse de la télécommande du PC avec son code après `#`, vérifiée avant d'être gardée. */
+  linkComputer: (link: string) => invoke<LinkedComputer>("link_computer", { link }),
+  unlinkComputer: () => invoke<void>("unlink_computer"),
+  /** « Reprendre ici » : la lecture du PC passe sur le téléphone, le PC se met en pause. */
+  handoffPull: () => invoke<void>("handoff_pull"),
+  /** « Continuer sur l'ordinateur » : le téléphone se met en pause, le PC reprend. */
+  handoffPush: () => invoke<void>("handoff_push"),
   /** Nouveau code : les téléphones appairés sont déconnectés. */
   renewRemoteCode: () => invoke<RemoteStatus | null>("renew_remote_code"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),

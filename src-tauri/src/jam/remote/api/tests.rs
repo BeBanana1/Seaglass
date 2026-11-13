@@ -20,6 +20,8 @@ const PLAYLIST: &str = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
 #[derive(Default)]
 struct FakeRemote {
     commands: Mutex<Vec<Command>>,
+    /// Transferts reçus (`give`).
+    given: Mutex<Vec<Handoff>>,
 }
 
 impl Remote for FakeRemote {
@@ -82,6 +84,17 @@ impl Remote for FakeRemote {
 
     async fn playlists(&self) -> Result<Vec<PlaylistSummary>, String> {
         Ok(vec![playlist()])
+    }
+
+    async fn take_handoff(&self) -> Result<Option<Handoff>, String> {
+        // Comme le vrai lecteur : il se met en pause en donnant la lecture.
+        self.commands.lock().unwrap().push(Command::SetPaused(true));
+        Ok(Some(handoff::sample(200)))
+    }
+
+    async fn give_handoff(&self, handoff: Handoff) -> Result<bool, String> {
+        self.given.lock().unwrap().push(handoff);
+        Ok(true)
     }
 }
 
@@ -362,3 +375,5 @@ async fn remote_page_preview() {
     println!("http://127.0.0.1:47899/#{CODE}");
     let _ = tokio::time::timeout(Duration::from_secs(30 * 60), serve_site(listener, site)).await;
 }
+
+mod handoff;

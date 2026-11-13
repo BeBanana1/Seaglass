@@ -12,6 +12,7 @@
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
   import { openTrackInfo } from "../lib/stores/trackInfo.svelte";
   import { jam, jamAvailable, openJamDialog } from "../lib/stores/jam.svelte";
+  import { handoff, loadLinkedComputer, pullHere, pushToComputer } from "../lib/stores/handoff.svelte";
   import { playedFrom } from "../lib/playSource";
   import Backdrop from "../components/backdrops/Backdrop.svelte";
   import Icon from "../components/Icon.svelte";
@@ -71,6 +72,27 @@
   const sheet = $derived(platform.mobile && anyOpen);
 
   let moreButton = $state<HTMLButtonElement | null>(null);
+
+  // #414 : transfert avec l'ordinateur lié (Android).
+  let handoffButton = $state<HTMLButtonElement>();
+  $effect(() => {
+    if (platform.mobile) untrack(loadLinkedComputer);
+  });
+
+  function toggleHandoff() {
+    if (!handoffButton) return;
+    if (menu.open?.from === handoffButton) return closeMenu();
+    const rect = handoffButton.getBoundingClientRect();
+    openMenu({
+      x: rect.left,
+      y: rect.bottom + 4,
+      entries: [
+        { label: t.handoff.pull, icon: "devices", action: pullHere },
+        { label: t.handoff.push, icon: "devices", action: pushToComputer },
+      ],
+      from: handoffButton,
+    });
+  }
 
   function toggleMore(track: Track) {
     if (!moreButton) return;
@@ -264,6 +286,19 @@
                     aria-label={jam.status ? t.jam.openRunning : t.jam.open}
                   >
                     <Icon name="jam" size={20} />
+                  </button>
+                {/if}
+                {#if platform.mobile && handoff.linked}
+                  <button
+                    class="now-add handoff-open"
+                    bind:this={handoffButton}
+                    disabled={handoff.busy}
+                    onclick={toggleHandoff}
+                    title={t.handoff.menu}
+                    aria-label={t.handoff.menu}
+                    aria-haspopup="menu"
+                  >
+                    <Icon name="devices" size={20} />
                   </button>
                 {/if}
                 <SleepTimer size={20} />
