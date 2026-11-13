@@ -268,9 +268,9 @@ export interface PlayerState {
 export type MpvIssue = "stopped" | "cpuUnsupported" | "missing";
 
 /** Minuteur actif : échéance en ms epoch (l'UI calcule le temps restant), ou fin du titre. */
-export type SleepState = { kind: "minutes"; endsAt: number } | { kind: "endOfTrack" };
+export type SleepState = { kind: "minutes"; endsAt: number } | { kind: "endOfTrack" } | { kind: "endOfContext" };
 
-export type SleepRequest = { kind: "minutes"; minutes: number } | { kind: "endOfTrack" };
+export type SleepRequest = { kind: "minutes"; minutes: number } | { kind: "endOfTrack" } | { kind: "endOfContext" };
 
 /** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
 export interface Volume {

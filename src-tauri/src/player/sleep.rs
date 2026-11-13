@@ -1,4 +1,5 @@
-//! Minuteur de mise en veille (#85) : pause après une durée ou à la fin du titre en cours.
+//! Minuteur de mise en veille (#85) : pause après une durée, à la fin du titre en cours ou à
+//! la fin de la file (album, playlist… et file manuelle, sans boucler ni radio, #436).
 //! Non persisté : un redémarrage l'annule.
 
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -18,6 +19,7 @@ const MAX_MINUTES: u16 = 600;
 pub enum SleepRequest {
     Minutes { minutes: u16 },
     EndOfTrack,
+    EndOfContext,
 }
 
 impl SleepRequest {
@@ -43,11 +45,21 @@ pub enum SleepState {
         ends_at: u64,
     },
     EndOfTrack,
+    /// Pause après le dernier titre de la file (#436) : se ramène à `EndOfTrack` une fois la
+    /// file au bout (`Queue::at_end`), ou tout de suite en repeat One (le titre boucle).
+    EndOfContext,
 }
 
 impl Player {
+    /// Le titre en cours est le dernier avant la pause : rien ne doit le suivre en gapless.
     pub(super) fn sleeps_at_end_of_track(&self) -> bool {
-        self.state.sleep == Some(SleepState::EndOfTrack)
+        match self.state.sleep {
+            Some(SleepState::EndOfTrack) => true,
+            Some(SleepState::EndOfContext) => {
+                self.queue.repeat() == Repeat::One || self.queue.at_end()
+            }
+            _ => false,
+        }
     }
 
     pub(super) async fn set_sleep_timer(&mut self, request: Option<SleepRequest>) {
@@ -62,11 +74,13 @@ impl Player {
                 }
             }
             SleepRequest::EndOfTrack => SleepState::EndOfTrack,
+            SleepRequest::EndOfContext => SleepState::EndOfContext,
         });
         let end_of_track = self.sleeps_at_end_of_track();
         if end_of_track {
-            // Le suivant préchargé serait enchaîné en gapless : il est retiré, et
-            // `maybe_preload` ne recharge rien tant que le minuteur vise la fin du titre.
+            // Le suivant préchargé (retour au début en repeat All, radio) serait enchaîné en
+            // gapless : il est retiré, et `maybe_preload` ne recharge rien tant que le
+            // minuteur vise la fin du titre.
             self.invalidate_next().await;
         }
         if end_of_track != was_end_of_track {
@@ -85,11 +99,11 @@ impl Player {
         }
     }
 
-    /// Fin naturelle du titre avec « Fin du titre » : la file avance sans charger le
+    /// Fin naturelle du dernier titre avant la pause : la file avance sans charger le
     /// suivant, en pause, comme une file restaurée au démarrage (Lecture le chargera).
     /// En repeat One, le même titre reste, au début.
     pub(super) async fn sleep_after_track(&mut self) {
-        tracing::info!("minuteur de mise en veille : fin du titre");
+        tracing::info!("minuteur de mise en veille : fin du titre ou de la file");
         self.state.sleep = None;
         if self.queue.repeat() == Repeat::One {
             self.apply_loop_file().await;
@@ -131,6 +145,10 @@ mod tests {
             read(r#"{"kind":"endOfTrack"}"#).unwrap(),
             Ok(SleepRequest::EndOfTrack)
         );
+        assert_eq!(
+            read(r#"{"kind":"endOfContext"}"#).unwrap(),
+            Ok(SleepRequest::EndOfContext)
+        );
         assert!(read(r#"{"kind":"minutes","minutes":0}"#).unwrap().is_err());
         assert!(
             read(r#"{"kind":"minutes","minutes":601}"#)
@@ -149,6 +167,7 @@ mod tests {
             r#"{"kind":"minutes","endsAt":1000}"#
         );
         assert_eq!(json(SleepState::EndOfTrack), r#"{"kind":"endOfTrack"}"#);
+        assert_eq!(json(SleepState::EndOfContext), r#"{"kind":"endOfContext"}"#);
     }
 
     #[test]

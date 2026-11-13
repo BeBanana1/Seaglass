@@ -8,6 +8,7 @@ import { t } from "./i18n.svelte";
 import { platform } from "./platform.svelte";
 import { THEME_INFO } from "./themes";
 import { player, stepVolume } from "./stores/player.svelte";
+import { sleepScope } from "./stores/queue.svelte";
 import { isLiked, toggleLike } from "./stores/likes.svelte";
 import { back, canGoBack, current, go, openSettings, replace, type LibraryTab, type Route, type SettingsSection } from "./stores/nav.svelte";
 import { setTheme, stepZoom, ui } from "./stores/ui.svelte";
@@ -234,6 +235,14 @@ export const ACTIONS: Action[] = [
     keywords: ["sleep", "timer"],
     available: hasTrack,
     run: () => commands.setSleepTimer({ kind: "endOfTrack" }),
+  },
+  {
+    id: "sleep.endOfContext",
+    group: "playback",
+    label: () => a().sleepEndOfContext[sleepScope()],
+    keywords: ["sleep", "timer", "album", "playlist"],
+    available: hasTrack,
+    run: () => commands.setSleepTimer({ kind: "endOfContext" }),
   },
   {
     id: "sleep.cancel",

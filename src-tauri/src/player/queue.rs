@@ -266,6 +266,12 @@ impl Queue {
             .or_else(|| self.next_pos().map(|p| self.context[self.order[p]]))
     }
 
+    /// Plus rien à lire après le titre courant sans boucler (repeat All) ni radio : file
+    /// manuelle vide et curseur sur le dernier titre de l'ordre de lecture (minuteur, #436).
+    pub fn at_end(&self) -> bool {
+        self.manual.is_empty() && self.pos + 1 >= self.order.len()
+    }
+
     /// Passe au titre suivant ; `None` en fin de file (l'état reste inchangé).
     pub fn advance(&mut self) -> Option<TrackId> {
         if let Some(mut entry) = self.manual.pop_front() {

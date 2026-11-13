@@ -10,6 +10,7 @@
   import { commands, type SleepRequest } from "../lib/ipc";
   import { formatTime } from "../lib/format";
   import { player } from "../lib/stores/player.svelte";
+  import { sleepScope } from "../lib/stores/queue.svelte";
   import { closeMenu, menu, openMenu, type MenuEntry } from "../lib/stores/menu.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { locale, t } from "../lib/i18n.svelte";
@@ -44,9 +45,11 @@
       ? t.eggs.circuits(clock(endsAt), clock(now), chosen.setAt === null ? "--:--" : clock(chosen.setAt))
       : remaining !== null
       ? t.player.sleepIn(remaining) + (chosen.hour && ui.settings.easterEggs ? t.eggs.sevenYears : "")
-      : sleep
-        ? t.player.sleepAtEnd
-        : t.player.sleepTimer,
+      : sleep?.kind === "endOfContext"
+        ? t.player.sleepAtEndOfContext[sleepScope()]
+        : sleep
+          ? t.player.sleepAtEnd
+          : t.player.sleepTimer,
   );
 
   async function set(timer: SleepRequest | null) {
@@ -67,7 +70,10 @@
       label: p.sleepMinutes(minutes),
       action: () => set({ kind: "minutes", minutes }),
     }));
-    entries.push({ label: p.sleepEndOfTrack, action: () => set({ kind: "endOfTrack" }) });
+    entries.push(
+      { label: p.sleepEndOfTrack, action: () => set({ kind: "endOfTrack" }) },
+      { label: p.sleepEndOfContext[sleepScope()], action: () => set({ kind: "endOfContext" }) },
+    );
     if (sleep) entries.push("separator", { label: p.sleepOff, icon: "close", action: () => set(null) });
     const rect = button.getBoundingClientRect();
     // Dans la barre du bas, le menu s'ouvre au-dessus du bouton (recalé s'il déborde).
@@ -89,6 +95,8 @@
   <Icon name="moon" {size} />
   {#if remaining !== null}
     <span class="sleep-remaining" class:circuits>{remaining}</span>
+  {:else if sleep?.kind === "endOfContext"}
+    <span class="sleep-remaining">{t.player.sleepContextShort[sleepScope()]}</span>
   {:else if sleep}
     <span class="sleep-remaining">{t.player.sleepEndShort}</span>
   {/if}
