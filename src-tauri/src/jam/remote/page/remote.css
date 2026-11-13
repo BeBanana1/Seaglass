@@ -136,7 +136,7 @@ h2[hidden] {
 }
 
 .tabs {
-  margin-top: 8px;
+  margin: 8px 0 12px;
 }
 
 /* Ligne cliquable : lire ce titre de la file, cet album, cette playlist. */
