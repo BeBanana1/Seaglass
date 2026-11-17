@@ -85,6 +85,8 @@ $keyPath = if ($env:SEAGLASS_SIGNING_KEY) { $env:SEAGLASS_SIGNING_KEY } else { J
 if (-not (Test-Path $keyPath)) { Fail "clé de signature introuvable : $keyPath" }
 
 $baseUrl = if ($env:SEAGLASS_UPDATE_BASE_URL) { $env:SEAGLASS_UPDATE_BASE_URL.TrimEnd('/') } else { 'https://updates.bebanana.ch/seaglass' }
+# Même adresse compilée dans l'app (#452, lue par build.rs) et écrite dans les manifestes.
+$env:SEAGLASS_UPDATE_BASE_URL = $baseUrl
 
 if (-not $PublishOnly) {
     # --- 2. mpv embarqué --------------------------------------------------------------------

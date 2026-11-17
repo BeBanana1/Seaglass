@@ -54,6 +54,7 @@ import type {
   PlaylistSummary,
   QueueView,
   RadioPage,
+  RelayView,
   SearchResults,
   SleepRequest,
   SleepState,
@@ -258,6 +259,9 @@ let ui: UiSettings = {
       showWindow: "Ctrl+Alt+KeyS",
     },
   },
+  // `?autoupdates=off` : vérification périodique coupée ; `?jam=off` : Jam masquée (#452).
+  autoUpdates: params.get("autoupdates") !== "off",
+  jam: params.get("jam") !== "off",
 };
 
 /** « Système » du backend factice : la langue du navigateur. */
@@ -702,6 +706,15 @@ function mockJam(mode: "online" | "local", reconnecting = false) {
   };
 }
 let notificationTaken = false;
+// `?relay=off` : relais coupé ; `?relay=none` : app compilée sans relais (#452).
+const relayParam = params.get("relay");
+let relay: RelayView = {
+  enabled: relayParam !== "off",
+  url: null,
+  defaultUrl: relayParam === "none" ? null : "https://jam.example.org",
+  customKey: false,
+  usable: relayParam !== "off" && relayParam !== "none",
+};
 const jamParam = params.get("jam");
 let jam: ReturnType<typeof mockJam> | null =
   jamParam === "1" || jamParam === "reconnecting"
@@ -870,7 +883,26 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return fx.search.tracks.slice(offset, offset + 8);
   },
   jam_status: () => jam,
-  jam_online_available: () => true,
+  jam_online_available: () => relay.usable,
+  relay_settings: () => relay,
+  // Une adresse contenant « down » imite un relais injoignable.
+  set_relay_settings: ({ change }) => {
+    const c = change as { enabled: boolean; url: string | null; key?: string | null };
+    const url = c.url?.trim().replace(/\/+$/, "") || null;
+    if (c.enabled && url && !url.startsWith("https://")) throw "adresse du relais invalide : https://… attendu";
+    if (c.enabled && url?.includes("down")) throw "relais injoignable : vérifiez l'adresse";
+    const customKey = c.key === undefined || c.key === null ? relay.customKey : c.key.trim() !== "";
+    relay = {
+      ...relay,
+      enabled: c.enabled,
+      url: url === relay.defaultUrl ? null : url,
+      customKey,
+      usable: c.enabled && !!(url ?? relay.defaultUrl),
+    };
+    return relay;
+  },
+  // `?updates=none` : app compilée sans serveur de mises à jour (#452).
+  update_server: () => (params.get("updates") === "none" ? null : "https://updates.example.org/seaglass"),
   start_jam: (args) => (jam ??= mockJam(args.mode === "local" ? "local" : "online")),
   stop_jam: () => void (jam = null),
   remote_status: () => remote,

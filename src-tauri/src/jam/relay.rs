@@ -24,8 +24,6 @@ use super::protocol::{FromHost, Resume, ToHost};
 use super::server::PUSH_INTERVAL;
 use crate::i18n::{tr, trf};
 
-/// Relais de production ; `SEAGLASS_RELAY_URL` au lancement en vise un autre (tests).
-const DEFAULT_URL: &str = "wss://jam.bebanana.ch/host";
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 const READY_TIMEOUT: Duration = Duration::from_secs(10);
 const PING_INTERVAL: Duration = Duration::from_secs(20);
@@ -41,15 +39,10 @@ pub struct RelayConfig {
 }
 
 impl RelayConfig {
-    /// Configuration compilée (`SEAGLASS_RELAY_KEY` du `.env`, lu par `build.rs`) ou donnée
-    /// au lancement. `None` sans clé : seule la Jam locale est proposée.
-    pub fn from_env() -> Option<Self> {
-        let runtime = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
-        let key = runtime("SEAGLASS_RELAY_KEY")
-            .or_else(|| option_env!("SEAGLASS_SEAGLASS_RELAY_KEY").map(str::to_owned))
-            .filter(|k| !k.is_empty())?;
-        let url = runtime("SEAGLASS_RELAY_URL").unwrap_or_else(|| DEFAULT_URL.to_owned());
-        Some(Self { url, key })
+    /// Relais des Réglages, sinon compilé (#452, voir `relay_settings`). `None` sans relais :
+    /// seule la Jam locale est proposée.
+    pub fn current() -> Option<Self> {
+        super::relay_settings::config()
     }
 
     /// Tunnel d'appareil (#430) : même relais, `/device` au lieu de `/host`.
@@ -501,7 +494,8 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn live_relay() {
-        let config = RelayConfig::from_env().expect("SEAGLASS_RELAY_KEY absente du .env");
+        let config = RelayConfig::current()
+            .expect("relais absent : SEAGLASS_RELAY_KEY et SEAGLASS_RELAY_BASE_URL du .env");
         let events: Arc<Mutex<Vec<RelayEvent>>> = Arc::default();
         let seen = Arc::clone(&events);
         let notify: Notify = Arc::new(move |e| seen.lock().unwrap().push(e));

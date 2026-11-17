@@ -769,6 +769,29 @@ export interface UiSettings {
   content: ContentFilter;
   /** Raccourcis clavier globaux (#413, bureau). */
   globalShortcuts: GlobalShortcuts;
+  /** Vérification périodique des mises à jour (#452), activée par défaut. */
+  autoUpdates: boolean;
+  /** Jam (#452) : désactivée, elle disparaît de l'UI. */
+  jam: boolean;
+}
+
+/** Relais de la Jam en ligne et des transferts (#452). La clé n'est jamais renvoyée. */
+export interface RelayView {
+  enabled: boolean;
+  /** Adresse choisie ; `null` : celle compilée (`defaultUrl`). */
+  url: string | null;
+  defaultUrl: string | null;
+  /** Une clé propre à ce relais est enregistrée. */
+  customKey: boolean;
+  /** Adresse et clé connues : le relais est utilisable. */
+  usable: boolean;
+}
+
+/** `url` vide : relais compilé. `key` absente : inchangée ; vide : clé compilée. */
+export interface RelayChange {
+  enabled: boolean;
+  url: string | null;
+  key?: string | null;
 }
 
 /** Action d'un raccourci global (#413). */
@@ -984,6 +1007,11 @@ export const commands = {
   /** Jam locale (#25), bureau seulement : `null` si aucune Jam ne tourne. */
   jamStatus: () => invoke<JamStatus | null>("jam_status"),
   jamOnlineAvailable: () => invoke<boolean>("jam_online_available"),
+  /** Relais (#452) : l'adresse choisie est vérifiée (`/healthz`) avant d'être enregistrée. */
+  relaySettings: () => invoke<RelayView>("relay_settings"),
+  setRelaySettings: (change: RelayChange) => invoke<RelayView>("set_relay_settings", { change }),
+  /** Dossier des mises à jour compilé (#452) ; `null` : mises à jour absentes. */
+  updateServer: () => invoke<string | null>("update_server"),
   /** En ligne, l'adresse arrive ensuite par `jam-status`. */
   startJam: (mode: JamMode) => invoke<JamStatus>("start_jam", { mode }),
   stopJam: () => invoke<void>("stop_jam"),

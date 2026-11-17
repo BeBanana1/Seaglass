@@ -81,6 +81,9 @@ if ($Publish) {
 }
 
 $baseUrl = if ($env:SEAGLASS_UPDATE_BASE_URL) { $env:SEAGLASS_UPDATE_BASE_URL.TrimEnd('/') } else { 'https://updates.bebanana.ch/seaglass' }
+# Même adresse compilée dans l'app (#452, lue par build.rs, passée à WSL) et écrite dans
+# le manifeste.
+$env:SEAGLASS_UPDATE_BASE_URL = $baseUrl
 $imageName = "Seaglass_${version}_amd64.AppImage"
 $out = Join-Path $root "release\$version"
 $imageOut = Join-Path $out $imageName
@@ -137,7 +140,7 @@ if (-not $PublishOnly) {
     $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content $keyPath -Raw).Trim()
     $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = $keyPassword
     $savedWslEnv = $env:WSLENV
-    $env:WSLENV = (@($env:WSLENV, 'TAURI_SIGNING_PRIVATE_KEY', 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD') | Where-Object { $_ }) -join ':'
+    $env:WSLENV = (@($env:WSLENV, 'TAURI_SIGNING_PRIVATE_KEY', 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD', 'SEAGLASS_UPDATE_BASE_URL') | Where-Object { $_ }) -join ':'
     try {
         # Sortie affichée telle quelle (pas capturée) ; le nom de l'AppImage est connu d'avance.
         wsl.exe -d $distro --cd $wslRoot bash scripts/linux-build.sh $wslRoot $wslOut $glibcMax $wslFileList

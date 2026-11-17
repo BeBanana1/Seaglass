@@ -73,6 +73,8 @@ Pour Android (SDK, NDK, test sur un appareil) et Linux (build dans WSL), voir [`
    TIDAL_CLIENT_SECRET=...
    ```
 
+   Adresses des services en ligne, facultatives : voir « Construire et héberger soi-même ».
+
 2. Installer les dépendances et lancer l'app en développement :
 
    ```powershell
@@ -93,6 +95,21 @@ pnpm test
 Aperçu de l'interface sans Tauri, sur des données factices : `pnpm dev`, puis `http://127.0.0.1:1420/?theme=studio&route=album` (voir [`docs/interface.md`](docs/interface.md), « Prévisualisation sans Tauri »).
 
 L'architecture, les conventions et la feuille de route sont décrites dans [`CLAUDE.md`](CLAUDE.md), les notes d'implémentation par domaine dans [`docs/`](docs/) et les versions dans [`CHANGELOG.md`](CHANGELOG.md). Les bugs et demandes sont suivis dans les issues du dépôt Gitea ; chaque correction passe par une branche `issue-<n>-…` et une PR qui ferme l'issue. Le dossier `relay/` contient le relais de la Jam (déploiement dans [`relay/README.md`](relay/README.md)), et `spike/` le script Python de la phase 0 qui a validé les formats de flux.
+
+## Construire et héberger soi-même
+
+Aucune adresse de serveur n'est écrite dans le code : elles sont lues à la compilation, dans l'environnement ou dans `.env`. Sans elles, l'app marche sans le service correspondant.
+
+```
+# Relais de la Jam en ligne et du transfert de lecture (facultatif)
+SEAGLASS_RELAY_BASE_URL=https://jam.example.org
+SEAGLASS_RELAY_KEY=...
+# Dossier des mises à jour (facultatif ; posé par les scripts de release)
+SEAGLASS_UPDATE_BASE_URL=https://updates.example.org/seaglass
+```
+
+- **Relais** : chacun peut héberger le sien (dossier [`relay/`](relay/README.md), même clé `SEAGLASS_RELAY_KEY` que l'app). Dans l'app, Réglages › Application › Relais permet aussi d'en choisir un autre, avec sa clé, ou de le couper. Sans relais, la Jam reste possible sur le réseau local (ordinateur), et l'interrupteur « Jam » la retire de l'app.
+- **Mises à jour** : l'app n'installe que des versions signées par la clé dont la partie publique est compilée (`src-tauri/tauri.conf.json` › `plugins.updater.pubkey`, certificat de l'APK sur Android). Pour publier ses propres versions, il faut donc sa propre clé, son propre dossier, et les compiler dans son build. Sans adresse, l'app ne propose aucune mise à jour ; avec, la vérification automatique se coupe dans Réglages › Application.
 
 ## Publier une version
 

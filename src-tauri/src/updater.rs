@@ -14,6 +14,10 @@
 //! réécrit ce fichier, puis l'app se relance elle-même. Sans AppImage, il prendrait
 //! l'exécutable courant pour cible et remplacerait le binaire nu par une AppImage : les
 //! mises à jour y sont désactivées (`supported`).
+//!
+//! Adresse (#452) : `latest.json` du dossier compilé (`servers::update_base`), absent de
+//! `tauri.conf.json`. Sans adresse compilée, rien n'est vérifié. La vérification
+//! périodique suit l'interrupteur « Mises à jour automatiques » ; le bouton, toujours.
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -31,6 +35,15 @@ const FIRST_CHECK_DELAY: Duration = Duration::from_secs(20);
 /// Surcharge de l'URL du manifeste (tests, autre canal). En debug, sans cette variable,
 /// aucune vérification n'est faite.
 const ENDPOINT_ENV: &str = "SEAGLASS_UPDATE_URL";
+
+/// Manifeste à lire : `SEAGLASS_UPDATE_URL` au lancement, sinon `latest.json` du dossier
+/// compilé (#452). `None` : app compilée sans mises à jour.
+fn endpoint() -> Option<String> {
+    std::env::var(ENDPOINT_ENV)
+        .ok()
+        .filter(|v| !v.is_empty())
+        .or_else(|| crate::servers::update_base().map(|base| format!("{base}/latest.json")))
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -120,16 +133,22 @@ pub fn spawn(app: AppHandle, mpv: Arc<ProcessGuard>) {
         tracing::info!("mises à jour automatiques désactivées : app lancée hors d'une AppImage");
         return;
     }
-    let endpoint = std::env::var(ENDPOINT_ENV).ok();
-    if cfg!(debug_assertions) && endpoint.is_none() {
+    if cfg!(debug_assertions) && std::env::var(ENDPOINT_ENV).is_err() {
         return;
     }
+    let Some(endpoint) = endpoint() else {
+        tracing::info!("mises à jour absentes : aucune adresse compilée");
+        return;
+    };
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(FIRST_CHECK_DELAY).await;
         loop {
-            // Le téléchargement lancé par `check` émet lui-même `update-ready`.
-            if let Err(e) = check(&app, endpoint.as_deref(), &mpv).await {
-                tracing::warn!("vérification des mises à jour : {e}");
+            // Réglage relu à chaque tour : il peut changer pendant que l'app tourne.
+            if crate::servers::auto_updates() {
+                // Le téléchargement lancé par `check` émet lui-même `update-ready`.
+                if let Err(e) = check(&app, &endpoint, &mpv).await {
+                    tracing::warn!("vérification des mises à jour : {e}");
+                }
             }
             tokio::time::sleep(CHECK_INTERVAL).await;
         }
@@ -141,18 +160,18 @@ pub fn spawn(app: AppHandle, mpv: Arc<ProcessGuard>) {
 /// (prête, ou en téléchargement), `None` si l'app est à jour.
 async fn check(
     app: &AppHandle,
-    endpoint: Option<&str>,
+    endpoint: &str,
     mpv: &Arc<ProcessGuard>,
 ) -> Result<Option<UpdateInfo>, String> {
     let state = app.state::<UpdateState>();
     let _checking = state.checking.lock().await;
-    let mut builder = app.updater_builder();
-    if let Some(url) = endpoint {
-        let url = url
-            .parse()
-            .map_err(|e| format!("{ENDPOINT_ENV} invalide : {e}"))?;
-        builder = builder.endpoints(vec![url]).map_err(|e| e.to_string())?;
-    }
+    let url = endpoint
+        .parse()
+        .map_err(|e| format!("adresse du manifeste invalide : {e}"))?;
+    let builder = app
+        .updater_builder()
+        .endpoints(vec![url])
+        .map_err(|e| e.to_string())?;
     // L'installeur ferme l'app par `std::process::exit` : la file doit être sauvegardée
     // (#260) et mpv arrêté avant.
     let mpv = Arc::clone(mpv);
@@ -238,8 +257,14 @@ pub async fn check_for_updates(
         )
         .into());
     }
-    let endpoint = std::env::var(ENDPOINT_ENV).ok();
-    let info = check(&app, endpoint.as_deref(), &mpv).await?;
+    let endpoint = endpoint().ok_or_else(|| {
+        tr(
+            "cette version de l'app n'a pas de serveur de mises à jour",
+            "this build of the app has no update server",
+        )
+        .to_owned()
+    })?;
+    let info = check(&app, &endpoint, &mpv).await?;
     if let Some(info) = info.as_ref().filter(|i| !i.downloading) {
         let _ = app.emit("update-ready", info);
     }

@@ -9,10 +9,11 @@ pub mod global_shortcuts;
 pub mod home_layout;
 pub mod pins;
 pub mod sorts;
+pub mod toggles;
 pub mod zoom;
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 #[cfg(desktop)]
 use tauri_plugin_autostart::ManagerExt;
 
@@ -27,6 +28,7 @@ use eggs::EasterEggs;
 use home_layout::{HomeLayout, SectionPref};
 use pins::Pin;
 use sorts::{ListSort, TrackSort};
+use toggles::DefaultOn;
 use zoom::Zoom;
 
 const KEY_UI: &str = "ui.settings";
@@ -126,6 +128,11 @@ pub struct UiSettings {
     pub content: ContentFilter,
     /// Raccourcis clavier globaux (#413, bureau), désactivés par défaut.
     pub global_shortcuts: global_shortcuts::GlobalShortcuts,
+    /// Vérification périodique des mises à jour (#452), activée par défaut. Sans adresse
+    /// de mises à jour compilée, l'interrupteur n'est pas proposé.
+    pub auto_updates: DefaultOn,
+    /// Jam (#452) : désactivée, elle disparaît de l'UI (Réglages, « En lecture »).
+    pub jam: DefaultOn,
 }
 
 /// `System` suit « réduire les animations » du système (`prefers-reduced-motion`).
@@ -158,6 +165,8 @@ impl UiSettings {
     /// Reporte les réglages lus par le backend hors des commandes (fermeture de la fenêtre).
     pub(crate) fn apply_to_backend(&self) {
         self.content.apply();
+        crate::servers::set_auto_updates(self.auto_updates.0);
+        crate::jam::set_enabled(self.jam.0);
         #[cfg(desktop)]
         crate::integrations::tray::set_close_to_tray(self.close_action == CloseAction::Tray);
         #[cfg(desktop)]
@@ -214,6 +223,10 @@ fn store_and_apply(app: &AppHandle, state: &AppState, settings: &UiSettings) -> 
     save(state, settings)?;
     i18n::set(settings.language.resolve());
     settings.apply_to_backend();
+    // Jam désactivée : celle en cours s'arrête.
+    if !settings.jam.0 {
+        app.state::<crate::jam::JamState>().stop();
+    }
     #[cfg(desktop)]
     zoom::apply(app, settings.zoom);
     #[cfg(desktop)]
