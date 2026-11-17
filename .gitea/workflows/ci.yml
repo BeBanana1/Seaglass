@@ -26,7 +26,7 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
       # Deux rustc à la fois au plus : chacun peut dépasser 1 Go, et le job est limité
-      # à 3 Go (ci/config.yaml, container.options).
+      # à 4 Go (ci/config.yaml, container.options).
       CARGO_BUILD_JOBS: 2
     steps:
       # Historique complet et tags : le contrôle de version compare au dernier tag `v*`.
