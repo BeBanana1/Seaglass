@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.76
+
+- Jam : les invités peuvent lire les paroles du titre en cours, synchronisées quand TIDAL les fournit (#448)
+
 ## 0.5.75
 
 - Jam : l'hôte peut laisser les invités régler le volume, sous un plafond qu'il choisit (#449)

@@ -6,7 +6,9 @@ use super::api::{Backend, Hits, Snapshot};
 use super::guests::Guests;
 use crate::player::blind::{Answer, BlindTestView, Mode, Party, Phase, PlayerView, Refusal};
 use crate::player::volume::Volume;
-use crate::tidal::models::{AlbumRef, AlbumSummary, ArtistRef, Track, TrackId};
+use crate::tidal::models::{
+    AlbumRef, AlbumSummary, ArtistRef, LyricLine, Lyrics, LyricsText, Track, TrackId,
+};
 
 #[derive(Default)]
 pub struct Fake {
@@ -18,6 +20,9 @@ pub struct Fake {
     pub answers: Mutex<Vec<GuestAnswer>>,
     /// Volume de l'hôte (#449).
     pub volume: Mutex<Volume>,
+    /// Titre en cours (7 par défaut, `Some(None)` = rien) et paroles demandées (#448).
+    pub now: Mutex<Option<Option<u64>>>,
+    pub lyrics_calls: Mutex<Vec<u64>>,
 }
 
 /// Réponse reçue par le faux lecteur : clé, prénom, manche, réponse.
@@ -160,14 +165,33 @@ impl Backend for Fake {
     }
     async fn state(&self) -> Result<Snapshot, String> {
         let added = self.added.lock().unwrap();
+        let now = self.now.lock().unwrap().unwrap_or(Some(7));
         Ok(Snapshot {
-            now: Some(track(7)),
+            now: now.map(track),
             paused: self.paused.lock().unwrap().unwrap_or(false),
+            position: 42.0,
             manual: added.iter().map(|id| track(*id)).collect(),
             upcoming: (8..50).map(track).collect(),
             blind: self.blind.lock().unwrap().clone(),
             volume: *self.volume.lock().unwrap(),
         })
+    }
+    /// Le titre 7 a des paroles synchronisées, les autres aucune ; la réponse tarde un peu
+    /// pour que des demandes simultanées se croisent.
+    async fn lyrics(&self, id: TrackId) -> Result<Option<Lyrics>, String> {
+        self.lyrics_calls.lock().unwrap().push(id.0);
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        Ok((id.0 == 7).then(|| Lyrics {
+            track_id: id,
+            provider: Some("MUSIXMATCH".into()),
+            rtl: false,
+            text: LyricsText::Synced {
+                lines: vec![LyricLine {
+                    time_ms: 1000,
+                    text: "Première ligne".into(),
+                }],
+            },
+        }))
     }
     /// Comme l'acteur : refusé sans partie ouverte aux invités, pour une autre manche ou en
     /// double ; l'invité reçoit l'identifiant 1, l'autre 2.

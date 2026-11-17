@@ -91,6 +91,18 @@
         </p>
       </section>
     </main>
+    <!-- Paroles du titre en cours (#448), plein écran. -->
+    <section id="lyrics" class="lyrics" role="dialog" aria-modal="true" aria-labelledby="lyrics-title" hidden>
+      <header class="lyrics-head">
+        <div class="meta">
+          <div id="lyrics-title" class="title"></div>
+          <div id="lyrics-sub" class="sub"></div>
+        </div>
+        <button id="lyrics-close" type="button" class="lyrics-close">✕</button>
+      </header>
+      <div id="lyrics-body" class="lyrics-body"></div>
+      <p id="lyrics-credit" class="muted lyrics-credit" hidden></p>
+    </section>
     <div id="toast" class="toast" role="status" hidden></div>
     <script src="jam.js"></script>
   </body>

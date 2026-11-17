@@ -273,6 +273,63 @@ async fn guests_set_the_volume_under_the_host_cap() {
     assert_eq!(call(&core, &fake, "/api/pause", pause, IP).await.0, 200);
 }
 
+/// Paroles du titre en cours (#448) : une requête à TIDAL pour plusieurs invités, rien sans
+/// titre, refus pendant un blind test, position dans l'état.
+#[tokio::test]
+async fn guests_read_the_lyrics_of_the_current_track() {
+    let (core, fake) = (core(JamRules::default(), false), Fake::default());
+    let state =
+        || async { serde_json::from_str::<Value>(&core.state_json(&fake).await.unwrap()).unwrap() };
+    // Avant toute demande : on ne sait pas, le bouton reste affiché.
+    let before = state().await;
+    assert!(before.get("lyrics").is_none());
+    assert!(before["startedAt"].as_i64().is_some(), "{before}");
+
+    let ask =
+        |guest: &'static str, ip| call(&core, &fake, "/api/lyrics", json!({ "guest": guest }), ip);
+    let ((s1, b1), (s2, b2)) = tokio::join!(ask(LEA, IP), ask(MAX, OTHER_IP));
+    assert_eq!((s1, s2), (200, 200));
+    assert_eq!(b1["trackId"], 7);
+    assert_eq!(b1["lyrics"]["text"]["kind"], "synced");
+    assert_eq!(b1["lyrics"]["provider"], "MUSIXMATCH");
+    assert_eq!(b1["lyrics"], b2["lyrics"]);
+    assert!(b1["now"].as_i64().is_some());
+    assert_eq!(
+        *fake.lyrics_calls.lock().unwrap(),
+        vec![7],
+        "une seule requête"
+    );
+    assert_eq!(state().await["lyrics"], true);
+
+    // Autre titre sans paroles : réponse vide, retenue aussi.
+    *fake.now.lock().unwrap() = Some(Some(8));
+    let (status, body) = ask(LEA, IP).await;
+    assert_eq!((status, body["trackId"].as_u64()), (200, Some(8)));
+    assert!(body["lyrics"].is_null());
+    ask(MAX, OTHER_IP).await;
+    assert_eq!(*fake.lyrics_calls.lock().unwrap(), vec![7, 8]);
+    assert_eq!(state().await["lyrics"], false);
+
+    // En pause : la position, pas de point de départ.
+    *fake.paused.lock().unwrap() = Some(true);
+    let paused = state().await;
+    assert_eq!(paused["position"], 42_000);
+    assert!(paused.get("startedAt").is_none());
+
+    // Rien en lecture.
+    *fake.now.lock().unwrap() = Some(None);
+    let (status, body) = ask(LEA, IP).await;
+    assert_eq!((status, body["trackId"].clone()), (200, Value::Null));
+
+    // Blind test : les paroles donneraient la réponse.
+    *fake.now.lock().unwrap() = None;
+    *fake.blind.lock().unwrap() = Some(crate::jam::testing::blind_game(false));
+    let (status, body) = ask(LEA, IP).await;
+    assert_eq!((status, body["error"].as_str()), (409, Some("game")));
+    let during = state().await;
+    assert!(during.get("lyrics").is_none() && during.get("position").is_none());
+}
+
 /// Blind test à plusieurs (#441) : réponses, refus, partie dans l'état, ajouts suspendus.
 #[tokio::test]
 async fn guests_answer_the_blind_test() {

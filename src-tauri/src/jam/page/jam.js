@@ -57,6 +57,11 @@ const TEXT = {
     errVolume: "L'hôte a désactivé le volume pour les invités.",
     errMuted: "L'hôte a coupé le son.",
     volume: "Volume",
+    lyrics: "Paroles",
+    lyricsClose: "Fermer les paroles",
+    lyricsLoading: "Chargement des paroles…",
+    lyricsNone: "Pas de paroles pour ce titre.",
+    lyricsCredit: (p) => `Paroles fournies par ${p}`,
     closed: "Ajouts suspendus par l'hôte.",
     limit: (n) => `Jusqu'à ${n} titre${n > 1 ? "s" : ""} en attente par personne.`,
     // Blind test à plusieurs (#441).
@@ -143,6 +148,11 @@ const TEXT = {
     errVolume: "The host has turned off the volume for guests.",
     errMuted: "The host muted the sound.",
     volume: "Volume",
+    lyrics: "Lyrics",
+    lyricsClose: "Close the lyrics",
+    lyricsLoading: "Loading the lyrics…",
+    lyricsNone: "No lyrics for this track.",
+    lyricsCredit: (p) => `Lyrics provided by ${p}`,
     closed: "Adding is paused by the host.",
     limit: (n) => `Up to ${n} waiting track${n > 1 ? "s" : ""} per person.`,
     game: "Blind test",
@@ -375,12 +385,20 @@ function render(state) {
       el("div", "title", state.now.title),
       el("div", "sub", state.now.artists),
     );
+    // Paroles (#448) : masqué pendant un blind test, ou quand l'hôte sait qu'il n'y en a pas.
+    if (!state.blind && state.lyrics !== false) {
+      const open = el("button", "link lyrics-open", t.lyrics);
+      open.type = "button";
+      open.addEventListener("click", openLyrics);
+      meta.append(open);
+    }
     now.append(meta);
     if (state.controls) now.append(pauseButton(state.paused));
   } else {
     now.append(el("div", "muted", t.nothing));
   }
   renderVolume(state.volume);
+  followLyrics(state);
   // Règles de l'hôte (#288) : ajouts suspendus, limite par invité, albums.
   const notice = $("notice");
   const lines = [];
@@ -487,6 +505,116 @@ async function sendVolume() {
   }
   // L'état réel revient par le flux ; en cas de refus, le curseur reprend sa place.
   if (lastState) renderVolume(lastState.volume);
+}
+
+// --- Paroles (#448) ----------------------------------------------------------------
+// Paroles du titre en cours seulement, demandées à l'hôte. Synchronisées : la ligne en
+// cours suit la position, déduite du point de départ du titre (`startedAt`, heure de
+// l'hôte, corrigée de l'écart d'horloge reçu avec les paroles) ou de la position en pause.
+
+/** Titre dont les paroles sont affichées (`null` panneau fermé), lignes horodatées. */
+let lyricsTrack = null;
+let lyricsLines = [];
+/** Heure de l'hôte moins celle de ce téléphone, en ms. */
+let clockOffset = 0;
+let lyricsTimer = null;
+let currentLine = -1;
+/** L'invité fait défiler les paroles : on arrête de suivre un moment. */
+let lyricsHeldUntil = 0;
+
+function openLyrics() {
+  $("lyrics").hidden = false;
+  document.body.classList.add("locked");
+  loadLyrics();
+  $("lyrics-close").focus();
+}
+
+function closeLyrics() {
+  $("lyrics").hidden = true;
+  document.body.classList.remove("locked");
+  lyricsTrack = null;
+  lyricsLines = [];
+  clearInterval(lyricsTimer);
+}
+
+async function loadLyrics() {
+  const now = lastState?.now;
+  lyricsTrack = now?.id ?? null;
+  lyricsLines = [];
+  currentLine = -1;
+  clearInterval(lyricsTimer);
+  $("lyrics-title").textContent = now?.title ?? "";
+  $("lyrics-sub").textContent = now?.artists ?? "";
+  $("lyrics-credit").hidden = true;
+  const body = $("lyrics-body");
+  body.className = "lyrics-body plain";
+  body.dir = "auto";
+  body.replaceChildren(el("p", "muted", t.lyricsLoading));
+  let res;
+  try {
+    res = await api("lyrics");
+  } catch (e) {
+    if (lostAccess(e)) return;
+    toast(message(e.kind));
+    closeLyrics();
+    return;
+  }
+  // Fermé, ou le titre a changé pendant la requête : la suite s'en charge.
+  if ($("lyrics").hidden || res.trackId !== lyricsTrack) return;
+  if (typeof res.now === "number") clockOffset = res.now - Date.now();
+  const lyrics = res.lyrics;
+  if (!lyrics) {
+    body.replaceChildren(el("p", "", t.lyricsNone));
+    return;
+  }
+  body.dir = lyrics.rtl ? "rtl" : "auto";
+  if (lyrics.provider) {
+    $("lyrics-credit").textContent = t.lyricsCredit(lyrics.provider);
+    $("lyrics-credit").hidden = false;
+  }
+  if (lyrics.text.kind === "synced") {
+    lyricsLines = lyrics.text.lines;
+    body.className = "lyrics-body";
+    body.replaceChildren(...lyricsLines.map((l) => el("p", l.text ? "" : "gap", l.text || "♪")));
+    syncLyrics();
+    lyricsTimer = setInterval(syncLyrics, 250);
+  } else {
+    body.replaceChildren(...lyrics.text.lines.map((l) => el("p", l ? "" : "gap", l)));
+  }
+}
+
+/** Position du titre en cours en ms d'après l'état poussé, `null` inconnue. */
+function playbackPosition() {
+  const s = lastState;
+  if (!s) return null;
+  if (typeof s.startedAt === "number") return Date.now() + clockOffset - s.startedAt;
+  if (typeof s.position === "number") return s.position;
+  return null;
+}
+
+function syncLyrics() {
+  const position = playbackPosition();
+  if (position === null || lyricsLines.length === 0) return;
+  let index = -1;
+  for (let i = 0; i < lyricsLines.length && lyricsLines[i].timeMs <= position; i++) index = i;
+  if (index === currentLine) return;
+  const lines = $("lyrics-body").children;
+  lines[currentLine]?.classList.remove("current");
+  currentLine = index;
+  const line = lines[index];
+  if (!line) return;
+  line.classList.add("current");
+  if (Date.now() >= lyricsHeldUntil) line.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+/** État poussé : nouveau titre (paroles rechargées), blind test ou plus rien (fermé). */
+function followLyrics(state) {
+  if ($("lyrics").hidden) return;
+  if (!state.now || state.blind) {
+    closeLyrics();
+    return;
+  }
+  if (state.now.id !== lyricsTrack) loadLyrics();
 }
 
 function openEvents() {
@@ -865,6 +993,17 @@ $("clear").addEventListener("click", () => {
 });
 
 $("rename").addEventListener("click", () => showJoin());
+
+$("lyrics-close").setAttribute("aria-label", t.lyricsClose);
+$("lyrics-close").addEventListener("click", closeLyrics);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !$("lyrics").hidden) closeLyrics();
+});
+for (const event of ["wheel", "touchmove"]) {
+  $("lyrics-body").addEventListener(event, () => (lyricsHeldUntil = Date.now() + 4000), {
+    passive: true,
+  });
+}
 
 // Un envoi par geste (`change`), pas à chaque pas du curseur (`input`).
 $("volume").setAttribute("aria-label", t.volume);
