@@ -51,5 +51,10 @@ le tag et reconstruire suffit (étape 2).
   quand même, mais perd 5 min par action de cache.
 - **`pull access denied` pour `seaglass-ci`** : l'image n'a pas été construite, ou
   son tag diffère du label.
+- **Job tué (code 137, `Killed`)** pendant la compilation Rust : il a dépassé la limite
+  mémoire de `container.options` dans `config.yaml` (3 Go). Monter à `--memory=3500m`
+  plutôt que de retirer la limite : sans elle, un rustc peut geler toute la VM. Après
+  une modification de `config.yaml`, recréer le runner :
+  `docker compose up -d --force-recreate runner`.
 - **Clé de config inconnue** après une mise à jour d'act_runner : comparer avec
   `docker run --rm --entrypoint act_runner docker.io/gitea/act_runner:<version> generate-config`.

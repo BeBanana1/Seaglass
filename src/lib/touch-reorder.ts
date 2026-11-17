@@ -9,6 +9,9 @@
 // - La ligne saisie reste dans la liste : sinon son `transform` agrandissait la zone
 //   défilable et le défilement automatique descendait sans fin sous la liste (#302).
 // - Un appui qui commence sur un bouton n'est pas une saisie (Monter / Descendre, Masquer).
+// - Avec une poignée (`handle`, file d'attente #450), seul un appui sur elle saisit la ligne,
+//   et tout de suite : l'appui long sur le reste de la ligne garde son menu. La poignée porte
+//   `touch-action: none`, la page ne défile donc pas sous elle.
 // La ligne suit le doigt par une variable CSS et des classes posées ici, sans état Svelte.
 
 import type { Reorder } from "./reorder.svelte";
@@ -29,6 +32,8 @@ export interface TouchReorderOptions {
   reorder: Reorder;
   /** Lignes de la liste, dans l'ordre, pour situer le doigt. */
   items: () => HTMLElement[];
+  /** Sélecteur de la poignée : l'appui doit y commencer, et saisit sans attendre. */
+  handle?: string;
 }
 
 function scrollParent(node: HTMLElement): HTMLElement {
@@ -148,13 +153,15 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
 
   function onDown(e: PointerEvent) {
     if (!opts.enabled || !e.isPrimary || e.pointerType === "mouse") return;
-    if ((e.target as Element).closest("button, a, input")) return;
+    const target = e.target as Element;
+    if (opts.handle ? !target.closest(opts.handle) : target.closest("button, a, input")) return;
     pointer = e.pointerId;
     phase = "pending";
     x0 = e.clientX;
     y0 = y = e.clientY;
     clearTimeout(timer);
-    timer = setTimeout(grab, HOLD);
+    if (opts.handle) grab();
+    else timer = setTimeout(grab, HOLD);
   }
 
   function onMove(e: PointerEvent) {
