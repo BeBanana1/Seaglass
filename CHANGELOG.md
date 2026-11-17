@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.74
+
+- Blind test : l'anneau du temps restant attend que l'extrait joue vraiment au lieu de partir pendant le chargement puis de revenir au début (#445)
+
 ## 0.5.73
 
 - Blind test : les propositions du mode à 4 choix affichent le titre sur 2 lignes au lieu de le rogner, dans l'app et sur la page des invités de la Jam (#446)

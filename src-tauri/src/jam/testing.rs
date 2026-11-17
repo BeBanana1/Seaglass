@@ -57,6 +57,7 @@ pub fn blind_game(jam: bool) -> BlindTestView {
             answered: false,
         }],
         reveal_at: Some(now_ms() + 30_000),
+        clip_playing: true,
     }
 }
 

@@ -297,6 +297,8 @@ export interface BlindTestView {
   players: BlindPlayer[];
   /** Révélation automatique prévue (ms depuis l'epoch), à plusieurs. */
   revealAt: number | null;
+  /** L'extrait joue vraiment (#445) : avant, le moteur charge encore le titre. */
+  clipPlaying: boolean;
 }
 
 export interface PlayerState {
