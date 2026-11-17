@@ -314,6 +314,46 @@ describe("touchReorder", () => {
     expect(onMove).toHaveBeenCalledWith(1, COUNT - 1);
   });
 
+  describe("avec une poignée (#450)", () => {
+    /** Appui dont la cible est (ou non) dans la poignée `.grip`. */
+    function press(onHandle: boolean, y = 275) {
+      const e = pointer("pointerdown", y);
+      const target = { closest: (sel: string) => (onHandle && sel === ".grip" ? {} : null) };
+      Object.defineProperty(e, "target", { value: target });
+      row.dispatchEvent(e);
+    }
+
+    beforeEach(() => {
+      action.update({ enabled: true, index: 1, reorder, items: () => rows as unknown as HTMLElement[], handle: ".grip" });
+    });
+
+    it("saisit la ligne dès l'appui sur la poignée, sans appui long", () => {
+      press(true);
+      expect(reorder.from).toBe(1);
+      expect(vibrate).toHaveBeenCalledOnce();
+      // La page ne défile pas, et l'appui long ne déclenche ni menu ni sélection.
+      expect(dispatch("touchmove")).toBe(true);
+      expect(dispatch("contextmenu")).toBe(true);
+      row.dispatchEvent(pointer("pointermove", 330));
+      row.dispatchEvent(pointer("pointerup", 330));
+      expect(onMove).toHaveBeenCalledWith(1, 2);
+    });
+
+    it("ailleurs sur la ligne, l'appui long garde son menu", () => {
+      press(false);
+      vi.advanceTimersByTime(1000);
+      expect(reorder.from).toBeNull();
+      expect(dispatch("contextmenu")).toBe(false);
+    });
+
+    it("un simple appui sur la poignée ne déplace rien", () => {
+      press(true);
+      row.dispatchEvent(pointer("pointerup", 275));
+      expect(onMove).not.toHaveBeenCalled();
+      expect([reorder.from, reorder.slot]).toEqual([null, null]);
+    });
+  });
+
   it("garde la ligne dans une liste courte, sans faire défiler la page", () => {
     setRows(3);
     hold();

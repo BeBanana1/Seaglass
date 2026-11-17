@@ -936,6 +936,10 @@ export interface JamRules {
   maxPending: number | null;
   /** Les invités peuvent ajouter un album entier. */
   albums: boolean;
+  /** Les invités peuvent régler le volume (#449). */
+  guestVolume: boolean;
+  /** Volume le plus haut qu'un invité peut demander (1 à 100). */
+  guestVolumeMax: number;
 }
 
 /** Invité de la Jam vu par l'hôte (#288). */

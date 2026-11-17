@@ -48,6 +48,13 @@
           </a>
         </nav>
         <div id="now" class="now" aria-live="polite"></div>
+        <!-- Volume (#449), si l'hôte le permet : hors de `#now`, reconstruit à chaque état,
+             pour ne pas perdre le curseur en plein geste. -->
+        <div id="guest-volume" class="guest-volume" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3.2l4.2-3.5A1 1 0 0 1 13 6.3v11.4a1 1 0 0 1-1.6.8L7.2 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM15.52 9.88a1 1 0 0 1 1.42-1.42 5 5 0 0 1 0 7.08 1 1 0 0 1-1.42-1.42 3 3 0 0 0 0-4.24zM17.64 7.76a1 1 0 0 1 1.42-1.42 8 8 0 0 1 0 11.32 1 1 0 0 1-1.42-1.42 6 6 0 0 0 0-8.48z"/></svg>
+          <input id="volume" type="range" min="0" max="100" step="1" value="100" />
+          <span id="volume-value" class="volume-value"></span>
+        </div>
         <p id="notice" class="notice" role="status" hidden></p>
 
         <!-- Blind test à plusieurs (#441), à la place de la recherche pendant la partie. -->

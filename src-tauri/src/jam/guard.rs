@@ -41,6 +41,9 @@ const WINDOW: Duration = Duration::from_secs(60);
 pub const COMMANDS_PER_MINUTE: usize = 120;
 /// Réponses de blind test par minute (#441) : une par manche suffit largement.
 pub const ANSWERS_PER_MINUTE: usize = 30;
+/// Volume réglé par un invité (#449) : un envoi par geste du curseur, compté à part de la
+/// pause pour que l'un ne bloque pas l'autre.
+pub const VOLUMES_PER_MINUTE: usize = 30;
 
 /// 32⁶ ≈ 1,07 milliard de codes.
 pub fn new_code() -> String {
@@ -88,6 +91,8 @@ pub enum Action {
     Command,
     /// Réponse de blind test (#441).
     Answer,
+    /// Volume réglé par un invité (#449).
+    Volume,
 }
 
 impl Action {
@@ -99,6 +104,7 @@ impl Action {
             Self::Remove => REMOVES_PER_MINUTE,
             Self::Command => COMMANDS_PER_MINUTE,
             Self::Answer => ANSWERS_PER_MINUTE,
+            Self::Volume => VOLUMES_PER_MINUTE,
         }
     }
 }
@@ -112,6 +118,7 @@ struct Counters {
     removes: VecDeque<Instant>,
     commands: VecDeque<Instant>,
     answers: VecDeque<Instant>,
+    volumes: VecDeque<Instant>,
 }
 
 impl Counters {
@@ -123,6 +130,7 @@ impl Counters {
             Action::Remove => &mut self.removes,
             Action::Command => &mut self.commands,
             Action::Answer => &mut self.answers,
+            Action::Volume => &mut self.volumes,
         }
     }
 
@@ -145,6 +153,8 @@ impl Counters {
             &self.controls,
             &self.removes,
             &self.commands,
+            &self.answers,
+            &self.volumes,
         ]
         .iter()
         .all(|q| q.back().is_none_or(|t| now.duration_since(*t) >= WINDOW))
