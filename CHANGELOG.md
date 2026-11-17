@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.75
+
+- Jam : l'hôte peut laisser les invités régler le volume, sous un plafond qu'il choisit (#449)
+
 ## 0.5.74
 
 - Blind test : l'anneau du temps restant attend que l'extrait joue vraiment au lieu de partir pendant le chargement puis de revenir au début (#445)

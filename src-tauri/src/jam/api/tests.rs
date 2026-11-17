@@ -213,6 +213,66 @@ async fn on_the_local_network_a_ban_blocks_the_device() {
     );
 }
 
+/// Volume des invités (#449) : fermé par défaut, plafonné, refusé quand l'hôte a coupé le son.
+#[tokio::test]
+async fn guests_set_the_volume_under_the_host_cap() {
+    let (core, fake) = (core(JamRules::default(), false), Fake::default());
+    let volume = |level: Value| json!({ "guest": LEA, "level": level });
+    let (status, body) = call(&core, &fake, "/api/volume", volume(json!(40)), IP).await;
+    assert_eq!((status, body["error"].as_str()), (403, Some("volume")));
+    let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
+    assert!(state.get("volume").is_none(), "volume caché sans la règle");
+
+    core.set_rules(JamRules {
+        guest_volume: true,
+        guest_volume_max: 70,
+        ..JamRules::default()
+    });
+    // L'hôte est à 100 : un invité qui monte au-delà du plafond est ramené à 70.
+    let (status, body) = call(&core, &fake, "/api/volume", volume(json!(95)), IP).await;
+    assert_eq!((status, body["level"].as_u64()), (200, Some(70)));
+    assert_eq!(fake.volume.lock().unwrap().level, 70);
+    assert_eq!(
+        call(&core, &fake, "/api/volume", volume(json!(30)), IP)
+            .await
+            .0,
+        200
+    );
+    let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
+    assert_eq!(
+        state["volume"],
+        json!({ "level": 30, "max": 70, "muted": false })
+    );
+
+    for bad in [json!(101), json!(-3), json!("x")] {
+        assert_eq!(
+            call(&core, &fake, "/api/volume", volume(bad), IP).await.0,
+            400
+        );
+    }
+
+    // Son coupé par l'hôte : un invité ne le rétablit pas.
+    fake.volume.lock().unwrap().set_muted(true);
+    let (status, body) = call(&core, &fake, "/api/volume", volume(json!(50)), IP).await;
+    assert_eq!((status, body["error"].as_str()), (409, Some("muted")));
+    assert!(fake.volume.lock().unwrap().muted);
+    fake.volume.lock().unwrap().set_muted(false);
+
+    // Compté à part de la pause, par invité.
+    for _ in 3..crate::jam::guard::VOLUMES_PER_MINUTE {
+        assert_eq!(
+            call(&core, &fake, "/api/volume", volume(json!(20)), IP)
+                .await
+                .0,
+            200
+        );
+    }
+    let (status, body) = call(&core, &fake, "/api/volume", volume(json!(20)), IP).await;
+    assert_eq!((status, body["error"].as_str()), (429, Some("slow")));
+    let pause = json!({ "guest": LEA, "paused": true });
+    assert_eq!(call(&core, &fake, "/api/pause", pause, IP).await.0, 200);
+}
+
 /// Blind test à plusieurs (#441) : réponses, refus, partie dans l'état, ajouts suspendus.
 #[tokio::test]
 async fn guests_answer_the_blind_test() {

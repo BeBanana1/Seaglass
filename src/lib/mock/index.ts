@@ -675,7 +675,13 @@ function mockJam(mode: "online" | "local", reconnecting = false) {
     connection: reconnecting ? ("reconnecting" as const) : ("online" as const),
     reason: reconnecting ? "relais injoignable" : null,
     guests: first ? { [first.id]: "Léa" } : {},
-    rules: { guestControls: true, maxPending: null as number | null, albums: true },
+    rules: {
+      guestControls: true,
+      maxPending: null as number | null,
+      albums: true,
+      guestVolume: false,
+      guestVolumeMax: 80,
+    },
     addsOpen: true,
     members: [
       { id: 1, name: "Léa" as string | null, added: 4, banned: false },

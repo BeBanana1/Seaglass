@@ -1,6 +1,6 @@
 <!-- Contrôles de l'hôte de la Jam (#288), repliés par défaut pour ne pas encombrer un petit
-     écran : lecture / pause par les invités, ajouts suspendus, albums, limite par invité,
-     liste des invités avec exclusion. Classes `.setting-row`, `.setting-switch`,
+     écran : lecture / pause et volume plafonné par les invités (#449), ajouts suspendus,
+     albums, limite par invité, liste des invités avec exclusion. Classes `.setting-row`, `.setting-switch`,
      `.cache-sizes` et `.update-check` reprises de Réglages : les thèmes les habillent déjà. -->
 <script lang="ts">
   import type { JamRules, JamStatus } from "../lib/ipc";
@@ -12,6 +12,8 @@
 
   /** Limites proposées ; `null` = sans limite. */
   const LIMITS: (number | null)[] = [null, 1, 2, 3, 5, 10];
+  /** Plafonds du volume des invités proposés (#449), sur l'échelle 0–100 du lecteur. */
+  const VOLUME_CAPS = [50, 60, 70, 80, 90, 100];
 
   let open = $state(false);
 
@@ -69,6 +71,31 @@
       {@render toggle(t.jam.guestControls, t.jam.guestControlsHint, status.rules.guestControls, () =>
         setRule({ guestControls: !status.rules.guestControls }),
       )}
+      {@render toggle(t.jam.host.guestVolume, t.jam.host.guestVolumeHint, status.rules.guestVolume, () =>
+        setRule({ guestVolume: !status.rules.guestVolume }),
+      )}
+
+      {#if status.rules.guestVolume}
+        <div class="setting-row jam-limit">
+          <span class="text">
+            <span class="setting-label" id="jam-volume-label">{t.jam.host.guestVolumeMax}</span>
+            <span class="hint">{t.jam.host.guestVolumeMaxHint}</span>
+          </span>
+          <div class="cache-sizes jam-limits" role="radiogroup" aria-labelledby="jam-volume-label">
+            {#each VOLUME_CAPS as cap (cap)}
+              <button
+                class="cache-size jam-limit-choice"
+                class:selected={status.rules.guestVolumeMax === cap}
+                role="radio"
+                aria-checked={status.rules.guestVolumeMax === cap}
+                onclick={() => setRule({ guestVolumeMax: cap })}
+              >
+                {cap}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
 
       <div class="setting-row jam-limit">
         <span class="text">

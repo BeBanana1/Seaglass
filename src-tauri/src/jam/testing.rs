@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use super::api::{Backend, Hits, Snapshot};
 use super::guests::Guests;
 use crate::player::blind::{Answer, BlindTestView, Mode, Party, Phase, PlayerView, Refusal};
+use crate::player::volume::Volume;
 use crate::tidal::models::{AlbumRef, AlbumSummary, ArtistRef, Track, TrackId};
 
 #[derive(Default)]
@@ -15,6 +16,8 @@ pub struct Fake {
     /// Blind test en cours (#441) ; les réponses reçues, dans l'ordre.
     pub blind: Mutex<Option<BlindTestView>>,
     pub answers: Mutex<Vec<GuestAnswer>>,
+    /// Volume de l'hôte (#449).
+    pub volume: Mutex<Volume>,
 }
 
 /// Réponse reçue par le faux lecteur : clé, prénom, manche, réponse.
@@ -151,6 +154,10 @@ impl Backend for Fake {
         *self.paused.lock().unwrap() = Some(paused);
         Ok(())
     }
+    async fn set_volume(&self, level: u8) -> Result<(), String> {
+        self.volume.lock().unwrap().set_level(level);
+        Ok(())
+    }
     async fn state(&self) -> Result<Snapshot, String> {
         let added = self.added.lock().unwrap();
         Ok(Snapshot {
@@ -159,6 +166,7 @@ impl Backend for Fake {
             manual: added.iter().map(|id| track(*id)).collect(),
             upcoming: (8..50).map(track).collect(),
             blind: self.blind.lock().unwrap().clone(),
+            volume: *self.volume.lock().unwrap(),
         })
     }
     /// Comme l'acteur : refusé sans partie ouverte aux invités, pour une autre manche ou en
