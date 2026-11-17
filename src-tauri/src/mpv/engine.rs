@@ -172,6 +172,7 @@ pub fn translate(ev: MpvEvent) -> Option<Event> {
             Property::IdleActive(i) => Event::Idle(i),
             Property::AudioDeviceList(list) => Event::Devices(list),
             Property::AudioOutParams(a) => Event::DeviceFormat(a),
+            Property::DemuxerCacheTime(t) => Event::Cached(t),
         },
         MpvEvent::FileLoaded => Event::Loaded,
         MpvEvent::EndFile { reason, error } => Event::Ended(match reason {

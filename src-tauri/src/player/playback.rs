@@ -42,6 +42,7 @@ impl Player {
         self.state.normalization = None;
         self.offer_req += 1;
         self.state.time_pos = start;
+        self.state.cached = 0.0;
         self.resolve(id, Slot::Current { start }, self.load_req);
     }
 

@@ -85,6 +85,9 @@ pub enum End {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
     Position(Option<f64>),
+    /// Position (secondes) jusqu'où le titre courant est déjà en mémoire (#453) : cache du
+    /// démultiplexeur de mpv, `bufferedPosition` de Media3. Rien sur disque.
+    Cached(Option<f64>),
     Duration(Option<f64>),
     Paused(bool),
     Buffering(bool),

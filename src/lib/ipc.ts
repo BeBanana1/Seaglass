@@ -318,6 +318,10 @@ export interface PlayerState {
   idle: boolean;
   timePos: number;
   duration: number;
+  /** Position jusqu'où le titre est déjà en mémoire, en secondes (#453) ; 0 si inconnue. */
+  cached: number;
+  /** Le titre suivant est préchargé dans le moteur. */
+  nextReady: boolean;
   shuffle: boolean;
   repeat: Repeat;
   hasPrevious: boolean;

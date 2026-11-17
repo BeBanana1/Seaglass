@@ -36,6 +36,11 @@ pub struct PlayerState {
     /// Position en secondes ; l'UI interpole entre deux événements.
     pub time_pos: f64,
     pub duration: f64,
+    /// Position jusqu'où le titre courant est déjà en mémoire, en secondes (#453) ; 0 si
+    /// inconnue. Arrondie à la seconde près par `set_cached`.
+    pub cached: f64,
+    /// Le titre suivant est préchargé dans le moteur (fenêtre de 2 entrées).
+    pub next_ready: bool,
     pub shuffle: bool,
     pub repeat: Repeat,
     pub has_previous: bool,
@@ -65,17 +70,30 @@ pub struct PlayerState {
 }
 
 impl PlayerState {
-    /// Vrai si seul `time_pos` diffère : ces changements sont limités à ~4 Hz. Sans copie
-    /// de l'état (appelé à chaque position reçue, #147) : `time_pos` est échangé le temps de
-    /// la comparaison.
+    /// Vrai si seuls `time_pos` et `cached` diffèrent : ces changements sont limités à
+    /// ~4 Hz. Sans copie de l'état (appelé à chaque position reçue, #147) : les deux champs
+    /// sont échangés le temps de la comparaison.
     pub fn differs_only_by_time(&mut self, other: &Self) -> bool {
-        if self.time_pos == other.time_pos {
+        if self.time_pos == other.time_pos && self.cached == other.cached {
             return false;
         }
-        let own = std::mem::replace(&mut self.time_pos, other.time_pos);
+        let own_time = std::mem::replace(&mut self.time_pos, other.time_pos);
+        let own_cached = std::mem::replace(&mut self.cached, other.cached);
         let same = *self == *other;
-        self.time_pos = own;
+        self.time_pos = own_time;
+        self.cached = own_cached;
         same
+    }
+
+    /// Applique la position mise en mémoire (#453). Le cache se remplit par petits paquets :
+    /// seuls un écart d'une seconde ou plus, une baisse (nouveau titre, saut) et la fin du
+    /// titre sont gardés, pour ne pas réveiller l'UI à chaque paquet.
+    pub fn set_cached(&mut self, end: Option<f64>) {
+        let end = end.unwrap_or(0.0).max(0.0);
+        let reaches_end = self.duration > 0.0 && end >= self.duration - 1.0;
+        if end < self.cached || end - self.cached >= 1.0 || (reaches_end && end != self.cached) {
+            self.cached = end;
+        }
     }
 
     /// Applique `audio-params`. mpv le passe à `null` à chaque fin de fichier, mais ne renvoie
@@ -141,6 +159,39 @@ mod tests {
         assert!(!a.differs_only_by_time(&same));
         // L'état comparé est rendu intact.
         assert_eq!(a, PlayerState::default());
+
+        // Le cache qui avance est limité comme la position.
+        let d = PlayerState {
+            time_pos: 1.0,
+            cached: 30.0,
+            ..a.clone()
+        };
+        assert!(a.differs_only_by_time(&d));
+        assert_eq!(a, PlayerState::default());
+    }
+
+    #[test]
+    fn cached_moves_by_whole_seconds() {
+        let mut s = PlayerState {
+            duration: 200.0,
+            ..PlayerState::default()
+        };
+        s.set_cached(Some(10.0));
+        assert_eq!(s.cached, 10.0);
+        // Petit paquet : ignoré.
+        s.set_cached(Some(10.6));
+        assert_eq!(s.cached, 10.0);
+        s.set_cached(Some(11.2));
+        assert_eq!(s.cached, 11.2);
+        // Fin du titre atteinte : gardée même à moins d'une seconde.
+        s.set_cached(Some(198.8));
+        s.set_cached(Some(199.5));
+        assert_eq!(s.cached, 199.5);
+        // Nouveau titre ou saut en arrière : toujours appliqué.
+        s.set_cached(Some(3.0));
+        assert_eq!(s.cached, 3.0);
+        s.set_cached(None);
+        assert_eq!(s.cached, 0.0);
     }
 
     fn params(samplerate: u32) -> Option<AudioParams> {

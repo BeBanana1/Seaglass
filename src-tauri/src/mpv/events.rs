@@ -6,7 +6,7 @@ use super::device::{self, AudioDevice};
 use crate::engine::AudioParams;
 
 /// Propriétés observées (`observe_property`), dans l'ordre des identifiants 1..=N.
-pub const OBSERVED: [&str; 10] = [
+pub const OBSERVED: [&str; 11] = [
     "playlist-pos",
     "time-pos",
     "duration",
@@ -17,6 +17,7 @@ pub const OBSERVED: [&str; 10] = [
     "idle-active",
     "audio-device-list",
     "audio-out-params",
+    "demuxer-cache-time",
 ];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -34,6 +35,9 @@ pub enum Property {
     /// Format réellement écrit sur la sortie (#245) : le format de mixage de Windows en
     /// partagé, celui ouvert sur le périphérique en exclusif.
     AudioOutParams(Option<AudioParams>),
+    /// Position jusqu'où le démultiplexeur a déjà lu le fichier courant (#453), en
+    /// secondes ; un simple nombre, plutôt que l'objet complet `demuxer-cache-state`.
+    DemuxerCacheTime(Option<f64>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,6 +100,7 @@ fn parse_property(msg: &Value) -> Option<Property> {
         "idle-active" => Property::IdleActive(flag()),
         "audio-device-list" => Property::AudioDeviceList(device::parse_list(data)),
         "audio-out-params" => Property::AudioOutParams(serde_json::from_value(data.clone()).ok()),
+        "demuxer-cache-time" => Property::DemuxerCacheTime(data.as_f64()),
         _ => return None,
     })
 }
@@ -115,6 +120,14 @@ mod tests {
 
         let ev = parse(&json!({"event":"property-change","id":1,"name":"playlist-pos","data":-1}));
         assert_eq!(ev, Some(MpvEvent::Property(Property::PlaylistPos(None))));
+
+        let ev = parse(
+            &json!({"event":"property-change","id":11,"name":"demuxer-cache-time","data":95.2}),
+        );
+        assert_eq!(
+            ev,
+            Some(MpvEvent::Property(Property::DemuxerCacheTime(Some(95.2))))
+        );
     }
 
     #[test]
