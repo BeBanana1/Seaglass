@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.80
+
+- Jam : les invités peuvent voter pour passer le titre en cours, au-delà d'un nombre de votes choisi par l'hôte (#433)
+
 ## 0.5.79
 
 - Relais de la Jam réglable (adresse et clé) dans Réglages › Application, interrupteur pour retirer la Jam de l'app, mises à jour automatiques désactivables ; adresses des serveurs lues à la compilation (#452)

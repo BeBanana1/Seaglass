@@ -23,6 +23,8 @@ pub struct Fake {
     /// Titre en cours (7 par défaut, `Some(None)` = rien) et paroles demandées (#448).
     pub now: Mutex<Option<Option<u64>>>,
     pub lyrics_calls: Mutex<Vec<u64>>,
+    /// Titres passés par le vote des invités (#433).
+    pub skips: Mutex<usize>,
 }
 
 /// Réponse reçue par le faux lecteur : clé, prénom, manche, réponse.
@@ -161,6 +163,10 @@ impl Backend for Fake {
     }
     async fn set_volume(&self, level: u8) -> Result<(), String> {
         self.volume.lock().unwrap().set_level(level);
+        Ok(())
+    }
+    async fn skip_by_vote(&self) -> Result<(), String> {
+        *self.skips.lock().unwrap() += 1;
         Ok(())
     }
     async fn state(&self) -> Result<Snapshot, String> {

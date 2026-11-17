@@ -44,6 +44,9 @@ pub const ANSWERS_PER_MINUTE: usize = 30;
 /// Volume réglé par un invité (#449) : un envoi par geste du curseur, compté à part de la
 /// pause pour que l'un ne bloque pas l'autre.
 pub const VOLUMES_PER_MINUTE: usize = 30;
+/// Votes pour passer un titre (#433) : un par titre suffit, la marge couvre les refus
+/// (titre changé entre-temps).
+pub const VOTES_PER_MINUTE: usize = 20;
 
 /// 32⁶ ≈ 1,07 milliard de codes.
 pub fn new_code() -> String {
@@ -93,6 +96,8 @@ pub enum Action {
     Answer,
     /// Volume réglé par un invité (#449).
     Volume,
+    /// Vote pour passer le titre (#433).
+    Vote,
 }
 
 impl Action {
@@ -105,6 +110,7 @@ impl Action {
             Self::Command => COMMANDS_PER_MINUTE,
             Self::Answer => ANSWERS_PER_MINUTE,
             Self::Volume => VOLUMES_PER_MINUTE,
+            Self::Vote => VOTES_PER_MINUTE,
         }
     }
 }
@@ -119,6 +125,7 @@ struct Counters {
     commands: VecDeque<Instant>,
     answers: VecDeque<Instant>,
     volumes: VecDeque<Instant>,
+    votes: VecDeque<Instant>,
 }
 
 impl Counters {
@@ -131,6 +138,7 @@ impl Counters {
             Action::Command => &mut self.commands,
             Action::Answer => &mut self.answers,
             Action::Volume => &mut self.volumes,
+            Action::Vote => &mut self.votes,
         }
     }
 
@@ -155,6 +163,7 @@ impl Counters {
             &self.commands,
             &self.answers,
             &self.volumes,
+            &self.votes,
         ]
         .iter()
         .all(|q| q.back().is_none_or(|t| now.duration_since(*t) >= WINDOW))

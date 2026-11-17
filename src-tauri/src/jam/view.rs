@@ -3,7 +3,7 @@
 
 use serde::Serialize;
 
-use super::api::{MAX_QUEUE, Snapshot};
+use super::api::{GuestSkip, MAX_QUEUE, Snapshot};
 use super::guests::Guests;
 use super::rules::JamRules;
 use crate::player::blind::{Choice, Mode, Phase, PlayerResult, PlayerView};
@@ -115,6 +115,9 @@ pub struct GuestState {
     /// Le titre en cours a des paroles ; absent tant qu'aucun invité ne les a demandées.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lyrics: Option<bool>,
+    /// Vote pour passer le titre en cours (#433), seulement si l'hôte le permet.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skip: Option<GuestSkip>,
 }
 
 /// Volume vu par les invités (#449).
@@ -210,6 +213,7 @@ impl GuestState {
             started_at: None,
             position: None,
             lyrics: None,
+            skip: None,
         }
     }
 }

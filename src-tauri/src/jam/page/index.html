@@ -55,6 +55,11 @@
           <input id="volume" type="range" min="0" max="100" step="1" value="100" />
           <span id="volume-value" class="volume-value"></span>
         </div>
+        <!-- Vote pour passer le titre (#433), si l'hôte le permet. -->
+        <div id="guest-skip" class="guest-skip" hidden>
+          <span id="skip-count" class="skip-count"></span>
+          <button id="skip" type="button"></button>
+        </div>
         <p id="notice" class="notice" role="status" hidden></p>
 
         <!-- Blind test à plusieurs (#441), à la place de la recherche pendant la partie. -->

@@ -963,6 +963,10 @@ export interface JamRules {
   guestVolume: boolean;
   /** Volume le plus haut qu'un invité peut demander (1 à 100). */
   guestVolumeMax: number;
+  /** Les invités peuvent voter pour passer le titre en cours (#433). */
+  skipVote: boolean;
+  /** Votes qui passent le titre (2 à 10). */
+  skipVotes: number;
 }
 
 /** Invité de la Jam vu par l'hôte (#288). */

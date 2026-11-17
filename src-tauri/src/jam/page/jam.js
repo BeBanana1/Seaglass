@@ -56,6 +56,12 @@ const TEXT = {
     errAlbums: "L'hôte n'accepte pas les albums entiers.",
     errVolume: "L'hôte a désactivé le volume pour les invités.",
     errMuted: "L'hôte a coupé le son.",
+    errSkip: "L'hôte a désactivé le vote pour passer.",
+    errChanged: "Le titre a changé entre-temps.",
+    skip: "Voter pour passer",
+    skipVoted: "Vote compté",
+    skipCount: (v, n) => `${v} / ${n} votes pour passer ce titre`,
+    skipped: "Titre passé par le vote",
     volume: "Volume",
     lyrics: "Paroles",
     lyricsClose: "Fermer les paroles",
@@ -147,6 +153,12 @@ const TEXT = {
     errAlbums: "The host doesn't accept whole albums.",
     errVolume: "The host has turned off the volume for guests.",
     errMuted: "The host muted the sound.",
+    errSkip: "The host has turned off voting to skip.",
+    errChanged: "The track changed in the meantime.",
+    skip: "Vote to skip",
+    skipVoted: "Vote counted",
+    skipCount: (v, n) => `${v} / ${n} votes to skip this track`,
+    skipped: "Track skipped by vote",
     volume: "Volume",
     lyrics: "Lyrics",
     lyricsClose: "Close the lyrics",
@@ -283,6 +295,8 @@ function message(kind) {
       albums: t.errAlbums,
       volume: t.errVolume,
       muted: t.errMuted,
+      skip: t.errSkip,
+      changed: t.errChanged,
       round: t.errRound,
       answered: t.errAnswered,
       players: t.errPlayers,
@@ -398,6 +412,7 @@ function render(state) {
     now.append(el("div", "muted", t.nothing));
   }
   renderVolume(state.volume);
+  renderSkip(state);
   followLyrics(state);
   // Règles de l'hôte (#288) : ajouts suspendus, limite par invité, albums.
   const notice = $("notice");
@@ -505,6 +520,44 @@ async function sendVolume() {
   }
   // L'état réel revient par le flux ; en cas de refus, le curseur reprend sa place.
   if (lastState) renderVolume(lastState.volume);
+}
+
+// --- Vote pour passer (#433) ---------------------------------------------------------
+// Un vote par titre : la page retient le titre pour lequel elle a voté, le compte revient
+// par le flux.
+
+const SKIP_KEY = "seaglass-jam-skip";
+let skipVotedFor = Number(sessionStorage.getItem(SKIP_KEY)) || null;
+
+function renderSkip(state) {
+  const box = $("guest-skip");
+  const skip = state.skip;
+  box.hidden = !skip || !state.now;
+  if (box.hidden) return;
+  $("skip-count").textContent = t.skipCount(skip.votes, skip.needed);
+  const button = $("skip");
+  const voted = skipVotedFor === state.now.id;
+  button.textContent = voted ? t.skipVoted : t.skip;
+  button.disabled = voted;
+}
+
+async function voteSkip() {
+  const trackId = lastState && lastState.now && lastState.now.id;
+  if (!trackId) return;
+  const button = $("skip");
+  button.disabled = true;
+  let res;
+  try {
+    res = await api("skip", { trackId });
+  } catch (e) {
+    button.disabled = false;
+    if (!lostAccess(e)) toast(message(e.kind));
+    return;
+  }
+  skipVotedFor = trackId;
+  sessionStorage.setItem(SKIP_KEY, String(trackId));
+  if (res.skipped) toast(t.skipped);
+  if (lastState) renderSkip(lastState);
 }
 
 // --- Paroles (#448) ----------------------------------------------------------------
@@ -1012,6 +1065,7 @@ $("volume").addEventListener("input", () => {
   $("volume-value").textContent = $("volume").value;
 });
 $("volume").addEventListener("change", sendVolume);
+$("skip").addEventListener("click", voteSkip);
 // Geste annulé (le navigateur reprend le doigt pour défiler) : pas de `change`, le curseur
 // doit pourtant suivre de nouveau l'état poussé.
 for (const event of ["pointercancel", "blur"]) {

@@ -16,6 +16,10 @@ pub const MAX_PENDING_LIMIT: u32 = 50;
 pub const MAX_JAM_PENDING: usize = 100;
 /// Plafond du volume réglé par les invités, par défaut (#449).
 pub const DEFAULT_GUEST_VOLUME_MAX: u8 = 80;
+/// Votes nécessaires pour passer un titre (#433) : par défaut, bornes.
+pub const DEFAULT_SKIP_VOTES: u8 = 3;
+pub const MIN_SKIP_VOTES: u8 = 2;
+pub const MAX_SKIP_VOTES: u8 = 10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -30,6 +34,11 @@ pub struct JamRules {
     pub guest_volume: bool,
     /// Volume le plus haut qu'un invité peut demander (1 à 100).
     pub guest_volume_max: u8,
+    /// Les invités peuvent voter pour passer le titre en cours (#433), désactivé par défaut.
+    pub skip_vote: bool,
+    /// Votes qui passent le titre (2 à 10) : un seuil fixe, l'hôte ne sait pas combien
+    /// d'invités regardent la page.
+    pub skip_votes: u8,
 }
 
 impl Default for JamRules {
@@ -40,13 +49,15 @@ impl Default for JamRules {
             albums: true,
             guest_volume: false,
             guest_volume_max: DEFAULT_GUEST_VOLUME_MAX,
+            skip_vote: false,
+            skip_votes: DEFAULT_SKIP_VOTES,
         }
     }
 }
 
 impl JamRules {
     /// Limite ramenée entre 1 et `MAX_PENDING_LIMIT` (0 = sans limite), plafond du volume
-    /// entre 1 et 100.
+    /// entre 1 et 100, seuil du vote entre 2 et 10.
     pub fn sanitized(self) -> Self {
         Self {
             max_pending: self
@@ -54,6 +65,7 @@ impl JamRules {
                 .filter(|n| *n > 0)
                 .map(|n| n.min(MAX_PENDING_LIMIT)),
             guest_volume_max: self.guest_volume_max.clamp(1, MAX_LEVEL),
+            skip_votes: self.skip_votes.clamp(MIN_SKIP_VOTES, MAX_SKIP_VOTES),
             ..self
         }
     }
@@ -142,6 +154,21 @@ mod tests {
         // Réglage d'avant #449 : volume fermé aux invités, plafond par défaut.
         assert!(!saved.guest_volume);
         assert_eq!(saved.guest_volume_max, DEFAULT_GUEST_VOLUME_MAX);
+        // Réglage d'avant #433 : vote fermé, seuil par défaut.
+        assert!(!saved.skip_vote);
+        assert_eq!(saved.skip_votes, DEFAULT_SKIP_VOTES);
+    }
+
+    #[test]
+    fn skip_threshold_is_bounded() {
+        let rules = |n| JamRules {
+            skip_votes: n,
+            ..JamRules::default()
+        };
+        assert_eq!(rules(0).sanitized().skip_votes, MIN_SKIP_VOTES);
+        assert_eq!(rules(1).sanitized().skip_votes, MIN_SKIP_VOTES);
+        assert_eq!(rules(5).sanitized().skip_votes, 5);
+        assert_eq!(rules(200).sanitized().skip_votes, MAX_SKIP_VOTES);
     }
 
     #[test]
