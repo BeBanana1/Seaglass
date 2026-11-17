@@ -1,5 +1,5 @@
 <!-- Contrôles de l'hôte de la Jam (#288), repliés par défaut pour ne pas encombrer un petit
-     écran : lecture / pause et volume plafonné par les invités (#449), ajouts suspendus,
+     écran : lecture / pause et volume plafonné par les invités (#449), vote pour passer (#433), ajouts suspendus,
      albums, limite par invité, liste des invités avec exclusion. Classes `.setting-row`, `.setting-switch`,
      `.cache-sizes` et `.update-check` reprises de Réglages : les thèmes les habillent déjà. -->
 <script lang="ts">
@@ -14,6 +14,8 @@
   const LIMITS: (number | null)[] = [null, 1, 2, 3, 5, 10];
   /** Plafonds du volume des invités proposés (#449), sur l'échelle 0–100 du lecteur. */
   const VOLUME_CAPS = [50, 60, 70, 80, 90, 100];
+  /** Votes qui passent un titre (#433), entre 2 et 10 côté Rust. */
+  const SKIP_THRESHOLDS = [2, 3, 4, 5, 7, 10];
 
   let open = $state(false);
 
@@ -91,6 +93,32 @@
                 onclick={() => setRule({ guestVolumeMax: cap })}
               >
                 {cap}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {@render toggle(t.jam.host.skipVote, t.jam.host.skipVoteHint, status.rules.skipVote, () =>
+        setRule({ skipVote: !status.rules.skipVote }),
+      )}
+
+      {#if status.rules.skipVote}
+        <div class="setting-row jam-limit">
+          <span class="text">
+            <span class="setting-label" id="jam-skip-label">{t.jam.host.skipVotes}</span>
+            <span class="hint">{t.jam.host.skipVotesHint}</span>
+          </span>
+          <div class="cache-sizes jam-limits" role="radiogroup" aria-labelledby="jam-skip-label">
+            {#each SKIP_THRESHOLDS as n (n)}
+              <button
+                class="cache-size jam-limit-choice"
+                class:selected={status.rules.skipVotes === n}
+                role="radio"
+                aria-checked={status.rules.skipVotes === n}
+                onclick={() => setRule({ skipVotes: n })}
+              >
+                {n}
               </button>
             {/each}
           </div>

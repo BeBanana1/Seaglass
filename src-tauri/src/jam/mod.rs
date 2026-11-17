@@ -470,6 +470,27 @@ impl Backend for AppBackend {
             .map_err(|_| stopped())
     }
 
+    async fn skip_by_vote(&self) -> Result<(), String> {
+        self.player.send(Cmd::Next).await.map_err(|_| stopped())?;
+        tracing::info!("Jam : titre passé par le vote des invités");
+        #[derive(Clone, Serialize)]
+        struct Toast {
+            level: &'static str,
+            message: &'static str,
+        }
+        let toast = Toast {
+            level: "info",
+            message: tr(
+                "Titre passé par le vote des invités de la Jam",
+                "Track skipped by the Jam guests' vote",
+            ),
+        };
+        if let Err(e) = self.app.emit("toast", toast) {
+            tracing::warn!("Jam : {e}");
+        }
+        Ok(())
+    }
+
     async fn state(&self) -> Result<Snapshot, String> {
         let (tx, rx) = oneshot::channel();
         self.player

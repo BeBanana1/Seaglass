@@ -1,13 +1,16 @@
 //! Cœur de l'API des invités (#25), commun à la Jam locale (`server.rs`) et au relais
 //! (`relay.rs`) : code d'accès, limites par invité et par adresse (#256), titres et albums
 //! proposés, ajouts des invités, règles et exclusions de l'hôte (#288), plafond de la Jam
-//! dans la file (#256), volume (#449), paroles (#448), état. Les deux transports ne font que livrer des requêtes ici et
+//! dans la file (#256), volume (#449), paroles (#448), vote pour passer (#433), état. Les deux transports ne font que livrer des requêtes ici et
 //! rendre les réponses.
 
 mod adds;
 mod blind;
 mod lyrics;
+mod skip;
 mod volume;
+
+pub use skip::GuestSkip;
 
 use std::collections::HashMap;
 use std::future::Future;
@@ -88,6 +91,8 @@ pub trait Backend: Send + Sync + 'static {
     fn set_paused(&self, paused: bool) -> impl Future<Output = Result<(), String>> + Send;
     /// Volume demandé par un invité (#449), déjà ramené au plafond de l'hôte.
     fn set_volume(&self, level: u8) -> impl Future<Output = Result<(), String>> + Send;
+    /// Passe le titre en cours : les invités l'ont voté (#433). L'hôte en est prévenu.
+    fn skip_by_vote(&self) -> impl Future<Output = Result<(), String>> + Send;
     fn state(&self) -> impl Future<Output = Result<Snapshot, String>> + Send;
     /// Paroles d'un titre (#448), `None` s'il n'en a pas.
     fn lyrics(&self, id: TrackId) -> impl Future<Output = Result<Option<Lyrics>, String>> + Send;
@@ -128,6 +133,8 @@ pub struct Core {
     lyrics: tokio::sync::Mutex<Option<lyrics::CachedLyrics>>,
     /// Point de départ du titre en cours envoyé aux invités (#448, `clock.rs`).
     clock: Mutex<Option<Anchor>>,
+    /// Votes pour passer le titre en cours (#433).
+    skip_votes: Mutex<skip::SkipVotes>,
     /// Relire l'état sans attendre (ajout d'un invité, nouvelle page, pause).
     pub refresh: Notify,
 }
@@ -158,6 +165,7 @@ impl Core {
             add_turn: tokio::sync::Mutex::new(()),
             lyrics: tokio::sync::Mutex::new(None),
             clock: Mutex::new(None),
+            skip_votes: Mutex::new(skip::SkipVotes::default()),
             refresh: Notify::new(),
         }
     }
@@ -277,6 +285,10 @@ impl Core {
             GuestState::new(&snapshot, &guests, &self.rules(), self.adds_open())
         };
         self.add_clock(&mut state, &snapshot);
+        state.skip = self.skip_view(
+            snapshot.now.as_ref().map(|t| t.id.0),
+            snapshot.jam_game().is_some(),
+        );
         Some(serde_json::json!(state).to_string())
     }
 
@@ -335,6 +347,7 @@ impl Core {
             "/api/pause" => self.pause(body, ip, &key, backend).await,
             "/api/blind-answer" => self.blind_answer(body, ip, &key, backend).await,
             "/api/volume" => self.volume(body, ip, &key, backend).await,
+            "/api/skip" => self.skip(body, ip, &key, backend).await,
             "/api/lyrics" => self.lyrics(ip, &key, backend).await,
             _ => Response::not_found(),
         }

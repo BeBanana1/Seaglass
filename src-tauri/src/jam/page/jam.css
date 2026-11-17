@@ -296,6 +296,31 @@ body.locked {
   font-size: 0.75rem;
 }
 
+/* Vote pour passer le titre (#433), sous le titre en cours. */
+.guest-skip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -8px 0 16px;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.guest-skip[hidden] {
+  display: none;
+}
+
+.skip-count {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.guest-skip button {
+  flex: none;
+}
+
 /* Volume réglé par les invités (#449), sous le titre en cours. */
 .guest-volume {
   display: flex;

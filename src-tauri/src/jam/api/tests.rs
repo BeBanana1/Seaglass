@@ -273,6 +273,84 @@ async fn guests_set_the_volume_under_the_host_cap() {
     assert_eq!(call(&core, &fake, "/api/pause", pause, IP).await.0, 200);
 }
 
+/// Vote pour passer (#433) : fermé par défaut, un vote par invité, seuil de l'hôte, titre
+/// changé entre-temps, blind test.
+#[tokio::test]
+async fn guests_vote_to_skip_the_current_track() {
+    const ZOE: &str = "cccccccccccccccccccccccccccccccc";
+    let (core, fake) = (core(JamRules::default(), false), Fake::default());
+    let vote = |guest: &str, track: u64| json!({ "guest": guest, "trackId": track });
+    let (status, body) = call(&core, &fake, "/api/skip", vote(LEA, 7), IP).await;
+    assert_eq!((status, body["error"].as_str()), (403, Some("skip")));
+    let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
+    assert!(state.get("skip").is_none(), "vote caché sans la règle");
+
+    core.set_rules(JamRules {
+        skip_vote: true,
+        skip_votes: 3,
+        ..JamRules::default()
+    });
+    let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
+    assert_eq!(state["skip"], json!({ "votes": 0, "needed": 3 }));
+
+    let (status, body) = call(&core, &fake, "/api/skip", vote(LEA, 7), IP).await;
+    assert_eq!((status, body["votes"].as_u64()), (200, Some(1)));
+    // Même invité : compté une fois. Par le relais, l'adresse partagée ne compte pas.
+    assert_eq!(
+        call(&core, &fake, "/api/skip", vote(LEA, 7), IP).await.1["votes"],
+        1
+    );
+    assert_eq!(
+        call(&core, &fake, "/api/skip", vote(MAX, 7), IP).await.1["votes"],
+        2
+    );
+    // Vote parti pour le titre d'avant : refusé, rien n'est compté.
+    let (status, body) = call(&core, &fake, "/api/skip", vote(ZOE, 6), IP).await;
+    assert_eq!((status, body["error"].as_str()), (409, Some("changed")));
+    assert_eq!(*fake.skips.lock().unwrap(), 0);
+
+    let (status, body) = call(&core, &fake, "/api/skip", vote(ZOE, 7), IP).await;
+    assert_eq!(status, 200);
+    assert_eq!(body["skipped"], true);
+    assert_eq!(*fake.skips.lock().unwrap(), 1);
+
+    // Nouveau titre : les votes repartent de zéro.
+    *fake.now.lock().unwrap() = Some(Some(8));
+    let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
+    assert_eq!(state["skip"]["votes"], 0);
+
+    // Blind test ouvert aux invités : pas de vote.
+    *fake.blind.lock().unwrap() = Some(crate::jam::testing::blind_game(true));
+    let (status, body) = call(&core, &fake, "/api/skip", vote(LEA, 8), IP).await;
+    assert_eq!((status, body["error"].as_str()), (409, Some("game")));
+    let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
+    assert!(state.get("skip").is_none());
+}
+
+/// Réseau local : un appareil ne vote qu'une fois, même avec un autre jeton.
+#[tokio::test]
+async fn on_the_local_network_a_device_votes_once() {
+    let rules = JamRules {
+        skip_vote: true,
+        skip_votes: 2,
+        ..JamRules::default()
+    };
+    let (core, fake) = (core(rules, true), Fake::default());
+    let vote = |guest: &str| json!({ "guest": guest, "trackId": 7 });
+    assert_eq!(
+        call(&core, &fake, "/api/skip", vote(LEA), IP).await.1["votes"],
+        1
+    );
+    assert_eq!(
+        call(&core, &fake, "/api/skip", vote(MAX), IP).await.1["votes"],
+        1
+    );
+    assert_eq!(*fake.skips.lock().unwrap(), 0);
+    let (_, body) = call(&core, &fake, "/api/skip", vote(MAX), OTHER_IP).await;
+    assert_eq!(body["skipped"], true);
+    assert_eq!(*fake.skips.lock().unwrap(), 1);
+}
+
 /// Paroles du titre en cours (#448) : une requête à TIDAL pour plusieurs invités, rien sans
 /// titre, refus pendant un blind test, position dans l'état.
 #[tokio::test]

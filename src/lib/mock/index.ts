@@ -697,6 +697,8 @@ function mockJam(mode: "online" | "local", reconnecting = false) {
       albums: true,
       guestVolume: false,
       guestVolumeMax: 80,
+      skipVote: false,
+      skipVotes: 3,
     },
     addsOpen: true,
     members: [
