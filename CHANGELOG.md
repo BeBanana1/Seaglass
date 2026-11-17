@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.73
+
+- Blind test : les propositions du mode à 4 choix affichent le titre sur 2 lignes au lieu de le rogner, dans l'app et sur la page des invités de la Jam (#446)
+
 ## 0.5.72
 
 - chore: build sans avertissements : release Android qui échouait sur un avertissement d'apksigner, code mort sur Android, bundle découpé, compilation Kotlin non incrémentale (#443)

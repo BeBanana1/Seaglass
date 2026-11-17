@@ -558,6 +558,19 @@
   .choice-artist {
     max-width: 100%;
     overflow: hidden;
+  }
+
+  /* Titre sur 2 lignes au plus : sur une colonne étroite (Android), une
+     seule ligne rognait les titres longs au point de les rendre illisibles (#446). */
+  .choice-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+
+  .choice-artist {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
