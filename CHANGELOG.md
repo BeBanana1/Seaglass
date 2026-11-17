@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.76
+
+- Jam : l'hôte peut laisser les invités régler le volume, sous un plafond qu'il choisit (#449)
+
 ## 0.5.75
 
 - Android : une poignée à droite des titres de la file d'attente permet de les déplacer au doigt ; l'appui long sur le titre ouvre toujours son menu (#450)

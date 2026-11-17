@@ -441,6 +441,13 @@ impl Backend for AppBackend {
             .map_err(|_| stopped())
     }
 
+    async fn set_volume(&self, level: u8) -> Result<(), String> {
+        self.player
+            .send(Cmd::SetVolume(level))
+            .await
+            .map_err(|_| stopped())
+    }
+
     async fn state(&self) -> Result<Snapshot, String> {
         let (tx, rx) = oneshot::channel();
         self.player
@@ -471,6 +478,7 @@ impl Backend for AppBackend {
             manual: queue.manual,
             upcoming: queue.upcoming,
             blind,
+            volume: player.volume,
         })
     }
 

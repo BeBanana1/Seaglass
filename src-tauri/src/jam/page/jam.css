@@ -206,6 +206,47 @@ button:disabled {
   letter-spacing: -0.1em;
 }
 
+/* Volume réglé par les invités (#449), sous le titre en cours. */
+.guest-volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -8px 0 16px;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.guest-volume[hidden] {
+  display: none;
+}
+
+.guest-volume svg {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.guest-volume input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.guest-volume input:disabled {
+  opacity: 0.4;
+}
+
+.volume-value {
+  flex: none;
+  min-width: 2.4em;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 .now .label {
   color: var(--accent);
   font-size: 0.8rem;

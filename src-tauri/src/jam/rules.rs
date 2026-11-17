@@ -7,11 +7,15 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
+use crate::player::volume::MAX_LEVEL;
+
 /// Plus grande limite de titres en attente par invité acceptée.
 pub const MAX_PENDING_LIMIT: u32 = 50;
 /// Titres venus de la Jam en attente dans la file manuelle, tous invités confondus (#256) :
 /// une adresse qui tire des jetons à la volée ne remplit pas la file de l'hôte.
 pub const MAX_JAM_PENDING: usize = 100;
+/// Plafond du volume réglé par les invités, par défaut (#449).
+pub const DEFAULT_GUEST_VOLUME_MAX: u8 = 80;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -22,6 +26,10 @@ pub struct JamRules {
     pub max_pending: Option<u32>,
     /// Les invités peuvent ajouter un album entier (#223).
     pub albums: bool,
+    /// Les invités peuvent régler le volume (#449), désactivé par défaut.
+    pub guest_volume: bool,
+    /// Volume le plus haut qu'un invité peut demander (1 à 100).
+    pub guest_volume_max: u8,
 }
 
 impl Default for JamRules {
@@ -30,20 +38,29 @@ impl Default for JamRules {
             guest_controls: true,
             max_pending: None,
             albums: true,
+            guest_volume: false,
+            guest_volume_max: DEFAULT_GUEST_VOLUME_MAX,
         }
     }
 }
 
 impl JamRules {
-    /// Limite ramenée entre 1 et `MAX_PENDING_LIMIT` ; 0 = sans limite.
+    /// Limite ramenée entre 1 et `MAX_PENDING_LIMIT` (0 = sans limite), plafond du volume
+    /// entre 1 et 100.
     pub fn sanitized(self) -> Self {
         Self {
             max_pending: self
                 .max_pending
                 .filter(|n| *n > 0)
                 .map(|n| n.min(MAX_PENDING_LIMIT)),
+            guest_volume_max: self.guest_volume_max.clamp(1, MAX_LEVEL),
             ..self
         }
+    }
+
+    /// Niveau appliqué pour la demande `level` d'un invité : ramené au plafond.
+    pub fn guest_level(&self, level: u8) -> u8 {
+        level.min(self.guest_volume_max)
     }
 
     /// Place restante d'un invité qui a déjà `pending` titres en attente ; `None` = sans limite.
@@ -122,6 +139,22 @@ mod tests {
         let saved: JamRules = serde_json::from_str(r#"{"albums":false}"#).unwrap();
         assert!(saved.guest_controls);
         assert!(!saved.albums);
+        // Réglage d'avant #449 : volume fermé aux invités, plafond par défaut.
+        assert!(!saved.guest_volume);
+        assert_eq!(saved.guest_volume_max, DEFAULT_GUEST_VOLUME_MAX);
+    }
+
+    #[test]
+    fn guest_volume_is_capped() {
+        let rules = |max| JamRules {
+            guest_volume: true,
+            guest_volume_max: max,
+            ..JamRules::default()
+        };
+        assert_eq!(rules(0).sanitized().guest_volume_max, 1);
+        assert_eq!(rules(250).sanitized().guest_volume_max, MAX_LEVEL);
+        assert_eq!(rules(80).guest_level(95), 80);
+        assert_eq!(rules(80).guest_level(30), 30);
     }
 
     #[test]
