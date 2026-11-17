@@ -27,6 +27,10 @@ container:
   # c'est ce qui rend le serveur de cache joignable (ETIMEDOUT sinon).
   network: seaglass-ci
   privileged: false
+  # Ne pas monter le socket Docker dans les jobs (act_runner le fait par défaut) :
+  # avec lui, n'importe quel ci.yml, ou une PR qui le modifie, devient root sur la
+  # VM. Aucun workflow n'utilise Docker (audit du 2026-11-18).
+  docker_host: "-"
   # L'image est construite localement : ne jamais essayer de la télécharger.
   force_pull: false
   # Un job ne peut pas prendre toute la RAM de la VM (gel du serveur le 2026-11-17,
