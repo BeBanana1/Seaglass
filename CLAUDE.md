@@ -166,6 +166,7 @@ pnpm release:all -Publish                         # Windows + Android + Linux (W
 
 - **Ne pas accepter une proposition de l'utilisateur telle quelle** : à chaque proposition (fonctionnalité, outil, workflow, architecture), dire d'abord s'il existe une meilleure façon de faire ou une pratique plus standard, avec les raisons et une recommandation, puis avancer avec ce qu'il confirme.
 
+- **Sous-agents** (`.claude/agents/`, sur Sonnet) : `explorer` pour une recherche en lecture seule dont seule la conclusion compte, `verifier` pour fmt, clippy, tests, `pnpm check` / `pnpm test` et le contrôle de version avec un rapport limité aux erreurs. La conception et les modifications restent dans la session principale.
 - Fournir les **fichiers complets** modifiés, pas des patchs partiels.
 - Commandes shell en PowerShell.
 - Avant d'implémenter quoi que ce soit qui dépend d'un endpoint TIDAL, vérifier son comportement réel (spike ou requête de test) plutôt que de le supposer.
