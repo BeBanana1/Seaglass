@@ -488,6 +488,16 @@ button:disabled {
   max-width: 100%;
 }
 
+/* Titre sur 2 lignes au plus plutôt qu'une ligne rognée (#446). */
+.choice .title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .game .pass {
   margin-top: 10px;
 }
