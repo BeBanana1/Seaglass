@@ -12,10 +12,19 @@ const EMBEDDED_ENV: [&str; 4] = [
     "DISCORD_CLIENT_ID",
 ];
 
+/// Adresses des services (#452, voir `src/servers.rs`), deviennent `SEAGLASS_BUILD_<…>`.
+/// L'environnement de la compilation l'emporte sur `.env` : les scripts de release y
+/// mettent l'adresse qui sert aussi à écrire les manifestes. Absentes : service absent.
+const SERVER_ENV: [(&str, &str); 2] = [
+    ("SEAGLASS_UPDATE_BASE_URL", "SEAGLASS_BUILD_UPDATE_BASE_URL"),
+    ("SEAGLASS_RELAY_BASE_URL", "SEAGLASS_BUILD_RELAY_BASE_URL"),
+];
+
 fn main() {
     check_version();
     let env_file = Path::new("../.env");
     println!("cargo:rerun-if-changed=../.env");
+    let mut from_file: Vec<(String, String)> = Vec::new();
     if let Ok(content) = std::fs::read_to_string(env_file) {
         for line in content.lines() {
             let line = line.trim();
@@ -24,13 +33,24 @@ fn main() {
             }
             if let Some((key, value)) = line.split_once('=') {
                 let key = key.trim();
+                let value = value.trim().trim_matches('"');
                 if EMBEDDED_ENV.contains(&key) {
-                    println!(
-                        "cargo:rustc-env=SEAGLASS_{key}={}",
-                        value.trim().trim_matches('"')
-                    );
+                    println!("cargo:rustc-env=SEAGLASS_{key}={value}");
                 }
+                from_file.push((key.to_owned(), value.to_owned()));
             }
+        }
+    }
+    for (name, compiled) in SERVER_ENV {
+        println!("cargo:rerun-if-env-changed={name}");
+        let value = std::env::var(name).ok().or_else(|| {
+            from_file
+                .iter()
+                .find(|(k, _)| k == name)
+                .map(|(_, v)| v.clone())
+        });
+        if let Some(value) = value.filter(|v| !v.trim().is_empty()) {
+            println!("cargo:rustc-env={compiled}={}", value.trim());
         }
     }
     tauri_build::build()

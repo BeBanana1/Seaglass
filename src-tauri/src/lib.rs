@@ -17,6 +17,7 @@ mod logs;
 mod media3;
 mod mpv;
 mod player;
+mod servers;
 mod store;
 mod tidal;
 #[cfg(desktop)]
@@ -73,6 +74,8 @@ pub fn run() {
             let ui_settings = commands::settings::load_from(store.as_deref());
             i18n::set(ui_settings.language.resolve());
             ui_settings.apply_to_backend();
+            // Avant la télécommande, dont le tunnel passe par le relais (#452).
+            jam::relay_settings::load(store.as_deref());
             commands::shortcuts::sync(&ui_settings.pins);
             #[cfg(desktop)]
             commands::settings::zoom::apply(app.handle(), ui_settings.zoom);
@@ -283,6 +286,9 @@ pub fn run() {
             commands::jam::set_jam_adds_open,
             commands::jam::set_jam_guest_banned,
             commands::jam::stop_jam,
+            commands::jam::relay_settings,
+            commands::jam::set_relay_settings,
+            servers::update_server,
             commands::remote::remote_status,
             commands::remote::start_remote,
             commands::remote::stop_remote,

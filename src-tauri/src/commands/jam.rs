@@ -4,6 +4,7 @@
 use tauri::{AppHandle, State};
 
 use super::{AppState, CmdResult, err};
+use crate::jam::relay_settings::{self, RelayChange, RelayView};
 use crate::jam::{JamMode, JamRules, JamState, JamStatus};
 use crate::store::Store;
 
@@ -29,10 +30,26 @@ pub async fn jam_status(jam: State<'_, JamState>) -> CmdResult<Option<JamStatus>
     Ok(jam.status())
 }
 
-/// Vrai si l'app peut ouvrir une Jam en ligne (clé du relais compilée).
+/// Vrai si l'app peut ouvrir une Jam en ligne (relais utilisable, #452).
 #[tauri::command]
 pub async fn jam_online_available() -> CmdResult<bool> {
     Ok(crate::jam::online_available())
+}
+
+/// Relais de la Jam en ligne et des transferts (#452) : choisi, compilé, utilisable.
+#[tauri::command]
+pub async fn relay_settings() -> CmdResult<RelayView> {
+    Ok(relay_settings::view())
+}
+
+/// Change de relais (adresse vérifiée par `/healthz`), revient à celui compilé ou le coupe.
+/// Vaut pour la prochaine Jam, et pour le tunnel des transferts à sa prochaine ouverture.
+#[tauri::command]
+pub async fn set_relay_settings(
+    state: State<'_, AppState>,
+    change: RelayChange,
+) -> CmdResult<RelayView> {
+    relay_settings::update(state.store.as_deref(), change).await
 }
 
 /// Démarre la Jam (ou renvoie celle qui tourne) : adresse et code à donner aux invités.

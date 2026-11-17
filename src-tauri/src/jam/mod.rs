@@ -3,7 +3,8 @@
 //!
 //! Deux modes, mêmes règles (`api.rs`) :
 //! - **En ligne** (`relay.rs`) : l'app se connecte au relais (`relay/`), les invités ouvrent
-//!   `https://jam.bebanana.ch/j/<id>/`, sans Wi-Fi commun.
+//!   `https://<relais>/j/<id>/`, sans Wi-Fi commun. Relais compilé ou choisi dans les Réglages
+//!   (#452, `relay_settings.rs`).
 //! - **Réseau local** (`server.rs`) : l'app ouvre un port (47800, sinon un port libre).
 //!   Bureau seulement : sur un téléphone en données mobiles (ou qui partage sa connexion),
 //!   l'adresse ne servirait à rien, et l'app n'ouvre aucun port sur Android.
@@ -20,6 +21,7 @@ mod lan;
 mod members;
 mod protocol;
 mod relay;
+pub mod relay_settings;
 pub mod remote;
 mod rules;
 mod server;
@@ -29,6 +31,7 @@ mod view;
 
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::content::filtered;
@@ -134,9 +137,20 @@ fn status_of(info: &Mutex<JamInfo>, core: &Core) -> Option<JamStatus> {
     })
 }
 
-/// Vrai si l'app a une clé de relais : la Jam en ligne est proposée.
+/// Réglage « Jam » (#452) : désactivée, elle disparaît de l'UI et ne démarre plus.
+static ENABLED: AtomicBool = AtomicBool::new(true);
+
+pub fn set_enabled(enabled: bool) {
+    ENABLED.store(enabled, Ordering::Relaxed);
+}
+
+pub fn enabled() -> bool {
+    ENABLED.load(Ordering::Relaxed)
+}
+
+/// Vrai si un relais est utilisable (adresse et clé) : la Jam en ligne est proposée.
 pub fn online_available() -> bool {
-    RelayConfig::from_env().is_some()
+    RelayConfig::current().is_some()
 }
 
 #[derive(Default)]
@@ -192,6 +206,13 @@ impl JamState {
         if let Some(status) = self.status() {
             return Ok(status);
         }
+        if !enabled() {
+            return Err(tr(
+                "la Jam est désactivée dans les Réglages",
+                "the Jam is turned off in Settings",
+            )
+            .to_owned());
+        }
         let code = guard::new_code();
         let guests: Arc<Mutex<Guests>> = Arc::default();
         // Réseau local : une adresse = un appareil, l'exclusion la bloque aussi (#288).
@@ -235,7 +256,7 @@ impl JamState {
                 (info, task)
             }
             JamMode::Online => {
-                let config = RelayConfig::from_env().ok_or_else(|| {
+                let config = RelayConfig::current().ok_or_else(|| {
                     tr(
                         "Jam en ligne indisponible : relais non configuré",
                         "online Jam unavailable: no relay configured",

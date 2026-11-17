@@ -8,6 +8,9 @@
 //! plugin Kotlin le confie à `PackageInstaller` : Android demande confirmation et vérifie
 //! lui-même que l'APK porte la même clé de signature que l'app installée.
 //!
+//! Adresse (#452) : `android.json` du dossier compilé (`servers::update_base`) ; sans elle,
+//! rien n'est vérifié. La vérification périodique suit « Mises à jour automatiques ».
+//!
 //! Logique pure (manifeste, versions) testée aussi sur le bureau.
 
 // Hors Android, seuls les tests utilisent ce module.
@@ -15,10 +18,15 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Manifeste publié à côté de l'installeur Windows.
-pub const MANIFEST_URL: &str = "https://updates.bebanana.ch/seaglass/android.json";
+/// Manifeste publié à côté de l'installeur Windows, dans le dossier `base`.
+pub fn manifest_url(base: &str) -> String {
+    format!("{base}/android.json")
+}
+
 /// Seuls les APK servis sous ce préfixe sont acceptés, quel que soit le manifeste.
-const DOWNLOAD_PREFIX: &str = "https://updates.bebanana.ch/seaglass/";
+fn download_prefix(base: &str) -> String {
+    format!("{base}/")
+}
 /// Au-delà, le manifeste est refusé (l'APK release fait quelques dizaines de Mo).
 const MAX_SIZE: u64 = 300 * 1024 * 1024;
 
@@ -78,9 +86,13 @@ pub fn parse_version(v: &str) -> Option<(u64, u64, u64)> {
     parts.next().is_none().then_some(version)
 }
 
-/// Valide le manifeste et renvoie la version qu'il propose si elle est plus récente que
-/// `current`.
-pub fn evaluate(manifest: Manifest, current: &str) -> Result<Option<Available>, String> {
+/// Valide le manifeste lu dans le dossier `base` et renvoie la version qu'il propose si
+/// elle est plus récente que `current`.
+pub fn evaluate(
+    manifest: Manifest,
+    current: &str,
+    base: &str,
+) -> Result<Option<Available>, String> {
     let offered = parse_version(&manifest.version)
         .ok_or_else(|| format!("version invalide dans le manifeste : {}", manifest.version))?;
     let installed =
@@ -88,7 +100,10 @@ pub fn evaluate(manifest: Manifest, current: &str) -> Result<Option<Available>, 
     if offered <= installed {
         return Ok(None);
     }
-    if !manifest.url.starts_with(DOWNLOAD_PREFIX) || manifest.url.contains("..") {
+    if !base.starts_with("https://")
+        || !manifest.url.starts_with(&download_prefix(base))
+        || manifest.url.contains("..")
+    {
         return Err(format!("adresse de l'APK refusée : {}", manifest.url));
     }
     let sha256 = manifest.sha256.to_ascii_lowercase();
@@ -124,7 +139,7 @@ mod android {
     use tauri::{AppHandle, Emitter, Manager, State};
     use tokio::io::AsyncWriteExt;
 
-    use super::{Available, MANIFEST_URL, Manifest, UpdateInfo, evaluate, hex};
+    use super::{Available, Manifest, UpdateInfo, evaluate, hex, manifest_url};
     use crate::i18n::tr;
 
     const CHECK_INTERVAL: Duration = Duration::from_secs(6 * 3600);
@@ -169,15 +184,22 @@ mod android {
         if cfg!(debug_assertions) {
             return;
         }
+        if crate::servers::update_base().is_none() {
+            tracing::info!("mises à jour absentes : aucune adresse compilée");
+            return;
+        }
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(FIRST_CHECK_DELAY).await;
             loop {
-                match check(&app).await {
-                    Ok(Some(info)) => {
-                        let _ = app.emit("update-ready", info);
+                // Réglage relu à chaque tour : il peut changer pendant que l'app tourne.
+                if crate::servers::auto_updates() {
+                    match check(&app).await {
+                        Ok(Some(info)) => {
+                            let _ = app.emit("update-ready", info);
+                        }
+                        Ok(None) => {}
+                        Err(e) => tracing::warn!("vérification des mises à jour : {e}"),
                     }
-                    Ok(None) => {}
-                    Err(e) => tracing::warn!("vérification des mises à jour : {e}"),
                 }
                 tokio::time::sleep(CHECK_INTERVAL).await;
             }
@@ -189,8 +211,15 @@ mod android {
     async fn check(app: &AppHandle) -> Result<Option<UpdateInfo>, String> {
         let state = app.state::<UpdateState>();
         let _busy = state.busy.lock().await;
+        let base = crate::servers::update_base().ok_or_else(|| {
+            tr(
+                "cette version de l'app n'a pas de serveur de mises à jour",
+                "this build of the app has no update server",
+            )
+            .to_owned()
+        })?;
         let manifest: Manifest = http()?
-            .get(MANIFEST_URL)
+            .get(manifest_url(base))
             .send()
             .await
             .and_then(|r| r.error_for_status())
@@ -199,7 +228,7 @@ mod android {
             .await
             .map_err(|e| format!("manifeste illisible : {e}"))?;
         let current = current_version(app);
-        let found = evaluate(manifest, &current)?;
+        let found = evaluate(manifest, &current, base)?;
         let known = state.get();
         state.set(found.clone());
         Ok(found
@@ -305,10 +334,16 @@ mod android {
 mod tests {
     use super::*;
 
+    const BASE: &str = "https://updates.example.org/seaglass";
+
+    fn evaluate(manifest: Manifest, current: &str) -> Result<Option<Available>, String> {
+        super::evaluate(manifest, current, BASE)
+    }
+
     fn manifest(version: &str) -> Manifest {
         Manifest {
             version: version.to_owned(),
-            url: format!("{DOWNLOAD_PREFIX}{version}/Seaglass_{version}_arm64.apk"),
+            url: format!("{BASE}/{version}/Seaglass_{version}_arm64.apk"),
             sha256: "AB".repeat(32),
             size: 40_000_000,
             notes: Some("- Correctif".to_owned()),
@@ -346,10 +381,14 @@ mod tests {
         m.url = "https://example.com/seaglass.apk".to_owned();
         assert!(evaluate(m, "0.4.46").is_err());
         let mut m = manifest("0.4.47");
-        m.url = "http://updates.bebanana.ch/seaglass/x.apk".to_owned();
+        m.url = "http://updates.example.org/seaglass/x.apk".to_owned();
         assert!(evaluate(m, "0.4.46").is_err());
         let mut m = manifest("0.4.47");
-        m.url = format!("{DOWNLOAD_PREFIX}../autre/x.apk");
+        m.url = format!("{BASE}/../autre/x.apk");
+        assert!(evaluate(m, "0.4.46").is_err());
+        // Préfixe sans `/` final : un dossier voisin au nom plus long est refusé.
+        let mut m = manifest("0.4.47");
+        m.url = format!("{BASE}-autre/x.apk");
         assert!(evaluate(m, "0.4.46").is_err());
         let mut m = manifest("0.4.47");
         m.sha256 = "zz".repeat(32);
@@ -362,7 +401,7 @@ mod tests {
 
     #[test]
     fn manifest_from_release_script_parses() {
-        let json = r#"{"version":"0.4.47","url":"https://updates.bebanana.ch/seaglass/0.4.47/Seaglass_0.4.47_arm64.apk","sha256":"00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff","size":41234567,"notes":"- A\n- B","pub_date":"2026-11-03T18:00:00Z"}"#;
+        let json = r#"{"version":"0.4.47","url":"https://updates.example.org/seaglass/0.4.47/Seaglass_0.4.47_arm64.apk","sha256":"00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff","size":41234567,"notes":"- A\n- B","pub_date":"2026-11-03T18:00:00Z"}"#;
         let m: Manifest = serde_json::from_str(json).unwrap();
         let found = evaluate(m, "0.4.46").unwrap().unwrap();
         assert_eq!(found.size, 41_234_567);

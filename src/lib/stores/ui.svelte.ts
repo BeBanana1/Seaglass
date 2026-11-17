@@ -40,6 +40,8 @@ export const ui = $state<{
     easterEggs: true,
     content: { hideExplicit: false, hideAi: true },
     globalShortcuts: { enabled: false, bindings: {} },
+    autoUpdates: true,
+    jam: true,
   },
   nowPlayingPanel: null,
 });
@@ -160,6 +162,18 @@ export async function toggleFavoriteTheme(family: Theme) {
 export async function setDiscord(discord: boolean) {
   const previous = ui.settings;
   ui.settings = { ...ui.settings, discord };
+  try {
+    await commands.setUiSettings(ui.settings);
+  } catch (e) {
+    ui.settings = previous;
+    throw e;
+  }
+}
+
+/** Interrupteurs lus par le backend (#452) : mises à jour automatiques, Jam. */
+export async function setUiToggle(key: "autoUpdates" | "jam", value: boolean) {
+  const previous = ui.settings;
+  ui.settings = { ...ui.settings, [key]: value };
   try {
     await commands.setUiSettings(ui.settings);
   } catch (e) {

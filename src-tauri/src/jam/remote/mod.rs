@@ -90,7 +90,7 @@ impl Running {
     fn sync_tunnel(&mut self, handoff: bool) {
         match (handoff, self.tunnel_task.is_some()) {
             (true, false) => {
-                let config = crate::jam::relay::RelayConfig::from_env();
+                let config = crate::jam::relay::RelayConfig::current();
                 if let (Some(config), Some(settings)) = (config, self.tunnel.clone()) {
                     self.tunnel_task = Some(tokio::spawn(tunnel::run(
                         config,

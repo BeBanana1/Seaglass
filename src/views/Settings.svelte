@@ -23,6 +23,7 @@
     setEasterEggs,
     setGlobalShortcuts,
     setMotion,
+    setUiToggle,
     setZoom,
     ui,
     ZOOM_LEVELS,
@@ -33,8 +34,9 @@
   import ChangelogList from "../components/ChangelogList.svelte";
   import OutputDevicePicker from "../components/OutputDevicePicker.svelte";
   import { platform } from "../lib/platform.svelte";
-  import { jam } from "../lib/stores/jam.svelte";
+  import { jam, setJamEnabled } from "../lib/stores/jam.svelte";
   import JamPanel from "../components/JamPanel.svelte";
+  import RelaySettings from "../components/RelaySettings.svelte";
   import RemotePanel from "../components/RemotePanel.svelte";
   import LinkedComputerPanel from "../components/LinkedComputerPanel.svelte";
   import BlockedList from "../components/BlockedList.svelte";
@@ -88,6 +90,8 @@
   }
   // Faux sous Linux hors d'une AppImage (#314) : pas de bouton « Vérifier ».
   let updatesAvailable = $state(true);
+  // Dossier des mises à jour compilé (#452) ; `null` : mises à jour absentes, rien à proposer.
+  let updateServer = $state<string | null>(null);
   let exclusiveAvailable = $state(false);
   // Android 12+ (#203) : liens TIDAL donnés à l'app ; `null` = rien à régler ou pas encore lu.
   let links = $state<{ enabled: boolean } | null>(null);
@@ -130,6 +134,10 @@
       commands.globalShortcutsStatus().then((s) => (globalShortcutsAvailable = s.available), fail);
       commands.updatesAvailable().then((v) => (updatesAvailable = v), fail);
     }
+  });
+
+  $effect(() => {
+    if (section === "app") commands.updateServer().then((v) => (updateServer = v), fail);
   });
 
   $effect(() => {
@@ -810,14 +818,35 @@
     </div>
     {/if}
 
-    <!-- #25 : Jam, en ligne par le relais ou sur le réseau local (bureau seulement). -->
-    {#if desktop || jam.onlineAvailable}
+    <!-- #25 : Jam, en ligne par le relais ou sur le réseau local (bureau seulement).
+         #452 : un interrupteur la retire de toute l'app. -->
     <div class="group jam">
       <h2>{t.jam.title}</h2>
       <p class="hint">{t.jam.hint}</p>
-      <JamPanel />
+      <label class="setting-row jam-enable">
+        <span class="text">
+          <span class="setting-label">{t.jam.enable}</span>
+          <span class="hint">{t.jam.enableHint}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={ui.settings.jam}
+          role="switch"
+          aria-checked={ui.settings.jam}
+          aria-label={t.jam.enable}
+          onclick={() => setJamEnabled(!ui.settings.jam).catch(fail)}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+      {#if ui.settings.jam}
+        {#if desktop || jam.onlineAvailable}
+          <JamPanel />
+        {:else}
+          <p class="hint">{t.jam.needsRelay}</p>
+        {/if}
+      {/if}
     </div>
-    {/if}
 
     <!-- #336 : télécommande depuis un téléphone, réseau local, bureau seulement. -->
     {#if desktop}
@@ -834,6 +863,13 @@
       <LinkedComputerPanel />
     </div>
     {/if}
+
+    <!-- #452 : relais de la Jam en ligne et des transferts, compilé ou choisi. -->
+    <div class="group relay">
+      <h2>{t.jam.relay.title}</h2>
+      <p class="hint">{t.jam.relay.hint}</p>
+      <RelaySettings />
+    </div>
 
     <!-- #203 : liens https://tidal.com/… touchés, à donner à l'app sur Android 12+. -->
     {#if links}
@@ -922,6 +958,26 @@
         </button>
       </div>
       {#if changelogOpen}<ChangelogList />{/if}
+      <!-- #452 : rien à vérifier sans serveur compilé ; vérification périodique désactivable. -->
+      {#if updateServer !== null}
+      {#if !desktop || updatesAvailable}
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.autoUpdates}</span>
+          <span class="hint">{t.settings.autoUpdatesHint(updateServer)}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={ui.settings.autoUpdates}
+          role="switch"
+          aria-checked={ui.settings.autoUpdates}
+          aria-label={t.settings.autoUpdates}
+          onclick={() => setUiToggle("autoUpdates", !ui.settings.autoUpdates).catch(fail)}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+      {/if}
       <div class="setting-row">
         <span class="text">
           <span class="setting-label">{t.settings.checkUpdates}</span>
@@ -935,7 +991,7 @@
             {:else if updateCheck === "ready"}
               {desktop ? t.settings.updateReady : t.settings.updateAvailable}
             {:else}
-              {t.settings.updateAuto}
+              {ui.settings.autoUpdates ? t.settings.updateAuto : t.settings.updateManualOnly}
             {/if}
           </span>
         </span>
@@ -945,6 +1001,7 @@
         </button>
         {/if}
       </div>
+      {/if}
     </div>
     <div class="group about">
       <h2>{t.settings.about}</h2>

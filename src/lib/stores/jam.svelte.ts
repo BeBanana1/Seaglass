@@ -2,6 +2,7 @@
 // Sur Android, seulement en ligne (pas de Jam sur le réseau local).
 
 import { commands, events, type JamMode, type JamRules, type JamStatus } from "../ipc";
+import { setUiToggle, ui } from "./ui.svelte";
 
 export const jam = $state<{
   status: JamStatus | null;
@@ -16,9 +17,24 @@ export const jam = $state<{
   dialogOpen: false,
 });
 
-/** La Jam est proposée : bureau (réseau local au moins) ou relais compilé. */
+/** La Jam est proposée : activée dans les Réglages (#452), et bureau (réseau local au
+ *  moins) ou relais utilisable. */
 export function jamAvailable(desktop: boolean): boolean {
-  return desktop || jam.onlineAvailable;
+  return ui.settings.jam && (desktop || jam.onlineAvailable);
+}
+
+/** Relais changé dans les Réglages (#452) : la Jam en ligne est-elle encore proposée ? */
+export async function refreshJamOnline() {
+  jam.onlineAvailable = await commands.jamOnlineAvailable();
+}
+
+/** Interrupteur « Jam » (#452) : désactivée, le backend arrête celle en cours. */
+export async function setJamEnabled(enabled: boolean) {
+  await setUiToggle("jam", enabled);
+  if (!enabled) {
+    jam.status = null;
+    jam.dialogOpen = false;
+  }
 }
 
 export function openJamDialog() {
