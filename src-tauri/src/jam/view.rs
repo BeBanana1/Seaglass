@@ -105,6 +105,16 @@ pub struct GuestState {
     /// Volume, seulement si l'hôte laisse les invités le régler (#449).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub volume: Option<GuestVolume>,
+    /// Instant (ms depuis l'epoch, heure de l'hôte) où le titre en cours aurait commencé,
+    /// en lecture (#448, `clock.rs`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<i64>,
+    /// Position en ms, en pause.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position: Option<u64>,
+    /// Le titre en cours a des paroles ; absent tant qu'aucun invité ne les a demandées.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<bool>,
 }
 
 /// Volume vu par les invités (#449).
@@ -197,6 +207,9 @@ impl GuestState {
                 max: rules.guest_volume_max,
                 muted: snapshot.volume.muted,
             }),
+            started_at: None,
+            position: None,
+            lyrics: None,
         }
     }
 }

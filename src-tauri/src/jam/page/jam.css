@@ -206,6 +206,96 @@ button:disabled {
   letter-spacing: -0.1em;
 }
 
+/* Paroles (#448) : bouton sous l'artiste, panneau plein écran. */
+.now .lyrics-open {
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+.lyrics {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+
+/* La page ne défile pas sous le panneau. */
+body.locked {
+  overflow: hidden;
+}
+
+.lyrics[hidden] {
+  display: none;
+}
+
+.lyrics-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto 12px;
+}
+
+.lyrics-head .meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.lyrics-close {
+  flex: none;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.lyrics-body {
+  flex: 1;
+  overflow-y: auto;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 30vh 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.lyrics-body p {
+  margin: 0 0 0.6em;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+
+.lyrics-body.plain {
+  padding: 8px 0 24px;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.lyrics-body.plain p {
+  color: var(--text);
+}
+
+.lyrics-body p.current {
+  color: var(--text);
+}
+
+.lyrics-body p.gap {
+  min-height: 0.6em;
+}
+
+.lyrics-credit {
+  max-width: 640px;
+  width: 100%;
+  margin: 8px auto 0;
+  font-size: 0.75rem;
+}
+
 /* Volume réglé par les invités (#449), sous le titre en cours. */
 .guest-volume {
   display: flex;

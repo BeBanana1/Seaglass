@@ -1,11 +1,12 @@
 //! Cœur de l'API des invités (#25), commun à la Jam locale (`server.rs`) et au relais
 //! (`relay.rs`) : code d'accès, limites par invité et par adresse (#256), titres et albums
 //! proposés, ajouts des invités, règles et exclusions de l'hôte (#288), plafond de la Jam
-//! dans la file (#256), volume (#449), état. Les deux transports ne font que livrer des requêtes ici et
+//! dans la file (#256), volume (#449), paroles (#448), état. Les deux transports ne font que livrer des requêtes ici et
 //! rendre les réponses.
 
 mod adds;
 mod blind;
+mod lyrics;
 mod volume;
 
 use std::collections::HashMap;
@@ -18,6 +19,7 @@ use std::time::{Duration, Instant};
 use serde::Deserialize;
 use tokio::sync::Notify;
 
+use super::clock::{Anchor, anchor, now_ms};
 use super::guard::{Action, Limits, Offered, code_matches};
 use super::guests::{Guests, sanitize_token};
 use super::http::Response;
@@ -26,7 +28,7 @@ use super::rules::JamRules;
 use super::view::{GuestAlbum, GuestState, GuestTrack};
 use crate::player::blind::{Answer, BlindTestView, Refusal};
 use crate::player::volume::Volume;
-use crate::tidal::models::{AlbumSummary, Track, TrackId};
+use crate::tidal::models::{AlbumSummary, Lyrics, Track, TrackId};
 
 /// Délai d'une réponse qui attend TIDAL ou le lecteur.
 pub const BACKEND_TIMEOUT: Duration = Duration::from_secs(15);
@@ -44,6 +46,8 @@ pub const MAX_QUEUE: usize = 20;
 pub struct Snapshot {
     pub now: Option<Track>,
     pub paused: bool,
+    /// Position dans le titre en cours, en secondes (paroles synchronisées, #448).
+    pub position: f64,
     /// File manuelle.
     pub manual: Vec<Track>,
     /// Suite du contexte.
@@ -85,6 +89,8 @@ pub trait Backend: Send + Sync + 'static {
     /// Volume demandé par un invité (#449), déjà ramené au plafond de l'hôte.
     fn set_volume(&self, level: u8) -> impl Future<Output = Result<(), String>> + Send;
     fn state(&self) -> impl Future<Output = Result<Snapshot, String>> + Send;
+    /// Paroles d'un titre (#448), `None` s'il n'en a pas.
+    fn lyrics(&self, id: TrackId) -> impl Future<Output = Result<Option<Lyrics>, String>> + Send;
     /// Réponse d'un invité au blind test (#441) : son identifiant de joueur, ou le refus
     /// de la partie.
     fn blind_answer(
@@ -118,6 +124,10 @@ pub struct Core {
     /// Un ajout à la fois : la limite par invité et les doublons se vérifient sur la file
     /// qui suit l'ajout précédent.
     add_turn: tokio::sync::Mutex<()>,
+    /// Paroles du dernier titre demandé par un invité (#448).
+    lyrics: tokio::sync::Mutex<Option<lyrics::CachedLyrics>>,
+    /// Point de départ du titre en cours envoyé aux invités (#448, `clock.rs`).
+    clock: Mutex<Option<Anchor>>,
     /// Relire l'état sans attendre (ajout d'un invité, nouvelle page, pause).
     pub refresh: Notify,
 }
@@ -146,6 +156,8 @@ impl Core {
             adds_open: AtomicBool::new(true),
             ban_ips,
             add_turn: tokio::sync::Mutex::new(()),
+            lyrics: tokio::sync::Mutex::new(None),
+            clock: Mutex::new(None),
             refresh: Notify::new(),
         }
     }
@@ -260,9 +272,32 @@ impl Core {
             .await
             .ok()?
             .ok()?;
-        let guests = self.guests.lock().ok()?;
-        let state = GuestState::new(&snapshot, &guests, &self.rules(), self.adds_open());
+        let mut state = {
+            let guests = self.guests.lock().ok()?;
+            GuestState::new(&snapshot, &guests, &self.rules(), self.adds_open())
+        };
+        self.add_clock(&mut state, &snapshot);
         Some(serde_json::json!(state).to_string())
+    }
+
+    /// Position et paroles connues du titre en cours (#448), sauf pendant un blind test.
+    fn add_clock(&self, state: &mut GuestState, snapshot: &Snapshot) {
+        let Some(track) = snapshot.now.as_ref().map(|t| t.id.0) else {
+            return;
+        };
+        if snapshot.blind.is_some() {
+            return;
+        }
+        state.lyrics = self.known_lyrics(track);
+        if snapshot.paused {
+            state.position = Some((snapshot.position.max(0.0) * 1000.0).round() as u64);
+            return;
+        }
+        if let Ok(mut clock) = self.clock.lock() {
+            let next = anchor(*clock, track, snapshot.position, now_ms());
+            *clock = Some(next);
+            state.started_at = Some(next.started_at);
+        }
     }
 
     /// Appel `POST /api/<…>` d'un invité, `path` compris (`/api/search`).
@@ -300,6 +335,7 @@ impl Core {
             "/api/pause" => self.pause(body, ip, &key, backend).await,
             "/api/blind-answer" => self.blind_answer(body, ip, &key, backend).await,
             "/api/volume" => self.volume(body, ip, &key, backend).await,
+            "/api/lyrics" => self.lyrics(ip, &key, backend).await,
             _ => Response::not_found(),
         }
     }

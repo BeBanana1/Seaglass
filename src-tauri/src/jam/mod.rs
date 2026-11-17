@@ -12,6 +12,7 @@
 //! porte l'adresse et le code (après `#`, jamais envoyé au serveur ni journalisé).
 
 mod api;
+mod clock;
 mod guard;
 mod guests;
 mod http;
@@ -45,7 +46,7 @@ use crate::i18n::{tr, trf};
 use crate::player::Cmd;
 use crate::player::blind::{Answer, BlindCmd, Refusal};
 use crate::tidal::TidalClient;
-use crate::tidal::models::{Track, TrackId};
+use crate::tidal::models::{Lyrics, Track, TrackId};
 use api::{Backend, Core, Hits, Snapshot};
 use guests::Guests;
 use members::GuestInfo;
@@ -475,11 +476,16 @@ impl Backend for AppBackend {
         Ok(Snapshot {
             now: player.track,
             paused: player.paused,
+            position: player.time_pos,
             manual: queue.manual,
             upcoming: queue.upcoming,
             blind,
             volume: player.volume,
         })
+    }
+
+    async fn lyrics(&self, id: TrackId) -> Result<Option<Lyrics>, String> {
+        self.tidal.lyrics(id).await.map_err(|e| e.to_string())
     }
 
     async fn blind_answer(
