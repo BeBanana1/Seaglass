@@ -545,7 +545,10 @@ impl Player {
                 self.blind_on_position().await;
             }
             Event::Duration(d) if self.loaded => s.duration = d.unwrap_or(0.0),
-            Event::Position(_) | Event::Duration(_) => {}
+            // Après un enchaînement, le moteur renvoie la valeur du nouveau titre : une baisse
+            // est toujours appliquée (`set_cached`).
+            Event::Cached(t) if self.loaded => s.set_cached(t),
+            Event::Position(_) | Event::Duration(_) | Event::Cached(_) => {}
             // Sans titre chargé, la pause reste celle de l'état restauré.
             Event::Paused(p) if self.loaded => {
                 s.paused = p;
@@ -645,6 +648,7 @@ impl Player {
         s.has_previous = playing || self.queue.has_previous();
         s.has_next = playing || self.queue.peek_next().is_some();
         s.blind_test = playing;
+        s.next_ready = self.next_loaded.is_some();
         s.soundtrack = s
             .track
             .as_ref()

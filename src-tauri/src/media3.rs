@@ -50,6 +50,10 @@ enum Native {
     Position {
         value: Option<f64>,
     },
+    /// `bufferedPosition` de Media3, envoyé avec la position (#453).
+    Cached {
+        value: Option<f64>,
+    },
     Duration {
         value: Option<f64>,
     },
@@ -90,6 +94,7 @@ pub fn translate(json: &str) -> Option<Event> {
     };
     Some(match native {
         Native::Position { value } => Event::Position(value),
+        Native::Cached { value } => Event::Cached(value),
         Native::Duration { value } => Event::Duration(value),
         Native::Paused { value } => Event::Paused(value),
         Native::Buffering { value } => Event::Buffering(value),
@@ -244,6 +249,10 @@ mod tests {
         assert_eq!(
             translate(r#"{"type":"position"}"#),
             Some(Event::Position(None))
+        );
+        assert_eq!(
+            translate(r#"{"type":"cached","value":80.5}"#),
+            Some(Event::Cached(Some(80.5)))
         );
         assert_eq!(
             translate(r#"{"type":"paused","value":true}"#),

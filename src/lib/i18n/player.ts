@@ -50,6 +50,11 @@ export const fr = {
   lossy: "Avec perte",
   editionHint: (album: string) => `Version hi-res de l'édition « ${album} »`,
   averageBitrate: (rate: string) => `Débit moyen : ${rate}`,
+  cachedAhead: (time: string) => `+${time} en mémoire`,
+  cachedWhole: "titre en mémoire",
+  nextReady: "suivant prêt",
+  cacheHint:
+    "Partie du titre déjà reçue, gardée en mémoire (jamais sur disque). Sa taille se règle dans Réglages › Lecture.",
   hiresEdition: "Édition hi-res :",
   hiresEditionHint: "Même enregistrement, lu depuis une autre édition : le master peut différer.",
 
@@ -138,6 +143,11 @@ export const en: typeof fr = {
   lossy: "Lossy",
   editionHint: (album: string) => `Hi-res version from the “${album}” edition`,
   averageBitrate: (rate: string) => `Average bitrate: ${rate}`,
+  cachedAhead: (time: string) => `+${time} in memory`,
+  cachedWhole: "whole track in memory",
+  nextReady: "next ready",
+  cacheHint:
+    "Part of the track already received, kept in memory (never on disk). Its size is set in Settings › Playback.",
   hiresEdition: "Hi-res edition:",
   hiresEditionHint: "Same recording, played from another edition: the master may differ.",
 
