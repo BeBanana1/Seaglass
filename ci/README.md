@@ -52,7 +52,7 @@ le tag et reconstruire suffit (étape 2).
 - **`pull access denied` pour `seaglass-ci`** : l'image n'a pas été construite, ou
   son tag diffère du label.
 - **Job tué (code 137, `Killed`)** pendant la compilation Rust : il a dépassé la limite
-  mémoire de `container.options` dans `config.yaml` (3 Go). Monter à `--memory=3500m`
+  mémoire de `container.options` dans `config.yaml` (4 Go). Monter à `--memory=5g`
   plutôt que de retirer la limite : sans elle, un rustc peut geler toute la VM. Après
   une modification de `config.yaml`, recréer le runner :
   `docker compose up -d --force-recreate runner`.

@@ -30,7 +30,7 @@ container:
   # L'image est construite localement : ne jamais essayer de la télécharger.
   force_pull: false
   # Un job ne peut pas prendre toute la RAM de la VM (gel du serveur le 2026-11-17,
-  # rustc sans limite et sans swap) : au-delà de 3 Go (+1 Go de swap), il est tué dans
+  # rustc sans limite et sans swap) : au-delà de 4 Go (+1 Go de swap), il est tué dans
   # son conteneur. Si le noyau doit tuer quelque chose, il choisit le job plutôt que
   # Gitea ou les autres services.
-  options: --memory=3g --memory-swap=4g --oom-score-adj=500
+  options: --memory=4g --memory-swap=5g --oom-score-adj=500
