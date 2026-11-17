@@ -5,6 +5,7 @@
   import {
     engineName,
     formatStream,
+    formatTime,
     gainLabel,
     kbps,
     khz,
@@ -40,6 +41,16 @@
       .filter(Boolean)
       .join(" · "),
   );
+  /** Cache en mémoire (#453) : avance sur la position, ou titre entier, et le suivant
+   *  préchargé. Rien tant que le moteur n'a rien reçu. */
+  const cacheSub = $derived.by(() => {
+    if (!s.track || !s.duration || s.cached <= 0) return "";
+    const whole = s.cached >= s.duration - 1;
+    const ahead = Math.max(0, Math.floor(s.cached - s.timePos));
+    return [whole ? t.player.cachedWhole : t.player.cachedAhead(formatTime(ahead)), s.nextReady ? t.player.nextReady : ""]
+      .filter(Boolean)
+      .join(" · ");
+  });
   /** Flux pris sur une autre édition hi-res du même enregistrement (#18). */
   const edition = $derived(s.stream?.hiresEdition ?? null);
   const editionHint = $derived(edition ? t.player.editionHint(edition.title) : undefined);
@@ -95,6 +106,9 @@
       <span class="label">{t.player.decoding}</span>
       <span class="value mono">{engineName()}</span>
       <span class="sub">{decodeSub}</span>
+      {#if cacheSub && !dense}
+        <span class="cache mono" title={t.player.cacheHint}>{cacheSub}</span>
+      {/if}
     </div>
     <span class="wire" aria-hidden="true"></span>
     <div class="node" title={outputTitle}>
@@ -178,6 +192,26 @@
     min-height: 1em;
     font-size: 11px;
     color: var(--text-muted);
+  }
+
+  /* Cache en mémoire (#453) : une ligne en retrait, plus petite que les autres, hors du
+     flux pour ne pas décaler le nœud Décodage par rapport à ses voisins. */
+  .node:has(.cache) {
+    position: relative;
+  }
+
+  .path:has(.cache) {
+    row-gap: 22px;
+  }
+
+  .cache {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0.75;
+    white-space: nowrap;
   }
 
   /* Nom du périphérique Windows, souvent long (« Haut-parleurs (… USB Audio) »). */

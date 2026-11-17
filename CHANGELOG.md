@@ -11,13 +11,21 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
-## 0.5.76
+## 0.5.78
 
 - Jam : les invités peuvent lire les paroles du titre en cours, synchronisées quand TIDAL les fournit (#448)
 
-## 0.5.75
+## 0.5.77
+
+- La barre de progression montre en bande claire la partie du titre déjà en mémoire, et la chaîne audio son avance (« +2:40 en mémoire », « titre en mémoire », « suivant prêt ») (#453)
+
+## 0.5.76
 
 - Jam : l'hôte peut laisser les invités régler le volume, sous un plafond qu'il choisit (#449)
+
+## 0.5.75
+
+- Android : une poignée à droite des titres de la file d'attente permet de les déplacer au doigt ; l'appui long sur le titre ouvre toujours son menu (#450)
 
 ## 0.5.74
 

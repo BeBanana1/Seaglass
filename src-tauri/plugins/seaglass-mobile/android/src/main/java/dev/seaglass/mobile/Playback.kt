@@ -340,6 +340,8 @@ internal object Playback {
     private fun sendPosition() {
         val p = exo ?: return
         send("position") { if (p.mediaItemCount > 0) put("value", p.currentPosition / 1000.0) }
+        // Ce que Media3 a déjà en mémoire du titre courant (#453), au même rythme.
+        send("cached") { if (p.mediaItemCount > 0) put("value", p.bufferedPosition / 1000.0) }
     }
 
     private fun sendDuration() {

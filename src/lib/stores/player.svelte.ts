@@ -18,6 +18,8 @@ const initial: PlayerState = {
   idle: true,
   timePos: 0,
   duration: 0,
+  cached: 0,
+  nextReady: false,
   shuffle: false,
   repeat: "off",
   hasPrevious: false,
