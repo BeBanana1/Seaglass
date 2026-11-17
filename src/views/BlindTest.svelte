@@ -33,7 +33,9 @@
   const pool = $derived(blindTest.pool);
   const result = $derived<BlindRoundResult | null>(view?.phase === "revealed" ? (view.results.at(-1) ?? null) : null);
   const lastRound = $derived(!!view && view.round >= view.rounds);
-  const clipOver = $derived(view?.phase === "guess" && clip >= 1 && player.state.paused);
+  /** Extrait pas encore lancé par le moteur (#445) : l'anneau attend au départ. */
+  const clipLoading = $derived(view?.phase === "guess" && (player.state.loading || !view.clipPlaying));
+  const clipOver = $derived(view?.phase === "guess" && !clipLoading && clip >= 1 && player.state.paused);
   const multi = $derived(!!view?.party.jam);
   const hostPlaying = $derived(!view || view.party.hostPlays);
   /** L'hôte peut encore répondre à la manche. */
@@ -104,8 +106,11 @@
   $effect(() => {
     if (view?.phase !== "guess") return;
     const { clipStart, clipLength } = view;
-    const loading = player.state.loading;
-    return followPosition((p) => (clip = loading ? 0 : Math.min(1, Math.max(0, (p - clipStart) / clipLength))));
+    if (clipLoading) {
+      clip = 0;
+      return;
+    }
+    return followPosition((p) => (clip = Math.min(1, Math.max(0, (p - clipStart) / clipLength))));
   });
 
   function verdict(r: BlindRoundResult): string {
@@ -176,11 +181,11 @@
     {/if}
   {:else if view.phase === "guess"}
     <div class="round">
-      <div class="disc" class:spinning={player.advancing} style:--clip={clip}>
+      <div class="disc" class:spinning={player.advancing && !clipLoading} style:--clip={clip}>
         <span class="mystery">?</span>
       </div>
       <p class="status" aria-live="polite">
-        {player.state.loading ? t.blindTest.loading : clipOver ? t.blindTest.clipOver : t.blindTest.listening}
+        {clipLoading ? t.blindTest.loading : clipOver ? t.blindTest.clipOver : t.blindTest.listening}
       </p>
       <div class="clip-bar" aria-hidden="true"><span style:width="{clip * 100}%"></span></div>
       <button class="secondary" onclick={() => run(() => commands.blindTestReplay())}>

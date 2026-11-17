@@ -70,6 +70,22 @@ pub(super) struct BlindTest {
     saved_position: f64,
     /// À plusieurs : révélation automatique, `REVEAL_AFTER` après la fin de l'extrait.
     reveal_at: Option<(Instant, i64)>,
+    /// Où en est le chargement de l'extrait (#445).
+    clip: Clip,
+}
+
+/// Chargement de l'extrait (#445). `loading` retombe dès que l'URL est résolue, avant que
+/// le moteur joue : l'UI suivrait sinon une position qui n'avance pas encore, puis
+/// sauterait en arrière à la première vraie position.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Clip {
+    /// Extrait demandé, fichier pas encore ouvert par le moteur.
+    Waiting,
+    /// Fichier ouvert (`Event::Loaded`) : la première position au-delà du début de
+    /// l'extrait dira qu'il joue. Une position reçue avant `Loaded` peut venir du titre de
+    /// la manche précédente et ne compte pas.
+    Opened,
+    Playing,
 }
 
 /// État de la partie envoyé à l'UI (`blind-test`). Le titre de la manche en cours n'y est
@@ -96,6 +112,8 @@ pub struct BlindTestView {
     pub players: Vec<PlayerView>,
     /// Révélation automatique prévue (ms depuis l'epoch), à plusieurs.
     pub reveal_at: Option<i64>,
+    /// L'extrait joue vraiment (#445) : l'anneau ne part qu'à ce moment.
+    pub clip_playing: bool,
 }
 
 impl BlindTest {
@@ -119,6 +137,7 @@ impl BlindTest {
             party: g.party,
             players: g.players().views(),
             reveal_at: self.reveal_at.map(|(_, ms)| ms),
+            clip_playing: self.clip == Clip::Playing,
         }
     }
 }
@@ -265,6 +284,7 @@ impl Player {
             saved,
             saved_position,
             reveal_at: None,
+            clip: Clip::Waiting,
         });
         self.play_round();
         Ok(())
@@ -277,6 +297,7 @@ impl Player {
             return;
         };
         blind.reveal_at = None;
+        blind.clip = Clip::Waiting;
         let (Some(track), start) = (blind.game.track(), blind.game.clip_start()) else {
             return;
         };
@@ -288,11 +309,28 @@ impl Player {
         self.load_current(id, start);
     }
 
-    /// Position reçue : l'extrait s'arrête de lui-même au bout de `CLIP_LENGTH`.
+    /// Fichier ouvert par le moteur : l'extrait de la manche va commencer.
+    pub(super) fn blind_on_loaded(&mut self) {
+        if let Some(blind) = &mut self.blind
+            && blind.clip == Clip::Waiting
+        {
+            blind.clip = Clip::Opened;
+        }
+    }
+
+    /// Position reçue : l'extrait est lancé à la première position qui dépasse son début,
+    /// et s'arrête de lui-même au bout de `CLIP_LENGTH`.
     pub(super) async fn blind_on_position(&mut self) {
-        let Some(blind) = &self.blind else {
+        let Some(blind) = &mut self.blind else {
             return;
         };
+        if blind.clip == Clip::Opened
+            && self.loaded
+            && self.state.time_pos > blind.game.clip_start()
+        {
+            blind.clip = Clip::Playing;
+            self.blind_dirty = true;
+        }
         if blind.game.hides_track()
             && self.loaded
             && !self.state.paused
@@ -361,6 +399,10 @@ impl Player {
         } else if let Some(id) = id
             && !self.state.loading
         {
+            if let Some(blind) = &mut self.blind {
+                blind.clip = Clip::Waiting;
+                self.blind_dirty = true;
+            }
             self.load_current(id, start);
         }
     }

@@ -559,7 +559,10 @@ impl Player {
             Event::Idle(i) => s.set_idle(i),
             Event::Advanced => self.on_advanced().await,
             Event::Devices(list) => self.on_device_list(list).await,
-            Event::Loaded => self.failures = 0,
+            Event::Loaded => {
+                self.failures = 0;
+                self.blind_on_loaded();
+            }
             Event::Ended(end) => self.on_end_file(end).await,
             Event::Stopped => self.on_engine_stopped().await,
         }

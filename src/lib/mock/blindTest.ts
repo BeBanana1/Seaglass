@@ -21,6 +21,8 @@ interface Deps {
 }
 
 const CLIP = 15;
+/** Chargement simulé d'un extrait (ms). */
+const LOAD_DELAY = 1500;
 
 export function blindTestMock({ state, track, emit }: Deps) {
   let view: BlindTestView | null = null;
@@ -61,17 +63,28 @@ export function blindTestMock({ state, track, emit }: Deps) {
     view.revealAt = view.party.jam ? Date.now() + 35_000 : null;
     hostPending = null;
     for (const p of view.players) p.answered = p.name === "Léa";
+    // Chargement simulé (#445) : l'extrait ne part qu'au bout d'un moment.
+    view.clipPlaying = false;
     Object.assign(state, {
       track: null,
       blindTest: true,
       timePos: view.clipStart,
       duration: t.duration,
       paused: false,
+      loading: true,
       idle: false,
       hasNext: true,
       hasPrevious: true,
     });
     emit("player-state", state);
+    const round = view.round;
+    setTimeout(() => {
+      if (view?.phase !== "guess" || view.round !== round) return;
+      view.clipPlaying = true;
+      state.loading = false;
+      emit("player-state", state);
+      publish();
+    }, LOAD_DELAY);
   }
 
   function publish() {
@@ -171,6 +184,7 @@ export function blindTestMock({ state, track, emit }: Deps) {
           party: { jam: together, hostPlays: hostIn },
           players: [...(hostIn ? [player(0, null, true)] : []), ...(together ? [player(1, "Léa"), player(2, "Max")] : [])],
           revealAt: null,
+          clipPlaying: false,
         };
         play();
         publish();
