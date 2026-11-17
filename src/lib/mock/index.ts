@@ -157,6 +157,14 @@ const hiresOfferParam = params.get("hiresoffer");
 /** `?hirestwin=1` : la page album propose un album jumeau hi-res (#59). */
 const hiresTwin = params.has("hirestwin");
 
+/** Cache en mémoire (#453) : `?cached=whole` (titre entier), `?cached=40` (40 s d'avance), 90 s
+ *  d'avance par défaut. */
+function mockCached(position: number, duration: number): number {
+  const param = params.get("cached");
+  const ahead = param === "whole" ? Infinity : Number(param ?? 90) || 0;
+  return Math.min(position + ahead, duration);
+}
+
 /** `?sleep=30` (minuteur de 30 min), `?sleep=track` (fin du titre, #85) ou `?sleep=context` (fin de la file, #436). */
 function mockSleep(param: string | null): SleepState | null {
   if (param === "track") return { kind: "endOfTrack" };
@@ -187,6 +195,8 @@ const state: PlayerState = {
   idle: params.has("idle"),
   timePos: 48,
   duration: context[index]?.duration ?? 0,
+  cached: mockCached(48, context[index]?.duration ?? 0),
+  nextReady: params.has("nextready"),
   shuffle: false,
   repeat: "off",
   hasPrevious: true,
@@ -371,6 +381,8 @@ function setCurrent(track: Track | undefined) {
     track,
     timePos: 0,
     duration: track.duration,
+    cached: mockCached(0, track.duration),
+    nextReady: false,
     paused: false,
     idle: false,
     soundtrack: track.album.id === 156749593,
@@ -675,7 +687,13 @@ function mockJam(mode: "online" | "local", reconnecting = false) {
     connection: reconnecting ? ("reconnecting" as const) : ("online" as const),
     reason: reconnecting ? "relais injoignable" : null,
     guests: first ? { [first.id]: "Léa" } : {},
-    rules: { guestControls: true, maxPending: null as number | null, albums: true },
+    rules: {
+      guestControls: true,
+      maxPending: null as number | null,
+      albums: true,
+      guestVolume: false,
+      guestVolumeMax: 80,
+    },
     addsOpen: true,
     members: [
       { id: 1, name: "Léa" as string | null, added: 4, banned: false },

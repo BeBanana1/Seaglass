@@ -54,6 +54,9 @@ const TEXT = {
     errDuplicate: "Ce titre est déjà dans la file.",
     errQueue: "La file de la Jam est pleine : attendez que des titres passent.",
     errAlbums: "L'hôte n'accepte pas les albums entiers.",
+    errVolume: "L'hôte a désactivé le volume pour les invités.",
+    errMuted: "L'hôte a coupé le son.",
+    volume: "Volume",
     closed: "Ajouts suspendus par l'hôte.",
     limit: (n) => `Jusqu'à ${n} titre${n > 1 ? "s" : ""} en attente par personne.`,
     // Blind test à plusieurs (#441).
@@ -137,6 +140,9 @@ const TEXT = {
     errDuplicate: "This track is already in the queue.",
     errQueue: "The Jam's queue is full: wait for some tracks to play.",
     errAlbums: "The host doesn't accept whole albums.",
+    errVolume: "The host has turned off the volume for guests.",
+    errMuted: "The host muted the sound.",
+    volume: "Volume",
     closed: "Adding is paused by the host.",
     limit: (n) => `Up to ${n} waiting track${n > 1 ? "s" : ""} per person.`,
     game: "Blind test",
@@ -265,6 +271,8 @@ function message(kind) {
       duplicate: t.errDuplicate,
       queue: t.errQueue,
       albums: t.errAlbums,
+      volume: t.errVolume,
+      muted: t.errMuted,
       round: t.errRound,
       answered: t.errAnswered,
       players: t.errPlayers,
@@ -372,6 +380,7 @@ function render(state) {
   } else {
     now.append(el("div", "muted", t.nothing));
   }
+  renderVolume(state.volume);
   // Règles de l'hôte (#288) : ajouts suspendus, limite par invité, albums.
   const notice = $("notice");
   const lines = [];
@@ -452,6 +461,32 @@ function pauseButton(paused) {
     }
   });
   return button;
+}
+
+/** Volume (#449), si l'hôte le permet : le curseur s'arrête au plafond de l'hôte, et n'est
+ * pas déplacé par l'état poussé pendant que l'invité le tient. */
+let volumeDragging = false;
+function renderVolume(volume) {
+  const box = $("guest-volume");
+  box.hidden = !volume;
+  if (!volume || volumeDragging) return;
+  const input = $("volume");
+  input.max = String(volume.max);
+  input.value = String(Math.min(volume.level, volume.max));
+  input.disabled = volume.muted;
+  $("volume-value").textContent = volume.muted ? "—" : String(volume.level);
+}
+
+async function sendVolume() {
+  const input = $("volume");
+  volumeDragging = false;
+  try {
+    await api("volume", { level: Number(input.value) });
+  } catch (e) {
+    if (!lostAccess(e)) toast(message(e.kind));
+  }
+  // L'état réel revient par le flux ; en cas de refus, le curseur reprend sa place.
+  if (lastState) renderVolume(lastState.volume);
 }
 
 function openEvents() {
@@ -830,6 +865,23 @@ $("clear").addEventListener("click", () => {
 });
 
 $("rename").addEventListener("click", () => showJoin());
+
+// Un envoi par geste (`change`), pas à chaque pas du curseur (`input`).
+$("volume").setAttribute("aria-label", t.volume);
+$("volume").addEventListener("input", () => {
+  volumeDragging = true;
+  $("volume-value").textContent = $("volume").value;
+});
+$("volume").addEventListener("change", sendVolume);
+// Geste annulé (le navigateur reprend le doigt pour défiler) : pas de `change`, le curseur
+// doit pourtant suivre de nouveau l'état poussé.
+for (const event of ["pointercancel", "blur"]) {
+  $("volume").addEventListener(event, () => {
+    if (!volumeDragging) return;
+    volumeDragging = false;
+    if (lastState) renderVolume(lastState.volume);
+  });
+}
 
 for (const [id, which] of [
   ["tab-tracks", "tracks"],

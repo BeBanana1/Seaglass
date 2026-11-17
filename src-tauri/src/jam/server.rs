@@ -524,8 +524,10 @@ mod tests {
     #[tokio::test]
     async fn guests_never_reach_the_owner_commands() {
         let (addr, _) = start().await;
-        // Commandes de la télécommande (#336) : inconnues du serveur de la Jam.
-        for path in ["/api/next", "/api/seek", "/api/volume", "/api/play-album"] {
+        // Commandes de la télécommande (#336) : inconnues du serveur de la Jam. Le volume a
+        // sa route invité, fermée par défaut (#449).
+        assert_eq!(call(addr, "POST", "/api/volume", CODE, "{}").await.0, 403);
+        for path in ["/api/next", "/api/seek", "/api/play-album"] {
             assert_eq!(call(addr, "POST", path, CODE, "{}").await.0, 404, "{path}");
         }
         assert_eq!(call(addr, "GET", "/remote.js", "", "").await.0, 404);

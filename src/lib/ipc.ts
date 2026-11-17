@@ -318,6 +318,10 @@ export interface PlayerState {
   idle: boolean;
   timePos: number;
   duration: number;
+  /** Position jusqu'où le titre est déjà en mémoire, en secondes (#453) ; 0 si inconnue. */
+  cached: number;
+  /** Le titre suivant est préchargé dans le moteur. */
+  nextReady: boolean;
   shuffle: boolean;
   repeat: Repeat;
   hasPrevious: boolean;
@@ -932,6 +936,10 @@ export interface JamRules {
   maxPending: number | null;
   /** Les invités peuvent ajouter un album entier. */
   albums: boolean;
+  /** Les invités peuvent régler le volume (#449). */
+  guestVolume: boolean;
+  /** Volume le plus haut qu'un invité peut demander (1 à 100). */
+  guestVolumeMax: number;
 }
 
 /** Invité de la Jam vu par l'hôte (#288). */

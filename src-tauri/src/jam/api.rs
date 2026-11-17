@@ -1,11 +1,12 @@
 //! Cœur de l'API des invités (#25), commun à la Jam locale (`server.rs`) et au relais
 //! (`relay.rs`) : code d'accès, limites par invité et par adresse (#256), titres et albums
 //! proposés, ajouts des invités, règles et exclusions de l'hôte (#288), plafond de la Jam
-//! dans la file (#256), état. Les deux transports ne font que livrer des requêtes ici et
+//! dans la file (#256), volume (#449), état. Les deux transports ne font que livrer des requêtes ici et
 //! rendre les réponses.
 
 mod adds;
 mod blind;
+mod volume;
 
 use std::collections::HashMap;
 use std::future::Future;
@@ -24,6 +25,7 @@ use super::members::{GuestInfo, owner_key};
 use super::rules::JamRules;
 use super::view::{GuestAlbum, GuestState, GuestTrack};
 use crate::player::blind::{Answer, BlindTestView, Refusal};
+use crate::player::volume::Volume;
 use crate::tidal::models::{AlbumSummary, Track, TrackId};
 
 /// Délai d'une réponse qui attend TIDAL ou le lecteur.
@@ -48,6 +50,8 @@ pub struct Snapshot {
     pub upcoming: Vec<Track>,
     /// Blind test en cours (#434), titre masqué tant que la manche n'est pas révélée.
     pub blind: Option<BlindTestView>,
+    /// Volume de l'hôte, montré aux invités seulement s'ils peuvent le régler (#449).
+    pub volume: Volume,
 }
 
 impl Snapshot {
@@ -78,6 +82,8 @@ pub trait Backend: Send + Sync + 'static {
     fn remove(&self, ids: Vec<TrackId>) -> impl Future<Output = Result<(), String>> + Send;
     /// Lecture (`false`) ou pause (`true`), demandée par un invité (#222).
     fn set_paused(&self, paused: bool) -> impl Future<Output = Result<(), String>> + Send;
+    /// Volume demandé par un invité (#449), déjà ramené au plafond de l'hôte.
+    fn set_volume(&self, level: u8) -> impl Future<Output = Result<(), String>> + Send;
     fn state(&self) -> impl Future<Output = Result<Snapshot, String>> + Send;
     /// Réponse d'un invité au blind test (#441) : son identifiant de joueur, ou le refus
     /// de la partie.
@@ -293,6 +299,7 @@ impl Core {
             "/api/remove" => self.remove(body, ip, &key, backend).await,
             "/api/pause" => self.pause(body, ip, &key, backend).await,
             "/api/blind-answer" => self.blind_answer(body, ip, &key, backend).await,
+            "/api/volume" => self.volume(body, ip, &key, backend).await,
             _ => Response::not_found(),
         }
     }

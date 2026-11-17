@@ -24,6 +24,8 @@
    *  Pas pendant un glissement, ni dans le temps affiché en chiffres. */
   const bar = $derived(dragging === null && eggs.date === "swissDay" ? stationClock(position, duration) : shown);
   const ratio = $derived(duration ? Math.min(bar / duration, 1) : 0);
+  /** Partie déjà en mémoire (#453), en bande plus claire sous la progression. */
+  const cachedRatio = $derived(s.track && duration ? Math.min(s.cached / duration, 1) : 0);
   /** Le texte du temps ne change qu'à la seconde : pas de recalcul à chaque image. */
   const shownText = $derived(formatTime(Math.floor(shown)));
   /** Dernières secondes du titre, quand le suivant est préchargé (même seuil de 30 s que
@@ -38,7 +40,8 @@
 
 <div class="progress" class:large class:ending>
   <span class="time mono">{shownText}</span>
-  <div class="track" style:--ratio={ratio}>
+  <div class="track" style:--ratio={ratio} style:--cached={cachedRatio}>
+    <div class="cached"></div>
     <div class="fill"></div>
     <input
       type="range"
@@ -84,6 +87,16 @@
     border-radius: 3px;
   }
 
+  /* Cache en mémoire (#453) : discret, la progression passe par-dessus. */
+  .cached {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--cached) * 100%);
+    border-radius: inherit;
+    background: color-mix(in oklab, var(--text) 22%, transparent);
+    transition: width var(--motion-fast);
+  }
+
   .fill {
     position: absolute;
     inset: 0 auto 0 0;
@@ -125,6 +138,15 @@
   :global([data-theme="studio"]) .track {
     border-radius: 0;
     background: repeating-linear-gradient(90deg, var(--border) 0 2px, transparent 2px 4px);
+  }
+
+  :global([data-theme="studio"]) .cached {
+    border-radius: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--text) 35%, transparent) 0 2px,
+      transparent 2px 4px
+    );
   }
 
   :global([data-theme="studio"]) .fill {

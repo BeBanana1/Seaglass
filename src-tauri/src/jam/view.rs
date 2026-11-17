@@ -102,6 +102,20 @@ pub struct GuestState {
     /// Blind test ouvert aux invités (#441).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blind: Option<GuestBlind>,
+    /// Volume, seulement si l'hôte laisse les invités le régler (#449).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume: Option<GuestVolume>,
+}
+
+/// Volume vu par les invités (#449).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GuestVolume {
+    pub level: u8,
+    /// Plafond de l'hôte : le curseur ne va pas plus haut.
+    pub max: u8,
+    /// Son coupé par l'hôte : le curseur est grisé.
+    pub muted: bool,
 }
 
 /// Blind test vu par les invités (#441) : jamais la réponse avant la révélation, ni les
@@ -178,6 +192,11 @@ impl GuestState {
                 .take(MAX_QUEUE)
                 .collect(),
             blind: snapshot.jam_game().map(GuestBlind::new),
+            volume: rules.guest_volume.then_some(GuestVolume {
+                level: snapshot.volume.level,
+                max: rules.guest_volume_max,
+                muted: snapshot.volume.muted,
+            }),
         }
     }
 }
