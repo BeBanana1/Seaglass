@@ -11,6 +11,8 @@
   import TrackRow from "./TrackRow.svelte";
   import { eggs } from "../lib/eggs/eggs.svelte";
   import { keyboardMove, Reorder } from "../lib/reorder.svelte";
+  import { touchReorder } from "../lib/touch-reorder";
+  import { platform } from "../lib/platform.svelte";
   import { guestOf } from "../lib/stores/jam.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
 
@@ -69,9 +71,12 @@
   }
 
   // Réorganisation de la file manuelle (#80) : glisser-déposer, Alt+↑ / Alt+↓, menu.
+  // Android (#450) : le glisser HTML5 ne marche pas au doigt et l'appui long ouvre le menu
+  // du titre ; une poignée à droite de la ligne la saisit tout de suite (`touchReorder`).
   // Pas d'affichage optimiste : la liste change au `queue-state` du backend.
   let manualList = $state<HTMLElement>();
   const reorder = new Reorder((from, to) => move(from, to));
+  const manualItems = () => Array.from(manualList?.querySelectorAll<HTMLElement>(".queue-item") ?? []);
   /** Bouton à refocaliser dans la ligne déplacée au clavier, une fois la file reçue. */
   let pendingFocus: { index: number; button: number } | null = null;
 
@@ -133,15 +138,17 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="queue-item"
+          class:touch={platform.mobile}
           class:dragging={reorder.from === i}
           class:drop-before={reorder.marker(i)}
           class:drop-after={i === last && reorder.marker(i + 1)}
-          draggable="true"
+          draggable={platform.mobile ? undefined : "true"}
           ondragstart={(e) => reorder.dragstart(e, i)}
           ondragover={(e) => reorder.dragover(e, i)}
           ondrop={(e) => reorder.drop(e)}
           ondragend={() => reorder.end()}
           onkeydown={(e) => onKeydown(e, i)}
+          use:touchReorder={{ enabled: platform.mobile, index: i, reorder, items: manualItems, handle: ".queue-handle" }}
         >
           <TrackRow
             {track}
@@ -152,6 +159,10 @@
             onMoveDown={i < last ? () => move(i, i + 1) : undefined}
             addedBy={guestOf(track.id)}
           />
+          {#if platform.mobile}
+            <!-- Au clavier et aux lecteurs d'écran : Alt+↑ / Alt+↓ et Monter / Descendre du menu. -->
+            <span class="queue-handle" aria-hidden="true"><Icon name="grip" size={18} /></span>
+          {/if}
         </div>
       {/each}
     </div>
@@ -222,8 +233,44 @@
     -webkit-user-drag: none;
   }
 
-  .queue-item.dragging {
+  .queue-item.dragging:not(:global(.touch-dragging)) {
     opacity: 0.4;
+  }
+
+  /* Android (#450) : la ligne et sa poignée côte à côte. */
+  .queue-item.touch {
+    display: flex;
+    align-items: center;
+    cursor: default;
+  }
+
+  .queue-item.touch > :global(.row) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .queue-handle {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    align-self: stretch;
+    width: 36px;
+    color: var(--text-muted);
+    /* Le doigt posé ici déplace la ligne, jamais la page. */
+    touch-action: none;
+  }
+
+  /* Ligne saisie au doigt : elle suit le doigt, au-dessus des autres (comme `HomeEditor`). */
+  .queue-item:global(.touch-dragging) {
+    z-index: 1;
+    border-radius: var(--radius);
+    transform: translateY(var(--drag-y, 0px)) scale(1.02);
+    background: linear-gradient(var(--bg-raised), var(--bg-raised)), var(--bg);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  }
+
+  .queue-item:global(.touch-dragging) .queue-handle {
+    color: var(--accent);
   }
 
   .queue-item.drop-before::before,
