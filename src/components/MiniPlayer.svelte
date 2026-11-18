@@ -2,7 +2,7 @@
   // Mini-lecteur d'Android (#24), au-dessus de la navigation du bas : un appui ouvre
   // « En lecture » en plein écran, où sont les autres commandes.
   import { commands } from "../lib/ipc";
-  import { followPosition, player } from "../lib/stores/player.svelte";
+  import { animateProgress, player } from "../lib/stores/player.svelte";
   import { coverSmall, fullTitle } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
@@ -15,17 +15,17 @@
   const playing = $derived(player.playing);
   const s = $derived(player.state);
 
-  let ratio = $state(0);
-  // Boucle d'images seulement pendant la lecture (#88).
+  let bar = $state<HTMLElement>();
+  // Barre animée par le compositeur (#473), reprise à chaque état reçu : ni minuteur ni
+  // recalcul de style pendant la lecture.
   $effect(() => {
-    const duration = player.state.duration;
-    return followPosition((p) => (ratio = duration ? Math.min(p / duration, 1) : 0));
+    if (bar) return animateProgress(bar);
   });
 </script>
 
 {#if track}
   <div class="mini-player panel">
-    <div class="mini-progress" style:--ratio={ratio}></div>
+    <div class="mini-progress" bind:this={bar}></div>
     <button class="mini-open" onclick={onOpenNowPlaying} aria-label={t.player.openNowPlaying}>
       <span class="mini-cover">
         {#if track.album.coverUrl}<img src={coverSmall(track.album)} alt="" />{/if}
@@ -85,8 +85,9 @@
     right: 0;
     height: 2px;
     background: var(--accent);
-    transform: scaleX(var(--ratio));
+    transform: scaleX(0);
     transform-origin: left;
+    will-change: transform;
   }
 
   .mini-open {

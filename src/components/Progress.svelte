@@ -14,8 +14,12 @@
   /** Valeur en cours de glissement : la barre ne suit plus la lecture tant qu'on la tient. */
   let dragging = $state<number | null>(null);
 
-  // Boucle d'images seulement pendant la lecture (#88).
-  $effect(() => followPosition((p) => (position = p)));
+  // Boucle d'images seulement pendant la lecture (#88). Sur Android, une fois par seconde
+  // (#473) : le temps affiché ne change qu'à la seconde, et la barre d'« En lecture » avance
+  // d'un ou deux pixels par seconde. Les thèmes stylent `.fill` par sa largeur (dégradés,
+  // bobines de Cassette) : pas d'animation par le compositeur ici, contrairement au
+  // mini-lecteur.
+  $effect(() => followPosition((p) => (position = p), 1));
 
   const s = $derived(player.state);
   const duration = $derived(s.duration);

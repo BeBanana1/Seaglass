@@ -45,9 +45,11 @@ internal object Playback {
      * Position envoyée pendant la lecture (#147) : l'UI interpole entre deux envois et Rust
      * n'en a besoin que pour le préchargement (30 s avant la fin) et la sauvegarde. Plus
      * espacée quand aucune activité n'est visible (écran éteint, autre app au premier plan).
-     * Un saut, une pause ou un changement de titre l'envoient toujours aussitôt.
+     * Un saut, une pause ou un changement de titre l'envoient toujours aussitôt. Au premier
+     * plan, toutes les 2 s depuis #473 (1 s avant) : chaque envoi réveille tout ce qui lit
+     * l'état du lecteur dans l'UI, qui interpole de toute façon.
      */
-    private const val FOREGROUND_POSITION_MS = 1_000L
+    private const val FOREGROUND_POSITION_MS = 2_000L
     private const val BACKGROUND_POSITION_MS = 5_000L
 
     /**
@@ -316,6 +318,10 @@ internal object Playback {
             .setAudioAttributes(attributes, true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
+            // Ordonnancement dynamique (#474) : quand le tampon de l'AudioTrack est plein, le
+            // thread de lecture dort jusqu'à ce que le rendu audio ait de nouveau besoin de lui,
+            // au lieu de tourner toutes les 10 ms (4,4 % d'un cœur écran éteint en 0.5.85).
+            .experimentalSetDynamicSchedulingEnabled(true)
             .build()
         player.addListener(listener)
         player.addAnalyticsListener(analytics)
