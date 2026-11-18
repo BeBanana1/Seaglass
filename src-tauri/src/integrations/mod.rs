@@ -16,6 +16,7 @@ pub mod hotkeys;
 pub mod media_session;
 #[cfg(any(target_os = "linux", test))]
 pub mod mpris;
+pub mod notify;
 #[cfg(windows)]
 pub mod smtc;
 #[cfg(windows)]

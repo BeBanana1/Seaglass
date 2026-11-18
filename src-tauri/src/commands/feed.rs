@@ -38,10 +38,10 @@ const WATCH_RETRY: Duration = Duration::from_secs(5 * 60);
 pub struct FeedState(Mutex<Vec<String>>);
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-struct SeenSet {
-    user: u64,
+pub(super) struct SeenSet {
+    pub(super) user: u64,
     /// Plus récentes d'abord.
-    keys: Vec<String>,
+    pub(super) keys: Vec<String>,
 }
 
 /// Sorties récentes des artistes suivis et mixes mensuels, `seen` selon l'état local.
@@ -75,7 +75,8 @@ pub async fn mark_feed_seen(
     Ok(())
 }
 
-/// Lit le fil en fond au lancement puis toutes les 6 h, pour la pastille.
+/// Lit le fil en fond au lancement puis toutes les 6 h, pour la pastille et les
+/// notifications des nouvelles sorties (`feed_alerts`, #435).
 pub fn spawn_watch(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(WATCH_DELAY).await;
@@ -83,8 +84,11 @@ pub fn spawn_watch(app: AppHandle) {
             let state = app.state::<AppState>();
             let feed = app.state::<FeedState>();
             let wait = match load(&state.tidal, state.store.as_ref(), &feed).await {
-                Ok((_, unseen)) => {
+                Ok((items, unseen)) => {
                     emit_unseen(&app, unseen);
+                    if let Some(user) = user_id(&state.tidal).await {
+                        super::feed_alerts::check(&app, state.store.as_ref(), user, &items).await;
+                    }
                     WATCH_EVERY
                 }
                 Err(e) => {
@@ -134,14 +138,14 @@ fn emit_unseen(app: &AppHandle, unseen: usize) {
     }
 }
 
-fn now_ms() -> i64 {
+pub(super) fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX))
 }
 
 /// Clé stable d'un élément (un album et un mix peuvent partager un identifiant).
-fn item_key(item: &MediaItem) -> String {
+pub(super) fn item_key(item: &MediaItem) -> String {
     match item {
         MediaItem::Album(a) => format!("album-{}", a.id),
         MediaItem::Mix(m) => format!("mix-{}", m.id),
@@ -183,7 +187,7 @@ fn apply_seen(
 
 /// Ajoute `keys` en tête de l'ensemble du compte (remplacé s'il était à un autre compte),
 /// sans doublon, en gardant les `MAX_SEEN` plus récentes.
-fn mark_all(saved: Option<SeenSet>, user: u64, keys: Vec<String>) -> SeenSet {
+pub(super) fn mark_all(saved: Option<SeenSet>, user: u64, keys: Vec<String>) -> SeenSet {
     let old = saved
         .filter(|s| s.user == user)
         .map(|s| s.keys)

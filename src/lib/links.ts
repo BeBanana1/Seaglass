@@ -23,6 +23,9 @@ function openTarget(target: LinkTarget) {
     case "import":
       go({ name: "import", link: target.link });
       break;
+    case "feed":
+      go({ name: "feed" });
+      break;
   }
 }
 
@@ -39,7 +42,8 @@ export async function openTidalLink(text: string): Promise<boolean> {
   }
 }
 
-/** Lien partagé vers l'app (Android, #203), à l'événement `open-link` ou au démarrage. */
+/** Lien partagé vers l'app (Android, #203) ou page d'une notification touchée (#435), à
+ * l'événement `open-link` ou au démarrage. */
 export async function openSharedLink() {
   const target = await commands.takeSharedLink().catch(() => null);
   if (target) openTarget(target);

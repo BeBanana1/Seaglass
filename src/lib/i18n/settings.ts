@@ -267,6 +267,12 @@ export const fr = {
 
   discord: "Discord",
   discordPresence: "Afficher l'écoute sur Discord",
+  notifications: "Notifications",
+  releaseNotifications: "Nouvelles sorties",
+  releaseNotificationsHint:
+    "Une notification quand un artiste suivi sort un album, un EP ou un single. Vérifié au lancement puis toutes les 6 heures, tant que l'app tourne.",
+  releaseNotificationsHintMobile:
+    "Une notification quand un artiste suivi sort un album, un EP ou un single. Vérifié toutes les 6 heures tant que l'app tourne ; le canal « Nouvelles sorties » se règle dans les paramètres d'Android.",
   discordHint:
     "Vos contacts voient « Écoute Seaglass » avec le titre, l'artiste et la pochette. Rien en pause. L'app Discord doit être ouverte sur ce PC.",
 
@@ -645,6 +651,12 @@ export const en: typeof fr = {
 
   discord: "Discord",
   discordPresence: "Show what you're playing on Discord",
+  notifications: "Notifications",
+  releaseNotifications: "New releases",
+  releaseNotificationsHint:
+    "A notification when a followed artist releases an album, EP or single. Checked at startup, then every 6 hours, while the app is running.",
+  releaseNotificationsHintMobile:
+    "A notification when a followed artist releases an album, EP or single. Checked every 6 hours while the app is running; the “New releases” channel can be set in Android settings.",
   discordHint:
     "Your friends see “Listening to Seaglass” with the title, artist and cover. Nothing while paused. The Discord app must be running on this PC.",
 

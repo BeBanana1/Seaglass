@@ -42,6 +42,7 @@ export const ui = $state<{
     globalShortcuts: { enabled: false, bindings: {} },
     autoUpdates: true,
     jam: true,
+    releaseNotifications: false,
   },
   nowPlayingPanel: null,
 });
@@ -170,8 +171,9 @@ export async function setDiscord(discord: boolean) {
   }
 }
 
-/** Interrupteurs lus par le backend (#452) : mises à jour automatiques, Jam. */
-export async function setUiToggle(key: "autoUpdates" | "jam", value: boolean) {
+/** Interrupteurs lus par le backend : mises à jour automatiques, Jam (#452), notifications
+ * des nouvelles sorties (#435). */
+export async function setUiToggle(key: "autoUpdates" | "jam" | "releaseNotifications", value: boolean) {
   const previous = ui.settings;
   ui.settings = { ...ui.settings, [key]: value };
   try {

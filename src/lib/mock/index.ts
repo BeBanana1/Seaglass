@@ -267,6 +267,7 @@ let ui: UiSettings = {
   // `?autoupdates=off` : vérification périodique coupée ; `?jam=off` : Jam masquée (#452).
   autoUpdates: params.get("autoupdates") !== "off",
   jam: params.get("jam") !== "off",
+  releaseNotifications: false,
 };
 
 /** « Système » du backend factice : la langue du navigateur. */

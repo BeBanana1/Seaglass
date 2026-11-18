@@ -95,6 +95,10 @@ object Bridge {
             PinShortcuts.set(appContext(), args)
             null
         }
+        "notifyRelease" -> {
+            ReleaseNotifications.show(appContext(), args)
+            null
+        }
         "openLinkSettings" -> {
             LinkHandling.openSettings(appContext())
             null

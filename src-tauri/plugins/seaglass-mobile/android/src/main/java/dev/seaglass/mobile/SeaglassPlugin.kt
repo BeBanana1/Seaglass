@@ -87,6 +87,15 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    /** Notifications des nouvelles sorties activées (#435) : permission d'Android 13+. */
+    @Command
+    fun requestNotifications(invoke: Invoke) {
+        activity.runOnUiThread {
+            ReleaseNotifications.requestPermission(activity)
+            invoke.resolve()
+        }
+    }
+
     /** Crée le lecteur (une fois par processus) et renvoie ses événements sur `channel`. */
     @Command
     fun engineStart(invoke: Invoke) {
