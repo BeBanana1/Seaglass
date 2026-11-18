@@ -353,10 +353,11 @@ internal object Playback {
             .setAudioAttributes(attributes, true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
-            // Ordonnancement dynamique (#474) : quand le tampon de l'AudioTrack est plein, le
-            // thread de lecture dort jusqu'à ce que le rendu audio ait de nouveau besoin de lui,
-            // au lieu de tourner toutes les 10 ms (4,4 % d'un cœur écran éteint en 0.5.85).
-            .experimentalSetDynamicSchedulingEnabled(true)
+            // Pas d'ordonnancement dynamique (`experimentalSetDynamicSchedulingEnabled`, #474) :
+            // il faisait dormir le thread de lecture tant que le tampon de l'AudioTrack était
+            // plein, mais causait des micro-coupures au casque Bluetooth (#491). Il ne se
+            // règle qu'à la création du lecteur, pas selon la sortie. En offload (AAC), le
+            // lecteur dort de toute façon (`isSleepingForOffload`) : seul le FLAC y perd.
             .build()
         player.addListener(listener)
         player.addAnalyticsListener(analytics)
