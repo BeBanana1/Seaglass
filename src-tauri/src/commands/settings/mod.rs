@@ -352,6 +352,17 @@ pub async fn playback_settings(state: State<'_, AppState>) -> CmdResult<Playback
     Ok(PlaybackSettings::load(state.store.as_deref()))
 }
 
+/// Qualité baissée par la batterie en ce moment (#492), pour Réglages › Lecture ; `None`
+/// si la batterie ne change rien.
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn quality_cap(
+    state: State<'_, AppState>,
+) -> CmdResult<Option<crate::player::QualityCap>> {
+    let settings = PlaybackSettings::load(state.store.as_deref());
+    Ok(crate::player::current_cap(&settings).await)
+}
+
 /// Enregistre puis applique à chaud. La désérialisation de `settings` valide la taille
 /// du cache : seules les valeurs proposées sont acceptées.
 #[tauri::command]

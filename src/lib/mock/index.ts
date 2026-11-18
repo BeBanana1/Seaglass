@@ -1263,6 +1263,11 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return ui.sorts;
   },
   playback_settings: () => playback,
+  // Aperçu (#492) : économiseur de batterie actif, comme sur le S21.
+  quality_cap: () =>
+    playback.lowBatteryQuality && playback.wifiQuality !== "low"
+      ? { quality: "low", chosen: playback.wifiQuality, reason: "powerSave", battery: 61 }
+      : null,
   // Même validation que le backend : seules les tailles proposées sont acceptées.
   set_playback_settings: ({ settings }) => {
     const next = settings as PlaybackSettings;

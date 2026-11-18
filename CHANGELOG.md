@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.94
+
+- Android : Réglages › Lecture indique quand la batterie baisse la qualité en ce moment (économiseur de batterie, batterie faible), au lieu de laisser croire que le réglage est ignoré (#492)
+
 ## 0.5.93
 
 - Android : retour du son en qualité Basse au casque Bluetooth ; le HE-AAC n'est plus envoyé à la puce audio (offload), l'AAC de la qualité Haute oui (#492)

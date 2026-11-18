@@ -28,6 +28,8 @@ pub use exclusive::supported as exclusive_supported;
 pub use handoff::Handoff;
 #[cfg(desktop)]
 pub use persist::flush_blocking;
+#[cfg(target_os = "android")]
+pub use quality::{QualityCap, current_cap};
 pub use queue::{QueuePart, Repeat};
 pub use settings::{HiresUpgrade, PlaybackSettings};
 pub use source::PlaySource;

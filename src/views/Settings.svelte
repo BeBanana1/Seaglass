@@ -12,6 +12,7 @@
     type LanguagePref,
     type Normalization,
     type PlaybackSettings,
+    type QualityCap,
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { copyText, pushToast } from "../lib/stores/toasts.svelte";
@@ -148,6 +149,18 @@
     const load = () => commands.linkHandling().then((v) => (links = v), fail);
     load();
     // Retour depuis le réglage du système : l'état a pu changer.
+    const onVisible = () => document.visibilityState === "visible" && load();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  });
+
+  // Android (#492) : qualité baissée par la batterie en ce moment. Relue quand les réglages
+  // changent (`playback` remplacé) et au retour au premier plan (batterie, économiseur).
+  let qualityCap = $state<QualityCap | null>(null);
+  $effect(() => {
+    if (section !== "playback" || desktop || playback === null) return;
+    const load = () => commands.qualityCap().then((v) => (qualityCap = v), fail);
+    load();
     const onVisible = () => document.visibilityState === "visible" && load();
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
@@ -621,6 +634,16 @@
           <span class="knob"></span>
         </button>
       </label>
+      {#if qualityCap}
+        <p class="note quality-cap">
+          {t.settings.qualityCap(
+            t.settings.mobileQualities[qualityCap.quality].label,
+            t.settings.mobileQualities[qualityCap.chosen].label,
+            qualityCap.reason === "powerSave",
+            qualityCap.battery,
+          )}
+        </p>
+      {/if}
       <p class="note">{t.settings.mobileQualityNext}</p>
     </div>
     {/if}
@@ -1137,6 +1160,11 @@
 
   .low-battery-quality {
     margin-top: 20px;
+  }
+
+  /* Plafond de batterie en ce moment (#492) : plus visible qu'une note ordinaire. */
+  .quality-cap {
+    color: var(--warn);
   }
 
   .cache-sizes {

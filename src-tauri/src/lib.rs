@@ -275,6 +275,8 @@ pub fn run() {
             commands::settings::set_list_sort,
             commands::settings::playback_settings,
             commands::settings::set_playback_settings,
+            #[cfg(target_os = "android")]
+            commands::settings::quality_cap,
             commands::settings::equalizer::parse_autoeq,
             commands::settings::audio_devices,
             commands::settings::platform,
