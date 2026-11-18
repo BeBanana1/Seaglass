@@ -7,6 +7,7 @@
     filterTracks,
     LIKED_DEFAULT_SORT,
     listTracks,
+    playContext,
     sortTracks,
     type SortKey,
     type TrackSort,
@@ -231,7 +232,11 @@
     {#if shownTracks.length === 0}
       <p class="muted">{t.library.noMatch(query.trim())}</p>
     {:else}
-      <TrackList tracks={shownTracks.map((l) => l.track)} source={{ kind: "likedTracks" }} />
+      <TrackList
+        tracks={shownTracks.map((l) => l.track)}
+        source={{ kind: "likedTracks" }}
+        context={(i) => playContext(sortedTracks, shownTracks, i)}
+      />
     {/if}
   {:else}
     {#if tab === "playlists" && folders.items}

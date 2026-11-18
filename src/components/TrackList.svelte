@@ -22,6 +22,7 @@
     onMove,
     notes,
     onRemoveSelected,
+    context,
   }: {
     /** Contexte de lecture : lire un titre met toute la liste en file, dans cet ordre. */
     tracks: Track[];
@@ -46,6 +47,11 @@
     notes?: string[];
     /** Une de vos playlists : « Retirer de la playlist » sur la sélection multiple (#332). */
     onRemoveSelected?: (ids: ReadonlySet<TrackId>) => Promise<void>;
+    /**
+     * Contexte d'un clic sur le titre `index` quand la liste affichée n'en est qu'une partie
+     * (filtre, #496) ; sans lui, la liste affichée.
+     */
+    context?: (index: number) => { ids: TrackId[]; start: number };
   } = $props();
 
   // Sélection multiple (#332) : la liste s'inscrit tant qu'elle est montée ; la quitter
@@ -110,13 +116,9 @@
   });
 
   async function play(index: number) {
+    const { ids, start } = context?.(index) ?? { ids: tracks.map((t) => t.id), start: index };
     try {
-      await commands.playTracks(
-        tracks.map((t) => t.id),
-        index,
-        false,
-        source ?? null,
-      );
+      await commands.playTracks(ids, start, false, source ?? null);
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }

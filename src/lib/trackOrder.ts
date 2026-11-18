@@ -60,6 +60,21 @@ export function filterTracks(list: ListedTrack[], query: string): ListedTrack[] 
   });
 }
 
+/**
+ * Contexte de lecture d'un clic sur le titre `index` de la liste affichée (#496) : toute la
+ * liste triée, pas seulement les résultats du filtre, qui sert à trouver un titre. `start`
+ * est la place du titre cliqué dans `sorted` (par entrée, pour les doublons d'une playlist).
+ */
+export function playContext(
+  sorted: ListedTrack[],
+  shown: ListedTrack[],
+  index: number,
+): { ids: TrackEntry["id"][]; start: number } {
+  const start = sorted.indexOf(shown[index]);
+  if (start < 0) return { ids: shown.map((l) => l.track.id), start: index };
+  return { ids: sorted.map((l) => l.track.id), start };
+}
+
 function compare(a: TrackEntry, b: TrackEntry, key: Exclude<SortKey, "position" | "added">) {
   switch (key) {
     case "title":

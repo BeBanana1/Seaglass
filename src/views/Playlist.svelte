@@ -5,6 +5,7 @@
   import {
     filterTracks,
     listTracks,
+    playContext,
     PLAYLIST_DEFAULT_SORT,
     sortTracks,
     type SortKey,
@@ -191,8 +192,8 @@
     back();
   }
 
-  // Lecture / Aléatoire suivent le tri ; un clic sur un titre met en contexte la liste
-  // affichée (triée et filtrée), dans cet ordre.
+  // Lecture / Aléatoire suivent le tri ; un clic sur un titre met en contexte toute la
+  // liste triée, même filtrée (#496), et part de ce titre.
   const sorted = $derived(page ? sortTracks(listTracks(page.tracks), sort) : []);
   const shown = $derived(filterTracks(sorted, query));
 </script>
@@ -242,6 +243,7 @@
       <TrackList
         tracks={shown.map((l) => l.track)}
         positions={shown.map((l) => l.position)}
+        context={(i) => playContext(sorted, shown, i)}
         source={{ kind: "playlist", uuid: page.playlist.uuid, title: page.playlist.title }}
         numbering={platform.mobile ? "none" : "index"}
         onRemoveFromPlaylist={page.playlist.mine ? removeAt : undefined}

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { i18n } from "./i18n.svelte";
 import { entry } from "./testing/tracks";
-import { filterTracks, listTracks, normalize, sortTracks, type ListedTrack } from "./trackOrder";
+import { filterTracks, listTracks, normalize, playContext, sortTracks, type ListedTrack } from "./trackOrder";
 
 const ids = (list: ListedTrack[]) => list.map(({ track }) => track.id);
 
@@ -99,5 +99,26 @@ describe("sortTracks", () => {
     const list = listTracks([none, old, recent, missing]);
     expect(ids(sortTracks(list, { key: "added", descending: false }))).toEqual([old.id, recent.id, none.id, missing.id]);
     expect(ids(sortTracks(list, { key: "added", descending: true }))).toEqual([recent.id, old.id, none.id, missing.id]);
+  });
+});
+
+describe("playContext", () => {
+  const [a, b, c] = [entry({ title: "Alpha" }), entry({ title: "Beta" }), entry({ title: "Gamma" })];
+
+  it("met toute la liste triée en contexte et part du titre cliqué dans le filtre", () => {
+    const sorted = sortTracks(listTracks([a, b, c]), { key: "position", descending: true });
+    const shown = filterTracks(sorted, "beta");
+    expect(playContext(sorted, shown, 0)).toEqual({ ids: [c.id, b.id, a.id], start: 1 });
+  });
+
+  it("distingue les doublons d'une playlist par leur position", () => {
+    const sorted = listTracks([b, a, b]);
+    const shown = filterTracks(sorted, "beta");
+    expect(playContext(sorted, shown, 1)).toEqual({ ids: [b.id, a.id, b.id], start: 2 });
+  });
+
+  it("sans filtre, garde l'index cliqué", () => {
+    const sorted = listTracks([a, b, c]);
+    expect(playContext(sorted, filterTracks(sorted, ""), 2)).toEqual({ ids: [a.id, b.id, c.id], start: 2 });
   });
 });
