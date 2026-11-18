@@ -147,7 +147,7 @@ For Android (SDK, NDK, testing on a device) and Linux (build in WSL), see [`docs
    TIDAL_CLIENT_SECRET=...
    ```
 
-   Addresses of the online services, optional: see "Building and self-hosting".
+   Where to find these two values: see "TIDAL client identifiers" below. Addresses of the online services, optional: see "Building and self-hosting".
 
 2. Install the dependencies and run the app in development:
 
@@ -157,6 +157,19 @@ For Android (SDK, NDK, testing on a device) and Linux (build in WSL), see [`docs
    ```
 
 3. In the app, click **Sign in** and sign in in the window that opens.
+
+### TIDAL client identifiers
+
+TIDAL has no public API for third-party players, and Seaglass has no client identifier of its own. Like other unofficial clients, it signs in with the **PKCE client of TIDAL's Android app**, the only one that gets lossless DASH streams (an ordinary "device" client is capped at AAC 320 kbps, see [`docs/tidal.md`](docs/tidal.md)). The repository does not ship these values, on purpose:
+
+- The Python library [`tidalapi`](https://github.com/tamland/python-tidal) carries them: `client_id_pkce` and `client_secret_pkce` of its `Config` class. The phase 0 spike (`spike/play.py login --pkce`) uses exactly those.
+- Copy them into `.env` as `TIDAL_CLIENT_ID` and `TIDAL_CLIENT_SECRET`. They are built into your binary, so do not publish a build made with them unless you accept what follows.
+
+What this means:
+
+- These identifiers belong to TIDAL, not to this project. Using them from another app is not authorized by TIDAL: you do it under your own responsibility, and in principle it may go against TIDAL's terms of use.
+- TIDAL can revoke or change them, or change the private API, at any time: sign-in or playback would then stop working until the code or the identifiers are updated.
+- Seaglass never circumvents DRM: protected streams are refused, and nothing is downloaded or cached on disk.
 
 ## Development
 
@@ -168,7 +181,7 @@ pnpm test
 
 Interface preview without Tauri, on mock data: `pnpm dev`, then `http://127.0.0.1:1420/?theme=studio&route=album` (see [`docs/interface.md`](docs/interface.md), "Preview without Tauri").
 
-Architecture, conventions and roadmap are described in [`CLAUDE.md`](CLAUDE.md), implementation notes per area in [`docs/`](docs/) and versions in [`CHANGELOG.md`](CHANGELOG.md). Bugs and requests are tracked in the issues of the Gitea repository; each fix goes through an `issue-<n>-…` branch and a PR that closes the issue. The `relay/` folder holds the Jam relay (deployment in [`relay/README.md`](relay/README.md)), and `spike/` the phase 0 Python script that validated the stream formats.
+How to contribute (build, checks, commits, pull requests) is in [`CONTRIBUTING.md`](CONTRIBUTING.md), how to report a vulnerability in [`SECURITY.md`](SECURITY.md). Architecture, conventions and roadmap are described in [`CLAUDE.md`](CLAUDE.md), implementation notes per area in [`docs/`](docs/) and versions in [`CHANGELOG.md`](CHANGELOG.md). Bugs and requests are tracked in the issues of the Gitea repository; each fix goes through an `issue-<n>-…` branch and a PR that closes the issue. The `relay/` folder holds the Jam relay (deployment in [`relay/README.md`](relay/README.md)), and `spike/` the phase 0 Python script that validated the stream formats.
 
 ## Building and self-hosting
 
