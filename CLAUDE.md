@@ -1,176 +1,175 @@
 # Seaglass
 
-Client desktop TIDAL non officiel, avec une UI entièrement personnalisée et une lecture lossless / bit-perfect déléguée à mpv.
-Projet personnel, Windows en priorité.
+Unofficial TIDAL desktop client, with a fully custom UI and lossless / bit-perfect playback handed to mpv.
+Personal project, Windows first.
 
-> Statut : version courante dans `VERSION`, journal dans [`CHANGELOG.md`](CHANGELOG.md) (une version publiée porte un tag `v<version>`). Phases 0 à 5 livrées (mode exclusif WASAPI en 0.5.0, #245). App Android en cours (#24, [`docs/android.md`](docs/android.md)). Version Linux en cours (#17, [`docs/linux.md`](docs/linux.md)). Last.fm reporté, pas avant que l'utilisateur le demande.
+> Status: current version in `VERSION`, log in [`CHANGELOG.md`](CHANGELOG.md) (a published version has a `v<version>` tag). Phases 0 to 5 shipped (WASAPI exclusive mode in 0.5.0, #245). Android app in progress (#24, [`docs/android.md`](docs/android.md)). Linux version in progress (#17, [`docs/linux.md`](docs/linux.md)). Last.fm postponed, not before the user asks for it.
 
-Ce fichier ne garde que ce qui sert à toute tâche. Les notes d'implémentation sont dans `docs/` : voir « Documentation » plus bas et lire le fichier du domaine avant d'y toucher.
+This file only keeps what matters for every task. Implementation notes live in `docs/`: see "Documentation" below and read the area's file before touching it.
 
-## Principes non négociables
+## Non-negotiable principles
 
-1. **Streaming uniquement.** Aucun téléchargement, export ou mise en cache des flux audio sur disque. Aucun contournement de DRM : si un flux est protégé par Widevine, on ne le lit pas, on remonte une erreur claire.
-2. **Rust est la source de vérité.** L'UI n'a aucune logique métier : elle affiche l'état reçu du backend et envoie des commandes. Elle ne parle jamais directement à TIDAL ni à mpv.
-3. **Tout ce qui touche TIDAL vit dans `src-tauri/src/tidal/`.** C'est une API privée non documentée qui peut changer à tout moment : le reste du code ne dépend que des types de `tidal::models`, jamais des formats JSON bruts.
-4. **Aucun secret dans le dépôt.** Client ID / secret dans `.env` (gitignoré) ou variables d'environnement. Tokens utilisateur dans le Gestionnaire d'identifiants Windows via la crate `keyring`. Ne jamais logger un token, même tronqué.
-5. **Pas de nom ni de logo TIDAL** dans le nom de l'app, l'icône ou le titre de fenêtre. Mention « Client non officiel, non affilié à TIDAL » dans Réglages › Application et le README.
+1. **Streaming only.** No downloading, exporting or caching of audio streams on disk. No DRM circumvention: if a stream is protected by Widevine, it is not played, and a clear error is raised.
+2. **Rust is the source of truth.** The UI has no business logic: it displays the state received from the backend and sends commands. It never talks to TIDAL or mpv directly.
+3. **Everything TIDAL-related lives in `src-tauri/src/tidal/`.** It is an undocumented private API that can change at any time: the rest of the code only depends on the types in `tidal::models`, never on raw JSON formats.
+4. **No secrets in the repository.** Client ID / secret in `.env` (gitignored) or environment variables. User tokens in the Windows Credential Manager through the `keyring` crate. Never log a token, even truncated.
+5. **No TIDAL name or logo** in the app name, icon or window title. The notice "Unofficial client, not affiliated with TIDAL" appears in Settings › Application and in the README.
 
 ## Stack
 
-| Couche | Choix |
+| Layer | Choice |
 |---|---|
 | App | Tauri 2 |
 | Backend | Rust stable, `tokio`, `serde`, `reqwest` (rustls), `thiserror` + `anyhow`, `tracing` |
-| Frontend | Svelte 5 + TypeScript + Vite, `pnpm`, tests `vitest` |
-| Audio | mpv piloté en JSON IPC (named pipe), sidecar Tauri à terme |
-| Stockage | SQLite (`rusqlite`) pour la file, les réglages et le cache de métadonnées |
-| Secrets | `keyring` (Credential Manager sous Windows) |
-| Intégrations | SMTC Windows (`windows` crate), MPRIS sous Linux (`zbus` 5, déjà tiré par les plugins, #312), icône de la zone de notification (`tauri`, feature `tray-icon`), présence Discord (IPC écrit à la main, #215), Last.fm (plus tard) |
-| Mises à jour | `tauri-plugin-updater` (installeur NSIS signé, manifeste `latest.json`) |
-| Système | `tauri-plugin-autostart` (lancement au démarrage, piloté uniquement côté Rust), `tauri-plugin-single-instance` (une seule instance, #83), `tauri-plugin-opener` (liens dans le navigateur, depuis Rust seulement, #188), `tauri-plugin-global-shortcut` (raccourcis globaux, depuis Rust seulement, #413), `qrcode` sans ses options par défaut (QR code de la Jam en SVG, #25), `tokio-tungstenite` (connexion au relais de la Jam, #25 ; avec `rustls`, `rustls-platform-verifier` et `futures-util` en direct, déjà compilés par `reqwest`) |
+| Frontend | Svelte 5 + TypeScript + Vite, `pnpm`, `vitest` tests |
+| Audio | mpv driven over JSON IPC (named pipe), eventually a Tauri sidecar |
+| Storage | SQLite (`rusqlite`) for the queue, settings and metadata cache |
+| Secrets | `keyring` (Credential Manager on Windows) |
+| Integrations | Windows SMTC (`windows` crate), MPRIS on Linux (`zbus` 5, already pulled in by the plugins, #312), notification area icon (`tauri`, `tray-icon` feature), Discord presence (hand-written IPC, #215), Last.fm (later) |
+| Updates | `tauri-plugin-updater` (signed NSIS installer, `latest.json` manifest) |
+| System | `tauri-plugin-autostart` (launch at startup, driven from Rust only), `tauri-plugin-single-instance` (single instance, #83), `tauri-plugin-opener` (links in the browser, from Rust only, #188), `tauri-plugin-global-shortcut` (global shortcuts, from Rust only, #413), `qrcode` without its default features (Jam QR code as SVG, #25), `tokio-tungstenite` (connection to the Jam relay, #25; with `rustls`, `rustls-platform-verifier` and `futures-util` as direct dependencies, already compiled by `reqwest`) |
 
-Demander avant d'ajouter une dépendance qui n'est pas dans cette liste.
+Ask before adding a dependency that is not in this list.
 
-## Arborescence cible
+## Target layout
 
 ```
 seaglass/
 ├─ CLAUDE.md
-├─ CHANGELOG.md              # journal des versions
-├─ docs/                     # notes d'implémentation par domaine (voir « Documentation »)
-├─ .gitea/workflows/ci.yml   # CI (runner dédié, voir ci/)
-├─ ci/                       # image des jobs CI et runner act_runner (Docker, serveur)
-├─ spike/                    # phase 0 : scripts Python jetables
-├─ relay/                    # relais de la Jam (#25) : crate séparée, Docker derrière Caddy
-├─ src/                      # frontend Svelte
-│  ├─ lib/ipc.ts             # wrappers typés des commandes et événements Tauri
-│  ├─ lib/transport.ts       # invoke/listen réels, ou backend factice hors Tauri (dev)
-│  ├─ lib/mock/              # backend factice + fixtures.json (gitignoré) pour prévisualiser l'UI
-│  ├─ lib/stores/            # état miroir du backend (player, queue, library, ui, nav)
-│  ├─ lib/i18n.svelte.ts     # langue courante et dictionnaire `t` ; textes par domaine dans lib/i18n/
-│  ├─ components/            # dont backdrops/ (fonds par thème)
-│  ├─ themes/                # acidwave.css, surreal.css (surcharges par classe de composant)
+├─ CHANGELOG.md              # version log
+├─ docs/                     # implementation notes per area (see "Documentation")
+├─ .gitea/workflows/ci.yml   # CI (dedicated runner, see ci/)
+├─ ci/                       # CI job image and act_runner (Docker, server)
+├─ spike/                    # phase 0: throwaway Python scripts
+├─ relay/                    # Jam relay (#25): separate crate, Docker behind Caddy
+├─ src/                      # Svelte frontend
+│  ├─ lib/ipc.ts             # typed wrappers for Tauri commands and events
+│  ├─ lib/transport.ts       # real invoke/listen, or a mock backend outside Tauri (dev)
+│  ├─ lib/mock/              # mock backend + fixtures.json (gitignored) to preview the UI
+│  ├─ lib/stores/            # mirror of the backend state (player, queue, library, ui, nav)
+│  ├─ lib/i18n.svelte.ts     # current language and `t` dictionary; strings per area in lib/i18n/
+│  ├─ components/            # including backdrops/ (per-theme backgrounds)
+│  ├─ themes/                # acidwave.css, surreal.css (overrides per component class)
 │  └─ views/                 # Home, Search, Album, Artist, Playlist, Library, Folder
 └─ src-tauri/
-   ├─ mpv/seaglass.conf        # config mpv dédiée à l'app
+   ├─ mpv/seaglass.conf        # mpv config dedicated to the app
    └─ src/
-      ├─ lib.rs              # setup Tauri, lancement des tâches
-      ├─ content.rs          # filtre du contenu proposé (explicite, #368)
-      ├─ engine.rs           # contrat du moteur de lecture (`Op`, `Event`, trait `Engine`)
-      ├─ media3.rs           # moteur Media3 d'Android (plugin `plugins/seaglass-mobile`)
-      ├─ apk_update.rs       # mises à jour de l'app Android (manifeste `android.json`, APK)
-      ├─ jam/                # Jam (#25) : api.rs (règles communes), server.rs (réseau local), relay.rs (en ligne), page/, remote/ (télécommande, #336)
-      ├─ logs/               # journal sur disque, rapports de plantage (#192)
-      ├─ i18n.rs             # langue effective, messages traduits (`tr`, `trf!`), locale TIDAL
-      ├─ commands/           # auth.rs, player.rs, catalog.rs, settings.rs : valident l'entrée puis délèguent
-      ├─ tidal/              # auth.rs, api.rs, catalog.rs, home.rs (accueil paginé), playlist.rs (pages gardées), mix.rs (mixes, radios), hires.rs + twin.rs (éditions hi-res), credits.rs, raw.rs (JSON bruts), paging.rs (listes paginées), models.rs, cache.rs, manifest.rs (DRM), soundtracks.rs (bandes originales choisies, #399), folders.rs (dossiers de playlists, #331)
+      ├─ lib.rs              # Tauri setup, task startup
+      ├─ content.rs          # filter on offered content (explicit, #368)
+      ├─ engine.rs           # playback engine contract (`Op`, `Event`, `Engine` trait)
+      ├─ media3.rs           # Android Media3 engine (plugin `plugins/seaglass-mobile`)
+      ├─ apk_update.rs       # Android app updates (`android.json` manifest, APK)
+      ├─ jam/                # Jam (#25): api.rs (shared rules), server.rs (local network), relay.rs (online), page/, remote/ (remote control, #336)
+      ├─ logs/               # on-disk log, crash reports (#192)
+      ├─ i18n.rs             # effective language, translated messages (`tr`, `trf!`), TIDAL locale
+      ├─ commands/           # auth.rs, player.rs, catalog.rs, settings.rs: validate input then delegate
+      ├─ tidal/              # auth.rs, api.rs, catalog.rs, home.rs (paged home), playlist.rs (cached pages), mix.rs (mixes, radios), hires.rs + twin.rs (hi-res editions), credits.rs, raw.rs (raw JSON), paging.rs (paged lists), models.rs, cache.rs, manifest.rs (DRM), soundtracks.rs (curated soundtracks, #399), folders.rs (playlist folders, #331)
       ├─ player/             # actor.rs, queue.rs, state.rs
-      ├─ mpv/                # engine.rs (moteur mpv), process.rs, ipc.rs, events.rs, serve.rs (MPD servis en HTTP local)
-      ├─ store/              # SQLite (dont snapshots.rs : copies des listes)
-      ├─ handoff.rs          # transfert de la lecture avec l'ordinateur lié, côté téléphone (#414)
-      ├─ foreign/            # liens d'autres services : Jam (#229, links.rs, meta.rs, matching.rs), import de playlists (#328, playlists.rs, import.rs)
-      └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs, mpris/ (Linux), tray.rs, discord/ (présence Discord), listenbrainz/ (envoi des écoutes, #431)
+      ├─ mpv/                # engine.rs (mpv engine), process.rs, ipc.rs, events.rs, serve.rs (MPDs served over local HTTP)
+      ├─ store/              # SQLite (including snapshots.rs: copies of lists)
+      ├─ handoff.rs          # playback handoff with the linked computer, phone side (#414)
+      ├─ foreign/            # links from other services: Jam (#229, links.rs, meta.rs, matching.rs), playlist import (#328, playlists.rs, import.rs)
+      └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs, mpris/ (Linux), tray.rs, discord/ (Discord presence), listenbrainz/ (scrobbling, #431)
 ```
 
-## Architecture du lecteur
+## Player architecture
 
-- **Acteur unique.** Une seule tâche tokio possède `Player` (file + état). Tout passe par un `mpsc::Sender<Cmd>` : commandes UI, événements du moteur, SMTC. Pas de `Mutex` sur l'état du lecteur.
-- **Moteur de lecture** (`engine.rs`, 0.4.42, #24) : l'acteur n'envoie que des opérations sémantiques (`Op::Play`, `Preload`, `RemoveNext`, `DropPrevious`, `Seek`, `LoopCurrent`, `Volume`, `CurrentGain`…) et reçoit des `Event` déjà traduits (`Position`, `Advanced`, `Ended(End::Eof | OutputFailed | Error)`, `Stopped`…). `mpv/engine.rs` (`MpvEngine`) traduit dans les deux sens (`commands`, `translate`, logique pure testée ; `cargo test live_engine_window -- --ignored --nocapture` avec un vrai mpv). Aucune commande JSON de mpv hors de `mpv/`. Le moteur Media3 d'Android implémentera le même trait `Engine`. `AudioDevice` et `CacheSize` restent dans `mpv` (réglages du bureau).
-- **File d'attente** (`player/queue.rs`) :
-  - `context: Vec<TrackId>` (album / playlist d'origine), `order: Vec<usize>` (ordre de lecture, mélangé ou non), `pos`
-  - `manual: VecDeque<TrackId>` prioritaire sur le contexte (« Lire ensuite » = `push_front`, « Ajouter à la file » = `push_back`)
-  - `history: Vec<TrackId>` pour « Précédent », indépendant du shuffle
+- **Single actor.** One tokio task owns `Player` (queue + state). Everything goes through an `mpsc::Sender<Cmd>`: UI commands, engine events, SMTC. No `Mutex` on the player state.
+- **Playback engine** (`engine.rs`, 0.4.42, #24): the actor only sends semantic operations (`Op::Play`, `Preload`, `RemoveNext`, `DropPrevious`, `Seek`, `LoopCurrent`, `Volume`, `CurrentGain`…) and receives already translated `Event`s (`Position`, `Advanced`, `Ended(End::Eof | OutputFailed | Error)`, `Stopped`…). `mpv/engine.rs` (`MpvEngine`) translates both ways (`commands`, `translate`, pure tested logic; `cargo test live_engine_window -- --ignored --nocapture` with a real mpv). No mpv JSON command outside `mpv/`. Android's Media3 engine implements the same `Engine` trait. `AudioDevice` and `CacheSize` stay in `mpv` (desktop settings).
+- **Queue** (`player/queue.rs`):
+  - `context: Vec<TrackId>` (original album / playlist), `order: Vec<usize>` (play order, shuffled or not), `pos`
+  - `manual: VecDeque<TrackId>` takes priority over the context ("Play next" = `push_front`, "Add to queue" = `push_back`)
+  - `history: Vec<TrackId>` for "Previous", independent of shuffle
   - `repeat: Off | All | One`
-  - Shuffle = Fisher-Yates sur les pistes restantes, piste courante en tête. Désactiver le shuffle restaure l'ordre d'origine sur la piste courante.
-- **Fenêtre mpv de 2 entrées maximum** : piste en cours + suivante. Les URLs de flux sont signées et expirent, donc on ne charge jamais plus loin.
-  - Préchargement de la suivante (`loadfile <url> append`) quand `duration - time_pos < 30 s`.
-  - Sur `playlist-pos == 1` : avancer la file, `playlist-remove 0`, `next_loaded = false`.
-  - **Toute modification de la file** (lire ensuite, shuffle, retrait, repeat) → `playlist-remove 1` si une suivante est chargée, puis `next_loaded = false`.
-- **Repeat One** = `loop-file=inf` côté mpv, pas de rechargement.
-- **Précédent** : si `time_pos > 3 s`, seek à 0, sinon dernière piste de `history` en `loadfile … replace`.
-- **Erreur de lecture** (`end-file` reason `error`) : redemander une URL une fois, puis passer à la suivante et émettre un événement `toast`.
-- **Vers l'UI** : événement `player-state` émis seulement si l'état a changé, avec `time_pos` limité à environ 4 Hz. L'UI interpole la barre de progression avec `requestAnimationFrame`. La liste de la file part dans un événement séparé `queue-state`, émis seulement quand la file change (sinon elle serait renvoyée 4 fois par seconde).
-- **Persistance** : file et position sauvegardées dans SQLite (debounce de 2 s), restaurées en pause au démarrage.
+  - Shuffle = Fisher-Yates over the remaining tracks, current track first. Turning shuffle off restores the original order at the current track.
+- **mpv window of at most 2 entries**: current track + next one. Stream URLs are signed and expire, so nothing further is ever loaded.
+  - Preload the next one (`loadfile <url> append`) when `duration - time_pos < 30 s`.
+  - On `playlist-pos == 1`: advance the queue, `playlist-remove 0`, `next_loaded = false`.
+  - **Any change to the queue** (play next, shuffle, removal, repeat) → `playlist-remove 1` if a next track is loaded, then `next_loaded = false`.
+- **Repeat One** = `loop-file=inf` on the mpv side, no reload.
+- **Previous**: if `time_pos > 3 s`, seek to 0, otherwise the last track of `history` with `loadfile … replace`.
+- **Playback error** (`end-file` reason `error`): request a URL again once, then skip to the next track and emit a `toast` event.
+- **To the UI**: `player-state` event emitted only when the state changed, with `time_pos` limited to about 4 Hz. The UI interpolates the progress bar with `requestAnimationFrame`. The queue list goes out in a separate `queue-state` event, emitted only when the queue changes (otherwise it would be resent 4 times per second).
+- **Persistence**: queue and position saved in SQLite (2 s debounce), restored paused at startup.
 
-## Feuille de route
+## Roadmap
 
-0. ~~**Spike**~~ ✅ : script Python `spike/play.py` avec `tidalapi` : connexion, récupération du manifeste d'un titre, lecture dans mpv. Flux FLAC sans DRM confirmés avec le client PKCE.
-1. ~~**Squelette**~~ ✅ : Tauri + Svelte, module `mpv/` (process + IPC + événements), commandes `login` (PKCE), `search`, `play`, `toggle_pause`, `seek`. Acteur lecteur minimal (un titre à la fois).
-2. ~~**File d'attente**~~ ✅ : `queue.rs` (testé), gapless, retry sur erreur, repeat One via `loop-file`, persistance SQLite.
-3. ~~**Vues**~~ ✅ : accueil, recherche multi-types, album, artiste, playlist, bibliothèque (playlists, albums, artistes, titres).
-4. ~~**Intégrations + UI**~~ ✅ : SMTC ; thèmes Verre de mer / Studio / Atelier / Acidwave / Surréalisme, vue « En lecture », chaîne audio, raccourcis clavier. Présence Discord en 0.4.92 (#215) ; Last.fm reporté (pas avant que l'utilisateur le demande).
-5. ~~**Finitions**~~ ✅ : installeur NSIS, mpv embarqué + Job Object, mises à jour signées, script de release ; hébergement des mises à jour (v0.4.4 publiée) ; CI ; mixes et radios (0.4.8) ; mode exclusif WASAPI (0.5.0, #245).
+0. ~~**Spike**~~ ✅: Python script `spike/play.py` with `tidalapi`: sign-in, fetching a track's manifest, playback in mpv. DRM-free FLAC streams confirmed with the PKCE client.
+1. ~~**Skeleton**~~ ✅: Tauri + Svelte, `mpv/` module (process + IPC + events), `login` (PKCE), `search`, `play`, `toggle_pause`, `seek` commands. Minimal player actor (one track at a time).
+2. ~~**Queue**~~ ✅: `queue.rs` (tested), gapless, retry on error, repeat One through `loop-file`, SQLite persistence.
+3. ~~**Views**~~ ✅: home, multi-type search, album, artist, playlist, library (playlists, albums, artists, tracks).
+4. ~~**Integrations + UI**~~ ✅: SMTC; Seaglass / Studio / Atelier / Acidwave / Surrealism themes, "Now playing" view, signal path, keyboard shortcuts. Discord presence in 0.4.92 (#215); Last.fm postponed (not before the user asks for it).
+5. ~~**Polish**~~ ✅: NSIS installer, bundled mpv + Job Object, signed updates, release script; update hosting (v0.4.4 published); CI; mixes and radios (0.4.8); WASAPI exclusive mode (0.5.0, #245).
 
 ## Documentation
 
-Notes d'implémentation, lues à la demande : endpoints vérifiés, mesures, pièges, classes surchargées par les thèmes, procédures.
+Implementation notes, read on demand: verified endpoints, measurements, pitfalls, classes overridden by themes, procedures.
 
-| Fichier | Contenu | À lire avant de toucher à |
+| File | Content | Read before touching |
 |---|---|---|
-| [`docs/lecteur.md`](docs/lecteur.md) | mpv (options, cache, normalisation, périphérique de sortie, AVX2), manifestes et pipe, file et persistance, commandes de la file, volume, minuteur, radio automatique, historique d'écoute, édition hi-res | `player/`, `mpv/`, `engine.rs`, `store/` |
-| [`docs/tidal.md`](docs/tidal.md) | résultats du spike, connexion et garde DRM, endpoints du catalogue, fil d'actualité, mixes, paroles, écritures dans la bibliothèque, « Plus tard », infos du titre et crédits, performances du backend | `tidal/`, `commands/catalog.rs`, `commands/collection.rs` |
-| [`docs/interface.md`](docs/interface.md) | navigation, réglages, raccourcis, aperçu sans Tauri (paramètres d'URL), CSP, pages et listes, menu contextuel, liens collés, performances des listes, langue | `src/` hors thèmes, `commands/settings/`, `i18n.rs` |
-| [`docs/themes.md`](docs/themes.md) | jetons, fonds, couleur d'accent, cascade, notes de chaque thème, classes surchargées | `src/themes/`, `app.css`, `components/backdrops/`, et avant de renommer une classe de composant |
-| [`docs/systeme.md`](docs/systeme.md) | SMTC, MPRIS, présence Discord, raccourcis globaux, zone de notification, lancement au démarrage, journaux et rapports de plantage | `integrations/` (bureau), `logs/` |
-| [`docs/linux.md`](docs/linux.md) | ce qui diffère sous Linux (sortie audio, arrêt de mpv, exclusif), construire et tester dans WSL | le code `cfg(not(windows))` du bureau, un paquet Linux |
-| [`docs/android.md`](docs/android.md) | état de l'app Android, moteur Media3, session média, pont natif, secrets, mise en page tactile, distribution de l'APK, construire et tester sur le S21 | `media3.rs`, `android.rs`, `plugins/seaglass-mobile/`, `gen/android/`, les styles `data-platform="android"` |
-| [`docs/jam.md`](docs/jam.md) | Jam locale et en ligne, API des invités, garde-fous, relais, liens d'autres services, télécommande | `jam/`, `foreign/`, `relay/` |
-| [`docs/release.md`](docs/release.md) | installeur NSIS, mpv embarqué, mises à jour, signature, scripts de release, release Gitea, CI et runner | `scripts/`, `updater.rs`, `tauri*.conf.json`, `.gitea/`, `ci/` |
-| [`docs/audits.md`](docs/audits.md) | audits passés et ce qu'ils ont écarté | une question de sécurité ou de performances déjà tranchée |
+| [`docs/player.md`](docs/player.md) | mpv (options, cache, normalization, output device, AVX2), manifests and pipe, queue and persistence, queue commands, volume, sleep timer, automatic radio, listening history, hi-res edition | `player/`, `mpv/`, `engine.rs`, `store/` |
+| [`docs/tidal.md`](docs/tidal.md) | spike results, sign-in and DRM guard, catalog endpoints, feed, mixes, lyrics, library writes, "Save for later", track info and credits, backend performance | `tidal/`, `commands/catalog.rs`, `commands/collection.rs` |
+| [`docs/interface.md`](docs/interface.md) | navigation, settings, shortcuts, preview without Tauri (URL parameters), CSP, pages and lists, context menu, pasted links, list performance, language | `src/` outside themes, `commands/settings/`, `i18n.rs` |
+| [`docs/themes.md`](docs/themes.md) | tokens, backgrounds, accent color, cascade, notes on each theme, overridden classes | `src/themes/`, `app.css`, `components/backdrops/`, and before renaming a component class |
+| [`docs/system.md`](docs/system.md) | SMTC, MPRIS, Discord presence, global shortcuts, notification area, launch at startup, logs and crash reports | `integrations/` (desktop), `logs/` |
+| [`docs/linux.md`](docs/linux.md) | what differs on Linux (audio output, stopping mpv, exclusive mode), building and testing in WSL | desktop `cfg(not(windows))` code, a Linux package |
+| [`docs/android.md`](docs/android.md) | Android app status, Media3 engine, media session, native bridge, secrets, touch layout, APK distribution, building and testing on the S21 | `media3.rs`, `android.rs`, `plugins/seaglass-mobile/`, `gen/android/`, `data-platform="android"` styles |
+| [`docs/jam.md`](docs/jam.md) | local and online Jam, guest API, safeguards, relay, links from other services, remote control | `jam/`, `foreign/`, `relay/` |
+| [`docs/release.md`](docs/release.md) | NSIS installer, bundled mpv, updates, signing, release scripts, Gitea release, CI and runner | `scripts/`, `updater.rs`, `tauri*.conf.json`, `.gitea/`, `ci/` |
+| [`docs/audits.md`](docs/audits.md) | past audits and what they ruled out | a security or performance question already settled |
 
-## Commandes
+## Commands
 
-PowerShell sous Windows.
+PowerShell on Windows.
 
 ```powershell
 # Spike
 python -m venv spike\.venv; spike\.venv\Scripts\Activate.ps1
 pip install -r spike\requirements.txt
 python spike\play.py login --pkce
-python spike\play.py search "<requête>"
+python spike\play.py search "<query>"
 python spike\play.py probe <id>
 python spike\play.py play <id> --exclusive
 
-# App (à partir de la phase 1)
+# App (from phase 1)
 pnpm install
 pnpm tauri dev
 cd src-tauri; cargo fmt; cargo clippy --all-targets -- -D warnings; cargo test
-cargo test live_catalog -- --ignored --nocapture   # endpoints réels (session requise)
-cargo test dump_ui_fixtures -- --ignored          # données de prévisualisation de l'UI
+cargo test live_catalog -- --ignored --nocapture   # real endpoints (session required)
+cargo test dump_ui_fixtures -- --ignored          # UI preview data
 pnpm check
-pnpm test                                         # tests du frontend (vitest)
-pnpm release                                      # installeur signé dans release/ (voir docs/release.md)
-pnpm release:all -Publish                         # Windows + Android + Linux (WSL), tag, release Gitea
+pnpm test                                         # frontend tests (vitest)
+pnpm release                                      # signed installer in release/ (see docs/release.md)
+pnpm release:all -Publish                         # Windows + Android + Linux (WSL), tag, Gitea release
 ```
 
 ## Conventions
 
-- Rust : `cargo fmt` et `clippy -D warnings` doivent passer. Pas de `unwrap()` / `expect()` hors tests et initialisation. Erreurs typées avec `thiserror` dans les modules, `anyhow` seulement aux frontières.
-- Les commandes Tauri renvoient `Result<T, String>` ou une erreur sérialisable, jamais de panic.
-- Les types partagés UI ↔ Rust sont définis côté Rust et dupliqués dans `src/lib/ipc.ts` (envisager `tauri-specta` si ça devient pénible).
-- Tests unitaires obligatoires pour `player/queue.rs` (shuffle, repeat, file manuelle, précédent) : c'est de la logique pure, sans mpv ni réseau.
-- Identifiants et code en anglais, commentaires et docs en français.
-- Commits au format Conventional Commits (`feat(player): …`). Dépôt sur le Gitea perso (`origin`). Claude peut commiter et pousser seul, en le signalant dans son message.
-- **Version** : `VERSION` à la racine est la source de vérité, affichée dans l'en-tête de l'app. `0.<phase>.<patch>` avant la 1.0 : patch à chaque lot de changements **qui modifie l'app livrée** (code, config, dépendances), mineure à la fin d'une phase. Pas de changement de version pour la seule documentation (`*.md`), sinon chaque correction de doc deviendrait une « mise à jour » une fois l'updater en place. La CI le vérifie (« Contrôle de version » dans `docs/release.md`). `src-tauri/Cargo.toml` doit être mis à jour en même temps (`build.rs` fait échouer la compilation sinon) ; `tauri.conf.json` n'a pas de version et reprend celle de Cargo.
-- Licence GPL-3.0 (`LICENSE`).
+- Rust: `cargo fmt` and `clippy -D warnings` must pass. No `unwrap()` / `expect()` outside tests and initialization. Typed errors with `thiserror` in modules, `anyhow` only at the boundaries.
+- Tauri commands return `Result<T, String>` or a serializable error, never panic.
+- Types shared between UI and Rust are defined on the Rust side and duplicated in `src/lib/ipc.ts` (consider `tauri-specta` if it becomes painful).
+- Unit tests are mandatory for `player/queue.rs` (shuffle, repeat, manual queue, previous): it is pure logic, with no mpv or network.
+- **Language**: identifiers, code, docs (`*.md`), comments, commit messages, issues and PRs in English. Many code comments are still in French: translate those of a file when you touch it, never in a mass change. UI strings stay translated in `src/lib/i18n/` and `src-tauri/src/i18n.rs` (French and English). Exception: `CHANGELOG.md` stays in French for now, because the app shows it as is and its parser expects French markers (see "Changelog" in `docs/interface.md`). The maintainer writes in French: answer them in French.
+- Commits follow Conventional Commits (`feat(player): …`). Repository on the personal Gitea (`origin`). Claude may commit and push on its own, saying so in its message.
+- **Version**: `VERSION` at the root is the source of truth, shown in the app header. `0.<phase>.<patch>` before 1.0: patch for every change set **that modifies the shipped app** (code, config, dependencies), minor at the end of a phase. No version change for documentation alone (`*.md`), otherwise every doc fix would become an "update" once the updater is in place. CI checks it ("Version check" in `docs/release.md`). `src-tauri/Cargo.toml` must be updated at the same time (`build.rs` fails the build otherwise); `tauri.conf.json` has no version and takes Cargo's.
+- License GPL-3.0 (`LICENSE`).
 
-## Issues Gitea (pour Claude)
+## Gitea issues (for Claude)
 
-- Dépôt : `bebanana/Seaglass` sur `https://git.bebanana.ch` (Gitea 1.27). L'API exige une authentification.
-- Accès via le serveur MCP officiel `gitea-mcp` (v1.11.0, installé dans `%LOCALAPPDATA%\Programs\gitea-mcp\`), déclaré dans `.mcp.json`. Il agit sous le compte dédié `claude` (collaborateur en écriture du dépôt), pour que ses issues, commentaires et PR se distinguent de ceux de l'utilisateur et lui soient notifiés. Le jeton de ce compte vient de la variable d'environnement utilisateur `GITEA_CLAUDE_TOKEN` (droits `write:issue`, `write:repository`, `read:user`) : ne jamais l'écrire dans un fichier ni l'afficher. Le jeton personnel de l'utilisateur n'est pas utilisé par Claude : si les outils Gitea échouent (variable absente, jeton révoqué), le signaler à l'utilisateur plutôt que de revenir à `GITEA_ACCESS_TOKEN` ou de passer par l'API avec un autre jeton. Vérification : `get_me` doit renvoyer `claude`. Les commits restent à l'identité git de l'utilisateur, avec la ligne `Co-Authored-By` ; la fusion des PR revient à l'utilisateur. Outils utiles : `list_issues`, `issue_read` (`method: get` / commentaires), `issue_write` (commenter, labels), `pull_request_write`.
-- **Labels** (2026-11-04, labels à portée de Gitea) : `platform/android` | `platform/windows` (exclusif ; aucun = les deux), `type/bug` | `feature` | `improvement` | `perf` | `security` | `chore` | `docs` (exclusif), `area/player` | `tidal` | `ui` | `theme` | `library` | `release` | `ci` (plusieurs possibles), `status/needs-info` | `blocked` | `wontdo` | `duplicate` (exclusif). Toute issue créée ou traitée reçoit au moins un `type/` et une `area/` ; `status/needs-info` quand elle attend une réponse de l'utilisateur, retiré quand il a répondu ; `status/wontdo` sur une proposition écartée.
-- Pour traiter une issue : la lire avec ses commentaires, poster un commentaire avec le plan avant de coder, travailler sur une branche `issue-<n>-<sujet>`, référencer l'issue dans le commit (`fix(ui): … (#8)`) et ouvrir une PR vers `main` avec `Closes #<n>`. Répondre dans l'issue si une question s'y pose plutôt que de deviner.
-- **Plusieurs issues à la suite** : ouvrir la PR de chaque issue dès que sa branche est vérifiée et poussée, avant de passer à la suivante, pour que les jobs de CI s'étalent au lieu de s'enchaîner à la fin. Chaque lot monte `VERSION` et `CHANGELOG.md` : partir de la branche précédente plutôt que de `main` (PR empilées, sinon elles entrent en conflit) et indiquer l'ordre de fusion dans chaque description.
+- Repository: `bebanana/Seaglass` on `https://git.bebanana.ch` (Gitea 1.27). The API requires authentication.
+- Access through the official `gitea-mcp` MCP server (v1.11.0, installed in `%LOCALAPPDATA%\Programs\gitea-mcp\`), declared in `.mcp.json`. It acts as the dedicated `claude` account (write collaborator on the repository), so that its issues, comments and PRs stand apart from the user's and notify them. That account's token comes from the user environment variable `GITEA_CLAUDE_TOKEN` (scopes `write:issue`, `write:repository`, `read:user`): never write it to a file or display it. The user's personal token is not used by Claude: if the Gitea tools fail (missing variable, revoked token), report it to the user rather than falling back to `GITEA_ACCESS_TOKEN` or calling the API with another token. Check: `get_me` must return `claude`. Commits stay under the user's git identity, with the `Co-Authored-By` line; merging PRs is up to the user. Useful tools: `list_issues`, `issue_read` (`method: get` / comments), `issue_write` (comment, labels), `pull_request_write`.
+- **Labels** (2026-11-04, Gitea scoped labels): `platform/android` | `platform/windows` (exclusive; none = both), `type/bug` | `feature` | `improvement` | `perf` | `security` | `chore` | `docs` (exclusive), `area/player` | `tidal` | `ui` | `theme` | `library` | `release` | `ci` (several allowed), `status/needs-info` | `blocked` | `wontdo` | `duplicate` (exclusive). Every issue created or handled gets at least one `type/` and one `area/`; `status/needs-info` when it waits for an answer from the user, removed once they answered; `status/wontdo` on a rejected proposal.
+- To handle an issue: read it with its comments, post a comment with the plan before coding, work on an `issue-<n>-<topic>` branch, reference the issue in the commit (`fix(ui): … (#8)`) and open a PR to `main` with `Closes #<n>`. Answer in the issue when a question comes up rather than guessing.
+- **Several issues in a row**: open each issue's PR as soon as its branch is verified and pushed, before moving to the next one, so that CI jobs spread out instead of piling up at the end. Each change set bumps `VERSION` and `CHANGELOG.md`: branch off the previous branch rather than `main` (stacked PRs, otherwise they conflict) and state the merge order in each description.
 
-## Façon de travailler (pour Claude)
+## Way of working (for Claude)
 
-- **Ne pas accepter une proposition de l'utilisateur telle quelle** : à chaque proposition (fonctionnalité, outil, workflow, architecture), dire d'abord s'il existe une meilleure façon de faire ou une pratique plus standard, avec les raisons et une recommandation, puis avancer avec ce qu'il confirme.
-
-- **Sous-agents** (`.claude/agents/`, sur Sonnet) : `explorer` pour une recherche en lecture seule dont seule la conclusion compte, `verifier` pour fmt, clippy, tests, `pnpm check` / `pnpm test` et le contrôle de version avec un rapport limité aux erreurs. La conception et les modifications restent dans la session principale.
-- Fournir les **fichiers complets** modifiés, pas des patchs partiels.
-- Commandes shell en PowerShell.
-- Avant d'implémenter quoi que ce soit qui dépend d'un endpoint TIDAL, vérifier son comportement réel (spike ou requête de test) plutôt que de le supposer.
-- Garder les modules petits : si un fichier dépasse environ 400 lignes, proposer un découpage.
-- **Documentation** : ce fichier reste court. Ce qu'on apprend en traitant une issue (endpoint vérifié, mesure, piège, décision et sa raison) va dans le fichier de `docs/` du domaine, dans la même PR. Corriger ou retirer ce qui est périmé plutôt que d'ajouter à la suite.
-- **Journal** : chaque changement de `VERSION` ajoute son entrée en tête de `CHANGELOG.md` (une ligne, avec le numéro de l'issue). Après une release, le titre de la version taguée reçoit « (publiée le <date>) ».
-- Mettre à jour la ligne « Statut » et la feuille de route de ce fichier à la fin de chaque phase.
+- **Do not accept a proposal from the user as is**: for every proposal (feature, tool, workflow, architecture), first say whether there is a better way or a more standard practice, with the reasons and a recommendation, then go ahead with what they confirm.
+- **Subagents** (`.claude/agents/`, on Sonnet): `explorer` for a read-only search where only the conclusion matters, `verifier` for fmt, clippy, tests, `pnpm check` / `pnpm test` and the version check with a report limited to errors. Design and edits stay in the main session.
+- Provide **complete files** when modified, not partial patches.
+- Shell commands in PowerShell.
+- Before implementing anything that depends on a TIDAL endpoint, check its real behavior (spike or test request) rather than assuming it.
+- Keep modules small: if a file goes past about 400 lines, propose a split.
+- **Documentation**: this file stays short. What is learned while handling an issue (verified endpoint, measurement, pitfall, decision and its reason) goes into the area's file in `docs/`, in the same PR. Fix or remove what is outdated rather than appending.
+- **Changelog**: every `VERSION` change adds its entry at the top of `CHANGELOG.md` (one line, with the issue number). After a release, the title of the tagged version gets "(published on <date>)".
+- Update the "Status" line and the roadmap of this file at the end of each phase.

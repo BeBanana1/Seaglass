@@ -1,164 +1,164 @@
 # Seaglass
 
-Client de streaming musical pour Windows, Android et Linux, avec une interface entièrement personnalisée et une lecture lossless / bit-perfect confiée à [mpv](https://mpv.io) (sur le bureau) ou à Media3 (sur Android).
+Music streaming client for Windows, Android and Linux, with a fully custom interface and lossless / bit-perfect playback handed to [mpv](https://mpv.io) (desktop) or Media3 (Android).
 
-> **Client non officiel, non affilié à TIDAL.** Un abonnement valide est nécessaire. Streaming uniquement : aucun flux audio n'est téléchargé ni enregistré sur disque, et les flux protégés par DRM ne sont pas lus.
+> **Unofficial client, not affiliated with TIDAL.** A valid subscription is required. Streaming only: no audio stream is downloaded or written to disk, and DRM-protected streams are not played.
 
-Version actuelle : voir [`VERSION`](VERSION) ; nouveautés dans [`CHANGELOG.md`](CHANGELOG.md), aussi affiché dans l'app (Réglages › Application).
+Current version: see [`VERSION`](VERSION); what's new in [`CHANGELOG.md`](CHANGELOG.md), also shown in the app (Settings › Application).
 
-## Fonctionnalités
+## Features
 
-### Écoute
+### Listening
 
-- Lecture FLAC jusqu'en 24 bits / 192 kHz, avec l'édition hi-res d'un album quand elle existe. Sur Android, une qualité pour le Wi-Fi et une autre pour les données mobiles (Basse, Haute en AAC, Lossless, Max), baissée en option quand la batterie est faible.
-- Enchaînement sans blanc (gapless) : le titre suivant est préchargé 30 s avant la fin.
-- **Mode exclusif WASAPI** sous Windows : la sortie audio est réservée à Seaglass, sans mixage ni rééchantillonnage.
-- **Égaliseur paramétrique** (pics, plateaux, préampli), profils nommés, import des profils AutoEQ, courbe de réponse ; sur le bureau, retenu pour chaque sortie audio.
-- Chaîne audio affichée en direct : format reçu, décodage, format envoyé à la sortie, partie du titre déjà en mémoire.
-- Choix de la sortie audio (réglages propres à chaque sortie sur le bureau), normalisation du volume, pause quand le casque est débranché.
-- Minuteur de mise en veille, aussi en fin d'album, de playlist ou de file.
-- File d'attente : contexte d'origine, « Lire ensuite », « Ajouter à la file », lecture aléatoire, répétition (tout / un titre), précédent, enregistrement de la file en playlist, bouton « Annuler » après un retrait.
-- File, position et volume restaurés au démarrage, reprise de la lecture au lancement en option.
-- Radio d'un titre, mixes, radio automatique en fin de file.
-- **Transfert de la lecture** entre l'ordinateur et l'app Android (« Reprendre ici », « Continuer sur l'ordinateur »), sur le réseau local ou par le relais, chiffré de bout en bout.
-- Android, écran éteint : la puce audio décode l'AAC quand elle sait le faire (offload), et le lecteur sollicite peu le processeur (mesures dans « Par rapport à l'app officielle »).
+- FLAC playback up to 24-bit / 192 kHz, with an album's hi-res edition when there is one. On Android, one quality for Wi-Fi and another for mobile data (Low, High in AAC, Lossless, Max), optionally lowered when the battery is low.
+- Gapless playback: the next track is preloaded 30 s before the end.
+- **WASAPI exclusive mode** on Windows: the audio output is reserved for Seaglass, with no mixing or resampling.
+- **Parametric equalizer** (peaks, shelves, preamp), named profiles, AutoEQ profile import, response curve; on desktop, remembered for each audio output.
+- Live signal path: format received, decoding, format sent to the output, how much of the track is already in memory.
+- Audio output selection (per-output settings on desktop), volume normalization, pause when headphones are unplugged.
+- Sleep timer, also at the end of an album, playlist or queue.
+- Queue: original context, "Play next", "Add to queue", shuffle, repeat (all / one track), previous, save the queue as a playlist, "Undo" button after a removal.
+- Queue, position and volume restored at startup, optional resume of playback on launch.
+- Track radio, mixes, automatic radio at the end of the queue.
+- **Playback handoff** between the computer and the Android app ("Resume here", "Continue on the computer"), over the local network or through the relay, end-to-end encrypted.
+- Android, screen off: the audio chip decodes AAC when it can (offload), and the player puts little load on the CPU (measurements in "Compared with the official app").
 
-### Catalogue et bibliothèque
+### Catalog and library
 
-- Accueil personnalisé et réordonnable, recherche pendant la frappe (titres, albums, artistes, playlists) avec historique, pages album, artiste, playlist et mix.
-- Bibliothèque : playlists (avec dossiers), albums, artistes, titres likés, mixes, « Plus tard » et « Écoutés dans Seaglass ».
-- Playlists : créer, renommer, réordonner, supprimer ; nettoyer les doublons et les titres retirés du catalogue.
-- **Import d'une playlist** Spotify, Deezer ou Apple Music en collant son lien, avec un aperçu des titres trouvés.
-- Sélection multiple de titres pour les lire, les mettre en file ou les ajouter à une playlist.
-- Paroles, crédits cliquables (un nom ouvre les titres où la personne est créditée), vue « En lecture » plein écran.
-- Notifications des nouvelles sorties des artistes suivis, en option.
-- Masquer le contenu explicite ou la musique générée par IA (badge « IA » sinon).
-- Liens `tidal.com` collés ou touchés ouverts directement dans l'app.
-- Épingles dans la barre latérale.
-- Export de la bibliothèque en JSON et CSV (bureau).
+- Personalized, reorderable home page, search as you type (tracks, albums, artists, playlists) with history, album, artist, playlist and mix pages.
+- Library: playlists (with folders), albums, artists, liked tracks, mixes, "Save for later" and "Played in Seaglass".
+- Playlists: create, rename, reorder, delete; clean up duplicates and tracks removed from the catalog.
+- **Playlist import** from Spotify, Deezer or Apple Music by pasting its link, with a preview of the tracks found.
+- Multi-select tracks to play them, queue them or add them to a playlist.
+- Lyrics, clickable credits (a name opens the tracks that person is credited on), full-screen "Now playing" view.
+- Optional notifications for new releases from followed artists.
+- Hide explicit content or AI-generated music ("AI" badge otherwise).
+- Pasted or tapped `tidal.com` links open directly in the app.
+- Pins in the sidebar.
+- Library export to JSON and CSV (desktop).
 
-### Statistiques et découverte
+### Stats and discovery
 
-- Statistiques d'écoute sur 7 jours, 30 jours, 12 mois ou tout l'historique, et rétrospective du mois et de l'année.
-- Playlists intelligentes calculées sur l'appareil : « Mes 50 du mois », « En boucle en ce moment », « Oubliés », « Likés jamais écoutés ».
-- Historique d'écoute synchronisé entre l'ordinateur et l'app Android liée.
-- Envoi des écoutes à ListenBrainz, en option, gardées hors ligne puis envoyées plus tard.
-- **Blind test** à partir d'une playlist, d'un mix, d'un album ou des titres likés : deviner le titre ou l'artiste d'extraits de 15 s, seul ou à plusieurs avec les invités de la Jam.
+- Listening stats over 7 days, 30 days, 12 months or the whole history, and a monthly and yearly recap.
+- Smart playlists computed on the device: "My top 50 this month", "On repeat", "Forgotten", "Liked, never played".
+- Listening history synced between the computer and the linked Android app.
+- Optional scrobbling to ListenBrainz, kept offline and sent later.
+- **Blind test** from a playlist, mix, album or liked tracks: guess the title or artist from 15 s clips, alone or with the Jam guests.
 
 ### Jam
 
-Des invités ajoutent des titres à la file depuis leur téléphone, sans app ni compte : ils scannent un QR code et cherchent dans une page web. Ça marche sur le réseau local, ou en ligne par un relais (sans Wi-Fi commun). La page accepte les liens Spotify, Deezer, Apple Music et YouTube Music. Les invités peuvent voter pour passer un titre, lire les paroles et, si l'hôte le permet, régler le volume ou mettre en pause. L'hôte garde la main : limites par invité, albums permis ou non, ajouts suspendus, invités exclus.
+Guests add tracks to the queue from their phone, with no app or account: they scan a QR code and search in a web page. It works on the local network, or online through a relay (no shared Wi-Fi needed). The page accepts Spotify, Deezer, Apple Music and YouTube Music links. Guests can vote to skip a track, read the lyrics and, if the host allows it, change the volume or pause. The host stays in control: per-guest limits, albums allowed or not, additions paused, guests kicked.
 
 ### Interface
 
-- Une vingtaine de thèmes, certains en version claire et sombre : **Verre de mer** (verre dépoli sur la pochette, couleurs accordées à l'album), **Studio**, **Atelier**, **Minuit** (noir pur, pour les écrans OLED), **Acidwave**, **Surréalisme**, **Solarpunk**, **Cyberpunk**, **Neumorphism**, **Terminal**, **Risographie**, **Bauhaus**, **Aéro**, **Alliage**, **Estampe**, **Art déco**, **Cassette**, **Séance**, **Ordinateur de bord**, **Film noir**, **Grand hôtel**, **Désert** et **Générique**.
-- Couleur d'accent réglable pour chaque thème, taille de l'interface (80 à 150 %, bureau), animations réduites ou complètes.
-- Français et anglais, selon la langue du système ou au choix.
-- Bureau : palette de commandes (Ctrl+K) pour aller à une page, lancer une action ou chercher, et raccourcis Espace, Ctrl+,, Échap, Alt+←, F11, Ctrl+« + » / « - » / 0.
-- Sauvegarde des réglages en texte, à coller dans Seaglass sur un autre appareil.
-- Quelques clins d'œil certains jours, désactivables.
+- About twenty themes, some with light and dark variants: **Seaglass** (frosted glass over the cover art, colors matched to the album), **Studio**, **Atelier**, **Midnight** (pure black, for OLED screens), **Acidwave**, **Surrealism**, **Solarpunk**, **Cyberpunk**, **Neumorphism**, **Terminal**, **Risograph**, **Bauhaus**, **Aero**, **Alloy**, **Estampe**, **Art Deco**, **Cassette**, **Showing**, **Ship Computer**, **Film Noir**, **Grand Hotel**, **Desert** and **Title Sequence**.
+- Per-theme accent color, interface size (80 to 150 %, desktop), reduced or full animations.
+- French and English, following the system language or chosen.
+- Desktop: command palette (Ctrl+K) to go to a page, run an action or search, and shortcuts Space, Ctrl+,, Esc, Alt+←, F11, Ctrl+"+" / "-" / 0.
+- Settings backup as text, to paste into Seaglass on another device.
+- A few easter eggs on certain days, which can be turned off.
 
-### Intégration au système
+### System integration
 
-- **Windows** : touches média et panneau multimédia (SMTC), icône de la zone de notification, lancement à l'ouverture de session, présence Discord.
-- **Linux** : contrôles média par MPRIS (touches média, applet du bureau, `playerctl`, KDE Connect), présence Discord.
-- **Bureau** : raccourcis clavier globaux (en option), mini-lecteur au premier plan, **télécommande** depuis le navigateur d'un téléphone sur le même Wi-Fi.
-- **Android** : notification et session média (écouteurs, autoradio, montre), widget d'écran d'accueil, épingles en raccourcis de l'icône, mode conduite plein écran à grosses tuiles.
-- Mises à jour automatiques signées sur les trois plateformes.
-- Journaux et rapports de plantage gardés en local, copiables depuis Réglages › Application.
+- **Windows**: media keys and media flyout (SMTC), notification area icon, launch at sign-in, Discord presence.
+- **Linux**: media controls through MPRIS (media keys, desktop applet, `playerctl`, KDE Connect), Discord presence.
+- **Desktop**: optional global keyboard shortcuts, always-on-top mini player, **remote control** from a phone's browser on the same Wi-Fi.
+- **Android**: media notification and session (headphones, car stereo, watch), home screen widget, pins as app icon shortcuts, full-screen driving mode with large tiles.
+- Signed automatic updates on all three platforms.
+- Logs and crash reports kept locally, copyable from Settings › Application.
 
-## Par rapport à l'app officielle
+## Compared with the official app
 
-Comparaison faite le 2026-11-18. Les chiffres viennent de mesures sur un Galaxy S21 (#451, méthode et détails dans [`docs/android.md`](docs/android.md) › « Mesures de performances »). Pour l'app officielle, seul ce qui a été vérifié figure ici, et elle évolue : certains points peuvent avoir changé depuis.
+Comparison made on 2026-11-18. Figures come from measurements on a Galaxy S21 (#451, method and details in [`docs/android.md`](docs/android.md) › "Performance measurements"). For the official app, only what was verified is listed here, and it keeps evolving: some points may have changed since.
 
-### Sur toutes les plateformes
+### On all platforms
 
-**Mieux dans Seaglass**
+**Better in Seaglass**
 
-- Égaliseur paramétrique, avec import des profils AutoEQ et un réglage par sortie audio sur le bureau. L'app officielle n'a pas d'égaliseur.
-- Import d'une playlist Spotify, Deezer ou Apple Music en collant son lien, dans l'app. L'officielle renvoie vers des services tiers.
-- Envoi des écoutes à ListenBrainz et présence Discord intégrés. Pour l'officielle, il faut des outils tiers.
-- Une vingtaine de thèmes, et la chaîne audio affichée jusqu'au format envoyé à la sortie.
+- Parametric equalizer, with AutoEQ profile import and a setting per audio output on desktop. The official app has no equalizer.
+- Import of a Spotify, Deezer or Apple Music playlist by pasting its link, inside the app. The official app points to third-party services.
+- Built-in ListenBrainz scrobbling and Discord presence. The official app needs third-party tools.
+- About twenty themes, and the signal path shown down to the format sent to the output.
 
-**Aussi dans Seaglass**, sans comparaison vérifiée : la Jam (des invités ajoutent des titres depuis leur téléphone, sans app ni compte), le blind test seul ou à plusieurs, l'accueil réordonnable, les statistiques et la rétrospective, les playlists intelligentes et le nettoyage des doublons, tous calculés sur l'appareil.
+**Also in Seaglass**, with no verified comparison: the Jam (guests add tracks from their phone, with no app or account), the blind test alone or with others, the reorderable home page, stats and recap, smart playlists and duplicate cleanup, all computed on the device.
 
-**Moins bien dans Seaglass**
+**Worse in Seaglass**
 
-- Pas de téléchargement hors ligne : c'est un choix du projet, qui ne fait que du streaming.
-- Pas de Dolby Atmos ni de vidéos. Les contenus protégés par DRM ne sont pas lus.
-- Pas de TIDAL Connect ni de Chromecast, et pas d'app iOS ni macOS.
-- Client non officiel : il repose sur une API privée qui peut changer sans prévenir, et s'installe hors des boutiques d'applications.
+- No offline downloads: this is a project choice, it only streams.
+- No Dolby Atmos and no videos. DRM-protected content is not played.
+- No TIDAL Connect or Chromecast, and no iOS or macOS app.
+- Unofficial client: it relies on a private API that can change without notice, and installs outside the app stores.
 
 ### Windows
 
-- **À égalité** : le mode exclusif WASAPI existe dans les deux apps.
-- **Mieux** : lecture confiée à mpv, avec la chaîne audio détaillée (format reçu, décodage, format envoyé à la carte son).
-- **Aussi dans Seaglass**, sans comparaison vérifiée : la télécommande depuis le navigateur du téléphone, le mini-lecteur, les raccourcis globaux et le transfert de la lecture avec l'app Android.
-- **Moins bien** : l'installeur n'est pas signé (SmartScreen demande une confirmation), et le mpv livré exige un processeur AVX2.
-- Les performances sur le bureau n'ont pas été mesurées.
+- **On par**: WASAPI exclusive mode exists in both apps.
+- **Better**: playback handed to mpv, with a detailed signal path (format received, decoding, format sent to the sound card).
+- **Also in Seaglass**, with no verified comparison: remote control from the phone's browser, the mini player, global shortcuts and playback handoff with the Android app.
+- **Worse**: the installer is not code-signed (SmartScreen asks for confirmation), and the bundled mpv requires an AVX2 CPU.
+- Desktop performance has not been measured.
 
 ### Linux
 
-- **Mieux** : l'app officielle n'existe pas sous Linux, seul le lecteur web est proposé. Seaglass est une app native, avec les contrôles média du bureau (MPRIS) et la lecture par mpv.
-- **Moins bien** : pas de mode exclusif, et mpv doit être installé par le système.
+- **Better**: the official app does not exist on Linux, only the web player is offered. Seaglass is a native app, with desktop media controls (MPRIS) and playback through mpv.
+- **Worse**: no exclusive mode, and mpv must be installed from the system.
 
 ### Android
 
-Mesuré sur le S21, en % d'un cœur du processeur (moins = mieux) :
+Measured on the S21, in % of one CPU core (lower = better):
 
-| Scénario | Seaglass 0.5.90 | App officielle 2.219.0 |
+| Scenario | Seaglass 0.5.90 | Official app 2.219.0 |
 |---|---|---|
-| Écran éteint, lecture lossless (30 min) | **8,5 %** | 20,5 % |
-| Écran éteint, qualité Haute (AAC), Dolby Atmos coupé | **1,6 à 2,5 %** | non mesuré |
-| « En lecture » ouvert (5 min) | **9,8 %** | 81 % |
-| Accueil pendant la lecture | **5,7 %** | 12 % |
-| Défilement rapide d'une playlist de 489 titres | **42 %** (1,5 % d'images en retard) | 63 % (**0,2 %** d'images en retard) |
-| Accueil affiché après un démarrage à froid | ~1,6 à 2 s | ~1,7 à 2,4 s |
+| Screen off, lossless playback (30 min) | **8.5 %** | 20.5 % |
+| Screen off, High quality (AAC), Dolby Atmos off | **1.6 to 2.5 %** | not measured |
+| "Now playing" open (5 min) | **9.8 %** | 81 % |
+| Home page during playback | **5.7 %** | 12 % |
+| Fast scrolling through a 489-track playlist | **42 %** (1.5 % janky frames) | 63 % (**0.2 %** janky frames) |
+| Home page shown after a cold start | ~1.6 to 2 s | ~1.7 to 2.4 s |
 
-Même playlist, en FLAC 16 bits / 44,1 kHz dans les deux apps : Seaglass la lisait en streaming, l'app officielle depuis ses fichiers téléchargés. Téléphone relié en USB ; les consommations sont donc estimées par Android, pas mesurées sur la batterie.
+Same playlist, in FLAC 16-bit / 44.1 kHz in both apps: Seaglass streamed it, the official app played its downloaded files. Phone connected over USB, so power use is estimated by Android, not measured on the battery.
 
-- **Mieux** : moins de batterie, écran éteint comme allumé. Une qualité différente en Wi-Fi et en données mobiles, baissée en option quand la batterie est faible. Sur les données mobiles, la puce audio décode l'AAC (offload), si Dolby Atmos est coupé dans les réglages du téléphone.
-- **Aussi dans Seaglass**, sans comparaison vérifiée : le mode conduite à grosses tuiles, le widget et les épingles en raccourcis de l'icône.
-- **Moins bien** : pas d'Android Auto (le mode conduite le remplace en partie). En qualité Max, le 24 bits est ramené à 16 bits, et il n'y a pas de sortie bit-perfect vers un DAC USB. Le défilement est un peu moins régulier. L'APK s'installe hors du Play Store.
+- **Better**: less battery, screen off as well as on. A different quality on Wi-Fi and mobile data, optionally lowered when the battery is low. On mobile data, the audio chip decodes AAC (offload), if Dolby Atmos is turned off in the phone's settings.
+- **Also in Seaglass**, with no verified comparison: driving mode with large tiles, the widget and pins as app icon shortcuts.
+- **Worse**: no Android Auto (driving mode partly replaces it). In Max quality, 24-bit is reduced to 16-bit, and there is no bit-perfect output to a USB DAC. Scrolling is a little less smooth. The APK installs outside the Play Store.
 
 ## Installation
 
-Les versions publiées par l'auteur se téléchargent sur **https://updates.bebanana.ch/seaglass/** ; pour construire et distribuer les siennes, sans ce serveur, voir « Construire et héberger soi-même ». Ensuite, l'app se met à jour toute seule : quand une nouvelle version est prête, elle propose « Installer et redémarrer » ou « Plus tard ».
+Versions published by the author can be downloaded from **https://updates.bebanana.ch/seaglass/**; to build and distribute your own, without that server, see "Building and self-hosting". After that, the app updates itself: when a new version is ready, it offers "Install and restart" or "Later".
 
-- **Windows 10 / 11** : lancer l'installeur. L'installation se fait pour l'utilisateur courant, sans droits administrateur, et mpv est inclus. L'installeur n'a pas de certificat de signature Windows : SmartScreen demande « Informations complémentaires » puis « Exécuter quand même ». Processeur compatible AVX2 requis par le build de mpv livré.
-- **Android** (arm64) : installer l'APK en autorisant les sources inconnues.
-- **Linux** (x86_64) : rendre l'AppImage exécutable et la lancer. mpv vient du système (`sudo apt install mpv`) ; les jetons sont rangés dans le trousseau (Secret Service). La connexion passe par le navigateur du système : coller dans l'app l'adresse de retour affichée.
+- **Windows 10 / 11**: run the installer. It installs for the current user, without administrator rights, and mpv is included. The installer has no Windows code-signing certificate: SmartScreen asks for "More info" then "Run anyway". A CPU with AVX2 is required by the bundled mpv build.
+- **Android** (arm64): install the APK, allowing unknown sources.
+- **Linux** (x86_64): make the AppImage executable and run it. mpv comes from the system (`sudo apt install mpv`); tokens are stored in the keyring (Secret Service). Sign-in goes through the system browser: paste the redirect address shown into the app.
 
-## Prérequis (développement)
+## Requirements (development)
 
-- Windows 10 ou 11 (WebView2 installé)
-- [mpv](https://mpv.io/installation/) dans le `PATH` (utilisé en debug), ou son chemin dans la variable `SEAGLASS_MPV_PATH`
-- [Rust](https://rustup.rs) stable et les Visual Studio Build Tools (C++)
-- [Node.js](https://nodejs.org) LTS et [pnpm](https://pnpm.io)
+- Windows 10 or 11 (with WebView2)
+- [mpv](https://mpv.io/installation/) in `PATH` (used in debug builds), or its path in the `SEAGLASS_MPV_PATH` variable
+- [Rust](https://rustup.rs) stable and the Visual Studio Build Tools (C++)
+- [Node.js](https://nodejs.org) LTS and [pnpm](https://pnpm.io)
 
-Pour Android (SDK, NDK, test sur un appareil) et Linux (build dans WSL), voir [`docs/android.md`](docs/android.md) et [`docs/linux.md`](docs/linux.md).
+For Android (SDK, NDK, testing on a device) and Linux (build in WSL), see [`docs/android.md`](docs/android.md) and [`docs/linux.md`](docs/linux.md).
 
-## Démarrage
+## Getting started
 
-1. Créer un fichier `.env` à la racine (il est ignoré par git, et lu à la compilation) :
+1. Create a `.env` file at the root (ignored by git, read at build time):
 
    ```
    TIDAL_CLIENT_ID=...
    TIDAL_CLIENT_SECRET=...
    ```
 
-   Adresses des services en ligne, facultatives : voir « Construire et héberger soi-même ».
+   Addresses of the online services, optional: see "Building and self-hosting".
 
-2. Installer les dépendances et lancer l'app en développement :
+2. Install the dependencies and run the app in development:
 
    ```powershell
    pnpm install
    pnpm tauri dev
    ```
 
-3. Dans l'app, cliquer sur **Se connecter** et se connecter dans la fenêtre qui s'ouvre.
+3. In the app, click **Sign in** and sign in in the window that opens.
 
-## Développement
+## Development
 
 ```powershell
 cd src-tauri; cargo fmt; cargo clippy --all-targets -- -D warnings; cargo test
@@ -166,44 +166,44 @@ pnpm check
 pnpm test
 ```
 
-Aperçu de l'interface sans Tauri, sur des données factices : `pnpm dev`, puis `http://127.0.0.1:1420/?theme=studio&route=album` (voir [`docs/interface.md`](docs/interface.md), « Prévisualisation sans Tauri »).
+Interface preview without Tauri, on mock data: `pnpm dev`, then `http://127.0.0.1:1420/?theme=studio&route=album` (see [`docs/interface.md`](docs/interface.md), "Preview without Tauri").
 
-L'architecture, les conventions et la feuille de route sont décrites dans [`CLAUDE.md`](CLAUDE.md), les notes d'implémentation par domaine dans [`docs/`](docs/) et les versions dans [`CHANGELOG.md`](CHANGELOG.md). Les bugs et demandes sont suivis dans les issues du dépôt Gitea ; chaque correction passe par une branche `issue-<n>-…` et une PR qui ferme l'issue. Le dossier `relay/` contient le relais de la Jam (déploiement dans [`relay/README.md`](relay/README.md)), et `spike/` le script Python de la phase 0 qui a validé les formats de flux.
+Architecture, conventions and roadmap are described in [`CLAUDE.md`](CLAUDE.md), implementation notes per area in [`docs/`](docs/) and versions in [`CHANGELOG.md`](CHANGELOG.md). Bugs and requests are tracked in the issues of the Gitea repository; each fix goes through an `issue-<n>-…` branch and a PR that closes the issue. The `relay/` folder holds the Jam relay (deployment in [`relay/README.md`](relay/README.md)), and `spike/` the phase 0 Python script that validated the stream formats.
 
-## Construire et héberger soi-même
+## Building and self-hosting
 
-Rien ne dépend du serveur de l'auteur : aucune adresse ni clé n'est écrite dans le code ou les scripts. Elles sont lues à la compilation, dans l'environnement ou dans `.env` (modèle complet : [`.env.example`](.env.example)). Sans elles, l'app marche sans le service correspondant.
+Nothing depends on the author's server: no address or key is written in the code or scripts. They are read at build time, from the environment or from `.env` (full template: [`.env.example`](.env.example)). Without them, the app works without the matching service.
 
-À fournir soi-même :
+To provide yourself:
 
-| Quoi | Requis pour | Où |
+| What | Needed for | Where |
 |---|---|---|
-| `TIDAL_CLIENT_ID` / `TIDAL_CLIENT_SECRET` | se connecter | `.env` (voir [`docs/tidal.md`](docs/tidal.md)) |
-| Clé de l'updater (`tauri signer generate -w ~/.tauri/seaglass.key`) | publier des mises à jour du bureau | hors du dépôt ; la clé publique est compilée depuis le `.pub` |
-| `SEAGLASS_UPDATE_BASE_URL` + un dossier public en HTTPS | publier des versions | `.env` ; `SEAGLASS_RELEASE_DEST` pour l'envoi |
-| Keystore Android | publier l'APK | voir [`docs/android.md`](docs/android.md) |
-| `SEAGLASS_RELAY_BASE_URL` / `SEAGLASS_RELAY_KEY` + un relais | Jam en ligne, transfert de lecture | `.env`, et [`relay/`](relay/README.md) |
-| `DISCORD_CLIENT_ID` | présence Discord | `.env` |
+| `TIDAL_CLIENT_ID` / `TIDAL_CLIENT_SECRET` | signing in | `.env` (see [`docs/tidal.md`](docs/tidal.md)) |
+| Updater key (`tauri signer generate -w ~/.tauri/seaglass.key`) | publishing desktop updates | outside the repository; the public key is built in from the `.pub` |
+| `SEAGLASS_UPDATE_BASE_URL` + a public HTTPS folder | publishing versions | `.env`; `SEAGLASS_RELEASE_DEST` for uploading |
+| Android keystore | publishing the APK | see [`docs/android.md`](docs/android.md) |
+| `SEAGLASS_RELAY_BASE_URL` / `SEAGLASS_RELAY_KEY` + a relay | online Jam, playback handoff | `.env`, and [`relay/`](relay/README.md) |
+| `DISCORD_CLIENT_ID` | Discord presence | `.env` |
 
 ```
-# Relais de la Jam en ligne et du transfert de lecture (facultatif)
+# Relay for the online Jam and playback handoff (optional)
 SEAGLASS_RELAY_BASE_URL=https://jam.example.org
 SEAGLASS_RELAY_KEY=...
-# Dossier des mises à jour (facultatif ; posé par les scripts de release)
+# Updates folder (optional; set by the release scripts)
 SEAGLASS_UPDATE_BASE_URL=https://updates.example.org/seaglass
 ```
 
-- **Relais** : chacun peut héberger le sien (dossier [`relay/`](relay/README.md), même clé `SEAGLASS_RELAY_KEY` que l'app). Dans l'app, Réglages › Application › Relais permet aussi d'en choisir un autre, avec sa clé, ou de le couper. Sans relais, la Jam reste possible sur le réseau local (ordinateur), et l'interrupteur « Jam » la retire de l'app.
-- **Mises à jour** : l'app n'installe que des versions signées par la clé dont la partie publique est compilée (`SEAGLASS_UPDATER_PUBKEY`, que les scripts de release lisent dans `<clé privée>.pub` ; certificat de l'APK sur Android). Pour publier ses propres versions, il faut donc sa propre clé, son propre dossier, et les compiler dans son build. Sans adresse ou sans clé, l'app ne propose aucune mise à jour ; avec, la vérification automatique se coupe dans Réglages › Application.
+- **Relay**: anyone can host their own (folder [`relay/`](relay/README.md), same `SEAGLASS_RELAY_KEY` as the app). In the app, Settings › Application › Relay also lets you pick another one, with its key, or turn it off. Without a relay, the Jam still works on the local network (computer), and the "Jam" switch removes it from the app.
+- **Updates**: the app only installs versions signed by the key whose public part is built in (`SEAGLASS_UPDATER_PUBKEY`, which the release scripts read from `<private key>.pub`; APK certificate on Android). To publish your own versions, you therefore need your own key, your own folder, and to build them into your build. Without an address or a key, the app offers no updates; with them, automatic checking can be turned off in Settings › Application.
 
-## Publier une version
+## Publishing a version
 
-1. Monter `VERSION` (et `src-tauri/Cargo.toml`), ajouter l'entrée de `CHANGELOG.md`, commiter.
-2. `pnpm release:all` : construit l'installeur Windows, l'APK et l'AppImage (dans WSL), signés, avec les manifestes de mise à jour, sans rien publier. `pnpm release` ne construit que l'installeur Windows.
-3. `pnpm release:all -Publish` : publie dans le dossier des mises à jour, pose le tag `v<version>` et crée la release Gitea.
+1. Bump `VERSION` (and `src-tauri/Cargo.toml`), add the `CHANGELOG.md` entry, commit.
+2. `pnpm release:all`: builds the Windows installer, the APK and the AppImage (in WSL), signed, with the update manifests, without publishing anything. `pnpm release` only builds the Windows installer.
+3. `pnpm release:all -Publish`: publishes to the updates folder, adds the `v<version>` tag and creates the Gitea release.
 
-Détails, variables d'environnement et clés dans [`docs/release.md`](docs/release.md). Les clés privées de signature (updater et APK) doivent être sauvegardées : sans elles, les versions installées refuseront toute mise à jour.
+Details, environment variables and keys in [`docs/release.md`](docs/release.md). The private signing keys (updater and APK) must be backed up: without them, installed versions will refuse every update.
 
-## Licence
+## License
 
-[GPL-3.0](LICENSE). mpv est lancé comme programme séparé et piloté par IPC, il n'est pas lié au code de Seaglass ; sa notice de licence est livrée avec l'installeur (`src-tauri/licenses/mpv.txt`).
+[GPL-3.0](LICENSE). mpv is launched as a separate program and driven over IPC, it is not linked with Seaglass's code; its license notice ships with the installer (`src-tauri/licenses/mpv.txt`).

@@ -1,39 +1,39 @@
 ---
 name: verifier
-description: Lance les vérifications du dépôt Seaglass (cargo fmt --check, clippy, cargo test, pnpm check, pnpm test, contrôle de version) et ne renvoie que le résumé et les erreurs. À utiliser après une modification, avant un commit ou une PR, pour ne pas remplir la conversation principale de journaux de compilation. Ne corrige rien.
+description: Runs the Seaglass repository checks (cargo fmt --check, clippy, cargo test, pnpm check, pnpm test, version check) and returns only the summary and the errors. Use it after a change, before a commit or a PR, so the main conversation is not filled with build logs. Fixes nothing.
 tools: Bash, PowerShell, Read, Grep, Glob
 model: sonnet
 ---
 
-Tu vérifies l'état du dépôt Seaglass et tu rends un rapport court. Tu ne modifies aucun fichier, tu ne commites rien et tu ne corriges pas les erreurs : tu les rapportes.
+You check the state of the Seaglass repository and return a short report. You do not modify any file, you do not commit anything and you do not fix errors: you report them.
 
-## Portée
+## Scope
 
-La demande précise la portée. Sans précision, lance tout.
+The request states the scope. Without one, run everything.
 
-- **rust** : depuis `src-tauri/`, dans cet ordre :
+- **rust**: from `src-tauri/`, in this order:
   1. `cargo fmt --check`
   2. `cargo clippy --all-targets -- -D warnings`
   3. `cargo test`
-- **front** : depuis la racine :
+- **front**: from the root:
   1. `pnpm check`
   2. `pnpm test`
-- **version** : `bash scripts/check-version.sh` depuis la racine.
+- **version**: `bash scripts/check-version.sh` from the root.
 
-Ne lance jamais les tests ignorés (`-- --ignored`) : ils appellent les vrais endpoints TIDAL ou un vrai mpv. Ne lance ni `pnpm tauri dev`, ni `pnpm release`, ni rien qui publie.
+Never run the ignored tests (`-- --ignored`): they call the real TIDAL endpoints or a real mpv. Do not run `pnpm tauri dev`, `pnpm release`, or anything that publishes.
 
-Si un dossier de travail est indiqué (par exemple un worktree), lance les commandes depuis ce dossier.
+If a working folder is given (a worktree, for example), run the commands from that folder.
 
-## Exécution
+## Running
 
-- Les compilations Rust peuvent dépasser 2 minutes : donne un `timeout` de 600000 ms aux commandes `cargo`.
-- Continue après un échec pour donner un état complet (un échec de `cargo fmt --check` n'empêche pas clippy ni les tests).
-- Si `cargo` attend un verrou (« Blocking waiting for file lock »), c'est qu'une autre compilation tourne (souvent `pnpm tauri dev`) : attends la fin, et si elle n'arrive pas, dis-le.
+- Rust builds can take more than 2 minutes: give `cargo` commands a `timeout` of 600000 ms.
+- Keep going after a failure to give a complete picture (a `cargo fmt --check` failure does not prevent clippy or the tests).
+- If `cargo` is waiting for a lock ("Blocking waiting for file lock"), another build is running (often `pnpm tauri dev`): wait for it to finish, and if it does not, say so.
 
-## Rapport
+## Report
 
-En français, court :
+Short:
 
-1. Une ligne par étape : ✅ ou ❌, avec le nombre de tests passés / échoués quand il y en a.
-2. Pour chaque échec : le fichier et la ligne (`chemin:ligne`), le message d'erreur ou le lint clippy, et pour un test le nom du test avec l'assertion qui échoue. Garde les messages du compilateur tels quels mais sans le bruit (pas de lignes `Compiling …`, pas de journaux de tests qui passent).
-3. Rien d'autre : pas de proposition de correction, sauf si la cause est évidente en une phrase.
+1. One line per step: ✅ or ❌, with the number of tests passed / failed when there are any.
+2. For each failure: the file and line (`path:line`), the error message or clippy lint, and for a test the test name with the failing assertion. Keep compiler messages as they are but without the noise (no `Compiling …` lines, no logs from passing tests).
+3. Nothing else: no fix proposals, unless the cause is obvious in one sentence.

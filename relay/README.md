@@ -1,40 +1,40 @@
-# Relais de la Jam
+# Jam relay
 
-Rend une Jam Seaglass joignable depuis Internet (#25, étape 3a) : les invités n'ont pas besoin d'être sur le même Wi-Fi que l'hôte, chacun reste sur ses données mobiles.
+Makes a Seaglass Jam reachable from the Internet (#25, step 3a): guests do not need to be on the same Wi-Fi as the host, everyone stays on their mobile data.
 
-- L'app de l'hôte se connecte en WebSocket à `/host` (connexion sortante : aucun port à ouvrir chez l'hôte, fonctionne derrière le réseau mobile).
-- Les invités ouvrent `https://<relais>/j/<id>/#<code>` (QR code). La page est celle de la Jam locale (`src-tauri/src/jam/page/`, embarquée à la compilation).
-- Tunnels d'appareils (#430) : un PC se connecte à `/device` (même clé) et son téléphone lié l'appelle par `POST /d/<id>`, pour le transfert de la lecture et l'historique d'écoute. Les corps sont chiffrés de bout en bout par les deux appareils : le relais ne les lit pas. Détails dans `docs/jam.md`.
-- Leurs appels (`join`, `search`, `add`, `state`) sont transmis à l'hôte, qui seul parle à TIDAL et au lecteur. Le relais sert lui-même le flux d'état (`api/events`) à partir du dernier état poussé par l'hôte.
-- Le relais ne voit passer que des titres, des prénoms et le code de la Jam : jamais de jeton TIDAL, d'URL de flux ni d'audio.
+- The host's app connects over WebSocket to `/host` (outgoing connection: no port to open on the host's side, works behind a mobile network).
+- Guests open `https://<relay>/j/<id>/#<code>` (QR code). The page is the local Jam's (`src-tauri/src/jam/page/`, embedded at build time).
+- Device tunnels (#430): a PC connects to `/device` (same key) and its linked phone calls it through `POST /d/<id>`, for playback handoff and listening history. Bodies are end-to-end encrypted by both devices: the relay cannot read them. Details in `docs/jam.md`.
+- Their calls (`join`, `search`, `add`, `state`) are forwarded to the host, which alone talks to TIDAL and to the player. The relay serves the state stream (`api/events`) itself, from the last state pushed by the host.
+- The relay only sees track titles, first names and the Jam code: never a TIDAL token, stream URL or audio.
 
-Protocole : `src/protocol.rs`.
+Protocol: `src/protocol.rs`.
 
-## Sécurité et limites
+## Security and limits
 
-- **Clé de build** (`SEAGLASS_RELAY_KEY`, en-tête `Authorization: Bearer …` de `/host`) : la même valeur dans le `.env` de l'app. Elle écarte les robots qui scannent Internet. Ce n'est pas un secret : n'importe qui peut la tirer d'une app distribuée. La protection vient des limites ci-dessous.
-- Identifiant de Jam de 128 bits dans le lien, code d'accès vérifié par l'hôte (et par le relais pour le flux d'état, 10 essais ratés par adresse).
-- 20 Jams ouvertes au plus (`RELAY_MAX_JAMS`), dont 3 pour une même adresse d'hôte (`RELAY_MAX_JAMS_PER_ADDRESS`), 10 créations par adresse et par heure, 12 h de vie, 30 min pour que l'hôte revienne après une coupure ou une pause écran éteint (même adresse, même QR code). La reprise se fait avec le secret de la Jam, même si le relais croit l'ancienne connexion encore ouverte : un téléphone qui change de réseau revient avant que le relais ait vu la coupure.
-- 300 appels par minute et par adresse (plusieurs invités en données mobiles partagent souvent une adresse), 10 codes faux par quart d'heure et par adresse pour une Jam, corps de 2 Kio, 64 pages ouvertes par Jam, messages de l'hôte de 256 Kio, réponse de l'hôte attendue 15 s.
-- Conteneur en lecture seule, sans capacités, utilisateur non root, 128 Mo de mémoire.
+- **Build key** (`SEAGLASS_RELAY_KEY`, `Authorization: Bearer …` header on `/host`): the same value in the app's `.env`. It keeps out bots scanning the Internet. It is not a secret: anyone can extract it from a distributed app. Protection comes from the limits below.
+- 128-bit Jam identifier in the link, access code checked by the host (and by the relay for the state stream, 10 failed attempts per address).
+- At most 20 open Jams (`RELAY_MAX_JAMS`), of which 3 for the same host address (`RELAY_MAX_JAMS_PER_ADDRESS`), 10 creations per address per hour, 12 h lifetime, 30 min for the host to come back after a drop or a screen-off pause (same address, same QR code). Resuming uses the Jam's secret, even if the relay still believes the old connection is open: a phone that switches networks comes back before the relay has noticed the drop.
+- 300 calls per minute per address (several guests on mobile data often share an address), 10 wrong codes per quarter hour per address for a Jam, 2 KiB bodies, 64 open pages per Jam, 256 KiB host messages, host answer awaited for 15 s.
+- Read-only container, no capabilities, non-root user, 128 MB of memory.
 
-## Déploiement (serveur, Docker, derrière Caddy)
+## Deployment (server, Docker, behind Caddy)
 
-Exemple avec `jam.example.org` : remplacer par son propre nom de domaine.
+Example with `jam.example.org`: replace it with your own domain name.
 
-1. **DNS** : `jam.example.org` vers le serveur (enregistrement A ou CNAME).
-2. **`relay/.env`** (copie de `.env.example`) :
-   - `RELAY_PUBLIC_URL=https://jam.example.org` (obligatoire), la même adresse que `SEAGLASS_RELAY_BASE_URL` dans le `.env` de l'app ;
-   - `SEAGLASS_RELAY_KEY` : `openssl rand -hex 32`, la même valeur dans le `.env` de l'app.
-3. **Port** : Caddy tourne en `network_mode: host`, il joint le relais par `127.0.0.1:47880` (`RELAY_PORT` dans `relay/.env` si ce port est pris : `ss -ltn | grep 47880`). Le port n'est publié que sur la boucle locale : personne ne contourne Caddy.
-4. **Construire et lancer**, depuis un clone du dépôt :
+1. **DNS**: `jam.example.org` to the server (A or CNAME record).
+2. **`relay/.env`** (copy of `.env.example`):
+   - `RELAY_PUBLIC_URL=https://jam.example.org` (required), the same address as `SEAGLASS_RELAY_BASE_URL` in the app's `.env`;
+   - `SEAGLASS_RELAY_KEY`: `openssl rand -hex 32`, the same value in the app's `.env`.
+3. **Port**: Caddy runs with `network_mode: host`, it reaches the relay at `127.0.0.1:47880` (`RELAY_PORT` in `relay/.env` if that port is taken: `ss -ltn | grep 47880`). The port is only published on loopback: nobody bypasses Caddy.
+4. **Build and run**, from a clone of the repository:
 
    ```sh
    cd relay
    docker compose up -d --build
    ```
 
-5. **Caddy** : ajouter au Caddyfile, puis recharger Caddy.
+5. **Caddy**: add to the Caddyfile, then reload Caddy.
 
    ```caddyfile
    jam.example.org {
@@ -42,13 +42,13 @@ Exemple avec `jam.example.org` : remplacer par son propre nom de domaine.
    }
    ```
 
-   Caddy gère seul le WebSocket et le flux d'état (`text/event-stream`, envoyé sans tampon), et pose `X-Forwarded-For`, que le relais lit (`RELAY_TRUST_PROXY=1` dans l'image).
+   Caddy handles the WebSocket and the state stream (`text/event-stream`, sent unbuffered) on its own, and sets `X-Forwarded-For`, which the relay reads (`RELAY_TRUST_PROXY=1` in the image).
 
-6. **Vérifier** : `curl http://127.0.0.1:47880/healthz` puis `curl https://jam.example.org/healthz` répondent `ok`. Journaux : `docker compose logs -f relay`.
+6. **Check**: `curl http://127.0.0.1:47880/healthz` then `curl https://jam.example.org/healthz` answer `ok`. Logs: `docker compose logs -f relay`.
 
-Mise à jour : `git pull` puis `docker compose up -d --build`.
+Update: `git pull` then `docker compose up -d --build`.
 
-## Développement
+## Development
 
 ```sh
 cd relay
@@ -56,4 +56,4 @@ cargo test
 SEAGLASS_RELAY_KEY=dev RELAY_PUBLIC_URL=http://127.0.0.1:8080 RELAY_BIND=127.0.0.1:8080 cargo run
 ```
 
-Crate séparée de l'app (pas de workspace), testée par la CI. Une modification du relais seul ne change pas la version de l'app (`scripts/check-version.sh` l'exclut).
+Crate separate from the app (no workspace), tested by CI. A change to the relay alone does not change the app version (`scripts/check-version.sh` excludes it).
