@@ -246,6 +246,7 @@ describe("libellés techniques", () => {
   it("nomme les formats de sortie de mpv", () => {
     expect(outputFormat("s24")).toBe("24 bits");
     expect(outputFormat("float")).toBe("32 bits flottant");
+    expect(outputFormat("offload")).toBe("décodé par la puce audio");
     expect(outputFormat("u8")).toBe("u8");
   });
 });

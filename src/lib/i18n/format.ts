@@ -50,6 +50,8 @@ export const fr = {
   minor: " mineur",
   bits: (n: number) => `${n} bits`,
   float32: "32 bits flottant",
+  /** Offload Android (#474) : le flux compressé est décodé par la puce audio du téléphone. */
+  offload: "décodé par la puce audio",
 };
 
 export const en: typeof fr = {
@@ -99,4 +101,5 @@ export const en: typeof fr = {
   minor: " minor",
   bits: (n: number) => `${n}-bit`,
   float32: "32-bit float",
+  offload: "decoded by the audio chip",
 };

@@ -18,6 +18,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -221,6 +222,7 @@ internal object Playback {
                 currentGain = args.gain
                 nextGain = null
                 equalizer.profile = args.eq
+                updateOffload(p, args.eq)
                 applyVolume()
                 p.prepare()
                 p.playWhenReady = true
@@ -257,10 +259,43 @@ internal object Playback {
             "currentGain" -> {
                 currentGain = args.gain
                 equalizer.profile = args.eq
+                updateOffload(p, args.eq)
                 applyVolume()
             }
             else -> throw IllegalArgumentException("opération inconnue : ${args.op}")
         }
+    }
+
+    /** Dernier choix d'offload posé sur le lecteur (`null` : rien posé encore). */
+    private var offloadAllowed: Boolean? = null
+
+    /**
+     * Offload audio (#474) : le FLAC part compressé vers la puce audio, qui le décode, et le
+     * CPU dort entre deux remplissages du tampon. Media3 ne l'utilise que si l'appareil sait
+     * décoder ce format **et** enchaîner deux titres sans blanc (`isGaplessSupportRequired`) ;
+     * sinon, décodage dans l'app comme avant. Coupé tant qu'un profil d'égaliseur est actif :
+     * en offload, les `AudioProcessor` du sink sont contournés et l'égaliseur serait ignoré.
+     * Le volume (normalisation comprise) reste appliqué par l'`AudioTrack`. Les paramètres ne
+     * changent que si le choix change : un changement resélectionne la piste audio (le sink
+     * se reconfigure, petite coupure possible à l'activation de l'égaliseur).
+     */
+    private fun updateOffload(p: ExoPlayer, eq: EqSpec?) {
+        val allowed = eq == null
+        if (allowed == offloadAllowed) return
+        offloadAllowed = allowed
+        val mode = if (allowed) {
+            AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+        } else {
+            AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+        }
+        val preferences = AudioOffloadPreferences.Builder()
+            .setAudioOffloadMode(mode)
+            .setIsGaplessSupportRequired(true)
+            .build()
+        p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
+            .setAudioOffloadPreferences(preferences)
+            .build()
+        Log.i(TAG, "offload ${if (allowed) "autorisé" else "coupé (égaliseur actif)"}")
     }
 
     /** État des boutons aléatoire et répétition de la notification (#163), tenu par Rust. */
@@ -325,6 +360,8 @@ internal object Playback {
             .build()
         player.addListener(listener)
         player.addAnalyticsListener(analytics)
+        // Lecteur neuf : offload désactivé par défaut dans Media3, reposé au prochain `play`.
+        offloadAllowed = null
         exo = player
         remote = RemotePlayer(player)
         return player
@@ -473,7 +510,9 @@ internal object Playback {
             eventTime: AnalyticsListener.EventTime,
             audioTrackConfig: AudioSink.AudioTrackConfig,
         ) {
-            val format = when (audioTrackConfig.encoding) {
+            Log.i(TAG, "AudioTrack : offload ${if (audioTrackConfig.offload) "actif" else "inactif"}")
+            // En offload (#474), l'AudioTrack reçoit le flux compressé : décodé par la puce audio.
+            val format = if (audioTrackConfig.offload) "offload" else when (audioTrackConfig.encoding) {
                 C.ENCODING_PCM_16BIT -> "s16"
                 C.ENCODING_PCM_24BIT -> "s24"
                 C.ENCODING_PCM_32BIT -> "s32"
