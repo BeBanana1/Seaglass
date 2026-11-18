@@ -2,7 +2,7 @@
 //! titres en file ; copies des listes affichées (`snapshots`, #181) ; historique d'écoute
 //! (`plays`, #202), ses statistiques (`stats`, #326) et les playlists intelligentes
 //! (`smart`, #383), la rétrospective du mois et de l'année (`recap`, #417) et son échange
-//! avec un autre appareil (`sync`, #430).
+//! avec un autre appareil (`sync`, #430) ; file d'envoi à ListenBrainz (`scrobbles`, #431).
 //!
 //! La table `tracks` ne contient que les titres référencés par la file sauvegardée : chaque
 //! sauvegarde de la file n'écrit que les titres absents et supprime ceux qui ne sont plus
@@ -22,6 +22,7 @@ use crate::tidal::models::{Track, TrackId};
 
 mod plays;
 mod recap;
+mod scrobbles;
 mod smart;
 mod snapshots;
 mod stats;
@@ -107,6 +108,7 @@ impl Store {
         conn.execute_batch(SCHEMA)?;
         conn.execute_batch(plays::SCHEMA)?;
         plays::migrate(&conn)?;
+        conn.execute_batch(scrobbles::SCHEMA)?;
         let saved = conn
             .prepare("SELECT id FROM tracks")?
             .query_map([], |r| r.get::<_, i64>(0))?

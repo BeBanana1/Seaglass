@@ -17,6 +17,7 @@ pub mod import;
 pub mod jam;
 pub mod later;
 pub mod link;
+pub mod listenbrainz;
 pub mod logs;
 #[cfg(desktop)]
 pub mod mini_player;

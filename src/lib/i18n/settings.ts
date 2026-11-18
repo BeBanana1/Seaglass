@@ -270,6 +270,22 @@ export const fr = {
   discordHint:
     "Vos contacts voient « Écoute Seaglass » avec le titre, l'artiste et la pochette. Rien en pause. L'app Discord doit être ouverte sur ce PC.",
 
+  listenbrainz: {
+    title: "ListenBrainz",
+    hint:
+      "Envoie vos écoutes à ListenBrainz, service ouvert d'historique d'écoute. Un titre compte après la moitié de sa durée ou 4 minutes. Désactivé tant qu'aucun jeton n'est collé.",
+    token: "Jeton utilisateur",
+    tokenHint: "À copier depuis listenbrainz.org, Paramètres › Jeton utilisateur. Il reste sur cet appareil.",
+    connect: "Vérifier et connecter",
+    connecting: "Vérification…",
+    connected: (user: string) => `Connecté : ${user}`,
+    pending: (n: number) => `${num(n)} écoute${n > 1 ? "s" : ""} en attente d'envoi`,
+    refused: "ListenBrainz refuse ce jeton : collez-en un nouveau pour reprendre l'envoi.",
+    disconnect: "Retirer",
+    disconnectHint: "Les écoutes pas encore envoyées sont abandonnées.",
+    done: "ListenBrainz connecté",
+  },
+
   globalShortcuts: "Raccourcis globaux",
   globalShortcutsEnable: "Piloter Seaglass depuis n'importe quelle app",
   globalShortcutsHint:
@@ -647,6 +663,22 @@ export const en: typeof fr = {
   discordPresence: "Show what you're playing on Discord",
   discordHint:
     "Your friends see “Listening to Seaglass” with the title, artist and cover. Nothing while paused. The Discord app must be running on this PC.",
+
+  listenbrainz: {
+    title: "ListenBrainz",
+    hint:
+      "Sends your listens to ListenBrainz, an open listening history service. A track counts after half its length or 4 minutes. Off until a token is pasted.",
+    token: "User token",
+    tokenHint: "Copy it from listenbrainz.org, Settings › User token. It stays on this device.",
+    connect: "Check and connect",
+    connecting: "Checking…",
+    connected: (user: string) => `Connected: ${user}`,
+    pending: (n: number) => `${num(n)} listen${n > 1 ? "s" : ""} waiting to be sent`,
+    refused: "ListenBrainz refuses this token: paste a new one to resume sending.",
+    disconnect: "Remove",
+    disconnectHint: "Listens not sent yet are dropped.",
+    done: "ListenBrainz connected",
+  },
 
   globalShortcuts: "Global shortcuts",
   globalShortcutsEnable: "Control Seaglass from any app",
