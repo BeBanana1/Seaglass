@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.92
+
+- Android : plus de micro-coupures au casque Bluetooth ; le thread de lecture ne se met plus en veille entre deux remplissages du tampon audio, sauf en offload (#491)
+
 ## 0.5.91
 
 - chore: projet partageable sans le serveur de l'auteur : clé publique de l'updater compilée depuis `SEAGLASS_UPDATER_PUBKEY`, plus aucune adresse par défaut dans les scripts de release ni le relais (#489)
