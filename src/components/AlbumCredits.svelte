@@ -85,7 +85,7 @@
               {@const where = trackList(person.tracks)}
               {#if i > 0}{", "}{/if}{#if person.artistId !== null}
                 {@const id = person.artistId}
-                <button class="credit-artist" onclick={() => go({ name: "artist", id })}>{person.name}</button>
+                <button class="credit-artist" onclick={() => go({ name: "contributor", id })}>{person.name}</button>
               {:else}{person.name}{/if}{#if where}<span class="credit-tracks">{` (${where})`}</span>{/if}
             {/each}
           </dd>

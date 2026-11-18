@@ -12,8 +12,9 @@ use crate::i18n::{tr, trf};
 use crate::player::{HiresUpgrade, PlaybackSettings, is_better};
 use crate::tidal::models::{
     AlbumCreditGroup, AlbumPage, AlbumRelated, AlbumSummary, ArtistExtra, ArtistPage,
-    ArtistSummary, HomeRow, LibraryList, Lyrics, MixPage, MixSummary, PlaylistPage,
-    PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry, TrackId, TrackInfo,
+    ArtistSummary, ContributorPage, HomeRow, LibraryList, Lyrics, MixPage, MixSummary,
+    PlaylistPage, PlaylistSummary, RadioPage, RadioSeed, SearchResults, TrackEntry, TrackId,
+    TrackInfo,
 };
 
 pub(super) const MAX_QUERY_LEN: usize = 200;
@@ -94,6 +95,26 @@ pub(super) fn check_playlist_uuid(uuid: &str) -> CmdResult<()> {
 #[tauri::command]
 pub async fn artist_extra(state: State<'_, AppState>, id: u64) -> CmdResult<ArtistExtra> {
     Ok(filtered(state.tidal.artist_extra(id).await))
+}
+
+/// Titres où une personne est créditée (#429), par lots : `offset` = `nextOffset` du lot
+/// précédent, 0 pour la page.
+#[tauri::command]
+pub async fn contributor(
+    state: State<'_, AppState>,
+    artist_id: u64,
+    offset: u32,
+) -> CmdResult<ContributorPage> {
+    // Bien au-delà des plus gros catalogues mesurés (7 605 titres pour Hans Zimmer).
+    if offset > 1_000_000 {
+        return Err(tr("position invalide", "invalid offset").into());
+    }
+    state
+        .tidal
+        .contributor(artist_id, offset)
+        .await
+        .map(filtered)
+        .map_err(err)
 }
 
 #[tauri::command]

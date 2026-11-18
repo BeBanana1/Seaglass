@@ -21,6 +21,8 @@ export type Route =
   /** `track` : titre mis en évidence (lien collé, #203). */
   | { name: "album"; id: number; track?: number }
   | { name: "artist"; id: number }
+  /** Titres où une personne est créditée (#429), ouverts depuis les crédits. */
+  | { name: "contributor"; id: number }
   | { name: "playlist"; uuid: string }
   /** Dossier de playlists de la bibliothèque (#331). */
   | { name: "folder"; id: string }

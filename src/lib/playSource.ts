@@ -21,6 +21,8 @@ function fromSource(s: PlaySource): PlayedFrom {
       return { label: s.title, route: { name: "radio", seed: s.seed, id: s.id } };
     case "artist":
       return { label: t.views.nowPlaying.popularBy(s.name), route: { name: "artist", id: s.id } };
+    case "contributor":
+      return { label: t.views.nowPlaying.creditsOf(s.name), route: { name: "contributor", id: s.id } };
     case "likedTracks":
       return { label: t.library.likedTracks, route: { name: "library", tab: "tracks" } };
     case "later":

@@ -38,6 +38,11 @@ pub enum PlaySource {
         id: u64,
         name: String,
     },
+    /// Titres où une personne est créditée (#429).
+    Contributor {
+        id: u64,
+        name: String,
+    },
     LikedTracks,
     /// Liste « Plus tard » (#196).
     Later,
@@ -92,6 +97,10 @@ impl PlaySource {
                 title: label(title)?,
             },
             Self::Artist { id, name } => Self::Artist {
+                id,
+                name: label(name)?,
+            },
+            Self::Contributor { id, name } => Self::Contributor {
                 id,
                 name: label(name)?,
             },

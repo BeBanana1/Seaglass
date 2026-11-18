@@ -65,6 +65,7 @@ import type {
   TrackEntry,
   TrackInfo,
   AlbumCreditGroup,
+  ContributorPage,
   TrackSort,
   UiSettings,
 } from "../ipc";
@@ -775,6 +776,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   lyrics: ({ trackId }) => mockLyrics(Number(trackId)),
   track_info: ({ trackId }) => mockTrackInfo(Number(trackId)),
   album_credits: () => mockAlbumCredits(),
+  contributor: ({ offset }) => mockContributor(Number(offset)),
   // Approximation du parseur Rust : un titre ouvre toujours l'album de démonstration.
   open_link: ({ text }) => {
     // #328 : une playlist d'un autre service ouvre l'import.
@@ -1525,6 +1527,20 @@ function mockAlbumCredits(): AlbumCreditGroup[] {
   ];
 }
 
+/** Titres d'un contributeur (#429) : lots de 8 sur les titres des fixtures, pour voir « Plus de titres ». */
+function mockContributor(offset: number): ContributorPage {
+  const pool = [...fx.album.tracks, ...fx.search.tracks];
+  const roles = [["Producer", "Composer"], ["Mixing Engineer"], ["Bass"], ["RecordingArranger"]];
+  const batch = pool.slice(offset, offset + 8);
+  const next = offset + 8;
+  return {
+    artist: fx.artist.artist,
+    total: pool.length,
+    tracks: batch.map((track, i) => ({ track, roles: roles[(offset + i) % roles.length] })),
+    nextOffset: next < pool.length ? next : null,
+  };
+}
+
 /** Paramètres d'URL de navigation, appliqués une fois l'app montée. */
 export function initialView(): {
   route: Route | null;
@@ -1538,6 +1554,7 @@ export function initialView(): {
   const routes: Record<string, Route> = {
     album: { name: "album", id: fx.album.album.id },
     artist: { name: "artist", id: fx.artist.artist.id },
+    contributor: { name: "contributor", id: fx.artist.artist.id },
     playlist: { name: "playlist", uuid: fx.playlist.playlist.uuid },
     mix: { name: "mix", id: mixPage.mix.id },
     radio: { name: "radio", seed: radioPage.seed, id: radioPage.id },
