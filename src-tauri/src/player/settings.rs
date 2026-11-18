@@ -4,6 +4,7 @@
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
+use super::eq::EqSettings;
 use super::normalize::Normalization;
 use crate::mpv::{AudioDevice, CacheSize};
 use crate::store::Store;
@@ -11,7 +12,7 @@ use crate::tidal::models::AudioQuality;
 
 const KEY: &str = "playback.settings";
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PlaybackSettings {
     /// Taille du cache mpv, en Mio (#16).
@@ -21,6 +22,8 @@ pub struct PlaybackSettings {
     pub hires_upgrade: HiresUpgrade,
     /// Normalisation du volume par ReplayGain (#82), désactivée par défaut.
     pub normalization: Normalization,
+    /// Égaliseur paramétrique (#428, Android #467), désactivé par défaut.
+    pub equalizer: EqSettings,
     /// Périphérique de sortie choisi (#79) ; `None` = périphérique par défaut du système.
     /// Gardé même débranché : le lecteur se replie sur le défaut et y revient au
     /// rebranchement.
@@ -54,6 +57,7 @@ impl Default for PlaybackSettings {
             cache_size: CacheSize::default(),
             hires_upgrade: HiresUpgrade::default(),
             normalization: Normalization::default(),
+            equalizer: EqSettings::default(),
             audio_device: None,
             exclusive: false,
             auto_radio: false,
@@ -189,7 +193,7 @@ mod tests {
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
         assert_eq!(
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
-            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false,"deviceProfiles":false,"wifiQuality":"lossless","cellularQuality":"lossless","lowBatteryQuality":false}"#
+            r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","equalizer":{"enabled":false,"active":null,"profiles":[]},"audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false,"deviceProfiles":false,"wifiQuality":"lossless","cellularQuality":"lossless","lowBatteryQuality":false}"#
         );
         assert!(!s.auto_radio, "radio automatique désactivée par défaut");
         assert!(!s.exclusive, "mode exclusif désactivé par défaut");

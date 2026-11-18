@@ -27,6 +27,7 @@ const initial: PlayerState = {
   volume: { level: 100, muted: false },
   hiresOffer: null,
   normalization: null,
+  equalizer: null,
   sleep: null,
   mpvIssue: null,
   soundtrack: false,

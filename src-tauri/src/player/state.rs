@@ -53,6 +53,8 @@ pub struct PlayerState {
     /// Gain de normalisation appliqué au titre courant, en dB (#82) ; `None` si le signal
     /// n'est pas modifié (réglage désactivé, gain inconnu ou nul).
     pub normalization: Option<f64>,
+    /// Profil d'égaliseur appliqué (#428) ; `None` si l'égaliseur est désactivé.
+    pub equalizer: Option<String>,
     /// Minuteur de mise en veille actif (#85).
     pub sleep: Option<SleepState>,
     /// mpv ne tourne pas (lancement raté ou arrêt), avec sa cause probable (#92). Dans

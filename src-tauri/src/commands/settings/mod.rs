@@ -4,6 +4,7 @@
 pub mod accent;
 pub mod backup;
 pub mod eggs;
+pub mod equalizer;
 pub mod favorites;
 pub mod global_shortcuts;
 pub mod home_layout;

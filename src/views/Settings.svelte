@@ -6,6 +6,7 @@
     type AudioDevice,
     type CacheSize,
     type CloseAction,
+    type EqSettings,
     type HiresUpgrade,
     type MobileQuality,
     type LanguagePref,
@@ -37,6 +38,7 @@
   import { jam, setJamEnabled } from "../lib/stores/jam.svelte";
   import JamPanel from "../components/JamPanel.svelte";
   import RelaySettings from "../components/RelaySettings.svelte";
+  import EqualizerSettings from "../components/EqualizerSettings.svelte";
   import RemotePanel from "../components/RemotePanel.svelte";
   import LinkedComputerPanel from "../components/LinkedComputerPanel.svelte";
   import BlockedList from "../components/BlockedList.svelte";
@@ -233,6 +235,10 @@
 
   function setNormalization(mode: Normalization) {
     if (playback && mode !== playback.normalization) savePlayback({ ...playback, normalization: mode });
+  }
+
+  function setEqualizer(equalizer: EqSettings) {
+    if (playback) savePlayback({ ...playback, equalizer });
   }
 
   function setAudioDevice(device: AudioDevice | null) {
@@ -642,6 +648,14 @@
             : ""}
       </p>
     </div>
+    <!-- Égaliseur (#428, Android #467). -->
+    {#if playback}
+      <div class="group">
+        <h2>{t.equalizer.title}</h2>
+        <p class="hint">{t.equalizer.hint}</p>
+        <EqualizerSettings settings={playback.equalizer} onchange={setEqualizer} />
+      </div>
+    {/if}
     <div class="group">
       <h2>{t.settings.queueEnd}</h2>
       <label class="setting-row">

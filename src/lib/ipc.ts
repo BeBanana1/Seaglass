@@ -349,6 +349,8 @@ export interface PlayerState {
   /** Gain de normalisation appliqué au titre courant, en dB (#82) ; `null` si le signal
    *  n'est pas modifié. */
   normalization: number | null;
+  /** Profil d'égaliseur appliqué (#428) ; `null` si l'égaliseur est désactivé. */
+  equalizer: string | null;
   /** Minuteur de mise en veille actif (#85). */
   sleep: SleepState | null;
   /** mpv ne tourne pas, avec sa cause probable (#92) ; `null` quand tout va bien. */
@@ -862,6 +864,34 @@ export type MobileQuality = "low" | "high" | "lossless" | "max";
 /** Normalisation du volume par ReplayGain (#82). */
 export type Normalization = "off" | "track" | "album";
 
+/** Égaliseur paramétrique (#428). Bornes vérifiées côté Rust (`player::eq`). */
+export type EqFilterKind = "peaking" | "lowShelf" | "highShelf";
+
+export interface EqFilter {
+  kind: EqFilterKind;
+  /** Hz, 20 à 20 000. */
+  freq: number;
+  /** dB, ±20. */
+  gain: number;
+  /** 0,1 à 10. */
+  q: number;
+}
+
+export interface EqProfile {
+  id: number;
+  name: string;
+  /** dB ; `null` = automatique (compense le plus fort gain positif). */
+  preamp: number | null;
+  filters: EqFilter[];
+}
+
+export interface EqSettings {
+  /** Désactivé par défaut. */
+  enabled: boolean;
+  active: number | null;
+  profiles: EqProfile[];
+}
+
 /** Réglages de lecture, stockés à part des réglages d'UI. */
 export interface PlaybackSettings {
   cacheSize: CacheSize;
@@ -870,6 +900,7 @@ export interface PlaybackSettings {
   hiresUpgrade: HiresUpgrade;
   /** Désactivée par défaut : seul mode qui laisse le signal intact. */
   normalization: Normalization;
+  equalizer: EqSettings;
   /** Périphérique de sortie choisi (#79) ; `null` = périphérique par défaut du système.
    *  Gardé même débranché : le lecteur se replie sur le défaut puis y revient. */
   audioDevice: AudioDevice | null;
@@ -1269,6 +1300,8 @@ export const commands = {
   /** Enregistre et applique à chaud (sans recharger le titre en cours). */
   setPlaybackSettings: (settings: PlaybackSettings) =>
     invoke<void>("set_playback_settings", { settings }),
+  /** #428 : analyse un « ParametricEQ.txt » d'AutoEQ ; profil d'identifiant 0, sans nom. */
+  parseAutoeq: (text: string) => invoke<EqProfile>("parse_autoeq", { text }),
   /** Périphériques de sortie connus de mpv ; la suite arrive par `audio-devices`. */
   audioDevices: () => invoke<AudioDevices>("audio_devices"),
   /** Plateforme de l'app : choisit la mise en page (tactile sur Android). */

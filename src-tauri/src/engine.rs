@@ -16,23 +16,34 @@
 
 use serde::{Deserialize, Serialize};
 
+use std::sync::Arc;
+
 use crate::mpv::{AudioDevice, CacheSize};
+use crate::player::eq::EqProfile;
+
+/// Filtres d'un fichier : gain de normalisation (#82) puis égaliseur (#428), dans cet
+/// ordre.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Filters {
+    pub gain: Option<f64>,
+    pub eq: Option<Arc<EqProfile>>,
+}
 
 /// Opération demandée au moteur.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
     /// Remplace toute la fenêtre par `url` (entrée 0) à partir de `start` secondes, avec
-    /// son gain de normalisation, et lance la lecture.
+    /// ses filtres, et lance la lecture.
     Play {
         url: String,
         start: f64,
-        gain: Option<f64>,
+        filters: Filters,
     },
-    /// Précharge `url` en entrée 1 pour un enchaînement sans blanc, avec son propre gain
-    /// (le titre en cours garde le sien).
+    /// Précharge `url` en entrée 1 pour un enchaînement sans blanc, avec ses propres
+    /// filtres (le titre en cours garde les siens).
     Preload {
         url: String,
-        gain: Option<f64>,
+        filters: Filters,
     },
     /// Retire le titre préchargé (la file a changé).
     RemoveNext,
@@ -52,8 +63,8 @@ pub enum Op {
         muted: bool,
     },
     CacheSize(CacheSize),
-    /// Nouveau gain de normalisation du titre en cours seulement.
-    CurrentGain(Option<f64>),
+    /// Nouveaux filtres du titre en cours seulement (normalisation ou égaliseur changé).
+    CurrentFilters(Filters),
     /// Identifiant du périphérique de sortie (`auto` = défaut du système).
     OutputDevice(String),
     /// Mode exclusif WASAPI (#245) : le moteur rouvre la sortie sans interrompre le titre.

@@ -176,6 +176,21 @@ describe("signalVerdict", () => {
       label: "Volume logiciel",
     });
   });
+
+  it("signale l'égaliseur, en exclusif aussi, sauf son coupé (#428)", () => {
+    const full = { level: 100, muted: false };
+    const v = signalVerdict(hires, out(96000), full, null, true, "HD 600");
+    expect(v).toMatchObject({ tone: "warn", label: "Égaliseur" });
+    expect(v.detail).toBe("profil « HD 600 » appliqué par mpv, plus bit-perfect");
+    expect(plain(signalVerdict(hires, out(96000), { level: 60, muted: false }, -6.5, false, "HD 600").detail)).toBe(
+      "profil « HD 600 » appliqué par mpv, plus bit-perfect ; ReplayGain −6,5 dB ; volume 60 %",
+    );
+    expect(signalVerdict(hires, out(96000), { level: 100, muted: true }, null, false, "HD 600").label).toBe("Son coupé");
+    expect(plain(signalVerdict(hires, out(48000), full, null, false, "HD 600").detail)).toBe(
+      "96 → 48 kHz ; égaliseur « HD 600 »",
+    );
+    expect(signalVerdict({ ...hires, codec: "mp4a.40.2" }, out(96000), full, null, false, "HD 600").tone).toBe("lossy");
+  });
 });
 
 describe("nombres", () => {

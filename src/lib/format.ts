@@ -138,6 +138,28 @@ export function signalVerdict(
   volume: Volume = { level: 100, muted: false },
   normalization: number | null = null,
   exclusive = false,
+  equalizer: string | null = null,
+): SignalVerdict {
+  const verdict = gainVerdict(stream, output, volume, normalization, exclusive);
+  // Égaliseur (#428) : il modifie le signal comme la normalisation ; la coupure reste prioritaire.
+  if (equalizer === null || volume.muted || (verdict.tone !== "ok" && verdict.tone !== "warn")) return verdict;
+  const v = t.format.verdict;
+  if (streamVerdict(stream, output, exclusive).tone === "ok") {
+    let detail = v.equalizerDetail(equalizer, engineName());
+    if (normalization !== null) detail = v.withNormalization(detail, gainLabel(normalization));
+    if (softwareGain(volume)) detail = v.withVolume(detail, volumeLabel(volume));
+    return { label: v.equalizerLabel, tone: "warn", detail };
+  }
+  return { ...verdict, detail: v.withEqualizer(verdict.detail, equalizer) };
+}
+
+/** Verdict du flux, modifié par le volume logiciel et la normalisation. */
+function gainVerdict(
+  stream: StreamFormat | null,
+  output: AudioParams | null,
+  volume: Volume,
+  normalization: number | null,
+  exclusive: boolean,
 ): SignalVerdict {
   const verdict = streamVerdict(stream, output, exclusive);
   const v = t.format.verdict;

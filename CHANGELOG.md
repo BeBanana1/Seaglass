@@ -15,6 +15,14 @@ s'affichent pas.
 
 - Crédits cliquables : un nom ouvre la liste des titres où la personne est créditée, avec ses rôles ; entrée « Crédits » sur la page d'artiste (#429)
 
+## 0.5.82
+
+- Android : égaliseur paramétrique, mêmes profils et import AutoEQ que sur le bureau (#467)
+
+## 0.5.81
+
+- Bureau : égaliseur paramétrique (pics et plateaux, préampli), profils nommés, import des profils AutoEQ, courbe de réponse ; retenu par sortie audio avec les réglages par périphérique (#428)
+
 ## 0.5.80
 
 - Jam : les invités peuvent voter pour passer le titre en cours, au-delà d'un nombre de votes choisi par l'hôte (#433)
