@@ -274,5 +274,5 @@ export function tagLabel(tag: string): string | null {
 
 export function outputFormat(format: string): string {
   const f = t.format;
-  return { s16: f.bits(16), s24: f.bits(24), s32: f.bits(32), float: f.float32 }[format] ?? format;
+  return { s16: f.bits(16), s24: f.bits(24), s32: f.bits(32), float: f.float32, offload: f.offload }[format] ?? format;
 }

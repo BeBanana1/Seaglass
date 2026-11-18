@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.90
+
+- Android : décodage du FLAC par la puce audio du téléphone quand elle sait le faire sans blanc entre les titres (offload), pour moins solliciter le processeur écran éteint ; coupé quand l'égaliseur est actif (#474)
+
 ## 0.5.89
 
 - Android : plus de barre de progression dans le mini-lecteur ; son animation faisait redessiner l'app en continu pendant la lecture (#480)
