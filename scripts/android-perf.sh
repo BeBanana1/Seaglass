@@ -2,10 +2,10 @@
 # Mesure sur une fenêtre de D secondes : CPU (utime+stime) de l'app et de son processus de
 # rendu WebView, threads les plus actifs, octets wlan0, images (gfxinfo).
 # Usage (#451, voir docs/android.md « Mesures de performances ») :
-#   adb push scripts/android-perf.sh /data/local/tmp/ ; adb shell sh /data/local/tmp/android-perf.sh <secondes> [nogfx]
+#   adb push scripts/android-perf.sh /data/local/tmp/ ; adb shell [PKG=<paquet>] sh /data/local/tmp/android-perf.sh <secondes> [nogfx]
 # `nogfx` : ne remet pas à zéro les compteurs d images (mesure écran éteint).
 D=${1:-60}
-PKG=dev.seaglass.app
+PKG=${PKG:-dev.seaglass.app}  # autre app : PKG=com.aspiro.tidal sh …
 A=$(pidof $PKG)
 APPUID=$(stat -c %u /proc/$A)
 TAG="u0a$((APPUID - 10000))i"
