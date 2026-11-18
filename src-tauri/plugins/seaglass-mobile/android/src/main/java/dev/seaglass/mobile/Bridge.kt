@@ -124,6 +124,17 @@ object Bridge {
         on = args.bool("on")
         level = if (args.isNull("level")) null else args.getInt("level")
         muted = args.bool("muted")
+        eq = if (args.isNull("eq")) null else eqSpec(args.getJSONObject("eq"))
+    }
+
+    /** Profil d'égaliseur (#467) : `{preamp, filters: [{kind, freq, gain, q}]}`. */
+    private fun eqSpec(o: JSONObject): EqSpec {
+        val list = o.getJSONArray("filters")
+        val filters = (0 until list.length()).map {
+            val f = list.getJSONObject(it)
+            EqFilterSpec(f.getString("kind"), f.getDouble("freq"), f.getDouble("gain"), f.getDouble("q"))
+        }
+        return EqSpec(o.getDouble("preamp"), filters)
     }
 
     /** Exécute `block` sur le thread principal (celui de l'ExoPlayer) et attend sa fin. */

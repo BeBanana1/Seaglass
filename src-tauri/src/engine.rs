@@ -22,7 +22,7 @@ use crate::mpv::{AudioDevice, CacheSize};
 use crate::player::eq::EqProfile;
 
 /// Filtres d'un fichier : gain de normalisation (#82) puis égaliseur (#428), dans cet
-/// ordre. Media3 n'applique que le gain pour l'instant.
+/// ordre.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Filters {
     pub gain: Option<f64>,

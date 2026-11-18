@@ -648,8 +648,8 @@
             : ""}
       </p>
     </div>
-    <!-- Égaliseur (#428) : bureau seulement, Media3 ne l'applique pas encore. -->
-    {#if desktop && playback}
+    <!-- Égaliseur (#428, Android #467). -->
+    {#if playback}
       <div class="group">
         <h2>{t.equalizer.title}</h2>
         <p class="hint">{t.equalizer.hint}</p>

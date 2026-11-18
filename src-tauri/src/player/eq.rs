@@ -1,6 +1,7 @@
 //! Égaliseur paramétrique (#428) : profils nommés (préampli + filtres en pic ou en
 //! plateau), un profil actif, désactivé par défaut. Logique pure testée ; le moteur mpv
-//! traduit le profil en filtres `af` (`mpv::filters`), Media3 l'ignore pour l'instant.
+//! traduit le profil en filtres `af` (`mpv::filters`), Media3 en biquads
+//! (`EqAudioProcessor.kt`, #467).
 //!
 //! Les bornes sont vérifiées à la désérialisation : un profil qui arrive de l'UI, d'une
 //! sauvegarde ou de l'import AutoEQ (`player::autoeq`) est toujours valide.
@@ -253,12 +254,8 @@ pub(super) struct Equalizer {
     applied: Option<Arc<EqProfile>>,
 }
 
-/// Profil réellement appliqué par le moteur : aucun sous Android, où Media3 n'a pas
-/// encore d'égaliseur.
+/// Profil réellement appliqué par le moteur (mpv, ou `EqAudioProcessor.kt` sous Android).
 fn engine_profile(settings: &EqSettings) -> Option<EqProfile> {
-    if cfg!(mobile) {
-        return None;
-    }
     settings.applied().cloned()
 }
 

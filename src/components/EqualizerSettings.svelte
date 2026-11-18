@@ -249,6 +249,7 @@
         <p class="hint">{t.equalizer.preampAutoHint(gainLabel(effectivePreamp(active)))}</p>
       {/if}
 
+      <div class="eq-table">
       <table class="eq-filters">
         <thead>
           <tr>
@@ -295,6 +296,7 @@
           {/each}
         </tbody>
       </table>
+      </div>
       {#if !active.filters.length}
         <p class="hint">{t.equalizer.noFilter}</p>
       {/if}
@@ -342,8 +344,9 @@
     min-width: 0;
   }
 
+  /* Seul sur sa ligne quand la place manque (téléphone). */
   .grow {
-    flex: 1;
+    flex: 1 1 220px;
   }
 
   .setting-label {
@@ -457,6 +460,22 @@
     stroke: var(--accent);
     stroke-width: 2;
     vector-effect: non-scaling-stroke;
+  }
+
+  /* Téléphone (#467) : le tableau défile seul plutôt que d'élargir la page. Sans
+     `min-width: 0`, un enfant de flex prend la largeur de son contenu et tout déborde. */
+  .eq-profile > *,
+  .eq-import > * {
+    min-width: 0;
+  }
+
+  .eq-table {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  :global(:root[data-platform="android"]) .num {
+    width: 68px;
   }
 
   .eq-filters {

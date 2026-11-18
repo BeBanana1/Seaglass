@@ -22,8 +22,7 @@ pub struct PlaybackSettings {
     pub hires_upgrade: HiresUpgrade,
     /// Normalisation du volume par ReplayGain (#82), désactivée par défaut.
     pub normalization: Normalization,
-    /// Égaliseur paramétrique (#428), désactivé par défaut ; sans effet sur Android pour
-    /// l'instant.
+    /// Égaliseur paramétrique (#428, Android #467), désactivé par défaut.
     pub equalizer: EqSettings,
     /// Périphérique de sortie choisi (#79) ; `None` = périphérique par défaut du système.
     /// Gardé même débranché : le lecteur se replie sur le défaut et y revient au
