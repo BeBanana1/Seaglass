@@ -33,7 +33,14 @@
   }
 </script>
 
-<button class="pin-button" class:pinned onclick={toggle} title={label} aria-label={label} aria-pressed={pinned}>
+<button
+  class="pin-button"
+  class:pinned
+  onclick={toggle}
+  title={label}
+  aria-label={label}
+  aria-pressed={pinned}
+>
   <Icon name="pin" size={18} />
 </button>
 

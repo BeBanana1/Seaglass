@@ -58,7 +58,10 @@
     const year = period?.year;
     mode = next;
     recap = null;
-    index = Math.max(0, shown.findIndex((p) => p.year === year));
+    index = Math.max(
+      0,
+      shown.findIndex((p) => p.year === year),
+    );
   }
 
   function step(delta: number) {
@@ -70,7 +73,10 @@
 
   function label(p: RecapPeriod): string {
     if (p.month === null) return t.library.recap.year(p.year);
-    const text = new Date(p.year, p.month - 1, 1).toLocaleDateString(locale(), { month: "long", year: "numeric" });
+    const text = new Date(p.year, p.month - 1, 1).toLocaleDateString(locale(), {
+      month: "long",
+      year: "numeric",
+    });
     return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
@@ -80,9 +86,15 @@
   });
   const tracks = $derived(recap?.tracks.map((c) => c.item) ?? []);
   const trackNotes = $derived(recap?.tracks.map((c) => t.library.stats.plays(c.plays)) ?? []);
-  const albums = $derived<MediaItem[]>(recap?.albums.map((c) => ({ kind: "album", ...c.item })) ?? []);
-  const artists = $derived<MediaItem[]>(recap?.artists.map((c) => ({ kind: "artist", ...c.item })) ?? []);
-  const newArtists = $derived<MediaItem[]>(recap?.newArtists.map((c) => ({ kind: "artist", ...c.item })) ?? []);
+  const albums = $derived<MediaItem[]>(
+    recap?.albums.map((c) => ({ kind: "album", ...c.item })) ?? [],
+  );
+  const artists = $derived<MediaItem[]>(
+    recap?.artists.map((c) => ({ kind: "artist", ...c.item })) ?? [],
+  );
+  const newArtists = $derived<MediaItem[]>(
+    recap?.newArtists.map((c) => ({ kind: "artist", ...c.item })) ?? [],
+  );
   const topTrack = $derived(recap?.tracks[0]);
   const topArtist = $derived(recap?.artists[0]);
 </script>
@@ -96,15 +108,34 @@
     <div class="recap-controls">
       <div class="tabs" role="tablist">
         {#each ["month", "year"] as const as id (id)}
-          <button role="tab" aria-selected={id === mode} class:active={id === mode} onclick={() => setMode(id)}>
+          <button
+            role="tab"
+            aria-selected={id === mode}
+            class:active={id === mode}
+            onclick={() => setMode(id)}
+          >
             {t.library.recap.modes[id]}
           </button>
         {/each}
       </div>
       <div class="recap-nav" role="group" aria-label={t.library.recap.periodLabel}>
-        <button class="recap-step" onclick={() => step(1)} disabled={index >= shown.length - 1} aria-label={t.library.recap.previous}>‹</button>
+        <button
+          class="recap-step"
+          onclick={() => step(1)}
+          disabled={index >= shown.length - 1}
+          aria-label={t.library.recap.previous}
+        >
+          ‹
+        </button>
         <span class="recap-period">{period ? label(period) : ""}</span>
-        <button class="recap-step" onclick={() => step(-1)} disabled={index <= 0} aria-label={t.library.recap.next}>›</button>
+        <button
+          class="recap-step"
+          onclick={() => step(-1)}
+          disabled={index <= 0}
+          aria-label={t.library.recap.next}
+        >
+          ›
+        </button>
       </div>
     </div>
   {/if}
@@ -133,16 +164,35 @@
 
       <div class="recap-highlights">
         {#if topTrack}
-          <button class="recap-highlight" onclick={() => go({ name: "album", id: topTrack.item.album.id, track: topTrack.item.id })}>
-            {#if coverLarge(topTrack.item.album)}<img src={coverLarge(topTrack.item.album)} alt="" loading="lazy" />{/if}
+          <button
+            class="recap-highlight"
+            onclick={() =>
+              go({ name: "album", id: topTrack.item.album.id, track: topTrack.item.id })}
+          >
+            {#if coverLarge(topTrack.item.album)}<img
+                src={coverLarge(topTrack.item.album)}
+                alt=""
+                loading="lazy"
+              />{/if}
             <span class="recap-kicker">{t.library.recap.topTrack}</span>
             <span class="recap-name">{topTrack.item.title}</span>
-            <span class="recap-sub">{topTrack.item.artists.map((a) => a.name).join(", ")} · {t.library.stats.plays(topTrack.plays)}</span>
+            <span class="recap-sub">
+              {topTrack.item.artists.map((a) => a.name).join(", ")} · {t.library.stats.plays(
+                topTrack.plays,
+              )}
+            </span>
           </button>
         {/if}
         {#if topArtist}
-          <button class="recap-highlight artist" onclick={() => go({ name: "artist", id: topArtist.item.id })}>
-            {#if topArtist.item.pictureUrl}<img src={topArtist.item.pictureUrl} alt="" loading="lazy" />{/if}
+          <button
+            class="recap-highlight artist"
+            onclick={() => go({ name: "artist", id: topArtist.item.id })}
+          >
+            {#if topArtist.item.pictureUrl}<img
+                src={topArtist.item.pictureUrl}
+                alt=""
+                loading="lazy"
+              />{/if}
             <span class="recap-kicker">{t.library.recap.topArtist}</span>
             <span class="recap-name">{topArtist.item.name}</span>
             <span class="recap-sub">{t.library.stats.plays(topArtist.plays)}</span>
@@ -159,13 +209,19 @@
         <div class="recap-panel">
           <h2>{t.library.recap.habits}</h2>
           {#if recap.topWeekday !== null}
-            <p class="recap-line">{t.library.recap.topWeekday(t.library.recap.weekdays[recap.topWeekday])}</p>
+            <p class="recap-line">
+              {t.library.recap.topWeekday(t.library.recap.weekdays[recap.topWeekday])}
+            </p>
           {/if}
-          {#if recap.topHour !== null}<p class="recap-line">{t.library.recap.topHour(recap.topHour)}</p>{/if}
+          {#if recap.topHour !== null}<p class="recap-line">
+              {t.library.recap.topHour(recap.topHour)}
+            </p>{/if}
           <RecapBars
             values={recap.weekdays}
             labels={t.library.recap.weekdaysShort}
-            titles={recap.weekdays.map((n, i) => `${t.library.recap.weekdays[i]} · ${t.library.stats.plays(n)}`)}
+            titles={recap.weekdays.map(
+              (n, i) => `${t.library.recap.weekdays[i]} · ${t.library.stats.plays(n)}`,
+            )}
             top={recap.topWeekday}
             label={t.library.recap.weekdaysLabel}
           />
@@ -195,8 +251,18 @@
         <TrackList {tracks} numbering="index" notes={trackNotes} />
       {/if}
       <div class="cards">
-        <CardGrid title={t.library.stats.albums} items={albums} row notes={recap.albums.map((c) => t.library.stats.plays(c.plays))} />
-        <CardGrid title={t.library.stats.artists} items={artists} row notes={recap.artists.map((c) => t.library.stats.plays(c.plays))} />
+        <CardGrid
+          title={t.library.stats.albums}
+          items={albums}
+          row
+          notes={recap.albums.map((c) => t.library.stats.plays(c.plays))}
+        />
+        <CardGrid
+          title={t.library.stats.artists}
+          items={artists}
+          row
+          notes={recap.artists.map((c) => t.library.stats.plays(c.plays))}
+        />
       </div>
     {/if}
     <p class="hint">{t.library.recap.note}</p>

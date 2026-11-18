@@ -23,10 +23,12 @@ export const fr = {
       `volume ${level} % : gain appliqué par mpv, plus bit-perfect (100 % pour le rétablir)`,
     withVolume: (detail: string, volume: string) => `${detail} ; volume ${volume}`,
     normalizedLabel: "Volume normalisé",
-    normalizedDetail: (gain: string, engine: string) => `ReplayGain ${gain} appliqué par ${engine}, plus bit-perfect`,
+    normalizedDetail: (gain: string, engine: string) =>
+      `ReplayGain ${gain} appliqué par ${engine}, plus bit-perfect`,
     withNormalization: (detail: string, gain: string) => `${detail} ; ReplayGain ${gain}`,
     equalizerLabel: "Égaliseur",
-    equalizerDetail: (name: string, engine: string) => `profil « ${name} » appliqué par ${engine}, plus bit-perfect`,
+    equalizerDetail: (name: string, engine: string) =>
+      `profil « ${name} » appliqué par ${engine}, plus bit-perfect`,
     withEqualizer: (detail: string, name: string) => `${detail} ; égaliseur « ${name} »`,
     noStream: "Aucun flux",
     lossyLabel: "Compressé",
@@ -38,14 +40,19 @@ export const fr = {
     reducedDetail: "24 → 16 bits",
     nativeLabel: "Fréquence native",
     nativeDetail: "mpv transmet sans conversion ; en mode partagé, le système peut encore mixer",
-    nativeDetailAndroid: "Media3 transmet sans conversion ; Android peut encore mixer ou réencoder (Bluetooth)",
+    nativeDetailAndroid:
+      "Media3 transmet sans conversion ; Android peut encore mixer ou réencoder (Bluetooth)",
     bitPerfectLabel: "Bit-perfect",
     bitPerfectDetail: "mpv transmet sans conversion, en mode exclusif sur le périphérique",
-    deviceRefused: (from: string, to: string) => `${from} → ${to} kHz : fréquence refusée par le périphérique en exclusif`,
+    deviceRefused: (from: string, to: string) =>
+      `${from} → ${to} kHz : fréquence refusée par le périphérique en exclusif`,
   },
 
   /** Noms des notes, de Do à Si (C à B). */
-  notes: { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" } as Record<string, string>,
+  notes: { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" } as Record<
+    string,
+    string
+  >,
   major: " majeur",
   minor: " mineur",
   bits: (n: number) => `${n} bits`,
@@ -75,10 +82,12 @@ export const en: typeof fr = {
       `volume ${level}%: gain applied by mpv, no longer bit-perfect (set 100% to restore)`,
     withVolume: (detail: string, volume: string) => `${detail}; volume ${volume}`,
     normalizedLabel: "Normalized volume",
-    normalizedDetail: (gain: string, engine: string) => `ReplayGain ${gain} applied by ${engine}, no longer bit-perfect`,
+    normalizedDetail: (gain: string, engine: string) =>
+      `ReplayGain ${gain} applied by ${engine}, no longer bit-perfect`,
     withNormalization: (detail: string, gain: string) => `${detail}; ReplayGain ${gain}`,
     equalizerLabel: "Equalizer",
-    equalizerDetail: (name: string, engine: string) => `“${name}” profile applied by ${engine}, no longer bit-perfect`,
+    equalizerDetail: (name: string, engine: string) =>
+      `“${name}” profile applied by ${engine}, no longer bit-perfect`,
     withEqualizer: (detail: string, name: string) => `${detail}; “${name}” equalizer`,
     noStream: "No stream",
     lossyLabel: "Compressed",
@@ -90,10 +99,12 @@ export const en: typeof fr = {
     reducedDetail: "24 → 16 bits",
     nativeLabel: "Native rate",
     nativeDetail: "mpv passes it through unchanged; in shared mode, the system may still mix",
-    nativeDetailAndroid: "Media3 passes it through unchanged; Android may still mix or re-encode (Bluetooth)",
+    nativeDetailAndroid:
+      "Media3 passes it through unchanged; Android may still mix or re-encode (Bluetooth)",
     bitPerfectLabel: "Bit-perfect",
     bitPerfectDetail: "mpv passes it through unchanged, in exclusive mode on the device",
-    deviceRefused: (from: string, to: string) => `${from} → ${to} kHz: rate refused by the device in exclusive mode`,
+    deviceRefused: (from: string, to: string) =>
+      `${from} → ${to} kHz: rate refused by the device in exclusive mode`,
   },
 
   notes: { C: "C", D: "D", E: "E", F: "F", G: "G", A: "A", B: "B" },

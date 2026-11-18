@@ -12,7 +12,12 @@
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
   import { openTrackInfo } from "../lib/stores/trackInfo.svelte";
   import { jam, jamAvailable, openJamDialog } from "../lib/stores/jam.svelte";
-  import { handoff, loadLinkedComputer, pullHere, pushToComputer } from "../lib/stores/handoff.svelte";
+  import {
+    handoff,
+    loadLinkedComputer,
+    pullHere,
+    pushToComputer,
+  } from "../lib/stores/handoff.svelte";
   import { playedFrom } from "../lib/playSource";
   import Backdrop from "../components/backdrops/Backdrop.svelte";
   import Icon from "../components/Icon.svelte";
@@ -101,7 +106,8 @@
     const entries = trackMenu(track, {
       queueable: false,
       // Le titre bloqué (ou celui de l'artiste bloqué) est celui qu'on écoute : on le passe.
-      onBlocked: () => commands.next().catch((e) => pushToast({ level: "error", message: String(e) })),
+      onBlocked: () =>
+        commands.next().catch((e) => pushToast({ level: "error", message: String(e) })),
     });
     openMenu({ x: rect.left, y: rect.bottom + 4, entries, from: moreButton });
   }
@@ -116,7 +122,8 @@
       if (p === "lyrics") queueShown = false;
       else lyrics = false;
     }
-    ui.nowPlayingPanel = lyrics && queueShown ? "both" : lyrics ? "lyrics" : queueShown ? "queue" : null;
+    ui.nowPlayingPanel =
+      lyrics && queueShown ? "both" : lyrics ? "lyrics" : queueShown ? "queue" : null;
   }
 
   // Toute navigation (lien d'artiste ou d'album, ici ou dans la file) ferme la vue,
@@ -143,7 +150,10 @@
 >
   <Backdrop context="nowplaying" />
   <!-- #399 : bande originale choisie (liste du backend), la vue passe en format large. -->
-  {#if player.soundtrack && ui.settings.easterEggs}<div class="egg-scope" aria-hidden="true"></div>{/if}
+  {#if player.soundtrack && ui.settings.easterEggs}<div
+      class="egg-scope"
+      aria-hidden="true"
+    ></div>{/if}
   <div class="top-actions" class:with-panel={anyOpen}>
     <button
       class="lyrics-toggle"
@@ -168,8 +178,12 @@
         class="fullscreen-toggle"
         onclick={toggleFullscreen}
         aria-pressed={appWindow.fullscreen}
-        title={appWindow.fullscreen ? t.views.nowPlaying.exitFullscreen : t.views.nowPlaying.fullscreen}
-        aria-label={appWindow.fullscreen ? t.views.nowPlaying.exitFullscreen : t.views.nowPlaying.fullscreen}
+        title={appWindow.fullscreen
+          ? t.views.nowPlaying.exitFullscreen
+          : t.views.nowPlaying.fullscreen}
+        aria-label={appWindow.fullscreen
+          ? t.views.nowPlaying.exitFullscreen
+          : t.views.nowPlaying.fullscreen}
       >
         <Icon name={appWindow.fullscreen ? "fullscreenExit" : "fullscreen"} size={20} />
       </button>
@@ -192,7 +206,10 @@
         {/if}
       </div>
       {#if lyricsOpen}
-        <section class="panel np-panel np-lyrics np-sheet-body" aria-label={t.views.nowPlaying.lyrics}>
+        <section
+          class="panel np-panel np-lyrics np-sheet-body"
+          aria-label={t.views.nowPlaying.lyrics}
+        >
           <Lyrics />
         </section>
       {:else}
@@ -221,34 +238,45 @@
               <h1 class="display">{fullTitle(track)}</h1>
               <div class="who">
                 {#each track.artists as artist, i (artist.id)}
-                  {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}
-                    >{artist.name}</button
+                  {#if i > 0},&nbsp;{/if}<button
+                    class="link"
+                    onclick={() => go({ name: "artist", id: artist.id })}
                   >
+                    {artist.name}
+                  </button>
                 {/each}
               </div>
-              <button class="link album" onclick={() => go({ name: "album", id: track.album.id })}>{track.album.title}</button>
+              <button class="link album" onclick={() => go({ name: "album", id: track.album.id })}>
+                {track.album.title}
+              </button>
               {#if edition && stream}
                 <!-- Flux pris sur une autre édition hi-res (#18, #111) : le titre reste celui
                      choisi (like, playlists, file), seule la source du son est montrée. -->
                 <div class="played-from played-edition" title={t.player.hiresEditionHint}>
                   <span class="played-from-label">{t.views.nowPlaying.playedEdition}</span>
-                  <button class="link played-from-link" onclick={() => go({ name: "album", id: edition.id })}
-                    >{edition.title}</button
+                  <button
+                    class="link played-from-link"
+                    onclick={() => go({ name: "album", id: edition.id })}
                   >
+                    {edition.title}
+                  </button>
                   <span class="played-edition-format">· {formatStream(stream)}</span>
                 </div>
               {/if}
               {#if from}
                 <div class="played-from">
                   <span class="played-from-label">{t.views.nowPlaying.playedFrom}</span>
-                  <button class="link played-from-link" onclick={() => go(from.route)}>{from.label}</button>
+                  <button class="link played-from-link" onclick={() => go(from.route)}>
+                    {from.label}
+                  </button>
                 </div>
               {/if}
               <div class="now-actions">
                 <LikeButton {track} size={20} />
                 <button
                   class="now-add"
-                  onclick={() => openPlaylistPicker({ trackIds: [track.id], label: fullTitle(track) })}
+                  onclick={() =>
+                    openPlaylistPicker({ trackIds: [track.id], label: fullTitle(track) })}
                   title={t.views.header.addToPlaylist}
                   aria-label={t.views.header.addToPlaylist}
                 >
@@ -262,7 +290,12 @@
                 >
                   <Icon name="radio" size={20} />
                 </button>
-                <button class="now-add" onclick={() => openTrackInfo(track)} title={t.menu.trackInfo} aria-label={t.menu.trackInfo}>
+                <button
+                  class="now-add"
+                  onclick={() => openTrackInfo(track)}
+                  title={t.menu.trackInfo}
+                  aria-label={t.menu.trackInfo}
+                >
                   <Icon name="info" size={20} />
                 </button>
                 <!-- #334 : menu du titre en cours (blocages compris) ; bloquer passe au suivant. -->
@@ -348,11 +381,18 @@
             <section class="np-next" aria-label={t.views.nowPlaying.upNext}>
               <div class="np-next-head">
                 <h3>{t.views.nowPlaying.upNext}</h3>
-                <button class="np-next-all" onclick={() => toggle("queue")}>{t.views.nowPlaying.fullQueue}</button>
+                <button class="np-next-all" onclick={() => toggle("queue")}>
+                  {t.views.nowPlaying.fullQueue}
+                </button>
               </div>
               <div role="list">
                 {#each upNext.slice(0, 3) as next, i (`${i}-${next.id}`)}
-                  <TrackRow track={next} compact actions={false} onPlay={() => playUpNext(i, next)} />
+                  <TrackRow
+                    track={next}
+                    compact
+                    actions={false}
+                    onPlay={() => playUpNext(i, next)}
+                  />
                 {/each}
               </div>
             </section>

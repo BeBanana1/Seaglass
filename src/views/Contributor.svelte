@@ -77,9 +77,12 @@
     >
       {#snippet meta()}
         {t.views.contributor.tracks(total)} ·
-        <button class="contributor-artist" onclick={() => artist && go({ name: "artist", id: artist.id })}
-          >{t.views.contributor.artistPage}</button
+        <button
+          class="contributor-artist"
+          onclick={() => artist && go({ name: "artist", id: artist.id })}
         >
+          {t.views.contributor.artistPage}
+        </button>
       {/snippet}
     </PageHeader>
     {#if tracks.length === 0}

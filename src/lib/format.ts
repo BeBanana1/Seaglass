@@ -61,7 +61,9 @@ export function albumKind(album: AlbumSummary): string {
 }
 
 export function playlistSubtitle(p: PlaylistSummary): string {
-  const parts = [p.editorial ? t.format.editorial : p.mine ? t.format.yourPlaylist : t.format.playlist];
+  const parts = [
+    p.editorial ? t.format.editorial : p.mine ? t.format.yourPlaylist : t.format.playlist,
+  ];
   if (p.numberOfTracks) parts.push(t.common.tracks(p.numberOfTracks));
   return parts.join(" · ");
 }
@@ -150,7 +152,8 @@ export function signalVerdict(
 ): SignalVerdict {
   const verdict = gainVerdict(stream, output, volume, normalization, exclusive);
   // Égaliseur (#428) : il modifie le signal comme la normalisation ; la coupure reste prioritaire.
-  if (equalizer === null || volume.muted || (verdict.tone !== "ok" && verdict.tone !== "warn")) return verdict;
+  if (equalizer === null || volume.muted || (verdict.tone !== "ok" && verdict.tone !== "warn"))
+    return verdict;
   const v = t.format.verdict;
   if (streamVerdict(stream, output, exclusive).tone === "ok") {
     let detail = v.equalizerDetail(equalizer, engineName());
@@ -182,7 +185,10 @@ function gainVerdict(
   }
   if (normalization !== null && verdict.tone === "warn") {
     const detail = v.withNormalization(verdict.detail, gainLabel(normalization));
-    return { ...verdict, detail: softwareGain(volume) ? v.withVolume(detail, volumeLabel(volume)) : detail };
+    return {
+      ...verdict,
+      detail: softwareGain(volume) ? v.withVolume(detail, volumeLabel(volume)) : detail,
+    };
   }
   if (verdict.tone === "ok" && softwareGain(volume)) {
     return {
@@ -202,7 +208,11 @@ export function engineName(): string {
   return platform.mobile ? "Media3" : "mpv";
 }
 
-function streamVerdict(stream: StreamFormat | null, output: AudioParams | null, exclusive: boolean): SignalVerdict {
+function streamVerdict(
+  stream: StreamFormat | null,
+  output: AudioParams | null,
+  exclusive: boolean,
+): SignalVerdict {
   const v = t.format.verdict;
   if (!stream) return { label: v.noStream, tone: "idle", detail: "" };
   if (stream.codec !== "flac") {
@@ -222,7 +232,11 @@ function streamVerdict(stream: StreamFormat | null, output: AudioParams | null, 
     return { label: v.reducedLabel, tone: "warn", detail: v.reducedDetail };
   }
   if (exclusive) return { label: v.bitPerfectLabel, tone: "ok", detail: v.bitPerfectDetail };
-  return { label: v.nativeLabel, tone: "ok", detail: platform.mobile ? v.nativeDetailAndroid : v.nativeDetail };
+  return {
+    label: v.nativeLabel,
+    tone: "ok",
+    detail: platform.mobile ? v.nativeDetailAndroid : v.nativeDetail,
+  };
 }
 
 /** Gain en dB signé : « −6,5 dB », « +2 dB ». */
@@ -274,13 +288,20 @@ export function peak(amplitude: number): string {
 /** Libellé d'un tag de disponibilité ; les tags inconnus sont ignorés. */
 export function tagLabel(tag: string): string | null {
   return (
-    { LOSSLESS: "Lossless", HIRES_LOSSLESS: "Hi-Res", DOLBY_ATMOS: "Dolby Atmos", SONY_360RA: "360 Reality Audio" }[
-      tag
-    ] ?? null
+    {
+      LOSSLESS: "Lossless",
+      HIRES_LOSSLESS: "Hi-Res",
+      DOLBY_ATMOS: "Dolby Atmos",
+      SONY_360RA: "360 Reality Audio",
+    }[tag] ?? null
   );
 }
 
 export function outputFormat(format: string): string {
   const f = t.format;
-  return { s16: f.bits(16), s24: f.bits(24), s32: f.bits(32), float: f.float32, offload: f.offload }[format] ?? format;
+  return (
+    { s16: f.bits(16), s24: f.bits(24), s32: f.bits(32), float: f.float32, offload: f.offload }[
+      format
+    ] ?? format
+  );
 }

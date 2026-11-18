@@ -33,7 +33,9 @@
           <span class="who">{name(p)}</span>
           {#if r}
             <span class="gain" class:good={r.points > 0}>
-              {r.answered ? t.blindTest.points(r.points) : t.blindTest.noAnswer}{#if r.fastest}&nbsp;· {t.blindTest.fastest}{/if}
+              {r.answered
+                ? t.blindTest.points(r.points)
+                : t.blindTest.noAnswer}{#if r.fastest}&nbsp;· {t.blindTest.fastest}{/if}
             </span>
           {:else if showAnswered && p.answered}
             <span class="gain good">✓ {t.blindTest.answered}</span>

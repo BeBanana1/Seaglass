@@ -67,7 +67,8 @@
 /* Pochettes et photos toujours en couleur (#110) : seules les lignes de balayage passent dessus. */
 
 /* Vidéo inversée : sélection et éléments actifs. */
-:root[data-theme="terminal"] :is(nav button.active, nav .pin.active, .tabs button.active, .cache-size.selected) {
+:root[data-theme="terminal"]
+  :is(nav button.active, nav .pin.active, .tabs button.active, .cache-size.selected) {
   color: var(--bg);
   background: var(--accent);
   text-shadow: none;
@@ -127,7 +128,8 @@
   background: var(--accent-strong);
 }
 
-:root[data-theme="terminal"] :is(
+:root[data-theme="terminal"]
+  :is(
     .tabs button,
     .search-hint,
     .update-check,

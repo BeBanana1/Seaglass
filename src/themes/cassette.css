@@ -118,7 +118,12 @@
       var(--cs-reel-tape) 30% calc(30% + var(--cs-reel) * 62%),
       transparent calc(30% + var(--cs-reel) * 62%)
     ),
-    radial-gradient(closest-side, transparent 0 90%, rgb(241 227 196 / 0.45) 90% 100%, transparent 100%);
+    radial-gradient(
+      closest-side,
+      transparent 0 90%,
+      rgb(241 227 196 / 0.45) 90% 100%,
+      transparent 100%
+    );
 }
 
 :root[data-theme="cassette"] .progress .track::before {
@@ -197,12 +202,18 @@
   animation: cs-needle 1.7s ease-in-out infinite alternate;
 }
 
-:root[data-theme="cassette"][data-playing="true"] .signal .path:not(.dense) .node:nth-child(3)::after {
+:root[data-theme="cassette"][data-playing="true"]
+  .signal
+  .path:not(.dense)
+  .node:nth-child(3)::after {
   animation-duration: 1.3s;
   animation-delay: -0.4s;
 }
 
-:root[data-theme="cassette"][data-playing="true"] .signal .path:not(.dense) .node:nth-child(5)::after {
+:root[data-theme="cassette"][data-playing="true"]
+  .signal
+  .path:not(.dense)
+  .node:nth-child(5)::after {
   animation-duration: 2.1s;
   animation-delay: -0.9s;
 }

@@ -121,7 +121,8 @@
   text-transform: uppercase;
   color: var(--nr-ink);
   background:
-    linear-gradient(transparent 0 3px, rgb(0 0 0 / 0.08) 3px 4px, transparent 4px) top / 100% 100% no-repeat,
+    linear-gradient(transparent 0 3px, rgb(0 0 0 / 0.08) 3px 4px, transparent 4px) top / 100% 100%
+      no-repeat,
     var(--nr-paper);
   box-shadow: 0 10px 24px rgb(0 0 0 / 0.6);
 }

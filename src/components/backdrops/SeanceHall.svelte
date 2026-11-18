@@ -16,7 +16,13 @@
   </svg>
   <svg class="grain" width="100%" height="100%">
     <filter id="se-grain">
-      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" stitchTiles="stitch" />
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.9"
+        numOctaves="2"
+        seed="7"
+        stitchTiles="stitch"
+      />
       <feColorMatrix values="0 0 0 0 0.94  0 0 0 0 0.9  0 0 0 0 0.82  0 0 0 0.55 -0.12" />
     </filter>
     <rect width="100%" height="100%" filter="url(#se-grain)" />

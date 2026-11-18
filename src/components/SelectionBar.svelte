@@ -25,14 +25,30 @@
   const size = $derived(platform.mobile ? 22 : 18);
 </script>
 
-<div class="selection-bar panel" class:mobile={platform.mobile} role="toolbar" aria-label={m.selection.count(selection.count)}>
-  <button class="selection-clear" onclick={() => selection.clear()} title={m.selection.clear} aria-label={m.selection.clear}>
+<div
+  class="selection-bar panel"
+  class:mobile={platform.mobile}
+  role="toolbar"
+  aria-label={m.selection.count(selection.count)}
+>
+  <button
+    class="selection-clear"
+    onclick={() => selection.clear()}
+    title={m.selection.clear}
+    aria-label={m.selection.clear}
+  >
     <Icon name="close" {size} />
   </button>
   <!-- Android : libellé court, la barre a la largeur du téléphone. -->
-  <span class="selection-count">{platform.mobile ? m.selection.label(selection.count) : m.selection.count(selection.count)}</span>
+  <span class="selection-count">
+    {platform.mobile ? m.selection.label(selection.count) : m.selection.count(selection.count)}
+  </span>
   <div class="selection-actions">
-    <button onclick={() => selection.selectAll()} title={m.selection.selectAll} aria-label={m.selection.selectAll}>
+    <button
+      onclick={() => selection.selectAll()}
+      title={m.selection.selectAll}
+      aria-label={m.selection.selectAll}
+    >
       <Icon name="check" {size} />
     </button>
     <button onclick={() => enqueueSelection(true)} title={m.playNext} aria-label={m.playNext}>
@@ -53,7 +69,11 @@
       <Icon name={liked ? "heartFilled" : "heart"} {size} />
     </button>
     {#if canRemoveSelection()}
-      <button onclick={removeSelection} title={m.removeFromPlaylist} aria-label={m.removeFromPlaylist}>
+      <button
+        onclick={removeSelection}
+        title={m.removeFromPlaylist}
+        aria-label={m.removeFromPlaylist}
+      >
         <Icon name="remove" {size} />
       </button>
     {/if}

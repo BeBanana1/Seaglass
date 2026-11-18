@@ -21,15 +21,19 @@ export const fr = {
   // Catégorie coupée au plafond de chargement (#91) ; `total` inconnu : `null`.
   truncated: (tab: LimitedTab, shown: number, total: number | null) => {
     const of = total !== null && total > shown ? ` sur ${num(total)}` : "";
-    if (tab === "playlists") return `Les ${num(shown)} playlists les plus récentes${of} sont affichées.`;
+    if (tab === "playlists")
+      return `Les ${num(shown)} playlists les plus récentes${of} sont affichées.`;
     const noun = { tracks: "titres likés", albums: "albums", artists: "artistes" }[tab];
     const text = `Les ${num(shown)} ${noun} les plus récents${of} sont affichés.`;
-    return tab === "tracks" ? `${text} Le filtre, le tri et la lecture ne portent que sur eux.` : text;
+    return tab === "tracks"
+      ? `${text} Le filtre, le tri et la lecture ne portent que sur eux.`
+      : text;
   },
   likedTracks: "Titres likés",
   // « Plus tard » (#196).
   later: {
-    empty: "Rien de côté. « Enregistrer pour plus tard » dans le menu d'un titre, d'un album ou d'une playlist l'ajoute ici.",
+    empty:
+      "Rien de côté. « Enregistrer pour plus tard » dans le menu d'un titre, d'un album ou d'une playlist l'ajoute ici.",
     others: "Albums, artistes et playlists",
     saved: "Enregistré pour plus tard",
     removed: "Retiré de « Plus tard »",
@@ -58,7 +62,8 @@ export const fr = {
     title: "Statistiques d'écoute",
     periods: { week: "7 jours", month: "30 jours", year: "12 mois", all: "Tout" },
     plays: (n: number) => `${num(n)} ${n > 1 ? "écoutes" : "écoute"}`,
-    time: (hours: number, minutes: number) => (hours > 0 ? `${num(hours)} h ${minutes} min` : `${minutes} min`),
+    time: (hours: number, minutes: number) =>
+      hours > 0 ? `${num(hours)} h ${minutes} min` : `${minutes} min`,
     timeLabel: "Temps d'écoute",
     playsLabel: "Écoutes",
     unknown: (n: number) =>
@@ -66,7 +71,8 @@ export const fr = {
     tracks: "Titres",
     albums: "Albums",
     artists: "Artistes",
-    empty: "Aucune écoute sur cette période. Un titre compte une fois joué à moitié (ou 4 minutes).",
+    empty:
+      "Aucune écoute sur cette période. Un titre compte une fois joué à moitié (ou 4 minutes).",
     note: "Calculées sur cet appareil, à partir de l'historique d'écoute de Seaglass (avec celui de l'appareil lié, s'il y en a un) : rien n'est envoyé à TIDAL. Elles sont effacées avec l'historique (déconnexion, Réglages › Application).",
   },
 
@@ -108,7 +114,8 @@ export const fr = {
     delete: "Supprimer le dossier…",
     deleteConfirm: "Supprimer ce dossier ? Ses playlists sont gardées, hors dossier.",
     deleteYes: "Supprimer",
-    empty: "Ce dossier est vide. « Déplacer vers un dossier… » dans le menu d'une playlist en ajoute.",
+    empty:
+      "Ce dossier est vide. « Déplacer vers un dossier… » dans le menu d'une playlist en ajoute.",
     notFound: "Ce dossier n'existe plus.",
     pickerTitle: "Déplacer vers un dossier",
     out: "Hors dossier",
@@ -155,13 +162,19 @@ export const en: typeof fr = {
   noMatch: (query: string) => `No tracks match “${query}”.`,
   truncated: (tab: LimitedTab, shown: number, total: number | null) => {
     const of = total !== null && total > shown ? ` out of ${num(total)}` : "";
-    const noun = { tracks: "liked tracks", albums: "albums", artists: "artists", playlists: "playlists" }[tab];
+    const noun = {
+      tracks: "liked tracks",
+      albums: "albums",
+      artists: "artists",
+      playlists: "playlists",
+    }[tab];
     const text = `Showing the ${num(shown)} most recent ${noun}${of}.`;
     return tab === "tracks" ? `${text} Filtering, sorting and playback only cover these.` : text;
   },
   likedTracks: "Liked tracks",
   later: {
-    empty: "Nothing saved. “Save for later” in the menu of a track, album or playlist puts it here.",
+    empty:
+      "Nothing saved. “Save for later” in the menu of a track, album or playlist puts it here.",
     others: "Albums, artists and playlists",
     saved: "Saved for later",
     removed: "Removed from Save for later",
@@ -189,10 +202,12 @@ export const en: typeof fr = {
     title: "Listening stats",
     periods: { week: "7 days", month: "30 days", year: "12 months", all: "All time" },
     plays: (n: number) => `${num(n)} ${n === 1 ? "play" : "plays"}`,
-    time: (hours: number, minutes: number) => (hours > 0 ? `${num(hours)} h ${minutes} min` : `${minutes} min`),
+    time: (hours: number, minutes: number) =>
+      hours > 0 ? `${num(hours)} h ${minutes} min` : `${minutes} min`,
     timeLabel: "Listening time",
     playsLabel: "Plays",
-    unknown: (n: number) => `${num(n)} ${n === 1 ? "play" : "plays"} from before 0.5.33 with no known duration.`,
+    unknown: (n: number) =>
+      `${num(n)} ${n === 1 ? "play" : "plays"} from before 0.5.33 with no known duration.`,
     tracks: "Tracks",
     albums: "Albums",
     artists: "Artists",

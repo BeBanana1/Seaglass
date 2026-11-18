@@ -54,7 +54,11 @@
   .c {
     bottom: -40vmax;
     left: 20vmax;
-    background: radial-gradient(circle, color-mix(in oklab, var(--album) 50%, var(--acid-uv)), transparent 65%);
+    background: radial-gradient(
+      circle,
+      color-mix(in oklab, var(--album) 50%, var(--acid-uv)),
+      transparent 65%
+    );
     animation-duration: 29s;
   }
 
@@ -67,7 +71,11 @@
     height: 55%;
     background-image:
       linear-gradient(color-mix(in oklab, var(--accent) 45%, transparent) 1px, transparent 1px),
-      linear-gradient(90deg, color-mix(in oklab, var(--acid-magenta) 40%, transparent) 1px, transparent 1px);
+      linear-gradient(
+        90deg,
+        color-mix(in oklab, var(--acid-magenta) 40%, transparent) 1px,
+        transparent 1px
+      );
     background-size: 64px 64px;
     transform: perspective(380px) rotateX(62deg);
     transform-origin: bottom;

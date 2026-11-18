@@ -2,7 +2,9 @@
 
 import { commands, events, type QueueView } from "../ipc";
 
-export const queue = $state<{ view: QueueView }>({ view: { manual: [], upcoming: [], radio: null, source: null } });
+export const queue = $state<{ view: QueueView }>({
+  view: { manual: [], upcoming: [], radio: null, source: null },
+});
 
 /** Ce que vise le minuteur « fin de la file » (#436), d'après la source du titre en cours. */
 export type SleepScope = "album" | "playlist" | "queue";

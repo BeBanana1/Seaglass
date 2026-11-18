@@ -27,12 +27,16 @@
       <section>
         <h3>
           <span class="mono">v{release.version}</span>
-          {#if release.published}<span class="published">{t.settings.publishedOn(release.published)}</span>{/if}
+          {#if release.published}<span class="published">
+              {t.settings.publishedOn(release.published)}
+            </span>{/if}
         </h3>
         <ul>
           {#each release.entries as entry, i (i)}
             <li>
-              {#each parts(entry) as part, j (j)}{#if part.code}<code>{part.text}</code>{:else}{part.text}{/if}{/each}
+              {#each parts(entry) as part, j (j)}{#if part.code}<code>
+                    {part.text}
+                  </code>{:else}{part.text}{/if}{/each}
             </li>
           {/each}
         </ul>

@@ -26,7 +26,10 @@
     try {
       const trackIds = await commands.queueTrackIds();
       if (trackIds.length === 0) return;
-      openPlaylistPicker({ trackIds, label: `${t.player.queue} · ${t.common.tracks(trackIds.length)}` });
+      openPlaylistPicker({
+        trackIds,
+        label: `${t.player.queue} · ${t.common.tracks(trackIds.length)}`,
+      });
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
@@ -35,7 +38,8 @@
   /** Annule le dernier vidage ou retrait (#349), si la file n'a pas changé depuis. */
   async function undo() {
     try {
-      if (!(await commands.restoreQueue())) pushToast({ level: "info", message: t.player.undoGone });
+      if (!(await commands.restoreQueue()))
+        pushToast({ level: "info", message: t.player.undoGone });
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
@@ -76,7 +80,8 @@
   // Pas d'affichage optimiste : la liste change au `queue-state` du backend.
   let manualList = $state<HTMLElement>();
   const reorder = new Reorder((from, to) => move(from, to));
-  const manualItems = () => Array.from(manualList?.querySelectorAll<HTMLElement>(".queue-item") ?? []);
+  const manualItems = () =>
+    Array.from(manualList?.querySelectorAll<HTMLElement>(".queue-item") ?? []);
   /** Bouton à refocaliser dans la ligne déplacée au clavier, une fois la file reçue. */
   let pendingFocus: { index: number; button: number } | null = null;
 
@@ -102,19 +107,28 @@
     if (to === null) return;
     const item = e.currentTarget as HTMLElement;
     const buttons = Array.from(item.querySelectorAll("button"));
-    pendingFocus = { index: to, button: Math.max(0, buttons.indexOf(document.activeElement as HTMLButtonElement)) };
+    pendingFocus = {
+      index: to,
+      button: Math.max(0, buttons.indexOf(document.activeElement as HTMLButtonElement)),
+    };
     move(i, to);
   }
 
   const empty = $derived(
-    queue.view.manual.length === 0 && queue.view.upcoming.length === 0 && (!current || !currentTrack),
+    queue.view.manual.length === 0 &&
+      queue.view.upcoming.length === 0 &&
+      (!current || !currentTrack),
   );
 </script>
 
 <div class="queue-list">
   {#if clearable}
     <div class="queue-actions">
-      <button class="queue-clear queue-save" onclick={saveAsPlaylist} title={t.player.saveQueueHint}>
+      <button
+        class="queue-clear queue-save"
+        onclick={saveAsPlaylist}
+        title={t.player.saveQueueHint}
+      >
         {t.player.saveQueue}
       </button>
       <button class="queue-clear" onclick={clear} title={t.player.clearQueueHint}>
@@ -132,7 +146,12 @@
 
   {#if queue.view.manual.length > 0}
     <h3 title={t.player.reorderHint}>{t.player.nextInQueue}</h3>
-    <div role="list" class="queue-manual" bind:this={manualList} ondragleave={(e) => reorder.dragleave(e, manualList)}>
+    <div
+      role="list"
+      class="queue-manual"
+      bind:this={manualList}
+      ondragleave={(e) => reorder.dragleave(e, manualList)}
+    >
       {#each queue.view.manual as track, i (`${i}-${track.id}`)}
         {@const last = queue.view.manual.length - 1}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -148,7 +167,13 @@
           ondrop={(e) => reorder.drop(e)}
           ondragend={() => reorder.end()}
           onkeydown={(e) => onKeydown(e, i)}
-          use:touchReorder={{ enabled: platform.mobile, index: i, reorder, items: manualItems, handle: ".queue-handle" }}
+          use:touchReorder={{
+            enabled: platform.mobile,
+            index: i,
+            reorder,
+            items: manualItems,
+            handle: ".queue-handle",
+          }}
         >
           <TrackRow
             {track}

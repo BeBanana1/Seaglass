@@ -1,7 +1,13 @@
 <script lang="ts">
   // Statistiques d'écoute locales (#326) : tout est calculé par le backend (`play_stats`),
   // la page n'affiche que le résultat de la période choisie.
-  import { commands, SMART_LISTS, type MediaItem, type PlayStats, type StatsPeriod } from "../lib/ipc";
+  import {
+    commands,
+    SMART_LISTS,
+    type MediaItem,
+    type PlayStats,
+    type StatsPeriod,
+  } from "../lib/ipc";
   import { go } from "../lib/stores/nav.svelte";
   import CardGrid from "../components/CardGrid.svelte";
   import TrackList from "../components/TrackList.svelte";
@@ -38,8 +44,12 @@
 
   const tracks = $derived(stats?.tracks.map((c) => c.item) ?? []);
   const trackNotes = $derived(stats?.tracks.map((c) => t.library.stats.plays(c.plays)) ?? []);
-  const albums = $derived<MediaItem[]>(stats?.albums.map((c) => ({ kind: "album", ...c.item })) ?? []);
-  const artists = $derived<MediaItem[]>(stats?.artists.map((c) => ({ kind: "artist", ...c.item })) ?? []);
+  const albums = $derived<MediaItem[]>(
+    stats?.albums.map((c) => ({ kind: "album", ...c.item })) ?? [],
+  );
+  const artists = $derived<MediaItem[]>(
+    stats?.artists.map((c) => ({ kind: "artist", ...c.item })) ?? [],
+  );
 
   const time = $derived.by(() => {
     const minutes = Math.round((stats?.seconds ?? 0) / 60);
@@ -65,7 +75,9 @@
   <div class="stats-head">
     <h1>{t.library.stats.title}</h1>
     <!-- Rétrospective du mois et de l'année (#417). -->
-    <button class="secondary stats-recap" onclick={() => go({ name: "recap" })}>{t.library.recap.open}</button>
+    <button class="secondary stats-recap" onclick={() => go({ name: "recap" })}>
+      {t.library.recap.open}
+    </button>
   </div>
   <!-- Playlists intelligentes locales (#383), calculées sur le même historique. -->
   <h2 class="smart-title">{t.views.smart.title}</h2>
@@ -79,7 +91,12 @@
   </div>
   <div class="tabs" role="tablist">
     {#each PERIODS as id (id)}
-      <button role="tab" aria-selected={id === period} class:active={id === period} onclick={() => (period = id)}>
+      <button
+        role="tab"
+        aria-selected={id === period}
+        class:active={id === period}
+        onclick={() => (period = id)}
+      >
         {t.library.stats.periods[id]}
       </button>
     {/each}
@@ -109,10 +126,12 @@
           <!-- Mêmes classes que l'en-tête d'une page : les thèmes habillent ces boutons. -->
           <div class="actions">
             <button class="primary" onclick={() => playTop(false)}>
-              <Icon name="play" size={16} /> {t.common.play}
+              <Icon name="play" size={16} />
+              {t.common.play}
             </button>
             <button class="secondary" onclick={() => playTop(true)}>
-              <Icon name="shuffle" size={16} /> {t.common.shuffle}
+              <Icon name="shuffle" size={16} />
+              {t.common.shuffle}
             </button>
           </div>
         </div>

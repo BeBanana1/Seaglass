@@ -31,17 +31,27 @@
 
   const view = $derived(blindTest.view);
   const pool = $derived(blindTest.pool);
-  const result = $derived<BlindRoundResult | null>(view?.phase === "revealed" ? (view.results.at(-1) ?? null) : null);
+  const result = $derived<BlindRoundResult | null>(
+    view?.phase === "revealed" ? (view.results.at(-1) ?? null) : null,
+  );
   const lastRound = $derived(!!view && view.round >= view.rounds);
   /** Extrait pas encore lancé par le moteur (#445) : l'anneau attend au départ. */
-  const clipLoading = $derived(view?.phase === "guess" && (player.state.loading || !view.clipPlaying));
-  const clipOver = $derived(view?.phase === "guess" && !clipLoading && clip >= 1 && player.state.paused);
+  const clipLoading = $derived(
+    view?.phase === "guess" && (player.state.loading || !view.clipPlaying),
+  );
+  const clipOver = $derived(
+    view?.phase === "guess" && !clipLoading && clip >= 1 && player.state.paused,
+  );
   const multi = $derived(!!view?.party.jam);
   const hostPlaying = $derived(!view || view.party.hostPlays);
   /** L'hôte peut encore répondre à la manche. */
-  const hostCanAnswer = $derived(!!view && hostPlaying && !view.players.find((p) => p.host)?.answered);
+  const hostCanAnswer = $derived(
+    !!view && hostPlaying && !view.players.find((p) => p.host)?.answered,
+  );
   const jamRunning = $derived(!!jam.status);
-  const roundChoices = $derived(pool ? ROUND_OPTIONS.filter((n, i) => i === 0 || n <= pool.trackIds.length) : []);
+  const roundChoices = $derived(
+    pool ? ROUND_OPTIONS.filter((n, i) => i === 0 || n <= pool.trackIds.length) : [],
+  );
 
   async function run(action: () => Promise<unknown>) {
     if (busy) return;
@@ -66,7 +76,16 @@
     }
     const count = Math.min(rounds, pool.trackIds.length);
     const together = withJam && jamRunning;
-    run(() => commands.blindTestStart(pool.trackIds, mode, count, pool.title, together, together ? hostPlays : true));
+    run(() =>
+      commands.blindTestStart(
+        pool.trackIds,
+        mode,
+        count,
+        pool.title,
+        together,
+        together ? hostPlays : true,
+      ),
+    );
   }
 
   function answer(a: BlindAnswer) {
@@ -114,7 +133,12 @@
   });
 
   function verdict(r: BlindRoundResult): string {
-    if (r.correct !== null) return r.title ? t.blindTest.right : r.chosen === null ? t.blindTest.passed : t.blindTest.missed;
+    if (r.correct !== null)
+      return r.title
+        ? t.blindTest.right
+        : r.chosen === null
+          ? t.blindTest.passed
+          : t.blindTest.missed;
     if (r.title && r.artist) return t.blindTest.both;
     if (r.title) return t.blindTest.titleOnly;
     if (r.artist) return t.blindTest.artistOnly;
@@ -129,9 +153,15 @@
     {#if view}
       <div class="stats">
         <span>{t.blindTest.round(view.round, view.rounds)}</span>
-        {#if hostPlaying}<span class="score">{t.blindTest.score(view.score, view.maxScore)}</span>{/if}
-        {#if hostPlaying && view.streak > 1}<span class="streak">{t.blindTest.streak(view.streak)}</span>{/if}
-        <button class="quit" onclick={() => run(() => commands.blindTestQuit())}>{t.blindTest.quit}</button>
+        {#if hostPlaying}<span class="score">
+            {t.blindTest.score(view.score, view.maxScore)}
+          </span>{/if}
+        {#if hostPlaying && view.streak > 1}<span class="streak">
+            {t.blindTest.streak(view.streak)}
+          </span>{/if}
+        <button class="quit" onclick={() => run(() => commands.blindTestQuit())}>
+          {t.blindTest.quit}
+        </button>
       </div>
     {/if}
   </header>
@@ -143,16 +173,36 @@
         <fieldset>
           <legend>{t.blindTest.mode}</legend>
           <div class="segmented">
-            <button class:on={mode === "typing"} aria-pressed={mode === "typing"} onclick={() => (mode = "typing")}>{t.blindTest.typing}</button>
-            <button class:on={mode === "choices"} aria-pressed={mode === "choices"} onclick={() => (mode = "choices")}>{t.blindTest.choices}</button>
+            <button
+              class:on={mode === "typing"}
+              aria-pressed={mode === "typing"}
+              onclick={() => (mode = "typing")}
+            >
+              {t.blindTest.typing}
+            </button>
+            <button
+              class:on={mode === "choices"}
+              aria-pressed={mode === "choices"}
+              onclick={() => (mode = "choices")}
+            >
+              {t.blindTest.choices}
+            </button>
           </div>
-          <p class="hint small">{mode === "typing" ? t.blindTest.typingHint : t.blindTest.choicesHint}</p>
+          <p class="hint small">
+            {mode === "typing" ? t.blindTest.typingHint : t.blindTest.choicesHint}
+          </p>
         </fieldset>
         <fieldset>
           <legend>{t.blindTest.rounds}</legend>
           <div class="segmented">
             {#each roundChoices as n (n)}
-              <button class:on={rounds === n} aria-pressed={rounds === n} onclick={() => (rounds = n)}>{Math.min(n, pool.trackIds.length)}</button>
+              <button
+                class:on={rounds === n}
+                aria-pressed={rounds === n}
+                onclick={() => (rounds = n)}
+              >
+                {Math.min(n, pool.trackIds.length)}
+              </button>
             {/each}
           </div>
         </fieldset>
@@ -173,7 +223,10 @@
         {:else}
           <p class="hint small">{t.blindTest.noJam}</p>
         {/if}
-        <button class="primary" disabled={busy} onclick={() => start()}><Icon name="play" size={16} /> {t.blindTest.play}</button>
+        <button class="primary" disabled={busy} onclick={() => start()}>
+          <Icon name="play" size={16} />
+          {t.blindTest.play}
+        </button>
         <p class="hint small">{t.blindTest.queueKept}</p>
       </div>
     {:else}
@@ -185,11 +238,16 @@
         <span class="mystery">?</span>
       </div>
       <p class="status" aria-live="polite">
-        {clipLoading ? t.blindTest.loading : clipOver ? t.blindTest.clipOver : t.blindTest.listening}
+        {clipLoading
+          ? t.blindTest.loading
+          : clipOver
+            ? t.blindTest.clipOver
+            : t.blindTest.listening}
       </p>
       <div class="clip-bar" aria-hidden="true"><span style:width="{clip * 100}%"></span></div>
       <button class="secondary" onclick={() => run(() => commands.blindTestReplay())}>
-        <Icon name="repeat" size={16} /> {t.blindTest.replay}
+        <Icon name="repeat" size={16} />
+        {t.blindTest.replay}
       </button>
 
       {#if !hostCanAnswer}
@@ -206,12 +264,18 @@
             placeholder={t.blindTest.placeholder}
             aria-label={t.blindTest.placeholder}
           />
-          <button class="primary" type="submit" disabled={busy || !text.trim()}>{t.blindTest.answer}</button>
+          <button class="primary" type="submit" disabled={busy || !text.trim()}>
+            {t.blindTest.answer}
+          </button>
         </form>
       {:else}
         <div class="choices">
           {#each view.choices as choice, i (i)}
-            <button class="choice" disabled={busy} onclick={() => answer({ kind: "choice", index: i })}>
+            <button
+              class="choice"
+              disabled={busy}
+              onclick={() => answer({ kind: "choice", index: i })}
+            >
               <span class="choice-title">{choice.title}</span>
               <span class="choice-artist">{choice.artist}</span>
             </button>
@@ -219,10 +283,18 @@
         </div>
       {/if}
       {#if hostCanAnswer}
-        <button class="link pass" disabled={busy} onclick={() => answer({ kind: "pass" })}>{t.blindTest.pass}</button>
+        <button class="link pass" disabled={busy} onclick={() => answer({ kind: "pass" })}>
+          {t.blindTest.pass}
+        </button>
       {/if}
       {#if multi}
-        <button class="primary" disabled={busy} onclick={() => run(() => commands.blindTestReveal())}>{t.blindTest.reveal}</button>
+        <button
+          class="primary"
+          disabled={busy}
+          onclick={() => run(() => commands.blindTestReveal())}
+        >
+          {t.blindTest.reveal}
+        </button>
         {#if revealIn > 0}<p class="hint small">{t.blindTest.revealIn(revealIn)}</p>{/if}
         <BlindScoreboard players={view.players} showAnswered />
       {/if}
@@ -233,7 +305,9 @@
         {#if coverLarge(result.track.album)}<img src={coverLarge(result.track.album)} alt="" />{/if}
       </div>
       {#if hostPlaying}
-        <p class="verdict" class:good={result.points > 0}>{verdict(result)} <span class="points">{t.blindTest.points(result.points)}</span></p>
+        <p class="verdict" class:good={result.points > 0}>
+          {verdict(result)} <span class="points">{t.blindTest.points(result.points)}</span>
+        </p>
       {/if}
       <div class="answer-track">
         <span class="track-title" class:found={result.title}>{fullTitle(result.track)}</span>
@@ -242,10 +316,13 @@
       </div>
       {#if result.answer}<p class="hint small">{t.blindTest.yourAnswer(result.answer)}</p>{/if}
       {#if result.correct !== null && result.chosen !== null && result.chosen !== result.correct}
-        <p class="hint small">{t.blindTest.yourAnswer(`${view.choices[result.chosen]?.title ?? ""}`)}</p>
+        <p class="hint small">
+          {t.blindTest.yourAnswer(`${view.choices[result.chosen]?.title ?? ""}`)}
+        </p>
       {/if}
       <button class="primary" disabled={busy} onclick={() => run(() => commands.blindTestNext())}>
-        {lastRound ? t.blindTest.seeScore : t.blindTest.next} <Icon name="next" size={16} />
+        {lastRound ? t.blindTest.seeScore : t.blindTest.next}
+        <Icon name="next" size={16} />
       </button>
       {#if multi}<BlindScoreboard players={view.players} round={result.players} />{/if}
     </div>
@@ -254,11 +331,16 @@
       <h2>{t.blindTest.finished}</h2>
       {#if hostPlaying}<p class="final">{t.blindTest.score(view.score, view.maxScore)}</p>{/if}
       {#if multi}<BlindScoreboard players={view.players} />{/if}
-      {#if hostPlaying && view.bestStreak > 1}<p class="hint">{t.blindTest.bestStreak(view.bestStreak)}</p>{/if}
+      {#if hostPlaying && view.bestStreak > 1}<p class="hint">
+          {t.blindTest.bestStreak(view.bestStreak)}
+        </p>{/if}
       <ol class="results">
         {#each view.results as r, i (i)}
           <li class:good={r.points > 0}>
-            {#if coverSmall(r.track.album)}<img src={coverSmall(r.track.album)} alt="" />{:else}<span class="thumb"></span>{/if}
+            {#if coverSmall(r.track.album)}<img
+                src={coverSmall(r.track.album)}
+                alt=""
+              />{:else}<span class="thumb"></span>{/if}
             <span class="result-meta">
               <span class="track-title">{fullTitle(r.track)}</span>
               <span class="track-artist">{artistNames(r.track)}</span>
@@ -271,8 +353,17 @@
         {/each}
       </ol>
       <div class="actions">
-        {#if pool}<button class="primary" disabled={busy} onclick={() => start(true)}><Icon name="play" size={16} /> {t.blindTest.again}</button>{/if}
-        <button class="secondary" disabled={busy} onclick={() => run(() => commands.blindTestQuit())}>{t.blindTest.quit}</button>
+        {#if pool}<button class="primary" disabled={busy} onclick={() => start(true)}>
+            <Icon name="play" size={16} />
+            {t.blindTest.again}
+          </button>{/if}
+        <button
+          class="secondary"
+          disabled={busy}
+          onclick={() => run(() => commands.blindTestQuit())}
+        >
+          {t.blindTest.quit}
+        </button>
       </div>
     </div>
   {/if}

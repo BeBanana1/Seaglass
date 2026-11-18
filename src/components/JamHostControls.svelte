@@ -70,11 +70,17 @@
       {@render toggle(t.jam.host.albums, t.jam.host.albumsHint, status.rules.albums, () =>
         setRule({ albums: !status.rules.albums }),
       )}
-      {@render toggle(t.jam.guestControls, t.jam.guestControlsHint, status.rules.guestControls, () =>
-        setRule({ guestControls: !status.rules.guestControls }),
+      {@render toggle(
+        t.jam.guestControls,
+        t.jam.guestControlsHint,
+        status.rules.guestControls,
+        () => setRule({ guestControls: !status.rules.guestControls }),
       )}
-      {@render toggle(t.jam.host.guestVolume, t.jam.host.guestVolumeHint, status.rules.guestVolume, () =>
-        setRule({ guestVolume: !status.rules.guestVolume }),
+      {@render toggle(
+        t.jam.host.guestVolume,
+        t.jam.host.guestVolumeHint,
+        status.rules.guestVolume,
+        () => setRule({ guestVolume: !status.rules.guestVolume }),
       )}
 
       {#if status.rules.guestVolume}

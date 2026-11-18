@@ -48,7 +48,8 @@
     {#snippet meta()}
       {#if tracks}
         {t.common.tracks(tracks.length)}
-        {#if formatLongDuration(duration)} · {formatLongDuration(duration)}{/if}
+        {#if formatLongDuration(duration)}
+          · {formatLongDuration(duration)}{/if}
       {/if}
     {/snippet}
   </PageHeader>

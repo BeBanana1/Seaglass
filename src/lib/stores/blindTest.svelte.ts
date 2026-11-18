@@ -9,7 +9,10 @@ export interface BlindPool {
   trackIds: TrackId[];
 }
 
-export const blindTest = $state<{ view: BlindTestView | null; pool: BlindPool | null }>({ view: null, pool: null });
+export const blindTest = $state<{ view: BlindTestView | null; pool: BlindPool | null }>({
+  view: null,
+  pool: null,
+});
 
 /** Titres nécessaires pour proposer une partie (quatre propositions par manche). */
 export const BLIND_MIN_TRACKS = 4;

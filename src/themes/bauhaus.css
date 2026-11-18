@@ -134,7 +134,8 @@
   border-color: var(--accent) !important;
 }
 
-:root[data-theme="bauhaus"] :is(
+:root[data-theme="bauhaus"]
+  :is(
     .tabs button,
     .search-hint,
     .update-check,

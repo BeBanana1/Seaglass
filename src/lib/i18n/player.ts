@@ -66,13 +66,21 @@ export const fr = {
   sleepIn: (time: string) => `Pause dans ${time}`,
   sleepAtEnd: "Pause à la fin du titre",
   sleepEndShort: "fin du titre",
-  sleepEndOfContext: { album: "À la fin de l'album", playlist: "À la fin de la playlist", queue: "À la fin de la file" },
+  sleepEndOfContext: {
+    album: "À la fin de l'album",
+    playlist: "À la fin de la playlist",
+    queue: "À la fin de la file",
+  },
   sleepAtEndOfContext: {
     album: "Pause à la fin de l'album",
     playlist: "Pause à la fin de la playlist",
     queue: "Pause à la fin de la file",
   },
-  sleepContextShort: { album: "fin de l'album", playlist: "fin de la playlist", queue: "fin de la file" },
+  sleepContextShort: {
+    album: "fin de l'album",
+    playlist: "fin de la playlist",
+    queue: "fin de la file",
+  },
 
   saveQueue: "Enregistrer en playlist",
   saveQueueHint: "Titre en cours, file et suite, dans l'ordre de lecture",

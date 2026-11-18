@@ -65,8 +65,16 @@
         action: () => (sort = { ...sort, key }),
       })),
       "separator",
-      { label: t.library.ascending, checked: !sort.descending, action: () => (sort = { ...sort, descending: false }) },
-      { label: t.library.descending, checked: sort.descending, action: () => (sort = { ...sort, descending: true }) },
+      {
+        label: t.library.ascending,
+        checked: !sort.descending,
+        action: () => (sort = { ...sort, descending: false }),
+      },
+      {
+        label: t.library.descending,
+        checked: sort.descending,
+        action: () => (sort = { ...sort, descending: true }),
+      },
     ];
     openMenu({ x: rect.right, y: rect.bottom + 4, entries, from: button });
   }
@@ -96,7 +104,12 @@
     <span class="count">{t.common.tracksOf(shown, total)}</span>
   {/if}
   {#if !searching && platform.mobile}
-    <button class="sort-button" onclick={openSortMenu} title={t.library.sortBy} aria-label={t.library.sortBy}>
+    <button
+      class="sort-button"
+      onclick={openSortMenu}
+      title={t.library.sortBy}
+      aria-label={t.library.sortBy}
+    >
       <Icon name="sort" size={20} />
     </button>
   {:else if !searching}
@@ -111,8 +124,9 @@
         onclick={() => (sort = { ...sort, descending: !sort.descending })}
         title={sort.descending ? t.library.descending : t.library.ascending}
         aria-label={sort.descending ? t.library.descending : t.library.ascending}
-        >{sort.descending ? "↓" : "↑"}</button
       >
+        {sort.descending ? "↓" : "↑"}
+      </button>
     </div>
   {/if}
 </div>

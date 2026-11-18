@@ -44,7 +44,10 @@
 
   // Deux lignes peuvent partager une clé (backend : groupées) : une seule entrée ici.
   const groups = $derived.by(() => {
-    const seen = new Map<string, { key: string; title: string; hidden: boolean; count: number; images: string[] }>();
+    const seen = new Map<
+      string,
+      { key: string; title: string; hidden: boolean; count: number; images: string[] }
+    >();
     for (const s of sections) {
       const g = seen.get(s.key);
       if (g) {
@@ -55,7 +58,13 @@
         .map(mediaImage)
         .filter((i): i is string => !!i)
         .slice(0, 3);
-      seen.set(s.key, { key: s.key, title: s.title, hidden: s.hidden, count: s.items.length, images });
+      seen.set(s.key, {
+        key: s.key,
+        title: s.title,
+        hidden: s.hidden,
+        count: s.items.length,
+        images,
+      });
     }
     return [...seen.values()];
   });
@@ -89,7 +98,8 @@
   const reorder = new Reorder((from, to) => void moveTo(from, to));
 
   /** Lignes réorganisables, dans l'ordre (sans le bandeau « À la une »). */
-  const items = () => Array.from(list?.querySelectorAll<HTMLElement>(".home-editor-item.draggable") ?? []);
+  const items = () =>
+    Array.from(list?.querySelectorAll<HTMLElement>(".home-editor-item.draggable") ?? []);
 
   function toggleFeatured() {
     announce = t.views.homeEditor.featuredToggled(!featuredHidden);
@@ -118,7 +128,9 @@
       <span class="home-editor-name">
         <span class="home-editor-title">{t.views.homeEditor.featured}</span>
         <span class="home-editor-meta">
-          {t.views.homeEditor.featuredMeta}{featuredHidden ? t.views.homeEditor.featuredHiddenSuffix : ""}
+          {t.views.homeEditor.featuredMeta}{featuredHidden
+            ? t.views.homeEditor.featuredHiddenSuffix
+            : ""}
         </span>
       </span>
       <span class="home-editor-actions">

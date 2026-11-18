@@ -28,7 +28,9 @@
 
   const playing = $derived(player.playing);
   const mobile = $derived(platform.mobile);
-  const sizeMb = $derived(update?.size ? num(update.size / 1e6, { maximumFractionDigits: 0 }) : null);
+  const sizeMb = $derived(
+    update?.size ? num(update.size / 1e6, { maximumFractionDigits: 0 }) : null,
+  );
 
   async function install() {
     installing = true;
@@ -58,7 +60,11 @@
           {installing ? t.settings.update.installing : t.settings.update.install}
         {/if}
       </button>
-      <button class="later" onclick={() => (dismissed = true)} title={mobile ? undefined : t.settings.update.laterHint}>
+      <button
+        class="later"
+        onclick={() => (dismissed = true)}
+        title={mobile ? undefined : t.settings.update.laterHint}
+      >
         {t.settings.update.later}
       </button>
     </div>

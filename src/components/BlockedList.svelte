@@ -67,8 +67,10 @@
           <button
             class="update-check"
             disabled={pending.has(`track:${track.id}`)}
-            onclick={() => unblock({ kind: "track", id: track.id })}>{t.settings.unblock}</button
+            onclick={() => unblock({ kind: "track", id: track.id })}
           >
+            {t.settings.unblock}
+          </button>
         </li>
       {/each}
     </ul>
@@ -82,8 +84,10 @@
           <button
             class="update-check"
             disabled={pending.has(`artist:${artist.id}`)}
-            onclick={() => unblock({ kind: "artist", id: artist.id })}>{t.settings.unblock}</button
+            onclick={() => unblock({ kind: "artist", id: artist.id })}
           >
+            {t.settings.unblock}
+          </button>
         </li>
       {/each}
     </ul>

@@ -33,7 +33,8 @@
     }
   }
 
-  const connect = () => run(() => commands.listenbrainzConnect(token), t.settings.listenbrainz.done);
+  const connect = () =>
+    run(() => commands.listenbrainzConnect(token), t.settings.listenbrainz.done);
   const disconnect = () => run(() => commands.listenbrainzDisconnect());
   // Un compte au jeton refusé garde le champ, pour en coller un nouveau.
   const askToken = $derived(!!status && (status.user === null || status.refused));
@@ -43,7 +44,9 @@
   <div class="setting-row listenbrainz">
     {#if status.user !== null}
       <p class="hint status" class:warn={status.refused} role="status">
-        {status.refused ? t.settings.listenbrainz.refused : t.settings.listenbrainz.connected(status.user)}
+        {status.refused
+          ? t.settings.listenbrainz.refused
+          : t.settings.listenbrainz.connected(status.user)}
       </p>
       {#if status.pending > 0}
         <p class="hint">{t.settings.listenbrainz.pending(status.pending)}</p>

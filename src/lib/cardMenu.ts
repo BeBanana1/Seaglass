@@ -68,15 +68,29 @@ async function copyLink(item: MediaItem) {
 export function cardMenu(item: MediaItem): MenuEntry[] {
   const m = t.menu;
   const entries: MenuEntry[] = [
-    { label: m.open, icon: item.kind === "artist" ? "artist" : "album", action: () => go(cardRoute(item)) },
+    {
+      label: m.open,
+      icon: item.kind === "artist" ? "artist" : "album",
+      action: () => go(cardRoute(item)),
+    },
   ];
 
   const target = cardTarget(item);
   if (target) {
     const liked = isFavorite(target);
     const label =
-      target.kind === "artist" ? (liked ? m.unfollow : m.follow) : liked ? m.removeFromLibrary : m.addToLibrary;
-    entries.push({ label, icon: liked ? "heartFilled" : "heart", action: () => toggleFavorite(target) });
+      target.kind === "artist"
+        ? liked
+          ? m.unfollow
+          : m.follow
+        : liked
+          ? m.removeFromLibrary
+          : m.addToLibrary;
+    entries.push({
+      label,
+      icon: liked ? "heartFilled" : "heart",
+      action: () => toggleFavorite(target),
+    });
   }
 
   // « Plus tard » (#196) : albums, artistes et playlists, les vôtres comprises ; pas les mixes.

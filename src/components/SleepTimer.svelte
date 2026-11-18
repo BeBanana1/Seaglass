@@ -42,14 +42,19 @@
     new Date(ms).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
   const label = $derived(
     circuits && endsAt !== null
-      ? t.eggs.circuits(clock(endsAt), clock(now), chosen.setAt === null ? "--:--" : clock(chosen.setAt))
+      ? t.eggs.circuits(
+          clock(endsAt),
+          clock(now),
+          chosen.setAt === null ? "--:--" : clock(chosen.setAt),
+        )
       : remaining !== null
-      ? t.player.sleepIn(remaining) + (chosen.hour && ui.settings.easterEggs ? t.eggs.sevenYears : "")
-      : sleep?.kind === "endOfContext"
-        ? t.player.sleepAtEndOfContext[sleepScope()]
-        : sleep
-          ? t.player.sleepAtEnd
-          : t.player.sleepTimer,
+        ? t.player.sleepIn(remaining) +
+          (chosen.hour && ui.settings.easterEggs ? t.eggs.sevenYears : "")
+        : sleep?.kind === "endOfContext"
+          ? t.player.sleepAtEndOfContext[sleepScope()]
+          : sleep
+            ? t.player.sleepAtEnd
+            : t.player.sleepTimer,
   );
 
   async function set(timer: SleepRequest | null) {
@@ -74,7 +79,8 @@
       { label: p.sleepEndOfTrack, action: () => set({ kind: "endOfTrack" }) },
       { label: p.sleepEndOfContext[sleepScope()], action: () => set({ kind: "endOfContext" }) },
     );
-    if (sleep) entries.push("separator", { label: p.sleepOff, icon: "close", action: () => set(null) });
+    if (sleep)
+      entries.push("separator", { label: p.sleepOff, icon: "close", action: () => set(null) });
     const rect = button.getBoundingClientRect();
     // Dans la barre du bas, le menu s'ouvre au-dessus du bouton (recalé s'il déborde).
     const y = rect.top > innerHeight / 2 ? rect.top - 4 : rect.bottom + 4;

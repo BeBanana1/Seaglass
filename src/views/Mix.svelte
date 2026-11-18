@@ -86,14 +86,19 @@
     >
       {#snippet meta()}
         {t.common.tracks(view?.tracks.length ?? 0)}
-        {#if formatLongDuration(duration)} · {formatLongDuration(duration)}{/if}
+        {#if formatLongDuration(duration)}
+          · {formatLongDuration(duration)}{/if}
       {/snippet}
     </PageHeader>
     {#if view.tracks.length === 0}
       <p class="muted">{t.views.mix.empty}</p>
     {:else}
       <!-- Android : pas de numéros, ils encombrent plus qu'ils n'aident (#162). -->
-      <TrackList tracks={view.tracks} source={playSource} numbering={platform.mobile ? "none" : "index"} />
+      <TrackList
+        tracks={view.tracks}
+        source={playSource}
+        numbering={platform.mobile ? "none" : "index"}
+      />
     {/if}
   {/if}
 </section>

@@ -160,12 +160,16 @@
   top: calc((var(--se-bar) - 40px) / 2);
 }
 
-:root[data-theme="seance"] .now-playing :is(.close, .fullscreen-toggle, .queue-toggle, .lyrics-toggle) {
+:root[data-theme="seance"]
+  .now-playing
+  :is(.close, .fullscreen-toggle, .queue-toggle, .lyrics-toggle) {
   background: transparent;
   color: var(--text-muted);
 }
 
-:root[data-theme="seance"] .now-playing :is(.close, .fullscreen-toggle, .queue-toggle, .lyrics-toggle):hover {
+:root[data-theme="seance"]
+  .now-playing
+  :is(.close, .fullscreen-toggle, .queue-toggle, .lyrics-toggle):hover {
   color: var(--text);
   background: var(--bg-hover);
 }
@@ -225,7 +229,12 @@
   width: clamp(14px, 5%, 26px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(246 239 224 / 0.95) 0 55%, rgb(246 239 224 / 0.5) 62%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgb(246 239 224 / 0.95) 0 55%,
+    rgb(246 239 224 / 0.5) 62%,
+    transparent 70%
+  );
   box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
   mix-blend-mode: screen;
   animation: se-cue 0.5s ease-out;

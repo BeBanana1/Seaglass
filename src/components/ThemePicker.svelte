@@ -4,7 +4,13 @@
 <script lang="ts">
   import { setTheme, ui } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
-  import { familyOf, GALLERY_FILTERS, galleryFamilies, variantFor, type GalleryFilter } from "../lib/themes";
+  import {
+    familyOf,
+    GALLERY_FILTERS,
+    galleryFamilies,
+    variantFor,
+    type GalleryFilter,
+  } from "../lib/themes";
   import type { Theme } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
@@ -74,7 +80,13 @@
   <p class="empty">{t.settings.themeNoFavorites}</p>
 {:else}
   <!-- svelte-ignore a11y_interactive_supports_focus -->
-  <div class="themes" role="radiogroup" aria-label={t.settings.themeGallery} bind:this={grid} onkeydown={onKeydown}>
+  <div
+    class="themes"
+    role="radiogroup"
+    aria-label={t.settings.themeGallery}
+    bind:this={grid}
+    onkeydown={onKeydown}
+  >
     {#each families as family (family)}
       {@const theme = variantFor(family, current, filter)}
       {@const selected = family === currentFamily}

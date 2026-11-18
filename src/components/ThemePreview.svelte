@@ -8,7 +8,9 @@
 
 <span class="preview {theme} {size}" aria-hidden="true">
   <span class="side"></span>
-  <span class="main"><span class="h"></span><span class="l"></span><span class="l short"></span></span>
+  <span class="main">
+    <span class="h"></span><span class="l"></span><span class="l short"></span>
+  </span>
   <span class="bar"></span>
 </span>
 
@@ -84,8 +86,7 @@
   .preview.seaglass {
     background:
       radial-gradient(circle at 20% 20%, #4f95b0, transparent 60%),
-      radial-gradient(circle at 80% 90%, #2c5c6b, transparent 60%),
-      #061012;
+      radial-gradient(circle at 80% 90%, #2c5c6b, transparent 60%), #061012;
   }
 
   .seaglass .side,
@@ -155,8 +156,7 @@
     gap: 3px;
     background:
       radial-gradient(circle at 15% 15%, rgb(200 255 0 / 0.55), transparent 50%),
-      radial-gradient(circle at 85% 70%, rgb(255 43 214 / 0.55), transparent 50%),
-      #050507;
+      radial-gradient(circle at 85% 70%, rgb(255 43 214 / 0.55), transparent 50%), #050507;
   }
 
   .acidwave .side,
@@ -240,8 +240,7 @@
     border-radius: 0;
     background:
       linear-gradient(180deg, transparent 62%, rgb(255 42 109 / 0.35)),
-      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.35) 0 1px, transparent 1px 3px),
-      #06070d;
+      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.35) 0 1px, transparent 1px 3px), #06070d;
   }
 
   .cyberpunk .side,
@@ -335,8 +334,7 @@
     border-radius: 4px;
     background:
       radial-gradient(circle at 12% 18%, rgb(200 22 111 / 0.55) 0 22%, transparent 23%),
-      radial-gradient(circle at 88% 88%, rgb(11 95 165 / 0.5) 0 20%, transparent 21%),
-      #f4efe4;
+      radial-gradient(circle at 88% 88%, rgb(11 95 165 / 0.5) 0 20%, transparent 21%), #f4efe4;
   }
 
   .riso :is(.side, .main, .bar) {
@@ -361,8 +359,7 @@
     border-radius: 0;
     background:
       radial-gradient(circle at 92% 8%, #c8231a 0 24%, transparent 25%),
-      radial-gradient(circle at 0% 100%, #f2b80d 0 26%, transparent 27%),
-      #f1ece0;
+      radial-gradient(circle at 0% 100%, #f2b80d 0 26%, transparent 27%), #f1ece0;
   }
 
   .bauhaus :is(.side, .main, .bar) {
@@ -395,7 +392,9 @@
 
   .aero .h {
     background: #1f2f35;
-    box-shadow: 0 4px 0 -1px #e3f2f4, 0 6px 0 -1px #1f2f35;
+    box-shadow:
+      0 4px 0 -1px #e3f2f4,
+      0 6px 0 -1px #1f2f35;
   }
 
   .aero .l {
@@ -403,7 +402,9 @@
   }
 
   .aero .bar {
-    box-shadow: inset 4px 0 0 #f2ee1d, inset 6px 0 0 #1f2f35;
+    box-shadow:
+      inset 4px 0 0 #f2ee1d,
+      inset 6px 0 0 #1f2f35;
   }
 
   .terminal .l {
@@ -437,7 +438,8 @@
     border-radius: 0;
     background:
       linear-gradient(90deg, #c3261f 0 10px, transparent 10px),
-      repeating-linear-gradient(-55deg, rgb(255 255 255 / 0.18) 0 1px, transparent 1px 4px) right 4px center / 18px 70% no-repeat,
+      repeating-linear-gradient(-55deg, rgb(255 255 255 / 0.18) 0 1px, transparent 1px 4px) right
+        4px center / 18px 70% no-repeat,
       #121417;
     clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px);
   }
@@ -479,7 +481,8 @@
     border-radius: 0;
     background:
       radial-gradient(circle at 86% 22%, #c13b24 0 9%, transparent 10%),
-      repeating-radial-gradient(circle at 0 100%, #2f5f84 0 2px, transparent 2px 6px) left bottom / 40% 45% no-repeat,
+      repeating-radial-gradient(circle at 0 100%, #2f5f84 0 2px, transparent 2px 6px) left bottom /
+        40% 45% no-repeat,
       linear-gradient(#e4dcc9, #f2eadb 30%);
   }
 
@@ -487,7 +490,9 @@
     border-radius: 0;
     background: rgb(248 243 231 / 0.9);
     border: 1px solid rgb(31 53 80 / 0.55);
-    box-shadow: inset 0 0 0 2px #f8f3e7, inset 0 0 0 3px rgb(31 53 80 / 0.2);
+    box-shadow:
+      inset 0 0 0 2px #f8f3e7,
+      inset 0 0 0 3px rgb(31 53 80 / 0.2);
   }
 
   .estampe .h {
@@ -501,7 +506,12 @@
   .preview.artdeco {
     border-radius: 0;
     background:
-      repeating-conic-gradient(from -60deg at 50% 120%, rgb(201 162 74 / 0.18) 0 2deg, transparent 2deg 8deg) 0 0 / 100% 100%,
+      repeating-conic-gradient(
+          from -60deg at 50% 120%,
+          rgb(201 162 74 / 0.18) 0 2deg,
+          transparent 2deg 8deg
+        )
+        0 0 / 100% 100%,
       #0a111e;
   }
 
@@ -509,7 +519,9 @@
     border-radius: 0;
     background: rgb(12 20 35 / 0.92);
     border: 1px solid rgb(201 162 74 / 0.5);
-    box-shadow: inset 0 0 0 2px #0c1423, inset 0 0 0 3px rgb(201 162 74 / 0.2);
+    box-shadow:
+      inset 0 0 0 2px #0c1423,
+      inset 0 0 0 3px rgb(201 162 74 / 0.2);
   }
 
   .artdeco .h {
@@ -523,7 +535,13 @@
   .preview.cassette {
     border-radius: 3px;
     background:
-      linear-gradient(transparent 70%, #d8692a 70% 76%, #d9a336 76% 82%, #7d7f35 82% 88%, transparent 88%),
+      linear-gradient(
+        transparent 70%,
+        #d8692a 70% 76%,
+        #d9a336 76% 82%,
+        #7d7f35 82% 88%,
+        transparent 88%
+      ),
       #24180f;
   }
 
@@ -544,9 +562,7 @@
   /* Rideaux de velours sur les bords, salle noire. */
   .preview.seance {
     border-radius: 6px;
-    background:
-      linear-gradient(90deg, #7c141c 0 7%, transparent 7% 93%, #7c141c 93%),
-      #0e0a0b;
+    background: linear-gradient(90deg, #7c141c 0 7%, transparent 7% 93%, #7c141c 93%), #0e0a0b;
   }
 
   .seance :is(.side, .main, .bar) {
@@ -567,8 +583,15 @@
   .preview.onboard {
     border-radius: 0;
     background:
-      linear-gradient(90deg, #e0412c 0 8%, #f0862a 8% 16%, #f2c230 16% 24%, #3fa79a 24% 32%, transparent 32%) left
-        92% / 100% 6% no-repeat,
+      linear-gradient(
+          90deg,
+          #e0412c 0 8%,
+          #f0862a 8% 16%,
+          #f2c230 16% 24%,
+          #3fa79a 24% 32%,
+          transparent 32%
+        )
+        left 92% / 100% 6% no-repeat,
       #0b0c0b;
   }
 
@@ -590,8 +613,8 @@
   .preview.noir {
     border-radius: 0;
     background:
-      repeating-linear-gradient(160deg, rgb(255 255 255 / 0.1) 0 4px, transparent 4px 9px) right top / 60% 70%
-        no-repeat,
+      repeating-linear-gradient(160deg, rgb(255 255 255 / 0.1) 0 4px, transparent 4px 9px) right
+        top / 60% 70% no-repeat,
       #0c0c0c;
   }
 
@@ -657,8 +680,7 @@
     border-radius: 0;
     background:
       linear-gradient(-8deg, transparent 78%, #c8321a 78% 86%, transparent 86%),
-      linear-gradient(20deg, transparent 62%, #e8761c 62%),
-      #161412;
+      linear-gradient(20deg, transparent 62%, #e8761c 62%), #161412;
   }
 
   .generique :is(.side, .main, .bar) {

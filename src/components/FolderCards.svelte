@@ -25,7 +25,9 @@
               {/each}
             </div>
           {/if}
-          <span class="badge-icon"><Icon name="folder" size={inside.some((p) => p.imageUrl) ? 20 : 48} /></span>
+          <span class="badge-icon">
+            <Icon name="folder" size={inside.some((p) => p.imageUrl) ? 20 : 48} />
+          </span>
         </div>
         <span class="title">{folder.name}</span>
         <span class="sub">{t.library.folders.count(inside.length)}</span>

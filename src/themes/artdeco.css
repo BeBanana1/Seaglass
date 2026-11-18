@@ -7,8 +7,22 @@
 /* Panneaux : éventail de deux arcs dorés dans le coin haut gauche et le coin bas droit. */
 :root[data-theme="artdeco"] .panel {
   background-image:
-    radial-gradient(circle at 0 0, transparent 0 15px, var(--ad-line) 15px 16px, transparent 16px 21px, var(--ad-line) 21px 22px, transparent 22px),
-    radial-gradient(circle at 100% 100%, transparent 0 15px, var(--ad-line) 15px 16px, transparent 16px 21px, var(--ad-line) 21px 22px, transparent 22px);
+    radial-gradient(
+      circle at 0 0,
+      transparent 0 15px,
+      var(--ad-line) 15px 16px,
+      transparent 16px 21px,
+      var(--ad-line) 21px 22px,
+      transparent 22px
+    ),
+    radial-gradient(
+      circle at 100% 100%,
+      transparent 0 15px,
+      var(--ad-line) 15px 16px,
+      transparent 16px 21px,
+      var(--ad-line) 21px 22px,
+      transparent 22px
+    );
   background-size: 26px 26px;
   background-position:
     0 0,
@@ -81,7 +95,8 @@
   background: var(--accent-strong);
 }
 
-:root[data-theme="artdeco"] :is(
+:root[data-theme="artdeco"]
+  :is(
     .tabs button,
     .search-hint,
     .update-check,
@@ -112,7 +127,8 @@
   background: var(--accent);
 }
 
-:root[data-theme="artdeco"] :is(.theme-card, .setting-row, .signal, .chip, .verdict, .lyrics-line, .context-menu-item) {
+:root[data-theme="artdeco"]
+  :is(.theme-card, .setting-row, .signal, .chip, .verdict, .lyrics-line, .context-menu-item) {
   border-radius: 0;
 }
 

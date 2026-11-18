@@ -21,8 +21,16 @@
     overflow: hidden;
     pointer-events: none;
     background:
-      radial-gradient(circle at 20% 10%, color-mix(in oklab, var(--album) 45%, transparent), transparent 60%),
-      radial-gradient(circle at 90% 90%, color-mix(in oklab, var(--album) 30%, transparent), transparent 55%),
+      radial-gradient(
+        circle at 20% 10%,
+        color-mix(in oklab, var(--album) 45%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        circle at 90% 90%,
+        color-mix(in oklab, var(--album) 30%, transparent),
+        transparent 55%
+      ),
       var(--bg);
   }
 

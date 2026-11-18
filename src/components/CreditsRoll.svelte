@@ -23,7 +23,15 @@
 <svelte:window onkeydowncapture={onKey} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<div class="credits" role="dialog" aria-modal="true" aria-label={t.eggs.creditsTitle} tabindex="-1" onclick={onClose} use:portal>
+<div
+  class="credits"
+  role="dialog"
+  aria-modal="true"
+  aria-label={t.eggs.creditsTitle}
+  tabindex="-1"
+  onclick={onClose}
+  use:portal
+>
   <div class="roll" onanimationend={onClose}>
     <p class="title display">Seaglass</p>
     <p class="version mono">v{__APP_VERSION__}</p>

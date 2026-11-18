@@ -4,8 +4,10 @@
 
   // `restoreError` : la session enregistrée n'a pas pu être reprise (réseau absent au
   // démarrage, panne passagère) ; elle n'est pas perdue et l'app réessaie seule (#252).
-  let { onLogin, restoreError = null }: { onLogin: (s: SessionInfo) => void; restoreError?: string | null } =
-    $props();
+  let {
+    onLogin,
+    restoreError = null,
+  }: { onLogin: (s: SessionInfo) => void; restoreError?: string | null } = $props();
 
   let pending = $state(false);
   let error = $state<string | null>(null);
@@ -70,7 +72,13 @@
   {:else}
     <p class="steps">{t.views.login.browserFallback}</p>
     <div class="redirect">
-      <input bind:this={urlInput} type="text" readonly value={loginUrl} aria-label={t.views.login.loginUrlLabel} />
+      <input
+        bind:this={urlInput}
+        type="text"
+        readonly
+        value={loginUrl}
+        aria-label={t.views.login.loginUrlLabel}
+      />
       <button class="secondary" onclick={() => urlInput && copyLoginUrl(urlInput)}>
         {copied ? t.views.login.copied : t.views.login.copy}
       </button>
@@ -95,7 +103,9 @@
         {pending ? t.views.login.pending : t.views.login.finish}
       </button>
     </form>
-    <button class="link" onclick={openBrowser} disabled={pending}>{t.views.login.reopenBrowser}</button>
+    <button class="link" onclick={openBrowser} disabled={pending}>
+      {t.views.login.reopenBrowser}
+    </button>
   {/if}
   {#if error}
     <p class="error">{error}</p>

@@ -12,7 +12,8 @@ export const fr = {
     "Lancez une partie depuis une playlist, un mix, un album, une liste intelligente ou vos titres likés, avec le bouton Blind test de l'en-tête.",
   mode: "Mode",
   typing: "Saisie libre",
-  typingHint: "Titre : 2 points, artiste : 1 point, les deux dans la même réponse : 3. Majuscules, accents et petites fautes ne comptent pas.",
+  typingHint:
+    "Titre : 2 points, artiste : 1 point, les deux dans la même réponse : 3. Majuscules, accents et petites fautes ne comptent pas.",
   choices: "4 propositions",
   choicesHint: "La bonne proposition vaut 3 points.",
   rounds: "Manches",
@@ -46,7 +47,8 @@ export const fr = {
   inProgress: "Blind test en cours",
   // À plusieurs, par la Jam (#441).
   withJam: "Avec les invités de la Jam",
-  withJamHint: "Ils répondent depuis la page de la Jam sur leur téléphone. Le plus rapide à trouver le titre gagne 1 point de plus ; la manche est révélée quand tout le monde a répondu, ou 20 s après la fin de l'extrait.",
+  withJamHint:
+    "Ils répondent depuis la page de la Jam sur leur téléphone. Le plus rapide à trouver le titre gagne 1 point de plus ; la manche est révélée quand tout le monde a répondu, ou 20 s après la fin de l'extrait.",
   noJam: "Démarrez une Jam pour jouer avec vos invités.",
   hostPlays: "Je joue aussi",
   reveal: "Révéler",
@@ -69,10 +71,12 @@ export const en: typeof fr = {
   start: "Blind test on this list",
   setup: (count: string, title: string) =>
     `${count} from “${title}”. Each round plays a 15-second clip from a random point of a track, with nothing on screen: name the title, the artist, or both.`,
-  noPool: "Start a game from a playlist, a mix, an album, a smart list or your liked tracks, with the Blind test button in the header.",
+  noPool:
+    "Start a game from a playlist, a mix, an album, a smart list or your liked tracks, with the Blind test button in the header.",
   mode: "Mode",
   typing: "Free typing",
-  typingHint: "Title: 2 points, artist: 1 point, both in the same answer: 3. Case, accents and small typos don't count.",
+  typingHint:
+    "Title: 2 points, artist: 1 point, both in the same answer: 3. Case, accents and small typos don't count.",
   choices: "4 choices",
   choicesHint: "The right choice is worth 3 points.",
   rounds: "Rounds",
@@ -104,7 +108,8 @@ export const en: typeof fr = {
   quit: "Quit the game",
   inProgress: "Blind test in progress",
   withJam: "With the Jam guests",
-  withJamHint: "They answer from the Jam page on their phone. The fastest to name the title gets 1 extra point; the round is revealed when everyone has answered, or 20 s after the clip ends.",
+  withJamHint:
+    "They answer from the Jam page on their phone. The fastest to name the title gets 1 extra point; the round is revealed when everyone has answered, or 20 s after the clip ends.",
   noJam: "Start a Jam to play with your guests.",
   hostPlays: "I play too",
   reveal: "Reveal",

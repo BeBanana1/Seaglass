@@ -40,7 +40,9 @@
 
   function setSort(next: TrackSort) {
     sort = next;
-    saveListSort("likedTracks", next).catch((e) => pushToast({ level: "error", message: String(e) }));
+    saveListSort("likedTracks", next).catch((e) =>
+      pushToast({ level: "error", message: String(e) }),
+    );
   }
 
   const allTracks = $derived(library.tracks.items ?? []);
@@ -99,7 +101,10 @@
     switch (tab) {
       case "playlists":
         // Les playlists rangées dans un dossier n'apparaissent que dans leur dossier (#331).
-        return rootPlaylists(library.playlists.items ?? []).map((p) => ({ kind: "playlist", ...p }));
+        return rootPlaylists(library.playlists.items ?? []).map((p) => ({
+          kind: "playlist",
+          ...p,
+        }));
       case "mixes":
         return (library.mixes.items ?? []).map((m) => ({ kind: "mix", ...m }));
       case "albums":
@@ -120,11 +125,15 @@
       <div class="top-actions">
         {#if tab === "tracks"}<PinButton pin={{ kind: "likedTracks" }} />{/if}
         {#if tab === "tracks"}
-          <button class="refresh" onclick={() => (cleaning = true)}>{t.views.cleanup.action}</button>
+          <button class="refresh" onclick={() => (cleaning = true)}>
+            {t.views.cleanup.action}
+          </button>
         {/if}
         {#if tab === "later"}<PinButton pin={{ kind: "later" }} />{/if}
         <!-- Statistiques d'écoute locales (#326). -->
-        {#if !likesPage}<button class="refresh" onclick={() => go({ name: "stats" })}>{t.library.stats.open}</button>{/if}
+        {#if !likesPage}<button class="refresh" onclick={() => go({ name: "stats" })}>
+            {t.library.stats.open}
+          </button>{/if}
         <button
           class="refresh"
           onclick={() => {
@@ -149,9 +158,9 @@
             onclick={() => replace({ name: "library", tab: id })}
           >
             {t.library.tabs[id]}
-            {#if library[id].items}<span class="count"
-                >{library[id].items?.length}{library[id].truncated ? "+" : ""}</span
-              >{/if}
+            {#if library[id].items}<span class="count">
+                {library[id].items?.length}{library[id].truncated ? "+" : ""}
+              </span>{/if}
           </button>
         {/each}
       </div>
@@ -195,13 +204,18 @@
     <div class="info">
       <div class="actions">
         <button class="primary" onclick={() => playAll(false)}>
-          <Icon name="play" size={16} /> {t.common.play}
+          <Icon name="play" size={16} />
+          {t.common.play}
         </button>
         <button class="secondary" onclick={() => playAll(true)}>
-          <Icon name="shuffle" size={16} /> {t.common.shuffle}
+          <Icon name="shuffle" size={16} />
+          {t.common.shuffle}
         </button>
         {#if tab === "tracks"}
-          <BlindTestButton title={t.library.likedTracks} trackIds={sortedTracks.map((l) => l.track.id)} />
+          <BlindTestButton
+            title={t.library.likedTracks}
+            trackIds={sortedTracks.map((l) => l.track.id)}
+          />
         {/if}
       </div>
     </div>

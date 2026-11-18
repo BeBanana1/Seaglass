@@ -28,7 +28,8 @@ export const fr = {
     hidden: "Masquée",
     shown: "Affichée",
     reset: "Réinitialiser",
-    moved: (title: string, position: number, total: number) => `« ${title} » en position ${position} sur ${total}`,
+    moved: (title: string, position: number, total: number) =>
+      `« ${title} » en position ${position} sur ${total}`,
     toggled: (title: string, hidden: boolean) => `« ${title} » ${hidden ? "masquée" : "affichée"}`,
     featured: "À la une",
     featuredMeta: "Un album tiré des sections affichées",
@@ -52,7 +53,8 @@ export const fr = {
     searching: "Recherche…",
     noResults: "Aucun résultat.",
     /** Thème Film noir (#339) : la même chose, dite par un détective fatigué. */
-    noResultsNoir: "Rien. Pas une empreinte, pas un témoin. La ville a avalé votre piste, comme les autres.",
+    noResultsNoir:
+      "Rien. Pas une empreinte, pas un témoin. La ville a avalé votre piste, comme les autres.",
     tracks: "Titres",
     showLess: "Afficher moins",
     showAll: (n: number) => `Afficher les ${num(n)} titres`,
@@ -77,7 +79,8 @@ export const fr = {
       "Une fois connecté, TIDAL affiche une page d'erreur : c'est normal. Copiez l'adresse de cette page et collez-la ici.",
     redirectLabel: "Adresse de la page",
     finish: "Valider",
-    browserFallback: "La page de connexion s'est ouverte dans votre navigateur. Sinon, copiez cette adresse dans un navigateur :",
+    browserFallback:
+      "La page de connexion s'est ouverte dans votre navigateur. Sinon, copiez cette adresse dans un navigateur :",
     loginUrlLabel: "Adresse de la page de connexion",
     copy: "Copier",
     copied: "Copié",
@@ -151,7 +154,8 @@ export const fr = {
     services: { deezer: "Deezer", spotify: "Spotify", apple: "Apple Music" },
     from: (service: string) => `Depuis ${service}`,
     reading: "Lecture de la playlist…",
-    matching: (done: number, total: number) => `Recherche des titres sur TIDAL : ${num(done)} / ${num(total)}`,
+    matching: (done: number, total: number) =>
+      `Recherche des titres sur TIDAL : ${num(done)} / ${num(total)}`,
     partial: (read: number, total: number) =>
       `Seuls les ${num(read)} premiers titres sur ${num(total)} ont pu être lus.`,
     kept: (n: number) => `${num(n)} ${n > 1 ? "titres retenus" : "titre retenu"}`,
@@ -188,7 +192,8 @@ export const fr = {
       forgotten: "Écoutés au moins 5 fois, mais plus depuis 6 mois.",
       neverPlayed: "Vos titres likés que cet appareil n'a jamais joués.",
     },
-    scope: "Calculée à partir des écoutes de cet appareil. Ajoutez-la à une playlist pour la garder telle quelle.",
+    scope:
+      "Calculée à partir des écoutes de cet appareil. Ajoutez-la à une playlist pour la garder telle quelle.",
     empty: "Rien pour l'instant : la liste se remplira avec vos écoutes sur cet appareil.",
   },
 
@@ -263,7 +268,8 @@ export const en: typeof fr = {
     hidden: "Hidden",
     shown: "Shown",
     reset: "Reset",
-    moved: (title: string, position: number, total: number) => `“${title}” moved to position ${position} of ${total}`,
+    moved: (title: string, position: number, total: number) =>
+      `“${title}” moved to position ${position} of ${total}`,
     toggled: (title: string, hidden: boolean) => `“${title}” ${hidden ? "hidden" : "shown"}`,
     featured: "Featured",
     featuredMeta: "An album taken from the sections shown",
@@ -286,7 +292,8 @@ export const en: typeof fr = {
     placeholder: "Tracks, artists, albums, playlists…",
     searching: "Searching…",
     noResults: "No results.",
-    noResultsNoir: "Nothing. Not a print, not a witness. The city swallowed your lead, like all the others.",
+    noResultsNoir:
+      "Nothing. Not a print, not a witness. The city swallowed your lead, like all the others.",
     tracks: "Tracks",
     showLess: "Show less",
     showAll: (n: number) => `Show all ${num(n)} tracks`,
@@ -311,7 +318,8 @@ export const en: typeof fr = {
       "Once signed in, TIDAL shows an error page: that is expected. Copy the address of that page and paste it here.",
     redirectLabel: "Page address",
     finish: "Confirm",
-    browserFallback: "The sign-in page opened in your browser. If it did not, copy this address into a browser:",
+    browserFallback:
+      "The sign-in page opened in your browser. If it did not, copy this address into a browser:",
     loginUrlLabel: "Sign-in page address",
     copy: "Copy",
     copied: "Copied",
@@ -371,7 +379,8 @@ export const en: typeof fr = {
     apply: (n: number) => `Apply (${num(n)})`,
     applying: "Applying…",
     done: (n: number) => `${num(n)} ${n === 1 ? "change" : "changes"} applied`,
-    partial: (n: number, error: string) => `${num(n)} ${n === 1 ? "change" : "changes"} applied, then: ${error}`,
+    partial: (n: number, error: string) =>
+      `${num(n)} ${n === 1 ? "change" : "changes"} applied, then: ${error}`,
     undone: (n: number, skipped: number) =>
       skipped > 0
         ? `${num(n)} ${n === 1 ? "change" : "changes"} undone; ${num(skipped)} unavailable ${skipped === 1 ? "track" : "tracks"} could not come back`
@@ -382,8 +391,10 @@ export const en: typeof fr = {
     services: { deezer: "Deezer", spotify: "Spotify", apple: "Apple Music" },
     from: (service: string) => `From ${service}`,
     reading: "Reading the playlist…",
-    matching: (done: number, total: number) => `Finding tracks on TIDAL: ${num(done)} / ${num(total)}`,
-    partial: (read: number, total: number) => `Only the first ${num(read)} of ${num(total)} tracks could be read.`,
+    matching: (done: number, total: number) =>
+      `Finding tracks on TIDAL: ${num(done)} / ${num(total)}`,
+    partial: (read: number, total: number) =>
+      `Only the first ${num(read)} of ${num(total)} tracks could be read.`,
     kept: (n: number) => `${num(n)} ${n === 1 ? "track" : "tracks"} kept`,
     found: "Found",
     toCheck: "To check",
@@ -417,7 +428,8 @@ export const en: typeof fr = {
       forgotten: "Played at least 5 times, but not in the last 6 months.",
       neverPlayed: "Your liked tracks this device has never played.",
     },
-    scope: "Computed from this device's listening history. Add it to a playlist to keep it as it is.",
+    scope:
+      "Computed from this device's listening history. Add it to a playlist to keep it as it is.",
     empty: "Nothing yet: this list fills up as you listen on this device.",
   },
 

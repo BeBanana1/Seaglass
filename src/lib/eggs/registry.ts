@@ -92,12 +92,7 @@ const QUERIES: Record<string, SearchEgg> = {
 
 /** Minuscules, sans accents, espaces réduits : « Épice » et « épice » valent « epice ». */
 export function normalize(query: string): string {
-  return query
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, " ");
+  return query.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
 /** Clin d'œil d'une saisie exacte (pas d'un préfixe ni d'un mot dans une phrase). */

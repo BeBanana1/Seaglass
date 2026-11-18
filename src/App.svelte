@@ -25,7 +25,15 @@
   import { initBackButton } from "./lib/backButton";
   import { exitListSearch, listSearch } from "./lib/stores/listSearch.svelte";
   import { openSharedLink, openTidalLink } from "./lib/links";
-  import { back, canGoBack, current, go, nav, openSettings, replace } from "./lib/stores/nav.svelte";
+  import {
+    back,
+    canGoBack,
+    current,
+    go,
+    nav,
+    openSettings,
+    replace,
+  } from "./lib/stores/nav.svelte";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
   import Feed from "./views/Feed.svelte";
@@ -90,7 +98,19 @@
   onMount(async () => {
     if (platform.mobile) initBackButton(canClose, closeTop);
     void initActions();
-    await Promise.all([initLanguage(), initUi(), initPlayer(), initQueue(), initToasts(), initLikes(), initLater(), initFeed(), initWindow(), initJam(), initBlindTest()]);
+    await Promise.all([
+      initLanguage(),
+      initUi(),
+      initPlayer(),
+      initQueue(),
+      initToasts(),
+      initLikes(),
+      initLater(),
+      initFeed(),
+      initWindow(),
+      initJam(),
+      initBlindTest(),
+    ]);
     initEggs();
     await restoreSession();
     ready = true;
@@ -213,7 +233,16 @@
 
   // Android : mini-lecteur et navigation masqués pendant la saisie, comme dans les apps
   // natives ; ils prendraient sinon la place des résultats au-dessus du clavier (#151).
-  const NOT_TEXT = new Set(["button", "checkbox", "color", "file", "radio", "range", "reset", "submit"]);
+  const NOT_TEXT = new Set([
+    "button",
+    "checkbox",
+    "color",
+    "file",
+    "radio",
+    "range",
+    "reset",
+    "submit",
+  ]);
 
   // Appui sur la notification d'Android (#163) : demande gardée par Rust, prise une seule
   // fois (aussi au démarrage, si l'app a été rouverte par la notification).
@@ -287,7 +316,9 @@
     // Taille de l'interface (#337), comme dans un navigateur ; Android a son propre réglage.
     if (e.ctrlKey && !platform.mobile && ["+", "=", "-", "0"].includes(e.key)) {
       e.preventDefault();
-      runAction(e.key === "0" ? "window.zoomReset" : e.key === "-" ? "window.zoomOut" : "window.zoomIn");
+      runAction(
+        e.key === "0" ? "window.zoomReset" : e.key === "-" ? "window.zoomOut" : "window.zoomIn",
+      );
       return;
     }
     // Les réglages restent accessibles déconnecté (thème, cache).
@@ -311,7 +342,13 @@
     } else if (e.key === "/" && !typing) {
       e.preventDefault();
       runAction("go.search");
-    } else if (e.ctrlKey && e.key.toLowerCase() === "a" && !typing && !nowPlayingOpen && !menu.open) {
+    } else if (
+      e.ctrlKey &&
+      e.key.toLowerCase() === "a" &&
+      !typing &&
+      !nowPlayingOpen &&
+      !menu.open
+    ) {
       // Sélection multiple (#332) : toute la liste affichée (filtrée) ; sans liste de titres
       // sur la page, Ctrl+A garde son sens habituel.
       if (selection.selectAll()) e.preventDefault();
@@ -394,10 +431,18 @@
 <div class="shell" class:mobile={platform.mobile}>
   <header>
     <!-- #399 : recherche « seaglass », une vague traverse l'en-tête une fois. -->
-    {#if eggs.search === "seaglass"}<span class="egg-wave" aria-hidden="true"><span></span></span>{/if}
+    {#if eggs.search === "seaglass"}<span class="egg-wave" aria-hidden="true">
+        <span></span>
+      </span>{/if}
     <div class="left">
       {#if session || route.name === "settings"}
-        <button class="back" onclick={back} disabled={!canGoBack()} aria-label={t.common.back} title={t.common.backHint}>
+        <button
+          class="back"
+          onclick={back}
+          disabled={!canGoBack()}
+          aria-label={t.common.back}
+          title={t.common.backHint}
+        >
           <Icon name="previous" size={13} />
         </button>
       {/if}
@@ -405,8 +450,12 @@
       <span class="wordmark">
         <span class="brand display">Seaglass<EggMark /></span>
         <!-- #399 : le 1er avril, la version s'écrit en chiffres romains. -->
-        <span class="version mono">v{eggs.date === "aprilFools" ? romanVersion(__APP_VERSION__) : __APP_VERSION__}</span>
-        {#if eggs.date === "groundhog"}<span class="version mono egg-note">{t.eggs.groundhog}</span>{/if}
+        <span class="version mono">
+          v{eggs.date === "aprilFools" ? romanVersion(__APP_VERSION__) : __APP_VERSION__}
+        </span>
+        {#if eggs.date === "groundhog"}<span class="version mono egg-note">
+            {t.eggs.groundhog}
+          </span>{/if}
       </span>
     </div>
     {#if platform.mobile}
@@ -414,29 +463,46 @@
       {#if route.name !== "settings"}
         <div class="actions">
           {#if session}
-            <button class="icon-action" onclick={() => (driveOpen = true)} aria-label={t.drive.open}>
+            <button
+              class="icon-action"
+              onclick={() => (driveOpen = true)}
+              aria-label={t.drive.open}
+            >
               <Icon name="car" size={22} />
             </button>
           {/if}
-          <button class="icon-action" onclick={() => openSettings()} aria-label={t.common.nav.settings}>
+          <button
+            class="icon-action"
+            onclick={() => openSettings()}
+            aria-label={t.common.nav.settings}
+          >
             <Icon name="settings" size={20} />
           </button>
         </div>
       {/if}
     {:else}
-    <div class="actions">
-      {#if session}
-        <button class="search-hint" onclick={() => (platform.mobile ? runAction("go.search") : togglePalette())}>
-          {t.common.searchHint} <kbd>Ctrl K</kbd>
+      <div class="actions">
+        {#if session}
+          <button
+            class="search-hint"
+            onclick={() => (platform.mobile ? runAction("go.search") : togglePalette())}
+          >
+            {t.common.searchHint} <kbd>Ctrl K</kbd>
+          </button>
+        {/if}
+        <button onclick={() => openSettings()} title={t.common.settingsHint}>
+          {t.common.nav.settings}
         </button>
-      {/if}
-      <button onclick={() => openSettings()} title={t.common.settingsHint}>{t.common.nav.settings}</button>
-      <button onclick={() => openSettings("app")}>{t.common.about}</button>
-    </div>
+        <button onclick={() => openSettings("app")}>{t.common.about}</button>
+      </div>
     {/if}
   </header>
 
-  <div class="body" class:with-nav={session && !platform.mobile} class:with-queue={queueOpen && session && !platform.mobile}>
+  <div
+    class="body"
+    class:with-nav={session && !platform.mobile}
+    class:with-queue={queueOpen && session && !platform.mobile}
+  >
     {#if session && !platform.mobile}<div class="panel nav"><Sidebar /></div>{/if}
     <main class="panel" bind:this={main}>
       {#if !ready}

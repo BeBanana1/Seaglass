@@ -61,7 +61,16 @@ async function copyLink(track: Track) {
 
 export function trackMenu(
   track: Track,
-  { onPlay, onRemove, onMoveUp, onMoveDown, queueable = true, onRemoveFromPlaylist, onBlocked, onSelect }: TrackMenuOptions,
+  {
+    onPlay,
+    onRemove,
+    onMoveUp,
+    onMoveDown,
+    queueable = true,
+    onRemoveFromPlaylist,
+    onBlocked,
+    onSelect,
+  }: TrackMenuOptions,
 ): MenuEntry[] {
   const m = t.menu;
   const entries: MenuEntry[] = [];
@@ -105,7 +114,11 @@ export function trackMenu(
   entries.push("separator");
 
   entries.push(
-    { label: m.trackRadio, icon: "radio", action: () => go({ name: "radio", seed: "track", id: track.id }) },
+    {
+      label: m.trackRadio,
+      icon: "radio",
+      action: () => go({ name: "radio", seed: "track", id: track.id }),
+    },
     { label: m.goToAlbum, icon: "album", action: () => go({ name: "album", id: track.album.id }) },
   );
   // Une entrée par artiste : « Aller à l'artiste » seul serait ambigu sur un featuring.
@@ -125,7 +138,8 @@ export function trackMenu(
     {
       label: m.blockTrack,
       icon: "block",
-      action: () => block({ kind: "track", id: track.id }, m.trackBlocked(fullTitle(track)), onBlocked),
+      action: () =>
+        block({ kind: "track", id: track.id }, m.trackBlocked(fullTitle(track)), onBlocked),
     },
   );
   // Artiste principal seulement : un invité se bloque depuis un de ses propres titres.

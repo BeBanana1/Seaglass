@@ -8,7 +8,11 @@
   let seed = 7;
   const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
   const readouts = Array.from({ length: 6 }, () =>
-    Array.from({ length: 4 }, () => Math.floor(rand() * 10000).toString().padStart(4, "0")).join(" "),
+    Array.from({ length: 4 }, () =>
+      Math.floor(rand() * 10000)
+        .toString()
+        .padStart(4, "0"),
+    ).join(" "),
   );
   const blocks = ["var(--ob-red)", "var(--ob-orange)", "var(--ob-yellow)", "var(--ob-teal)"];
 </script>

@@ -37,7 +37,9 @@
           <h3 id="jam-dialog-title" class="display">{t.jam.title}</h3>
           <p class="sub">{t.jam.hint}</p>
         </div>
-        <button class="close" onclick={closeJamDialog} aria-label={t.common.close}><Icon name="close" /></button>
+        <button class="close" onclick={closeJamDialog} aria-label={t.common.close}>
+          <Icon name="close" />
+        </button>
       </header>
       <div class="body">
         <JamPanel />

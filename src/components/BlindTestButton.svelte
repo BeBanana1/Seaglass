@@ -16,7 +16,12 @@
 </script>
 
 {#if trackIds.length >= BLIND_MIN_TRACKS}
-  <button class="blind-test-button" onclick={start} title={t.blindTest.start} aria-label={t.blindTest.start}>
+  <button
+    class="blind-test-button"
+    onclick={start}
+    title={t.blindTest.start}
+    aria-label={t.blindTest.start}
+  >
     <Icon name="quiz" size={18} />
   </button>
 {/if}

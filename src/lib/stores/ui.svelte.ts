@@ -150,7 +150,10 @@ export async function setAccent(accent: string | null) {
 /** Ajoute ou retire une famille de thèmes des favoris (#390). */
 export async function toggleFavoriteTheme(family: Theme) {
   const previous = ui.settings;
-  ui.settings = { ...ui.settings, favoriteThemes: toggleFavorite(ui.settings.favoriteThemes, family) };
+  ui.settings = {
+    ...ui.settings,
+    favoriteThemes: toggleFavorite(ui.settings.favoriteThemes, family),
+  };
   try {
     await commands.setUiSettings(ui.settings);
   } catch (e) {
@@ -173,7 +176,10 @@ export async function setDiscord(discord: boolean) {
 
 /** Interrupteurs lus par le backend : mises à jour automatiques, Jam (#452), notifications
  * des nouvelles sorties (#435). */
-export async function setUiToggle(key: "autoUpdates" | "jam" | "releaseNotifications", value: boolean) {
+export async function setUiToggle(
+  key: "autoUpdates" | "jam" | "releaseNotifications",
+  value: boolean,
+) {
   const previous = ui.settings;
   ui.settings = { ...ui.settings, [key]: value };
   try {

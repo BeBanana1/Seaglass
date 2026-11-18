@@ -59,11 +59,18 @@ describe("playPin", () => {
   it("suit le tri mémorisé des titres likés", async () => {
     mocks.sorts.set("likedTracks", { key: "title", descending: false });
     await playPin({ kind: "likedTracks" }, false);
-    expect(mocks.playTracks).toHaveBeenCalledWith([recent.id, old.id], 0, false, { kind: "likedTracks" });
+    expect(mocks.playTracks).toHaveBeenCalledWith([recent.id, old.id], 0, false, {
+      kind: "likedTracks",
+    });
   });
 
   it("ne garde que les titres de « Plus tard »", async () => {
-    mocks.saveForLater.mockResolvedValue({ items: [{ kind: "album", id: 9 }, { kind: "track", ...old }] });
+    mocks.saveForLater.mockResolvedValue({
+      items: [
+        { kind: "album", id: 9 },
+        { kind: "track", ...old },
+      ],
+    });
     await playPin({ kind: "later" }, false);
     expect(mocks.playTracks).toHaveBeenCalledWith([old.id], 0, false, { kind: "later" });
   });
@@ -72,7 +79,10 @@ describe("playPin", () => {
     mocks.smartList.mockResolvedValue([recent, old]);
     await playPin({ kind: "smart", list: "onRepeat" }, false);
     expect(mocks.smartList).toHaveBeenCalledWith("onRepeat");
-    expect(mocks.playTracks).toHaveBeenCalledWith([recent.id, old.id], 0, false, { kind: "smart", list: "onRepeat" });
+    expect(mocks.playTracks).toHaveBeenCalledWith([recent.id, old.id], 0, false, {
+      kind: "smart",
+      list: "onRepeat",
+    });
   });
 
   it("refuse une source vide sans rien lire", async () => {

@@ -244,7 +244,8 @@ export interface OutputDevice {
 /** Blind test (#434) : saisie libre ou quatre propositions. */
 export type BlindMode = "typing" | "choices";
 
-export type BlindAnswer = { kind: "text"; text: string } | { kind: "choice"; index: number } | { kind: "pass" };
+export type BlindAnswer =
+  { kind: "text"; text: string } | { kind: "choice"; index: number } | { kind: "pass" };
 
 export interface BlindChoice {
   title: string;
@@ -372,9 +373,11 @@ export interface PlayerState {
 export type MpvIssue = "stopped" | "cpuUnsupported" | "missing";
 
 /** Minuteur actif : échéance en ms epoch (l'UI calcule le temps restant), ou fin du titre. */
-export type SleepState = { kind: "minutes"; endsAt: number } | { kind: "endOfTrack" } | { kind: "endOfContext" };
+export type SleepState =
+  { kind: "minutes"; endsAt: number } | { kind: "endOfTrack" } | { kind: "endOfContext" };
 
-export type SleepRequest = { kind: "minutes"; minutes: number } | { kind: "endOfTrack" } | { kind: "endOfContext" };
+export type SleepRequest =
+  { kind: "minutes"; minutes: number } | { kind: "endOfTrack" } | { kind: "endOfContext" };
 
 /** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
 export interface Volume {
@@ -659,7 +662,14 @@ export interface PlaylistPage {
 /** Changement proposé par « Nettoyer » (#382) ; `index` = position dans la liste lue,
  *  `op` = ce que l'accepter fait (renvoyé tel quel). */
 export type CleanupItem = (
-  | { kind: "duplicate"; index: number; track: Track; keptIndex: number; kept: Track; sameTrack: boolean }
+  | {
+      kind: "duplicate";
+      index: number;
+      track: Track;
+      keptIndex: number;
+      kept: Track;
+      sameTrack: boolean;
+    }
   | { kind: "unavailable"; index: number; track: Track; replacement: Track | null }
 ) & {
   op: ListOp;
@@ -695,9 +705,7 @@ export interface Lyrics {
   provider: string | null;
   /** Écriture de droite à gauche. */
   rtl: boolean;
-  text:
-    | { kind: "synced"; lines: LyricLine[] }
-    | { kind: "plain"; lines: string[] };
+  text: { kind: "synced"; lines: LyricLine[] } | { kind: "plain"; lines: string[] };
 }
 
 export interface LyricLine {
@@ -732,7 +740,32 @@ export interface SearchResults {
   playlists: PlaylistSummary[];
 }
 
-export type Theme = "seaglass" | "studio" | "atelier" | "acidwave" | "surreal" | "solarpunk" | "cyberpunk" | "neumorph" | "neumorph-dark" | "terminal" | "riso" | "bauhaus" | "aero" | "alloy" | "alloy-dark" | "midnight" | "estampe" | "artdeco" | "cassette" | "seance" | "onboard" | "noir" | "hotel" | "desert" | "generique";
+export type Theme =
+  | "seaglass"
+  | "studio"
+  | "atelier"
+  | "acidwave"
+  | "surreal"
+  | "solarpunk"
+  | "cyberpunk"
+  | "neumorph"
+  | "neumorph-dark"
+  | "terminal"
+  | "riso"
+  | "bauhaus"
+  | "aero"
+  | "alloy"
+  | "alloy-dark"
+  | "midnight"
+  | "estampe"
+  | "artdeco"
+  | "cassette"
+  | "seance"
+  | "onboard"
+  | "noir"
+  | "hotel"
+  | "desert"
+  | "generique";
 
 /** Raccourci de la barre latérale (bureau) ou tuile du mode conduite (Android, #193) ; le titre
  *  d'une playlist ou d'un mix est gardé pour l'afficher sans requête. */
@@ -828,7 +861,8 @@ export interface RelayChange {
 }
 
 /** Action d'un raccourci global (#413). */
-export type GlobalAction = "playPause" | "next" | "previous" | "volumeUp" | "volumeDown" | "like" | "showWindow";
+export type GlobalAction =
+  "playPause" | "next" | "previous" | "volumeUp" | "volumeDown" | "like" | "showWindow";
 
 /** Combinaisons écrites `Ctrl+Alt+Space` (modificateurs puis `KeyboardEvent.code`) ; action
  *  sans combinaison : absente. */
@@ -1065,7 +1099,8 @@ export const commands = {
   /** Ouvre la page de connexion dans le navigateur du système et renvoie son adresse. */
   browserLoginStart: () => invoke<string>("browser_login_start"),
   /** Adresse de la page sur laquelle TIDAL a renvoyé après la connexion. */
-  browserLoginFinish: (redirect: string) => invoke<SessionInfo>("browser_login_finish", { redirect }),
+  browserLoginFinish: (redirect: string) =>
+    invoke<SessionInfo>("browser_login_finish", { redirect }),
   logout: () => invoke<void>("logout"),
   search: (query: string) => invoke<SearchResults>("search", { query }),
   /** Dernières recherches retenues, la plus récente en tête (#211). */
@@ -1086,7 +1121,8 @@ export const commands = {
   jamOnlineAvailable: () => invoke<boolean>("jam_online_available"),
   /** Relais (#452) : l'adresse choisie est vérifiée (`/healthz`) avant d'être enregistrée. */
   listenbrainzStatus: () => invoke<ListenBrainzStatus>("listenbrainz_status"),
-  listenbrainzConnect: (token: string) => invoke<ListenBrainzStatus>("listenbrainz_connect", { token }),
+  listenbrainzConnect: (token: string) =>
+    invoke<ListenBrainzStatus>("listenbrainz_connect", { token }),
   listenbrainzDisconnect: () => invoke<ListenBrainzStatus>("listenbrainz_disconnect"),
   relaySettings: () => invoke<RelayView>("relay_settings"),
   setRelaySettings: (change: RelayChange) => invoke<RelayView>("set_relay_settings", { change }),
@@ -1108,7 +1144,8 @@ export const commands = {
   startRemote: () => invoke<RemoteStatus | null>("start_remote"),
   stopRemote: () => invoke<RemoteStatus | null>("stop_remote"),
   /** #414 : « Accepter les transferts » ; `null` si le serveur s'arrête. */
-  setHandoffAccepted: (enabled: boolean) => invoke<RemoteStatus | null>("set_handoff_accepted", { enabled }),
+  setHandoffAccepted: (enabled: boolean) =>
+    invoke<RemoteStatus | null>("set_handoff_accepted", { enabled }),
   /** #414, téléphone : ordinateur lié (jamais le code). */
   linkedComputer: () => invoke<LinkedComputer | null>("linked_computer"),
   /** Adresse de la télécommande du PC avec son code après `#`, vérifiée avant d'être gardée. */
@@ -1179,7 +1216,8 @@ export const commands = {
   /** Titres et artistes bloqués (#334), lus chez le service. */
   blocked: () => invoke<Blocked>("blocked"),
   /** Bloque ou débloque un titre ou un artiste. */
-  setBlocked: (target: BlockTarget, blocked: boolean) => invoke<void>("set_blocked", { target, blocked }),
+  setBlocked: (target: BlockTarget, blocked: boolean) =>
+    invoke<void>("set_blocked", { target, blocked }),
   /** Identifiants de « Plus tard » (#196), mis à jour ensuite par l'événement `later`. */
   laterIds: () => invoke<LikedIds>("later_ids"),
   /** Toute la liste « Plus tard », du plus récent au plus ancien. */
@@ -1217,7 +1255,8 @@ export const commands = {
   /** Dossiers de playlists (#331), triés par nom ; vide si l'utilisateur n'en a pas. */
   playlistFolders: () => invoke<PlaylistFolder[]>("playlist_folders"),
   /** Crée un dossier à la racine, avec ces playlists dedans. */
-  createFolder: (name: string, uuids: string[]) => invoke<PlaylistFolder>("create_folder", { name, uuids }),
+  createFolder: (name: string, uuids: string[]) =>
+    invoke<PlaylistFolder>("create_folder", { name, uuids }),
   renameFolder: (id: string, name: string) => invoke<void>("rename_folder", { id, name }),
   /** Range des playlists dans un dossier, ou les ressort à la racine (`folderId` nul). */
   moveToFolder: (uuids: string[], folderId: string | null) =>
@@ -1227,7 +1266,8 @@ export const commands = {
   /** Doublons et titres indisponibles d'une de vos playlists (#382). */
   playlistCleanup: (uuid: string) => invoke<CleanupReport>("playlist_cleanup", { uuid }),
   /** Applique les changements choisis (positions du rapport, dans n'importe quel ordre). */
-  cleanPlaylist: (uuid: string, ops: ListOp[]) => invoke<ListOpsResult>("clean_playlist", { uuid, ops }),
+  cleanPlaylist: (uuid: string, ops: ListOp[]) =>
+    invoke<ListOpsResult>("clean_playlist", { uuid, ops }),
   /** Annule : `ops` = le `undo` du nettoyage. */
   undoPlaylistCleanup: (uuid: string, ops: ListOp[]) =>
     invoke<ListOpsResult>("undo_playlist_cleanup", { uuid, ops }),
@@ -1237,8 +1277,14 @@ export const commands = {
   cleanLiked: (ops: ListOp[]) => invoke<ListOpsResult>("clean_liked", { ops }),
   /** Blind test (#434) : partie de `rounds` manches tirées dans `trackIds`. */
   /** Avec `jam`, les invités de la Jam en cours jouent aussi (#441). */
-  blindTestStart: (trackIds: TrackId[], mode: BlindMode, rounds: number, title: string, jam = false, hostPlays = true) =>
-    invoke<void>("blind_test_start", { trackIds, mode, rounds, title, jam, hostPlays }),
+  blindTestStart: (
+    trackIds: TrackId[],
+    mode: BlindMode,
+    rounds: number,
+    title: string,
+    jam = false,
+    hostPlays = true,
+  ) => invoke<void>("blind_test_start", { trackIds, mode, rounds, title, jam, hostPlays }),
   /** Révèle la manche sans attendre les réponses qui manquent (à plusieurs). */
   blindTestReveal: () => invoke<void>("blind_test_reveal"),
   blindTestAnswer: (answer: BlindAnswer) => invoke<void>("blind_test_answer", { answer }),
@@ -1247,8 +1293,12 @@ export const commands = {
   blindTestQuit: () => invoke<void>("blind_test_quit"),
   blindTestState: () => invoke<BlindTestView | null>("blind_test_state"),
   /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
-  playTracks: (trackIds: TrackId[], startIndex: number, shuffle = false, source: PlaySource | null = null) =>
-    invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
+  playTracks: (
+    trackIds: TrackId[],
+    startIndex: number,
+    shuffle = false,
+    source: PlaySource | null = null,
+  ) => invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
   /** Android : vrai une fois après le lien `seaglass://drive` ou le raccourci de l'app (#193). */
   takeDriveRequest: () => invoke<boolean>("take_drive_request"),
   /** Android : épingle demandée par un raccourci de l'icône ou le lien `seaglass://pin/…`
@@ -1407,9 +1457,11 @@ export const events = {
     listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
   /** Réglages de lecture changés par le backend (profil d'un périphérique de sortie, #416) :
    *  à relire. */
-  onPlaybackSettings: (cb: () => void): Promise<UnlistenFn> => listen<null>("playback-settings", () => cb()),
+  onPlaybackSettings: (cb: () => void): Promise<UnlistenFn> =>
+    listen<null>("playback-settings", () => cb()),
   /** Android : appui sur la notification (#163) ; la demande se prend par `takeNowPlayingRequest`. */
-  onOpenNowPlaying: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-now-playing", () => cb()),
+  onOpenNowPlaying: (cb: () => void): Promise<UnlistenFn> =>
+    listen<null>("open-now-playing", () => cb()),
   /** Android : mode conduite demandé (#193) ; la demande se prend par `takeDriveRequest`. */
   onOpenDrive: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-drive", () => cb()),
   /** Android : épingle à lire (#335) ; elle se prend par `takePinRequest`. */

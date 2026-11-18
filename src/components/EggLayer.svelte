@@ -2,6 +2,7 @@
   // Clins d'œil (#399) : filtre SVG des pochettes en gros pixels (séquence au clavier), posé
   // sur les images seulement pendant l'effet. Les images elles-mêmes ne changent pas.
 </script>
+
 <svg class="egg-defs" aria-hidden="true" width="0" height="0">
   <filter id="egg-pixelate" x="0" y="0" width="1" height="1">
     <!-- Un point par case de 10 px, étalé ensuite sur toute la case. -->

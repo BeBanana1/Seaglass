@@ -29,7 +29,9 @@
   const s = $derived(player.state);
   /** Format réellement écrit sur la sortie (#245), sinon celui du décodage (Android). */
   const sink = $derived(s.deviceFormat ?? s.output);
-  const verdict = $derived(signalVerdict(s.stream, sink, s.volume, s.normalization, s.exclusive, s.equalizer));
+  const verdict = $derived(
+    signalVerdict(s.stream, sink, s.volume, s.normalization, s.exclusive, s.equalizer),
+  );
   const mode = $derived(s.exclusive ? t.player.exclusive : t.player.shared);
   /** Sous-titre du nœud du moteur : format de sortie, et le volume s'il modifie le signal. */
   const decodeSub = $derived(
@@ -68,27 +70,38 @@
   const device = $derived(s.outputDevice);
   /** La version resserrée garde « WASAPI · partagé » : le nom passe dans l'info-bulle. */
   const outputSub = $derived(
-    [(dense ? null : device?.name) ?? s.outputDriver?.toUpperCase() ?? "", s.outputDriver ? mode : ""]
+    [
+      (dense ? null : device?.name) ?? s.outputDriver?.toUpperCase() ?? "",
+      s.outputDriver ? mode : "",
+    ]
       .filter(Boolean)
       .join(" · "),
   );
   const outputTitle = $derived(
     [
       s.outputDriver ? `${s.outputDriver.toUpperCase()} · ${mode}` : "",
-      device?.name ? (device.systemDefault ? `${device.name} (${t.player.systemDevice})` : device.name) : "",
+      device?.name
+        ? device.systemDefault
+          ? `${device.name} (${t.player.systemDevice})`
+          : device.name
+        : "",
       device?.missing ? t.player.deviceFallback(device.missing) : "",
     ]
       .filter(Boolean)
       .join(" — ") || undefined,
   );
   const sourceTitle = $derived(
-    [editionHint, s.stream?.bitrate ? t.player.averageBitrate(kbps(s.stream.bitrate)) : ""].filter(Boolean).join(" — ") ||
-      undefined,
+    [editionHint, s.stream?.bitrate ? t.player.averageBitrate(kbps(s.stream.bitrate)) : ""]
+      .filter(Boolean)
+      .join(" — ") || undefined,
   );
 </script>
 
 {#if compact}
-  <span class="chip {verdict.tone}" title="{verdict.label} — {verdict.detail}{editionHint ? ` — ${editionHint}` : ''}">
+  <span
+    class="chip {verdict.tone}"
+    title="{verdict.label} — {verdict.detail}{editionHint ? ` — ${editionHint}` : ''}"
+  >
     <span class="dot"></span>
     {s.stream ? formatStream(s.stream) : "—"}
   </span>

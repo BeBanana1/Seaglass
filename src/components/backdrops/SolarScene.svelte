@@ -70,7 +70,12 @@
       <path id="sol-leaf" d="M0 0 C 18 -16 52 -18 78 0 C 52 18 18 16 0 0 Z" />
       <path id="sol-broad" d="M0 0 C 30 -64 128 -74 178 -12 C 126 42 42 42 0 0 Z" />
       <filter id="sol-grain">
-        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" />
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.85"
+          numOctaves="2"
+          stitchTiles="stitch"
+        />
         <feColorMatrix values="0 0 0 0 0.12  0 0 0 0 0.22  0 0 0 0 0.12  0 0 0 0.45 0" />
       </filter>
     </defs>
@@ -89,13 +94,30 @@
     <g class="city">
       {#each towers as tower (tower.x)}
         {@const top = ground - tower.h}
-        <rect x={tower.x} y={top} width={tower.w} height={tower.h + 40} rx={tower.w / 2} style="fill: var(--city)" />
+        <rect
+          x={tower.x}
+          y={top}
+          width={tower.w}
+          height={tower.h + 40}
+          rx={tower.w / 2}
+          style="fill: var(--city)"
+        />
         <path
           d="M{tower.x + 8} {top + tower.w * 0.5 + 24} l{tower.w - 16} -10 v8 l-{tower.w - 16} 10 Z"
           style="fill: var(--panel)"
         />
-        <circle cx={tower.x + tower.w * 0.3} cy={top + tower.w * 0.5 + 70} r="12" style="fill: var(--leaf-3)" />
-        <circle cx={tower.x + tower.w * 0.68} cy={top + tower.w * 0.5 + 64} r="15" style="fill: var(--leaf-2)" />
+        <circle
+          cx={tower.x + tower.w * 0.3}
+          cy={top + tower.w * 0.5 + 70}
+          r="12"
+          style="fill: var(--leaf-3)"
+        />
+        <circle
+          cx={tower.x + tower.w * 0.68}
+          cy={top + tower.w * 0.5 + 64}
+          r="15"
+          style="fill: var(--leaf-2)"
+        />
       {/each}
     </g>
 
@@ -104,15 +126,29 @@
       <path d="M248 820 L252 820 L251 540 L249 540 Z" style="fill: var(--city-dark)" />
       <g class="blades">
         <path d="M250 540 L246 470 L250 440 L254 470 Z" style="fill: var(--city-dark)" />
-        <path d="M250 540 L246 470 L250 440 L254 470 Z" style="fill: var(--city-dark)" transform="rotate(120 250 540)" />
-        <path d="M250 540 L246 470 L250 440 L254 470 Z" style="fill: var(--city-dark)" transform="rotate(240 250 540)" />
+        <path
+          d="M250 540 L246 470 L250 440 L254 470 Z"
+          style="fill: var(--city-dark)"
+          transform="rotate(120 250 540)"
+        />
+        <path
+          d="M250 540 L246 470 L250 440 L254 470 Z"
+          style="fill: var(--city-dark)"
+          transform="rotate(240 250 540)"
+        />
       </g>
       <circle cx="250" cy="540" r="6" style="fill: var(--gold)" />
     </g>
 
     <!-- Collines. -->
-    <path d="M0 820 C 300 770 600 800 900 820 S 1400 780 1600 800 V1000 H0Z" style="fill: var(--hill-1)" />
-    <path d="M0 900 C 400 860 800 900 1100 910 S 1500 880 1600 890 V1000 H0Z" style="fill: var(--hill-2)" />
+    <path
+      d="M0 820 C 300 770 600 800 900 820 S 1400 780 1600 800 V1000 H0Z"
+      style="fill: var(--hill-1)"
+    />
+    <path
+      d="M0 900 C 400 860 800 900 1100 910 S 1500 880 1600 890 V1000 H0Z"
+      style="fill: var(--hill-2)"
+    />
 
     <!-- Grandes feuilles aux angles. -->
     <g style="fill: var(--leaf-1)">
@@ -128,11 +164,16 @@
     {#each fronds as f, i (i)}
       <g
         class="sway"
-        style="transform-origin: {f.origin[0]}px {f.origin[1]}px; animation-delay: {f.delay}s; fill: var(--leaf-{f.tone}); stroke: var(--leaf-{f.tone})"
+        style="transform-origin: {f.origin[0]}px {f
+          .origin[1]}px; animation-delay: {f.delay}s; fill: var(--leaf-{f.tone}); stroke: var(--leaf-{f.tone})"
       >
         <path d={f.d} fill="none" stroke-width="3" stroke-linecap="round" />
         {#each f.leaves as l, j (j)}
-          <use href="#sol-leaf" transform="translate({l.x} {l.y}) rotate({l.a}) scale({l.s})" stroke="none" />
+          <use
+            href="#sol-leaf"
+            transform="translate({l.x} {l.y}) rotate({l.a}) scale({l.s})"
+            stroke="none"
+          />
         {/each}
       </g>
     {/each}
@@ -141,11 +182,16 @@
     {#each vines as v, i (i)}
       <g
         class="sway slow"
-        style="transform-origin: {v.origin[0]}px {v.origin[1]}px; animation-delay: {v.delay}s; fill: var(--leaf-2); stroke: var(--leaf-1)"
+        style="transform-origin: {v.origin[0]}px {v
+          .origin[1]}px; animation-delay: {v.delay}s; fill: var(--leaf-2); stroke: var(--leaf-1)"
       >
         <path d={v.d} fill="none" stroke-width="2" stroke-linecap="round" />
         {#each v.leaves as l, j (j)}
-          <use href="#sol-leaf" transform="translate({l.x} {l.y}) rotate({l.a}) scale({l.s})" stroke="none" />
+          <use
+            href="#sol-leaf"
+            transform="translate({l.x} {l.y}) rotate({l.a}) scale({l.s})"
+            stroke="none"
+          />
         {/each}
       </g>
     {/each}

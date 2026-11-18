@@ -1,3 +1,8 @@
+<script lang="ts" module>
+  let cached: FeedItem[] | null = null;
+  let cachedLang: string | null = null;
+</script>
+
 <script lang="ts">
   import { onMount } from "svelte";
   import { commands, type FeedItem, type MediaItem } from "../lib/ipc";
@@ -39,13 +44,16 @@
   }
 
   /** Clé d'un élément (un album et un mix peuvent partager un identifiant numérique). */
-  const itemKey = (item: MediaItem) => `${item.kind}-${item.kind === "playlist" ? item.uuid : item.id}`;
+  const itemKey = (item: MediaItem) =>
+    `${item.kind}-${item.kind === "playlist" ? item.uuid : item.id}`;
 
   /** Type de l'élément : Single / EP / Album, ou Mix pour le mix mensuel. */
   const itemKind = (item: MediaItem) => (item.kind === "album" ? albumKind(item) : t.format.mix);
 
   function shortDate(at: number | null): string | null {
-    return at === null ? null : new Date(at).toLocaleDateString(locale(), { day: "numeric", month: "short" });
+    return at === null
+      ? null
+      : new Date(at).toLocaleDateString(locale(), { day: "numeric", month: "short" });
   }
 
   onMount(async () => {
@@ -66,16 +74,13 @@
   });
 </script>
 
-<script lang="ts" module>
-  let cached: FeedItem[] | null = null;
-  let cachedLang: string | null = null;
-</script>
-
 <section>
   <div class="feed-head">
     <h1>{t.views.feed.title}</h1>
     <p class="muted">
-      {t.views.feed.intro}{#if unseen > 0}&nbsp;· <span class="feed-count">{t.views.feed.unseen(unseen)}</span>{/if}
+      {t.views.feed.intro}{#if unseen > 0}&nbsp;· <span class="feed-count">
+          {t.views.feed.unseen(unseen)}
+        </span>{/if}
     </p>
   </div>
   {#if error}

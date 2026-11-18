@@ -28,7 +28,9 @@ describe("playedFrom", () => {
   });
 
   it("nomme les sources sans titre dans la langue courante", () => {
-    expect(playedFrom({ kind: "artist", id: 1, name: "Björk" })?.label).toBe("Titres populaires de Björk");
+    expect(playedFrom({ kind: "artist", id: 1, name: "Björk" })?.label).toBe(
+      "Titres populaires de Björk",
+    );
     expect(playedFrom({ kind: "likedTracks" })).toEqual({
       label: "Titres likés",
       route: { name: "library", tab: "tracks" },

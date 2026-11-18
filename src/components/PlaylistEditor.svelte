@@ -38,7 +38,8 @@
 
   $effect(() => {
     // La confirmation prend le focus pour qu'Entrée ne supprime pas par mégarde.
-    if (confirming) requestAnimationFrame(() => dialog?.querySelector<HTMLElement>(".cancel")?.focus());
+    if (confirming)
+      requestAnimationFrame(() => dialog?.querySelector<HTMLElement>(".cancel")?.focus());
   });
 
   async function save(event: SubmitEvent) {
@@ -91,13 +92,17 @@
   >
     <header>
       <h3 id="playlist-editor-title" class="display">{confirming ? e.deleteTitle : e.title}</h3>
-      <button class="close" onclick={onClose} aria-label={t.common.close}><Icon name="close" /></button>
+      <button class="close" onclick={onClose} aria-label={t.common.close}>
+        <Icon name="close" />
+      </button>
     </header>
 
     {#if confirming}
       <p class="confirm-text">{e.deleteConfirm(playlist.title)}</p>
       <div class="buttons">
-        <button class="cancel" onclick={() => (confirming = false)} disabled={busy}>{e.cancel}</button>
+        <button class="cancel" onclick={() => (confirming = false)} disabled={busy}>
+          {e.cancel}
+        </button>
         <button class="danger" onclick={remove} disabled={busy}>{e.delete}</button>
       </div>
     {:else}
@@ -114,7 +119,12 @@
           {e.cleanupAction}
         </button>
         <div class="buttons">
-          <button type="button" class="delete-link" onclick={() => (confirming = true)} disabled={busy}>
+          <button
+            type="button"
+            class="delete-link"
+            onclick={() => (confirming = true)}
+            disabled={busy}
+          >
             {e.deleteAction}
           </button>
           <span class="spacer"></span>

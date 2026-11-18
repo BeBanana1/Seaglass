@@ -3,7 +3,13 @@
 import { commands, type Pin, type PlaySource, type TrackEntry, type TrackId } from "./ipc";
 import type { LibraryTab, Route } from "./stores/nav.svelte";
 import { listSort } from "./stores/ui.svelte";
-import { LIKED_DEFAULT_SORT, listTracks, PLAYLIST_DEFAULT_SORT, sortTracks, type TrackSort } from "./trackOrder";
+import {
+  LIKED_DEFAULT_SORT,
+  listTracks,
+  PLAYLIST_DEFAULT_SORT,
+  sortTracks,
+  type TrackSort,
+} from "./trackOrder";
 import { t } from "./i18n.svelte";
 
 /** Onglet de la bibliothèque d'une épingle qui n'est ni une playlist ni un mix. */
@@ -67,7 +73,9 @@ async function pinTracks(pin: Pin): Promise<TrackId[]> {
     case "mix":
       return (await commands.mix(pin.id)).tracks.map((track) => track.id);
     case "later":
-      return (await commands.saveForLater()).items.flatMap((item) => (item.kind === "track" ? [item.id] : []));
+      return (await commands.saveForLater()).items.flatMap((item) =>
+        item.kind === "track" ? [item.id] : [],
+      );
     case "smart":
       return (await commands.smartList(pin.list)).map((track) => track.id);
   }

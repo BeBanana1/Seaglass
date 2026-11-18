@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { commands, type AlbumPage, type AlbumRelated, type AlbumSummary, type MediaItem } from "../lib/ipc";
+  import {
+    commands,
+    type AlbumPage,
+    type AlbumRelated,
+    type AlbumSummary,
+    type MediaItem,
+  } from "../lib/ipc";
   import { albumKind, formatLongDuration, year } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
   import { go } from "../lib/stores/nav.svelte";
@@ -45,9 +51,12 @@
       .catch((e) => (error = String(e)));
   });
 
-  const asItems = (albums: AlbumSummary[]): MediaItem[] => albums.map((a) => ({ kind: "album", ...a }));
+  const asItems = (albums: AlbumSummary[]): MediaItem[] =>
+    albums.map((a) => ({ kind: "album", ...a }));
   // Le jumeau hi-res a déjà son bandeau (#59) : pas deux fois.
-  const versions = $derived(related ? asItems(related.versions.filter((a) => a.id !== twin?.id)) : []);
+  const versions = $derived(
+    related ? asItems(related.versions.filter((a) => a.id !== twin?.id)) : [],
+  );
   const byArtist = $derived(related ? asItems(related.byArtist) : []);
   const mainArtist = $derived(page?.album.artists[0] ?? null);
 </script>
@@ -76,7 +85,12 @@
     >
       {#snippet meta()}
         {#each album.artists as artist, i (artist.id)}
-          {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button>
+          {#if i > 0},&nbsp;{/if}<button
+            class="link"
+            onclick={() => go({ name: "artist", id: artist.id })}
+          >
+            {artist.name}
+          </button>
         {/each}
         <span class="details">{details.map((d) => ` · ${d}`).join("")}</span>
         {#if album.explicit}<span class="badge muted">E</span>{/if}
@@ -88,8 +102,14 @@
       {@const target = twin}
       <p class="hires-twin">
         <span class="badge">HI-RES</span>
-        <span class="hires-twin-text">{t.views.album.hiresTwin}<span class="hires-twin-title">&nbsp;: {target.title}{target.releaseDate ? ` (${year(target.releaseDate)})` : ""}</span></span>
-        <button class="hires-twin-open" onclick={() => go({ name: "album", id: target.id })}>{t.views.album.open}</button>
+        <span class="hires-twin-text">
+          {t.views.album.hiresTwin}<span class="hires-twin-title">
+            &nbsp;: {target.title}{target.releaseDate ? ` (${year(target.releaseDate)})` : ""}
+          </span>
+        </span>
+        <button class="hires-twin-open" onclick={() => go({ name: "album", id: target.id })}>
+          {t.views.album.open}
+        </button>
       </p>
     {/if}
     <TrackList
@@ -110,7 +130,10 @@
           title={t.views.album.byArtist(artist.name)}
           items={byArtist}
           row
-          more={{ label: t.views.album.seeArtist, onclick: () => go({ name: "artist", id: artist.id }) }}
+          more={{
+            label: t.views.album.seeArtist,
+            onclick: () => go({ name: "artist", id: artist.id }),
+          }}
         />
       {/if}
     </div>

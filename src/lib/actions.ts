@@ -10,7 +10,17 @@ import { THEME_INFO } from "./themes";
 import { player, stepVolume } from "./stores/player.svelte";
 import { sleepScope } from "./stores/queue.svelte";
 import { isLiked, toggleLike } from "./stores/likes.svelte";
-import { back, canGoBack, current, go, openSettings, replace, type LibraryTab, type Route, type SettingsSection } from "./stores/nav.svelte";
+import {
+  back,
+  canGoBack,
+  current,
+  go,
+  openSettings,
+  replace,
+  type LibraryTab,
+  type Route,
+  type SettingsSection,
+} from "./stores/nav.svelte";
 import { setTheme, stepZoom, ui } from "./stores/ui.svelte";
 import { toggleFullscreen } from "./stores/window.svelte";
 import { pushToast } from "./stores/toasts.svelte";
@@ -83,7 +93,10 @@ async function toggleExclusive() {
   const exclusive = !settings.exclusive;
   await commands.setPlaybackSettings({ ...settings, exclusive });
   playbackSettingsChanged.count++;
-  pushToast({ level: "info", message: exclusive ? t.palette.actions.exclusiveOn : t.palette.actions.exclusiveOff });
+  pushToast({
+    level: "info",
+    message: exclusive ? t.palette.actions.exclusiveOn : t.palette.actions.exclusiveOff,
+  });
 }
 
 function themeName(id: Theme): string {
@@ -106,15 +119,30 @@ export const ACTIONS: Action[] = [
     run: () => {
       context.closeNowPlaying();
       if (current().name !== "search") replace({ name: "search" });
-      requestAnimationFrame(() => document.querySelector<HTMLInputElement>('input[type="search"]')?.focus());
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLInputElement>('input[type="search"]')?.focus(),
+      );
     },
   },
-  goAction("go.library", () => a().library, { name: "library", tab: "playlists" }, ["library", "playlists"]),
+  goAction("go.library", () => a().library, { name: "library", tab: "playlists" }, [
+    "library",
+    "playlists",
+  ]),
   ...LIBRARY_TABS.map((tab) =>
-    goAction(`go.library.${tab}`, () => a().libraryTab(t.library.tabs[tab]), { name: "library", tab }, ["library"]),
+    goAction(
+      `go.library.${tab}`,
+      () => a().libraryTab(t.library.tabs[tab]),
+      { name: "library", tab },
+      ["library"],
+    ),
   ),
   goAction("go.stats", () => a().stats, { name: "stats" }, ["stats"]),
-  goAction("go.recap", () => a().recap, { name: "recap" }, ["recap", "wrapped", "rétrospective", "bilan"]),
+  goAction("go.recap", () => a().recap, { name: "recap" }, [
+    "recap",
+    "wrapped",
+    "rétrospective",
+    "bilan",
+  ]),
   {
     id: "go.settings",
     group: "go",
@@ -126,18 +154,16 @@ export const ACTIONS: Action[] = [
       openSettings();
     },
   },
-  ...SETTINGS_SECTIONS.map(
-    (section): Action => ({
-      id: `go.settings.${section}`,
-      group: "go",
-      label: () => a().settingsSection(t.settings.sections[section]),
-      keywords: ["settings"],
-      run: () => {
-        context.closeNowPlaying();
-        openSettings(section);
-      },
-    }),
-  ),
+  ...SETTINGS_SECTIONS.map((section): Action => ({
+    id: `go.settings.${section}`,
+    group: "go",
+    label: () => a().settingsSection(t.settings.sections[section]),
+    keywords: ["settings"],
+    run: () => {
+      context.closeNowPlaying();
+      openSettings(section);
+    },
+  })),
   {
     id: "go.nowPlaying",
     group: "go",
@@ -182,8 +208,22 @@ export const ACTIONS: Action[] = [
     available: hasTrack,
     run: () => commands.togglePause(),
   },
-  { id: "play.next", group: "playback", label: () => a().next, keywords: ["next", "skip"], available: () => session() && player.state.hasNext, run: () => commands.next() },
-  { id: "play.previous", group: "playback", label: () => a().previous, keywords: ["previous"], available: hasTrack, run: () => commands.previous() },
+  {
+    id: "play.next",
+    group: "playback",
+    label: () => a().next,
+    keywords: ["next", "skip"],
+    available: () => session() && player.state.hasNext,
+    run: () => commands.next(),
+  },
+  {
+    id: "play.previous",
+    group: "playback",
+    label: () => a().previous,
+    keywords: ["previous"],
+    available: hasTrack,
+    run: () => commands.previous(),
+  },
   {
     id: "play.shuffle",
     group: "playback",
@@ -208,8 +248,24 @@ export const ACTIONS: Action[] = [
     available: hasTrack,
     run: () => player.currentTrack && toggleLike(player.currentTrack),
   },
-  { id: "play.volumeUp", group: "playback", label: () => a().volumeUp, keywords: ["volume"], shortcut: "Ctrl+↑", available: session, run: () => stepVolume(1) },
-  { id: "play.volumeDown", group: "playback", label: () => a().volumeDown, keywords: ["volume"], shortcut: "Ctrl+↓", available: session, run: () => stepVolume(-1) },
+  {
+    id: "play.volumeUp",
+    group: "playback",
+    label: () => a().volumeUp,
+    keywords: ["volume"],
+    shortcut: "Ctrl+↑",
+    available: session,
+    run: () => stepVolume(1),
+  },
+  {
+    id: "play.volumeDown",
+    group: "playback",
+    label: () => a().volumeDown,
+    keywords: ["volume"],
+    shortcut: "Ctrl+↓",
+    available: session,
+    run: () => stepVolume(-1),
+  },
   {
     id: "play.mute",
     group: "playback",
@@ -226,16 +282,14 @@ export const ACTIONS: Action[] = [
     available: () => session() && desktop() && exclusiveAvailable,
     run: toggleExclusive,
   },
-  ...SLEEP_MINUTES.map(
-    (minutes): Action => ({
-      id: `sleep.${minutes}`,
-      group: "playback",
-      label: () => a().sleepMinutes(minutes),
-      keywords: ["sleep", "timer"],
-      available: session,
-      run: () => commands.setSleepTimer({ kind: "minutes", minutes }),
-    }),
-  ),
+  ...SLEEP_MINUTES.map((minutes): Action => ({
+    id: `sleep.${minutes}`,
+    group: "playback",
+    label: () => a().sleepMinutes(minutes),
+    keywords: ["sleep", "timer"],
+    available: session,
+    run: () => commands.setSleepTimer({ kind: "minutes", minutes }),
+  })),
   {
     id: "sleep.endOfTrack",
     group: "playback",
@@ -271,22 +325,52 @@ export const ACTIONS: Action[] = [
     available: () => session() && desktop(),
     run: () => commands.openMiniPlayer(),
   },
-  { id: "window.fullscreen", group: "window", label: () => a().fullscreen, keywords: ["fullscreen"], shortcut: "F11", available: desktop, run: toggleFullscreen },
-  { id: "window.zoomIn", group: "window", label: () => a().zoomIn, keywords: ["zoom", "taille"], shortcut: "Ctrl++", available: desktop, run: () => stepZoom(1) },
-  { id: "window.zoomOut", group: "window", label: () => a().zoomOut, keywords: ["zoom", "taille"], shortcut: "Ctrl+-", available: desktop, run: () => stepZoom(-1) },
-  { id: "window.zoomReset", group: "window", label: () => a().zoomReset, keywords: ["zoom", "taille"], shortcut: "Ctrl+0", available: desktop, run: () => stepZoom(0) },
+  {
+    id: "window.fullscreen",
+    group: "window",
+    label: () => a().fullscreen,
+    keywords: ["fullscreen"],
+    shortcut: "F11",
+    available: desktop,
+    run: toggleFullscreen,
+  },
+  {
+    id: "window.zoomIn",
+    group: "window",
+    label: () => a().zoomIn,
+    keywords: ["zoom", "taille"],
+    shortcut: "Ctrl++",
+    available: desktop,
+    run: () => stepZoom(1),
+  },
+  {
+    id: "window.zoomOut",
+    group: "window",
+    label: () => a().zoomOut,
+    keywords: ["zoom", "taille"],
+    shortcut: "Ctrl+-",
+    available: desktop,
+    run: () => stepZoom(-1),
+  },
+  {
+    id: "window.zoomReset",
+    group: "window",
+    label: () => a().zoomReset,
+    keywords: ["zoom", "taille"],
+    shortcut: "Ctrl+0",
+    available: desktop,
+    run: () => stepZoom(0),
+  },
 
   // Thèmes : un par entrée, sauf le thème en cours.
-  ...THEME_INFO.map(
-    (info): Action => ({
-      id: `theme.${info.id}`,
-      group: "theme",
-      label: () => a().theme(themeName(info.id)),
-      keywords: ["theme", info.id, info.scheme === "dark" ? "sombre dark" : "clair light"],
-      available: () => ui.settings.theme !== info.id,
-      run: () => setTheme(info.id),
-    }),
-  ),
+  ...THEME_INFO.map((info): Action => ({
+    id: `theme.${info.id}`,
+    group: "theme",
+    label: () => a().theme(themeName(info.id)),
+    keywords: ["theme", info.id, info.scheme === "dark" ? "sombre dark" : "clair light"],
+    available: () => ui.settings.theme !== info.id,
+    run: () => setTheme(info.id),
+  })),
 ];
 
 const byId = new Map(ACTIONS.map((action) => [action.id, action]));
@@ -307,7 +391,8 @@ export function runAction(id: string) {
   if (!action || (action.available && !action.available())) return;
   try {
     const result = action.run();
-    if (result instanceof Promise) result.catch((e) => pushToast({ level: "error", message: String(e) }));
+    if (result instanceof Promise)
+      result.catch((e) => pushToast({ level: "error", message: String(e) }));
   } catch (e) {
     pushToast({ level: "error", message: String(e) });
   }

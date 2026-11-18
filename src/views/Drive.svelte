@@ -69,9 +69,23 @@
       y: e.clientY,
       from: e.currentTarget as HTMLElement,
       entries: [
-        ...(index > 0 ? [{ label: t.drive.moveUp, icon: "up" as const, action: () => movePin(pin, -1).catch(fail) }] : []),
+        ...(index > 0
+          ? [
+              {
+                label: t.drive.moveUp,
+                icon: "up" as const,
+                action: () => movePin(pin, -1).catch(fail),
+              },
+            ]
+          : []),
         ...(index < tiles.length - 1
-          ? [{ label: t.drive.moveDown, icon: "down" as const, action: () => movePin(pin, 1).catch(fail) }]
+          ? [
+              {
+                label: t.drive.moveDown,
+                icon: "down" as const,
+                action: () => movePin(pin, 1).catch(fail),
+              },
+            ]
           : []),
         { label: t.drive.remove, icon: "close", action: () => togglePin(pin).catch(fail) },
       ],
@@ -102,7 +116,9 @@
     </span>
     <span class="drive-meta">
       <span class="drive-track">{track ? fullTitle(track) : t.drive.nothing}</span>
-      {#if track}<span class="drive-artist">{track.artists.map((a) => a.name).join(", ")}</span>{/if}
+      {#if track}<span class="drive-artist">
+          {track.artists.map((a) => a.name).join(", ")}
+        </span>{/if}
     </span>
   </div>
 
@@ -130,7 +146,11 @@
   {#if tiles.length === 0}
     <p class="drive-empty">{t.drive.empty}</p>
   {:else}
-    <div class="drive-tiles" class:single={tiles.length === 1} style:--rows={Math.ceil(tiles.length / 2)}>
+    <div
+      class="drive-tiles"
+      class:single={tiles.length === 1}
+      style:--rows={Math.ceil(tiles.length / 2)}
+    >
       {#each tiles as pin, i (pinKey(pin))}
         {@const label = pinLabel(pin)}
         <!-- Deux zones (#193) : la tuile lit, la bande à droite (›) ouvre la page. -->
@@ -142,7 +162,11 @@
           role="group"
           aria-label={label}
         >
-          <button class="drive-tile-play" onclick={() => play(pin)} aria-busy={starting === pinKey(pin)}>
+          <button
+            class="drive-tile-play"
+            onclick={() => play(pin)}
+            aria-busy={starting === pinKey(pin)}
+          >
             {#if starting === pinKey(pin)}
               <span class="spinner"></span>
             {:else}
@@ -150,7 +174,11 @@
             {/if}
             <span class="drive-tile-label">{label}</span>
           </button>
-          <button class="drive-tile-open" onclick={() => onOpen(pinRoute(pin))} aria-label={t.drive.openPage(label)}>
+          <button
+            class="drive-tile-open"
+            onclick={() => onOpen(pinRoute(pin))}
+            aria-label={t.drive.openPage(label)}
+          >
             <Icon name="chevronRight" size={28} />
           </button>
         </div>

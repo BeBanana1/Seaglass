@@ -10,7 +10,8 @@ class FakeRow extends EventTarget {
   classList = {
     add: (...names: string[]) => names.forEach((n) => this.classes.add(n)),
     remove: (...names: string[]) => names.forEach((n) => this.classes.delete(n)),
-    toggle: (name: string, force: boolean) => (force ? this.classes.add(name) : this.classes.delete(name)),
+    toggle: (name: string, force: boolean) =>
+      force ? this.classes.add(name) : this.classes.delete(name),
   };
 
   style = {
@@ -31,7 +32,12 @@ class FakeRow extends EventTarget {
   }
 }
 
-function pointer(type: string, clientX: number, clientY = 100, extra: Record<string, unknown> = {}) {
+function pointer(
+  type: string,
+  clientX: number,
+  clientY = 100,
+  extra: Record<string, unknown> = {},
+) {
   return Object.assign(new Event(type, { cancelable: true }), {
     pointerId: 1,
     isPrimary: true,

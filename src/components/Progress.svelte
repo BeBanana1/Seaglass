@@ -26,7 +26,9 @@
   const shown = $derived(dragging ?? position);
   /** 1er août (#399) : la barre suit la trotteuse d'une horloge de gare, arrêt compris.
    *  Pas pendant un glissement, ni dans le temps affiché en chiffres. */
-  const bar = $derived(dragging === null && eggs.date === "swissDay" ? stationClock(position, duration) : shown);
+  const bar = $derived(
+    dragging === null && eggs.date === "swissDay" ? stationClock(position, duration) : shown,
+  );
   const ratio = $derived(duration ? Math.min(bar / duration, 1) : 0);
   /** Partie déjà en mémoire (#453), en bande plus claire sous la progression. */
   const cachedRatio = $derived(s.track && duration ? Math.min(s.cached / duration, 1) : 0);

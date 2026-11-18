@@ -40,7 +40,9 @@
   });
 
   // Dossier actuel : celui de la première playlist (une seule à la fois depuis le menu).
-  const currentId = $derived(folderPicker.request ? (folderOf(folderPicker.request.uuids[0])?.id ?? null) : null);
+  const currentId = $derived(
+    folderPicker.request ? (folderOf(folderPicker.request.uuids[0])?.id ?? null) : null,
+  );
 
   async function moveTo(folderId: string | null) {
     const request = folderPicker.request;
@@ -86,7 +88,9 @@
           <h3 id="folder-picker-title" class="display">{t.library.folders.pickerTitle}</h3>
           <p class="sub">{folderPicker.request.label}</p>
         </div>
-        <button class="close" onclick={closeFolderPicker} aria-label={t.common.close}><Icon name="close" /></button>
+        <button class="close" onclick={closeFolderPicker} aria-label={t.common.close}>
+          <Icon name="close" />
+        </button>
       </header>
 
       {#if creating}
@@ -99,7 +103,9 @@
             bind:this={nameInput}
             aria-label={t.library.folders.newName}
           />
-          <button class="primary" type="submit" disabled={busy || !newName.trim()}>{t.library.folders.create}</button>
+          <button class="primary" type="submit" disabled={busy || !newName.trim()}>
+            {t.library.folders.create}
+          </button>
         </form>
       {:else}
         <button class="picker-item picker-new" onclick={() => (creating = true)} disabled={busy}>

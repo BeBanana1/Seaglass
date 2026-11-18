@@ -12,7 +12,10 @@
   display: inline;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  background: linear-gradient(transparent 55%, color-mix(in srgb, var(--accent) 30%, transparent) 55%);
+  background: linear-gradient(
+    transparent 55%,
+    color-mix(in srgb, var(--accent) 30%, transparent) 55%
+  );
 }
 
 :root[data-theme="riso"] .brand {
@@ -61,7 +64,10 @@
 }
 
 :root[data-theme="riso"] .row.active .title {
-  background: linear-gradient(transparent 50%, color-mix(in srgb, var(--accent) 35%, transparent) 50%);
+  background: linear-gradient(
+    transparent 50%,
+    color-mix(in srgb, var(--accent) 35%, transparent) 50%
+  );
 }
 
 :root[data-theme="riso"] .row:hover {

@@ -234,27 +234,32 @@
   {:else if searching && !r}
     <p class="muted">{t.views.search.searching}</p>
   {:else if empty && !searching}
-    <p class="muted">{ui.settings.theme === "noir" ? t.views.search.noResultsNoir : t.views.search.noResults}</p>
+    <p class="muted">
+      {ui.settings.theme === "noir" ? t.views.search.noResultsNoir : t.views.search.noResults}
+    </p>
   {/if}
 
   <!-- Un clic dans les résultats retient la requête (#248) : c'est celle qu'on cherchait. -->
-  <div class="results" class:stale={searching} onpointerdowncapture={() => remember(saved.searched)}>
-
-  {#if r && r.tracks.length > 0}
-    <div class="tracks">
-      <h2>{t.views.search.tracks}</h2>
-      <!-- Le contexte de lecture est la liste affichée. -->
-      <TrackList {tracks} source={{ kind: "search", query: saved.searched }} />
-      {#if r.tracks.length > COLLAPSED_TRACKS}
-        <button class="more" onclick={() => (saved.allTracks = !saved.allTracks)}>
-          {saved.allTracks ? t.views.search.showLess : t.views.search.showAll(r.tracks.length)}
-        </button>
-      {/if}
-    </div>
-  {/if}
-  <CardGrid title={t.views.search.artists} items={artists} row />
-  <CardGrid title={t.views.search.albums} items={albums} row />
-  <CardGrid title={t.views.search.playlists} items={playlists} row />
+  <div
+    class="results"
+    class:stale={searching}
+    onpointerdowncapture={() => remember(saved.searched)}
+  >
+    {#if r && r.tracks.length > 0}
+      <div class="tracks">
+        <h2>{t.views.search.tracks}</h2>
+        <!-- Le contexte de lecture est la liste affichée. -->
+        <TrackList {tracks} source={{ kind: "search", query: saved.searched }} />
+        {#if r.tracks.length > COLLAPSED_TRACKS}
+          <button class="more" onclick={() => (saved.allTracks = !saved.allTracks)}>
+            {saved.allTracks ? t.views.search.showLess : t.views.search.showAll(r.tracks.length)}
+          </button>
+        {/if}
+      </div>
+    {/if}
+    <CardGrid title={t.views.search.artists} items={artists} row />
+    <CardGrid title={t.views.search.albums} items={albums} row />
+    <CardGrid title={t.views.search.playlists} items={playlists} row />
   </div>
 </section>
 

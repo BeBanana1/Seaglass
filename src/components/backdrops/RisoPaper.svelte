@@ -8,10 +8,22 @@
 <div class="scene" class:intense aria-hidden="true">
   <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
     <defs>
-      <pattern id="riso-dots-a" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(15)">
+      <pattern
+        id="riso-dots-a"
+        width="9"
+        height="9"
+        patternUnits="userSpaceOnUse"
+        patternTransform="rotate(15)"
+      >
         <circle cx="4.5" cy="4.5" r="2.6" style="fill: var(--ink-a)" />
       </pattern>
-      <pattern id="riso-dots-b" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-30)">
+      <pattern
+        id="riso-dots-b"
+        width="8"
+        height="8"
+        patternUnits="userSpaceOnUse"
+        patternTransform="rotate(-30)"
+      >
         <circle cx="4" cy="4" r="2.2" style="fill: var(--ink-b)" />
       </pattern>
       <filter id="riso-grain">

@@ -40,7 +40,9 @@
   });
 
   const defaultName = $derived(
-    known?.systemDefault ? (known.devices.find((d) => sameId(d.id, known!.systemDefault!))?.name ?? null) : null,
+    known?.systemDefault
+      ? (known.devices.find((d) => sameId(d.id, known!.systemDefault!))?.name ?? null)
+      : null,
   );
 
   /** Choix enregistré absent de la liste (débranché) : affiché quand même, sélectionné. */
@@ -87,7 +89,12 @@
     </button>
   {/each}
   {#if missing}
-    <button class="cache-size audio-device selected missing" role="radio" aria-checked="true" disabled={disabled}>
+    <button
+      class="cache-size audio-device selected missing"
+      role="radio"
+      aria-checked="true"
+      {disabled}
+    >
       <span class="device-name">{missing.name}</span>
       <span class="device-detail">{t.settings.deviceUnplugged}</span>
     </button>

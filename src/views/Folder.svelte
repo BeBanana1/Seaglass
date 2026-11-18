@@ -3,7 +3,14 @@
   // Les playlists viennent de la bibliothèque (onglet Playlists), filtrées par le dossier.
   import type { MediaItem } from "../lib/ipc";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
-  import { deleteFolder, folderById, folderPlaylists, folders, loadFolders, renameFolder } from "../lib/stores/folders.svelte";
+  import {
+    deleteFolder,
+    folderById,
+    folderPlaylists,
+    folders,
+    loadFolders,
+    renameFolder,
+  } from "../lib/stores/folders.svelte";
   import { back } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
   import CardGrid from "../components/CardGrid.svelte";
@@ -30,7 +37,12 @@
 
   const folder = $derived(folderById(id));
   const cards = $derived<MediaItem[]>(
-    folder ? folderPlaylists(folder, library.playlists.items ?? []).map((p) => ({ kind: "playlist", ...p })) : [],
+    folder
+      ? folderPlaylists(folder, library.playlists.items ?? []).map((p) => ({
+          kind: "playlist",
+          ...p,
+        }))
+      : [],
   );
 
   function startRename() {
@@ -90,8 +102,12 @@
               bind:this={nameInput}
               aria-label={t.library.folders.renameLabel}
             />
-            <button class="primary" type="submit" disabled={busy || !name.trim()}>{t.library.folders.save}</button>
-            <button type="button" class="pill" onclick={() => (renaming = false)}>{t.library.folders.cancel}</button>
+            <button class="primary" type="submit" disabled={busy || !name.trim()}>
+              {t.library.folders.save}
+            </button>
+            <button type="button" class="pill" onclick={() => (renaming = false)}>
+              {t.library.folders.cancel}
+            </button>
           </form>
         {:else}
           <h1>{folder.name}</h1>
@@ -105,10 +121,16 @@
             </button>
             {#if confirming}
               <span class="confirm" role="alert">{t.library.folders.deleteConfirm}</span>
-              <button class="pill danger" onclick={remove} disabled={busy}>{t.library.folders.deleteYes}</button>
-              <button class="pill" onclick={() => (confirming = false)} disabled={busy}>{t.library.folders.cancel}</button>
+              <button class="pill danger" onclick={remove} disabled={busy}>
+                {t.library.folders.deleteYes}
+              </button>
+              <button class="pill" onclick={() => (confirming = false)} disabled={busy}>
+                {t.library.folders.cancel}
+              </button>
             {:else}
-              <button class="pill" onclick={() => (confirming = true)} disabled={busy}>{t.library.folders.delete}</button>
+              <button class="pill" onclick={() => (confirming = true)} disabled={busy}>
+                {t.library.folders.delete}
+              </button>
             {/if}
           </div>
         {/if}
