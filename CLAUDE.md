@@ -69,7 +69,7 @@ seaglass/
       ├─ store/              # SQLite (dont snapshots.rs : copies des listes)
       ├─ handoff.rs          # transfert de la lecture avec l'ordinateur lié, côté téléphone (#414)
       ├─ foreign/            # liens d'autres services : Jam (#229, links.rs, meta.rs, matching.rs), import de playlists (#328, playlists.rs, import.rs)
-      └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs, mpris/ (Linux), tray.rs, discord/ (présence Discord)
+      └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs, mpris/ (Linux), tray.rs, discord/ (présence Discord), listenbrainz/ (envoi des écoutes, #431)
 ```
 
 ## Architecture du lecteur

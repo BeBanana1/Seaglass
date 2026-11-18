@@ -38,6 +38,7 @@
   import { jam, setJamEnabled } from "../lib/stores/jam.svelte";
   import JamPanel from "../components/JamPanel.svelte";
   import RelaySettings from "../components/RelaySettings.svelte";
+  import ListenBrainzSettings from "../components/ListenBrainzSettings.svelte";
   import EqualizerSettings from "../components/EqualizerSettings.svelte";
   import RemotePanel from "../components/RemotePanel.svelte";
   import LinkedComputerPanel from "../components/LinkedComputerPanel.svelte";
@@ -805,6 +806,13 @@
       </label>
     </div>
     {/if}
+
+    <!-- #431 : envoi des écoutes à ListenBrainz, bureau et téléphone. -->
+    <div class="group">
+      <h2>{t.settings.listenbrainz.title}</h2>
+      <p class="hint">{t.settings.listenbrainz.hint}</p>
+      <ListenBrainzSettings />
+    </div>
 
     <!-- #413 : raccourcis globaux, actifs hors de la fenêtre (bureau seulement). -->
     {#if desktop && globalShortcutsAvailable}

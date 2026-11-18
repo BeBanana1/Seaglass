@@ -12,6 +12,7 @@
 pub mod discord;
 #[cfg(desktop)]
 pub mod hotkeys;
+pub mod listenbrainz;
 #[cfg(any(target_os = "android", test))]
 pub mod media_session;
 #[cfg(any(target_os = "linux", test))]

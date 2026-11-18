@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 
 use super::actor::{Cmd, Player};
+use crate::integrations::listenbrainz;
 use crate::store::Play;
 use crate::tidal::models::{AlbumSummary, Track, TrackId};
 
@@ -206,11 +207,14 @@ impl Player {
         } else {
             f64::from(track.duration)
         };
-        if self
+        let counted = self
             .listen
-            .on_position(track.id, duration, self.state.time_pos)
-            .is_none()
-        {
+            .on_position(track.id, duration, self.state.time_pos);
+        // Début du titre annoncé à ListenBrainz (#431) quand il joue vraiment.
+        if !self.state.paused && self.listen.announce(track.id) {
+            listenbrainz::now_playing(track);
+        }
+        if counted.is_none() {
             return;
         }
         let Some(store) = self.store.clone() else {
@@ -222,6 +226,9 @@ impl Player {
         let played_at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_millis() as i64);
+        // ListenBrainz veut le début de l'écoute, figé ici : un envoi répété garde la même
+        // date.
+        let started_at = played_at / 1000 - self.listen.listened() as i64;
         tokio::task::spawn_blocking(move || {
             let play = Play {
                 track: &track,
@@ -232,6 +239,7 @@ impl Player {
             if let Err(e) = store.add_play(&play) {
                 tracing::warn!("écoute non enregistrée : {e}");
             }
+            listenbrainz::listened(&store, &track, started_at);
         });
     }
 }

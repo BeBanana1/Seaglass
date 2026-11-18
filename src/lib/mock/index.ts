@@ -58,6 +58,7 @@ import type {
   QueueView,
   RadioPage,
   RelayView,
+  ListenBrainzStatus,
   SearchResults,
   SleepRequest,
   SleepState,
@@ -742,6 +743,13 @@ let relay: RelayView = {
   customKey: false,
   usable: relayParam !== "off" && relayParam !== "none",
 };
+// `?listenbrainz=1` : compte connecté ; `=refused` : jeton refusé depuis (#431).
+const lbParam = params.get("listenbrainz");
+let listenbrainz: ListenBrainzStatus = {
+  user: lbParam ? "seaglass-fan" : null,
+  refused: lbParam === "refused",
+  pending: lbParam ? 3 : 0,
+};
 const jamParam = params.get("jam");
 let jam: ReturnType<typeof mockJam> | null =
   jamParam === "1" || jamParam === "reconnecting"
@@ -912,6 +920,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   jam_status: () => jam,
   jam_online_available: () => relay.usable,
+  // Un jeton contenant « bad » est refusé, comme par `validate-token`.
+  listenbrainz_status: () => listenbrainz,
+  listenbrainz_connect: ({ token }) => {
+    const value = String(token).trim();
+    if (!value || /\s/.test(value)) throw "jeton ListenBrainz invalide : collez-le tel quel";
+    if (value.includes("bad")) throw "jeton refusé par ListenBrainz : copiez-le depuis vos réglages ListenBrainz";
+    listenbrainz = { user: "seaglass-fan", refused: false, pending: listenbrainz.pending };
+    return listenbrainz;
+  },
+  listenbrainz_disconnect: () => (listenbrainz = { user: null, refused: false, pending: 0 }),
   relay_settings: () => relay,
   // Une adresse contenant « down » imite un relais injoignable.
   set_relay_settings: ({ change }) => {

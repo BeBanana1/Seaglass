@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.84
+
+- Envoi des écoutes à ListenBrainz, facultatif : jeton à coller dans Réglages › Application, écoutes gardées hors ligne et envoyées plus tard (#431)
+
 ## 0.5.83
 
 - Crédits cliquables : un nom ouvre la liste des titres où la personne est créditée, avec ses rôles ; entrée « Crédits » sur la page d'artiste (#429)
