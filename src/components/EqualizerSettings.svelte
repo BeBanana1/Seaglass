@@ -344,8 +344,9 @@
     min-width: 0;
   }
 
+  /* Seul sur sa ligne quand la place manque (téléphone). */
   .grow {
-    flex: 1;
+    flex: 1 1 220px;
   }
 
   .setting-label {
@@ -461,8 +462,15 @@
     vector-effect: non-scaling-stroke;
   }
 
-  /* Téléphone (#467) : le tableau défile seul plutôt que d'élargir la page. */
+  /* Téléphone (#467) : le tableau défile seul plutôt que d'élargir la page. Sans
+     `min-width: 0`, un enfant de flex prend la largeur de son contenu et tout déborde. */
+  .eq-profile > *,
+  .eq-import > * {
+    min-width: 0;
+  }
+
   .eq-table {
+    max-width: 100%;
     overflow-x: auto;
   }
 
