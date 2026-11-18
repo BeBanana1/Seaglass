@@ -98,7 +98,7 @@ L'architecture, les conventions et la feuille de route sont décrites dans [`CLA
 
 ## Construire et héberger soi-même
 
-Aucune adresse de serveur n'est écrite dans le code : elles sont lues à la compilation, dans l'environnement ou dans `.env`. Sans elles, l'app marche sans le service correspondant.
+Aucune adresse de serveur n'est écrite dans le code : elles sont lues à la compilation, dans l'environnement ou dans `.env` (modèle complet : [`.env.example`](.env.example)). Sans elles, l'app marche sans le service correspondant.
 
 ```
 # Relais de la Jam en ligne et du transfert de lecture (facultatif)
