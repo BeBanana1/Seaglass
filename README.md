@@ -1,5 +1,6 @@
 # Seaglass
 
+[![Latest version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fupdates.bebanana.ch%2Fseaglass%2Flatest.json&query=%24.version&label=latest%20version&prefix=v&color=brightgreen&cacheSeconds=3600)](https://updates.bebanana.ch/seaglass/)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 ![Platforms: Windows, Linux, Android](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android-informational)
 ![Built with Tauri 2, Rust and Svelte 5](https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Rust%20%C2%B7%20Svelte%205-orange)
