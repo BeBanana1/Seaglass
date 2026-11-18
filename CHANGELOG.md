@@ -11,9 +11,13 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
-## 0.5.84
+## 0.5.85
 
 - Notification des nouvelles sorties des artistes suivis, désactivée par défaut (Réglages › Notifications) ; un clic ouvre l'album, ou le fil s'il y en a plusieurs (#435)
+
+## 0.5.84
+
+- Envoi des écoutes à ListenBrainz, facultatif : jeton à coller dans Réglages › Application, écoutes gardées hors ligne et envoyées plus tard (#431)
 
 ## 0.5.83
 

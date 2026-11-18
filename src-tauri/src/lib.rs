@@ -76,6 +76,8 @@ pub fn run() {
             ui_settings.apply_to_backend();
             // Avant la télécommande, dont le tunnel passe par le relais (#452).
             jam::relay_settings::load(store.as_deref());
+            // Envoi des écoutes à ListenBrainz (#431), si un compte est connecté.
+            integrations::listenbrainz::start(app.handle().clone(), store.clone());
             commands::shortcuts::sync(&ui_settings.pins);
             #[cfg(desktop)]
             commands::settings::zoom::apply(app.handle(), ui_settings.zoom);
@@ -278,6 +280,9 @@ pub fn run() {
             commands::settings::platform,
             commands::settings::autostart_enabled,
             commands::settings::discord_available,
+            commands::listenbrainz::listenbrainz_status,
+            commands::listenbrainz::listenbrainz_connect,
+            commands::listenbrainz::listenbrainz_disconnect,
             commands::settings::exclusive_available,
             #[cfg(desktop)]
             commands::settings::set_autostart,

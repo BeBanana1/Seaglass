@@ -1,7 +1,8 @@
 //! Quand une écoute compte pour l'historique local (#202) : règle de Last.fm, le titre a
 //! réellement joué la moitié de sa durée ou 4 minutes, et dure plus de 30 s. Le temps est
 //! cumulé à partir des positions reçues du moteur : un saut en avant ne compte pas, une
-//! pause non plus. Logique pure, sans horloge.
+//! pause non plus. Logique pure, sans horloge. Dit aussi quand annoncer le début d'un titre
+//! à ListenBrainz (#431) : une fois par écoute, dès qu'il joue.
 
 use crate::tidal::models::TrackId;
 
@@ -21,6 +22,7 @@ pub struct ListenTracker {
     last_pos: f64,
     listened: f64,
     counted: bool,
+    announced: bool,
 }
 
 impl ListenTracker {
@@ -39,6 +41,7 @@ impl ListenTracker {
         if step < 0.0 && pos < RESTART_BELOW && self.last_pos - pos > RESTART_BELOW {
             self.listened = 0.0;
             self.counted = false;
+            self.announced = false;
         } else if step > 0.0 && step <= MAX_STEP {
             self.listened += step;
         }
@@ -51,6 +54,21 @@ impl ListenTracker {
             return Some(track);
         }
         None
+    }
+
+    /// Vrai une seule fois par écoute du titre courant (après `on_position`) : il joue,
+    /// on peut annoncer son début.
+    pub fn announce(&mut self, track: TrackId) -> bool {
+        if self.track != Some(track) || self.announced {
+            return false;
+        }
+        self.announced = true;
+        true
+    }
+
+    /// Temps réellement écouté du titre courant, en secondes.
+    pub fn listened(&self) -> f64 {
+        self.listened
     }
 }
 
@@ -107,6 +125,21 @@ mod tests {
         let mut tracker = ListenTracker::default();
         assert_eq!(play(&mut tracker, 100.0, 0.0, 100.0, 1.0), 1);
         assert_eq!(play(&mut tracker, 100.0, 0.0, 100.0, 1.0), 1);
+    }
+
+    #[test]
+    fn announced_once_per_listen() {
+        let mut tracker = ListenTracker::default();
+        assert!(!tracker.announce(T));
+        tracker.on_position(T, 100.0, 0.0);
+        assert!(tracker.announce(T));
+        assert!(!tracker.announce(T));
+        play(&mut tracker, 100.0, 1.0, 100.0, 1.0);
+        assert!(!tracker.announce(T));
+        // Repeat One : nouvelle écoute, nouvelle annonce.
+        tracker.on_position(T, 100.0, 0.0);
+        assert!(tracker.announce(T));
+        assert!(!tracker.announce(TrackId(2)));
     }
 
     #[test]

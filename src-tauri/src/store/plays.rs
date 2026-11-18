@@ -1,4 +1,5 @@
-//! Historique d'écoute local (#202) : rien n'est envoyé à TIDAL ni ailleurs.
+//! Historique d'écoute local (#202) : rien n'est envoyé à TIDAL ni ailleurs (l'envoi
+//! facultatif à ListenBrainz a sa propre file, `scrobbles.rs`, #431).
 //!
 //! Une ligne par écoute comptée (règle de `player::listen`), les `MAX_PLAYS` plus récentes
 //! seulement. Les lignes ne gardent que des identifiants, l'artiste principal, la durée et

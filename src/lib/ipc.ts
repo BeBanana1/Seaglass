@@ -798,6 +798,16 @@ export interface UiSettings {
   releaseNotifications: boolean;
 }
 
+/** Envoi des écoutes à ListenBrainz (#431). Le jeton n'est jamais renvoyé à l'UI. */
+export interface ListenBrainzStatus {
+  /** Compte connecté ; `null` : envoi désactivé. */
+  user: string | null;
+  /** ListenBrainz a refusé le jeton à un envoi : il faut en coller un nouveau. */
+  refused: boolean;
+  /** Écoutes pas encore envoyées. */
+  pending: number;
+}
+
 /** Relais de la Jam en ligne et des transferts (#452). La clé n'est jamais renvoyée. */
 export interface RelayView {
   enabled: boolean;
@@ -1064,6 +1074,9 @@ export const commands = {
   jamStatus: () => invoke<JamStatus | null>("jam_status"),
   jamOnlineAvailable: () => invoke<boolean>("jam_online_available"),
   /** Relais (#452) : l'adresse choisie est vérifiée (`/healthz`) avant d'être enregistrée. */
+  listenbrainzStatus: () => invoke<ListenBrainzStatus>("listenbrainz_status"),
+  listenbrainzConnect: (token: string) => invoke<ListenBrainzStatus>("listenbrainz_connect", { token }),
+  listenbrainzDisconnect: () => invoke<ListenBrainzStatus>("listenbrainz_disconnect"),
   relaySettings: () => invoke<RelayView>("relay_settings"),
   setRelaySettings: (change: RelayChange) => invoke<RelayView>("set_relay_settings", { change }),
   /** Dossier des mises à jour compilé (#452) ; `null` : mises à jour absentes. */
