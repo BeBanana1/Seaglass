@@ -3,7 +3,7 @@
 //! faible. Réseau et batterie sont relus à chaque résolution d'un titre : un changement
 //! compte à partir du titre suivant, le titre en cours n'est jamais rechargé.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::settings::{MobileQuality, PlaybackSettings};
 use crate::tidal::models::AudioQuality;
@@ -39,6 +39,30 @@ pub(super) struct Conditions {
     pub power_save: bool,
 }
 
+/// Qualité baissée par la batterie (#492), envoyée à l'UI.
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QualityCap {
+    /// Qualité demandée pour l'instant.
+    pub quality: MobileQuality,
+    /// Celle du réglage pour le réseau en cours.
+    pub chosen: MobileQuality,
+    pub reason: CapReason,
+    /// Niveau en %, s'il est connu.
+    pub battery: Option<u8>,
+}
+
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CapReason {
+    /// Économiseur de batterie d'Android.
+    PowerSave,
+    /// Sous 50 % (Haute au plus) ou sous 20 % (Basse).
+    BatteryLow,
+}
+
 impl QualityPolicy {
     pub fn new(settings: &PlaybackSettings) -> Self {
         Self {
@@ -66,32 +90,49 @@ impl QualityPolicy {
         let Some(c) = conditions else {
             return self.wifi.min(self.cellular);
         };
-        let network = if c.metered { self.cellular } else { self.wifi };
+        match self.cap(c) {
+            Some(cap) => cap.quality,
+            None => self.network(c),
+        }
+    }
+
+    /// Qualité choisie pour le réseau en cours.
+    fn network(self, c: Conditions) -> MobileQuality {
+        if c.metered { self.cellular } else { self.wifi }
+    }
+
+    /// Plafond de batterie qui baisse la qualité du réseau en cours (#492), pour le montrer
+    /// dans les réglages. `None` si la batterie ne change rien : réglage coupé, en charge,
+    /// batterie assez haute, ou qualité choisie déjà sous le plafond.
+    #[cfg_attr(not(target_os = "android"), allow(dead_code))]
+    pub fn cap(self, c: Conditions) -> Option<QualityCap> {
         if !self.low_battery || c.charging {
-            return network;
+            return None;
         }
         let below = |threshold: u8| c.battery.is_some_and(|level| level < threshold);
-        let cap = if c.power_save || below(LOW_CAP_BELOW) {
-            MobileQuality::Low
+        let (limit, reason) = if c.power_save {
+            (MobileQuality::Low, CapReason::PowerSave)
+        } else if below(LOW_CAP_BELOW) {
+            (MobileQuality::Low, CapReason::BatteryLow)
         } else if below(HIGH_CAP_BELOW) {
-            MobileQuality::High
+            (MobileQuality::High, CapReason::BatteryLow)
         } else {
-            MobileQuality::Max
+            return None;
         };
-        network.min(cap)
+        let chosen = self.network(c);
+        (limit < chosen).then_some(QualityCap {
+            quality: limit,
+            chosen,
+            reason,
+            battery: c.battery,
+        })
     }
 
     /// Qualité à demander pour le titre résolu maintenant.
     pub async fn current(self) -> AudioQuality {
         #[cfg(target_os = "android")]
         {
-            let conditions = tauri_plugin_seaglass_mobile::direct::call::<Conditions>(
-                "deviceConditions",
-                serde_json::json!({}),
-            )
-            .await
-            .inspect_err(|e| tracing::warn!("état du réseau et de la batterie illisible : {e}"))
-            .ok();
+            let conditions = read_conditions().await;
             let quality = self.pick(conditions);
             tracing::debug!("qualité {quality:?} ({conditions:?})");
             quality.audio_quality()
@@ -101,6 +142,26 @@ impl QualityPolicy {
             self.ceiling()
         }
     }
+}
+
+/// Plafond de batterie de l'instant pour ces réglages (#492) ; `None` si l'état de
+/// l'appareil est illisible.
+#[cfg(target_os = "android")]
+pub async fn current_cap(settings: &PlaybackSettings) -> Option<QualityCap> {
+    let conditions = read_conditions().await?;
+    QualityPolicy::new(settings).cap(conditions)
+}
+
+/// Réseau et batterie lus par `DeviceConditions.kt`.
+#[cfg(target_os = "android")]
+async fn read_conditions() -> Option<Conditions> {
+    tauri_plugin_seaglass_mobile::direct::call::<Conditions>(
+        "deviceConditions",
+        serde_json::json!({}),
+    )
+    .await
+    .inspect_err(|e| tracing::warn!("état du réseau et de la batterie illisible : {e}"))
+    .ok()
 }
 
 #[cfg(test)]
@@ -173,6 +234,57 @@ mod tests {
             p.pick(Some(unknown)),
             Lossless,
             "niveau inconnu : pas de plafond"
+        );
+    }
+
+    #[test]
+    fn cap_explains_only_a_lowered_quality() {
+        let p = policy(Max, High, true);
+        let saver = Conditions {
+            power_save: true,
+            ..on(false, 90).unwrap()
+        };
+        assert_eq!(
+            p.cap(saver),
+            Some(QualityCap {
+                quality: Low,
+                chosen: Max,
+                reason: CapReason::PowerSave,
+                battery: Some(90),
+            }),
+            "économiseur : Basse au lieu de Max"
+        );
+        let cap = p.cap(on(false, 40).unwrap()).unwrap();
+        assert_eq!((cap.quality, cap.reason), (High, CapReason::BatteryLow));
+        assert_eq!(p.cap(on(false, 10).unwrap()).unwrap().quality, Low);
+        assert_eq!(p.cap(on(false, 60).unwrap()), None, "batterie assez haute");
+        assert_eq!(
+            p.cap(on(true, 40).unwrap()),
+            None,
+            "données mobiles déjà en Haute : rien de baissé"
+        );
+        let plugged = Conditions {
+            charging: true,
+            ..saver
+        };
+        assert_eq!(p.cap(plugged), None, "en charge");
+        assert_eq!(policy(Max, High, false).cap(saver), None, "réglage coupé");
+        // `pick` suit le plafond.
+        assert_eq!(p.pick(Some(saver)), Low);
+        assert_eq!(p.pick(on(true, 40)), High);
+    }
+
+    #[test]
+    fn cap_for_the_ui() {
+        let cap = policy(Max, Max, true)
+            .cap(Conditions {
+                power_save: true,
+                ..on(false, 61).unwrap()
+            })
+            .unwrap();
+        assert_eq!(
+            serde_json::to_string(&cap).unwrap(),
+            r#"{"quality":"low","chosen":"max","reason":"powerSave","battery":61}"#
         );
     }
 

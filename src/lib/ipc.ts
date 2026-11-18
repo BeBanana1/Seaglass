@@ -939,6 +939,17 @@ export interface PlaybackSettings {
   lowBatteryQuality: boolean;
 }
 
+/** Android (#492) : qualité baissée par la batterie en ce moment. */
+export interface QualityCap {
+  /** Qualité demandée pour l'instant. */
+  quality: MobileQuality;
+  /** Celle du réglage pour le réseau en cours. */
+  chosen: MobileQuality;
+  reason: "powerSave" | "batteryLow";
+  /** Niveau en %, s'il est connu. */
+  battery: number | null;
+}
+
 export interface UpdateInfo {
   version: string;
   currentVersion: string;
@@ -1317,6 +1328,8 @@ export const commands = {
   /** Enregistre et applique à chaud (sans recharger le titre en cours). */
   setPlaybackSettings: (settings: PlaybackSettings) =>
     invoke<void>("set_playback_settings", { settings }),
+  /** Android (#492) : plafond de batterie de l'instant ; `null` si la batterie ne change rien. */
+  qualityCap: () => invoke<QualityCap | null>("quality_cap"),
   /** #428 : analyse un « ParametricEQ.txt » d'AutoEQ ; profil d'identifiant 0, sans nom. */
   parseAutoeq: (text: string) => invoke<EqProfile>("parse_autoeq", { text }),
   /** Périphériques de sortie connus de mpv ; la suite arrive par `audio-devices`. */

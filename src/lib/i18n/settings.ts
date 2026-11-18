@@ -210,6 +210,14 @@ export const fr = {
   lowBatteryQualityHint:
     "Sous 50 % : Haute au plus. Sous 20 % ou avec l'économiseur de batterie : Basse. " +
     "Rien ne change pendant la charge.",
+  /** #492 : plafond de batterie en ce moment ; `quality` et `chosen` déjà traduites. */
+  qualityCap: (quality: string, chosen: string, powerSave: boolean, battery: number | null) =>
+    `Pour l'instant : ${quality} au lieu de ${chosen}, ` +
+    (powerSave
+      ? "économiseur de batterie actif."
+      : battery === null
+        ? "batterie faible."
+        : `batterie à ${battery} %.`),
   hiresEdition: "Édition hi-res",
   hiresModes: {
     auto: {
@@ -613,6 +621,9 @@ export const en: typeof fr = {
   lowBatteryQualityHint:
     "Below 50%: High at most. Below 20% or with battery saver: Low. " +
     "Nothing changes while charging.",
+  qualityCap: (quality: string, chosen: string, powerSave: boolean, battery: number | null) =>
+    `For now: ${quality} instead of ${chosen}, ` +
+    (powerSave ? "battery saver is on." : battery === null ? "battery is low." : `battery at ${battery}%.`),
   hiresEdition: "Hi-res edition",
   hiresModes: {
     auto: {
