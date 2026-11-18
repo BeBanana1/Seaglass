@@ -47,6 +47,60 @@ Des invités ajoutent des titres à la file depuis leur téléphone, sans app ni
 - Mises à jour automatiques signées sur les trois plateformes.
 - Journaux et rapports de plantage gardés en local, copiables depuis Réglages › Application.
 
+## Par rapport à l'app officielle
+
+Comparaison faite le 2026-11-18. Les chiffres viennent de mesures sur un Galaxy S21 (#451, méthode et détails dans [`docs/android.md`](docs/android.md) › « Mesures de performances »). Pour l'app officielle, seul ce qui a été vérifié figure ici, et elle évolue : certains points peuvent avoir changé depuis.
+
+### Sur toutes les plateformes
+
+**Mieux dans Seaglass**
+
+- Égaliseur paramétrique, avec import des profils AutoEQ et un réglage par sortie audio sur le bureau. L'app officielle n'a pas d'égaliseur.
+- Import d'une playlist Spotify, Deezer ou Apple Music en collant son lien, dans l'app. L'officielle renvoie vers des services tiers.
+- Envoi des écoutes à ListenBrainz et présence Discord intégrés. Pour l'officielle, il faut des outils tiers.
+- Une vingtaine de thèmes, et la chaîne audio affichée jusqu'au format envoyé à la sortie.
+
+**Aussi dans Seaglass**, sans comparaison vérifiée : la Jam (des invités ajoutent des titres depuis leur téléphone, sans app ni compte), le blind test seul ou à plusieurs, l'accueil réordonnable, les statistiques et la rétrospective, les playlists intelligentes et le nettoyage des doublons, tous calculés sur l'appareil.
+
+**Moins bien dans Seaglass**
+
+- Pas de téléchargement hors ligne : c'est un choix du projet, qui ne fait que du streaming.
+- Pas de Dolby Atmos ni de vidéos. Les contenus protégés par DRM ne sont pas lus.
+- Pas de TIDAL Connect ni de Chromecast, et pas d'app iOS ni macOS.
+- Client non officiel : il repose sur une API privée qui peut changer sans prévenir, et s'installe hors des boutiques d'applications.
+
+### Windows
+
+- **À égalité** : le mode exclusif WASAPI existe dans les deux apps.
+- **Mieux** : lecture confiée à mpv, avec la chaîne audio détaillée (format reçu, décodage, format envoyé à la carte son).
+- **Aussi dans Seaglass**, sans comparaison vérifiée : la télécommande depuis le navigateur du téléphone, le mini-lecteur, les raccourcis globaux et le transfert de la lecture avec l'app Android.
+- **Moins bien** : l'installeur n'est pas signé (SmartScreen demande une confirmation), et le mpv livré exige un processeur AVX2.
+- Les performances sur le bureau n'ont pas été mesurées.
+
+### Linux
+
+- **Mieux** : l'app officielle n'existe pas sous Linux, seul le lecteur web est proposé. Seaglass est une app native, avec les contrôles média du bureau (MPRIS) et la lecture par mpv.
+- **Moins bien** : pas de mode exclusif, et mpv doit être installé par le système.
+
+### Android
+
+Mesuré sur le S21, en % d'un cœur du processeur (moins = mieux) :
+
+| Scénario | Seaglass 0.5.90 | App officielle 2.219.0 |
+|---|---|---|
+| Écran éteint, lecture lossless (30 min) | **8,5 %** | 20,5 % |
+| Écran éteint, qualité Haute (AAC), Dolby Atmos coupé | **1,6 à 2,5 %** | non mesuré |
+| « En lecture » ouvert (5 min) | **9,8 %** | 81 % |
+| Accueil pendant la lecture | **5,7 %** | 12 % |
+| Défilement rapide d'une playlist de 489 titres | **42 %** (1,5 % d'images en retard) | 63 % (**0,2 %** d'images en retard) |
+| Accueil affiché après un démarrage à froid | ~1,6 à 2 s | ~1,7 à 2,4 s |
+
+Même playlist, en FLAC 16 bits / 44,1 kHz dans les deux apps : Seaglass la lisait en streaming, l'app officielle depuis ses fichiers téléchargés. Téléphone relié en USB ; les consommations sont donc estimées par Android, pas mesurées sur la batterie.
+
+- **Mieux** : moins de batterie, écran éteint comme allumé. Une qualité différente en Wi-Fi et en données mobiles, baissée en option quand la batterie est faible. Sur les données mobiles, la puce audio décode l'AAC (offload), si Dolby Atmos est coupé dans les réglages du téléphone.
+- **Aussi dans Seaglass**, sans comparaison vérifiée : le mode conduite à grosses tuiles, le widget et les épingles en raccourcis de l'icône.
+- **Moins bien** : pas d'Android Auto (le mode conduite le remplace en partie). En qualité Max, le 24 bits est ramené à 16 bits, et il n'y a pas de sortie bit-perfect vers un DAC USB. Le défilement est un peu moins régulier. L'APK s'installe hors du Play Store.
+
 ## Installation
 
 Tout se télécharge sur **https://updates.bebanana.ch/seaglass/**. Ensuite, l'app se met à jour toute seule : quand une nouvelle version est prête, elle propose « Installer et redémarrer » ou « Plus tard ».
