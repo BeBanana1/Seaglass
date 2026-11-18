@@ -39,11 +39,16 @@ if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
     echo "ERREUR : TAURI_SIGNING_PRIVATE_KEY absente (lancer release-linux.ps1)" >&2
     exit 1
 fi
+if [ -z "${SEAGLASS_UPDATER_PUBKEY:-}" ]; then
+    echo "ERREUR : SEAGLASS_UPDATER_PUBKEY absente (lancer release-linux.ps1)" >&2
+    exit 1
+fi
 config=$(mktemp)
 trap 'rm -f "$config"' EXIT
-cat > "$config" <<'JSON'
-{"build":{"beforeBuildCommand":""}}
-JSON
+# Clé publique (#489) : le CLI vérifie la signature avec `plugins.updater.pubkey`, vide
+# dans `tauri.conf.json`. Du base64, sans caractère à échapper en JSON.
+printf '{"build":{"beforeBuildCommand":""},"plugins":{"updater":{"pubkey":"%s"}}}\n' \
+    "$SEAGLASS_UPDATER_PUBKEY" > "$config"
 cd "$work/src-tauri"
 rm -rf target/release/bundle/appimage
 cargo tauri build --bundles appimage --config "$config"
