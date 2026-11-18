@@ -143,7 +143,9 @@ export type LinkTarget =
   | { kind: "playlist"; uuid: string }
   | { kind: "mix"; id: string }
   /** Playlist d'un autre service à importer (#328) : adresse propre, relue par `importPlaylist`. */
-  | { kind: "import"; link: string };
+  | { kind: "import"; link: string }
+  /** Fil d'actualité : notification groupée des nouvelles sorties (#435). */
+  | { kind: "feed" };
 
 /** Import d'une playlist d'un autre service (#328) : un titre d'origine et sa correspondance. */
 export interface ImportItem {
@@ -792,6 +794,8 @@ export interface UiSettings {
   autoUpdates: boolean;
   /** Jam (#452) : désactivée, elle disparaît de l'UI. */
   jam: boolean;
+  /** Notification des nouvelles sorties des artistes suivis (#435), désactivée par défaut. */
+  releaseNotifications: boolean;
 }
 
 /** Envoi des écoutes à ListenBrainz (#431). Le jeton n'est jamais renvoyé à l'UI. */
@@ -1397,7 +1401,8 @@ export const events = {
   onOpenDrive: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-drive", () => cb()),
   /** Android : épingle à lire (#335) ; elle se prend par `takePinRequest`. */
   onOpenPin: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-pin", () => cb()),
-  /** Android : lien partagé prêt ; il se prend par `takeSharedLink` (#203). */
+  /** Lien partagé prêt (Android, #203) ou notification touchée (#435) ; il se prend par
+   * `takeSharedLink`. */
   onSharedLink: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-link", () => cb()),
   /** Raccourci global exécuté par l'UI (#413) : « Aimer » seulement. */
   onGlobalShortcut: (cb: (action: GlobalAction) => void): Promise<UnlistenFn> =>

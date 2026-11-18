@@ -109,11 +109,12 @@
       clearFeed();
       pushToast({ level: "error", message: t.views.login.sessionLost });
     });
+    // Lien partagé (Android, #203) ou notification des nouvelles sorties touchée (#435).
+    void events.onSharedLink(openShared);
+    void openShared();
     if (platform.mobile) {
       void events.onOpenNowPlaying(openFromNotification);
       void openFromNotification();
-      void events.onSharedLink(openShared);
-      void openShared();
       void events.onOpenDrive(openDriveFromOutside);
       void openDriveFromOutside();
       void events.onOpenPin(playPinFromOutside);

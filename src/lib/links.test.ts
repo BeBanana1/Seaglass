@@ -73,6 +73,12 @@ describe("openSharedLink", () => {
     expect(mocks.go).toHaveBeenCalledWith({ name: "artist", id: 9 });
   });
 
+  it("ouvre le fil d'une notification groupée des nouvelles sorties (#435)", async () => {
+    mocks.takeSharedLink.mockResolvedValue({ kind: "feed" });
+    await openSharedLink();
+    expect(mocks.go).toHaveBeenCalledWith({ name: "feed" });
+  });
+
   it("ignore l'absence de lien et les erreurs", async () => {
     mocks.takeSharedLink.mockResolvedValue(null);
     await openSharedLink();

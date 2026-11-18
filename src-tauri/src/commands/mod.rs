@@ -11,6 +11,7 @@ pub mod drive;
 #[cfg(desktop)]
 pub mod export;
 pub mod feed;
+pub mod feed_alerts;
 pub mod folders;
 pub mod handoff;
 pub mod import;

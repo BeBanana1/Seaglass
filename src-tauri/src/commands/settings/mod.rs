@@ -134,6 +134,8 @@ pub struct UiSettings {
     pub auto_updates: DefaultOn,
     /// Jam (#452) : désactivée, elle disparaît de l'UI (Réglages, « En lecture »).
     pub jam: DefaultOn,
+    /// Notification des nouvelles sorties des artistes suivis (#435). Désactivée par défaut.
+    pub release_notifications: bool,
 }
 
 /// `System` suit « réduire les animations » du système (`prefers-reduced-motion`).
@@ -168,6 +170,7 @@ impl UiSettings {
         self.content.apply();
         crate::servers::set_auto_updates(self.auto_updates.0);
         crate::jam::set_enabled(self.jam.0);
+        crate::commands::feed_alerts::set_enabled(self.release_notifications);
         #[cfg(desktop)]
         crate::integrations::tray::set_close_to_tray(self.close_action == CloseAction::Tray);
         #[cfg(desktop)]
@@ -223,6 +226,10 @@ pub async fn set_ui_settings(
 fn store_and_apply(app: &AppHandle, state: &AppState, settings: &UiSettings) -> CmdResult<()> {
     save(state, settings)?;
     i18n::set(settings.language.resolve());
+    // Notifications des nouvelles sorties activées : Android 13+ demande la permission.
+    if settings.release_notifications && !crate::commands::feed_alerts::enabled() {
+        crate::integrations::notify::request_permission(app);
+    }
     settings.apply_to_backend();
     // Jam désactivée : celle en cours s'arrête.
     if !settings.jam.0 {

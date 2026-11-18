@@ -43,7 +43,12 @@ pub enum LinkTarget {
     Import {
         link: String,
     },
+    /// Fil d'actualité : notification groupée des nouvelles sorties (#435).
+    Feed,
 }
+
+/// Lien interne du fil, donné par la notification groupée d'Android (#435) à `ShareActivity`.
+pub(crate) const FEED_LINK: &str = "seaglass://feed";
 
 /// Ce que désigne un lien, avant résolution d'un titre en album.
 #[derive(Debug, Clone, PartialEq)]
@@ -61,12 +66,12 @@ pub async fn open_link(state: State<'_, AppState>, text: String) -> CmdResult<Op
     resolve(&state.tidal, &text).await
 }
 
-/// Lien partagé vers l'app sur Android (menu « Partager », #203), gardé jusqu'à ce que l'UI
-/// le prenne : l'app peut démarrer avec, avant que la WebView n'écoute.
+/// Lien partagé vers l'app sur Android (menu « Partager », #203) ou page d'une notification
+/// touchée (#435), gardé jusqu'à ce que l'UI le prenne : l'app peut démarrer avec, avant que
+/// la WebView n'écoute.
 static SHARED: Mutex<Option<LinkTarget>> = Mutex::new(None);
 
 /// Événement émis quand un lien partagé est prêt (`take_shared_link` le prend).
-#[cfg_attr(not(target_os = "android"), allow(dead_code))]
 pub const SHARED_LINK_EVENT: &str = "open-link";
 
 /// Texte reçu par le menu « Partager » : résolu hors du thread appelant, gardé, puis
@@ -77,14 +82,7 @@ pub fn share(app: &AppHandle, text: String) {
     tauri::async_runtime::spawn(async move {
         let state = app.state::<AppState>();
         match resolve(&state.tidal, &text).await {
-            Ok(Some(target)) => {
-                if let Ok(mut shared) = SHARED.lock() {
-                    *shared = Some(target);
-                }
-                if let Err(e) = app.emit(SHARED_LINK_EVENT, ()) {
-                    tracing::warn!("lien partagé non annoncé à l'UI : {e}");
-                }
-            }
+            Ok(Some(target)) => open(&app, target),
             Ok(None) => toast(
                 &app,
                 tr(
@@ -96,6 +94,17 @@ pub fn share(app: &AppHandle, text: String) {
             Err(e) => toast(&app, e),
         }
     });
+}
+
+/// Garde `target` pour l'UI et l'annonce : menu « Partager », clic sur une notification des
+/// nouvelles sorties (#435).
+pub fn open(app: &AppHandle, target: LinkTarget) {
+    if let Ok(mut shared) = SHARED.lock() {
+        *shared = Some(target);
+    }
+    if let Err(e) = app.emit(SHARED_LINK_EVENT, ()) {
+        tracing::warn!("lien partagé non annoncé à l'UI : {e}");
+    }
 }
 
 #[cfg_attr(not(target_os = "android"), allow(dead_code))]
@@ -165,6 +174,9 @@ pub async fn open_link_settings() -> CmdResult<()> {
 }
 
 async fn resolve(tidal: &TidalClient, text: &str) -> CmdResult<Option<LinkTarget>> {
+    if text.trim() == FEED_LINK {
+        return Ok(Some(LinkTarget::Feed));
+    }
     let Some(link) = parse(text) else {
         // Playlist d'un autre service (#328) : la page d'import s'ouvre.
         return match crate::foreign::playlist_ref(text).await {

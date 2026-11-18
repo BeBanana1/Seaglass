@@ -784,6 +784,27 @@
     </div>
     {/if}
 
+    <!-- #435 : notification des nouvelles sorties des artistes suivis, désactivée par défaut. -->
+    <div class="group">
+      <h2>{t.settings.notifications}</h2>
+      <label class="setting-row">
+        <span class="text">
+          <span class="setting-label">{t.settings.releaseNotifications}</span>
+          <span class="hint">{desktop ? t.settings.releaseNotificationsHint : t.settings.releaseNotificationsHintMobile}</span>
+        </span>
+        <button
+          class="setting-switch"
+          class:on={ui.settings.releaseNotifications}
+          role="switch"
+          aria-checked={ui.settings.releaseNotifications}
+          aria-label={t.settings.releaseNotifications}
+          onclick={() => setUiToggle("releaseNotifications", !ui.settings.releaseNotifications).catch(fail)}
+        >
+          <span class="knob"></span>
+        </button>
+      </label>
+    </div>
+
     <!-- #215 : présence Discord, proposée seulement si une application Discord est compilée. -->
     {#if desktop && discordAvailable}
     <div class="group">
