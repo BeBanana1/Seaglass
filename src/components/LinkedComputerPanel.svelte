@@ -6,13 +6,22 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { commands } from "../lib/ipc";
-  import { handoff, loadLinkedComputer, pullHere, pushToComputer, syncHistoryNow } from "../lib/stores/handoff.svelte";
+  import {
+    handoff,
+    loadLinkedComputer,
+    pullHere,
+    pushToComputer,
+    syncHistoryNow,
+  } from "../lib/stores/handoff.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t, locale } from "../lib/i18n.svelte";
 
   const syncedAt = $derived(
     handoff.linked?.syncedAt
-      ? new Date(handoff.linked.syncedAt).toLocaleString(locale(), { dateStyle: "medium", timeStyle: "short" })
+      ? new Date(handoff.linked.syncedAt).toLocaleString(locale(), {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
       : null,
   );
 
@@ -61,14 +70,18 @@
         <span class="setting-label">{t.handoff.pull}</span>
         <span class="hint">{t.handoff.pullHint}</span>
       </span>
-      <button class="update-check" disabled={handoff.busy} onclick={pullHere}>{t.handoff.pull}</button>
+      <button class="update-check" disabled={handoff.busy} onclick={pullHere}>
+        {t.handoff.pull}
+      </button>
     </div>
     <div class="setting-row handoff-actions">
       <span class="text">
         <span class="setting-label">{t.handoff.push}</span>
         <span class="hint">{t.handoff.pushHint}</span>
       </span>
-      <button class="update-check" disabled={handoff.busy} onclick={pushToComputer}>{t.handoff.push}</button>
+      <button class="update-check" disabled={handoff.busy} onclick={pushToComputer}>
+        {t.handoff.push}
+      </button>
     </div>
     <div class="setting-row handoff-history">
       <span class="text">
@@ -76,7 +89,9 @@
         <span class="hint">{syncedAt ? t.handoff.syncedAt(syncedAt) : t.handoff.neverSynced}</span>
         <span class="hint">{t.handoff.historyHint}</span>
       </span>
-      <button class="update-check" disabled={handoff.syncing} onclick={syncHistoryNow}>{t.handoff.sync}</button>
+      <button class="update-check" disabled={handoff.syncing} onclick={syncHistoryNow}>
+        {t.handoff.sync}
+      </button>
     </div>
   {:else}
     <form class="setting-row handoff-link" onsubmit={link}>
@@ -94,7 +109,9 @@
         />
         <span class="hint">{t.handoff.linkHint}</span>
       </label>
-      <button class="update-check" type="submit" disabled={linking || !text.trim()}>{t.handoff.link}</button>
+      <button class="update-check" type="submit" disabled={linking || !text.trim()}>
+        {t.handoff.link}
+      </button>
     </form>
   {/if}
 </div>

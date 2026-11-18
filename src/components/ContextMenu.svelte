@@ -83,7 +83,12 @@
   }
 </script>
 
-<svelte:window onpointerdowncapture={onPointerdown} onwheel={onWheel} onresize={dismiss} onblur={dismiss} />
+<svelte:window
+  onpointerdowncapture={onPointerdown}
+  onwheel={onWheel}
+  onresize={dismiss}
+  onblur={dismiss}
+/>
 
 {#if menu.open}
   <div

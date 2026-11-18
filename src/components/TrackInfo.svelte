@@ -124,7 +124,9 @@
           <h3 id="track-info-title" class="display">{fullTitle(track)}</h3>
           <p class="sub">{artistNames(track)} · {track.album.title}</p>
         </div>
-        <button class="close" onclick={closeTrackInfo} aria-label={t.common.close}><Icon name="close" /></button>
+        <button class="close" onclick={closeTrackInfo} aria-label={t.common.close}>
+          <Icon name="close" />
+        </button>
       </header>
 
       <div class="body" aria-busy={!info && !error}>
@@ -153,7 +155,9 @@
               <h4>{t.info.hiresEdition}</h4>
               <p class="note">
                 {t.info.sameRecording}
-                <button class="link" onclick={() => openAlbum(edition.track.album.id)}>{edition.track.album.title}</button>.
+                <button class="link" onclick={() => openAlbum(edition.track.album.id)}>
+                  {edition.track.album.title}
+                </button>.
                 {edition.played ? t.info.played : t.info.notPlayed}
               </p>
               {#if edition.stream}<dl>{@render format(edition.stream)}</dl>{/if}
@@ -223,7 +227,9 @@
                     {#each group.contributors as person, i (person.name)}
                       {#if i > 0}{", "}{/if}{#if person.artistId !== null}
                         {@const id = person.artistId}
-                        <button class="link credit-artist" onclick={() => openContributor(id)}>{person.name}</button>
+                        <button class="link credit-artist" onclick={() => openContributor(id)}>
+                          {person.name}
+                        </button>
                       {:else}{person.name}{/if}
                     {/each}
                   </dd>

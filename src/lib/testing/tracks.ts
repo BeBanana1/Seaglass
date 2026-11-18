@@ -6,7 +6,10 @@ let nextId = 1;
 
 /** Titre de liste ; les champs non donnés prennent une valeur neutre. */
 export function entry(
-  fields: Partial<Omit<TrackEntry, "artists" | "album">> & { artists?: string[]; album?: string } = {},
+  fields: Partial<Omit<TrackEntry, "artists" | "album">> & {
+    artists?: string[];
+    album?: string;
+  } = {},
 ): TrackEntry {
   const { artists = ["Artiste"], album = "Album", ...rest } = fields;
   const id = nextId++;

@@ -5,7 +5,8 @@
    Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
 
 /* Commandes en relief, enfoncées quand elles sont actives. */
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) :is(
+:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
+  :is(
     .transport .play,
     .info .actions button,
     .now-playing .close,
@@ -27,7 +28,8 @@
   box-shadow: var(--shadow-raised);
 }
 
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) :is(
+:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
+  :is(
     .transport .play:active,
     .info .actions button:active,
     .tabs button.active,
@@ -44,7 +46,9 @@
   color: var(--accent);
 }
 
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) .transport .play:hover:not(:disabled) {
+:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
+  .transport
+  .play:hover:not(:disabled) {
   color: var(--accent-contrast);
   background-color: var(--accent);
 }
@@ -66,19 +70,22 @@
 }
 
 /* Rainures : pistes, interrupteurs, champs et sélecteurs en creux. */
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) :is(.progress .track, .volume .track) {
+:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
+  :is(.progress .track, .volume .track) {
   height: 8px;
   border-radius: 4px;
   background: var(--bg);
 }
 
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) :is(.progress .fill, .volume .fill) {
+:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
+  :is(.progress .fill, .volume .fill) {
   border-radius: 4px;
   background: var(--accent);
   box-shadow: none;
 }
 
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) :is(
+:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
+  :is(
     input[type="search"],
     .filter,
     .playlist-picker input,
@@ -119,7 +126,8 @@
   color: var(--accent);
 }
 
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) :is(nav button.active, nav .pin.active) {
+:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
+  :is(nav button.active, nav .pin.active) {
   color: var(--accent);
   background: var(--bg);
   box-shadow: var(--shadow-inset);
@@ -130,13 +138,15 @@
   box-shadow: var(--shadow-raised);
 }
 
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) :is(.context-menu-item, .picker-item):is(:hover, :focus) {
+:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
+  :is(.context-menu-item, .picker-item):is(:hover, :focus) {
   background: var(--bg-hover);
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
 /* Chaîne audio et cartes d'information : en relief, sans filet. */
-:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) :is(.signal, .hires-offer, .hires-twin, .home-editor-item) {
+:root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
+  :is(.signal, .hires-offer, .hires-twin, .home-editor-item) {
   border-color: transparent;
   background: var(--bg);
   backdrop-filter: none;

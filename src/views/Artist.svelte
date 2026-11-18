@@ -34,14 +34,15 @@
   const asItems = (albums: ArtistPage["albums"]): MediaItem[] =>
     albums.map((a) => ({ kind: "album", ...a }));
   const appearsOn = $derived(extra ? asItems(extra.appearsOn) : []);
-  const similar = $derived<MediaItem[]>(extra ? extra.similar.map((a) => ({ kind: "artist", ...a })) : []);
+  const similar = $derived<MediaItem[]>(
+    extra ? extra.similar.map((a) => ({ kind: "artist", ...a })) : [],
+  );
   // Repli seulement si le texte dépasse environ trois lignes.
   const bioLong = $derived(
     !!extra?.bio &&
       (extra.bio.paragraphs.length > 1 ||
         extra.bio.paragraphs.flat().reduce((n, part) => n + part.text.length, 0) > 280),
   );
-
 </script>
 
 <section>
@@ -62,9 +63,9 @@
     >
       {#snippet meta()}
         <!-- Titres où l'artiste est crédité (#429), producteur ou compositeur compris. -->
-        <button class="artist-credits" onclick={() => go({ name: "contributor", id })}
-          >{t.views.artist.credits}</button
-        >
+        <button class="artist-credits" onclick={() => go({ name: "contributor", id })}>
+          {t.views.artist.credits}
+        </button>
       {/snippet}
     </PageHeader>
     {#if page.topTracks.length > 0}
@@ -90,9 +91,14 @@
                 {#if part.kind === "text"}{part.text}{:else}<button
                     class="bio-link"
                     onclick={() =>
-                      go(part.kind === "artist" ? { name: "artist", id: part.id } : { name: "album", id: part.id })}
-                    >{part.text}</button
-                  >{/if}
+                      go(
+                        part.kind === "artist"
+                          ? { name: "artist", id: part.id }
+                          : { name: "album", id: part.id },
+                      )}
+                  >
+                    {part.text}
+                  </button>{/if}
               {/each}
             </p>
           {/each}
@@ -103,7 +109,9 @@
               {bioOpen ? t.views.artist.readLess : t.views.artist.readMore}
             </button>
           {/if}
-          {#if extra.bio.source}<span class="bio-source">{t.views.artist.bioSource(extra.bio.source)}</span>{/if}
+          {#if extra.bio.source}<span class="bio-source">
+              {t.views.artist.bioSource(extra.bio.source)}
+            </span>{/if}
         </div>
       </div>
     {/if}

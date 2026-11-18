@@ -12,12 +12,17 @@ export const fr = {
   copied: "Adresse copiée",
   renew: "Nouveau code",
   renewed: "Nouveau code : scannez de nouveau le QR code sur vos téléphones",
-  howTo: "Scannez le QR code une fois avec votre téléphone : il garde le code. Ce code donne le contrôle de la lecture, ne le partagez pas ; « Nouveau code » déconnecte les téléphones déjà appairés.",
-  noLan: "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent ouvrir la télécommande.",
-  firewall: "Au premier allumage, Windows demande d'autoriser Seaglass : acceptez pour les réseaux privés.",
+  howTo:
+    "Scannez le QR code une fois avec votre téléphone : il garde le code. Ce code donne le contrôle de la lecture, ne le partagez pas ; « Nouveau code » déconnecte les téléphones déjà appairés.",
+  noLan:
+    "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent ouvrir la télécommande.",
+  firewall:
+    "Au premier allumage, Windows demande d'autoriser Seaglass : acceptez pour les réseaux privés.",
   handoff: "Accepter les transferts",
-  handoffHint: "L'app Android liée peut reprendre ici ce qui joue sur le téléphone, ou continuer sur le téléphone ce qui joue ici, et les deux échangent leur historique d'écoute.",
-  handoffHowTo: "Sur le téléphone : Réglages › Application › Ordinateur lié, puis tapez l'adresse et le code ci-dessus.",
+  handoffHint:
+    "L'app Android liée peut reprendre ici ce qui joue sur le téléphone, ou continuer sur le téléphone ce qui joue ici, et les deux échangent leur historique d'écoute.",
+  handoffHowTo:
+    "Sur le téléphone : Réglages › Application › Ordinateur lié, puis tapez l'adresse et le code ci-dessus.",
 };
 
 export const en: typeof fr = {
@@ -32,10 +37,14 @@ export const en: typeof fr = {
   copied: "Address copied",
   renew: "New code",
   renewed: "New code: scan the QR code again on your phones",
-  howTo: "Scan the QR code once with your phone: it keeps the code. This code gives control of playback, do not share it; “New code” disconnects the phones already paired.",
+  howTo:
+    "Scan the QR code once with your phone: it keeps the code. This code gives control of playback, do not share it; “New code” disconnects the phones already paired.",
   noLan: "No local network found: only browsers on this computer can open the remote.",
-  firewall: "The first time it is turned on, Windows asks to allow Seaglass: accept for private networks.",
+  firewall:
+    "The first time it is turned on, Windows asks to allow Seaglass: accept for private networks.",
   handoff: "Accept transfers",
-  handoffHint: "The linked Android app can resume here what plays on the phone, or continue on the phone what plays here, and both exchange their listening history.",
-  handoffHowTo: "On the phone: Settings › App › Linked computer, then type the address and code above.",
+  handoffHint:
+    "The linked Android app can resume here what plays on the phone, or continue on the phone what plays here, and both exchange their listening history.",
+  handoffHowTo:
+    "On the phone: Settings › App › Linked computer, then type the address and code above.",
 };

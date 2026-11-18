@@ -58,7 +58,9 @@
   }
 
   const changed = $derived(
-    !!relay && (address.trim().replace(/\/+$/, "") !== (relay.url ?? relay.defaultUrl ?? "") || key.trim() !== ""),
+    !!relay &&
+      (address.trim().replace(/\/+$/, "") !== (relay.url ?? relay.defaultUrl ?? "") ||
+        key.trim() !== ""),
   );
 </script>
 

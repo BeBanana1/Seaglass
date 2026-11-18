@@ -21,7 +21,7 @@ This file only keeps what matters for every task. Implementation notes live in `
 |---|---|
 | App | Tauri 2 |
 | Backend | Rust stable, `tokio`, `serde`, `reqwest` (rustls), `thiserror` + `anyhow`, `tracing` |
-| Frontend | Svelte 5 + TypeScript + Vite, `pnpm`, `vitest` tests |
+| Frontend | Svelte 5 + TypeScript + Vite, `pnpm`, `vitest` tests, Prettier (+ `prettier-plugin-svelte`) |
 | Audio | mpv driven over JSON IPC (named pipe), eventually a Tauri sidecar |
 | Storage | SQLite (`rusqlite`) for the queue, settings and metadata cache |
 | Secrets | `keyring` (Credential Manager on Windows) |
@@ -137,6 +137,7 @@ pnpm tauri dev
 cd src-tauri; cargo fmt; cargo clippy --all-targets -- -D warnings; cargo test
 cargo test live_catalog -- --ignored --nocapture   # real endpoints (session required)
 cargo test dump_ui_fixtures -- --ignored          # UI preview data
+pnpm format                                       # Prettier on src/ (CI: pnpm format:check)
 pnpm check
 pnpm test                                         # frontend tests (vitest)
 pnpm release                                      # signed installer in release/ (see docs/release.md)
@@ -145,6 +146,7 @@ pnpm release:all -Publish                         # Windows + Android + Linux (W
 
 ## Conventions
 
+- Frontend: Prettier (`pnpm format`, width 100, `.prettierrc.json`) must pass `pnpm format:check`, run by CI. `.editorconfig` covers the other files. The commit that formatted everything is listed in `.git-blame-ignore-revs` (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).
 - Rust: `cargo fmt` and `clippy -D warnings` must pass. No `unwrap()` / `expect()` outside tests and initialization. Typed errors with `thiserror` in modules, `anyhow` only at the boundaries.
 - Tauri commands return `Result<T, String>` or a serializable error, never panic.
 - Types shared between UI and Rust are defined on the Rust side and duplicated in `src/lib/ipc.ts` (consider `tauri-specta` if it becomes painful).

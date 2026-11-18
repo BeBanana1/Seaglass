@@ -51,7 +51,9 @@ export function rootPlaylists(all: PlaylistSummary[]): PlaylistSummary[] {
 }
 
 function sortByName(items: PlaylistFolder[]): PlaylistFolder[] {
-  return [...items].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  return [...items].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+  );
 }
 
 function error(e: unknown) {
@@ -72,7 +74,10 @@ export async function movePlaylists(uuids: string[], folderId: string | null): P
     playlists: [...f.playlists.filter((u) => !moved.has(u)), ...(f.id === folderId ? uuids : [])],
   }));
   const target = folderId ? folderById(folderId) : undefined;
-  pushToast({ level: "info", message: target ? t.library.folders.moved(target.name) : t.library.folders.movedOut });
+  pushToast({
+    level: "info",
+    message: target ? t.library.folders.moved(target.name) : t.library.folders.movedOut,
+  });
   return true;
 }
 
@@ -86,7 +91,10 @@ export async function createFolder(name: string, uuids: string[]): Promise<Playl
     return null;
   }
   const moved = new Set(uuids);
-  const others = (folders.items ?? []).map((f) => ({ ...f, playlists: f.playlists.filter((u) => !moved.has(u)) }));
+  const others = (folders.items ?? []).map((f) => ({
+    ...f,
+    playlists: f.playlists.filter((u) => !moved.has(u)),
+  }));
   folders.items = sortByName([...others, created]);
   pushToast({ level: "info", message: t.library.folders.created(created.name) });
   return created;
@@ -100,7 +108,9 @@ export async function renameFolder(id: string, name: string): Promise<boolean> {
     return false;
   }
   const clean = name.trim();
-  folders.items = sortByName((folders.items ?? []).map((f) => (f.id === id ? { ...f, name: clean } : f)));
+  folders.items = sortByName(
+    (folders.items ?? []).map((f) => (f.id === id ? { ...f, name: clean } : f)),
+  );
   return true;
 }
 

@@ -52,7 +52,9 @@
       class:warn={jam.status.connection === "reconnecting" || jam.status.connection === "failed"}
       role="status"
     >
-      {jam.status.mode === "local" ? t.jam.connection.local : t.jam.connection[jam.status.connection]}
+      {jam.status.mode === "local"
+        ? t.jam.connection.local
+        : t.jam.connection[jam.status.connection]}
       {#if jam.status.reason}<span class="jam-reason">({jam.status.reason})</span>{/if}
     </p>
     <div class="setting-row jam-info">
@@ -67,7 +69,9 @@
         <dd class="mono jam-code">{jam.status.code}</dd>
       </dl>
       <div class="jam-actions">
-        <button class="update-check" onclick={copyUrl} disabled={!jam.status.url}>{t.jam.copy}</button>
+        <button class="update-check" onclick={copyUrl} disabled={!jam.status.url}>
+          {t.jam.copy}
+        </button>
         <button class="update-check" onclick={end}>{t.jam.stop}</button>
       </div>
     </div>

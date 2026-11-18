@@ -1,3 +1,13 @@
+<script lang="ts" module>
+  let cached: HomeSection[] | null = null;
+  let cachedLang: string | null = null;
+  // Gardé entre deux visites de l'accueil : le même album tant que l'app reste ouverte.
+  // Hors de toute ligne (`$state` de module) pour que « Passer » rafraîchisse la vue.
+  let featuredIndex = $state(Math.floor(Math.random() * 1000));
+  /** Album affiché, gardé quand la liste des candidats change. */
+  let featuredId = $state<number | null>(null);
+</script>
+
 <script lang="ts">
   import { onMount } from "svelte";
   import { commands, PLAY_HISTORY_KEY, type AlbumSummary, type HomeSection } from "../lib/ipc";
@@ -18,7 +28,9 @@
 
   const visible = $derived((rows ?? []).filter((r) => !r.hidden));
   const customized = $derived(
-    ui.settings.home.order.length > 0 || ui.settings.home.hidden.length > 0 || ui.settings.home.featuredHidden,
+    ui.settings.home.order.length > 0 ||
+      ui.settings.home.hidden.length > 0 ||
+      ui.settings.home.featuredHidden,
   );
 
   /** Albums les plus écoutés dans l'app (#202), relus à chaque visite. */
@@ -102,7 +114,13 @@
       return;
     }
     try {
-      await Promise.all([load(), commands.playHistory().then((h) => (topPlayed = h.top)).catch(() => {})]);
+      await Promise.all([
+        load(),
+        commands
+          .playHistory()
+          .then((h) => (topPlayed = h.top))
+          .catch(() => {}),
+      ]);
     } catch (e) {
       error = String(e);
     }
@@ -137,16 +155,6 @@
       pushToast({ level: "error", message: String(e) });
     }
   }
-</script>
-
-<script lang="ts" module>
-  let cached: HomeSection[] | null = null;
-  let cachedLang: string | null = null;
-  // Gardé entre deux visites de l'accueil : le même album tant que l'app reste ouverte.
-  // Hors de toute ligne (`$state` de module) pour que « Passer » rafraîchisse la vue.
-  let featuredIndex = $state(Math.floor(Math.random() * 1000));
-  /** Album affiché, gardé quand la liste des candidats change. */
-  let featuredId = $state<number | null>(null);
 </script>
 
 <section>

@@ -6,7 +6,7 @@ Closes #
 **How it was checked**
 
 - [ ] `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test`
-- [ ] `pnpm check`, `pnpm test`
+- [ ] `pnpm format`, `pnpm check`, `pnpm test`
 - [ ] Tried in the app (platform: ) or in the preview (`pnpm dev`)
 
 **Checklist** (see CONTRIBUTING.md)

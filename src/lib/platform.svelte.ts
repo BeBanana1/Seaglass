@@ -5,7 +5,10 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { commands, type Platform } from "./ipc";
 
-export const platform = $state<{ name: Platform; mobile: boolean }>({ name: "desktop", mobile: false });
+export const platform = $state<{ name: Platform; mobile: boolean }>({
+  name: "desktop",
+  mobile: false,
+});
 
 /** Repli sans IPC : la WebView d'Android annonce toujours « Android » dans son user-agent. */
 export function guessPlatform(userAgent: string): Platform {

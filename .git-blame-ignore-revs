@@ -1,0 +1,7 @@
+# Commits that only reformat code: `git blame` skips them with
+# git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style(ui): format the frontend with Prettier
+0137560fe77313dfdd7a763968b5b9bc80217325
+# style(ui): second Prettier pass on the mock backend
+4088ed7eb977f381a230ee0ec34a50e2726b0ab6

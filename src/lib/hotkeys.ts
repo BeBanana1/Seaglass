@@ -5,7 +5,15 @@
 import type { GlobalAction } from "./ipc";
 
 /** Ordre des actions dans les Réglages. */
-export const GLOBAL_ACTIONS: GlobalAction[] = ["playPause", "next", "previous", "volumeUp", "volumeDown", "like", "showWindow"];
+export const GLOBAL_ACTIONS: GlobalAction[] = [
+  "playPause",
+  "next",
+  "previous",
+  "volumeUp",
+  "volumeDown",
+  "like",
+  "showWindow",
+];
 
 /** Touches que `global-hotkey` sait enregistrer (sans les modificateurs). */
 const SUPPORTED =
@@ -28,7 +36,13 @@ export function capture(e: KeyInfo): Capture {
   if (MODIFIER.test(e.code)) return { kind: "pending" };
   if (!SUPPORTED.test(e.code)) return { kind: "unsupported" };
   if (!e.ctrlKey && !e.altKey && !e.metaKey) return { kind: "needsModifier" };
-  const parts = [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.metaKey && "Super", e.code];
+  const parts = [
+    e.ctrlKey && "Ctrl",
+    e.altKey && "Alt",
+    e.shiftKey && "Shift",
+    e.metaKey && "Super",
+    e.code,
+  ];
   return { kind: "keys", keys: parts.filter(Boolean).join("+") };
 }
 

@@ -24,7 +24,10 @@ let collator: { locale: string; intl: Intl.Collator } | null = null;
 function collate(a: string, b: string): number {
   const current = locale();
   if (collator?.locale !== current) {
-    collator = { locale: current, intl: new Intl.Collator(current, { sensitivity: "base", numeric: true }) };
+    collator = {
+      locale: current,
+      intl: new Intl.Collator(current, { sensitivity: "base", numeric: true }),
+    };
   }
   return collator.intl.compare(a, b);
 }

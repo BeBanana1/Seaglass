@@ -41,13 +41,25 @@
     </g>
 
     <!-- Collines. -->
-    <path d="M0 640 C 260 560 460 600 720 650 S 1200 560 1600 620 V1000 H0Z" style="fill: var(--hill-1)" />
-    <path d="M0 760 C 300 690 560 720 820 770 S 1300 700 1600 740 V1000 H0Z" style="fill: var(--hill-2)" />
-    <path d="M0 860 C 400 820 700 850 1000 880 S 1400 840 1600 860 V1000 H0Z" style="fill: var(--hill-3)" />
+    <path
+      d="M0 640 C 260 560 460 600 720 650 S 1200 560 1600 620 V1000 H0Z"
+      style="fill: var(--hill-1)"
+    />
+    <path
+      d="M0 760 C 300 690 560 720 820 770 S 1300 700 1600 740 V1000 H0Z"
+      style="fill: var(--hill-2)"
+    />
+    <path
+      d="M0 860 C 400 820 700 850 1000 880 S 1400 840 1600 860 V1000 H0Z"
+      style="fill: var(--hill-3)"
+    />
 
     <!-- Arche posée sur la colline de droite, avec une ombre trop longue. -->
     <path d="M1420 742 L 1180 772 L 1196 782 L 1430 756 Z" fill="#3d2a4d" opacity="0.12" />
-    <path d="M1420 742 V 560 A 56 56 0 0 1 1532 560 V 742 H 1506 V 566 A 30 30 0 0 0 1446 566 V 742 Z" fill="#fffaf2" />
+    <path
+      d="M1420 742 V 560 A 56 56 0 0 1 1532 560 V 742 H 1506 V 566 A 30 30 0 0 0 1446 566 V 742 Z"
+      fill="#fffaf2"
+    />
 
     <!-- Escalier qui ne mène nulle part, suspendu en haut à droite. -->
     <g class="float">
@@ -63,7 +75,15 @@
 
     <!-- Petit cube incliné, en haut à gauche. -->
     <g class="float fast">
-      <rect x="70" y="250" width="40" height="40" rx="4" transform="rotate(18 90 270)" style="fill: var(--sun)" />
+      <rect
+        x="70"
+        y="250"
+        width="40"
+        height="40"
+        rx="4"
+        transform="rotate(18 90 270)"
+        style="fill: var(--sun)"
+      />
     </g>
 
     <rect width="1600" height="1000" filter="url(#grain)" opacity="0.16" />

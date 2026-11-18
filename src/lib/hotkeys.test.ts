@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { capture, displayKeys, sameKeys } from "./hotkeys";
 
-const key = (code: string, mods: Partial<Record<"ctrlKey" | "altKey" | "shiftKey" | "metaKey", boolean>> = {}) => ({
+const key = (
+  code: string,
+  mods: Partial<Record<"ctrlKey" | "altKey" | "shiftKey" | "metaKey", boolean>> = {},
+) => ({
   code,
   ctrlKey: false,
   altKey: false,
@@ -16,7 +19,10 @@ describe("capture", () => {
       kind: "keys",
       keys: "Ctrl+Alt+Shift+KeyL",
     });
-    expect(capture(key("ArrowUp", { metaKey: true }))).toEqual({ kind: "keys", keys: "Super+ArrowUp" });
+    expect(capture(key("ArrowUp", { metaKey: true }))).toEqual({
+      kind: "keys",
+      keys: "Super+ArrowUp",
+    });
   });
 
   it("attend la touche tant que seuls des modificateurs sont pressés", () => {

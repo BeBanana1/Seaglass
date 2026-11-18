@@ -16,8 +16,9 @@ The request states the scope. Without one, run everything.
   2. `cargo clippy --all-targets -- -D warnings`
   3. `cargo test`
 - **front**: from the root:
-  1. `pnpm check`
-  2. `pnpm test`
+  1. `pnpm format:check`
+  2. `pnpm check`
+  3. `pnpm test`
 - **version**: `bash scripts/check-version.sh` from the root.
 
 Never run the ignored tests (`-- --ignored`): they call the real TIDAL endpoints or a real mpv. Do not run `pnpm tauri dev`, `pnpm release`, or anything that publishes.

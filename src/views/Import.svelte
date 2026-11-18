@@ -56,7 +56,9 @@
   const missing = $derived(items.filter((i) => !i.track));
   /** Titres retenus, dans l'ordre de la playlist d'origine. */
   const keptTracks = $derived(
-    items.flatMap((item, index) => (item.track && (item.sure || kept.has(index)) ? [item.track] : [])),
+    items.flatMap((item, index) =>
+      item.track && (item.sure || kept.has(index)) ? [item.track] : [],
+    ),
   );
   const keptIds = $derived(keptTracks.map((track) => track.id));
   const duration = $derived(keptTracks.reduce((sum, track) => sum + track.duration, 0));
@@ -98,7 +100,8 @@
       <p class="muted">
         {progress ? t.views.import.matching(progress.done, progress.total) : t.views.import.reading}
       </p>
-      <progress class="import-progress" max={progress?.total || 1} value={progress?.done ?? 0}></progress>
+      <progress class="import-progress" max={progress?.total || 1} value={progress?.done ?? 0}
+      ></progress>
     </div>
   {:else}
     <PageHeader
@@ -112,7 +115,8 @@
     >
       {#snippet meta()}
         {t.views.import.kept(keptIds.length)}
-        {#if formatLongDuration(duration)} · {formatLongDuration(duration)}{/if}
+        {#if formatLongDuration(duration)}
+          · {formatLongDuration(duration)}{/if}
       {/snippet}
     </PageHeader>
 
@@ -148,7 +152,9 @@
               {/if}
               <span class="import-candidate">
                 <span class="title">{track.title}{track.version ? ` (${track.version})` : ""}</span>
-                <span class="sub">{artists(track)} · {track.album.title} · {formatTime(track.duration)}</span>
+                <span class="sub">
+                  {artists(track)} · {track.album.title} · {formatTime(track.duration)}
+                </span>
                 <span class="sub original">
                   {t.views.import.originally} : {item.title}{item.artist ? ` · ${item.artist}` : ""}
                 </span>

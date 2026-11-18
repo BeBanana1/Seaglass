@@ -265,7 +265,8 @@
   height: 10px;
   margin-top: 10px;
   background:
-    repeating-linear-gradient(90deg, var(--accent) 0 10px, transparent 10px 14px) left / 0 100% no-repeat,
+    repeating-linear-gradient(90deg, var(--accent) 0 10px, transparent 10px 14px) left / 0 100%
+      no-repeat,
     repeating-linear-gradient(90deg, rgb(243 214 162 / 0.15) 0 10px, transparent 10px 14px);
   animation: ob-blocks 1.6s steps(8) forwards;
 }

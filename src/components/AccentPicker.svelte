@@ -46,7 +46,12 @@
     ></button>
   {/each}
   <label class="accent-custom" class:selected={custom} title={t.settings.accentOther}>
-    <input type="color" value={current ?? "#c8ff00"} onchange={onPick} aria-label={t.settings.accentOther} />
+    <input
+      type="color"
+      value={current ?? "#c8ff00"}
+      onchange={onPick}
+      aria-label={t.settings.accentOther}
+    />
     <span>{custom ? current : t.settings.accentOtherShort}</span>
   </label>
 </div>

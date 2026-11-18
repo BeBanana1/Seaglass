@@ -36,7 +36,8 @@ export const fr = {
   linkCopied: "Lien copié",
   tracks: (n: number) => `${num(n)} ${n > 1 ? "titres" : "titre"}`,
   /** « 12 sur 340 titres » (liste filtrée). */
-  tracksOf: (shown: number, total: number) => `${num(shown)} sur ${num(total)} ${total > 1 ? "titres" : "titre"}`,
+  tracksOf: (shown: number, total: number) =>
+    `${num(shown)} sur ${num(total)} ${total > 1 ? "titres" : "titre"}`,
   likesError: (e: string) => `Titres likés illisibles : ${e}`,
 };
 
@@ -71,6 +72,7 @@ export const en: typeof fr = {
   shuffle: "Shuffle",
   linkCopied: "Link copied",
   tracks: (n: number) => `${num(n)} ${n === 1 ? "track" : "tracks"}`,
-  tracksOf: (shown: number, total: number) => `${num(shown)} of ${num(total)} ${total === 1 ? "track" : "tracks"}`,
+  tracksOf: (shown: number, total: number) =>
+    `${num(shown)} of ${num(total)} ${total === 1 ? "track" : "tracks"}`,
   likesError: (e: string) => `Could not read liked tracks: ${e}`,
 };

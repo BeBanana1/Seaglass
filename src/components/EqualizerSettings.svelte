@@ -2,7 +2,13 @@
   // Réglages › Lecture › Égaliseur (#428) : interrupteur, profil choisi, import AutoEQ,
   // édition des filtres et courbe de réponse. Les règles (bornes, analyse du fichier
   // AutoEQ) sont côté Rust (`player::eq`, `player::autoeq`) ; ici, l'affichage et la saisie.
-  import { commands, type EqFilter, type EqFilterKind, type EqProfile, type EqSettings } from "../lib/ipc";
+  import {
+    commands,
+    type EqFilter,
+    type EqFilterKind,
+    type EqProfile,
+    type EqSettings,
+  } from "../lib/ipc";
   import { effectivePreamp, response } from "../lib/eqCurve";
   import { gainLabel } from "../lib/format";
   import { num, t } from "../lib/i18n.svelte";
@@ -45,7 +51,8 @@
   }
 
   function addProfile(profile: EqProfile) {
-    if (settings.profiles.length >= MAX_PROFILES) return fail(t.equalizer.maxProfiles(MAX_PROFILES));
+    if (settings.profiles.length >= MAX_PROFILES)
+      return fail(t.equalizer.maxProfiles(MAX_PROFILES));
     save({ enabled: true, active: profile.id, profiles: [...settings.profiles, profile] });
   }
 
@@ -57,18 +64,26 @@
   function deleteProfile() {
     if (!active) return;
     const profiles = settings.profiles.filter((p) => p.id !== active.id);
-    save({ profiles, active: profiles[0]?.id ?? null, enabled: settings.enabled && profiles.length > 0 });
+    save({
+      profiles,
+      active: profiles[0]?.id ?? null,
+      enabled: settings.enabled && profiles.length > 0,
+    });
   }
 
   /** Modifie le profil choisi. */
   function updateActive(change: Partial<EqProfile>) {
     if (!active) return;
-    save({ profiles: settings.profiles.map((p) => (p.id === active.id ? { ...p, ...change } : p)) });
+    save({
+      profiles: settings.profiles.map((p) => (p.id === active.id ? { ...p, ...change } : p)),
+    });
   }
 
   function updateFilter(index: number, change: Partial<EqFilter>) {
     if (!active) return;
-    updateActive({ filters: active.filters.map((f, i) => (i === index ? { ...f, ...change } : f)) });
+    updateActive({
+      filters: active.filters.map((f, i) => (i === index ? { ...f, ...change } : f)),
+    });
   }
 
   /** Valeur saisie ramenée dans ses bornes ; `null` si le champ n'est pas un nombre. */
@@ -104,7 +119,11 @@
     if (!file) return;
     if (file.size > MAX_FILE) return fail(t.equalizer.fileTooLarge);
     importText = await file.text();
-    if (!importName) importName = file.name.replace(/\.txt$/i, "").replace(/\s*ParametricEQ$/i, "").trim();
+    if (!importName)
+      importName = file.name
+        .replace(/\.txt$/i, "")
+        .replace(/\s*ParametricEQ$/i, "")
+        .trim();
   }
 
   async function confirmImport() {
@@ -177,7 +196,9 @@
       <p class="hint">{t.equalizer.noProfile}</p>
     {/if}
     <div class="actions">
-      <button class="eq-button" {disabled} onclick={() => (importing = !importing)}>{t.equalizer.importAction}</button>
+      <button class="eq-button" {disabled} onclick={() => (importing = !importing)}>
+        {t.equalizer.importAction}
+      </button>
       <button class="eq-button" {disabled} onclick={newProfile}>{t.equalizer.newProfile}</button>
     </div>
   </div>
@@ -185,17 +206,30 @@
   {#if importing}
     <div class="setting-row eq-import">
       <p class="hint">{t.equalizer.importHint}</p>
-      <textarea class="eq-input mono" rows="6" placeholder={t.equalizer.importPlaceholder} bind:value={importText}></textarea>
+      <textarea
+        class="eq-input mono"
+        rows="6"
+        placeholder={t.equalizer.importPlaceholder}
+        bind:value={importText}></textarea>
       <label class="field">
         <span class="hint">{t.equalizer.name}</span>
-        <input class="eq-input" maxlength="80" placeholder={t.equalizer.namePlaceholder} bind:value={importName} />
+        <input
+          class="eq-input"
+          maxlength="80"
+          placeholder={t.equalizer.namePlaceholder}
+          bind:value={importName}
+        />
       </label>
       <div class="actions">
         <label class="eq-button file">
           {t.equalizer.chooseFile}
           <input type="file" accept=".txt,text/plain" onchange={pickFile} />
         </label>
-        <button class="eq-button primary" disabled={busy || !importText.trim()} onclick={confirmImport}>
+        <button
+          class="eq-button primary"
+          disabled={busy || !importText.trim()}
+          onclick={confirmImport}
+        >
           {t.equalizer.confirmImport}
         </button>
         <button class="eq-button" onclick={() => (importing = false)}>{t.equalizer.cancel}</button>
@@ -205,7 +239,13 @@
 
   {#if active}
     <div class="setting-row eq-profile">
-      <svg class="eq-curve" viewBox="0 0 {W} {H}" role="img" aria-label={t.equalizer.curve} preserveAspectRatio="none">
+      <svg
+        class="eq-curve"
+        viewBox="0 0 {W} {H}"
+        role="img"
+        aria-label={t.equalizer.curve}
+        preserveAspectRatio="none"
+      >
         <line class="eq-zero" x1="0" x2={W} y1={y(0)} y2={y(0)} />
         {#each GRID_HZ as hz (hz)}
           <line class="eq-grid" x1={x(hz)} x2={x(hz)} y1="0" y2={H} />
@@ -239,7 +279,9 @@
             {disabled}
             onchange={(e) =>
               updateActive({
-                preamp: (e.currentTarget as HTMLInputElement).checked ? null : effectivePreamp(active),
+                preamp: (e.currentTarget as HTMLInputElement).checked
+                  ? null
+                  : effectivePreamp(active),
               })}
           />
           {t.equalizer.preampAuto}
@@ -250,61 +292,105 @@
       {/if}
 
       <div class="eq-table">
-      <table class="eq-filters">
-        <thead>
-          <tr>
-            <th>{t.equalizer.kind}</th>
-            <th>{t.equalizer.freq}</th>
-            <th>{t.equalizer.gain}</th>
-            <th>{t.equalizer.q}</th>
-            <th><span class="sr-only">{t.equalizer.removeFilter}</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each active.filters as f, i (i)}
+        <table class="eq-filters">
+          <thead>
             <tr>
-              <td>
-                <select
-                  class="eq-select"
-                  value={f.kind}
-                  {disabled}
-                  aria-label={t.equalizer.kind}
-                  onchange={(e) => updateFilter(i, { kind: (e.currentTarget as HTMLSelectElement).value as EqFilterKind })}
-                >
-                  {#each KINDS as kind (kind)}
-                    <option value={kind}>{t.equalizer.kinds[kind]}</option>
-                  {/each}
-                </select>
-              </td>
-              <td>
-                <input class="eq-input mono num" type="number" min="20" max="20000" step="1" value={f.freq} {disabled}
-                  aria-label={t.equalizer.freq} onchange={(e) => setNumber(i, "freq", e)} />
-              </td>
-              <td>
-                <input class="eq-input mono num" type="number" min="-20" max="20" step="0.1" value={f.gain} {disabled}
-                  aria-label={t.equalizer.gain} onchange={(e) => setNumber(i, "gain", e)} />
-              </td>
-              <td>
-                <input class="eq-input mono num" type="number" min="0.1" max="10" step="0.01" value={f.q} {disabled}
-                  aria-label={t.equalizer.q} onchange={(e) => setNumber(i, "q", e)} />
-              </td>
-              <td>
-                <button class="eq-remove" title={t.equalizer.removeFilter} aria-label={t.equalizer.removeFilter} {disabled}
-                  onclick={() => updateActive({ filters: active.filters.filter((_, j) => j !== i) })}>×</button>
-              </td>
+              <th>{t.equalizer.kind}</th>
+              <th>{t.equalizer.freq}</th>
+              <th>{t.equalizer.gain}</th>
+              <th>{t.equalizer.q}</th>
+              <th><span class="sr-only">{t.equalizer.removeFilter}</span></th>
             </tr>
-          {/each}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {#each active.filters as f, i (i)}
+              <tr>
+                <td>
+                  <select
+                    class="eq-select"
+                    value={f.kind}
+                    {disabled}
+                    aria-label={t.equalizer.kind}
+                    onchange={(e) =>
+                      updateFilter(i, {
+                        kind: (e.currentTarget as HTMLSelectElement).value as EqFilterKind,
+                      })}
+                  >
+                    {#each KINDS as kind (kind)}
+                      <option value={kind}>{t.equalizer.kinds[kind]}</option>
+                    {/each}
+                  </select>
+                </td>
+                <td>
+                  <input
+                    class="eq-input mono num"
+                    type="number"
+                    min="20"
+                    max="20000"
+                    step="1"
+                    value={f.freq}
+                    {disabled}
+                    aria-label={t.equalizer.freq}
+                    onchange={(e) => setNumber(i, "freq", e)}
+                  />
+                </td>
+                <td>
+                  <input
+                    class="eq-input mono num"
+                    type="number"
+                    min="-20"
+                    max="20"
+                    step="0.1"
+                    value={f.gain}
+                    {disabled}
+                    aria-label={t.equalizer.gain}
+                    onchange={(e) => setNumber(i, "gain", e)}
+                  />
+                </td>
+                <td>
+                  <input
+                    class="eq-input mono num"
+                    type="number"
+                    min="0.1"
+                    max="10"
+                    step="0.01"
+                    value={f.q}
+                    {disabled}
+                    aria-label={t.equalizer.q}
+                    onchange={(e) => setNumber(i, "q", e)}
+                  />
+                </td>
+                <td>
+                  <button
+                    class="eq-remove"
+                    title={t.equalizer.removeFilter}
+                    aria-label={t.equalizer.removeFilter}
+                    {disabled}
+                    onclick={() =>
+                      updateActive({ filters: active.filters.filter((_, j) => j !== i) })}
+                  >
+                    ×
+                  </button>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
       {#if !active.filters.length}
         <p class="hint">{t.equalizer.noFilter}</p>
       {/if}
       <div class="actions">
-        <button class="eq-button" disabled={disabled || active.filters.length >= MAX_FILTERS} onclick={addFilter}>
+        <button
+          class="eq-button"
+          disabled={disabled || active.filters.length >= MAX_FILTERS}
+          onclick={addFilter}
+        >
           {t.equalizer.addFilter}
         </button>
-        <button class="eq-button danger" {disabled} onclick={deleteProfile}>{t.equalizer.deleteProfile}</button>
+        <button class="eq-button danger" {disabled} onclick={deleteProfile}>
+          {t.equalizer.deleteProfile}
+        </button>
       </div>
     </div>
   {/if}

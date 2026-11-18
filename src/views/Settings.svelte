@@ -16,7 +16,11 @@
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
   import { copyText, pushToast } from "../lib/stores/toasts.svelte";
-  import { cancelLibraryExport, libraryExport, startLibraryExport } from "../lib/stores/libraryExport.svelte";
+  import {
+    cancelLibraryExport,
+    libraryExport,
+    startLibraryExport,
+  } from "../lib/stores/libraryExport.svelte";
   import {
     MOTIONS,
     setCloseAction,
@@ -111,10 +115,12 @@
   $effect(() => {
     let unlisten: (() => void) | undefined;
     let alive = true;
-    void events.onPlaybackSettings(() => void loadPlayback()).then((u) => {
-      if (alive) unlisten = u;
-      else u();
-    });
+    void events
+      .onPlaybackSettings(() => void loadPlayback())
+      .then((u) => {
+        if (alive) unlisten = u;
+        else u();
+      });
     return () => {
       alive = false;
       unlisten?.();
@@ -189,7 +195,10 @@
 
   async function toggleHideExplicit() {
     try {
-      await setContentFilter({ ...ui.settings.content, hideExplicit: !ui.settings.content.hideExplicit });
+      await setContentFilter({
+        ...ui.settings.content,
+        hideExplicit: !ui.settings.content.hideExplicit,
+      });
     } catch (e) {
       fail(e);
     }
@@ -248,7 +257,8 @@
   }
 
   function setNormalization(mode: Normalization) {
-    if (playback && mode !== playback.normalization) savePlayback({ ...playback, normalization: mode });
+    if (playback && mode !== playback.normalization)
+      savePlayback({ ...playback, normalization: mode });
   }
 
   function setEqualizer(equalizer: EqSettings) {
@@ -260,12 +270,14 @@
   }
 
   function setHiresUpgrade(mode: HiresUpgrade) {
-    if (playback && mode !== playback.hiresUpgrade) savePlayback({ ...playback, hiresUpgrade: mode });
+    if (playback && mode !== playback.hiresUpgrade)
+      savePlayback({ ...playback, hiresUpgrade: mode });
   }
 
   /** Qualité d'un réseau (#365) : `wifiQuality` (non facturé) ou `cellularQuality`. */
   function setNetworkQuality(network: NetworkQualityKey, quality: MobileQuality) {
-    if (playback && quality !== playback[network]) savePlayback({ ...playback, [network]: quality });
+    if (playback && quality !== playback[network])
+      savePlayback({ ...playback, [network]: quality });
   }
 
   function toggleLowBatteryQuality() {
@@ -359,7 +371,10 @@
     importing = true;
     try {
       const report = await commands.importSettings(importText);
-      pushToast({ level: "info", message: t.settings.settingsImported(report.applied.length, report.ignored) });
+      pushToast({
+        level: "info",
+        message: t.settings.settingsImported(report.applied.length, report.ignored),
+      });
       importText = null;
       // Tout relire depuis le backend : thème, langue, épingles, réglages de lecture.
       setTimeout(() => location.reload(), 1500);
@@ -472,23 +487,23 @@
       </label>
     </div>
     {#if desktop}
-    <div class="group">
-      <h2>{t.settings.zoom}</h2>
-      <p class="hint">{t.settings.zoomHint}</p>
-      <div class="cache-sizes" role="radiogroup" aria-label={t.settings.zoom}>
-        {#each ZOOM_LEVELS as level (level)}
-          <button
-            class="cache-size"
-            class:selected={ui.settings.zoom === level}
-            role="radio"
-            aria-checked={ui.settings.zoom === level}
-            onclick={() => setZoom(level).catch(fail)}
-          >
-            {level} %
-          </button>
-        {/each}
+      <div class="group">
+        <h2>{t.settings.zoom}</h2>
+        <p class="hint">{t.settings.zoomHint}</p>
+        <div class="cache-sizes" role="radiogroup" aria-label={t.settings.zoom}>
+          {#each ZOOM_LEVELS as level (level)}
+            <button
+              class="cache-size"
+              class:selected={ui.settings.zoom === level}
+              role="radio"
+              aria-checked={ui.settings.zoom === level}
+              onclick={() => setZoom(level).catch(fail)}
+            >
+              {level} %
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
     {/if}
     <!-- Galerie en dernier (#390) : plus aucun réglage caché sous elle. -->
     <div class="group">
@@ -497,160 +512,171 @@
     </div>
   {:else if section === "playback"}
     {#if desktop}
-    <div class="group">
-      <h2>{t.settings.outputDevice}</h2>
-      <p class="hint">{t.settings.outputDeviceHint}</p>
-      <OutputDevicePicker value={playback ? playback.audioDevice : undefined} onchange={setAudioDevice} />
-      <label class="setting-row">
-        <span class="text">
-          <span class="setting-label">{t.settings.pauseOnUnplug}</span>
-          <span class="hint">{t.settings.pauseOnUnplugHint}</span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={playback?.pauseOnUnplug === true}
-          role="switch"
-          aria-checked={playback?.pauseOnUnplug === true}
-          aria-label={t.settings.pauseOnUnplug}
-          disabled={playback === null}
-          onclick={togglePauseOnUnplug}
-        >
-          <span class="knob"></span>
-        </button>
-      </label>
-      <label class="setting-row">
-        <span class="text">
-          <span class="setting-label">{t.settings.deviceProfiles}</span>
-          <span class="hint">{t.settings.deviceProfilesHint}</span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={playback?.deviceProfiles === true}
-          role="switch"
-          aria-checked={playback?.deviceProfiles === true}
-          aria-label={t.settings.deviceProfiles}
-          disabled={playback === null}
-          onclick={toggleDeviceProfiles}
-        >
-          <span class="knob"></span>
-        </button>
-      </label>
-    </div>
-    {#if exclusiveAvailable}
-    <div class="group">
-      <label class="setting-row">
-        <span class="text">
-          <span class="setting-label">{t.settings.exclusive}</span>
-          <span class="hint">{t.settings.exclusiveHint}</span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={exclusive}
-          role="switch"
-          aria-checked={exclusive}
-          aria-label={t.settings.exclusive}
-          disabled={playback === null}
-          onclick={toggleExclusive}
-        >
-          <span class="knob"></span>
-        </button>
-      </label>
-    </div>
-    {/if}
-    <div class="group">
-      <h2>{t.settings.cache}</h2>
-      <p class="hint">{t.settings.cacheHint}</p>
-      <div class="cache-sizes" role="radiogroup" aria-label={t.settings.cacheSize}>
-        {#each CACHE_SIZES as size (size)}
+      <div class="group">
+        <h2>{t.settings.outputDevice}</h2>
+        <p class="hint">{t.settings.outputDeviceHint}</p>
+        <OutputDevicePicker
+          value={playback ? playback.audioDevice : undefined}
+          onchange={setAudioDevice}
+        />
+        <label class="setting-row">
+          <span class="text">
+            <span class="setting-label">{t.settings.pauseOnUnplug}</span>
+            <span class="hint">{t.settings.pauseOnUnplugHint}</span>
+          </span>
           <button
-            class="cache-size"
-            class:selected={cacheSize === size}
-            role="radio"
-            aria-checked={cacheSize === size}
-            disabled={cacheSize === null}
-            onclick={() => setCacheSize(size)}
+            class="setting-switch"
+            class:on={playback?.pauseOnUnplug === true}
+            role="switch"
+            aria-checked={playback?.pauseOnUnplug === true}
+            aria-label={t.settings.pauseOnUnplug}
+            disabled={playback === null}
+            onclick={togglePauseOnUnplug}
           >
-            {t.settings.megabytes(size)}
+            <span class="knob"></span>
           </button>
-        {/each}
-      </div>
-      <p class="note">{t.settings.cacheNote}</p>
-    </div>
-    <div class="group">
-      <h2>{t.settings.quality}</h2>
-      <p class="hint">{t.settings.qualityHint}</p>
-      <div class="cache-sizes hires-modes" role="radiogroup" aria-label={t.settings.hiresEdition}>
-        {#each HIRES_MODES as mode (mode)}
+        </label>
+        <label class="setting-row">
+          <span class="text">
+            <span class="setting-label">{t.settings.deviceProfiles}</span>
+            <span class="hint">{t.settings.deviceProfilesHint}</span>
+          </span>
           <button
-            class="cache-size hires-mode"
-            class:selected={hiresUpgrade === mode}
-            role="radio"
-            aria-checked={hiresUpgrade === mode}
-            disabled={hiresUpgrade === null}
-            onclick={() => setHiresUpgrade(mode)}
+            class="setting-switch"
+            class:on={playback?.deviceProfiles === true}
+            role="switch"
+            aria-checked={playback?.deviceProfiles === true}
+            aria-label={t.settings.deviceProfiles}
+            disabled={playback === null}
+            onclick={toggleDeviceProfiles}
           >
-            {t.settings.hiresModes[mode].label}
+            <span class="knob"></span>
           </button>
-        {/each}
+        </label>
       </div>
-      <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
-    </div>
-    {:else}
-    <div class="group">
-      <h2>{t.settings.quality}</h2>
-      <p class="hint">{t.settings.mobileQualityHint}</p>
-      {#each NETWORKS as network (network)}
-        <h3 class="network-quality">{t.settings.networks[network]}</h3>
-        <div class="cache-sizes mobile-qualities" role="radiogroup" aria-label={t.settings.networks[network]}>
-          {#each MOBILE_QUALITIES as quality (quality)}
+      {#if exclusiveAvailable}
+        <div class="group">
+          <label class="setting-row">
+            <span class="text">
+              <span class="setting-label">{t.settings.exclusive}</span>
+              <span class="hint">{t.settings.exclusiveHint}</span>
+            </span>
             <button
-              class="cache-size hires-mode"
-              class:selected={playback?.[network] === quality}
-              role="radio"
-              aria-checked={playback?.[network] === quality}
+              class="setting-switch"
+              class:on={exclusive}
+              role="switch"
+              aria-checked={exclusive}
+              aria-label={t.settings.exclusive}
               disabled={playback === null}
-              onclick={() => setNetworkQuality(network, quality)}
+              onclick={toggleExclusive}
             >
-              {t.settings.mobileQualities[quality].label}
+              <span class="knob"></span>
+            </button>
+          </label>
+        </div>
+      {/if}
+      <div class="group">
+        <h2>{t.settings.cache}</h2>
+        <p class="hint">{t.settings.cacheHint}</p>
+        <div class="cache-sizes" role="radiogroup" aria-label={t.settings.cacheSize}>
+          {#each CACHE_SIZES as size (size)}
+            <button
+              class="cache-size"
+              class:selected={cacheSize === size}
+              role="radio"
+              aria-checked={cacheSize === size}
+              disabled={cacheSize === null}
+              onclick={() => setCacheSize(size)}
+            >
+              {t.settings.megabytes(size)}
             </button>
           {/each}
         </div>
-        <p class="note">{playback ? t.settings.mobileQualities[playback[network]].note : ""}</p>
-      {/each}
-      <label class="setting-row low-battery-quality">
-        <span class="text">
-          <span class="setting-label">{t.settings.lowBatteryQuality}</span>
-          <span class="hint">{t.settings.lowBatteryQualityHint}</span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={playback?.lowBatteryQuality === true}
-          role="switch"
-          aria-checked={playback?.lowBatteryQuality === true}
-          aria-label={t.settings.lowBatteryQuality}
-          disabled={playback === null}
-          onclick={toggleLowBatteryQuality}
-        >
-          <span class="knob"></span>
-        </button>
-      </label>
-      {#if qualityCap}
-        <p class="note quality-cap">
-          {t.settings.qualityCap(
-            t.settings.mobileQualities[qualityCap.quality].label,
-            t.settings.mobileQualities[qualityCap.chosen].label,
-            qualityCap.reason === "powerSave",
-            qualityCap.battery,
-          )}
-        </p>
-      {/if}
-      <p class="note">{t.settings.mobileQualityNext}</p>
-    </div>
+        <p class="note">{t.settings.cacheNote}</p>
+      </div>
+      <div class="group">
+        <h2>{t.settings.quality}</h2>
+        <p class="hint">{t.settings.qualityHint}</p>
+        <div class="cache-sizes hires-modes" role="radiogroup" aria-label={t.settings.hiresEdition}>
+          {#each HIRES_MODES as mode (mode)}
+            <button
+              class="cache-size hires-mode"
+              class:selected={hiresUpgrade === mode}
+              role="radio"
+              aria-checked={hiresUpgrade === mode}
+              disabled={hiresUpgrade === null}
+              onclick={() => setHiresUpgrade(mode)}
+            >
+              {t.settings.hiresModes[mode].label}
+            </button>
+          {/each}
+        </div>
+        <p class="note">{hiresUpgrade ? t.settings.hiresModes[hiresUpgrade].note : ""}</p>
+      </div>
+    {:else}
+      <div class="group">
+        <h2>{t.settings.quality}</h2>
+        <p class="hint">{t.settings.mobileQualityHint}</p>
+        {#each NETWORKS as network (network)}
+          <h3 class="network-quality">{t.settings.networks[network]}</h3>
+          <div
+            class="cache-sizes mobile-qualities"
+            role="radiogroup"
+            aria-label={t.settings.networks[network]}
+          >
+            {#each MOBILE_QUALITIES as quality (quality)}
+              <button
+                class="cache-size hires-mode"
+                class:selected={playback?.[network] === quality}
+                role="radio"
+                aria-checked={playback?.[network] === quality}
+                disabled={playback === null}
+                onclick={() => setNetworkQuality(network, quality)}
+              >
+                {t.settings.mobileQualities[quality].label}
+              </button>
+            {/each}
+          </div>
+          <p class="note">{playback ? t.settings.mobileQualities[playback[network]].note : ""}</p>
+        {/each}
+        <label class="setting-row low-battery-quality">
+          <span class="text">
+            <span class="setting-label">{t.settings.lowBatteryQuality}</span>
+            <span class="hint">{t.settings.lowBatteryQualityHint}</span>
+          </span>
+          <button
+            class="setting-switch"
+            class:on={playback?.lowBatteryQuality === true}
+            role="switch"
+            aria-checked={playback?.lowBatteryQuality === true}
+            aria-label={t.settings.lowBatteryQuality}
+            disabled={playback === null}
+            onclick={toggleLowBatteryQuality}
+          >
+            <span class="knob"></span>
+          </button>
+        </label>
+        {#if qualityCap}
+          <p class="note quality-cap">
+            {t.settings.qualityCap(
+              t.settings.mobileQualities[qualityCap.quality].label,
+              t.settings.mobileQualities[qualityCap.chosen].label,
+              qualityCap.reason === "powerSave",
+              qualityCap.battery,
+            )}
+          </p>
+        {/if}
+        <p class="note">{t.settings.mobileQualityNext}</p>
+      </div>
     {/if}
     <div class="group">
       <h2>{t.settings.normalization}</h2>
       <p class="hint">{t.settings.normalizationHint}</p>
-      <div class="cache-sizes normalization-modes" role="radiogroup" aria-label={t.settings.normalization}>
+      <div
+        class="cache-sizes normalization-modes"
+        role="radiogroup"
+        aria-label={t.settings.normalization}
+      >
         {#each NORMALIZATION_MODES as mode (mode)}
           <button
             class="cache-size hires-mode normalization-mode"
@@ -743,68 +769,72 @@
       <BlockedList />
     </div>
     {#if desktop}
-    <div class="group">
-      <h2>{t.settings.startup}</h2>
-      <label class="setting-row">
-        <span class="text">
-          <span class="setting-label">{t.settings.resumeOnLaunch}</span>
-          <span class="hint">{t.settings.resumeOnLaunchHint}</span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={playback?.resumeOnLaunch === true}
-          role="switch"
-          aria-checked={playback?.resumeOnLaunch === true}
-          aria-label={t.settings.resumeOnLaunch}
-          disabled={playback === null}
-          onclick={toggleResumeOnLaunch}
-        >
-          <span class="knob"></span>
-        </button>
-      </label>
-    </div>
+      <div class="group">
+        <h2>{t.settings.startup}</h2>
+        <label class="setting-row">
+          <span class="text">
+            <span class="setting-label">{t.settings.resumeOnLaunch}</span>
+            <span class="hint">{t.settings.resumeOnLaunchHint}</span>
+          </span>
+          <button
+            class="setting-switch"
+            class:on={playback?.resumeOnLaunch === true}
+            role="switch"
+            aria-checked={playback?.resumeOnLaunch === true}
+            aria-label={t.settings.resumeOnLaunch}
+            disabled={playback === null}
+            onclick={toggleResumeOnLaunch}
+          >
+            <span class="knob"></span>
+          </button>
+        </label>
+      </div>
     {/if}
   {:else}
     {#if desktop}
-    <div class="group">
-      <h2>{t.settings.window}</h2>
-      <p class="hint">{t.settings.closeActionHint}</p>
-      <div class="cache-sizes close-actions" role="radiogroup" aria-label={t.settings.closeAction}>
-        {#each CLOSE_ACTIONS as action (action)}
-          <button
-            class="cache-size close-action"
-            class:selected={ui.settings.closeAction === action}
-            role="radio"
-            aria-checked={ui.settings.closeAction === action}
-            onclick={() => chooseCloseAction(action)}
-          >
-            {t.settings.closeActions[action]}
-          </button>
-        {/each}
-      </div>
-      <p class="note">{t.settings.closeActionNotes[ui.settings.closeAction]}</p>
-    </div>
-
-    <div class="group">
-      <h2>{t.settings.startup}</h2>
-      <label class="setting-row">
-        <span class="text">
-          <span class="setting-label">{t.settings.autostart}</span>
-          <span class="hint">{t.settings.autostartHint}</span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={autostart === true}
-          role="switch"
-          aria-checked={autostart === true}
-          aria-label={t.settings.autostart}
-          disabled={autostart === null || autostartBusy}
-          onclick={toggleAutostart}
+      <div class="group">
+        <h2>{t.settings.window}</h2>
+        <p class="hint">{t.settings.closeActionHint}</p>
+        <div
+          class="cache-sizes close-actions"
+          role="radiogroup"
+          aria-label={t.settings.closeAction}
         >
-          <span class="knob"></span>
-        </button>
-      </label>
-    </div>
+          {#each CLOSE_ACTIONS as action (action)}
+            <button
+              class="cache-size close-action"
+              class:selected={ui.settings.closeAction === action}
+              role="radio"
+              aria-checked={ui.settings.closeAction === action}
+              onclick={() => chooseCloseAction(action)}
+            >
+              {t.settings.closeActions[action]}
+            </button>
+          {/each}
+        </div>
+        <p class="note">{t.settings.closeActionNotes[ui.settings.closeAction]}</p>
+      </div>
+
+      <div class="group">
+        <h2>{t.settings.startup}</h2>
+        <label class="setting-row">
+          <span class="text">
+            <span class="setting-label">{t.settings.autostart}</span>
+            <span class="hint">{t.settings.autostartHint}</span>
+          </span>
+          <button
+            class="setting-switch"
+            class:on={autostart === true}
+            role="switch"
+            aria-checked={autostart === true}
+            aria-label={t.settings.autostart}
+            disabled={autostart === null || autostartBusy}
+            onclick={toggleAutostart}
+          >
+            <span class="knob"></span>
+          </button>
+        </label>
+      </div>
     {/if}
 
     <!-- #435 : notification des nouvelles sorties des artistes suivis, désactivée par défaut. -->
@@ -813,7 +843,11 @@
       <label class="setting-row">
         <span class="text">
           <span class="setting-label">{t.settings.releaseNotifications}</span>
-          <span class="hint">{desktop ? t.settings.releaseNotificationsHint : t.settings.releaseNotificationsHintMobile}</span>
+          <span class="hint">
+            {desktop
+              ? t.settings.releaseNotificationsHint
+              : t.settings.releaseNotificationsHintMobile}
+          </span>
         </span>
         <button
           class="setting-switch"
@@ -821,7 +855,8 @@
           role="switch"
           aria-checked={ui.settings.releaseNotifications}
           aria-label={t.settings.releaseNotifications}
-          onclick={() => setUiToggle("releaseNotifications", !ui.settings.releaseNotifications).catch(fail)}
+          onclick={() =>
+            setUiToggle("releaseNotifications", !ui.settings.releaseNotifications).catch(fail)}
         >
           <span class="knob"></span>
         </button>
@@ -830,25 +865,25 @@
 
     <!-- #215 : présence Discord, proposée seulement si une application Discord est compilée. -->
     {#if desktop && discordAvailable}
-    <div class="group">
-      <h2>{t.settings.discord}</h2>
-      <label class="setting-row">
-        <span class="text">
-          <span class="setting-label">{t.settings.discordPresence}</span>
-          <span class="hint">{t.settings.discordHint}</span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={ui.settings.discord}
-          role="switch"
-          aria-checked={ui.settings.discord}
-          aria-label={t.settings.discordPresence}
-          onclick={toggleDiscord}
-        >
-          <span class="knob"></span>
-        </button>
-      </label>
-    </div>
+      <div class="group">
+        <h2>{t.settings.discord}</h2>
+        <label class="setting-row">
+          <span class="text">
+            <span class="setting-label">{t.settings.discordPresence}</span>
+            <span class="hint">{t.settings.discordHint}</span>
+          </span>
+          <button
+            class="setting-switch"
+            class:on={ui.settings.discord}
+            role="switch"
+            aria-checked={ui.settings.discord}
+            aria-label={t.settings.discordPresence}
+            onclick={toggleDiscord}
+          >
+            <span class="knob"></span>
+          </button>
+        </label>
+      </div>
     {/if}
 
     <!-- #431 : envoi des écoutes à ListenBrainz, bureau et téléphone. -->
@@ -860,28 +895,28 @@
 
     <!-- #413 : raccourcis globaux, actifs hors de la fenêtre (bureau seulement). -->
     {#if desktop && globalShortcutsAvailable}
-    <div class="group global-shortcuts-group">
-      <h2>{t.settings.globalShortcuts}</h2>
-      <label class="setting-row">
-        <span class="text">
-          <span class="setting-label">{t.settings.globalShortcutsEnable}</span>
-          <span class="hint">{t.settings.globalShortcutsHint}</span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={ui.settings.globalShortcuts.enabled}
-          role="switch"
-          aria-checked={ui.settings.globalShortcuts.enabled}
-          aria-label={t.settings.globalShortcutsEnable}
-          onclick={toggleGlobalShortcuts}
-        >
-          <span class="knob"></span>
-        </button>
-      </label>
-      {#if ui.settings.globalShortcuts.enabled}
-        <GlobalShortcutsList />
-      {/if}
-    </div>
+      <div class="group global-shortcuts-group">
+        <h2>{t.settings.globalShortcuts}</h2>
+        <label class="setting-row">
+          <span class="text">
+            <span class="setting-label">{t.settings.globalShortcutsEnable}</span>
+            <span class="hint">{t.settings.globalShortcutsHint}</span>
+          </span>
+          <button
+            class="setting-switch"
+            class:on={ui.settings.globalShortcuts.enabled}
+            role="switch"
+            aria-checked={ui.settings.globalShortcuts.enabled}
+            aria-label={t.settings.globalShortcutsEnable}
+            onclick={toggleGlobalShortcuts}
+          >
+            <span class="knob"></span>
+          </button>
+        </label>
+        {#if ui.settings.globalShortcuts.enabled}
+          <GlobalShortcutsList />
+        {/if}
+      </div>
     {/if}
 
     <!-- #25 : Jam, en ligne par le relais ou sur le réseau local (bureau seulement).
@@ -916,18 +951,18 @@
 
     <!-- #336 : télécommande depuis un téléphone, réseau local, bureau seulement. -->
     {#if desktop}
-    <div class="group remote">
-      <h2>{t.remote.title}</h2>
-      <p class="hint">{t.remote.hint}</p>
-      <RemotePanel />
-    </div>
+      <div class="group remote">
+        <h2>{t.remote.title}</h2>
+        <p class="hint">{t.remote.hint}</p>
+        <RemotePanel />
+      </div>
     {:else}
-    <!-- #414 : ordinateur lié, pour reprendre ou rendre la lecture (Android). -->
-    <div class="group handoff">
-      <h2>{t.handoff.title}</h2>
-      <p class="hint">{t.handoff.hint}</p>
-      <LinkedComputerPanel />
-    </div>
+      <!-- #414 : ordinateur lié, pour reprendre ou rendre la lecture (Android). -->
+      <div class="group handoff">
+        <h2>{t.handoff.title}</h2>
+        <p class="hint">{t.handoff.hint}</p>
+        <LinkedComputerPanel />
+      </div>
     {/if}
 
     <!-- #452 : relais de la Jam en ligne et des transferts, compilé ou choisi. -->
@@ -939,18 +974,20 @@
 
     <!-- #203 : liens https://tidal.com/… touchés, à donner à l'app sur Android 12+. -->
     {#if links}
-    <div class="group">
-      <h2>{t.settings.tidalLinks}</h2>
-      <div class="setting-row tidal-links">
-        <span class="text">
-          <span class="setting-label">{t.settings.tidalLinksLabel}</span>
-          <span class="hint">{links.enabled ? t.settings.tidalLinksOn : t.settings.tidalLinksOff}</span>
-        </span>
-        <button class="update-check" onclick={openLinkSettings}>
-          {links.enabled ? t.settings.tidalLinksChange : t.settings.tidalLinksEnable}
-        </button>
+      <div class="group">
+        <h2>{t.settings.tidalLinks}</h2>
+        <div class="setting-row tidal-links">
+          <span class="text">
+            <span class="setting-label">{t.settings.tidalLinksLabel}</span>
+            <span class="hint">
+              {links.enabled ? t.settings.tidalLinksOn : t.settings.tidalLinksOff}
+            </span>
+          </span>
+          <button class="update-check" onclick={openLinkSettings}>
+            {links.enabled ? t.settings.tidalLinksChange : t.settings.tidalLinksEnable}
+          </button>
+        </div>
       </div>
-    </div>
     {/if}
 
     <!-- #202 : écoutes gardées localement (accueil, « À la une »). -->
@@ -960,7 +997,9 @@
         <span class="text">
           <span class="hint">{t.settings.playHistoryHint}</span>
         </span>
-        <button class="update-check" onclick={clearPlayHistory}>{t.settings.clearPlayHistory}</button>
+        <button class="update-check" onclick={clearPlayHistory}>
+          {t.settings.clearPlayHistory}
+        </button>
       </div>
     </div>
 
@@ -972,25 +1011,31 @@
         <button class="update-check" onclick={copyLog}>{t.settings.copyLog}</button>
         <button class="update-check" onclick={copyCrash}>{t.settings.copyCrash}</button>
         {#if desktop}
-        <button class="update-check" onclick={() => commands.openLogDir().catch(fail)}>{t.settings.openLogDir}</button>
+          <button class="update-check" onclick={() => commands.openLogDir().catch(fail)}>
+            {t.settings.openLogDir}
+          </button>
         {/if}
       </div>
     </div>
 
     <!-- #330 : bibliothèque exportée en JSON et CSV (bureau : dossier Documents). -->
     {#if desktop}
-    <div class="group">
-      <h2>{t.settings.libraryExport}</h2>
-      <p class="hint">{t.settings.libraryExportHint}</p>
-      <div class="project-links">
-        {#if libraryExport.running}
-        <span class="hint">{t.settings.exportProgress(libraryExport.done, libraryExport.total)}</span>
-        <button class="update-check" onclick={cancelLibraryExport}>{t.common.cancel}</button>
-        {:else}
-        <button class="update-check" onclick={startLibraryExport}>{t.settings.exportLibrary}</button>
-        {/if}
+      <div class="group">
+        <h2>{t.settings.libraryExport}</h2>
+        <p class="hint">{t.settings.libraryExportHint}</p>
+        <div class="project-links">
+          {#if libraryExport.running}
+            <span class="hint">
+              {t.settings.exportProgress(libraryExport.done, libraryExport.total)}
+            </span>
+            <button class="update-check" onclick={cancelLibraryExport}>{t.common.cancel}</button>
+          {:else}
+            <button class="update-check" onclick={startLibraryExport}>
+              {t.settings.exportLibrary}
+            </button>
+          {/if}
+        </div>
       </div>
-    </div>
     {/if}
 
     <!-- #352 : réglages copiés en JSON, collés sur un autre appareil. -->
@@ -1000,15 +1045,30 @@
       <div class="project-links">
         <button class="update-check" onclick={copySettings}>{t.settings.copySettings}</button>
         {#if importText === null}
-        <button class="update-check" onclick={() => (importText = "")}>{t.settings.importSettings}</button>
+          <button class="update-check" onclick={() => (importText = "")}>
+            {t.settings.importSettings}
+          </button>
         {/if}
       </div>
       {#if importText !== null}
-      <textarea class="import-text mono" rows="6" spellcheck="false" placeholder={t.settings.importPlaceholder} bind:value={importText}></textarea>
-      <div class="project-links">
-        <button class="update-check" onclick={applyImport} disabled={importing || !importText.trim()}>{t.settings.applyImport}</button>
-        <button class="update-check" onclick={() => (importText = null)}>{t.common.cancel}</button>
-      </div>
+        <textarea
+          class="import-text mono"
+          rows="6"
+          spellcheck="false"
+          placeholder={t.settings.importPlaceholder}
+          bind:value={importText}></textarea>
+        <div class="project-links">
+          <button
+            class="update-check"
+            onclick={applyImport}
+            disabled={importing || !importText.trim()}
+          >
+            {t.settings.applyImport}
+          </button>
+          <button class="update-check" onclick={() => (importText = null)}>
+            {t.common.cancel}
+          </button>
+        </div>
       {/if}
     </div>
 
@@ -1019,68 +1079,85 @@
           <span class="setting-label">{t.settings.changelog}</span>
           <span class="hint">{t.settings.changelogHint}</span>
         </span>
-        <button class="update-check" onclick={() => (changelogOpen = !changelogOpen)} aria-expanded={changelogOpen}>
+        <button
+          class="update-check"
+          onclick={() => (changelogOpen = !changelogOpen)}
+          aria-expanded={changelogOpen}
+        >
           {changelogOpen ? t.settings.hideChangelog : t.settings.showChangelog}
         </button>
       </div>
       {#if changelogOpen}<ChangelogList />{/if}
       <!-- #452 : rien à vérifier sans serveur compilé ; vérification périodique désactivable. -->
       {#if updateServer !== null}
-      {#if !desktop || updatesAvailable}
-      <label class="setting-row">
-        <span class="text">
-          <span class="setting-label">{t.settings.autoUpdates}</span>
-          <span class="hint">{t.settings.autoUpdatesHint(updateServer)}</span>
-        </span>
-        <button
-          class="setting-switch"
-          class:on={ui.settings.autoUpdates}
-          role="switch"
-          aria-checked={ui.settings.autoUpdates}
-          aria-label={t.settings.autoUpdates}
-          onclick={() => setUiToggle("autoUpdates", !ui.settings.autoUpdates).catch(fail)}
-        >
-          <span class="knob"></span>
-        </button>
-      </label>
-      {/if}
-      <div class="setting-row">
-        <span class="text">
-          <span class="setting-label">{t.settings.checkUpdates}</span>
-          <span class="hint">
-            {#if desktop && !updatesAvailable}
-              {t.settings.updatesManual}
-            {:else if updateCheck === "uptodate"}
-              {t.settings.upToDate}
-            {:else if updateCheck === "downloading"}
-              {t.settings.updateDownloading(downloadingVersion)}
-            {:else if updateCheck === "ready"}
-              {desktop ? t.settings.updateReady : t.settings.updateAvailable}
-            {:else}
-              {ui.settings.autoUpdates ? t.settings.updateAuto : t.settings.updateManualOnly}
-            {/if}
-          </span>
-        </span>
         {#if !desktop || updatesAvailable}
-        <button class="update-check" onclick={checkUpdates} disabled={updateCheck === "checking" || updateCheck === "downloading"}>
-          {updateCheck === "checking" ? t.settings.checking : t.settings.check}
-        </button>
+          <label class="setting-row">
+            <span class="text">
+              <span class="setting-label">{t.settings.autoUpdates}</span>
+              <span class="hint">{t.settings.autoUpdatesHint(updateServer)}</span>
+            </span>
+            <button
+              class="setting-switch"
+              class:on={ui.settings.autoUpdates}
+              role="switch"
+              aria-checked={ui.settings.autoUpdates}
+              aria-label={t.settings.autoUpdates}
+              onclick={() => setUiToggle("autoUpdates", !ui.settings.autoUpdates).catch(fail)}
+            >
+              <span class="knob"></span>
+            </button>
+          </label>
         {/if}
-      </div>
+        <div class="setting-row">
+          <span class="text">
+            <span class="setting-label">{t.settings.checkUpdates}</span>
+            <span class="hint">
+              {#if desktop && !updatesAvailable}
+                {t.settings.updatesManual}
+              {:else if updateCheck === "uptodate"}
+                {t.settings.upToDate}
+              {:else if updateCheck === "downloading"}
+                {t.settings.updateDownloading(downloadingVersion)}
+              {:else if updateCheck === "ready"}
+                {desktop ? t.settings.updateReady : t.settings.updateAvailable}
+              {:else}
+                {ui.settings.autoUpdates ? t.settings.updateAuto : t.settings.updateManualOnly}
+              {/if}
+            </span>
+          </span>
+          {#if !desktop || updatesAvailable}
+            <button
+              class="update-check"
+              onclick={checkUpdates}
+              disabled={updateCheck === "checking" || updateCheck === "downloading"}
+            >
+              {updateCheck === "checking" ? t.settings.checking : t.settings.check}
+            </button>
+          {/if}
+        </div>
       {/if}
     </div>
     <div class="group about">
       <h2>{t.settings.about}</h2>
       <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-      <p><span class="app-name">Seaglass</span> <span class="mono" onclick={clickVersion}>v{__APP_VERSION__}</span></p>
+      <p>
+        <span class="app-name">Seaglass</span>
+        <span class="mono" onclick={clickVersion}>v{__APP_VERSION__}</span>
+      </p>
       {#if creditsOpen}<CreditsRoll onClose={() => (creditsOpen = false)} />{/if}
       <p><strong>{t.settings.disclaimer}</strong></p>
       <p>{t.settings.streamingOnly}</p>
       <p>{t.settings.license}</p>
       <!-- #188 : URLs fixes côté Rust, ouvertes dans le navigateur du système. -->
       <div class="project-links">
-        <button class="update-check" onclick={() => openProject("repo")}>{t.settings.sourceCode}</button>
-        <button class="update-check" onclick={() => openProject("newIssue")} title={t.settings.reportIssueHint}>
+        <button class="update-check" onclick={() => openProject("repo")}>
+          {t.settings.sourceCode}
+        </button>
+        <button
+          class="update-check"
+          onclick={() => openProject("newIssue")}
+          title={t.settings.reportIssueHint}
+        >
           {t.settings.reportIssue}
         </button>
       </div>
@@ -1088,10 +1165,10 @@
 
     <!-- #189 : sous À propos, sur les deux plateformes (plus dans l'en-tête du bureau). -->
     {#if onLogout}
-    <div class="group">
-      <h2>{t.settings.account}</h2>
-      <button class="update-check logout" onclick={onLogout}>{t.common.logout}</button>
-    </div>
+      <div class="group">
+        <h2>{t.settings.account}</h2>
+        <button class="update-check logout" onclick={onLogout}>{t.common.logout}</button>
+      </div>
     {/if}
   {/if}
 </section>

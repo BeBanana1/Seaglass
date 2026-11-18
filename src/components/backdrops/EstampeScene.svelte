@@ -50,7 +50,12 @@
         <rect x="0" y="600" width="760" height="400" fill="url(#es-fade)" />
       </mask>
       <filter id="es-grain">
-        <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" stitchTiles="stitch" />
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.75"
+          numOctaves="3"
+          stitchTiles="stitch"
+        />
         <feColorMatrix values="0 0 0 0 0.12  0 0 0 0 0.16  0 0 0 0 0.22  0 0 0 0.5 0" />
       </filter>
       <!-- Fibres du washi : traits longs et pâles. -->

@@ -92,7 +92,16 @@ export function blindTestMock({ state, track, emit }: Deps) {
   }
 
   function judge(t: Track, a: BlindAnswer): BlindRoundResult {
-    const result: BlindRoundResult = { track: t, title: false, artist: false, points: 0, answer: null, chosen: null, correct: null, players: [] };
+    const result: BlindRoundResult = {
+      track: t,
+      title: false,
+      artist: false,
+      points: 0,
+      answer: null,
+      chosen: null,
+      correct: null,
+      players: [],
+    };
     if (a.kind === "text") {
       const guess = simple(a.text);
       result.answer = a.text;
@@ -103,7 +112,8 @@ export function blindTestMock({ state, track, emit }: Deps) {
       result.chosen = a.index;
       result.title = result.artist = a.index === correct;
     }
-    if (view!.mode === "choices") result.correct = view!.choices.findIndex((c) => c.title === t.title);
+    if (view!.mode === "choices")
+      result.correct = view!.choices.findIndex((c) => c.title === t.title);
     result.points = (result.title ? 2 : 0) + (result.artist ? 1 : 0);
     return result;
   }
@@ -151,7 +161,14 @@ export function blindTestMock({ state, track, emit }: Deps) {
       }
     },
     handlers: {
-      blind_test_start: ({ trackIds, mode, rounds: count, title, jam, hostPlays }: Record<string, unknown>) => {
+      blind_test_start: ({
+        trackIds,
+        mode,
+        rounds: count,
+        title,
+        jam,
+        hostPlays,
+      }: Record<string, unknown>) => {
         const pool = (trackIds as number[]).map(track).filter((t): t is Track => !!t);
         if (pool.length < 4) throw "il faut au moins 4 titres différents pour un blind test";
         rounds = pool.sort(() => Math.random() - 0.5).slice(0, Number(count));
@@ -182,7 +199,10 @@ export function blindTestMock({ state, track, emit }: Deps) {
           choices: [],
           results: [],
           party: { jam: together, hostPlays: hostIn },
-          players: [...(hostIn ? [player(0, null, true)] : []), ...(together ? [player(1, "Léa"), player(2, "Max")] : [])],
+          players: [
+            ...(hostIn ? [player(0, null, true)] : []),
+            ...(together ? [player(1, "Léa"), player(2, "Max")] : []),
+          ],
           revealAt: null,
           clipPlaying: false,
         };

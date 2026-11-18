@@ -20,7 +20,11 @@
     overflow: hidden;
     pointer-events: none;
     background:
-      repeating-linear-gradient(0deg, color-mix(in srgb, var(--al-hi) 30%, transparent) 0 1px, transparent 1px 2px),
+      repeating-linear-gradient(
+        0deg,
+        color-mix(in srgb, var(--al-hi) 30%, transparent) 0 1px,
+        transparent 1px 2px
+      ),
       linear-gradient(
         172deg,
         color-mix(in srgb, var(--al-metal) 80%, white) 0%,

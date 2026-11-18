@@ -70,7 +70,8 @@ export function galleryFamilies(filter: GalleryFilter, favorites: Theme[]): Them
   const isFavorite = (f: Theme) => favorites.includes(f);
   const shown = families.filter((f) => {
     if (filter === "favorites") return isFavorite(f);
-    if (filter === "light" || filter === "dark") return variants(f).some((v) => v.scheme === filter);
+    if (filter === "light" || filter === "dark")
+      return variants(f).some((v) => v.scheme === filter);
     return true;
   });
   // Tri stable : l'ordre du catalogue est gardé à l'intérieur de chaque groupe.
@@ -89,5 +90,7 @@ export function variantFor(family: Theme, current: Theme, filter: GalleryFilter)
 
 /** Ajoute ou retire une famille des favoris, sans toucher à l'ordre des autres. */
 export function toggleFavorite(favorites: Theme[], family: Theme): Theme[] {
-  return favorites.includes(family) ? favorites.filter((f) => f !== family) : [...favorites, family];
+  return favorites.includes(family)
+    ? favorites.filter((f) => f !== family)
+    : [...favorites, family];
 }

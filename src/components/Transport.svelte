@@ -50,7 +50,9 @@
   >
     <Icon name="repeat" size={size - 2} />
     <!-- #399 : le même titre 10 fois de suite, le 1 devient ∞. -->
-    {#if s.repeat === "one"}<span class="one" class:infinite={eggs.infinite}>{eggs.infinite ? "∞" : "1"}</span>{/if}
+    {#if s.repeat === "one"}<span class="one" class:infinite={eggs.infinite}>
+        {eggs.infinite ? "∞" : "1"}
+      </span>{/if}
   </button>
 </div>
 

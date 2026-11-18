@@ -171,7 +171,14 @@
   --acid-magenta: #ff2bd6;
   --acid-uv: #7b2bff;
   --acid-cyan: #00f0ff;
-  --chrome: linear-gradient(180deg, #ffffff 0%, #d6dde4 34%, #4d5560 50%, #eef3f7 62%, #8f99a4 100%);
+  --chrome: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #d6dde4 34%,
+    #4d5560 50%,
+    #eef3f7 62%,
+    #8f99a4 100%
+  );
   --ok: #c8ff00;
   --danger: #ff4d7a;
   --album-glow: color-mix(in oklab, var(--accent) 70%, var(--acid-magenta));
@@ -186,21 +193,16 @@
   --panel-blur: blur(16px) saturate(1.2);
   --panel-border: 1px solid var(--border);
   --panel-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.6),
-    0 0 24px color-mix(in srgb, var(--accent) 6%, transparent) inset;
+    0 0 0 1px rgb(0 0 0 / 0.6), 0 0 24px color-mix(in srgb, var(--accent) 6%, transparent) inset;
   --dialog-border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   --dialog-surface: rgb(5 5 7 / 0.96);
   --dialog-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.7),
-    0 0 40px color-mix(in srgb, var(--accent) 18%, transparent);
+    0 0 0 1px rgb(0 0 0 / 0.7), 0 0 40px color-mix(in srgb, var(--accent) 18%, transparent);
   --popover-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.7),
-    0 0 26px color-mix(in srgb, var(--accent) 18%, transparent);
+    0 0 0 1px rgb(0 0 0 / 0.7), 0 0 26px color-mix(in srgb, var(--accent) 18%, transparent);
   /* Pochettes : liseré holographique. */
   --shadow-cover:
-    0 0 0 1px rgb(255 255 255 / 0.15),
-    0 0 0 3px #050507,
-    0 0 0 4px var(--album-glow),
+    0 0 0 1px rgb(255 255 255 / 0.15), 0 0 0 3px #050507, 0 0 0 4px var(--album-glow),
     0 0 28px color-mix(in oklab, var(--album-glow) 45%, transparent);
   --control-bg: rgb(0 0 0 / 0.55);
   --shell-gap: 8px;
@@ -330,22 +332,17 @@
   --panel-shadow: 0 0 32px rgb(0 229 255 / 0.06);
   --dialog-border: 1px solid color-mix(in srgb, var(--cy-cyan) 55%, transparent);
   --dialog-surface: rgb(8 10 19 / 0.96);
-  --dialog-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.8),
-    0 0 40px rgb(0 229 255 / 0.18);
-  --popover-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.8),
-    0 0 26px rgb(0 229 255 / 0.16);
+  --dialog-shadow: 0 0 0 1px rgb(0 0 0 / 0.8), 0 0 40px rgb(0 229 255 / 0.18);
+  --popover-shadow: 0 0 0 1px rgb(0 0 0 / 0.8), 0 0 26px rgb(0 229 255 / 0.16);
   /* Pochettes : filet cyan et bloc magenta décalé, comme une image en surimpression. */
-  --shadow-cover:
-    0 0 0 1px rgb(0 229 255 / 0.55),
-    6px 6px 0 rgb(255 42 109 / 0.55);
+  --shadow-cover: 0 0 0 1px rgb(0 229 255 / 0.55), 6px 6px 0 rgb(255 42 109 / 0.55);
   --control-bg: rgb(0 0 0 / 0.5);
   --focus-ring: 2px solid var(--cy-cyan);
   --shell-gap: 8px;
   --display-weight: 700;
   --display-tracking: 0.02em;
-  --display-family: "Bahnschrift SemiCondensed", Bahnschrift, "Segoe UI Variable Display", sans-serif;
+  --display-family:
+    "Bahnschrift SemiCondensed", Bahnschrift, "Segoe UI Variable Display", sans-serif;
   --label-transform: uppercase;
   --label-tracking: 0.14em;
   --meta-family: var(--font-mono);
@@ -365,26 +362,14 @@
   --popover-radius: 16px;
   --panel-blur: none;
   --panel-border: none;
-  --panel-shadow:
-    10px 10px 24px var(--nm-dark),
-    -10px -10px 24px var(--nm-light);
+  --panel-shadow: 10px 10px 24px var(--nm-dark), -10px -10px 24px var(--nm-light);
   --dialog-border: none;
   --dialog-surface: var(--bg);
-  --dialog-shadow:
-    18px 18px 40px var(--nm-dark),
-    -12px -12px 30px var(--nm-light);
-  --popover-shadow:
-    10px 10px 24px var(--nm-dark),
-    -8px -8px 20px var(--nm-light);
-  --shadow-cover:
-    10px 10px 22px var(--nm-dark),
-    -8px -8px 18px var(--nm-light);
-  --shadow-raised:
-    5px 5px 12px var(--nm-dark),
-    -5px -5px 12px var(--nm-light);
-  --shadow-inset:
-    inset 3px 3px 6px var(--nm-dark),
-    inset -3px -3px 6px var(--nm-light);
+  --dialog-shadow: 18px 18px 40px var(--nm-dark), -12px -12px 30px var(--nm-light);
+  --popover-shadow: 10px 10px 24px var(--nm-dark), -8px -8px 20px var(--nm-light);
+  --shadow-cover: 10px 10px 22px var(--nm-dark), -8px -8px 18px var(--nm-light);
+  --shadow-raised: 5px 5px 12px var(--nm-dark), -5px -5px 12px var(--nm-light);
+  --shadow-inset: inset 3px 3px 6px var(--nm-dark), inset -3px -3px 6px var(--nm-light);
   --control-bg: var(--bg);
   --surface: var(--bg);
   --dialog-bg: var(--bg);
@@ -673,13 +658,9 @@
   --panel-border: 1px solid var(--al-lo);
   --panel-shadow: inset 0 1px 0 var(--al-hi);
   --dialog-border: 1px solid rgb(20 24 30 / 0.4);
-  --dialog-shadow:
-    inset 0 1px 0 var(--al-hi),
-    0 18px 40px rgb(20 24 30 / 0.28);
+  --dialog-shadow: inset 0 1px 0 var(--al-hi), 0 18px 40px rgb(20 24 30 / 0.28);
   --popover-shadow: 0 10px 26px rgb(20 24 30 / 0.24);
-  --shadow-cover:
-    0 0 0 1px rgb(20 24 30 / 0.35),
-    0 10px 24px rgb(20 24 30 / 0.22);
+  --shadow-cover: 0 0 0 1px rgb(20 24 30 / 0.35), 0 10px 24px rgb(20 24 30 / 0.22);
   --shadow-inset: inset 0 1px 2px rgb(20 24 30 / 0.3);
   --control-bg: linear-gradient(#f1f3f5, #d5dade);
 }
@@ -707,13 +688,9 @@
   --panel-border: 1px solid var(--al-lo);
   --panel-shadow: inset 0 1px 0 var(--al-hi);
   --dialog-border: 1px solid rgb(0 0 0 / 0.7);
-  --dialog-shadow:
-    inset 0 1px 0 var(--al-hi),
-    0 20px 50px rgb(0 0 0 / 0.55);
+  --dialog-shadow: inset 0 1px 0 var(--al-hi), 0 20px 50px rgb(0 0 0 / 0.55);
   --popover-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
-  --shadow-cover:
-    0 0 0 1px rgb(0 0 0 / 0.6),
-    0 12px 28px rgb(0 0 0 / 0.45);
+  --shadow-cover: 0 0 0 1px rgb(0 0 0 / 0.6), 0 12px 28px rgb(0 0 0 / 0.45);
   --shadow-inset: inset 0 1px 2px rgb(0 0 0 / 0.6);
   --control-bg: linear-gradient(#3a3f46, #2a2e34);
 }
@@ -790,20 +767,15 @@
   --panel-blur: none;
   /* Cadre d'estampe : filet d'encre, marge de papier, second filet plus pâle. */
   --panel-border: 1px solid rgb(31 53 80 / 0.55);
-  --panel-shadow:
-    inset 0 0 0 4px var(--es-paper),
-    inset 0 0 0 5px rgb(31 53 80 / 0.18);
+  --panel-shadow: inset 0 0 0 4px var(--es-paper), inset 0 0 0 5px rgb(31 53 80 / 0.18);
   --dialog-border: 1px solid var(--es-indigo);
   --dialog-surface: var(--es-paper);
   --dialog-shadow:
-    inset 0 0 0 5px var(--es-paper),
-    inset 0 0 0 6px rgb(31 53 80 / 0.25),
+    inset 0 0 0 5px var(--es-paper), inset 0 0 0 6px rgb(31 53 80 / 0.25),
     8px 8px 0 rgb(31 53 80 / 0.1);
   --popover-shadow: 5px 5px 0 rgb(31 53 80 / 0.12);
   --shadow-cover:
-    0 0 0 1px rgb(31 53 80 / 0.5),
-    0 0 0 5px var(--es-paper),
-    0 0 0 6px rgb(31 53 80 / 0.22);
+    0 0 0 1px rgb(31 53 80 / 0.5), 0 0 0 5px var(--es-paper), 0 0 0 6px rgb(31 53 80 / 0.22);
   --control-bg: transparent;
   --focus-ring: 2px solid var(--accent);
   --shell-gap: 12px;
@@ -822,7 +794,16 @@
   color-scheme: dark;
   --ad-gold: #c9a24a;
   --ad-line: rgb(201 162 74 / 0.45);
-  --ad-cut: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  --ad-cut: polygon(
+    8px 0,
+    calc(100% - 8px) 0,
+    100% 8px,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    8px 100%,
+    0 calc(100% - 8px),
+    0 8px
+  );
   --bg: #0a111e;
   --surface: rgb(12 20 35 / 0.9);
   --dialog-bg: #0e1727;
@@ -848,20 +829,14 @@
   --panel-blur: none;
   /* Double filet doré : le cadre, puis une ligne intérieure plus pâle. */
   --panel-border: 1px solid var(--ad-line);
-  --panel-shadow:
-    inset 0 0 0 4px rgb(12 20 35 / 0.9),
-    inset 0 0 0 5px rgb(201 162 74 / 0.16);
+  --panel-shadow: inset 0 0 0 4px rgb(12 20 35 / 0.9), inset 0 0 0 5px rgb(201 162 74 / 0.16);
   --dialog-border: 1px solid var(--ad-gold);
   --dialog-surface: var(--dialog-bg);
   --dialog-shadow:
-    inset 0 0 0 5px var(--dialog-bg),
-    inset 0 0 0 6px rgb(201 162 74 / 0.3),
+    inset 0 0 0 5px var(--dialog-bg), inset 0 0 0 6px rgb(201 162 74 / 0.3),
     0 24px 60px rgb(0 0 0 / 0.55);
   --popover-shadow: 0 14px 34px rgb(0 0 0 / 0.5);
-  --shadow-cover:
-    0 0 0 1px var(--ad-gold),
-    0 0 0 5px var(--bg),
-    0 0 0 6px var(--ad-line);
+  --shadow-cover: 0 0 0 1px var(--ad-gold), 0 0 0 5px var(--bg), 0 0 0 6px var(--ad-line);
   --control-bg: transparent;
   --focus-ring: 2px solid var(--accent-strong);
   --shell-gap: 10px;
@@ -912,14 +887,10 @@
   --panel-blur: none;
   /* Façade : liseré clair en haut, ombre franche dessous, comme une tôle vissée. */
   --panel-border: 1px solid rgb(0 0 0 / 0.55);
-  --panel-shadow:
-    inset 0 1px 0 rgb(241 227 196 / 0.1),
-    0 6px 18px rgb(0 0 0 / 0.35);
+  --panel-shadow: inset 0 1px 0 rgb(241 227 196 / 0.1), 0 6px 18px rgb(0 0 0 / 0.35);
   --dialog-border: 1px solid rgb(0 0 0 / 0.6);
   --dialog-surface: var(--dialog-bg);
-  --dialog-shadow:
-    inset 0 1px 0 rgb(241 227 196 / 0.12),
-    0 24px 60px rgb(0 0 0 / 0.55);
+  --dialog-shadow: inset 0 1px 0 rgb(241 227 196 / 0.12), 0 24px 60px rgb(0 0 0 / 0.55);
   --popover-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
   --shadow-cover: 0 6px 16px rgb(0 0 0 / 0.45);
   --shadow-raised: 0 2px 0 rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(241 227 196 / 0.12);
@@ -975,8 +946,7 @@
   --popover-shadow: 0 14px 34px rgb(0 0 0 / 0.6);
   /* Pochettes éclairées comme un écran : un halo ivoire très faible. */
   --shadow-cover:
-    0 0 0 1px rgb(239 230 210 / 0.06),
-    0 0 60px rgb(246 239 224 / 0.08),
+    0 0 0 1px rgb(239 230 210 / 0.06), 0 0 60px rgb(246 239 224 / 0.08),
     0 24px 60px rgb(0 0 0 / 0.6);
   --focus-ring: 2px solid var(--se-ivory);
   --shell-gap: 10px;
@@ -1022,7 +992,14 @@
   --panel-radius: 0;
   --dialog-radius: 0;
   --popover-radius: 0;
-  --control-clip: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  --control-clip: polygon(
+    6px 0,
+    100% 0,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    0 100%,
+    0 6px
+  );
   --panel-blur: none;
   --panel-border: 1px solid rgb(243 214 162 / 0.22);
   --panel-shadow: none;
@@ -1030,7 +1007,8 @@
   --dialog-surface: var(--dialog-bg);
   --dialog-shadow: 0 0 0 4px #0b0c0b, 0 0 0 5px rgb(243 214 162 / 0.2);
   --popover-shadow: 0 0 0 3px #0b0c0b, 0 0 0 4px rgb(243 214 162 / 0.2);
-  --shadow-cover: 0 0 0 1px rgb(243 214 162 / 0.3), 0 0 0 5px #0b0c0b, 0 0 0 6px rgb(243 214 162 / 0.14);
+  --shadow-cover:
+    0 0 0 1px rgb(243 214 162 / 0.3), 0 0 0 5px #0b0c0b, 0 0 0 6px rgb(243 214 162 / 0.14);
   --shadow-inset: inset 0 0 0 1px rgb(243 214 162 / 0.2);
   --control-bg: rgb(243 214 162 / 0.06);
   --focus-ring: 2px solid var(--ob-yellow);
@@ -1126,27 +1104,23 @@
   --panel-blur: none;
   /* Cadre double : filet bordeaux, marge crème, filet rose. */
   --panel-border: 1px solid var(--gh-burgundy);
-  --panel-shadow:
-    inset 0 0 0 4px var(--gh-cream),
-    inset 0 0 0 5px var(--gh-rose);
+  --panel-shadow: inset 0 0 0 4px var(--gh-cream), inset 0 0 0 5px var(--gh-rose);
   --dialog-border: 1px solid var(--gh-burgundy);
   --dialog-surface: var(--dialog-bg);
   --dialog-shadow:
-    inset 0 0 0 4px var(--gh-cream),
-    inset 0 0 0 5px var(--gh-rose),
+    inset 0 0 0 4px var(--gh-cream), inset 0 0 0 5px var(--gh-rose),
     0 20px 50px rgb(78 20 36 / 0.25);
   --popover-shadow: 0 10px 28px rgb(78 20 36 / 0.22);
   /* Pochettes encadrées comme une gravure au mur : passe-partout crème et filet bordeaux. */
   --shadow-cover:
-    0 0 0 5px var(--gh-cream),
-    0 0 0 6px var(--gh-burgundy),
-    0 10px 24px rgb(78 20 36 / 0.2);
+    0 0 0 5px var(--gh-cream), 0 0 0 6px var(--gh-burgundy), 0 10px 24px rgb(78 20 36 / 0.2);
   --shadow-raised: 0 1px 0 rgb(78 20 36 / 0.25);
   --shadow-inset: inset 0 0 0 1px rgb(78 20 36 / 0.25);
   --control-bg: var(--gh-cream);
   --focus-ring: 2px solid var(--gh-mustard);
   --shell-gap: 12px;
-  --display-family: "Copperplate Gothic Bold", "Copperplate Gothic Light", Copperplate, "Trajan Pro", Georgia, serif;
+  --display-family:
+    "Copperplate Gothic Bold", "Copperplate Gothic Light", Copperplate, "Trajan Pro", Georgia, serif;
   --display-weight: 400;
   --display-tracking: 0.12em;
   --label-transform: uppercase;
@@ -1254,7 +1228,9 @@
   --control-bg: rgb(239 228 204 / 0.08);
   --focus-ring: 2px solid var(--gq-cream);
   --shell-gap: 12px;
-  --display-family: "Franklin Gothic Demi Cond", "Bahnschrift SemiBold Condensed", Impact, "Arial Narrow", sans-serif;
+  --display-family:
+    "Franklin Gothic Demi Cond", "Bahnschrift SemiBold Condensed", Impact, "Arial Narrow",
+    sans-serif;
   --display-weight: 700;
   --display-tracking: 0.01em;
   --label-transform: uppercase;

@@ -15,7 +15,9 @@
   // Silencieux (coupé ou à 0) : l'icône rétablit le son ; le backend remonte un niveau à 0.
   const label = $derived(shown === 0 ? t.player.unmute : t.player.mute);
   // Clin d'œil (#399) : au maximum, l'étiquette monte jusqu'à 11. L'accessibilité garde 100 %.
-  const levelText = $derived(shown === 100 && ui.settings.easterEggs ? "11" : t.format.percent(shown));
+  const levelText = $derived(
+    shown === 100 && ui.settings.easterEggs ? "11" : t.format.percent(shown),
+  );
 
   let root: HTMLDivElement;
 

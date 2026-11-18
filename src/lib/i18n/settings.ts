@@ -11,7 +11,8 @@ export const fr = {
   languages: { system: "Système", fr: "Français", en: "English" },
 
   zoom: "Taille de l'interface",
-  zoomHint: "Agrandit ou réduit tout l'affichage. Raccourcis : Ctrl + « + », Ctrl + « - », Ctrl + 0.",
+  zoomHint:
+    "Agrandit ou réduit tout l'affichage. Raccourcis : Ctrl + « + », Ctrl + « - », Ctrl + 0.",
   motion: "Animations",
   motionHint:
     "Fonds animés, fondus et transitions. « Système » suit le réglage « réduire les " +
@@ -34,8 +35,14 @@ export const fr = {
       name: "Verre de mer",
       description: "Verre dépoli sur la pochette en cours ; les couleurs suivent l'album.",
     },
-    studio: { name: "Studio", description: "Console sombre et dense, la chaîne audio au premier plan." },
-    atelier: { name: "Atelier", description: "Clair et éditorial, grande typographie, beaucoup d'air." },
+    studio: {
+      name: "Studio",
+      description: "Console sombre et dense, la chaîne audio au premier plan.",
+    },
+    atelier: {
+      name: "Atelier",
+      description: "Clair et éditorial, grande typographie, beaucoup d'air.",
+    },
     acidwave: {
       name: "Acidwave",
       description: "Néons acides, chrome liquide et hologrammes ; ça pulse pendant la lecture.",
@@ -54,7 +61,8 @@ export const fr = {
     },
     neumorph: {
       name: "Neumorphism",
-      description: "Reliefs doux ton sur ton : commandes en relief, rainures en creux, listes à plat.",
+      description:
+        "Reliefs doux ton sur ton : commandes en relief, rainures en creux, listes à plat.",
     },
     "neumorph-dark": {
       name: "Neumorphism sombre",
@@ -62,11 +70,13 @@ export const fr = {
     },
     terminal: {
       name: "Terminal",
-      description: "Écran cathodique monochrome, tout en mono ; la couleur d'accent devient celle du phosphore.",
+      description:
+        "Écran cathodique monochrome, tout en mono ; la couleur d'accent devient celle du phosphore.",
     },
     riso: {
       name: "Risographie",
-      description: "Fanzine imprimé en deux encres : papier grainé, trame, léger décalage de repérage.",
+      description:
+        "Fanzine imprimé en deux encres : papier grainé, trame, léger décalage de repérage.",
     },
     bauhaus: {
       name: "Bauhaus",
@@ -74,11 +84,13 @@ export const fr = {
     },
     aero: {
       name: "Aéro",
-      description: "Fiche technique de livrée d'avion : bleu glacier, encre ardoise, jaune signal, repères.",
+      description:
+        "Fiche technique de livrée d'avion : bleu glacier, encre ardoise, jaune signal, repères.",
     },
     alloy: {
       name: "Alliage",
-      description: "Carrosserie néo-rétro : aluminium satiné, lignes cassées, feux en pixels ambre.",
+      description:
+        "Carrosserie néo-rétro : aluminium satiné, lignes cassées, feux en pixels ambre.",
     },
     "alloy-dark": {
       name: "Alliage sombre",
@@ -86,43 +98,53 @@ export const fr = {
     },
     midnight: {
       name: "Minuit",
-      description: "Noir pur, filets fins, aucun décor : la pochette est la seule couleur. Économe sur les écrans OLED.",
+      description:
+        "Noir pur, filets fins, aucun décor : la pochette est la seule couleur. Économe sur les écrans OLED.",
     },
     estampe: {
       name: "Estampe",
-      description: "Gravure japonaise sur papier washi : encre indigo, vagues en aplats, cachet vermillon.",
+      description:
+        "Gravure japonaise sur papier washi : encre indigo, vagues en aplats, cachet vermillon.",
     },
     artdeco: {
       name: "Art déco",
-      description: "Affiche des années 1920 : bleu nuit, filets dorés, éventails, capitales géométriques.",
+      description:
+        "Affiche des années 1920 : bleu nuit, filets dorés, éventails, capitales géométriques.",
     },
     cassette: {
       name: "Cassette",
-      description: "Chaîne hi-fi des années 70 : noyer, orange brûlé, façades d'ampli, bobines et vumètres.",
+      description:
+        "Chaîne hi-fi des années 70 : noyer, orange brûlé, façades d'ampli, bobines et vumètres.",
     },
     seance: {
       name: "Séance",
-      description: "La salle de cinéma : noir de salle, velours rouge, cartons-titres ivoire, « En lecture » en format large.",
+      description:
+        "La salle de cinéma : noir de salle, velours rouge, cartons-titres ivoire, « En lecture » en format large.",
     },
     onboard: {
       name: "Ordinateur de bord",
-      description: "Écrans de vaisseau de la science-fiction des années 70-80 : ambre, blocs numérotés, voyants et cadrans.",
+      description:
+        "Écrans de vaisseau de la science-fiction des années 70-80 : ambre, blocs numérotés, voyants et cadrans.",
     },
     noir: {
       name: "Film noir",
-      description: "Noir et blanc strict, ombres de stores vénitiens, machine à écrire ; seules les pochettes restent en couleur.",
+      description:
+        "Noir et blanc strict, ombres de stores vénitiens, machine à écrire ; seules les pochettes restent en couleur.",
     },
     hotel: {
       name: "Grand hôtel",
-      description: "Comédie pastel et symétrique : rose poudré, bordeaux et moutarde, cadres doubles, cartouches et médaillons.",
+      description:
+        "Comédie pastel et symétrique : rose poudré, bordeaux et moutarde, cadres doubles, cartouches et médaillons.",
     },
     desert: {
       name: "Désert",
-      description: "Space opera des sables : ocres, sable et ciel pâle, horizon bas, typographie fine et très espacée.",
+      description:
+        "Space opera des sables : ocres, sable et ciel pâle, horizon bas, typographie fine et très espacée.",
     },
     generique: {
       name: "Générique",
-      description: "Papier découpé des années 50-60 : aplats orange, rouges et crème sur papier noir, coupes de travers, ligne brisée.",
+      description:
+        "Papier découpé des années 50-60 : aplats orange, rouges et crème sur papier noir, coupes de travers, ligne brisée.",
     },
   },
 
@@ -152,7 +174,10 @@ export const fr = {
     "jamais écrêter. Le signal n'est alors plus bit-perfect.",
   normalizationModes: {
     off: { label: "Désactivée", note: "Le signal est transmis tel quel." },
-    track: { label: "Par titre", note: "Chaque titre au même volume : idéal en lecture aléatoire." },
+    track: {
+      label: "Par titre",
+      note: "Chaque titre au même volume : idéal en lecture aléatoire.",
+    },
     album: {
       label: "Par album",
       note: "Les écarts voulus entre les titres d'un album sont gardés (gain du titre s'il manque).",
@@ -194,7 +219,10 @@ export const fr = {
     "En Bluetooth, le son est réencodé par le téléphone : la qualité Haute s'entend comme le " +
     "Lossless et demande environ trois fois moins de données.",
   mobileQualities: {
-    low: { label: "Basse", note: "AAC 96 kbit/s, environ dix fois moins de données que le Lossless." },
+    low: {
+      label: "Basse",
+      note: "AAC 96 kbit/s, environ dix fois moins de données que le Lossless.",
+    },
     high: { label: "Haute", note: "AAC 320 kbit/s. Moins de données mobiles et de batterie." },
     lossless: { label: "Lossless", note: "FLAC 16 bits / 44,1 kHz, environ 1 Mbit/s." },
     max: {
@@ -266,7 +294,8 @@ export const fr = {
 
   window: "Fenêtre",
   closeAction: "Fermer la fenêtre",
-  closeActionHint: "Ce que fait le bouton de fermeture. L'icône de la zone de notification affiche la fenêtre et pilote la lecture.",
+  closeActionHint:
+    "Ce que fait le bouton de fermeture. L'icône de la zone de notification affiche la fenêtre et pilote la lecture.",
   closeActions: { quit: "Quitter Seaglass", tray: "Réduire dans la zone de notification" },
   closeActionNotes: {
     quit: "La lecture s'arrête avec l'app.",
@@ -286,10 +315,10 @@ export const fr = {
 
   listenbrainz: {
     title: "ListenBrainz",
-    hint:
-      "Envoie vos écoutes à ListenBrainz, service ouvert d'historique d'écoute. Un titre compte après la moitié de sa durée ou 4 minutes. Désactivé tant qu'aucun jeton n'est collé.",
+    hint: "Envoie vos écoutes à ListenBrainz, service ouvert d'historique d'écoute. Un titre compte après la moitié de sa durée ou 4 minutes. Désactivé tant qu'aucun jeton n'est collé.",
     token: "Jeton utilisateur",
-    tokenHint: "À copier depuis listenbrainz.org, Paramètres › Jeton utilisateur. Il reste sur cet appareil.",
+    tokenHint:
+      "À copier depuis listenbrainz.org, Paramètres › Jeton utilisateur. Il reste sur cet appareil.",
     connect: "Vérifier et connecter",
     connecting: "Vérification…",
     connected: (user: string) => `Connecté : ${user}`,
@@ -378,7 +407,8 @@ export const fr = {
   exportProgress: (done: number, total: number) => `Playlists : ${done} / ${total}`,
   exportDone: (playlists: number, tracks: number) =>
     `Bibliothèque exportée : ${tracks} titre${tracks > 1 ? "s" : ""} likés, ${playlists} playlist${playlists > 1 ? "s" : ""}`,
-  exportFailed: (titles: string[]) => `Playlists illisibles, laissées de côté : ${titles.join(", ")}`,
+  exportFailed: (titles: string[]) =>
+    `Playlists illisibles, laissées de côté : ${titles.join(", ")}`,
   exportTruncated: "Une liste dépasse 10 000 éléments : seuls les plus récents sont exportés.",
 
   backup: "Sauvegarde des réglages",
@@ -405,7 +435,8 @@ export const fr = {
   update: {
     ready: "Mise à jour prête",
     available: "Mise à jour disponible",
-    download: (mb: string | null) => (mb ? `Télécharger et installer (${mb} Mo)` : "Télécharger et installer"),
+    download: (mb: string | null) =>
+      mb ? `Télécharger et installer (${mb} Mo)` : "Télécharger et installer",
     downloading: "Téléchargement…",
     current: (version: string) => `Version actuelle : ${version}`,
     playbackStops: "La lecture s'arrêtera le temps de l'installation (quelques secondes).",
@@ -421,15 +452,16 @@ export const en: typeof fr = {
   sections: { appearance: "Appearance", playback: "Playback", app: "Application" },
 
   language: "Language",
-  languageHint: "Language of the interface and of the content suggested by the service (home, mixes).",
+  languageHint:
+    "Language of the interface and of the content suggested by the service (home, mixes).",
   languages: { system: "System", fr: "Français", en: "English" },
 
   zoom: "Interface size",
-  zoomHint: "Enlarges or shrinks the whole display. Shortcuts: Ctrl + \"+\", Ctrl + \"-\", Ctrl + 0.",
+  zoomHint: 'Enlarges or shrinks the whole display. Shortcuts: Ctrl + "+", Ctrl + "-", Ctrl + 0.',
   motion: "Animations",
   motionHint:
-    "Animated backdrops, fades and transitions. \"System\" follows the device's " +
-    "\"reduce motion\" setting.",
+    'Animated backdrops, fades and transitions. "System" follows the device\'s ' +
+    '"reduce motion" setting.',
   motions: { system: "System", reduced: "Reduced", full: "Full" },
   eggs: "Easter eggs",
   eggsHint: "Small, discreet surprises on certain dates or searches. Never any sound.",
@@ -488,7 +520,8 @@ export const en: typeof fr = {
     },
     aero: {
       name: "Aero",
-      description: "An aircraft livery spec sheet: ice blue, slate ink, signal yellow, registration marks.",
+      description:
+        "An aircraft livery spec sheet: ice blue, slate ink, signal yellow, registration marks.",
     },
     alloy: {
       name: "Alloy",
@@ -500,11 +533,13 @@ export const en: typeof fr = {
     },
     midnight: {
       name: "Midnight",
-      description: "Pure black, hairlines, no decoration: the cover art is the only color. Easy on OLED screens.",
+      description:
+        "Pure black, hairlines, no decoration: the cover art is the only color. Easy on OLED screens.",
     },
     estampe: {
       name: "Estampe",
-      description: "A Japanese woodblock print on washi paper: indigo ink, flat waves, a vermilion seal.",
+      description:
+        "A Japanese woodblock print on washi paper: indigo ink, flat waves, a vermilion seal.",
     },
     artdeco: {
       name: "Art Deco",
@@ -512,31 +547,38 @@ export const en: typeof fr = {
     },
     cassette: {
       name: "Cassette",
-      description: "A 1970s hi-fi system: walnut, burnt orange, amplifier faceplates, tape reels and VU meters.",
+      description:
+        "A 1970s hi-fi system: walnut, burnt orange, amplifier faceplates, tape reels and VU meters.",
     },
     seance: {
       name: "Showing",
-      description: "The movie theater: dark auditorium, red velvet, ivory title cards, widescreen Now Playing.",
+      description:
+        "The movie theater: dark auditorium, red velvet, ivory title cards, widescreen Now Playing.",
     },
     onboard: {
       name: "Ship Computer",
-      description: "Starship screens from 1970s-80s science fiction: amber, numbered blocks, indicator lights and dials.",
+      description:
+        "Starship screens from 1970s-80s science fiction: amber, numbered blocks, indicator lights and dials.",
     },
     noir: {
       name: "Film Noir",
-      description: "Strict black and white, venetian blind shadows, typewriter type; only the covers keep their color.",
+      description:
+        "Strict black and white, venetian blind shadows, typewriter type; only the covers keep their color.",
     },
     hotel: {
       name: "Grand Hotel",
-      description: "A pastel, symmetrical comedy: powder pink, burgundy and mustard, double frames, cartouches and medallions.",
+      description:
+        "A pastel, symmetrical comedy: powder pink, burgundy and mustard, double frames, cartouches and medallions.",
     },
     desert: {
       name: "Desert",
-      description: "A space opera of sand: ochres, dunes and pale sky, a low horizon, thin and widely spaced type.",
+      description:
+        "A space opera of sand: ochres, dunes and pale sky, a low horizon, thin and widely spaced type.",
     },
     generique: {
       name: "Title Sequence",
-      description: "1950s-60s cut paper: orange, red and cream shapes on black paper, crooked cuts, a jagged line.",
+      description:
+        "1950s-60s cut paper: orange, red and cream shapes on black paper, crooked cuts, a jagged line.",
     },
   },
 
@@ -556,7 +598,8 @@ export const en: typeof fr = {
     "A larger cache copes better with an unstable connection.",
   cacheSize: "Cache size",
   megabytes: (n: number) => `${num(n)} MB`,
-  cacheNote: "Applied right away, without interrupting playback. The cache stays in memory: nothing is written to disk.",
+  cacheNote:
+    "Applied right away, without interrupting playback. The cache stays in memory: nothing is written to disk.",
 
   normalization: "Volume normalization",
   normalizationHint:
@@ -623,7 +666,11 @@ export const en: typeof fr = {
     "Nothing changes while charging.",
   qualityCap: (quality: string, chosen: string, powerSave: boolean, battery: number | null) =>
     `For now: ${quality} instead of ${chosen}, ` +
-    (powerSave ? "battery saver is on." : battery === null ? "battery is low." : `battery at ${battery}%.`),
+    (powerSave
+      ? "battery saver is on."
+      : battery === null
+        ? "battery is low."
+        : `battery at ${battery}%.`),
   hiresEdition: "Hi-res edition",
   hiresModes: {
     auto: {
@@ -669,7 +716,8 @@ export const en: typeof fr = {
 
   window: "Window",
   closeAction: "Close the window",
-  closeActionHint: "What the close button does. The notification area icon shows the window and controls playback.",
+  closeActionHint:
+    "What the close button does. The notification area icon shows the window and controls playback.",
   closeActions: { quit: "Quit Seaglass", tray: "Minimize to the notification area" },
   closeActionNotes: {
     quit: "Playback stops with the app.",
@@ -689,8 +737,7 @@ export const en: typeof fr = {
 
   listenbrainz: {
     title: "ListenBrainz",
-    hint:
-      "Sends your listens to ListenBrainz, an open listening history service. A track counts after half its length or 4 minutes. Off until a token is pasted.",
+    hint: "Sends your listens to ListenBrainz, an open listening history service. A track counts after half its length or 4 minutes. Off until a token is pasted.",
     token: "User token",
     tokenHint: "Copy it from listenbrainz.org, Settings › User token. It stays on this device.",
     connect: "Check and connect",
@@ -808,7 +855,8 @@ export const en: typeof fr = {
   update: {
     ready: "Update ready",
     available: "Update available",
-    download: (mb: string | null) => (mb ? `Download and install (${mb} MB)` : "Download and install"),
+    download: (mb: string | null) =>
+      mb ? `Download and install (${mb} MB)` : "Download and install",
     downloading: "Downloading…",
     current: (version: string) => `Current version: ${version}`,
     playbackStops: "Playback will stop during the installation (a few seconds).",

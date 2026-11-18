@@ -43,12 +43,23 @@
     {:else if eggs.date === "musicDay"}
       <!-- 21 juin : une note de musique sur le nom. -->
       <svg class="on-end" viewBox="0 0 12 16" width="10" height="13">
-        <path d="M8 1v10.2A2.6 2.6 0 1 1 6.6 9V1h1.4zM8 1c1.4 1.5 3.5 2 3.5 4.4" fill="none" stroke="currentColor" stroke-width="1.4" />
+        <path
+          d="M8 1v10.2A2.6 2.6 0 1 1 6.6 9V1h1.4zM8 1c1.4 1.5 3.5 2 3.5 4.4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.4"
+        />
       </svg>
     {:else if eggs.date === "swissDay"}
       <!-- 1er août : des feux sur une ligne de crêtes, un lampion pendu au nom. -->
       <svg class="ridge" viewBox="0 0 60 16" width="54" height="14">
-        <path d="M0 15 10 6l6 5 9-9 8 8 7-5 10 9 10-6" fill="none" stroke="currentColor" stroke-width="1" opacity="0.6" />
+        <path
+          d="M0 15 10 6l6 5 9-9 8 8 7-5 10 9 10-6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1"
+          opacity="0.6"
+        />
         <circle cx="10" cy="5" r="1.4" fill="#ff7a45" />
         <circle cx="25" cy="1.6" r="1.4" fill="#ffb547" />
         <circle cx="40" cy="4" r="1.4" fill="#ff7a45" />
@@ -62,15 +73,29 @@
       <!-- 22 septembre : un petit feu d'artifice part du nom, une fois. -->
       <svg class="burst" viewBox="0 0 24 24" width="22" height="22">
         {#each [0, 45, 90, 135, 180, 225, 270, 315] as angle (angle)}
-          <path d="M12 7V2" stroke={angle % 90 ? "#ffb547" : "#ff5c8a"} stroke-width="1.4" stroke-linecap="round" transform="rotate({angle} 12 12)" />
+          <path
+            d="M12 7V2"
+            stroke={angle % 90 ? "#ffb547" : "#ff5c8a"}
+            stroke-width="1.4"
+            stroke-linecap="round"
+            transform="rotate({angle} 12 12)"
+          />
         {/each}
       </svg>
     {:else if eggs.date === "halloween"}
       <!-- 31 octobre : une petite citrouille découpée. -->
       <svg class="on-s" viewBox="0 0 14 13" width="12" height="11">
-        <path d="M7 3c4.6-.4 6.5 2 6.5 4.8S11 12.6 7 12.6.5 10.6.5 7.8 2.4 2.6 7 3z" fill="#ff7a1a" />
+        <path
+          d="M7 3c4.6-.4 6.5 2 6.5 4.8S11 12.6 7 12.6.5 10.6.5 7.8 2.4 2.6 7 3z"
+          fill="#ff7a1a"
+        />
         <path d="M7 3V.8" stroke="#3ddc97" stroke-width="1.4" />
-        <path d="M3.6 6.6 5 8 3.6 8zM10.4 6.6 9 8h1.4zM4.4 9.8l1.2.8 1.4-.8 1.4.8 1.2-.8" fill="#1a0f00" stroke="#1a0f00" stroke-width="0.6" />
+        <path
+          d="M3.6 6.6 5 8 3.6 8zM10.4 6.6 9 8h1.4zM4.4 9.8l1.2.8 1.4-.8 1.4.8 1.2-.8"
+          fill="#1a0f00"
+          stroke="#1a0f00"
+          stroke-width="0.6"
+        />
       </svg>
     {:else if eggs.date === "cecilia"}
       <!-- 22 novembre : une petite auréole. -->
@@ -80,7 +105,13 @@
     {:else if eggs.date === "christmas"}
       <!-- 24 et 25 décembre : un peu de neige sur le nom. -->
       <svg class="cap" viewBox="0 0 100 8" preserveAspectRatio="none">
-        <path d="M2 7C4 2 9 2 12 5s6-4 12-2 4 4 10 1 8-3 12 0 6 3 11-1 9 0 12 3 5-3 10-2 6 4 10 2" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round" />
+        <path
+          d="M2 7C4 2 9 2 12 5s6-4 12-2 4 4 10 1 8-3 12 0 6 3 11-1 9 0 12 3 5-3 10-2 6 4 10 2"
+          fill="#fff"
+          stroke="#fff"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
       </svg>
     {/if}
   </span>

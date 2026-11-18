@@ -2,7 +2,13 @@
   import { commands, type Track } from "../lib/ipc";
   import { coverSmall, formatTime, fullTitle } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
-  import { closeMenu, menu, menuPosition, openMenu, type MenuEntry } from "../lib/stores/menu.svelte";
+  import {
+    closeMenu,
+    menu,
+    menuPosition,
+    openMenu,
+    type MenuEntry,
+  } from "../lib/stores/menu.svelte";
   import { trackMenu } from "../lib/trackMenu";
   import Icon from "./Icon.svelte";
   import LikeButton from "./LikeButton.svelte";
@@ -100,7 +106,9 @@
   function onContextmenu(e: MouseEvent) {
     e.preventDefault();
     const row = e.currentTarget as HTMLElement;
-    const focused = row.contains(document.activeElement) ? (document.activeElement as HTMLElement) : null;
+    const focused = row.contains(document.activeElement)
+      ? (document.activeElement as HTMLElement)
+      : null;
     openMenu({ ...menuPosition(e, focused ?? row), entries: entries(), from: focused, owner: row });
   }
 
@@ -141,7 +149,13 @@
     if (!moreButton) return;
     if (menu.open?.from === moreButton) return closeMenu();
     const rect = moreButton.getBoundingClientRect();
-    openMenu({ x: rect.left, y: rect.bottom + 4, entries: entries(), from: moreButton, owner: rowEl });
+    openMenu({
+      x: rect.left,
+      y: rect.bottom + 4,
+      entries: entries(),
+      from: moreButton,
+      owner: rowEl,
+    });
   }
 </script>
 
@@ -167,17 +181,27 @@
 >
   {#snippet nowBars()}
     <!-- Lu seulement par la ligne en cours : les autres ne suivent pas `player.playing`. -->
-    <span class="now-bars" class:paused={!player.playing} aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="now-bars" class:paused={!player.playing} aria-hidden="true">
+      <i></i><i></i><i></i>
+    </span>
   {/snippet}
   {#if number !== undefined}
-    <span class="number">{#if active}{@render nowBars()}{:else if number === 13 && eggs.date === "friday13"}12<sup class="bis">{t.eggs.thirteen}</sup>{:else}{number}{/if}</span>
+    <span class="number">
+      {#if active}{@render nowBars()}{:else if number === 13 && eggs.date === "friday13"}12<sup
+          class="bis"
+        >
+          {t.eggs.thirteen}
+        </sup>{:else}{number}{/if}
+    </span>
   {/if}
   <div class="cover" class:hidden={!showCover}>
     {#if track.album.coverUrl}
       <img src={coverSmall(track.album)} alt="" loading="lazy" />
     {/if}
     {#if active && number === undefined}{@render nowBars()}{/if}
-    {#if selected}<span class="selected-mark" aria-hidden="true"><Icon name="check" size={18} /></span>{/if}
+    {#if selected}<span class="selected-mark" aria-hidden="true">
+        <Icon name="check" size={18} />
+      </span>{/if}
     {#if onPlay}
       <button class="cover-play" onclick={onPlay} aria-label={t.views.row.play(track.title)}>
         <Icon name="play" size={16} />
@@ -193,33 +217,55 @@
     </span>
     <!-- Android (#180) : les artistes ne sont pas des liens, l'appui tombe sur la ligne et lance
          le titre ; ils restent dans le menu (appui long ou « … ») et dans « En lecture ». -->
-    <span class="sub"
-      >{#if platform.mobile}{track.artists.map((a) => a.name).join(", ")}{:else}{#each track.artists as artist, i (artist.id)}{#if i > 0},&nbsp;{/if}<button
+    <span class="sub">
+      {#if platform.mobile}{track.artists
+          .map((a) => a.name)
+          .join(
+            ", ",
+          )}{:else}{#each track.artists as artist, i (artist.id)}{#if i > 0},&nbsp;{/if}<button
             class="link"
-            onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button
-          >{/each}{/if}</span
-    >
+            onclick={() => go({ name: "artist", id: artist.id })}
+          >
+            {artist.name}
+          </button>{/each}{/if}
+    </span>
     {#if addedBy}<span class="added-by">{t.jam.addedBy(addedBy)}</span>{/if}
     {#if note}<span class="note">{note}</span>{/if}
   </div>
   {#if !compact}
     <span class="album">
-      <button class="link" onclick={() => go({ name: "album", id: track.album.id })}>{track.album.title}</button>
+      <button class="link" onclick={() => go({ name: "album", id: track.album.id })}>
+        {track.album.title}
+      </button>
     </span>
   {/if}
   <div class="actions">
     {#if !actions}
       <!-- seulement le menu -->
     {:else if onRemove}
-      <button onclick={onRemove} title={t.menu.removeFromQueue}><Icon name="close" size={16} /></button>
+      <button onclick={onRemove} title={t.menu.removeFromQueue}>
+        <Icon name="close" size={16} />
+      </button>
     {:else}
-      <button class="queue-action" onclick={() => commands.playNext(track.id)} title={t.menu.playNext}>
+      <button
+        class="queue-action"
+        onclick={() => commands.playNext(track.id)}
+        title={t.menu.playNext}
+      >
         <Icon name="playNext" size={16} />
       </button>
-      <button class="queue-action" onclick={() => commands.addToQueue(track.id)} title={t.menu.addToQueue}>
+      <button
+        class="queue-action"
+        onclick={() => commands.addToQueue(track.id)}
+        title={t.menu.addToQueue}
+      >
         <Icon name="add" size={16} />
       </button>
-      <button class="queue-action" onclick={() => go({ name: "radio", seed: "track", id: track.id })} title={t.menu.trackRadio}>
+      <button
+        class="queue-action"
+        onclick={() => go({ name: "radio", seed: "track", id: track.id })}
+        title={t.menu.trackRadio}
+      >
         <Icon name="radio" size={16} />
       </button>
     {/if}
@@ -256,7 +302,11 @@
     <LikeButton {track} />
   </div>
   <!-- #399 : recherche « kessel », les durées passent un instant en parsecs. -->
-  <span class="duration">{eggs.search === "kessel" ? t.eggs.parsecs(parsecs(track.duration)) : formatTime(track.duration)}</span>
+  <span class="duration">
+    {eggs.search === "kessel"
+      ? t.eggs.parsecs(parsecs(track.duration))
+      : formatTime(track.duration)}
+  </span>
 </div>
 
 <style>

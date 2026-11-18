@@ -14,7 +14,9 @@
   const family = $derived(familyOf(current));
   const familyVariants = $derived(variants(family));
   const favorite = $derived(ui.settings.favoriteThemes.includes(family));
-  const favoriteLabel = $derived(favorite ? t.settings.themeFavoriteRemove : t.settings.themeFavoriteAdd);
+  const favoriteLabel = $derived(
+    favorite ? t.settings.themeFavoriteRemove : t.settings.themeFavoriteAdd,
+  );
 
   async function run(action: () => Promise<void>) {
     try {

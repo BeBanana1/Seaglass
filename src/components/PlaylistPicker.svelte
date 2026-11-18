@@ -4,7 +4,11 @@
   import { commands, type PlaylistSummary } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
-  import { closePlaylistPicker, notePlaylistChange, picker } from "../lib/stores/playlistPicker.svelte";
+  import {
+    closePlaylistPicker,
+    notePlaylistChange,
+    picker,
+  } from "../lib/stores/playlistPicker.svelte";
   import { folders, loadFolders } from "../lib/stores/folders.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import Icon from "./Icon.svelte";
@@ -46,15 +50,24 @@
 
   // Dossiers (#331) : sans filtre, vos playlists hors dossier puis celles de chaque dossier
   // sous son nom. Sans dossier (ou pendant un filtre), une seule liste, sans en-tête.
-  const groups = $derived.by((): { key: string; name: string | null; playlists: PlaylistSummary[] }[] => {
-    const list = folders.items ?? [];
-    if (query.trim() || list.length === 0) return [{ key: "", name: null, playlists: shown }];
-    const filed = new Set(list.flatMap((f) => f.playlists));
-    const grouped = list
-      .map((f) => ({ key: f.id, name: f.name, playlists: shown.filter((p) => f.playlists.includes(p.uuid)) }))
-      .filter((g) => g.playlists.length > 0);
-    return [{ key: "", name: null, playlists: shown.filter((p) => !filed.has(p.uuid)) }, ...grouped];
-  });
+  const groups = $derived.by(
+    (): { key: string; name: string | null; playlists: PlaylistSummary[] }[] => {
+      const list = folders.items ?? [];
+      if (query.trim() || list.length === 0) return [{ key: "", name: null, playlists: shown }];
+      const filed = new Set(list.flatMap((f) => f.playlists));
+      const grouped = list
+        .map((f) => ({
+          key: f.id,
+          name: f.name,
+          playlists: shown.filter((p) => f.playlists.includes(p.uuid)),
+        }))
+        .filter((g) => g.playlists.length > 0);
+      return [
+        { key: "", name: null, playlists: shown.filter((p) => !filed.has(p.uuid)) },
+        ...grouped,
+      ];
+    },
+  );
 
   function done(uuid: string) {
     notePlaylistChange(uuid);
@@ -114,7 +127,10 @@
 
 {#if picker.request}
   <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
-  <div class="picker-backdrop" onclick={(e) => e.target === e.currentTarget && closePlaylistPicker()}>
+  <div
+    class="picker-backdrop"
+    onclick={(e) => e.target === e.currentTarget && closePlaylistPicker()}
+  >
     <div
       class="playlist-picker"
       role="dialog"
@@ -128,7 +144,9 @@
           <h3 id="picker-title" class="display">{t.library.picker.title}</h3>
           <p class="sub">{picker.request.label}</p>
         </div>
-        <button class="close" onclick={closePlaylistPicker} aria-label={t.common.close}><Icon name="close" /></button>
+        <button class="close" onclick={closePlaylistPicker} aria-label={t.common.close}>
+          <Icon name="close" />
+        </button>
       </header>
 
       <input
@@ -150,7 +168,9 @@
             bind:this={titleInput}
             aria-label={t.library.picker.newNameLabel}
           />
-          <button class="primary" type="submit" disabled={busy || !newTitle.trim()}>{t.library.picker.create}</button>
+          <button class="primary" type="submit" disabled={busy || !newTitle.trim()}>
+            {t.library.picker.create}
+          </button>
         </form>
       {:else}
         <button class="picker-item picker-new" onclick={() => (creating = true)} disabled={busy}>
@@ -176,9 +196,11 @@
             {#each group.playlists as playlist (playlist.uuid)}
               <button class="picker-item" onclick={() => add(playlist)} disabled={busy}>
                 <span class="thumb">
-                  {#if playlist.imageUrl}<img src={playlist.imageUrl} alt="" loading="lazy" />{:else}<Icon
-                      name="queue"
-                    />{/if}
+                  {#if playlist.imageUrl}<img
+                      src={playlist.imageUrl}
+                      alt=""
+                      loading="lazy"
+                    />{:else}<Icon name="queue" />{/if}
                 </span>
                 <span class="name">{playlist.title}</span>
                 {#if playlist.numberOfTracks !== null}

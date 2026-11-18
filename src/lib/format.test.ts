@@ -96,7 +96,9 @@ describe("titres et sous-titres", () => {
     const p = (fields: Partial<PlaylistSummary>) =>
       ({ editorial: false, mine: false, numberOfTracks: null, ...fields }) as PlaylistSummary;
     expect(playlistSubtitle(p({ editorial: true, mine: true }))).toBe("Éditoriale");
-    expect(playlistSubtitle(p({ mine: true, numberOfTracks: 12 }))).toBe("Votre playlist · 12 titres");
+    expect(playlistSubtitle(p({ mine: true, numberOfTracks: 12 }))).toBe(
+      "Votre playlist · 12 titres",
+    );
     i18n.lang = "en";
     expect(playlistSubtitle(p({ numberOfTracks: 1 }))).toBe("Playlist · 1 track");
   });
@@ -135,7 +137,11 @@ describe("signalVerdict", () => {
     bitrate: null,
     hiresEdition: null,
   };
-  const out = (samplerate: number, format = "s32"): AudioParams => ({ format, samplerate, channelCount: 2 });
+  const out = (samplerate: number, format = "s32"): AudioParams => ({
+    format,
+    samplerate,
+    channelCount: 2,
+  });
 
   it("sans flux ou en attente de la sortie", () => {
     expect(signalVerdict(null, null).tone).toBe("idle");
@@ -147,14 +153,20 @@ describe("signalVerdict", () => {
   });
 
   it("reconnaît la fréquence native, avec le détail propre à Android", () => {
-    expect(signalVerdict(hires, out(96000))).toMatchObject({ tone: "ok", label: "Fréquence native" });
+    expect(signalVerdict(hires, out(96000))).toMatchObject({
+      tone: "ok",
+      label: "Fréquence native",
+    });
     platform.mobile = true;
     expect(signalVerdict(hires, out(96000)).detail).toMatch(/^Media3/);
   });
 
   it("signale un rééchantillonnage et une profondeur réduite", () => {
     expect(signalVerdict(hires, out(48000))).toMatchObject({ tone: "warn", detail: "96 → 48 kHz" });
-    expect(signalVerdict(hires, out(96000, "s16"))).toMatchObject({ tone: "warn", label: "Profondeur réduite" });
+    expect(signalVerdict(hires, out(96000, "s16"))).toMatchObject({
+      tone: "warn",
+      label: "Profondeur réduite",
+    });
     // Un 16 bits en sortie 16 bits reste natif.
     expect(signalVerdict({ ...hires, bitDepth: 16 }, out(96000, "s16")).tone).toBe("ok");
   });
@@ -164,7 +176,9 @@ describe("signalVerdict", () => {
       tone: "warn",
       label: "Volume logiciel",
     });
-    expect(signalVerdict(hires, out(96000), { level: 100, muted: true })).toMatchObject({ label: "Son coupé" });
+    expect(signalVerdict(hires, out(96000), { level: 100, muted: true })).toMatchObject({
+      label: "Son coupé",
+    });
   });
 
   it("garde une conversion prioritaire sur le volume, qui passe dans le détail", () => {
@@ -177,22 +191,31 @@ describe("signalVerdict", () => {
     const v = signalVerdict(hires, out(96000), { level: 100, muted: false }, -6.5);
     expect(v).toMatchObject({ tone: "warn", label: "Volume normalisé" });
     expect(v.detail).toBe("ReplayGain −6,5 dB appliqué par mpv, plus bit-perfect");
-    expect(signalVerdict(hires, out(96000), { level: 100, muted: true }, -6.5).label).toBe("Son coupé");
-    expect(signalVerdict(hires, out(48000), undefined, 2).detail).toBe("96 → 48 kHz ; ReplayGain +2 dB");
+    expect(signalVerdict(hires, out(96000), { level: 100, muted: true }, -6.5).label).toBe(
+      "Son coupé",
+    );
+    expect(signalVerdict(hires, out(48000), undefined, 2).detail).toBe(
+      "96 → 48 kHz ; ReplayGain +2 dB",
+    );
   });
 
   it("annonce le bit-perfect seulement en mode exclusif (#245)", () => {
     const full = { level: 100, muted: false };
-    expect(signalVerdict(hires, out(96000), full, null, true)).toMatchObject({ tone: "ok", label: "Bit-perfect" });
+    expect(signalVerdict(hires, out(96000), full, null, true)).toMatchObject({
+      tone: "ok",
+      label: "Bit-perfect",
+    });
     // Fréquence refusée par le périphérique : mpv rééchantillonne, la cause est donnée.
     expect(plain(signalVerdict(hires, out(48000), full, null, true).detail)).toBe(
       "96 → 48 kHz : fréquence refusée par le périphérique en exclusif",
     );
     // Volume logiciel gardé en exclusif, mais signalé.
-    expect(signalVerdict(hires, out(96000), { level: 60, muted: false }, null, true)).toMatchObject({
-      tone: "warn",
-      label: "Volume logiciel",
-    });
+    expect(signalVerdict(hires, out(96000), { level: 60, muted: false }, null, true)).toMatchObject(
+      {
+        tone: "warn",
+        label: "Volume logiciel",
+      },
+    );
   });
 
   it("signale l'égaliseur, en exclusif aussi, sauf son coupé (#428)", () => {
@@ -200,14 +223,22 @@ describe("signalVerdict", () => {
     const v = signalVerdict(hires, out(96000), full, null, true, "HD 600");
     expect(v).toMatchObject({ tone: "warn", label: "Égaliseur" });
     expect(v.detail).toBe("profil « HD 600 » appliqué par mpv, plus bit-perfect");
-    expect(plain(signalVerdict(hires, out(96000), { level: 60, muted: false }, -6.5, false, "HD 600").detail)).toBe(
+    expect(
+      plain(
+        signalVerdict(hires, out(96000), { level: 60, muted: false }, -6.5, false, "HD 600").detail,
+      ),
+    ).toBe(
       "profil « HD 600 » appliqué par mpv, plus bit-perfect ; ReplayGain −6,5 dB ; volume 60 %",
     );
-    expect(signalVerdict(hires, out(96000), { level: 100, muted: true }, null, false, "HD 600").label).toBe("Son coupé");
+    expect(
+      signalVerdict(hires, out(96000), { level: 100, muted: true }, null, false, "HD 600").label,
+    ).toBe("Son coupé");
     expect(plain(signalVerdict(hires, out(48000), full, null, false, "HD 600").detail)).toBe(
       "96 → 48 kHz ; égaliseur « HD 600 »",
     );
-    expect(signalVerdict({ ...hires, codec: "mp4a.40.2" }, out(96000), full, null, false, "HD 600").tone).toBe("lossy");
+    expect(
+      signalVerdict({ ...hires, codec: "mp4a.40.2" }, out(96000), full, null, false, "HD 600").tone,
+    ).toBe("lossy");
   });
 });
 

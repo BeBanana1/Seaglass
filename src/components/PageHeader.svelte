@@ -82,16 +82,23 @@
       <div class="actions">
         {#if trackIds.length > 0}
           <button class="primary" onclick={() => play(false)}>
-            <Icon name="play" size={16} /> {t.common.play}
+            <Icon name="play" size={16} />
+            {t.common.play}
           </button>
           <button class="secondary" onclick={() => play(true)}>
-            <Icon name="shuffle" size={16} /> {t.common.shuffle}
+            <Icon name="shuffle" size={16} />
+            {t.common.shuffle}
           </button>
         {/if}
         {#if favorite}<FavoriteButton target={favorite} />{/if}
         {#if later}<LaterButton target={later} />{/if}
         {#if queueable && trackIds.length > 0}
-          <button class="secondary icon" onclick={() => enqueue(true)} title={t.views.header.playNext} aria-label={t.views.header.playNext}>
+          <button
+            class="secondary icon"
+            onclick={() => enqueue(true)}
+            title={t.views.header.playNext}
+            aria-label={t.views.header.playNext}
+          >
             <Icon name="playNext" size={18} />
           </button>
           <button
@@ -104,7 +111,11 @@
           </button>
           <button
             class="secondary icon"
-            onclick={() => openPlaylistPicker({ trackIds, label: `${title} · ${t.common.tracks(trackIds.length)}` })}
+            onclick={() =>
+              openPlaylistPicker({
+                trackIds,
+                label: `${title} · ${t.common.tracks(trackIds.length)}`,
+              })}
             title={t.views.header.addToPlaylist}
             aria-label={t.views.header.addToPlaylist}
           >
@@ -114,13 +125,19 @@
         {#if pin}<PinButton {pin} />{/if}
         <BlindTestButton {title} {trackIds} />
         {#if onEdit}
-          <button class="secondary icon edit-playlist" onclick={onEdit} title={t.views.header.edit} aria-label={t.views.header.edit}>
+          <button
+            class="secondary icon edit-playlist"
+            onclick={onEdit}
+            title={t.views.header.edit}
+            aria-label={t.views.header.edit}
+          >
             <Icon name="edit" size={18} />
           </button>
         {/if}
         {#if onRadio}
           <button class="secondary" onclick={onRadio}>
-            <Icon name="radio" size={16} /> {t.views.header.radio}
+            <Icon name="radio" size={16} />
+            {t.views.header.radio}
           </button>
         {/if}
       </div>

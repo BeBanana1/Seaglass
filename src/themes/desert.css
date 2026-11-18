@@ -128,8 +128,10 @@
 :root[data-theme="desert"] .progress .fill {
   box-shadow: none;
   background:
-    radial-gradient(ellipse 2.5px 1.6px at 4px 30%, var(--ds-burnt) 90%, transparent) 0 0 / 14px 100% repeat-x,
-    radial-gradient(ellipse 2.5px 1.6px at 11px 70%, var(--ds-burnt) 90%, transparent) 0 0 / 14px 100% repeat-x,
+    radial-gradient(ellipse 2.5px 1.6px at 4px 30%, var(--ds-burnt) 90%, transparent) 0 0 / 14px
+      100% repeat-x,
+    radial-gradient(ellipse 2.5px 1.6px at 11px 70%, var(--ds-burnt) 90%, transparent) 0 0 / 14px
+      100% repeat-x,
     rgb(122 63 29 / 0.16);
   opacity: 0.85;
 }

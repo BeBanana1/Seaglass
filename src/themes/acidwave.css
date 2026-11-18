@@ -64,7 +64,11 @@
 
 /* Lignes de titre. */
 :root[data-theme="acidwave"] .row:hover {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 10%, transparent),
+    transparent 70%
+  );
 }
 
 :root[data-theme="acidwave"] .row.active .title {
@@ -154,7 +158,11 @@
 :root[data-theme="acidwave"] nav button.active,
 :root[data-theme="acidwave"] nav .pin.active {
   color: var(--accent);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 14%, transparent),
+    transparent
+  );
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
@@ -356,7 +364,11 @@
 :root[data-theme="acidwave"] .context-menu-item:hover,
 :root[data-theme="acidwave"] .context-menu-item:focus {
   color: var(--accent);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 16%, transparent),
+    transparent
+  );
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
@@ -383,7 +395,11 @@
 }
 
 :root[data-theme="acidwave"] .picker-item:hover:not(:disabled) {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 16%, transparent),
+    transparent
+  );
   box-shadow: inset 2px 0 0 var(--accent);
 }
 

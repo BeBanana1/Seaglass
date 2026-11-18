@@ -74,7 +74,9 @@
       message = { action, text: t.settings.shortcutUnsupported };
       return;
     }
-    const other = GLOBAL_ACTIONS.find((a) => a !== action && shortcuts.bindings[a] && sameKeys(shortcuts.bindings[a]!, result.keys));
+    const other = GLOBAL_ACTIONS.find(
+      (a) => a !== action && shortcuts.bindings[a] && sameKeys(shortcuts.bindings[a]!, result.keys),
+    );
     if (other) {
       message = { action, text: t.settings.shortcutDuplicate(t.settings.globalActions[other]) };
       return;
@@ -127,7 +129,9 @@
     </li>
   {/each}
 </ul>
-<button class="global-shortcuts-reset" onclick={() => save({ ...DEFAULT_BINDINGS })}>{t.settings.shortcutsReset}</button>
+<button class="global-shortcuts-reset" onclick={() => save({ ...DEFAULT_BINDINGS })}>
+  {t.settings.shortcutsReset}
+</button>
 
 <style>
   .global-shortcuts {

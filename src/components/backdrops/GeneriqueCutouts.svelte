@@ -19,13 +19,21 @@
     <!-- Grande découpe orange à droite, qui sort du cadre ; sous la bande de l'en-tête, où
          elle rendait les liens illisibles. -->
     <g class="cut orange" transform="translate(0 190)">
-      <polygon class="shadow" points="1090,-30 1640,-20 1630,380 1210,330 1150,190" transform="translate(10 12)" />
+      <polygon
+        class="shadow"
+        points="1090,-30 1640,-20 1630,380 1210,330 1150,190"
+        transform="translate(10 12)"
+      />
       <polygon points="1090,-30 1640,-20 1630,380 1210,330 1150,190" />
     </g>
 
     <!-- Bande rouge en biais, en bas à gauche. -->
     <g class="cut red">
-      <polygon class="shadow" points="-40,820 520,742 560,800 -20,905" transform="translate(8 10)" />
+      <polygon
+        class="shadow"
+        points="-40,820 520,742 560,800 -20,905"
+        transform="translate(8 10)"
+      />
       <polygon points="-40,820 520,742 560,800 -20,905" />
     </g>
 
@@ -40,7 +48,10 @@
     </g>
 
     <!-- Ligne brisée crème qui traverse l'écran. -->
-    <polyline class="broken" points="-20,560 240,590 330,520 610,610 760,540 1010,600 1120,560 1620,640" />
+    <polyline
+      class="broken"
+      points="-20,560 240,590 330,520 610,610 760,540 1010,600 1120,560 1620,640"
+    />
 
     <rect width="1600" height="1000" filter="url(#gq-paper)" fill="white" />
   </svg>

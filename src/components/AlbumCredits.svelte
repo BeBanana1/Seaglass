@@ -56,7 +56,9 @@
         prev = n;
         continue;
       }
-      parts.push(start === prev ? `${start}` : prev === start + 1 ? `${start}, ${prev}` : `${start}–${prev}`);
+      parts.push(
+        start === prev ? `${start}` : prev === start + 1 ? `${start}, ${prev}` : `${start}–${prev}`,
+      );
       start = prev = n;
     }
     const list = parts.join(", ");
@@ -85,8 +87,12 @@
               {@const where = trackList(person.tracks)}
               {#if i > 0}{", "}{/if}{#if person.artistId !== null}
                 {@const id = person.artistId}
-                <button class="credit-artist" onclick={() => go({ name: "contributor", id })}>{person.name}</button>
-              {:else}{person.name}{/if}{#if where}<span class="credit-tracks">{` (${where})`}</span>{/if}
+                <button class="credit-artist" onclick={() => go({ name: "contributor", id })}>
+                  {person.name}
+                </button>
+              {:else}{person.name}{/if}{#if where}<span class="credit-tracks">
+                  {` (${where})`}
+                </span>{/if}
             {/each}
           </dd>
         {/each}

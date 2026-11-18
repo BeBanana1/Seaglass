@@ -4,7 +4,13 @@
 <script lang="ts">
   import { tick, untrack } from "svelte";
   import { commands, type SearchResults } from "../lib/ipc";
-  import { availableActions, open as openRoute, shortcutText, type Action, type ActionGroup } from "../lib/actions";
+  import {
+    availableActions,
+    open as openRoute,
+    shortcutText,
+    type Action,
+    type ActionGroup,
+  } from "../lib/actions";
   import { rank } from "../lib/palette";
   import { artistNames, coverSmall, fullTitle, mediaSubtitle } from "../lib/format";
   import { closePalette, palette } from "../lib/stores/palette.svelte";
@@ -50,7 +56,11 @@
       query = "";
       results = null;
       active = 0;
-      actions = availableActions().map((action) => ({ action, label: action.label(), keywords: action.keywords }));
+      actions = availableActions().map((action) => ({
+        action,
+        label: action.label(),
+        keywords: action.keywords,
+      }));
     });
     void tick().then(() => input?.focus());
     return () => previousFocus?.focus?.();
@@ -146,7 +156,8 @@
     closePalette();
     try {
       const result = row.run();
-      if (result instanceof Promise) result.catch((e) => pushToast({ level: "error", message: String(e) }));
+      if (result instanceof Promise)
+        result.catch((e) => pushToast({ level: "error", message: String(e) }));
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
@@ -155,7 +166,9 @@
   function move(step: number) {
     if (rows.length === 0) return;
     active = (active + step + rows.length) % rows.length;
-    void tick().then(() => list?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" }));
+    void tick().then(() =>
+      list?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" }),
+    );
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -220,7 +233,13 @@
           >
             {#if row.image !== undefined}
               {#if row.image}
-                <img class="palette-thumb" class:round={row.round} src={row.image} alt="" loading="lazy" />
+                <img
+                  class="palette-thumb"
+                  class:round={row.round}
+                  src={row.image}
+                  alt=""
+                  loading="lazy"
+                />
               {:else}
                 <span class="palette-thumb" class:round={row.round}></span>
               {/if}

@@ -21,9 +21,12 @@ Everything must pass before a pull request (CI runs the same):
 
 ```powershell
 cd src-tauri; cargo fmt; cargo clippy --all-targets -- -D warnings; cargo test
+pnpm format
 pnpm check
 pnpm test
 ```
+
+`pnpm format` runs Prettier on `src/`; CI runs `pnpm format:check` and fails on unformatted code. To keep `git blame` useful across the commit that formatted the whole frontend, run once: `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
 Tests marked `#[ignore]` (`cargo test live_… -- --ignored`) call the real TIDAL API or a real mpv, and some **modify the account**: read the test before running it.
 

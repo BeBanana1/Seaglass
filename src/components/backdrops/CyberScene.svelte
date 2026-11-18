@@ -81,10 +81,23 @@
     <g class="near">
       {#each near as t, i (i)}
         <rect x={t.x} y={ground - t.h} width={t.w} height={t.h} fill="#05060c" />
-        <rect x={t.x} y={ground - t.h} width={t.w} height="2" style="fill: var(--cyan)" opacity="0.5" />
+        <rect
+          x={t.x}
+          y={ground - t.h}
+          width={t.w}
+          height="2"
+          style="fill: var(--cyan)"
+          opacity="0.5"
+        />
         {#if t.antenna}
           <path d="M{t.x + t.w / 2} {ground - t.h} v-60" stroke="#1b1e33" stroke-width="3" />
-          <circle class="blink" cx={t.x + t.w / 2} cy={ground - t.h - 60} r="3" style="fill: var(--magenta)" />
+          <circle
+            class="blink"
+            cx={t.x + t.w / 2}
+            cy={ground - t.h - 60}
+            r="3"
+            style="fill: var(--magenta)"
+          />
         {/if}
         {#each t.windows as w, j (j)}
           <rect x={w.x} y={w.y} width="5" height="7" style="fill: {w.c}" opacity="0.75" />
@@ -102,7 +115,14 @@
           style="stroke: {s.c}; filter: drop-shadow(0 0 8px {s.c})"
         />
         {#each Array.from({ length: Math.floor(s.h / 26) }) as _, k (k)}
-          <rect x={s.x + 7} y={s.y + 10 + k * 26} width="8" height="14" style="fill: {s.c}" opacity="0.8" />
+          <rect
+            x={s.x + 7}
+            y={s.y + 10 + k * 26}
+            width="8"
+            height="14"
+            style="fill: {s.c}"
+            opacity="0.8"
+          />
         {/each}
       {/each}
     </g>
@@ -110,7 +130,13 @@
     <!-- Pluie. -->
     <g class="rain" stroke="#8fd6ff" stroke-width="1.2" opacity="0.28">
       {#each drops as d, i (i)}
-        <line x1={d.x} y1={d.y} x2={d.x - d.l * 0.25} y2={d.y + d.l} style="animation-delay: {d.d}s" />
+        <line
+          x1={d.x}
+          y1={d.y}
+          x2={d.x - d.l * 0.25}
+          y2={d.y + d.l}
+          style="animation-delay: {d.d}s"
+        />
       {/each}
     </g>
 

@@ -112,7 +112,9 @@ beforeEach(() => {
   vi.stubGlobal("cancelAnimationFrame", () => {
     frames = [];
   });
-  vi.stubGlobal("getComputedStyle", (el: unknown) => ({ overflowY: el instanceof FakeScroller ? "auto" : "visible" }));
+  vi.stubGlobal("getComputedStyle", (el: unknown) => ({
+    overflowY: el instanceof FakeScroller ? "auto" : "visible",
+  }));
   vi.stubGlobal("document", { scrollingElement: null, documentElement: null });
   vi.stubGlobal("window", { innerHeight: 800 });
   vi.stubGlobal("navigator", { vibrate });
@@ -214,7 +216,12 @@ describe("touchReorder", () => {
     vi.advanceTimersByTime(350);
     expect(reorder.from).toBeNull();
 
-    action.update({ enabled: false, index: 1, reorder, items: () => rows as unknown as HTMLElement[] });
+    action.update({
+      enabled: false,
+      index: 1,
+      reorder,
+      items: () => rows as unknown as HTMLElement[],
+    });
     hold();
     expect(reorder.from).toBeNull();
   });
@@ -231,7 +238,12 @@ describe("touchReorder", () => {
   it("désactivé en pleine saisie : la saisie est abandonnée", () => {
     hold();
     row.dispatchEvent(pointer("pointermove", 330));
-    action.update({ enabled: false, index: 1, reorder, items: () => rows as unknown as HTMLElement[] });
+    action.update({
+      enabled: false,
+      index: 1,
+      reorder,
+      items: () => rows as unknown as HTMLElement[],
+    });
     expect(reorder.from).toBeNull();
     row.dispatchEvent(pointer("pointerup", 330));
     expect(onMove).not.toHaveBeenCalled();
@@ -324,7 +336,13 @@ describe("touchReorder", () => {
     }
 
     beforeEach(() => {
-      action.update({ enabled: true, index: 1, reorder, items: () => rows as unknown as HTMLElement[], handle: ".grip" });
+      action.update({
+        enabled: true,
+        index: 1,
+        reorder,
+        items: () => rows as unknown as HTMLElement[],
+        handle: ".grip",
+      });
     });
 
     it("saisit la ligne dès l'appui sur la poignée, sans appui long", () => {

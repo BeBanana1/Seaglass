@@ -107,7 +107,11 @@ const demoMix: MixSummary = {
   imageUrl: null,
   mixType: "DAILY_MIX",
 };
-const mixPage: MixPage = fx.mix ?? { mix: demoMix, imageLargeUrl: null, tracks: fx.album.tracks.slice(0, 10) };
+const mixPage: MixPage = fx.mix ?? {
+  mix: demoMix,
+  imageLargeUrl: null,
+  tracks: fx.album.tracks.slice(0, 10),
+};
 const radioPage: RadioPage = fx.radio ?? {
   seed: "track",
   id: fx.album.tracks[0]?.id ?? 1,
@@ -157,7 +161,8 @@ let queueUndo: {
 const volumeParam = params.get("volume");
 /** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18), album ouvrable (#111). */
 const hiresEditionParam = params.get("hiresedition");
-const hiresEdition = hiresEditionParam === null ? null : { id: fx.album.album.id, title: hiresEditionParam };
+const hiresEdition =
+  hiresEditionParam === null ? null : { id: fx.album.album.id, title: hiresEditionParam };
 /** `?hiresoffer=Thriller` : réglage « Demander », bandeau qui propose une édition hi-res (#59). */
 const hiresOfferParam = params.get("hiresoffer");
 /** `?hirestwin=1` : la page album propose un album jumeau hi-res (#59). */
@@ -181,13 +186,27 @@ function mockSleep(param: string | null): SleepState | null {
 
 function offerFormat(album: string): StreamFormat {
   const hiresEdition = { id: fx.album.album.id, title: album };
-  return { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 192000, bitrate: 5071, hiresEdition };
+  return {
+    quality: "HI_RES_LOSSLESS",
+    codec: "flac",
+    bitDepth: 24,
+    sampleRate: 192000,
+    bitrate: 5071,
+    hiresEdition,
+  };
 }
 
 const state: PlayerState = {
   // `?idle=1` : rien en lecture (vue « En lecture » vide, #399).
   track: params.has("idle") ? null : (context[index] ?? null),
-  stream: { quality: "HI_RES_LOSSLESS", codec: "flac", bitDepth: 24, sampleRate: 44100, bitrate: 1854, hiresEdition },
+  stream: {
+    quality: "HI_RES_LOSSLESS",
+    codec: "flac",
+    bitDepth: 24,
+    sampleRate: 44100,
+    bitrate: 1854,
+    hiresEdition,
+  },
   output: { format: "s32", samplerate: 44100, channelCount: 2 },
   // Calculé plus bas, selon le mode exclusif factice.
   deviceFormat: null,
@@ -208,7 +227,10 @@ const state: PlayerState = {
   hasPrevious: true,
   hasNext: true,
   volume: {
-    level: volumeParam && volumeParam !== "muted" ? Math.min(100, Math.max(0, Number(volumeParam) || 0)) : 100,
+    level:
+      volumeParam && volumeParam !== "muted"
+        ? Math.min(100, Math.max(0, Number(volumeParam) || 0))
+        : 100,
     muted: volumeParam === "muted",
   },
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
@@ -222,7 +244,10 @@ const state: PlayerState = {
   soundtrack: context[index]?.album.id === 156749593,
   ended: params.has("ended"),
   blindTest: false,
-  mpvIssue: ({ cpu: "cpuUnsupported", stopped: "stopped", missing: "missing" } as const)[params.get("mpv") ?? ""] ?? null,
+  mpvIssue:
+    ({ cpu: "cpuUnsupported", stopped: "stopped", missing: "missing" } as const)[
+      params.get("mpv") ?? ""
+    ] ?? null,
 };
 
 let ui: UiSettings = {
@@ -234,7 +259,9 @@ let ui: UiSettings = {
     { kind: "likedTracks" },
   ],
   // `?accent=ff5c8a` : couleur d'accent personnalisée du thème affiché.
-  accents: params.get("accent") ? { [(params.get("theme") as Theme) ?? "seaglass"]: `#${params.get("accent")}` } : {},
+  accents: params.get("accent")
+    ? { [(params.get("theme") as Theme) ?? "seaglass"]: `#${params.get("accent")}` }
+    : {},
   // `?favorites=alloy,terminal` : thèmes favoris (#390).
   favoriteThemes: (params.get("favorites")?.split(",") ?? []) as Theme[],
   // `?lang=en` : interface en anglais.
@@ -303,8 +330,14 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
 // `?normalization=track|album` : normalisation active (gain factice de −6,5 dB).
 const normalizationParam = params.get("normalization") as PlaybackSettings["normalization"] | null;
 // `?device=missing` : le périphérique choisi est débranché ; `?device=dac` : il est branché.
-const DAC = { id: "wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}", name: "Haut-parleurs (Focusrite USB Audio)" };
-const SPEAKERS = { id: "wasapi/{0d7e4c2b-58a1-4c5e-9f1e-3b2a9c1d7e44}", name: "Haut-parleurs (Realtek(R) Audio)" };
+const DAC = {
+  id: "wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}",
+  name: "Haut-parleurs (Focusrite USB Audio)",
+};
+const SPEAKERS = {
+  id: "wasapi/{0d7e4c2b-58a1-4c5e-9f1e-3b2a9c1d7e44}",
+  name: "Haut-parleurs (Realtek(R) Audio)",
+};
 const deviceParam = params.get("device");
 /** Profil de démonstration (extrait d'AutoEQ, Sennheiser HD 600). */
 const DEMO_EQ: EqProfile = {
@@ -419,7 +452,9 @@ function setCurrent(track: Track | undefined) {
     soundtrack: track.album.id === 156749593,
     ended: false,
     hiresOffer:
-      !track.hires && hiresOfferParam !== null && playback.hiresUpgrade === "ask" ? offerFormat(hiresOfferParam) : null,
+      !track.hires && hiresOfferParam !== null && playback.hiresUpgrade === "ask"
+        ? offerFormat(hiresOfferParam)
+        : null,
     // Avec `?hiresedition=…` et le réglage actif, un titre non hi-res est « remplacé » par
     // une autre édition, comme le ferait le backend.
     ...(() => {
@@ -435,8 +470,19 @@ function setCurrent(track: Track | undefined) {
               bitrate: 2016,
               hiresEdition: upgraded ? hiresEdition : null,
             }
-          : { quality: "LOSSLESS", codec: "flac", bitDepth: 16, sampleRate: 44100, bitrate: 893, hiresEdition: null },
-        output: { format: hires ? "s32" : "s16", samplerate: hires ? 48000 : 44100, channelCount: 2 },
+          : {
+              quality: "LOSSLESS",
+              codec: "flac",
+              bitDepth: 16,
+              sampleRate: 44100,
+              bitrate: 893,
+              hiresEdition: null,
+            },
+        output: {
+          format: hires ? "s32" : "s16",
+          samplerate: hires ? 48000 : 44100,
+          channelCount: 2,
+        },
       };
     })(),
   });
@@ -464,11 +510,20 @@ const libPlaylists = [...fx.library.playlists];
 // démonstration avec `?folders=1`.
 let mockFolders: PlaylistFolder[] =
   params.get("folders") === "1"
-    ? [{ id: "f0000000-0000-4000-8000-000000000001", name: "Soirées", playlists: libPlaylists.slice(0, 2).map((p) => p.uuid) }]
+    ? [
+        {
+          id: "f0000000-0000-4000-8000-000000000001",
+          name: "Soirées",
+          playlists: libPlaylists.slice(0, 2).map((p) => p.uuid),
+        },
+      ]
     : [];
 
 function unfile(uuids: string[]) {
-  mockFolders = mockFolders.map((f) => ({ ...f, playlists: f.playlists.filter((u) => !uuids.includes(u)) }));
+  mockFolders = mockFolders.map((f) => ({
+    ...f,
+    playlists: f.playlists.filter((u) => !uuids.includes(u)),
+  }));
 }
 
 function likedIds(): LikedIds {
@@ -496,21 +551,39 @@ function setLiked(target: LikeTarget, on: boolean) {
       else liked.delete(Number(target.id));
       break;
     case "album": {
-      const known = [fx.album.album, ...fx.search.albums, ...fx.artist.albums, ...fx.artist.singles];
+      const known = [
+        fx.album.album,
+        ...fx.search.albums,
+        ...fx.artist.albums,
+        ...fx.artist.singles,
+      ];
       toggleIn(favAlbums, known, (a) => a.id === Number(target.id), on);
       break;
     }
     case "artist":
-      toggleIn(favArtists, [fx.artist.artist, ...fx.search.artists], (a) => a.id === Number(target.id), on);
+      toggleIn(
+        favArtists,
+        [fx.artist.artist, ...fx.search.artists],
+        (a) => a.id === Number(target.id),
+        on,
+      );
       break;
     case "playlist":
-      toggleIn(libPlaylists, [fx.playlist.playlist, ...fx.search.playlists], (p) => p.uuid === target.uuid, on);
+      toggleIn(
+        libPlaylists,
+        [fx.playlist.playlist, ...fx.search.playlists],
+        (p) => p.uuid === target.uuid,
+        on,
+      );
       break;
     case "mix": {
       // Ajouté en fin de liste, comme le service (#204).
       const i = libraryMixes.findIndex((m) => m.id === target.id);
       if (i >= 0 && !on) libraryMixes.splice(i, 1);
-      if (i < 0 && on) libraryMixes.push(mixPage.mix.id === target.id ? mixPage.mix : { ...mixPage.mix, id: target.id });
+      if (i < 0 && on)
+        libraryMixes.push(
+          mixPage.mix.id === target.id ? mixPage.mix : { ...mixPage.mix, id: target.id },
+        );
       break;
     }
   }
@@ -545,7 +618,10 @@ function setSavedForLater(target: LikeTarget, on: boolean) {
       ...fx.library.tracks.map((t) => ({ kind: "track" as const, ...t })),
       ...[fx.album.album, ...fx.search.albums].map((a) => ({ kind: "album" as const, ...a })),
       ...[fx.artist.artist, ...fx.search.artists].map((a) => ({ kind: "artist" as const, ...a })),
-      ...[fx.playlist.playlist, ...fx.search.playlists].map((p) => ({ kind: "playlist" as const, ...p })),
+      ...[fx.playlist.playlist, ...fx.search.playlists].map((p) => ({
+        kind: "playlist" as const,
+        ...p,
+      })),
     ];
     const found = known.find((item) => laterKey(item) === laterKey(target));
     if (found) laterItems.unshift(found);
@@ -581,43 +657,48 @@ const ownPages = new Map<string, PlaylistPage>();
 function cleanupReport(tracks: Track[]): CleanupReport {
   const [a, b, c, d, e] = tracks;
   return a && b && c && d && e
-      ? {
-          scanned: tracks.length,
-          items: [
-            {
-              kind: "unavailable",
-              index: 1,
-              track: b,
-              replacement: e,
-              suggested: true,
-              op: { op: "replace", index: 1, trackId: b.id, with: e.id },
-            },
-            {
-              kind: "duplicate",
-              index: 2,
-              track: c,
-              keptIndex: 0,
-              kept: a,
-              sameTrack: false,
-              suggested: true,
-              op: { op: "remove", index: 2, trackId: c.id },
-            },
-            {
-              kind: "unavailable",
-              index: 3,
-              track: d,
-              replacement: null,
-              suggested: false,
-              op: { op: "remove", index: 3, trackId: d.id },
-            },
-          ],
-        }
-      : { scanned: tracks.length, items: [] };
+    ? {
+        scanned: tracks.length,
+        items: [
+          {
+            kind: "unavailable",
+            index: 1,
+            track: b,
+            replacement: e,
+            suggested: true,
+            op: { op: "replace", index: 1, trackId: b.id, with: e.id },
+          },
+          {
+            kind: "duplicate",
+            index: 2,
+            track: c,
+            keptIndex: 0,
+            kept: a,
+            sameTrack: false,
+            suggested: true,
+            op: { op: "remove", index: 2, trackId: c.id },
+          },
+          {
+            kind: "unavailable",
+            index: 3,
+            track: d,
+            replacement: null,
+            suggested: false,
+            op: { op: "remove", index: 3, trackId: d.id },
+          },
+        ],
+      }
+    : { scanned: tracks.length, items: [] };
 }
 
 /** Rien n'est modifié : tout est annoncé appliqué, et annulable (un titre « ne revient pas »). */
 function cleanupResult(ops: ListOp[], undoing: boolean): ListOpsResult {
-  return { applied: ops.length, skipped: undoing ? 1 : 0, undo: undoing ? [] : [...ops].reverse(), error: null };
+  return {
+    applied: ops.length,
+    skipped: undoing ? 1 : 0,
+    undo: undoing ? [] : [...ops].reverse(),
+    error: null,
+  };
 }
 
 /** Page d'une de vos playlists, créée au premier accès avec les titres de démonstration. */
@@ -656,13 +737,21 @@ const longTracks: TrackEntry[] = (() => {
   return Array.from({ length: longCount }, (_, i) => {
     const t = base[i % base.length];
     // Le premier passage garde les vrais identifiants : le titre en cours y figure.
-    const entry = { ...t, id: i < base.length ? t.id : t.id * 100_000 + i, addedAt: now - i * 3_600_000 };
+    const entry = {
+      ...t,
+      id: i < base.length ? t.id : t.id * 100_000 + i,
+      addedAt: now - i * 3_600_000,
+    };
     allTracks.set(entry.id, entry);
     return entry;
   });
 })();
 const longPlaylist: PlaylistPage | null = longCount
-  ? { playlist: { ...fx.playlist.playlist, numberOfTracks: longCount }, tracks: longTracks, revision: null }
+  ? {
+      playlist: { ...fx.playlist.playlist, numberOfTracks: longCount },
+      tracks: longTracks,
+      revision: null,
+    }
   : null;
 
 const cachedPlaylists = new Map<string, PlaylistPage>();
@@ -701,7 +790,8 @@ let searchHistory: string[] = ["Daft Punk", "Moon Safari", "Bohemian Rhapsody"];
 const fakeQr = (() => {
   let cells = "";
   for (let y = 0; y < 21; y++)
-    for (let x = 0; x < 21; x++) if ((x * 7 + y * 13 + x * y) % 3 === 0) cells += `M${x + 2} ${y + 2}h1v1h-1z`;
+    for (let x = 0; x < 21; x++)
+      if ((x * 7 + y * 13 + x * y) % 3 === 0) cells += `M${x + 2} ${y + 2}h1v1h-1z`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25" shape-rendering="crispEdges"><rect width="25" height="25" fill="#ffffff"/><path fill="#000000" d="${cells}"/></svg>`;
 })();
 function mockJam(mode: "online" | "local", reconnecting = false) {
@@ -819,11 +909,14 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (/youtube\.com\/playlist/i.test(String(text))) {
       throw "Les playlists YouTube Music ne peuvent pas être importées : YouTube ne les montre pas sans compte";
     }
-    const m = /tidal\.com\/(?:browse\/)?(track|album|artist|playlist|mix)\/([\w-]+)/i.exec(String(text));
+    const m = /tidal\.com\/(?:browse\/)?(track|album|artist|playlist|mix)\/([\w-]+)/i.exec(
+      String(text),
+    );
     if (!m) return null;
     const [, kind, id] = m;
     if (kind === "track") return { kind: "album", id: fx.album.album.id, track: Number(id) };
-    if (kind === "playlist" || kind === "mix") return kind === "playlist" ? { kind, uuid: id } : { kind, id };
+    if (kind === "playlist" || kind === "mix")
+      return kind === "playlist" ? { kind, uuid: id } : { kind, id };
     return { kind, id: Number(id) };
   },
   // #328 : progression simulée, puis des titres trouvés, à vérifier et introuvables.
@@ -853,7 +946,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     const q = String(query).trim().replace(/\s+/g, " ");
     if (!q) return searchHistory;
     // Comme `search_history.rs` : en tête, sans doublon (casse ignorée), 20 au plus.
-    searchHistory = [q, ...searchHistory.filter((h) => h.toLowerCase() !== q.toLowerCase())].slice(0, 20);
+    searchHistory = [q, ...searchHistory.filter((h) => h.toLowerCase() !== q.toLowerCase())].slice(
+      0,
+      20,
+    );
     return searchHistory;
   },
   remove_search_history: ({ query }) => {
@@ -865,10 +961,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   play_history: () => ({ recent: playedAlbums, top: playedAlbums.slice(0, 2) }),
   clear_play_history: () => void (playedAlbums = []),
   play_stats: ({ period }) => {
-    if (playedAlbums.length === 0) return { plays: 0, seconds: 0, unknown: 0, tracks: [], albums: [], artists: [] };
-    const scale = ({ week: 1, month: 4, year: 30, all: 40 } as Record<string, number>)[String(period)] ?? 1;
-    const tracks = fx.search.tracks.slice(0, 12).map((item, i) => ({ item, plays: (12 - i) * scale }));
-    const artists = fx.search.artists.slice(0, 6).map((a, i) => ({ item: a, plays: (9 - i) * scale }));
+    if (playedAlbums.length === 0)
+      return { plays: 0, seconds: 0, unknown: 0, tracks: [], albums: [], artists: [] };
+    const scale =
+      ({ week: 1, month: 4, year: 30, all: 40 } as Record<string, number>)[String(period)] ?? 1;
+    const tracks = fx.search.tracks
+      .slice(0, 12)
+      .map((item, i) => ({ item, plays: (12 - i) * scale }));
+    const artists = fx.search.artists
+      .slice(0, 6)
+      .map((a, i) => ({ item: a, plays: (9 - i) * scale }));
     return {
       plays: tracks.reduce((n, t) => n + t.plays, 0),
       seconds: tracks.reduce((n, t) => n + t.plays * t.item.duration, 0),
@@ -893,9 +995,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   recap: ({ month }) => {
     const scale = month == null ? 12 : 1;
-    const tracks = fx.search.tracks.slice(0, 10).map((item, i) => ({ item, plays: (14 - i) * scale }));
-    const artists = fx.search.artists.slice(0, 6).map((item, i) => ({ item, plays: (11 - i) * scale }));
-    const hours = Array.from({ length: 24 }, (_, h) => Math.round((h >= 8 ? 3 : 0) + (h >= 18 ? 6 : 0) + (h === 22 ? 4 : 0)) * scale);
+    const tracks = fx.search.tracks
+      .slice(0, 10)
+      .map((item, i) => ({ item, plays: (14 - i) * scale }));
+    const artists = fx.search.artists
+      .slice(0, 6)
+      .map((item, i) => ({ item, plays: (11 - i) * scale }));
+    const hours = Array.from(
+      { length: 24 },
+      (_, h) => Math.round((h >= 8 ? 3 : 0) + (h >= 18 ? 6 : 0) + (h === 22 ? 4 : 0)) * scale,
+    );
     return {
       plays: tracks.reduce((n, t) => n + t.plays, 0),
       seconds: tracks.reduce((n, t) => n + t.plays * t.item.duration, 0),
@@ -916,7 +1025,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // Playlists intelligentes (#383) : vides tant que l'historique l'est, comme le vrai backend.
   smart_list: ({ list }) => {
     if (playedAlbums.length === 0) return [];
-    const offset = ({ topMonth: 0, onRepeat: 2, forgotten: 4, neverPlayed: 6 } as Record<string, number>)[String(list)] ?? 0;
+    const offset =
+      ({ topMonth: 0, onRepeat: 2, forgotten: 4, neverPlayed: 6 } as Record<string, number>)[
+        String(list)
+      ] ?? 0;
     return fx.search.tracks.slice(offset, offset + 8);
   },
   jam_status: () => jam,
@@ -926,7 +1038,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   listenbrainz_connect: ({ token }) => {
     const value = String(token).trim();
     if (!value || /\s/.test(value)) throw "jeton ListenBrainz invalide : collez-le tel quel";
-    if (value.includes("bad")) throw "jeton refusé par ListenBrainz : copiez-le depuis vos réglages ListenBrainz";
+    if (value.includes("bad"))
+      throw "jeton refusé par ListenBrainz : copiez-le depuis vos réglages ListenBrainz";
     listenbrainz = { user: "seaglass-fan", refused: false, pending: listenbrainz.pending };
     return listenbrainz;
   },
@@ -936,7 +1049,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   set_relay_settings: ({ change }) => {
     const c = change as { enabled: boolean; url: string | null; key?: string | null };
     const url = c.url?.trim().replace(/\/+$/, "") || null;
-    if (c.enabled && url && !url.startsWith("https://")) throw "adresse du relais invalide : https://… attendu";
+    if (c.enabled && url && !url.startsWith("https://"))
+      throw "adresse du relais invalide : https://… attendu";
     if (c.enabled && url?.includes("down")) throw "relais injoignable : vérifiez l'adresse";
     const customKey = c.key === undefined || c.key === null ? relay.customKey : c.key.trim() !== "";
     relay = {
@@ -949,7 +1063,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     return relay;
   },
   // `?updates=none` : app compilée sans serveur de mises à jour (#452).
-  update_server: () => (params.get("updates") === "none" ? null : "https://updates.example.org/seaglass"),
+  update_server: () =>
+    params.get("updates") === "none" ? null : "https://updates.example.org/seaglass",
   start_jam: (args) => (jam ??= mockJam(args.mode === "local" ? "local" : "online")),
   stop_jam: () => void (jam = null),
   remote_status: () => remote,
@@ -959,7 +1074,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   linked_computer: () => linkedComputer,
   link_computer: ({ link }) => {
     const m = /^\s*(?:http:\/\/)?([^/#\s]+)\/?[#\s]/.exec(String(link));
-    if (!m) throw new Error("adresse non reconnue : copiez-la depuis Réglages › Application › Télécommande sur l'ordinateur");
+    if (!m)
+      throw new Error(
+        "adresse non reconnue : copiez-la depuis Réglages › Application › Télécommande sur l'ordinateur",
+      );
     return (linkedComputer = { host: m[1], syncedAt: null, online: true });
   },
   unlink_computer: () => void (linkedComputer = null),
@@ -977,16 +1095,29 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     jam
       ? (jam = {
           ...jam,
-          members: jam.members.map((m) => (m.id === args.id ? { ...m, banned: args.banned === true } : m)),
+          members: jam.members.map((m) =>
+            m.id === args.id ? { ...m, banned: args.banned === true } : m,
+          ),
         })
       : null,
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
   album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
   hires_twin_album: () =>
-    hiresTwin ? { ...fx.album.album, id: fx.album.album.id + 1, title: `${fx.album.album.title} (Hi-Res)`, hires: true } : null,
+    hiresTwin
+      ? {
+          ...fx.album.album,
+          id: fx.album.album.id + 1,
+          title: `${fx.album.album.title} (Hi-Res)`,
+          hires: true,
+        }
+      : null,
   artist: () => fx.artist,
   album_related: () => ({
-    versions: fx.search.albums.slice(0, 4).map((a, i) => ({ ...a, id: a.id + 1000 + i, title: `${fx.album.album.title} (Deluxe ${i + 1})` })),
+    versions: fx.search.albums.slice(0, 4).map((a, i) => ({
+      ...a,
+      id: a.id + 1000 + i,
+      title: `${fx.album.album.title} (Deluxe ${i + 1})`,
+    })),
     byArtist: fx.artist.albums.filter((a) => a.id !== fx.album.album.id).slice(0, 10),
   }),
   artist_extra: () => ({
@@ -1022,7 +1153,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     for (const id of trackIds as number[]) setLiked({ kind: "track", id }, Boolean(on));
   },
   blocked: () => structuredClone(blocked),
-  set_blocked: ({ target, blocked: on }) => setBlocked(JSON.parse(JSON.stringify(target)), Boolean(on)),
+  set_blocked: ({ target, blocked: on }) =>
+    setBlocked(JSON.parse(JSON.stringify(target)), Boolean(on)),
   later_ids: () => laterIds(),
   save_for_later: () => libraryList([...laterItems]),
   set_saved_for_later: ({ target, saved }) =>
@@ -1081,7 +1213,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   remove_many_from_playlist: ({ uuid, items }) => {
     cachedPlaylists.delete(String(uuid));
     const page = ownPage(String(uuid));
-    const list = [...(items as { index: number; trackId: number }[])].sort((a, b) => b.index - a.index);
+    const list = [...(items as { index: number; trackId: number }[])].sort(
+      (a, b) => b.index - a.index,
+    );
     if (!page || list.some((i) => page.tracks[i.index]?.id !== i.trackId)) {
       throw new Error("la playlist a changé, rouvrez-la avant de la modifier");
     }
@@ -1092,7 +1226,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     cachedPlaylists.delete(String(uuid));
     const page = ownPage(String(uuid));
     if (!page) return 0;
-    const list = [...(items as { index: number; trackId: number }[])].sort((a, b) => a.index - b.index);
+    const list = [...(items as { index: number; trackId: number }[])].sort(
+      (a, b) => a.index - b.index,
+    );
     let restored = 0;
     for (const item of list) {
       const entry = removedMany.find((e) => e.id === item.trackId);
@@ -1121,7 +1257,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     page.playlist.description = String(description) || null;
     for (const list of [own, libPlaylists]) {
       const p = list.find((x) => x.uuid === uuid);
-      if (p) Object.assign(p, { title: page.playlist.title, description: page.playlist.description });
+      if (p)
+        Object.assign(p, { title: page.playlist.title, description: page.playlist.description });
     }
   },
   playlist_folders: () =>
@@ -1131,7 +1268,11 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   create_folder: ({ name, uuids }) => {
     const list = [...(uuids as string[])];
     unfile(list);
-    const folder: PlaylistFolder = { id: crypto.randomUUID(), name: String(name).trim(), playlists: list };
+    const folder: PlaylistFolder = {
+      id: crypto.randomUUID(),
+      name: String(name).trim(),
+      playlists: list,
+    };
     mockFolders = [...mockFolders, folder];
     return { ...folder, playlists: [...list] };
   },
@@ -1141,7 +1282,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   move_to_folder: ({ uuids, folderId }) => {
     const list = [...(uuids as string[])];
     unfile(list);
-    mockFolders = mockFolders.map((f) => (f.id === folderId ? { ...f, playlists: [...f.playlists, ...list] } : f));
+    mockFolders = mockFolders.map((f) =>
+      f.id === folderId ? { ...f, playlists: [...f.playlists, ...list] } : f,
+    );
   },
   delete_folder: ({ id }) => {
     mockFolders = mockFolders.filter((f) => f.id !== id);
@@ -1222,10 +1365,20 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   // #192 : `?crash=1` simule un plantage au lancement précédent (toast et rapport).
   take_crash_notice: () => params.get("crash") === "1",
   last_crash_report: () =>
-    params.get("crash") === "1" ? "# Rapport de plantage Seaglass\n\npanic dans le thread « main » : exemple\n" : null,
+    params.get("crash") === "1"
+      ? "# Rapport de plantage Seaglass\n\npanic dans le thread « main » : exemple\n"
+      : null,
   changelog: () => [
-    { version: "0.5.12", published: null, entries: ["Journal des versions dans Réglages › Application (#340)."] },
-    { version: "0.5.11", published: "2026-11-11", entries: ["Taille de l'interface réglable avec `Ctrl` + « + » (#337)."] },
+    {
+      version: "0.5.12",
+      published: null,
+      entries: ["Journal des versions dans Réglages › Application (#340)."],
+    },
+    {
+      version: "0.5.11",
+      published: "2026-11-11",
+      entries: ["Taille de l'interface réglable avec `Ctrl` + « + » (#337)."],
+    },
   ],
   current_log: () => "2026-11-11T10:00:00Z  INFO seaglass_lib: Seaglass (aperçu)\n",
   open_log_dir: () => null,
@@ -1283,17 +1436,36 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   // Version simplifiée de `player/autoeq.rs` : assez pour essayer l'import.
   parse_autoeq: ({ text }) => {
-    const kinds: Record<string, EqFilterKind> = { PK: "peaking", PEQ: "peaking", LSC: "lowShelf", LS: "lowShelf", HSC: "highShelf", HS: "highShelf" };
-    const num = (line: string, key: string) => Number(new RegExp(`${key}\\s+(-?[\\d.]+)`, "i").exec(line)?.[1]);
+    const kinds: Record<string, EqFilterKind> = {
+      PK: "peaking",
+      PEQ: "peaking",
+      LSC: "lowShelf",
+      LS: "lowShelf",
+      HSC: "highShelf",
+      HS: "highShelf",
+    };
+    const num = (line: string, key: string) =>
+      Number(new RegExp(`${key}\\s+(-?[\\d.]+)`, "i").exec(line)?.[1]);
     const filters: EqFilter[] = [];
     for (const line of String(text).split(/\r?\n/)) {
       const m = /^Filter\s*\d*:\s*ON\s+(\w+)/i.exec(line.trim());
       const kind = m && kinds[m[1].toUpperCase()];
-      if (kind) filters.push({ kind, freq: num(line, "Fc"), gain: num(line, "Gain"), q: num(line, "Q") || 0.71 });
+      if (kind)
+        filters.push({
+          kind,
+          freq: num(line, "Fc"),
+          gain: num(line, "Gain"),
+          q: num(line, "Q") || 0.71,
+        });
     }
     if (!filters.length) throw new Error("ce texte n'est pas un profil AutoEQ (ParametricEQ.txt)");
     const preamp = /Preamp:\s*(-?[\d.]+)/i.exec(String(text));
-    return { id: 0, name: "", preamp: preamp ? Number(preamp[1]) : null, filters } satisfies EqProfile;
+    return {
+      id: 0,
+      name: "",
+      preamp: preamp ? Number(preamp[1]) : null,
+      filters,
+    } satisfies EqProfile;
   },
   audio_devices: () => audioDevices,
   // `?platform=android` : mise en page tactile.
@@ -1323,7 +1495,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   keep_screen_on: () => null,
 
   // `?platform=android&links=1` : liens TIDAL déjà donnés à l'app.
-  link_handling: () => (params.get("platform") === "android" ? { enabled: params.get("links") === "1" } : null),
+  link_handling: () =>
+    params.get("platform") === "android" ? { enabled: params.get("links") === "1" } : null,
   open_link_settings: () => undefined,
   // Le navigateur garde sa taille : seul l'état change (le bouton suit).
   fullscreen: () => fullscreen,
@@ -1495,9 +1668,26 @@ export async function listen<T>(event: string, cb: (e: { payload: T }) => void) 
 
 /** Couplets inventés, répartis sur toute la durée du titre (aucune vraie parole). */
 const LYRIC_VERSES = [
-  ["Le verre poli par la marée", "garde la couleur des étés", "on le ramasse sans y penser", "il brille encore au soleil levé"],
-  ["", "Refrain, les vagues reviennent", "et la lumière se souvient", "de tout ce qu'on n'a pas dit", "sur le sable, à minuit"],
-  ["Une bouteille il y a cent ans", "jetée au large par le vent", "", "elle revient en éclats lents", "plus douce qu'au commencement"],
+  [
+    "Le verre poli par la marée",
+    "garde la couleur des étés",
+    "on le ramasse sans y penser",
+    "il brille encore au soleil levé",
+  ],
+  [
+    "",
+    "Refrain, les vagues reviennent",
+    "et la lumière se souvient",
+    "de tout ce qu'on n'a pas dit",
+    "sur le sable, à minuit",
+  ],
+  [
+    "Une bouteille il y a cent ans",
+    "jetée au large par le vent",
+    "",
+    "elle revient en éclats lents",
+    "plus douce qu'au commencement",
+  ],
 ];
 
 function mockLyrics(trackId: number): Lyrics | null {
@@ -1532,7 +1722,13 @@ function mockTrackInfo(trackId: number): TrackInfo {
     bitrate: 893,
     hiresEdition: null,
   };
-  const hires: StreamFormat = { ...cd, quality: "HI_RES_LOSSLESS", bitDepth: 24, sampleRate: 48000, bitrate: 2016 };
+  const hires: StreamFormat = {
+    ...cd,
+    quality: "HI_RES_LOSSLESS",
+    bitDepth: 24,
+    sampleRate: 48000,
+    bitrate: 2016,
+  };
   return {
     track,
     tags: track.hires ? ["LOSSLESS", "HIRES_LOSSLESS"] : ["LOSSLESS"],
@@ -1551,13 +1747,21 @@ function mockTrackInfo(trackId: number): TrackInfo {
     hiresEdition:
       !track.hires && hiresEdition !== null
         ? {
-            track: { ...track, id: track.id + 1_000_000, hires: true, album: { ...track.album, title: hiresEdition.title } },
+            track: {
+              ...track,
+              id: track.id + 1_000_000,
+              hires: true,
+              album: { ...track.album, title: hiresEdition.title },
+            },
             stream: hires,
             played: playback.hiresUpgrade === "auto",
           }
         : null,
     credits: [
-      { role: "Composer", contributors: track.artists.map((a) => ({ name: a.name, artistId: a.id })) },
+      {
+        role: "Composer",
+        contributors: track.artists.map((a) => ({ name: a.name, artistId: a.id })),
+      },
       { role: "Lyricist", contributors: [{ name: "Ann Demo", artistId: null }] },
       {
         role: "Electric Guitar",
@@ -1577,7 +1781,10 @@ function mockAlbumCredits(): AlbumCreditGroup[] {
   const ids = fx.album.tracks.map((t) => t.id);
   const main = fx.album.album.artists[0];
   return [
-    { role: "Composer", contributors: [{ name: main?.name ?? "Demo", artistId: main?.id ?? null, tracks: [] }] },
+    {
+      role: "Composer",
+      contributors: [{ name: main?.name ?? "Demo", artistId: main?.id ?? null, tracks: [] }],
+    },
     {
       role: "Drums",
       contributors: [
@@ -1586,7 +1793,10 @@ function mockAlbumCredits(): AlbumCreditGroup[] {
       ],
     },
     { role: "Producer", contributors: [{ name: "Carla Studio", artistId: null, tracks: [] }] },
-    { role: "Mastering Engineer", contributors: [{ name: "Dan Lathe", artistId: null, tracks: ids.slice(-1) }] },
+    {
+      role: "Mastering Engineer",
+      contributors: [{ name: "Dan Lathe", artistId: null, tracks: ids.slice(-1) }],
+    },
   ];
 }
 
@@ -1713,7 +1923,11 @@ function synthetic(): Fixtures {
       },
     ],
     feed: [
-      { occurredAt: Date.now(), seen: false, item: { kind: "album", ...album, albumType: "SINGLE" } },
+      {
+        occurredAt: Date.now(),
+        seen: false,
+        item: { kind: "album", ...album, albumType: "SINGLE" },
+      },
       {
         occurredAt: Date.UTC(2024, 0, 1),
         seen: true,

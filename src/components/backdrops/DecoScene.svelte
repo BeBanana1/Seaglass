@@ -55,9 +55,7 @@
 
     <g class="frieze">
       <line x1="0" y1="958" x2="1600" y2="958" />
-      <path
-        d={chevrons.map((x) => `M${x} 990 L${x + 20} 970 L${x + 40} 990`).join(" ")}
-      />
+      <path d={chevrons.map((x) => `M${x} 990 L${x + 20} 970 L${x + 40} 990`).join(" ")} />
       <line x1="0" y1="996" x2="1600" y2="996" />
     </g>
   </svg>

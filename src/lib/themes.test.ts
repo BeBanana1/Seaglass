@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { familyOf, galleryFamilies, THEME_INFO, toggleFavorite, variantFor, variants } from "./themes";
+import {
+  familyOf,
+  galleryFamilies,
+  THEME_INFO,
+  toggleFavorite,
+  variantFor,
+  variants,
+} from "./themes";
 
 describe("catalogue des thèmes", () => {
   it("chaque famille commence par un thème qui en fait partie", () => {

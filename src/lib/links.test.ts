@@ -36,9 +36,18 @@ describe("openTidalLink", () => {
 
   it("ouvre artiste, playlist et mix", async () => {
     const cases: [LinkTarget, unknown][] = [
-      [{ kind: "artist", id: 5 }, { name: "artist", id: 5 }],
-      [{ kind: "playlist", uuid: "u-1" }, { name: "playlist", uuid: "u-1" }],
-      [{ kind: "mix", id: "m-1" }, { name: "mix", id: "m-1" }],
+      [
+        { kind: "artist", id: 5 },
+        { name: "artist", id: 5 },
+      ],
+      [
+        { kind: "playlist", uuid: "u-1" },
+        { name: "playlist", uuid: "u-1" },
+      ],
+      [
+        { kind: "mix", id: "m-1" },
+        { name: "mix", id: "m-1" },
+      ],
       // #328 : playlist d'un autre service → page d'import.
       [
         { kind: "import", link: "https://www.deezer.com/playlist/42" },

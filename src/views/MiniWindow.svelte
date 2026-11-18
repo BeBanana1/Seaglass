@@ -69,12 +69,20 @@
       <div class="meta" data-tauri-drag-region>
         {#if track}
           <span class="title" data-tauri-drag-region>{fullTitle(track)}</span>
-          <span class="artist" data-tauri-drag-region>{track.artists.map((a) => a.name).join(", ")}</span>
+          <span class="artist" data-tauri-drag-region>
+            {track.artists.map((a) => a.name).join(", ")}
+          </span>
         {:else}
           <span class="artist" data-tauri-drag-region>{t.player.nothingPlaying}</span>
         {/if}
       </div>
-      <button class="tool" class:on={onTop} onclick={toggleOnTop} title={t.player.miniOnTop} aria-pressed={onTop}>
+      <button
+        class="tool"
+        class:on={onTop}
+        onclick={toggleOnTop}
+        title={t.player.miniOnTop}
+        aria-pressed={onTop}
+      >
         <Icon name="pin" size={15} />
       </button>
       <button class="tool" onclick={back} title={t.player.miniBack}>

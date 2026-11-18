@@ -77,7 +77,8 @@ describe("Reorder", () => {
 });
 
 describe("keyboardMove", () => {
-  const key = (key: string, altKey = true) => ({ key, altKey, preventDefault: vi.fn() }) as unknown as KeyboardEvent;
+  const key = (key: string, altKey = true) =>
+    ({ key, altKey, preventDefault: vi.fn() }) as unknown as KeyboardEvent;
 
   it("monte et descend d'une ligne avec Alt", () => {
     expect(keyboardMove(key("ArrowUp"), 2, 5)).toBe(1);

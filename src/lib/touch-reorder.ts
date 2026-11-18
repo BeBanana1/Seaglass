@@ -39,7 +39,8 @@ export interface TouchReorderOptions {
 function scrollParent(node: HTMLElement): HTMLElement {
   for (let el = node.parentElement; el; el = el.parentElement) {
     const { overflowY } = getComputedStyle(el);
-    if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight) return el;
+    if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight)
+      return el;
   }
   return (document.scrollingElement as HTMLElement) ?? document.documentElement;
 }

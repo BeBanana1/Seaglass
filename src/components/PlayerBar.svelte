@@ -37,17 +37,28 @@
         <span class="title">{fullTitle(track)}</span>
         <span class="sub">
           {#each track.artists as artist, i (artist.id)}
-            {#if i > 0},&nbsp;{/if}<button class="link" onclick={() => go({ name: "artist", id: artist.id })}>{artist.name}</button>
+            {#if i > 0},&nbsp;{/if}<button
+              class="link"
+              onclick={() => go({ name: "artist", id: artist.id })}
+            >
+              {artist.name}
+            </button>
           {/each}
         </span>
       </div>
       <LikeButton {track} />
     {:else if player.state.blindTest}
-      <button class="cover blind" onclick={() => open({ name: "blindTest" })} title={t.blindTest.inProgress}>
+      <button
+        class="cover blind"
+        onclick={() => open({ name: "blindTest" })}
+        title={t.blindTest.inProgress}
+      >
         <Icon name="quiz" size={22} />
       </button>
       <div class="meta">
-        <button class="title link" onclick={() => open({ name: "blindTest" })}>{t.blindTest.inProgress}</button>
+        <button class="title link" onclick={() => open({ name: "blindTest" })}>
+          {t.blindTest.inProgress}
+        </button>
       </div>
     {:else}
       <span class="sub">{t.player.nothingPlaying}</span>

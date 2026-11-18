@@ -13,7 +13,14 @@
 
 /* Panneaux : chanfrein en haut à droite et en bas à gauche, ligne claire sur l'arête haute. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .panel {
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  clip-path: polygon(
+    0 0,
+    calc(100% - 16px) 0,
+    100% 16px,
+    100% 100%,
+    16px 100%,
+    0 calc(100% - 16px)
+  );
 }
 
 /* Barre de lecture : la jupe noire. Les jetons de texte y sont redéfinis, les composants
@@ -30,9 +37,7 @@
   color: var(--text);
   border: none;
   clip-path: polygon(22px 0, 100% 0, 100% 100%, 0 100%, 0 22px);
-  background:
-    linear-gradient(rgb(255 255 255 / 0.07), transparent 40%),
-    var(--al-skirt);
+  background: linear-gradient(rgb(255 255 255 / 0.07), transparent 40%), var(--al-skirt);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
 }
 
@@ -146,7 +151,14 @@
 
 /* Cartes : pochettes chanfreinées (les photos d'artistes restent rondes). */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .card .image:not(.round) {
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  clip-path: polygon(
+    0 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
 }
 
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(.card:hover, .card.menu-open) {
@@ -185,7 +197,8 @@
   background: var(--al-skirt);
 }
 
-:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"])
+  :is(
     .tabs button,
     .search-hint,
     .update-check,
@@ -236,7 +249,8 @@
   clip-path: var(--al-cut);
 }
 
-:root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(input[type="search"], .filter, .playlist-picker input) {
+:root:is([data-theme="alloy"], [data-theme="alloy-dark"])
+  :is(input[type="search"], .filter, .playlist-picker input) {
   border-radius: 0;
   box-shadow: var(--shadow-inset);
 }
@@ -244,7 +258,14 @@
 /* Bandeau d'accueil : vitre teintée (la pochette floutée reste), cadre métal, chanfreins. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .hero {
   border-radius: 0;
-  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 28px 100%, 0 calc(100% - 28px));
+  clip-path: polygon(
+    0 0,
+    calc(100% - 28px) 0,
+    100% 28px,
+    100% 100%,
+    28px 100%,
+    0 calc(100% - 28px)
+  );
 }
 
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .hero .cover {
@@ -254,7 +275,14 @@
 
 /* « En lecture » : grande pochette chanfreinée. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .now-playing .art {
-  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
+  clip-path: polygon(
+    0 0,
+    calc(100% - 24px) 0,
+    100% 24px,
+    100% 100%,
+    24px 100%,
+    0 calc(100% - 24px)
+  );
 }
 
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .lyrics-line.active {

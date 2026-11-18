@@ -43,7 +43,12 @@
         <Icon name={playing ? "pause" : "play"} size={24} />
       {/if}
     </button>
-    <button class="mini-next" onclick={() => commands.next()} disabled={!s.hasNext} aria-label={t.player.next}>
+    <button
+      class="mini-next"
+      onclick={() => commands.next()}
+      disabled={!s.hasNext}
+      aria-label={t.player.next}
+    >
       <Icon name="next" size={20} />
     </button>
   </div>

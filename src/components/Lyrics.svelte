@@ -99,7 +99,8 @@
     void commands.seek(ms / 1000);
   }
 
-  const providerName = (p: string) => (p === "MUSIXMATCH" ? "Musixmatch" : p.charAt(0) + p.slice(1).toLowerCase());
+  const providerName = (p: string) =>
+    p === "MUSIXMATCH" ? "Musixmatch" : p.charAt(0) + p.slice(1).toLowerCase();
 </script>
 
 <div class="lyrics" dir={lyrics?.rtl ? "rtl" : undefined}>
@@ -112,11 +113,7 @@
   {:else if !lyrics}
     <p class="lyrics-empty">{t.player.lyricsNone}</p>
   {:else}
-    <div
-      class="lyrics-scroll"
-      class:synced={!!synced}
-      bind:this={scroller}
-    >
+    <div class="lyrics-scroll" class:synced={!!synced} bind:this={scroller}>
       {#if synced}
         {#each synced as line, i (i)}
           <button

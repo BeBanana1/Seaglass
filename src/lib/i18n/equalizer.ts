@@ -12,7 +12,8 @@ export const fr = {
   importAction: "Importer depuis AutoEQ",
   importHint:
     "Collez le contenu d'un fichier « ParametricEQ.txt » d'AutoEQ (autoeq.app, ou le dossier de votre casque dans le dépôt AutoEq), ou choisissez ce fichier.",
-  importPlaceholder: "Preamp: -6.2 dB\nFilter 1: ON LSC Fc 105 Hz Gain 5.5 dB Q 0.70\nFilter 2: ON PK Fc 2386 Hz Gain -2.1 dB Q 1.26\n…",
+  importPlaceholder:
+    "Preamp: -6.2 dB\nFilter 1: ON LSC Fc 105 Hz Gain 5.5 dB Q 0.70\nFilter 2: ON PK Fc 2386 Hz Gain -2.1 dB Q 1.26\n…",
   chooseFile: "Choisir un fichier…",
   fileTooLarge: "fichier trop volumineux pour un profil AutoEQ",
   name: "Nom du profil",
@@ -25,7 +26,8 @@ export const fr = {
   maxProfiles: (n: number) => `${n} profils au plus`,
   preamp: "Préampli (dB)",
   preampAuto: "Automatique",
-  preampAutoHint: (db: string) => `Automatique : ${db}, pour compenser le plus fort gain et ne pas écrêter.`,
+  preampAutoHint: (db: string) =>
+    `Automatique : ${db}, pour compenser le plus fort gain et ne pas écrêter.`,
   filters: "Filtres",
   kinds: {
     peaking: "Pic",
@@ -52,7 +54,8 @@ export const en: typeof fr = {
   importAction: "Import from AutoEQ",
   importHint:
     "Paste the contents of an AutoEQ “ParametricEQ.txt” file (autoeq.app, or your headphones' folder in the AutoEq repository), or choose that file.",
-  importPlaceholder: "Preamp: -6.2 dB\nFilter 1: ON LSC Fc 105 Hz Gain 5.5 dB Q 0.70\nFilter 2: ON PK Fc 2386 Hz Gain -2.1 dB Q 1.26\n…",
+  importPlaceholder:
+    "Preamp: -6.2 dB\nFilter 1: ON LSC Fc 105 Hz Gain 5.5 dB Q 0.70\nFilter 2: ON PK Fc 2386 Hz Gain -2.1 dB Q 1.26\n…",
   chooseFile: "Choose a file…",
   fileTooLarge: "file too large for an AutoEQ profile",
   name: "Profile name",
@@ -65,7 +68,8 @@ export const en: typeof fr = {
   maxProfiles: (n: number) => `${n} profiles at most`,
   preamp: "Preamp (dB)",
   preampAuto: "Automatic",
-  preampAutoHint: (db: string) => `Automatic: ${db}, to offset the largest boost and avoid clipping.`,
+  preampAutoHint: (db: string) =>
+    `Automatic: ${db}, to offset the largest boost and avoid clipping.`,
   filters: "Filters",
   kinds: {
     peaking: "Peak",

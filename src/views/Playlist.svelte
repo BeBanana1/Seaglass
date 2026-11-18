@@ -16,7 +16,13 @@
   import TrackTools from "../components/TrackTools.svelte";
   import PlaylistEditor from "../components/PlaylistEditor.svelte";
   import CleanupDialog from "../components/CleanupDialog.svelte";
-  import { isPinned, listSort, refreshPinTitle, saveListSort, togglePin } from "../lib/stores/ui.svelte";
+  import {
+    isPinned,
+    listSort,
+    refreshPinTitle,
+    saveListSort,
+    togglePin,
+  } from "../lib/stores/ui.svelte";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
   import { back } from "../lib/stores/nav.svelte";
   import { notePlaylistChange, playlistChanges } from "../lib/stores/playlistPicker.svelte";
@@ -28,7 +34,8 @@
 
   /** Clin d'œil (#399) : une playlist vide sur dix annonce une piste introuvable. Tiré une
    *  fois par page ouverte. */
-  const missingTrack = Math.random() < 0.1 || (import.meta.env.DEV && location.search.includes("egg=404"));
+  const missingTrack =
+    Math.random() < 0.1 || (import.meta.env.DEV && location.search.includes("egg=404"));
 
   const SORT_KEYS: SortKey[] = ["position", "added", "title", "artist", "album", "duration"];
   const DEFAULT_SORT = PLAYLIST_DEFAULT_SORT;
@@ -83,7 +90,10 @@
 
   async function load(target: string) {
     try {
-      const fresh = await commands.playlist(target, untrack(() => page?.revision ?? null));
+      const fresh = await commands.playlist(
+        target,
+        untrack(() => page?.revision ?? null),
+      );
       if (target !== uuid || !fresh) return;
       page = fresh;
       // Une playlist épinglée puis renommée : la barre latérale reprend le nouveau titre.
@@ -104,7 +114,10 @@
       await commands.removeFromPlaylist(uuid, entry.position - 1, entry.track.id);
       // Annulable (#349) : le titre revient à sa position, avec une nouvelle date d'ajout.
       const [playlist, position, id] = [uuid, entry.position - 1, entry.track.id];
-      pushUndoToast(t.views.playlist.removed(fullTitle(entry.track)), () => void restore(playlist, position, id));
+      pushUndoToast(
+        t.views.playlist.removed(fullTitle(entry.track)),
+        () => void restore(playlist, position, id),
+      );
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
@@ -178,7 +191,8 @@
 
   function saved(title: string, description: string) {
     editing = false;
-    if (page) page = { ...page, playlist: { ...page.playlist, title, description: description || null } };
+    if (page)
+      page = { ...page, playlist: { ...page.playlist, title, description: description || null } };
     pushToast({ level: "info", message: t.views.playlistEdit.saved });
     refreshPinTitle(uuid, title).catch(() => {});
     if (library.playlists.items) loadLibrary("playlists", true);
@@ -221,7 +235,8 @@
       >
         {#snippet meta()}
           {playlistSubtitle(playlist)}
-          {#if formatLongDuration(playlist.duration)} · {formatLongDuration(playlist.duration)}{/if}
+          {#if formatLongDuration(playlist.duration)}
+            · {formatLongDuration(playlist.duration)}{/if}
         {/snippet}
       </PageHeader>
     {/if}
@@ -238,7 +253,9 @@
     {#if shown.length === 0 && query.trim()}
       <p class="muted empty">{t.library.noMatch(query.trim())}</p>
     {:else if page.tracks.length === 0}
-      <p class="muted empty">{missingTrack && ui.settings.easterEggs ? t.eggs.track404 : t.library.empty}</p>
+      <p class="muted empty">
+        {missingTrack && ui.settings.easterEggs ? t.eggs.track404 : t.library.empty}
+      </p>
     {:else}
       <TrackList
         tracks={shown.map((l) => l.track)}

@@ -22,30 +22,30 @@
 
 <!-- Le bouton Passer est à côté du bandeau, pas dedans : un bouton ne peut pas en contenir un autre. -->
 <div class="hero-wrap">
-<button
-  class="hero"
-  style:--tint={album.color ?? "var(--album)"}
-  onclick={() => go({ name: "album", id: album.id })}
->
-  {#if large}<img class="bg" src={large} alt="" aria-hidden="true" />{/if}
-  <div class="content">
-    <span class="label">{t.views.home.featured(context)}</span>
-    <span class="title display">{album.title}</span>
-    <span class="meta">
-      {[album.artists.map((a) => a.name).join(", "), albumKind(album), year(album.releaseDate)]
-        .filter(Boolean)
-        .join(" · ")}
-      {#if album.hires}<span class="badge">HI-RES</span>{/if}
-    </span>
-  </div>
-  {#if large}<img class="cover" src={large} alt="" />{/if}
-</button>
-{#if onskip}
-  <button class="hero-skip" onclick={onskip} title={t.views.home.skipFeaturedHint}>
-    <Icon name="next" size={14} />
-    <span>{t.views.home.skipFeatured}</span>
+  <button
+    class="hero"
+    style:--tint={album.color ?? "var(--album)"}
+    onclick={() => go({ name: "album", id: album.id })}
+  >
+    {#if large}<img class="bg" src={large} alt="" aria-hidden="true" />{/if}
+    <div class="content">
+      <span class="label">{t.views.home.featured(context)}</span>
+      <span class="title display">{album.title}</span>
+      <span class="meta">
+        {[album.artists.map((a) => a.name).join(", "), albumKind(album), year(album.releaseDate)]
+          .filter(Boolean)
+          .join(" · ")}
+        {#if album.hires}<span class="badge">HI-RES</span>{/if}
+      </span>
+    </div>
+    {#if large}<img class="cover" src={large} alt="" />{/if}
   </button>
-{/if}
+  {#if onskip}
+    <button class="hero-skip" onclick={onskip} title={t.views.home.skipFeaturedHint}>
+      <Icon name="next" size={14} />
+      <span>{t.views.home.skipFeatured}</span>
+    </button>
+  {/if}
 </div>
 
 <style>

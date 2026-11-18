@@ -14,12 +14,17 @@ export const fr = {
   copy: "Copier",
   copied: "Adresse copiée",
   qr: "QR code de la Jam",
-  onlineHint: "Les invités rejoignent par Internet, depuis n'importe quel réseau, même en données mobiles.",
+  onlineHint:
+    "Les invités rejoignent par Internet, depuis n'importe quel réseau, même en données mobiles.",
   localHint: "Sur le réseau local, les invités doivent être sur le même Wi-Fi que cet ordinateur.",
-  howTo: "Les invités scannent le QR code, ou ouvrent l'adresse dans leur navigateur et saisissent le code. Leur prénom s'affiche à côté de leurs titres dans la file. Vous gardez la main sur la file : retirez un titre depuis la file habituelle.",
-  firewall: "Au premier démarrage sur le réseau local, Windows demande d'autoriser Seaglass : acceptez pour les réseaux privés.",
-  noLan: "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent rejoindre la Jam.",
-  phoneHint: "Gardez la musique en lecture : en pause et écran éteint, Android coupe le réseau de Seaglass au bout d'une minute environ, et les invités ne peuvent plus ajouter de titres.",
+  howTo:
+    "Les invités scannent le QR code, ou ouvrent l'adresse dans leur navigateur et saisissent le code. Leur prénom s'affiche à côté de leurs titres dans la file. Vous gardez la main sur la file : retirez un titre depuis la file habituelle.",
+  firewall:
+    "Au premier démarrage sur le réseau local, Windows demande d'autoriser Seaglass : acceptez pour les réseaux privés.",
+  noLan:
+    "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent rejoindre la Jam.",
+  phoneHint:
+    "Gardez la musique en lecture : en pause et écran éteint, Android coupe le réseau de Seaglass au bout d'une minute environ, et les invités ne peuvent plus ajouter de titres.",
   connection: {
     connecting: "Connexion au relais…",
     online: "En ligne",
@@ -30,7 +35,8 @@ export const fr = {
   stopped: "Jam arrêtée",
   enable: "Jam",
   enableHint: "Désactivée, la Jam disparaît de l'app, et celle en cours s'arrête.",
-  needsRelay: "Sur le téléphone, la Jam passe par un relais : aucun n'est configuré (voir Relais ci-dessous).",
+  needsRelay:
+    "Sur le téléphone, la Jam passe par un relais : aucun n'est configuré (voir Relais ci-dessous).",
   relay: {
     title: "Relais",
     hint: "Serveur par lequel passent la Jam en ligne et le transfert de lecture avec l'ordinateur lié. Chacun peut héberger le sien (dossier relay/ du code source).",
@@ -38,7 +44,8 @@ export const fr = {
     enableHint: "Désactivé : Jam sur le réseau local seulement, et pas de transfert hors du Wi-Fi.",
     address: "Adresse",
     key: "Clé",
-    keyHint: "Le relais n'accepte que les apps qui présentent sa clé. Laissez vide pour la clé de cette version de l'app.",
+    keyHint:
+      "Le relais n'accepte que les apps qui présentent sa clé. Laissez vide pour la clé de cette version de l'app.",
     keyKept: "Clé enregistrée (laissez vide pour la garder)",
     keyBuild: "Clé de cette version",
     save: "Enregistrer",
@@ -59,7 +66,8 @@ export const fr = {
     albums: "Les invités peuvent ajouter un album entier",
     albumsHint: "30 titres au plus par album.",
     maxPending: "Titres en attente par invité",
-    maxPendingHint: "Un invité qui a atteint la limite attend que ses titres passent. Un titre déjà dans la file est toujours refusé.",
+    maxPendingHint:
+      "Un invité qui a atteint la limite attend que ses titres passent. Un titre déjà dans la file est toujours refusé.",
     unlimited: "Sans limite",
     guestVolume: "Les invités peuvent régler le volume",
     guestVolumeHint: "Un curseur apparaît sur leur page. Le son coupé ici reste coupé.",
@@ -76,7 +84,8 @@ export const fr = {
     ban: "Exclure",
     unban: "Réadmettre",
     banned: "exclu",
-    banHint: "Exclure retire ses titres en attente et refuse ses demandes. Un invité décidé peut revenir en navigation privée : pour une exclusion sûre, arrêtez puis relancez la Jam (nouveau code).",
+    banHint:
+      "Exclure retire ses titres en attente et refuse ses demandes. Un invité décidé peut revenir en navigation privée : pour une exclusion sûre, arrêtez puis relancez la Jam (nouveau code).",
   },
 };
 
@@ -96,10 +105,13 @@ export const en: typeof fr = {
   qr: "Jam QR code",
   onlineHint: "Guests join over the internet, from any network, even on mobile data.",
   localHint: "On the local network, guests must be on the same Wi-Fi as this computer.",
-  howTo: "Guests scan the QR code, or open the address in their browser and enter the code. Their first name appears next to their tracks in the queue. You stay in control: remove a track from the usual queue.",
-  firewall: "The first time on the local network, Windows asks to allow Seaglass: accept for private networks.",
+  howTo:
+    "Guests scan the QR code, or open the address in their browser and enter the code. Their first name appears next to their tracks in the queue. You stay in control: remove a track from the usual queue.",
+  firewall:
+    "The first time on the local network, Windows asks to allow Seaglass: accept for private networks.",
   noLan: "No local network found: only browsers on this computer can join the Jam.",
-  phoneHint: "Keep the music playing: when paused with the screen off, Android cuts Seaglass off the network after about a minute, and guests can no longer add tracks.",
+  phoneHint:
+    "Keep the music playing: when paused with the screen off, Android cuts Seaglass off the network after about a minute, and guests can no longer add tracks.",
   connection: {
     connecting: "Connecting to the relay…",
     online: "Online",
@@ -118,7 +130,8 @@ export const en: typeof fr = {
     enableHint: "When off: local network Jam only, and no handoff outside the Wi-Fi.",
     address: "Address",
     key: "Key",
-    keyHint: "The relay only accepts apps that present its key. Leave empty to use this build's key.",
+    keyHint:
+      "The relay only accepts apps that present its key. Leave empty to use this build's key.",
     keyKept: "Key saved (leave empty to keep it)",
     keyBuild: "This build's key",
     save: "Save",
@@ -139,7 +152,8 @@ export const en: typeof fr = {
     albums: "Guests can add a whole album",
     albumsHint: "30 tracks at most per album.",
     maxPending: "Waiting tracks per guest",
-    maxPendingHint: "A guest who reached the limit waits for their tracks to play. A track already in the queue is always refused.",
+    maxPendingHint:
+      "A guest who reached the limit waits for their tracks to play. A track already in the queue is always refused.",
     unlimited: "No limit",
     guestVolume: "Guests can change the volume",
     guestVolumeHint: "A slider appears on their page. Sound muted here stays muted.",
@@ -156,6 +170,7 @@ export const en: typeof fr = {
     ban: "Remove",
     unban: "Let back in",
     banned: "removed",
-    banHint: "Removing a guest drops their waiting tracks and refuses their requests. A determined guest can come back in a private window: to be sure, stop and restart the Jam (new code).",
+    banHint:
+      "Removing a guest drops their waiting tracks and refuses their requests. A determined guest can come back in a private window: to be sure, stop and restart the Jam (new code).",
   },
 };

@@ -9,8 +9,26 @@
   <div class="wainscot"></div>
   <svg class="crest" viewBox="0 0 200 120">
     <ellipse cx="100" cy="60" rx="90" ry="54" fill="var(--gh-blue)" opacity="0.55" />
-    <ellipse cx="100" cy="60" rx="80" ry="45" fill="none" stroke="var(--gh-burgundy)" stroke-width="1.5" opacity="0.5" />
-    <ellipse cx="100" cy="60" rx="74" ry="40" fill="none" stroke="var(--gh-mustard)" stroke-width="3" opacity="0.7" />
+    <ellipse
+      cx="100"
+      cy="60"
+      rx="80"
+      ry="45"
+      fill="none"
+      stroke="var(--gh-burgundy)"
+      stroke-width="1.5"
+      opacity="0.5"
+    />
+    <ellipse
+      cx="100"
+      cy="60"
+      rx="74"
+      ry="40"
+      fill="none"
+      stroke="var(--gh-mustard)"
+      stroke-width="3"
+      opacity="0.7"
+    />
     <path d="M100 32 L108 56 L100 88 L92 56 Z" fill="var(--gh-burgundy)" opacity="0.4" />
   </svg>
 </div>

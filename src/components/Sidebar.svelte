@@ -14,7 +14,11 @@
     { key: "home", route: { name: "home" }, match: ["home"] },
     { key: "feed", route: { name: "feed" }, match: ["feed"] },
     { key: "search", route: { name: "search" }, match: ["search"] },
-    { key: "library", route: { name: "library", tab: "playlists" }, match: ["library", "stats", "recap", "smart", "folder"] },
+    {
+      key: "library",
+      route: { name: "library", tab: "playlists" },
+      match: ["library", "stats", "recap", "smart", "folder"],
+    },
     { key: "settings", route: { name: "settings", section: "appearance" }, match: ["settings"] },
   ];
 
@@ -50,7 +54,9 @@
     >
       {t.common.nav[entry.key]}
       {#if entry.key === "feed" && feed.unseen > 0}
-        <span class="nav-badge" title={t.views.feed.unseen(feed.unseen)}>{feed.unseen > 99 ? "99+" : feed.unseen}</span>
+        <span class="nav-badge" title={t.views.feed.unseen(feed.unseen)}>
+          {feed.unseen > 99 ? "99+" : feed.unseen}
+        </span>
       {/if}
     </button>
     {#if entry.route.name === "library" && ui.settings.pins.length > 0}

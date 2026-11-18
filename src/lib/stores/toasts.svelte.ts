@@ -29,7 +29,13 @@ export function dismissToast(id: number) {
 
 /** Toast « … · Annuler » (#349) : un clic exécute `undo`. */
 export function pushUndoToast(message: string, undo: () => void) {
-  pushToast({ level: "info", message, action: undo, actionLabel: t.common.undo, lifetimeMs: UNDO_LIFETIME_MS });
+  pushToast({
+    level: "info",
+    message,
+    action: undo,
+    actionLabel: t.common.undo,
+    lifetimeMs: UNDO_LIFETIME_MS,
+  });
 }
 
 /** Clin d'œil (#399), thème Ordinateur de bord : un refus du lecteur s'excuse d'une
@@ -64,6 +70,7 @@ export async function noticeCrash() {
   pushToast({
     level: "error",
     message: t.settings.crashed,
-    action: () => void copyText(commands.lastCrashReport, t.settings.crashCopied, t.settings.noCrash),
+    action: () =>
+      void copyText(commands.lastCrashReport, t.settings.crashCopied, t.settings.noCrash),
   });
 }

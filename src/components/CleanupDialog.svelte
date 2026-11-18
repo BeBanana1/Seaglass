@@ -58,7 +58,8 @@
     busy = true;
     try {
       const result = await apply(ops);
-      if (result.error) pushToast({ level: "error", message: c.partial(result.applied, result.error) });
+      if (result.error)
+        pushToast({ level: "error", message: c.partial(result.applied, result.error) });
       if (result.applied > 0) pushUndoToast(c.done(result.applied), () => void revert(result.undo));
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
@@ -72,7 +73,8 @@
   async function revert(ops: ListOp[]) {
     try {
       const result = await undo(ops);
-      if (result.error) pushToast({ level: "error", message: c.partial(result.applied, result.error) });
+      if (result.error)
+        pushToast({ level: "error", message: c.partial(result.applied, result.error) });
       else pushToast({ level: "info", message: c.undone(result.applied, result.skipped) });
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
@@ -118,7 +120,10 @@
 {/snippet}
 
 <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
-<div class="cleanup-backdrop" onclick={(event) => event.target === event.currentTarget && !busy && onClose()}>
+<div
+  class="cleanup-backdrop"
+  onclick={(event) => event.target === event.currentTarget && !busy && onClose()}
+>
   <div
     class="cleanup-dialog"
     role="dialog"
@@ -130,7 +135,9 @@
   >
     <header>
       <h3 id="cleanup-title" class="display">{title}</h3>
-      <button class="close" onclick={onClose} disabled={busy} aria-label={t.common.close}><Icon name="close" /></button>
+      <button class="close" onclick={onClose} disabled={busy} aria-label={t.common.close}>
+        <Icon name="close" />
+      </button>
     </header>
 
     {#if error}
