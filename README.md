@@ -1,5 +1,9 @@
 # Seaglass
 
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
+![Platforms: Windows, Linux, Android](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android-informational)
+![Built with Tauri 2, Rust and Svelte 5](https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Rust%20%C2%B7%20Svelte%205-orange)
+
 Music streaming client for Windows, Android and Linux, with a fully custom interface and lossless / bit-perfect playback handed to [mpv](https://mpv.io) (desktop) or Media3 (Android).
 
 > **Unofficial client, not affiliated with TIDAL.** A valid subscription is required. Streaming only: no audio stream is downloaded or written to disk, and DRM-protected streams are not played.
