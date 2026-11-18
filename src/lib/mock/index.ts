@@ -17,11 +17,14 @@
 // pendant la lecture, comme le vrai backend) : mesure des longues listes (#88), `?sleep=30|track|context`
 // (minuteur de mise en veille actif), `?device=dac|missing` (périphérique de sortie choisi, branché ou
 // débranché), `?normalization=track|album` (normalisation du volume
-// active), `?exclusive=1` (mode exclusif WASAPI, #245), `?slow=<ms>` (ouverture d'une playlist ralentie : « Chargement… » après 300 ms,
+// active), `?eq=1` (égaliseur activé avec un profil AutoEQ, #428), `?exclusive=1` (mode exclusif WASAPI, #245), `?slow=<ms>` (ouverture d'une playlist ralentie : « Chargement… » après 300 ms,
 // copie gardée affichée aussitôt à la réouverture, #152).
 
 import { blindTestMock } from "./blindTest";
 import type {
+  EqFilter,
+  EqFilterKind,
+  EqProfile,
   PlaySource,
   AlbumPage,
   AlbumSummary,
@@ -209,6 +212,7 @@ const state: PlayerState = {
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
   // Calculé plus bas, après les réglages de lecture factices.
   normalization: null,
+  equalizer: null,
   sleep: mockSleep(params.get("sleep")),
   /** `?mpv=cpu`, `?mpv=stopped` ou `?mpv=missing` : bandeau « mpv ne tourne pas » (#92, #261). */
   // `?ended=1` : file terminée (carton « Fin » du thème Séance, #399). Bande originale :
@@ -299,6 +303,19 @@ const normalizationParam = params.get("normalization") as PlaybackSettings["norm
 const DAC = { id: "wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}", name: "Haut-parleurs (Focusrite USB Audio)" };
 const SPEAKERS = { id: "wasapi/{0d7e4c2b-58a1-4c5e-9f1e-3b2a9c1d7e44}", name: "Haut-parleurs (Realtek(R) Audio)" };
 const deviceParam = params.get("device");
+/** Profil de démonstration (extrait d'AutoEQ, Sennheiser HD 600). */
+const DEMO_EQ: EqProfile = {
+  id: 1,
+  name: "Sennheiser HD 600",
+  preamp: -6.2,
+  filters: [
+    { kind: "lowShelf", freq: 105, gain: 5.5, q: 0.7 },
+    { kind: "peaking", freq: 2386, gain: -2.1, q: 1.26 },
+    { kind: "peaking", freq: 4483, gain: 3.3, q: 3.31 },
+    { kind: "peaking", freq: 159, gain: -1, q: 0.44 },
+    { kind: "highShelf", freq: 10000, gain: -1.4, q: 0.7 },
+  ],
+};
 let playback: PlaybackSettings = {
   cacheSize: 64,
   hiresUpgrade: hiresOfferParam ? "ask" : "auto",
@@ -311,6 +328,7 @@ let playback: PlaybackSettings = {
   cellularQuality: "lossless",
   lowBatteryQuality: false,
   normalization: normalizationParam ?? "off",
+  equalizer: { enabled: params.has("eq"), active: 1, profiles: [DEMO_EQ] },
   exclusive: params.has("exclusive"),
 };
 const audioDevices: AudioDevices = {
@@ -331,6 +349,12 @@ function mockGain(): number | null {
   return playback.normalization === "off" ? null : playback.normalization === "track" ? -6.5 : -4;
 }
 state.normalization = mockGain();
+/** Comme `EqSettings::applied` : nom du profil appliqué. */
+function mockEqualizer(): string | null {
+  const eq = playback.equalizer;
+  return (eq.enabled && eq.profiles.find((p) => p.id === eq.active)?.name) || null;
+}
+state.equalizer = mockEqualizer();
 /** Comme `player/exclusive.rs` et mpv : en exclusif, le format du flux part tel quel et la
  *  normalisation est suspendue ; en partagé, Windows impose son format de mixage. */
 function applyExclusive() {
@@ -1227,8 +1251,23 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     playback = JSON.parse(JSON.stringify(next));
     state.outputDevice = outputDevice();
     state.normalization = mockGain();
+    state.equalizer = mockEqualizer();
     applyExclusive();
     emit("player-state", state);
+  },
+  // Version simplifiée de `player/autoeq.rs` : assez pour essayer l'import.
+  parse_autoeq: ({ text }) => {
+    const kinds: Record<string, EqFilterKind> = { PK: "peaking", PEQ: "peaking", LSC: "lowShelf", LS: "lowShelf", HSC: "highShelf", HS: "highShelf" };
+    const num = (line: string, key: string) => Number(new RegExp(`${key}\\s+(-?[\\d.]+)`, "i").exec(line)?.[1]);
+    const filters: EqFilter[] = [];
+    for (const line of String(text).split(/\r?\n/)) {
+      const m = /^Filter\s*\d*:\s*ON\s+(\w+)/i.exec(line.trim());
+      const kind = m && kinds[m[1].toUpperCase()];
+      if (kind) filters.push({ kind, freq: num(line, "Fc"), gain: num(line, "Gain"), q: num(line, "Q") || 0.71 });
+    }
+    if (!filters.length) throw new Error("ce texte n'est pas un profil AutoEQ (ParametricEQ.txt)");
+    const preamp = /Preamp:\s*(-?[\d.]+)/i.exec(String(text));
+    return { id: 0, name: "", preamp: preamp ? Number(preamp[1]) : null, filters } satisfies EqProfile;
   },
   audio_devices: () => audioDevices,
   // `?platform=android` : mise en page tactile.

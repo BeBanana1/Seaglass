@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.81
+
+- Bureau : égaliseur paramétrique (pics et plateaux, préampli), profils nommés, import des profils AutoEQ, courbe de réponse ; retenu par sortie audio avec les réglages par périphérique (#428)
+
 ## 0.5.80
 
 - Jam : les invités peuvent voter pour passer le titre en cours, au-delà d'un nombre de votes choisi par l'hôte (#433)
