@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.95
+
+- Un titre lancé depuis une recherche dans une playlist ou les titres aimés lit toute la liste à partir de lui (mélangée si l'aléatoire est actif), pas seulement les résultats (#496)
+
 ## 0.5.94
 
 - Android : Réglages › Lecture indique quand la batterie baisse la qualité en ce moment (économiseur de batterie, batterie faible), au lieu de laisser croire que le réglage est ignoré (#492)
