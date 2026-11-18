@@ -1,64 +1,64 @@
-# Spike Android (#24)
+# Android spike (#24)
 
-App jetable d'un seul écran : vérifier que **Media3 (ExoPlayer)** lit les MPD de TIDAL (FLAC en fMP4, `SegmentTemplate` + `SegmentTimeline`, segments signés) et noter le format réellement décodé. Elle ne parle pas à TIDAL : le PC lui sert le MPD, comme à mpv dans le spike de phase 0.
+Throwaway single-screen app: check that **Media3 (ExoPlayer)** plays TIDAL's MPDs (FLAC in fMP4, `SegmentTemplate` + `SegmentTimeline`, signed segments) and record the format actually decoded. It does not talk to TIDAL: the PC serves it the MPD, as it did for mpv in the phase 0 spike.
 
-Rien n'est écrit sur disque (principe 1) : le MPD reste en mémoire sur le PC, Media3 lit les segments en streaming.
+Nothing is written to disk (principle 1): the MPD stays in memory on the PC, Media3 streams the segments.
 
-## Prérequis
+## Requirements
 
-- Android Studio (SDK Android 35 ; le NDK n'est pas nécessaire pour ce spike).
-- Téléphone en **débogage USB** (Options pour les développeurs), relié en USB, `adb devices` le liste.
-- Le spike Python connecté en PKCE : `python spike\play.py login --pkce`.
+- Android Studio (Android SDK 35; the NDK is not needed for this spike).
+- Phone in **USB debugging** (Developer options), connected over USB, listed by `adb devices`.
+- The Python spike signed in with PKCE: `python spike\play.py login --pkce`.
 
-## Construire et installer
+## Build and install
 
-Ouvrir `spike/android/` dans Android Studio (il génère le wrapper Gradle), puis Run sur le téléphone. En ligne de commande, une fois le wrapper généré :
+Open `spike/android/` in Android Studio (it generates the Gradle wrapper), then Run on the phone. From the command line, once the wrapper is generated:
 
 ```powershell
 cd spike\android; .\gradlew.bat installDebug
 ```
 
-## Lancer un titre
+## Play a track
 
 ```powershell
-python spike\play.py serve <id> --quality lossless   # ou hires, high, low
+python spike\play.py serve <id> --quality lossless   # or hires, high, low
 adb reverse tcp:8765 tcp:8765
 adb shell am start -a android.intent.action.VIEW -n ch.bebanana.seaglass.spike/.MainActivity -d http://127.0.0.1:8765/manifest.mpd
 ```
 
-`serve` affiche les deux commandes `adb`. `adb reverse` rend le `127.0.0.1:8765` du PC joignable au même endroit sur le téléphone : rien n'est ouvert sur le réseau local.
+`serve` prints both `adb` commands. `adb reverse` makes the PC's `127.0.0.1:8765` reachable at the same place on the phone: nothing is opened on the local network.
 
-Extras de `am start` :
-- `--ez float true` : sortie PCM flottante (sinon Android décode le FLAC 24 bits en 16 bits).
-- `--el seek <ms>`, sans `-d` : saut dans le titre en cours (temps jusqu'à `READY` affiché).
-- `--ez append true` : ajoute le titre à la file au lieu de remplacer (test de transition). Le second titre a besoin de son propre port : `serve <id2> --port 8766`, `adb reverse tcp:8766 tcp:8766`, URL en `:8766`.
+`am start` extras:
+- `--ez float true`: float PCM output (otherwise Android decodes 24-bit FLAC to 16-bit).
+- `--el seek <ms>`, without `-d`: seek in the current track (time until `READY` shown).
+- `--ez append true`: adds the track to the queue instead of replacing it (transition test). The second track needs its own port: `serve <id2> --port 8766`, `adb reverse tcp:8766 tcp:8766`, URL on `:8766`.
 
-## Lire les résultats
+## Reading the results
 
-L'écran et `adb logcat -s SeaglassSpike` affichent : format d'entrée (`audio/flac`, fréquence, débit), décodeur (`c2.android.flac.decoder`…), configuration de l'`AudioTrack` (encodage, fréquence, offload), sorties audio, erreurs. Les signatures d'URL sont masquées.
+The screen and `adb logcat -s SeaglassSpike` show: input format (`audio/flac`, sample rate, bitrate), decoder (`c2.android.flac.decoder`…), `AudioTrack` configuration (encoding, sample rate, offload), audio outputs, errors. URL signatures are masked.
 
-## À vérifier
+## To check
 
-| Cas | Attendu |
+| Case | Expected |
 |---|---|
-| `lossless` (FLAC 16/44,1) | lecture, `audio/flac`, AudioTrack `s16` 44100 |
-| `hires` (24/96 ou plus) | lecture ; `float` en sortie avec `--ez float true` |
-| `high` (AAC-LC 320) et `low` (HE-AAC 96) | lecture |
-| Saut dans la barre | reprise rapide, sans erreur |
-| `append` d'un second titre | transition sans coupure audible |
-| Écran éteint | sans service de lecture, la lecture peut s'arrêter : normal pour le spike |
+| `lossless` (FLAC 16/44.1) | plays, `audio/flac`, AudioTrack `s16` 44100 |
+| `hires` (24/96 or more) | plays; `float` output with `--ez float true` |
+| `high` (AAC-LC 320) and `low` (HE-AAC 96) | plays |
+| Seeking in the bar | quick resume, no error |
+| `append` of a second track | transition with no audible gap |
+| Screen off | without a playback service, playback may stop: expected for the spike |
 
-## Résultats (2026-11-03, Samsung S21 SM-G991B, Android 15, Media3 1.5.1, haut-parleur)
+## Results (2026-11-03, Samsung S21 SM-G991B, Android 15, Media3 1.5.1, speaker)
 
-| Demandé | Décodeur | Entrée | AudioTrack |
+| Requested | Decoder | Input | AudioTrack |
 |---|---|---|---|
-| `lossless` (Billie Jean, 1632061) | `c2.sec.flac.decoder` (Samsung, matériel) | `audio/flac` 44100 Hz, 1 026 kbps | `s16` 44100 |
-| `hires` + `float` (97320484, 24/96) | `c2.sec.flac.decoder` | `audio/flac`, fréquence **0** dans le `Format` (déclarée nulle part avant décodage), 3 079 kbps | `float` 96000 |
+| `lossless` (Billie Jean, 1632061) | `c2.sec.flac.decoder` (Samsung, hardware) | `audio/flac` 44100 Hz, 1,026 kbps | `s16` 44100 |
+| `hires` + `float` (97320484, 24/96) | `c2.sec.flac.decoder` | `audio/flac`, sample rate **0** in the `Format` (declared nowhere before decoding), 3,079 kbps | `float` 96000 |
 | `high` (AAC-LC 320) | `c2.android.aac.decoder` | `mp4a.40.2` 320 kbps | `s16` 44100 |
 | `low` (HE-AAC 96) | `c2.android.aac.decoder` | `mp4a.40.5` 96 kbps | `s16` 44100 |
 
-- **Le MPD de TIDAL est lu tel quel** par le module DASH de Media3 : aucune extension (`libflac`), aucun transcodage, aucune adaptation du manifeste. Rien ne justifie libmpv.
-- Saut : `READY` 240–400 ms après `seekTo` (24/96 et 16/44,1).
-- File : passage FLAC → HE-AAC en fin de titre, transition automatique (raison `AUTO`), sans erreur. La coupure audible n'a pas été évaluée (test à l'écoute à faire).
-- Un MPD servi deux minutes plus tôt se lit encore : les signatures tiennent au moins ce temps.
-- Pour l'app : le format réel se lit sur `onAudioTrackInitialized` (ou `playbackinfopostpaywall`), pas sur le `Format` d'entrée.
+- **TIDAL's MPD is played as is** by Media3's DASH module: no extension (`libflac`), no transcoding, no manifest adaptation. Nothing justifies libmpv.
+- Seeking: `READY` 240–400 ms after `seekTo` (24/96 and 16/44.1).
+- Queue: FLAC → HE-AAC switch at the end of a track, automatic transition (reason `AUTO`), no error. The audible gap has not been assessed (listening test to do).
+- An MPD served two minutes earlier still plays: signatures last at least that long.
+- For the app: the real format is read in `onAudioTrackInitialized` (or `playbackinfopostpaywall`), not in the input `Format`.

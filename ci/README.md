@@ -1,60 +1,60 @@
-# Runner CI de Seaglass
+# Seaglass CI runner
 
-Runner Gitea Actions dédié au dépôt, sur le serveur, avec sa propre image de jobs
-(Node, pnpm, Rust et les bibliothèques de Tauri déjà installés) et un cache qui
-fonctionne. Le workflow (`.gitea/workflows/ci.yml`) cible le label `seaglass`.
+Gitea Actions runner dedicated to the repository, on the server, with its own job image
+(Node, pnpm, Rust and the Tauri libraries preinstalled) and a cache that
+works. The workflow (`.gitea/workflows/ci.yml`) targets the `seaglass` label.
 
 ## Installation
 
-1. Copier ce dossier sur le serveur, par exemple dans `~/seaglass-runner/` :
+1. Copy this folder to the server, for example to `~/seaglass-runner/`:
 
    ```powershell
-   scp -r ci <serveur>:~/seaglass-runner
+   scp -r ci <server>:~/seaglass-runner
    ```
 
-2. Sur le serveur, créer le `.env` à partir de `.env.example`. Le jeton vient du
-   dépôt : **Paramètres → Actions → Runners → Créer un runner**. Le prendre au
-   niveau du dépôt (pas de l'instance) : le runner monte le socket Docker, il ne
-   doit servir qu'à Seaglass.
+2. On the server, create the `.env` from `.env.example`. The token comes from the
+   repository: **Settings → Actions → Runners → Create new runner**. Take it at
+   repository level (not instance level): the runner mounts the Docker socket, it must
+   only serve Seaglass.
 
-3. Construire l'image des jobs, puis lancer le runner :
+3. Build the job image, then start the runner:
 
    ```sh
    docker compose --profile build build
    docker compose up -d
    ```
 
-4. Vérifier que le runner `seaglass` apparaît en ligne dans Gitea, avec le label
-   `seaglass`.
+4. Check that the `seaglass` runner shows up online in Gitea, with the
+   `seaglass` label.
 
-## Mettre à jour l'image
+## Updating the image
 
-Nouvelle base Debian, nouvelle majeure de pnpm, ou Rust trop ancien (le workflow
-le met à jour à chaque run, mais ça ralentit) : changer le tag partout, puis
-reconstruire. Pareil pour `cargo-audit` (#263) : une image construite avant son
-ajout fonctionne, mais l'étape « Dépendances » saute l'audit Rust avec un
-avertissement. Le workflow ne le compile plus lui-même : installé dans le conteneur,
-hors du cache Rust, il était recompilé à chaque run (+1 min 44 s). Pour lui seul, garder
-le tag et reconstruire suffit (étape 2).
+New Debian base, new pnpm major, or Rust too old (the workflow
+updates it on every run, but that slows it down): change the tag everywhere, then
+rebuild. Same for `cargo-audit` (#263): an image built before it was
+added works, but the "Dependencies" step skips the Rust audit with a
+warning. The workflow no longer compiles it itself: installed in the container,
+outside the Rust cache, it was recompiled on every run (+1 min 44 s). For it alone, keeping
+the tag and rebuilding is enough (step 2).
 
-1. `SEAGLASS_CI_TAG` dans `.env` et le label de `config.yaml` (même valeur).
-2. `docker compose --profile build build`, puis `docker compose up -d` (le runner
-   relit sa config au redémarrage).
-3. Supprimer l'ancienne image : `docker image rm seaglass-ci:<ancien tag>`.
+1. `SEAGLASS_CI_TAG` in `.env` and the label in `config.yaml` (same value).
+2. `docker compose --profile build build`, then `docker compose up -d` (the runner
+   rereads its config on restart).
+3. Remove the old image: `docker image rm seaglass-ci:<old tag>`.
 
-## Dépannage
+## Troubleshooting
 
-- **Jobs en attente indéfiniment** : le runner n'est pas en ligne, ou son label ne
-  correspond pas à `runs-on: seaglass`.
-- **`ETIMEDOUT` sur le cache** : les jobs ne sont pas sur le réseau `seaglass-ci`
-  (`container.network` dans `config.yaml`). Le cache est facultatif : le run passe
-  quand même, mais perd 5 min par action de cache.
-- **`pull access denied` pour `seaglass-ci`** : l'image n'a pas été construite, ou
-  son tag diffère du label.
-- **Job tué (code 137, `Killed`)** pendant la compilation Rust : il a dépassé la limite
-  mémoire de `container.options` dans `config.yaml` (4 Go). Monter à `--memory=5g`
-  plutôt que de retirer la limite : sans elle, un rustc peut geler toute la VM. Après
-  une modification de `config.yaml`, recréer le runner :
+- **Jobs waiting forever**: the runner is not online, or its label does not
+  match `runs-on: seaglass`.
+- **`ETIMEDOUT` on the cache**: the jobs are not on the `seaglass-ci` network
+  (`container.network` in `config.yaml`). The cache is optional: the run still passes,
+  but loses 5 min per cache action.
+- **`pull access denied` for `seaglass-ci`**: the image was not built, or
+  its tag differs from the label.
+- **Job killed (code 137, `Killed`)** during the Rust build: it went over the memory
+  limit of `container.options` in `config.yaml` (4 GB). Raise it to `--memory=5g`
+  rather than removing the limit: without it, a rustc can freeze the whole VM. After
+  changing `config.yaml`, recreate the runner:
   `docker compose up -d --force-recreate runner`.
-- **Clé de config inconnue** après une mise à jour d'act_runner : comparer avec
+- **Unknown config key** after an act_runner update: compare with
   `docker run --rm --entrypoint act_runner docker.io/gitea/act_runner:<version> generate-config`.
