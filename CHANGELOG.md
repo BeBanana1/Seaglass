@@ -1,732 +1,736 @@
-# Journal des versions
+# Changelog
 
-Une entrée par version de `VERSION`. Une version **publiée** porte un tag `v<version>` :
-c'est une release (installeur et APK en ligne), qui contient aussi les versions
-intermédiaires. Les versions d'avant le 2026-11-10 viennent de l'ancienne ligne « Statut »
-de `CLAUDE.md` ; celles qui n'y figuraient pas reprennent le sujet des commits qui ont posé leur numéro
-(en anglais au début du projet).
+One entry per `VERSION`. A **published** version carries a `v<version>` tag:
+it is a release (installer and APK online), which also includes the intermediate
+versions. Versions from before 2026-11-10 come from the old "Status" line
+of `CLAUDE.md`; those that were not there reuse the subject of the commits that set their number.
+The log was written in French until 0.5.96 and translated to English in 0.5.97.
 
-Ce journal est aussi affiché dans l'app (Réglages › Application, #340). Une entrée propre à
-une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (Windows et
-Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
-s'affichent pas.
+This log is also shown in the app (Settings › Application, #340). An entry specific to
+a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows and
+Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
+shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
+
+## 0.5.97
+
+- The version log in Settings › Application is now written in English, like the rest of the project's documentation
 
 ## 0.5.96
 
-- La chaîne audio indique jusqu'où le titre est en mémoire (« en mémoire jusqu'à 2:40 ») au lieu de l'avance sur la lecture, qui remontait et redescendait par à-coups pendant le remplissage (#498)
+- The signal path shows how far the track is in memory ("in memory up to 2:40") instead of the lead over playback, which went up and down in jolts while filling (#498)
 
 ## 0.5.95
 
-- Un titre lancé depuis une recherche dans une playlist ou les titres aimés lit toute la liste à partir de lui (mélangée si l'aléatoire est actif), pas seulement les résultats (#496)
+- A track started from a search in a playlist or the liked tracks plays the whole list from it (shuffled if shuffle is on), not just the results (#496)
 
 ## 0.5.94
 
-- Android : Réglages › Lecture indique quand la batterie baisse la qualité en ce moment (économiseur de batterie, batterie faible), au lieu de laisser croire que le réglage est ignoré (#492)
+- Android: Settings › Playback says when the battery is currently lowering the quality (battery saver, low battery), instead of making the setting look ignored (#492)
 
 ## 0.5.93
 
-- Android : retour du son en qualité Basse au casque Bluetooth ; le HE-AAC n'est plus envoyé à la puce audio (offload), l'AAC de la qualité Haute oui (#492)
+- Android: sound is back in Low quality on Bluetooth headphones; HE-AAC is no longer sent to the audio chip (offload), High quality's AAC still is (#492)
 
 ## 0.5.92
 
-- Android : plus de micro-coupures au casque Bluetooth ; le thread de lecture ne se met plus en veille entre deux remplissages du tampon audio, sauf en offload (#491)
+- Android: no more micro-dropouts on Bluetooth headphones; the playback thread no longer sleeps between two fills of the audio buffer, except in offload (#491)
 
 ## 0.5.91
 
-- chore: projet partageable sans le serveur de l'auteur : clé publique de l'updater compilée depuis `SEAGLASS_UPDATER_PUBKEY`, plus aucune adresse par défaut dans les scripts de release ni le relais (#489)
+- chore: project shareable without the author's server: updater public key built in from `SEAGLASS_UPDATER_PUBKEY`, no default address left in the release scripts or the relay (#489)
 
 ## 0.5.90
 
-- Android : décodage du FLAC par la puce audio du téléphone quand elle sait le faire sans blanc entre les titres (offload), pour moins solliciter le processeur écran éteint ; coupé quand l'égaliseur est actif (#474)
+- Android: FLAC decoded by the phone's audio chip when it can do it without gaps between tracks (offload), to put less load on the CPU with the screen off; turned off when the equalizer is active (#474)
 
 ## 0.5.89
 
-- Android : plus de barre de progression dans le mini-lecteur ; son animation faisait redessiner l'app en continu pendant la lecture (#480)
+- Android: no more progress bar in the mini player; its animation made the app redraw continuously during playback (#480)
 
 ## 0.5.88
 
-- Android : le lecteur sollicite moins le processeur pendant la lecture écran éteint (ordonnancement dynamique d'ExoPlayer, #474)
+- Android: the player puts less load on the CPU during screen-off playback (ExoPlayer dynamic scheduling, #474)
 
 ## 0.5.87
 
-- Android : barre de progression du mini-lecteur animée par le compositeur, moins de CPU pendant la lecture au premier plan (#473)
+- Android: mini player progress bar animated by the compositor, less CPU during foreground playback (#473)
 
 ## 0.5.86
 
-- Android : l'app ne démarre plus avec la mise en page du bureau quand le premier appel au backend échoue (#472)
+- Android: the app no longer starts with the desktop layout when the first call to the backend fails (#472)
 
 ## 0.5.85
 
-- Notification des nouvelles sorties des artistes suivis, désactivée par défaut (Réglages › Notifications) ; un clic ouvre l'album, ou le fil s'il y en a plusieurs (#435)
+- Notifications for new releases from followed artists, off by default (Settings › Notifications); a click opens the album, or the feed if there are several (#435)
 
 ## 0.5.84
 
-- Envoi des écoutes à ListenBrainz, facultatif : jeton à coller dans Réglages › Application, écoutes gardées hors ligne et envoyées plus tard (#431)
+- Optional scrobbling to ListenBrainz: token to paste in Settings › Application, listens kept offline and sent later (#431)
 
 ## 0.5.83
 
-- Crédits cliquables : un nom ouvre la liste des titres où la personne est créditée, avec ses rôles ; entrée « Crédits » sur la page d'artiste (#429)
+- Clickable credits: a name opens the list of tracks the person is credited on, with their roles; "Credits" entry on the artist page (#429)
 
 ## 0.5.82
 
-- Android : égaliseur paramétrique, mêmes profils et import AutoEQ que sur le bureau (#467)
+- Android: parametric equalizer, same profiles and AutoEQ import as on desktop (#467)
 
 ## 0.5.81
 
-- Bureau : égaliseur paramétrique (pics et plateaux, préampli), profils nommés, import des profils AutoEQ, courbe de réponse ; retenu par sortie audio avec les réglages par périphérique (#428)
+- Desktop: parametric equalizer (peaks and shelves, preamp), named profiles, AutoEQ profile import, response curve; remembered per audio output with the per-device settings (#428)
 
 ## 0.5.80
 
-- Jam : les invités peuvent voter pour passer le titre en cours, au-delà d'un nombre de votes choisi par l'hôte (#433)
+- Jam: guests can vote to skip the current track, beyond a number of votes chosen by the host (#433)
 
 ## 0.5.79
 
-- Relais de la Jam réglable (adresse et clé) dans Réglages › Application, interrupteur pour retirer la Jam de l'app, mises à jour automatiques désactivables ; adresses des serveurs lues à la compilation (#452)
+- Configurable Jam relay (address and key) in Settings › Application, switch to remove the Jam from the app, automatic updates can be turned off; server addresses read at build time (#452)
 
 ## 0.5.78
 
-- Jam : les invités peuvent lire les paroles du titre en cours, synchronisées quand TIDAL les fournit (#448)
+- Jam: guests can read the lyrics of the current track, synced when TIDAL provides them (#448)
 
 ## 0.5.77
 
-- La barre de progression montre en bande claire la partie du titre déjà en mémoire, et la chaîne audio son avance (« +2:40 en mémoire », « titre en mémoire », « suivant prêt ») (#453)
+- The progress bar shows as a light band the part of the track already in memory, and the signal path its lead ("+2:40 in memory", "track in memory", "next ready") (#453)
 
 ## 0.5.76
 
-- Jam : l'hôte peut laisser les invités régler le volume, sous un plafond qu'il choisit (#449)
+- Jam: the host can let guests set the volume, under a cap they choose (#449)
 
 ## 0.5.75
 
-- Android : une poignée à droite des titres de la file d'attente permet de les déplacer au doigt ; l'appui long sur le titre ouvre toujours son menu (#450)
+- Android: a handle on the right of queue tracks lets you move them with a finger; a long press on the track still opens its menu (#450)
 
 ## 0.5.74
 
-- Blind test : l'anneau du temps restant attend que l'extrait joue vraiment au lieu de partir pendant le chargement puis de revenir au début (#445)
+- Blind test: the remaining-time ring waits for the clip to actually play instead of starting during loading then going back to the start (#445)
 
 ## 0.5.73
 
-- Blind test : les propositions du mode à 4 choix affichent le titre sur 2 lignes au lieu de le rogner, dans l'app et sur la page des invités de la Jam (#446)
+- Blind test: the choices in 4-choice mode show the title on 2 lines instead of cropping it, in the app and on the Jam guest page (#446)
 
 ## 0.5.72
 
-- chore: build sans avertissements : release Android qui échouait sur un avertissement d'apksigner, code mort sur Android, bundle découpé, compilation Kotlin non incrémentale (#443)
+- chore: build without warnings: Android release that failed on an apksigner warning, dead code on Android, split bundle, non-incremental Kotlin compilation (#443)
 
 ## 0.5.71
 
-- Blind test à plusieurs : les invités de la Jam répondent depuis leur téléphone, classement en direct, bonus pour le plus rapide, l'hôte joue ou anime (#441).
+- Multiplayer blind test: Jam guests answer from their phone, live ranking, bonus for the fastest, the host plays or hosts (#441).
 
 ## 0.5.70
 
-- Blind test : depuis une playlist, un mix, un album, une liste intelligente ou les titres likés, devinez le titre ou l'artiste d'extraits de 15 s, en saisie libre ou parmi 4 propositions, avec score et série. Le titre reste masqué partout (écran verrouillé, Discord, notification) jusqu'à la réponse, et la file revient à la fin (#434).
+- Blind test: from a playlist, a mix, an album, a smart list or the liked tracks, guess the title or artist of 15 s clips, by typing or among 4 choices, with score and streak. The track stays hidden everywhere (lock screen, Discord, notification) until the answer, and the queue comes back at the end (#434).
 
 ## 0.5.69
 
-- Transfert de la lecture et historique d'écoute aussi hors de chez vous : le téléphone joint l'ordinateur par le relais, chiffré de bout en bout (#430).
+- Playback handoff and listening history away from home too: the phone reaches the computer through the relay, end-to-end encrypted (#430).
 
 ## 0.5.68
 
-- Historique d'écoute synchronisé entre l'ordinateur et l'app Android liée, sur le réseau local : statistiques, rétrospective et « Écoutés dans Seaglass » comptent les écoutes des deux (#430).
+- Listening history synced between the computer and the linked Android app, on the local network: stats, recap and "Played in Seaglass" count the listens of both (#430).
 
 ## 0.5.67
 
-- Minuteur de mise en veille : pause à la fin de l'album, de la playlist ou de la file (#436).
+- Sleep timer: pause at the end of the album, the playlist or the queue (#436).
 
 ## 0.5.66
 
-- Transfert de la lecture entre l'ordinateur et l'app Android : « Reprendre ici » et « Continuer sur l'ordinateur » depuis le téléphone, avec « Accepter les transferts » sur l'ordinateur (#414).
+- Playback handoff between the computer and the Android app: "Resume here" and "Continue on the computer" from the phone, with "Accept handoffs" on the computer (#414).
 
 ## 0.5.65
 
-- Windows : la télécommande et la Jam sur le réseau local donnent l'adresse du réseau local, et non plus celle du VPN quand un VPN est actif (#425).
+- Windows: the remote and the local network Jam give the local network address, no longer the VPN's when a VPN is active (#425).
 
 ## 0.5.64
 
-- Rétrospective du mois et de l'année, ouverte depuis les statistiques : temps d'écoute, jours d'écoute, titre et artiste de la période, découvertes, jour et heure d'écoute préférés, classements (#417).
+- Monthly and yearly recap, opened from the stats: listening time, listening days, track and artist of the period, discoveries, favorite listening day and hour, rankings (#417).
 
 ## 0.5.63
 
-- Fil d'actualité complété des sorties récentes des artistes suivis que TIDAL n'y met pas, avec un compteur des nouveautés pas encore vues dans la navigation (#415).
+- Feed completed with recent releases from followed artists that TIDAL leaves out, with a counter of unseen new items in the navigation (#415).
 
 ## 0.5.62
 
-- Bureau : réglages propres à chaque sortie audio, désactivés par défaut (Réglages › Lecture › Sortie audio) : volume, normalisation et mode exclusif retenus par périphérique et rétablis quand il redevient la sortie, y compris derrière la sortie par défaut (#416).
+- Desktop: settings specific to each audio output, off by default (Settings › Playback › Audio output): volume, normalization and exclusive mode remembered per device and restored when it becomes the output again, including behind the default output (#416).
 
 ## 0.5.61
 
-- Bureau : raccourcis clavier globaux, désactivés par défaut (lecture/pause, suivant, précédent, volume, aimer le titre, afficher la fenêtre), combinaisons modifiables dans Réglages › Application ; une combinaison prise par une autre app est signalée (#413).
+- Desktop: global keyboard shortcuts, off by default (play/pause, next, previous, volume, like the track, show the window), combinations editable in Settings › Application; a combination taken by another app is reported (#413).
 
 ## 0.5.60
 
-- Bureau : palette de commandes (Ctrl+K) pour aller à une page, lancer une action (lecture, minuteur, mode exclusif, thème, fenêtre…) ou chercher un titre, un album, un artiste ou une playlist ; `/` ouvre toujours la page Recherche (#412).
+- Desktop: command palette (Ctrl+K) to go to a page, run an action (playback, sleep timer, exclusive mode, theme, window…) or search for a track, album, artist or playlist; `/` still opens the Search page (#412).
 
 ## 0.5.59
 
-- Windows : le plein écran (F11) ne prend plus de retard au survol après quelques secondes (#191).
+- Windows: full screen (F11) no longer lags on hover after a few seconds (#191).
 
 ## 0.5.58
 
-- Importer une playlist Deezer, Spotify ou Apple Music en collant son lien : aperçu des titres trouvés sur TIDAL, à vérifier ou introuvables, puis lecture ou création d'une playlist (#328).
+- Import a Deezer, Spotify or Apple Music playlist by pasting its link: preview of the tracks found on TIDAL, to check or not found, then playback or creation of a playlist (#328).
 
 ## 0.5.57
 
-- Dossiers de playlists : affichés dans Bibliothèque › Playlists et dans « Ajouter à une playlist », créés, renommés et supprimés depuis l'app, « Déplacer vers un dossier… » dans le menu d'une playlist ; rien ne change sans dossier (#331).
+- Playlist folders: shown in Library › Playlists and in "Add to a playlist", created, renamed and deleted from the app, "Move to a folder…" in a playlist's menu; nothing changes without folders (#331).
 
 ## 0.5.56
 
-- Sélection multiple de titres : Ctrl+clic, Maj+clic et Ctrl+A sur le bureau, « Sélectionner » à l'appui long sur Android, puis lire ensuite, ajouter à la file ou à une playlist, liker ou retirer de la playlist en une fois (#332).
+- Multiple track selection: Ctrl+click, Shift+click and Ctrl+A on desktop, "Select" on long press on Android, then play next, add to the queue or to a playlist, like or remove from the playlist in one go (#332).
 
 ## 0.5.55
 
-- Bureau : export de la bibliothèque (titres likés, albums, artistes, playlists) en JSON et CSV dans Documents › Seaglass, depuis Réglages › Application (#330).
+- Desktop: library export (liked tracks, albums, artists, playlists) as JSON and CSV in Documents › Seaglass, from Settings › Application (#330).
 
 ## 0.5.54
 
-- Clins d'œil, derniers détails : piste cachée dans la file le 29 février, minuteur en cadran le 21 octobre, barre de progression en horloge de gare le 1er août, et une recherche qui compte en parsecs (#399).
+- Easter eggs, last details: a hidden track in the queue on February 29, a dial sleep timer on October 21, a station clock progress bar on August 1, and a search that counts in parsecs (#399).
 
 ## 0.5.53
 
-- Clins d'œil, fin : « En lecture » en format large sur une sélection de bandes originales de films, carton « Fin » quand la file s'achève avec le thème Séance, et refus d'une politesse inquiétante avec le thème Ordinateur de bord (#399).
+- Easter eggs, the end: "Now playing" in widescreen on a selection of film soundtracks, a "The End" card when the queue ends with the Showing theme, and unsettlingly polite refusals with the Ship Computer theme (#399).
 
 ## 0.5.52
 
-- Clins d'œil, suite : volume à 11, ∞ sur la répétition après dix écoutes du même titre, générique de fin caché dans Réglages › Application, pochettes en gros pixels au clavier, piste introuvable dans une playlist vide, minuteur d'une heure, et deux détails propres aux thèmes Cyberpunk et Désert (#399).
+- Easter eggs, continued: volume at 11, ∞ on repeat after ten listens of the same track, end credits hidden in Settings › Application, big-pixel covers from the keyboard, a track not found in an empty playlist, a one-hour sleep timer, and two details specific to the Cyberpunk and Desert themes (#399).
 
 ## 0.5.51
 
-- Clins d'œil : petits détails dans l'en-tête certains jours et effets brefs pour quelques recherches, sans son. Désactivables dans Réglages › Apparence (#399).
+- Easter eggs: small details in the header on certain days and brief effects for a few searches, without sound. Can be turned off in Settings › Appearance (#399).
 
 ## 0.5.50
 
-- Nouveau thème Générique : le papier découpé des génériques des années 50-60, aplats orange, rouges et crème sur papier noir, panneaux coupés aux ciseaux, titres de travers en étiquettes collées. La barre de progression est une ligne brisée et le chargement une spirale (#339).
+- New Title Sequence theme: the cut paper of 50s-60s title sequences, orange, red and cream flats on black paper, panels cut with scissors, crooked titles as stuck-on labels. The progress bar is a broken line and loading a spiral (#339).
 
 ## 0.5.49
 
-- Nouveau thème Désert : space opera des sables, ocres, sable et ciel pâle, horizon bas, titres fins et très espacés, glyphes géométriques devant la navigation et un bleu profond réservé au bouton lecture. La progression laisse une trace dans le sable, le chargement est une ondulation de dune et, sur le bureau, un minuscule ver passe une fois dans l'horizon à la fin d'un album (#339).
+- New Desert theme: sand space opera, ochres, sand and pale sky, low horizon, thin and widely spaced titles, geometric glyphs in front of the navigation and a deep blue reserved for the play button. Progress leaves a trail in the sand, loading is a dune ripple and, on desktop, a tiny worm crosses the horizon once at the end of an album (#339).
 
 ## 0.5.48
 
-- Nouveau thème Grand hôtel : comédie pastel et symétrique, rose poudré, bordeaux et moutarde, papier peint rayé, cadres doubles à filets, étiquettes en cartouche et numéros de piste en médaillons. Les sections de l'accueil sont numérotées en chapitres, la file s'intitule « Programme », une clé de concierge accompagne les réglages et « En lecture » est centré (#339).
+- New Grand Hotel theme: pastel and symmetrical comedy, powder pink, burgundy and mustard, striped wallpaper, double-ruled frames, cartouche labels and track numbers as medallions. Home sections are numbered as chapters, the queue is titled "Programme", a concierge key accompanies the settings and "Now playing" is centered (#339).
 
 ## 0.5.47
 
-- Nouveau thème Film noir : noir et blanc strict, ombres de stores vénitiens en biais, titres d'affiche des années 40 et informations à la machine à écrire ; seules les pochettes restent en couleur. Les notifications arrivent en télégrammes, une fumée immobile monte dans « En lecture » et la recherche sans résultat a son détective fatigué (#339).
+- New Film Noir theme: strict black and white, slanted venetian blind shadows, 40s poster titles and typewriter information; only the covers stay in color. Notifications arrive as telegrams, still smoke rises in "Now playing" and the empty search has its tired detective (#339).
 
 ## 0.5.46
 
-- Nouveau thème Ordinateur de bord : les écrans de vaisseau de la science-fiction des années 70-80, ambre sur fond presque noir, étiquettes numérotées, blocs de couleur et bandes d'avertissement. La chaîne audio de « En lecture » devient un schéma de systèmes avec voyants, un voyant rouge fixe veille près du bouton lecture et le démarrage déroule une séquence d'auto-test (#339).
+- New Ship Computer theme: the spaceship screens of 70s-80s science fiction, amber on near-black, numbered labels, color blocks and warning stripes. The "Now playing" signal path becomes a systems diagram with indicator lights, a fixed red light watches near the play button and startup runs a self-test sequence (#339).
 
 ## 0.5.45
 
-- Nouveau thème Séance : la salle de cinéma, noir de salle, rideaux de velours rouge, titres en capitales de générique. « En lecture » passe en format large avec le titre en carton-titre ; un repère de changement de bobine apparaît sur la pochette dans les 30 dernières secondes, le chargement est un décompte d'amorce et la chaîne audio une fiche technique de projection (#339).
+- New Showing theme: the movie theater, theater black, red velvet curtains, titles in credit capitals. "Now playing" switches to widescreen with the title as an intertitle; a reel change cue appears on the cover in the last 30 seconds, loading is a leader countdown and the signal path a projection technical sheet (#339).
 
 ## 0.5.44
 
-- Nouveau thème Cassette : chaîne hi-fi des années 70, noyer, orange brûlé, bandes de jaquette. La barre de progression est une bande qui passe d'une bobine à l'autre, et la chaîne audio de « En lecture » s'affiche en vumètres à aiguille (#338).
+- New Cassette theme: 70s hi-fi, walnut, burnt orange, J-card stripes. The progress bar is a tape going from one reel to the other, and the "Now playing" signal path shows as needle VU meters (#338).
 
 ## 0.5.43
 
-- Nouveau thème Art déco : bleu nuit, filets dorés, éventails aux angles, titres en capitales géométriques, boutons en cartouches à pans coupés ; dans « En lecture », la pochette est encadrée comme une affiche (#338).
+- New Art Deco theme: night blue, gold rules, fans in the corners, geometric capital titles, buttons as cut-corner cartouches; in "Now playing", the cover is framed like a poster (#338).
 
 ## 0.5.42
 
-- Nouveau thème Estampe : gravure japonaise sur papier washi, encre indigo, titres en serif, cadres doubles, vagues et soleil en aplats, cachet vermillon (#338).
+- New Estampe theme: Japanese woodblock print on washi paper, indigo ink, serif titles, double frames, flat waves and sun, vermilion seal (#338).
 
 ## 0.5.41
 
-- Nouveau thème Minuit : noir pur, filets fins, aucun décor, la pochette est la seule couleur. Sur un écran OLED (comme celui de la plupart des téléphones), le noir éteint les pixels (#338).
+- New Midnight theme: pure black, thin rules, no decoration, the cover is the only color. On an OLED screen (like most phones'), black turns the pixels off (#338).
 
 ## 0.5.40
 
-- Page Apparence réorganisée : le thème actuel en haut, avec sa variante claire ou sombre et sa couleur d'accent, puis une galerie compacte en dernier, filtrable (tous, favoris, clairs, sombres). Une étoile met un thème en favori, en tête de la galerie (#390).
+- Appearance page reorganized: the current theme at the top, with its light or dark variant and its accent color, then a compact gallery last, filterable (all, favorites, light, dark). A star makes a theme a favorite, at the top of the gallery (#390).
 
 ## 0.5.39
 
-- Bureau : télécommande. Pilotez la lecture de l'ordinateur depuis le navigateur de votre téléphone, sur le même Wi-Fi : lecture / pause, titres précédent et suivant, position, volume, aléatoire, répétition, file d'attente, recherche, albums et playlists. À allumer dans Réglages › Application ; le QR code se scanne une fois, « Nouveau code » déconnecte les téléphones (#336).
+- Desktop: remote control. Drive the computer's playback from your phone's browser, on the same Wi-Fi: play / pause, previous and next tracks, position, volume, shuffle, repeat, queue, search, albums and playlists. Turn it on in Settings › Application; the QR code is scanned once, "New code" disconnects the phones (#336).
 
 ## 0.5.38
 
-- Playlists intelligentes calculées sur cet appareil : « Mes 50 du mois », « En boucle en ce moment », « Oubliés » et « Likés jamais écoutés ». On les ouvre depuis les statistiques, on peut les épingler et les ajouter à une playlist (#383).
+- Smart playlists computed on this device: "My top 50 this month", "On repeat", "Forgotten favorites" and "Liked, never played". They open from the stats, can be pinned and added to a playlist (#383).
 
 ## 0.5.37
 
-- Nettoyer une de vos playlists ou vos titres likés : doublons (même titre, ou même chanson dans une autre édition) et titres retirés du catalogue, avec la même chanson dans une version disponible pour les remplacer ; on coche ce qu'on garde, on applique, et « Annuler » reste possible (#382).
+- Clean up one of your playlists or your liked tracks: duplicates (same track, or same song in another edition) and tracks removed from the catalog, with the same song in an available version to replace them; check what to keep, apply, and "Undo" stays possible (#382).
 
 ## 0.5.36
 
-- Bureau : mini-lecteur, une petite fenêtre avec la pochette, le titre, Précédent, Lecture / Pause, Suivant et le cœur, au premier plan au choix, qui remplace la grande fenêtre jusqu'à ce qu'on y revienne ; ouvert par le bouton de la barre de lecture, Ctrl+M ou la zone de notification, et rouvert à la même place (#384).
+- Desktop: mini player, a small window with the cover, the title, Previous, Play / Pause, Next and the heart, optionally always on top, which replaces the large window until you go back to it; opened by the playback bar button, Ctrl+M or the notification area, and reopened at the same place (#384).
 
 ## 0.5.35
 
-- Bloquer un titre ou un artiste depuis le menu d'un titre ou « En lecture » : il n'est plus proposé par les mixes ni par les radios, sur tous les appareils ; liste et « Débloquer » dans Réglages › Lecture (#334).
+- Block a track or an artist from a track's menu or "Now playing": it is no longer offered by mixes or radios, on all devices; list and "Unblock" in Settings › Playback (#334).
 
 ## 0.5.34
 
-- Sauvegarde des réglages (Réglages › Application) : copier ses réglages d'interface et de lecture en texte, puis les coller dans Seaglass sur un autre appareil ; ce qui ne s'applique pas à l'appareil est ignoré et signalé (#352).
+- Settings backup (Settings › Application): copy your interface and playback settings as text, then paste them into Seaglass on another device; what does not apply to the device is ignored and reported (#352).
 
 ## 0.5.33
 
-- Statistiques d'écoute (Bibliothèque › Statistiques) : titres, albums et artistes les plus écoutés et temps d'écoute sur 7 jours, 30 jours, 12 mois ou tout l'historique, calculés sur l'appareil ; l'historique garde maintenant 50 000 écoutes (#326).
+- Listening stats (Library › Stats): most played tracks, albums and artists and listening time over 7 days, 30 days, 12 months or the whole history, computed on the device; the history now keeps 50,000 listens (#326).
 
 ## 0.5.32
 
-- Page d'album : rangées « Autres versions » (deluxe, remaster, anniversaire…) et « Plus de <artiste> » en bas de page (#350).
+- Album page: "Other versions" (deluxe, remaster, anniversary…) and "More by <artist>" rows at the bottom of the page (#350).
 
 ## 0.5.31
 
-- Windows : boutons Précédent, Lecture / Pause et Suivant sous la miniature de la fenêtre dans la barre des tâches, grisés quand l'action n'est pas possible et adaptés au thème clair ou sombre (#333).
+- Windows: Previous, Play / Pause and Next buttons under the window's thumbnail in the taskbar, grayed out when the action is not possible and adapted to the light or dark theme (#333).
 
 ## 0.5.30
 
-- Android : une qualité en Wi-Fi et une autre en données mobiles, et un réglage qui baisse la qualité quand la batterie est faible (Haute sous 50 %, Basse sous 20 % ou avec l'économiseur de batterie, rien pendant la charge) (#365).
+- Android: one quality on Wi-Fi and another on mobile data, and a setting that lowers the quality when the battery is low (High under 50 %, Low under 20 % or with battery saver, nothing while charging) (#365).
 
 ## 0.5.29
 
-- Musique générée par IA : badge « IA » sur les titres et albums que le service marque ainsi, et réglage « Masquer la musique générée par IA », activé par défaut, avec la même portée que le filtre explicite (#369).
+- AI-generated music: "AI" badge on tracks and albums the service tags as such, and a "Hide AI-generated music" setting, on by default, with the same scope as the explicit filter (#369).
 
 ## 0.5.28
 
-- Réglage « Masquer le contenu explicite » (Réglages › Lecture) : les titres et albums explicites disparaissent de la recherche, des pages, de l'accueil, des mixes, des radios et de la Jam ; vos favoris et vos playlists restent complets. Badge « E » sur les albums (#368).
+- "Hide explicit content" setting (Settings › Playback): explicit tracks and albums disappear from search, pages, home, mixes, radios and the Jam; your favorites and playlists stay complete. "E" badge on albums (#368).
 
 ## 0.5.27
 
-- Android : deux qualités de plus dans Réglages › Lecture, Basse (AAC 96 kbit/s) et Max (FLAC jusqu'à 24 bits / 192 kHz, avec l'édition hi-res comme sur le bureau) (#366).
+- Android: two more qualities in Settings › Playback, Low (AAC 96 kbit/s) and Max (FLAC up to 24-bit / 192 kHz, with the hi-res edition as on desktop) (#366).
 
 ## 0.5.26
 
-- Android : le widget d'écran d'accueil et les raccourcis d'épingles de l'icône, annoncés en 0.5.24 et 0.5.25, manquaient dans l'app publiée (elle avait été construite avec une ancienne copie de son code Android) ; ils y sont maintenant (#370).
+- Android: the home screen widget and the app icon's pin shortcuts, announced in 0.5.24 and 0.5.25, were missing from the published app (it had been built with an old copy of its Android code); they are there now (#370).
 
 ## 0.5.25
 
-- Android : widget d'écran d'accueil avec la pochette, le titre, l'artiste et les boutons Précédent, Lecture / Pause et Suivant ; un appui sur la pochette ouvre « En lecture » (#329).
+- Android: home screen widget with the cover, title, artist and the Previous, Play / Pause and Next buttons; tapping the cover opens "Now playing" (#329).
 
 ## 0.5.24
 
-- Android : un appui long sur l'icône de l'app propose les quatre premières épingles ; un appui lance leur lecture, et chacune peut être posée en icône sur l'écran d'accueil. Lien `seaglass://pin/<clé>` pour Modes et routines (#335).
+- Android: a long press on the app icon offers the first four pins; a tap starts their playback, and each can be placed as an icon on the home screen. Link `seaglass://pin/<key>` for Modes and Routines (#335).
 
 ## 0.5.23
 
-- chore: plus d'avertissement « method `factor` is never used » à la compilation de l'app Android (#357).
+- chore: no more "method `factor` is never used" warning when building the Android app (#357).
 
 ## 0.5.22
 
-- Android : réglage « Qualité » dans Réglages › Lecture : Lossless (comme avant) ou Haute (AAC 320 kbit/s), qui demande environ trois fois moins de données pour le même son en Bluetooth (#325).
+- Android: "Quality" setting in Settings › Playback: Lossless (as before) or High (AAC 320 kbit/s), which needs about three times less data for the same sound over Bluetooth (#325).
 
 ## 0.5.21
 
-- Android : écran éteint ou app en arrière-plan, l'interface ne recalcule plus la position de lecture plusieurs fois par seconde pour rien (#324).
+- Android: with the screen off or the app in the background, the interface no longer recomputes the playback position several times per second for nothing (#324).
 
 ## 0.5.20
 
-- Android : la musique se charge par grandes rafales (jusqu'à 5 minutes d'avance) au lieu d'un filet continu, pour laisser le Wi-Fi et le réseau mobile se reposer entre deux et économiser la batterie (#323).
+- Android: music loads in large bursts (up to 5 minutes ahead) instead of a continuous trickle, to let Wi-Fi and the mobile network rest in between and save battery (#323).
 
 ## 0.5.19
 
-- Bouton « Annuler » après avoir retiré un titre d'une playlist : il revient à sa position (#349).
+- "Undo" button after removing a track from a playlist: it goes back to its position (#349).
 
 ## 0.5.18
 
-- Bouton « Annuler » pendant quelques secondes après avoir vidé la file, retiré un titre de la file, enlevé un favori ou retiré un élément de « Plus tard » (#349).
+- "Undo" button for a few seconds after clearing the queue, removing a track from the queue, removing a favorite or removing an item from "Save for later" (#349).
 
 ## 0.5.17
 
-- Animations de l'interface réglables dans Réglages › Apparence : suivre le système, réduites ou complètes (#351).
+- Interface animations configurable in Settings › Appearance: follow the system, reduced or full (#351).
 
 ## 0.5.16
 
-- Bureau : la lecture se met en pause quand le casque ou la sortie audio utilisée est débranché, au lieu de continuer sur les haut-parleurs (réglable dans Réglages › Lecture › Sortie audio) (#348).
-- Bureau : option « Reprendre la lecture au lancement » (Réglages › Lecture › Démarrage), jamais à l'ouverture de session ni après un plantage (#353).
+- Desktop: playback pauses when the headphones or the audio output in use are unplugged, instead of continuing on the speakers (configurable in Settings › Playback › Audio output) (#348).
+- Desktop: "Resume playback at launch" option (Settings › Playback › Startup), never at sign-in or after a crash (#353).
 
 ## 0.5.15
 
-- Android : les écouteurs reprennent la lecture après une pause de plus d'une minute, app en arrière-plan (la notification reste affichée 10 minutes après une pause) (#247).
+- Android: earbuds resume playback after a pause of more than a minute, app in the background (the notification stays shown 10 minutes after a pause) (#247).
 
 ## 0.5.14
 
-- Android : la file d'attente de « En lecture » défile de nouveau (#342).
+- Android: the "Now playing" queue scrolls again (#342).
 
 ## 0.5.13
 
-- Enregistrer la file d'attente comme playlist (nouvelle ou existante), titre en cours compris, dans l'ordre de lecture (#327).
+- Save the queue as a playlist (new or existing), current track included, in play order (#327).
 
 ## 0.5.12
 
-- Journal des versions dans Réglages › Application, limité aux changements de la plateforme (#340).
+- Version log in Settings › Application, limited to the platform's changes (#340).
 
 ## 0.5.11
 
-- Taille de l'interface réglable sur le bureau (80 à 150 %) dans Réglages › Apparence, avec Ctrl + « + », Ctrl + « - » et Ctrl + 0 (#337).
+- Interface size configurable on desktop (80 to 150 %) in Settings › Appearance, with Ctrl + "+", Ctrl + "-" and Ctrl + 0 (#337).
 
 ## 0.5.10
 
-- Journaux et rapports de plantage gardés en local (bureau et Android) : `seaglass.log`, panics Rust, exceptions Kotlin et sorties anormales signalées par Android ; Réglages › Application › Journaux pour copier le journal ou le dernier rapport, et toast au lancement qui suit un plantage (#192).
+- Logs and crash reports kept locally (desktop and Android): `seaglass.log`, Rust panics, Kotlin exceptions and abnormal exits reported by Android; Settings › Application › Logs to copy the log or the last report, and a toast at the launch following a crash (#192).
 
 ## 0.5.9
 
-- Linux : mpv, lancé depuis l'AppImage, ne reçoit plus ses chemins de bibliothèques et de plugins (il chargeait 95 bibliothèques de l'AppImage au lieu de celles du système) (#320).
+- Linux: mpv, launched from the AppImage, no longer receives its library and plugin paths (it loaded 95 libraries from the AppImage instead of the system's) (#320).
 
 ## 0.5.8
 
-- Linux : mises à jour automatiques de l'AppImage (signée, annoncée dans le même `latest.json` que Windows), relance après installation ; désactivées hors d'une AppImage, message clair si son dossier n'est pas modifiable (#314).
+- Linux: automatic updates of the AppImage (signed, announced in the same `latest.json` as Windows), relaunch after installation; disabled outside an AppImage, clear message if its folder is not writable (#314).
 
 ## 0.5.7
 
-- Lecteur : `loadfile` envoyé en arguments nommés, que le mpv 0.37 d'Ubuntu 24.04 comprend aussi ; il refusait toute reprise à une position et la normalisation du volume (#316).
+- Player: `loadfile` sent with named arguments, which Ubuntu 24.04's mpv 0.37 also understands; it refused any resume at a position and volume normalization (#316).
 
 ## 0.5.6
 
-- Linux : contrôles média du système par MPRIS (touches média, applet du bureau, `playerctl`, KDE Connect) : titre, artiste, album, pochette, position, lecture/pause, suivant, précédent, saut, aléatoire, répétition et volume (#312).
+- Linux: system media controls through MPRIS (media keys, desktop applet, `playerctl`, KDE Connect): title, artist, album, cover, position, play/pause, next, previous, seek, shuffle, repeat and volume (#312).
 
 ## 0.5.5
 
-- Linux : sortie audio PipeWire, PulseAudio ou ALSA selon ce qui est disponible, mpv arrêté avec l'app même sur un plantage, mode exclusif masqué hors Windows ; AppImage avec GStreamer embarqué (sans lui, la vérification anti-robot de la connexion ne s'affiche pas), session gardée dans le Secret Service (GNOME Keyring, KWallet) ; connexion dans le navigateur du système, TIDAL bloquant le navigateur intégré de Linux ; testée dans WSL (#17).
+- Linux: PipeWire, PulseAudio or ALSA audio output depending on what is available, mpv stopped with the app even on a crash, exclusive mode hidden outside Windows; AppImage with bundled GStreamer (without it, the sign-in bot check does not show), session kept in the Secret Service (GNOME Keyring, KWallet); sign-in in the system browser, TIDAL blocking Linux's built-in browser; tested in WSL (#17).
 
 ## 0.5.4
 
-- Mode exclusif : plus de grésillements ni de bouts répétés sur les interfaces USB qui réveillent le lecteur moins souvent que leur période annoncée (Focusrite) ; tampon exclusif de 50 ms (#308).
+- Exclusive mode: no more crackles or repeated bits on USB interfaces that wake the player less often than their announced period (Focusrite); 50 ms exclusive buffer (#308).
 
 ## 0.5.3
 
-- Android : plus d'avertissement « unused import » sur `flush_blocking` à la compilation, la réexport n'existe plus que sur le bureau comme son seul appelant (#307).
+- Android: no more "unused import" warning on `flush_blocking` when building, the re-export now only exists on desktop like its only caller (#307).
 
 ## 0.5.2
 
-- Android : en mode conduite, une tuile lit sa playlist ou ses titres likés dans l'ordre de leur page (tri choisi compris), et la bande › à droite de chaque tuile ouvre sa page (#193).
+- Android: in driving mode, a tile plays its playlist or liked tracks in the order of their page (chosen sort included), and the › band on the right of each tile opens its page (#193).
 
 ## 0.5.1
 
-- Android : en déplaçant une section de l'accueil au doigt, la page ne descend plus sans fin ; la ligne reste dans la liste et le défilement s'arrête à son bout (#302).
+- Android: when moving a home section with a finger, the page no longer scrolls down endlessly; the row stays in the list and scrolling stops at its end (#302).
 
 ## 0.5.0
 
-- Windows : Mode exclusif WASAPI (Réglages › Lecture) : sortie ouverte pour Seaglass seul, bascule à chaud, normalisation suspendue, échec d'ouverture signalé sans repli en partagé ; la chaîne audio lit le format réellement envoyé au périphérique et n'annonce « Bit-perfect » qu'en exclusif. Fin de la phase 5 (#245).
+- Windows: WASAPI exclusive mode (Settings › Playback): output opened for Seaglass alone, live toggle, normalization suspended, opening failure reported without falling back to shared mode; the signal path reads the format actually sent to the device and only announces "Bit-perfect" in exclusive mode. End of phase 5 (#245).
 
 ## 0.4.119
 
-- Android : Retour ferme le mode conduite ouvert par le raccourci ou le lien au lieu de quitter l'app ; Retour est désormais demandé directement à l'interface (#193).
+- Android: Back closes driving mode opened by the shortcut or the link instead of quitting the app; Back is now asked directly of the interface (#193).
 
 ## 0.4.118
 
-- Android : mode conduite plein écran (gros boutons de lecture, 1 à 8 tuiles qui lancent une playlist, un mix, les titres likés ou « Plus tard » en un appui), ouvert par l'icône voiture, le raccourci de l'app ou le lien `seaglass://drive` ; les mixes s'épinglent aussi dans la barre latérale du bureau (#193).
+- Android: full-screen driving mode (large playback buttons, 1 to 8 tiles that start a playlist, a mix, the liked tracks or "Save for later" in one tap), opened by the car icon, the app shortcut or the `seaglass://drive` link; mixes can also be pinned in the desktop sidebar (#193).
 
 ## 0.4.117
 
-- Android : répétition et aléatoire demandés par un contrôleur (autoradio, montre) repartent vers Rust, et la session média ne propose plus de changer la liste de lecture, la vitesse ni le volume d'ExoPlayer (#254).
+- Android: repeat and shuffle requested by a controller (car stereo, watch) go back to Rust, and the media session no longer offers to change ExoPlayer's playlist, speed or volume (#254).
 
 ## 0.4.116
 
-- Jam : limites comptées par invité (plafond 5 fois plus large par adresse), essais de code ratés oubliés au bout d'un quart d'heure, 100 titres de la Jam en attente au plus, code retenu par Jam dans la page ; relais à redéployer (#256).
+- Jam: limits counted per guest (cap 5 times wider per address), failed code attempts forgotten after a quarter hour, 100 Jam tracks pending at most, code remembered per Jam in the page; relay to redeploy (#256).
 
 ## 0.4.115
 
-- Tests du frontend avec `vitest` (tri et filtre des listes, formats, chaîne audio, liens, réorganisation, glissement), lancés par la CI ; rien ne change dans l'app (#264).
+- Frontend tests with `vitest` (list sort and filter, formats, signal path, links, reordering, swipe), run by CI; nothing changes in the app (#264).
 
 ## 0.4.114
 
-- Android : le titre en cours est mis en évidence dès son lancement, plus seulement après une pause (#291).
+- Android: the current track is highlighted as soon as it starts, no longer only after a pause (#291).
 
 ## 0.4.113
 
-- Accueil personnalisé : le glisser-déposer des sections remarche sous Windows (la file et les playlists aussi), et sur Android une section se déplace par appui long puis en glissant le doigt (#290).
+- Customized home: drag and drop of sections works again on Windows (the queue and playlists too), and on Android a section moves with a long press then dragging the finger (#290).
 
 ## 0.4.112
 
-- Jam : contrôles de l'hôte (repliés) : limite de titres en attente par invité, albums permis ou non, ajouts suspendus, invités exclus ou réadmis ; un titre déjà dans la file est refusé (#288).
+- Jam: host controls (collapsed): per-guest limit on pending tracks, albums allowed or not, additions paused, guests kicked or readmitted; a track already in the queue is refused (#288).
 
 ## 0.4.111
 
-- mpv figé : arrêté après 5 s sans réponse au lieu de bloquer le lecteur ; mpv arrêté ou planté : relancé une fois et le titre reprend (#255).
+- Frozen mpv: stopped after 5 s without an answer instead of blocking the player; stopped or crashed mpv: restarted once and the track resumes (#255).
 
 ## 0.4.110
 
-- « En lecture » montre l'édition hi-res réellement lue, avec son format, et ouvre son album (#111).
+- "Now playing" shows the hi-res edition actually played, with its format, and opens its album (#111).
 
 ## 0.4.109
 
-- Session : une panne passagère de TIDAL n'efface plus le refresh token, une session non reprise au lancement est réessayée seule, et une session refusée en cours de route ramène à l'écran de connexion (#252, #259).
+- Session: a transient TIDAL outage no longer erases the refresh token, a session not resumed at launch is retried on its own, and a session refused midway goes back to the sign-in screen (#252, #259).
 
 ## 0.4.108
 
-- Android : Retour ne quitte l'app que depuis l'accueil, et « En lecture » ouvert par la notification revient à la page d'où joue le titre (#240).
+- Android: Back only quits the app from the home page, and "Now playing" opened from the notification goes back to the page the track plays from (#240).
 
 ## 0.4.107
 
-- Titre en cours plus visible dans les listes : fond teinté, barre d'accent et égaliseur (#241).
+- Current track more visible in lists: tinted background, accent bar and equalizer (#241).
 
 ## 0.4.106
 
-- Sections de l'accueil réordonnables par glisser-déposer dans « Personnaliser » (#246).
+- Home sections can be reordered by drag and drop in "Customize" (#246).
 
 ## 0.4.105
 
-- Recherche lancée pendant la frappe, l'historique ne garde que la requête retenue (#248).
+- Search runs as you type, the history only keeps the kept query (#248).
 
 ## 0.4.104
 
-- Couleur d'accent gardée pour chaque thème (#250).
+- Accent color kept for each theme (#250).
 
 ## 0.4.103
 
-- « Plus tard » épinglable dans la barre latérale (#244).
+- "Save for later" can be pinned in the sidebar (#244).
 
 ## 0.4.102
 
-- « Plus tard » : signet à côté du cœur pour retirer un titre en un clic (#249).
+- "Save for later": bookmark next to the heart to remove a track in one click (#249).
 
 ## 0.4.101
 
-- Connexion en navigation privée, données de navigation effacées à la déconnexion (#258).
+- Sign-in in private browsing, browsing data cleared on sign-out (#258).
 
 ## 0.4.100
 
-- Android : toasts au-dessus du clavier ouvert (#251).
+- Android: toasts above the open keyboard (#251).
 
 ## 0.4.99
 
-- Android : tuile des paroles (et de la file) centrée en plein écran (#242).
+- Android: lyrics (and queue) panel centered in full screen (#242).
 
 ## 0.4.98
 
-- Android : affichage bloqué en portrait (#243).
+- Android: display locked in portrait (#243).
 
 ## 0.4.97
 
-- Petits défauts de l'audit : fragment de la page des invités, clients HTTP en HTTPS seulement, coupe de « feat. », chemins du `FileProvider` (#262).
+- Small defects from the audit: guest page fragment, HTTPS-only HTTP clients, "feat." cut, `FileProvider` paths (#262).
 
 ## 0.4.96
 
-- Dernière sauvegarde de la file, de la position et du volume à la fermeture et avant une mise à jour (#260).
+- Last save of the queue, position and volume on shutdown and before an update (#260).
 
 ## 0.4.95
 
-- mpv du `PATH` utilisé seulement en debug ; bandeau « mpv introuvable » si le mpv embarqué manque (#261).
+- mpv from `PATH` used only in debug; "mpv not found" banner if the bundled mpv is missing (#261).
 
-## 0.4.94 (publiée le 2026-11-06)
+## 0.4.94 (published 2026-11-06)
 
-- Boutons à logos des apps de musique sur la page des invités de la Jam (#225).
+- Buttons with music app logos on the Jam guest page (#225).
 
-## 0.4.93 (publiée le 2026-11-06)
+## 0.4.93 (published 2026-11-06)
 
-- Android : Liens `https://tidal.com/…` touchés ouverts dans l'app sur Android, à activer dans Réglages (#203).
+- Android: tapped `https://tidal.com/…` links opened in the app on Android, to turn on in Settings (#203).
 
-## 0.4.92 (publiée le 2026-11-06)
+## 0.4.92 (published 2026-11-06)
 
-- Présence Discord, « Écoute Seaglass » (#215).
+- Discord presence, "Listening to Seaglass" (#215).
 
 ## 0.4.91
 
-- Lien de Spotify, Deezer, Apple Music, YouTube Music ou TIDAL collé dans la recherche de la Jam (#229), liens vers ces apps sur la page des invités (#225).
+- Spotify, Deezer, Apple Music, YouTube Music or TIDAL link pasted into the Jam search (#229), links to these apps on the guest page (#225).
 
 ## 0.4.90
 
-- Titres d'une recherche dont le nom correspond à la requête avant ceux des artistes de ce nom, dans l'app et la Jam (#232).
+- Search tracks whose name matches the query come before those of artists with that name, in the app and the Jam (#232).
 
 ## 0.4.89
 
-- Clic sur l'icône de la zone de notification qui cache la fenêtre déjà au premier plan (#226), bouton « Plus tard » dans l'en-tête d'un album (#227).
+- Clicking the notification area icon hides the window already in front (#226), "Save for later" button in an album's header (#227).
 
 ## 0.4.88
 
-- Albums dans la Jam, et retrait de ses propres ajouts par un invité (#223).
+- Albums in the Jam, and removal of their own additions by a guest (#223).
 
 ## 0.4.87
 
-- Lecture / pause par les invités de la Jam, au choix de l'hôte (#222).
+- Play / pause by Jam guests, at the host's choice (#222).
 
 ## 0.4.86
 
-- Croix pour effacer la recherche de la Jam (#224).
+- Cross to clear the Jam search (#224).
 
-## 0.4.85 (publiée le 2026-11-06)
+## 0.4.85 (published 2026-11-06)
 
-- Jam en accès rapide depuis « En lecture », délai de reprise du relais porté à 30 min (#25).
+- Quick access to the Jam from "Now playing", relay resume delay raised to 30 min (#25).
 
 ## 0.4.84
 
-- Android : Jam depuis Android, en ligne seulement (#25, étape 4, en cours de vérification sur le S21).
+- Android: Jam from Android, online only (#25, step 4, being verified on the S21).
 
 ## 0.4.83
 
-- Jam en ligne par le relais, sans Wi-Fi commun (#25, étape 3b), réseau local en second choix.
+- Online Jam through the relay, without shared Wi-Fi (#25, step 3b), local network as second choice.
 
 ## 0.4.82
 
-- Relais de la Jam (#25, étape 3a, `relay/`, à déployer), page des invités en chemins relatifs.
+- Jam relay (#25, step 3a, `relay/`, to deploy), guest page with relative paths.
 
 ## 0.4.81
 
-- Jam locale, étape 2 (#25) : QR code, prénom de l'invité dans la file, état poussé en direct aux invités.
+- Local Jam, step 2 (#25): QR code, guest's first name in the queue, state pushed live to guests.
 
 ## 0.4.80
 
-- « Plus tard » (Save for later de TIDAL), onglet de la bibliothèque et entrée des menus (#196).
+- "Save for later" (TIDAL's Save for later), library tab and menu entry (#196).
 
 ## 0.4.79
 
-- Jam locale, étape 1 (#25) : des invités sur le même réseau ajoutent des titres à la file depuis une page web.
+- Local Jam, step 1 (#25): guests on the same network add tracks to the queue from a web page.
 
-## 0.4.78 (publiée le 2026-11-05)
+## 0.4.78 (published 2026-11-05)
 
-- Gérer ses playlists, réordonner, renommer, supprimer (#201), historique d'écoute local et « Écoutés dans Seaglass » (#202), lien partagé vers l'app sur Android (#203, à vérifier sur le S21), mixes dans la bibliothèque (#204), page d'artiste complète (#205).
+- Manage your playlists, reorder, rename, delete (#201), local listening history and "Played in Seaglass" (#202), shared link to the app on Android (#203, to verify on the S21), mixes in the library (#204), full artist page (#205).
 
 ## 0.4.77
 
-- Accueil complet, pages suivantes du flux (#207).
+- Full home page, next pages of the feed (#207).
 
 ## 0.4.76
 
-- Historique de recherche (#211).
+- Search history (#211).
 
 ## 0.4.75
 
-- Lien TIDAL collé ouvert dans l'app, sur le bureau (#203), crédits d'un album entier (#206).
+- Pasted TIDAL link opened in the app, on desktop (#203), credits of a whole album (#206).
 
 ## 0.4.74
 
-- Android : En-tête des pages centré sur Android, Lecture / Aléatoire puis les autres boutons sur deux lignes, filtre pleine largeur et tri en un bouton (#182).
+- Android: page headers centered on Android, Play / Shuffle then the other buttons on two rows, full-width filter and sort in one button (#182).
 
 ## 0.4.73
 
-- Android : Nom de l'app aligné sur les boutons de l'en-tête, centré avec la version dessous sur Android (#183).
+- Android: app name aligned with the header buttons, centered with the version below on Android (#183).
 
 ## 0.4.72
 
-- Playlists et onglets de la bibliothèque gardés d'un lancement à l'autre, longues listes affichées par morceaux (#181).
+- Playlists and library tabs kept from one launch to the next, long lists shown in chunks (#181).
 
 ## 0.4.71
 
-- Bandeau « À la une » tournant, masquable et passable (#185), lien vers le dépôt et les issues dans À propos (#188), vérification des mises à jour du bureau sans attendre le téléchargement (#187), images de l'installeur (#194).
+- Rotating "Featured" banner, which can be hidden and skipped (#185), link to the repository and issues in About (#188), desktop update check without waiting for the download (#187), installer images (#194).
 
-## 0.4.70 (publiée le 2026-11-05)
+## 0.4.70 (published 2026-11-05)
 
-- Bouton Radio du titre dans « En lecture » (#179), artistes non cliquables dans les lignes sur Android (#180), bandeau « À la une » sans « Ouvrir l'album » et plus bas sur Android (#184), langue du système lue dans `java.util.Locale` sur Android (#186), « Se déconnecter » sous À propos en `--danger`, plus dans l'en-tête du bureau (#189), « En lecture » compacte sur Android, sans étiquette (#195).
+- Track Radio button in "Now playing" (#179), artists not clickable in rows on Android (#180), "Featured" banner without "Open album" and lower on Android (#184), system language read from `java.util.Locale` on Android (#186), "Sign out" under About in `--danger`, no longer in the desktop header (#189), compact "Now playing" on Android, without a label (#195).
 
-## 0.4.69 (publiée le 2026-11-04)
+## 0.4.69 (published 2026-11-04)
 
-- Android : Glisser un titre vers la droite l'ajoute à la file sur Android (#174).
+- Android: swiping a track to the right adds it to the queue on Android (#174).
 
 ## 0.4.68
 
-- Android : Paroles et file en plein écran dans « En lecture » sur Android (#173).
+- Android: lyrics and queue in full screen in "Now playing" on Android (#173).
 
 ## 0.4.67
 
-- Thèmes Alliage clair et sombre (#175).
+- Light and dark Alloy themes (#175).
 
-## 0.4.66 (publiée le 2026-11-04)
+## 0.4.66 (published 2026-11-04)
 
-- Titres de la file cliquables, lecture depuis la file (#167).
+- Clickable queue tracks, playback from the queue (#167).
 
 ## 0.4.65
 
-- Plus de plantage « no available activity » quand on pilote la lecture après avoir balayé l'app, commandes du lecteur en JNI direct (#169).
+- No more "no available activity" crash when controlling playback after swiping the app away, player commands through direct JNI (#169).
 
 ## 0.4.64
 
-- « Précédent » ne remplit plus la file manuelle de titres que l'utilisateur n'y a jamais mis (#166).
+- "Previous" no longer fills the manual queue with tracks the user never put there (#166).
 
 ## 0.4.63
 
-- Android : Notification d'Android cliquable (ouvre « En lecture ») avec boutons aléatoire et répétition (#163).
+- Android: clickable Android notification (opens "Now playing") with shuffle and repeat buttons (#163).
 
 ## 0.4.62
 
-- Lecture / Aléatoire dans les titres likés (#161), plus de numéros dans les playlists et mixes sur Android (#162).
+- Play / Shuffle in liked tracks (#161), no more numbers in playlists and mixes on Android (#162).
 
 ## 0.4.61
 
-- Android : Aucun fond ni décor animé sur Android (#158).
+- Android: no animated background or decoration on Android (#158).
 
 ## 0.4.60
 
-- L'APK porte la version de `VERSION` au lieu de 1.0 (#157).
+- The APK carries the version from `VERSION` instead of 1.0 (#157).
 
 ## 0.4.59
 
-- Playlists rouvertes sans « Chargement… », revalidées par ETag (#152).
+- Playlists reopened without "Loading…", revalidated through ETag (#152).
 
-## 0.4.58 (publiée le 2026-11-04)
+## 0.4.58 (published 2026-11-04)
 
-- Android : Mode recherche dans une playlist et les titres likés sur Android (#151).
+- Android: search mode in a playlist and the liked tracks on Android (#151).
 
 ## 0.4.57
 
-- Audit de sécurité et de performances, surtout Android (#144 à #148, voir « Audit (0.4.57) »).
+- Security and performance audit, mostly Android (#144 to #148, see "Audit (0.4.57)").
 
 ## 0.4.56
 
-- Messages éphémères centrés au-dessus de la lecture, sur une surface pleine, visibles dans « En lecture » (#150).
+- Short-lived messages centered above playback, on a solid surface, visible in "Now playing" (#150).
 
 ## 0.4.55
 
-- Android : Onglet « Titres likés » dans la navigation d'Android, réglages en haut à droite (#143).
+- Android: "Liked tracks" tab in Android's navigation, settings at the top right (#143).
 
-## 0.4.54 (publiée le 2026-11-03)
+## 0.4.54 (published 2026-11-03)
 
-- Windows : L'installeur fait relire l'icône à Windows (#139).
+- Windows: the installer makes Windows reread the icon (#139).
 
 ## 0.4.53
 
-- Builds de release plus rapides (ThinLTO, plus de `staticlib`), avertissements du build Android traités.
+- Faster release builds (ThinLTO, no more `staticlib`), Android build warnings handled.
 
-## 0.4.52 (publiée le 2026-11-03)
+## 0.4.52 (published 2026-11-03)
 
-- Nouveau logo, vinyle soleil et mer, aussi sur Android (#126).
+- New logo, vinyl with sun and sea, on Android too (#126).
 
 ## 0.4.51
 
-- Vrai plein écran (F11) (#131).
+- Real full screen (F11) (#131).
 
 ## 0.4.49
 
-- « Joué depuis » dans « En lecture » (#124).
+- "Playing from" in "Now playing" (#124).
 
 ## 0.4.48
 
-- Paroles et file côte à côte dans « En lecture » (#119).
+- Lyrics and queue side by side in "Now playing" (#119).
 
-## 0.4.47 (publiée le 2026-11-03)
+## 0.4.47 (published 2026-11-03)
 
-- Android : APK release signé et mises à jour sur Android (#24).
+- Android: signed release APK and updates on Android (#24).
 
 ## 0.4.46
 
-- Android : Mise en page tactile sur Android (#24).
+- Android: touch layout on Android (#24).
 
 ## 0.4.45
 
-- Android : Refresh token dans l'Android Keystore (#24).
+- Android: refresh token in the Android Keystore (#24).
 
 ## 0.4.44
 
-- Android : Lecture Media3 et session média sur Android (#24).
+- Android: Media3 playback and media session on Android (#24).
 
-## 0.4.43 (publiée le 2026-11-03)
+## 0.4.43 (published 2026-11-03)
 
-- Android : Squelette Android, sans lecture, avec connexion (#24).
+- Android: Android skeleton, without playback, with sign-in (#24).
 
 ## 0.4.42
 
-- Moteur de lecture abstrait, première étape de l'app Android (#24).
+- Abstract playback engine, first step of the Android app (#24).
 
-## 0.4.41 (publiée le 2026-11-03)
+## 0.4.41 (published 2026-11-03)
 
-- (pas de note dans l'ancien statut)
+- (no note in the old status)
 
 ## 0.4.40
 
-- feat(integrations): icône de la zone de notification et fermeture réduite (#83)
+- feat(integrations): notification area icon and close to tray (#83)
 
 ## 0.4.37
 
-- feat(library): tri mémorisé par playlist et pour les titres likés (#93)
+- feat(library): sort remembered per playlist and for liked tracks (#93)
 
 ## 0.4.36
 
-- perf(ui): vignettes des listes en 160 px (#89)
+- perf(ui): list thumbnails at 160 px (#89)
 
 ## 0.4.35
 
-- Thème Aéro (#101).
+- Aero theme (#101).
 
 ## 0.4.30
 
@@ -750,97 +754,97 @@ s'affichent pas.
 
 ## 0.4.25
 
-- feat(player): message clair quand le processeur n'a pas l'AVX2 exigé par mpv (#92)
-- feat(player): choix du périphérique de sortie audio (#79)
-- feat(library): favoris des albums, artistes et playlists (#81)
-- feat(player): minuteur de mise en veille (#85)
-- perf(ui): longues listes sans recalcul à chaque position (#88)
-- feat(info): crédits du titre dans Infos du titre (#84)
-- feat(player): normalisation du volume par ReplayGain (#82)
+- feat(player): clear message when the CPU lacks the AVX2 required by mpv (#92)
+- feat(player): choice of the audio output device (#79)
+- feat(library): album, artist and playlist favorites (#81)
+- feat(player): sleep timer (#85)
+- perf(ui): long lists without recomputing on every position (#88)
+- feat(info): track credits in Track info (#84)
+- feat(player): volume normalization through ReplayGain (#82)
 
-## 0.4.24 (publiée le 2026-10-30)
+## 0.4.24 (published 2026-10-30)
 
-- Thème Bauhaus (#70).
+- Bauhaus theme (#70).
 
 ## 0.4.23
 
-- Thème Risographie (#69).
+- Risograph theme (#69).
 
 ## 0.4.22
 
-- Thème Terminal (#68).
+- Terminal theme (#68).
 
 ## 0.4.21
 
-- Thèmes Neumorphism clair et sombre (#67).
+- Light and dark Neumorphism themes (#67).
 
 ## 0.4.20
 
-- Thème Cyberpunk (#66).
+- Cyberpunk theme (#66).
 
 ## 0.4.19
 
-- Thème Solarpunk (#65).
+- Solarpunk theme (#65).
 
 ## 0.4.18
 
-- Jetons de thème, prérequis du lot de thèmes #62 (#64).
+- Theme tokens, prerequisite of the #62 theme batch (#64).
 
 ## 0.4.17
 
-- Interface en anglais (#7).
+- Interface in English (#7).
 
 ## 0.4.16
 
-- Images des mixes et radios (#56).
+- Mix and radio images (#56).
 
-## 0.4.15 (publiée le 2026-10-30)
+## 0.4.15 (published 2026-10-30)
 
-- Édition hi-res en mode « Demander » et lien vers l'album hi-res (#59).
+- Hi-res edition in "Ask" mode and link to the hi-res album (#59).
 
-## 0.4.14 (publiée le 2026-10-30)
+## 0.4.14 (published 2026-10-30)
 
-- Infos du titre et débit dans la chaîne audio (#3).
+- Track info and bitrate in the signal path (#3).
 
 ## 0.4.13
 
-- Édition hi-res trouvée aussi sur un album jumeau aux ISRC différentes (#55).
+- Hi-res edition also found on a twin album with different ISRCs (#55).
 
-## 0.4.12 (publiée le 2026-10-30)
+## 0.4.12 (published 2026-10-30)
 
-- Titres likés et ajout aux playlists (#4).
+- Liked tracks and adding to playlists (#4).
 
 ## 0.4.11
 
-- Menu contextuel des titres (#52).
+- Track context menu (#52).
 
-## 0.4.10 (publiée le 2026-10-30)
+## 0.4.10 (published 2026-10-30)
 
-- Édition hi-res affichée en clair dans la chaîne audio (#18).
+- Hi-res edition shown clearly in the signal path (#18).
 
 ## 0.4.9
 
-- Mixes mensuels dans le fil d'actualité (#14).
+- Monthly mixes in the feed (#14).
 
 ## 0.4.8
 
-- Mixes et radios (#11), fil d'actualité (#14), paroles synchronisées (#5), édition hi-res d'un titre qui n'en a pas (#18).
+- Mixes and radios (#11), feed (#14), synced lyrics (#5), hi-res edition of a track that has none (#18).
 
-## 0.4.7 (publiée le 2026-10-30)
+## 0.4.7 (published 2026-10-30)
 
-- Installeur en français, page de téléchargement à `https://updates.bebanana.ch/seaglass/`.
+- Installer in French, download page at `https://updates.bebanana.ch/seaglass/`.
 
-## 0.4.6 (publiée le 2026-10-30)
+## 0.4.6 (published 2026-10-30)
 
-- Playlists épinglées (#10), couleur d'accent (#23), vider la file (#41), bouton « Vérifier les mises à jour » (#43).
+- Pinned playlists (#10), accent color (#23), clear the queue (#41), "Check for updates" button (#43).
 
-## 0.4.5 (publiée le 2026-10-30)
+## 0.4.5 (published 2026-10-30)
 
-- Page Réglages (#9), volume (#29), cache mpv, lancement au démarrage (#13), accueil personnalisable (#21, #22), filtre et tri des listes (#1, #2), ajout d'albums à la file (#15), file dans « En lecture » (#20).
+- Settings page (#9), volume (#29), mpv cache, launch at startup (#13), customizable home (#21, #22), list filter and sort (#1, #2), adding albums to the queue (#15), queue in "Now playing" (#20).
 
-## 0.4.4 (publiée le 2026-10-29)
+## 0.4.4 (published 2026-10-29)
 
-- Windows : Première version publiée : installeur NSIS signé, mpv embarqué, mises à jour automatiques.
+- Windows: first published version: signed NSIS installer, bundled mpv, automatic updates.
 
 ## 0.4.3
 
@@ -860,7 +864,7 @@ s'affichent pas.
 
 ## 0.3.1
 
-- Windows : feat(integrations): Windows media controls via SMTC (v0.3.1)
+- Windows: feat(integrations): Windows media controls via SMTC (v0.3.1)
 
 ## 0.3.0
 

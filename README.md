@@ -40,7 +40,7 @@ Current version: see [`VERSION`](VERSION); what's new in [`CHANGELOG.md`](CHANGE
 ### Stats and discovery
 
 - Listening stats over 7 days, 30 days, 12 months or the whole history, and a monthly and yearly recap.
-- Smart playlists computed on the device: "My top 50 this month", "On repeat", "Forgotten", "Liked, never played".
+- Smart playlists computed on the device: "My top 50 this month", "On repeat", "Forgotten favorites", "Liked, never played".
 - Listening history synced between the computer and the linked Android app.
 - Optional scrobbling to ListenBrainz, kept offline and sent later.
 - **Blind test** from a playlist, mix, album or liked tracks: guess the title or artist from 15 s clips, alone or with the Jam guests.
