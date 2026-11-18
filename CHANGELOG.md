@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.96
+
+- La chaîne audio indique jusqu'où le titre est en mémoire (« en mémoire jusqu'à 2:40 ») au lieu de l'avance sur la lecture, qui remontait et redescendait par à-coups pendant le remplissage (#498)
+
 ## 0.5.95
 
 - Un titre lancé depuis une recherche dans une playlist ou les titres aimés lit toute la liste à partir de lui (mélangée si l'aléatoire est actif), pas seulement les résultats (#496)

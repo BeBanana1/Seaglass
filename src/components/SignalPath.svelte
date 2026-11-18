@@ -3,9 +3,9 @@
   // Android) → ce qui part vers la sortie du système.
   import { player } from "../lib/stores/player.svelte";
   import {
+    cacheLabel,
     engineName,
     formatStream,
-    formatTime,
     gainLabel,
     kbps,
     khz,
@@ -42,15 +42,12 @@
       .filter(Boolean)
       .join(" · "),
   );
-  /** Cache en mémoire (#453) : avance sur la position, ou titre entier, et le suivant
+  /** Cache en mémoire (#453, #498) : position atteinte, ou titre entier, et le suivant
    *  préchargé. Rien tant que le moteur n'a rien reçu. */
   const cacheSub = $derived.by(() => {
-    if (!s.track || !s.duration || s.cached <= 0) return "";
-    const whole = s.cached >= s.duration - 1;
-    const ahead = Math.max(0, Math.floor(s.cached - s.timePos));
-    return [whole ? t.player.cachedWhole : t.player.cachedAhead(formatTime(ahead)), s.nextReady ? t.player.nextReady : ""]
-      .filter(Boolean)
-      .join(" · ");
+    const cache = s.track ? cacheLabel(s.cached, s.duration) : "";
+    if (!cache) return "";
+    return [cache, s.nextReady ? t.player.nextReady : ""].filter(Boolean).join(" · ");
   });
   /** Flux pris sur une autre édition hi-res du même enregistrement (#18). */
   const edition = $derived(s.stream?.hiresEdition ?? null);

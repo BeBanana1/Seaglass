@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   albumKind,
+  cacheLabel,
   creditRole,
   decibels,
   formatLongDuration,
@@ -28,6 +29,23 @@ const plain = (s: string) => s.replace(/[  ]/g, " ");
 afterEach(() => {
   i18n.lang = "fr";
   platform.mobile = false;
+});
+
+describe("cacheLabel", () => {
+  it("donne la position atteinte, pas l'avance sur la lecture (#498)", () => {
+    expect(cacheLabel(160.7, 300)).toBe("en mémoire jusqu'à 2:40");
+    i18n.lang = "en";
+    expect(cacheLabel(160.7, 300)).toBe("in memory up to 2:40");
+  });
+
+  it("annonce le titre entier à moins d'une seconde de la fin", () => {
+    expect(cacheLabel(299.2, 300)).toBe("titre en mémoire");
+  });
+
+  it("ne dit rien sans cache ni durée", () => {
+    expect(cacheLabel(0, 300)).toBe("");
+    expect(cacheLabel(40, 0)).toBe("");
+  });
 });
 
 describe("formatTime", () => {
