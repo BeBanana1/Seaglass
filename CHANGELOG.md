@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.86
+
+- Android : l'app ne démarre plus avec la mise en page du bureau quand le premier appel au backend échoue (#472)
+
 ## 0.5.85
 
 - Notification des nouvelles sorties des artistes suivis, désactivée par défaut (Réglages › Notifications) ; un clic ouvre l'album, ou le fil s'il y en a plusieurs (#435)
