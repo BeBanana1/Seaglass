@@ -41,6 +41,7 @@ jobs:
       - name: Frontend
         run: |
           pnpm install --frozen-lockfile
+          pnpm format:check
           pnpm check
           pnpm test
           pnpm build

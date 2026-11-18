@@ -1,0 +1,2 @@
+# Generated from the account's library by `cargo test dump_ui_fixtures -- --ignored` (gitignored).
+src/lib/mock/fixtures.json
