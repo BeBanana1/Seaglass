@@ -24,7 +24,9 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.audio.AudioOffloadSupport
 import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioOffloadSupportProvider
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import app.tauri.plugin.Channel
 import app.tauri.plugin.JSObject
@@ -321,6 +323,31 @@ internal object Playback {
         p.replaceMediaItem(index, current.buildUpon().setMediaMetadata(meta).build())
     }
 
+    /**
+     * Formats que la puce audio reçoit en offload (#474), HE-AAC exclu (#492) : sur le S21,
+     * l'offload HE-AAC vers les écouteurs Bluetooth ouvre bien la sortie, mais le HAL ne
+     * rend jamais rien (`get_render_position: No data available` en boucle) et ExoPlayer
+     * recrée l'AudioTrack toutes les ~5 s, sans aucun son. L'AAC-LC (qualité Haute) y
+     * marche, vérifié au casque et au haut-parleur. Décidé à chaque titre.
+     */
+    private fun offloadSupport(context: Context): DefaultAudioSink.AudioOffloadSupportProvider {
+        val system = DefaultAudioOffloadSupportProvider(context)
+        return DefaultAudioSink.AudioOffloadSupportProvider { format, attributes ->
+            if (isHeAac(format.codecs)) {
+                Log.i(TAG, "offload refusé pour le HE-AAC (${format.codecs})")
+                AudioOffloadSupport.DEFAULT_UNSUPPORTED
+            } else {
+                system.getAudioOffloadSupport(format, attributes)
+            }
+        }
+    }
+
+    /** HE-AAC (v1 : `mp4a.40.5`, v2 : `mp4a.40.29`), la qualité Basse de TIDAL. */
+    private fun isHeAac(codecs: String?): Boolean =
+        codecs?.split(',')?.any { it.trim() in HE_AAC_CODECS } == true
+
+    private val HE_AAC_CODECS = setOf("mp4a.40.5", "mp4a.40.29")
+
     private fun build(appContext: Context): ExoPlayer {
         val attributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
@@ -346,6 +373,7 @@ internal object Playback {
                 .setEnableFloatOutput(enableFloatOutput)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessors(arrayOf(equalizer))
+                .setAudioOffloadSupportProvider(offloadSupport(context))
                 .build()
         }
         val player = ExoPlayer.Builder(appContext, renderers)

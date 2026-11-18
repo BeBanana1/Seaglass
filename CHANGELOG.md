@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.93
+
+- Android : retour du son en qualité Basse au casque Bluetooth ; le HE-AAC n'est plus envoyé à la puce audio (offload), l'AAC de la qualité Haute oui (#492)
+
 ## 0.5.92
 
 - Android : plus de micro-coupures au casque Bluetooth ; le thread de lecture ne se met plus en veille entre deux remplissages du tampon audio, sauf en offload (#491)
