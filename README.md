@@ -10,39 +10,59 @@ Version actuelle : voir [`VERSION`](VERSION) ; nouveautés dans [`CHANGELOG.md`]
 
 ### Écoute
 
-- Lecture FLAC jusqu'en 24 bits, avec l'édition hi-res d'un album quand elle existe ; sur Android, qualité « Haute » (AAC 320 kbit/s) au choix pour économiser les données.
+- Lecture FLAC jusqu'en 24 bits / 192 kHz, avec l'édition hi-res d'un album quand elle existe. Sur Android, une qualité pour le Wi-Fi et une autre pour les données mobiles (Basse, Haute en AAC, Lossless, Max), baissée en option quand la batterie est faible.
 - Enchaînement sans blanc (gapless) : le titre suivant est préchargé 30 s avant la fin.
 - **Mode exclusif WASAPI** sous Windows : la sortie audio est réservée à Seaglass, sans mixage ni rééchantillonnage.
-- Chaîne audio affichée en direct : format reçu, décodage, format envoyé à la carte son.
-- Choix de la sortie audio, normalisation du volume, minuteur de mise en veille, pause quand le casque est débranché.
+- **Égaliseur paramétrique** (pics, plateaux, préampli), profils nommés, import des profils AutoEQ, courbe de réponse ; sur le bureau, retenu pour chaque sortie audio.
+- Chaîne audio affichée en direct : format reçu, décodage, format envoyé à la sortie, avance déjà en mémoire.
+- Choix de la sortie audio (réglages propres à chaque sortie sur le bureau), normalisation du volume, pause quand le casque est débranché.
+- Minuteur de mise en veille, aussi en fin d'album, de playlist ou de file.
 - File d'attente : contexte d'origine, « Lire ensuite », « Ajouter à la file », lecture aléatoire, répétition (tout / un titre), précédent, enregistrement de la file en playlist, bouton « Annuler » après un retrait.
 - File, position et volume restaurés au démarrage, reprise de la lecture au lancement en option.
-- Radio d'un titre, mixes et radio automatique en fin de file.
+- Radio d'un titre, mixes, radio automatique en fin de file.
+- **Transfert de la lecture** entre l'ordinateur et l'app Android (« Reprendre ici », « Continuer sur l'ordinateur »), sur le réseau local ou par le relais, chiffré de bout en bout.
+- Android, écran éteint : la puce audio décode l'AAC quand elle sait le faire (offload), et le lecteur sollicite peu le processeur (mesures dans « Par rapport à l'app officielle »).
 
 ### Catalogue et bibliothèque
 
 - Accueil personnalisé et réordonnable, recherche pendant la frappe (titres, albums, artistes, playlists) avec historique, pages album, artiste, playlist et mix.
-- Bibliothèque : playlists, albums, artistes, titres likés, mixes, « Plus tard » et « Écoutés dans Seaglass » (historique d'écoute local).
-- Gestion des playlists : créer, renommer, réordonner, supprimer.
-- Paroles, crédits d'un titre ou d'un album, vue « En lecture » plein écran.
+- Bibliothèque : playlists (avec dossiers), albums, artistes, titres likés, mixes, « Plus tard » et « Écoutés dans Seaglass ».
+- Playlists : créer, renommer, réordonner, supprimer ; nettoyer les doublons et les titres retirés du catalogue.
+- **Import d'une playlist** Spotify, Deezer ou Apple Music en collant son lien, avec un aperçu des titres trouvés.
+- Sélection multiple de titres pour les lire, les mettre en file ou les ajouter à une playlist.
+- Paroles, crédits cliquables (un nom ouvre les titres où la personne est créditée), vue « En lecture » plein écran.
+- Notifications des nouvelles sorties des artistes suivis, en option.
+- Masquer le contenu explicite ou la musique générée par IA (badge « IA » sinon).
 - Liens `tidal.com` collés ou touchés ouverts directement dans l'app.
 - Épingles dans la barre latérale.
+- Export de la bibliothèque en JSON et CSV (bureau).
+
+### Statistiques et découverte
+
+- Statistiques d'écoute sur 7 jours, 30 jours, 12 mois ou tout l'historique, et rétrospective du mois et de l'année.
+- Playlists intelligentes calculées sur l'appareil : « Mes 50 du mois », « En boucle en ce moment », « Oubliés », « Likés jamais écoutés ».
+- Historique d'écoute synchronisé entre l'ordinateur et l'app Android liée.
+- Envoi des écoutes à ListenBrainz, en option, gardées hors ligne puis envoyées plus tard.
+- **Blind test** à partir d'une playlist, d'un mix, d'un album ou des titres likés : deviner le titre ou l'artiste d'extraits de 15 s, seul ou à plusieurs avec les invités de la Jam.
 
 ### Jam
 
-Des invités ajoutent des titres à la file depuis leur téléphone, sans app ni compte : ils scannent un QR code et cherchent dans une page web. Fonctionne sur le réseau local ou en ligne par un relais (sans Wi-Fi commun), accepte les liens Spotify, Deezer, Apple Music et YouTube Music, et l'hôte garde la main (limites par invité, albums permis ou non, invités exclus).
+Des invités ajoutent des titres à la file depuis leur téléphone, sans app ni compte : ils scannent un QR code et cherchent dans une page web. Ça marche sur le réseau local, ou en ligne par un relais (sans Wi-Fi commun). La page accepte les liens Spotify, Deezer, Apple Music et YouTube Music. Les invités peuvent voter pour passer un titre, lire les paroles et, si l'hôte le permet, régler le volume ou mettre en pause. L'hôte garde la main : limites par invité, albums permis ou non, ajouts suspendus, invités exclus.
 
 ### Interface
 
-- Quinze thèmes : **Verre de mer** (verre dépoli sur la pochette, couleurs accordées à l'album), **Studio** (console sombre et dense), **Atelier** (clair, éditorial), **Acidwave** (néons acides et chrome), **Surréalisme** (paysage onirique teinté par l'album), **Solarpunk** (futur végétal et lumineux), **Cyberpunk** (interface de visée dans une ville néon), **Neumorphism** clair et sombre (reliefs doux ton sur ton), **Terminal** (écran cathodique monochrome), **Risographie** (fanzine deux encres), **Bauhaus** (affiche géométrique), **Aéro** (livrée d'avion) et **Alliage** clair et sombre (concept-car néo-rétro).
-- Couleur d'accent réglable pour chaque thème, taille de l'interface (80 à 150 %), animations réduites ou complètes.
+- Une vingtaine de thèmes, certains en version claire et sombre : **Verre de mer** (verre dépoli sur la pochette, couleurs accordées à l'album), **Studio**, **Atelier**, **Minuit** (noir pur, pour les écrans OLED), **Acidwave**, **Surréalisme**, **Solarpunk**, **Cyberpunk**, **Neumorphism**, **Terminal**, **Risographie**, **Bauhaus**, **Aéro**, **Alliage**, **Estampe**, **Art déco**, **Cassette**, **Séance**, **Ordinateur de bord**, **Film noir**, **Grand hôtel**, **Désert** et **Générique**.
+- Couleur d'accent réglable pour chaque thème, taille de l'interface (80 à 150 %, bureau), animations réduites ou complètes.
 - Français et anglais, selon la langue du système ou au choix.
-- Raccourcis : Espace, Ctrl+K, Ctrl+,, Échap, Alt+←, F11, Ctrl+« + » / « - » / 0.
+- Bureau : palette de commandes (Ctrl+K) pour aller à une page, lancer une action ou chercher, et raccourcis Espace, Ctrl+,, Échap, Alt+←, F11, Ctrl+« + » / « - » / 0.
+- Sauvegarde des réglages en texte, à coller dans Seaglass sur un autre appareil.
+- Quelques clins d'œil certains jours, désactivables.
 
 ### Intégration au système
 
 - **Windows** : touches média et panneau multimédia (SMTC), icône de la zone de notification, lancement à l'ouverture de session, présence Discord.
 - **Linux** : contrôles média par MPRIS (touches média, applet du bureau, `playerctl`, KDE Connect), présence Discord.
+- **Bureau** : raccourcis clavier globaux (en option), mini-lecteur au premier plan, **télécommande** depuis le navigateur d'un téléphone sur le même Wi-Fi.
 - **Android** : notification et session média (écouteurs, autoradio, montre), widget d'écran d'accueil, épingles en raccourcis de l'icône, mode conduite plein écran à grosses tuiles.
 - Mises à jour automatiques signées sur les trois plateformes.
 - Journaux et rapports de plantage gardés en local, copiables depuis Réglages › Application.
