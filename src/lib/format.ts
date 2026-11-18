@@ -22,6 +22,14 @@ export function formatTime(seconds: number): string {
   return h > 0 ? `${h}:${String(m % 60).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
 
+/** Cache en mémoire (#453) : « titre en mémoire », sinon la position atteinte, « jusqu'à 2:40 »,
+ *  qui ne fait que monter pendant le remplissage. Pas l'avance sur la lecture (#498) : le cache
+ *  avance par segment et la position en continu, l'écart irait en dents de scie. */
+export function cacheLabel(cached: number, duration: number): string {
+  if (!duration || cached <= 0) return "";
+  return cached >= duration - 1 ? t.player.cachedWhole : t.player.cachedUntil(formatTime(cached));
+}
+
 /** Durée longue : « 2 h 19 min » ou « 42 min ». */
 export function formatLongDuration(seconds: number | null): string | null {
   if (!seconds) return null;

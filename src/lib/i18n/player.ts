@@ -51,7 +51,7 @@ export const fr = {
   lossy: "Avec perte",
   editionHint: (album: string) => `Version hi-res de l'édition « ${album} »`,
   averageBitrate: (rate: string) => `Débit moyen : ${rate}`,
-  cachedAhead: (time: string) => `+${time} en mémoire`,
+  cachedUntil: (time: string) => `en mémoire jusqu'à ${time}`,
   cachedWhole: "titre en mémoire",
   nextReady: "suivant prêt",
   cacheHint:
@@ -145,7 +145,7 @@ export const en: typeof fr = {
   lossy: "Lossy",
   editionHint: (album: string) => `Hi-res version from the “${album}” edition`,
   averageBitrate: (rate: string) => `Average bitrate: ${rate}`,
-  cachedAhead: (time: string) => `+${time} in memory`,
+  cachedUntil: (time: string) => `in memory up to ${time}`,
   cachedWhole: "whole track in memory",
   nextReady: "next ready",
   cacheHint:

@@ -14,7 +14,7 @@ Version actuelle : voir [`VERSION`](VERSION) ; nouveautés dans [`CHANGELOG.md`]
 - Enchaînement sans blanc (gapless) : le titre suivant est préchargé 30 s avant la fin.
 - **Mode exclusif WASAPI** sous Windows : la sortie audio est réservée à Seaglass, sans mixage ni rééchantillonnage.
 - **Égaliseur paramétrique** (pics, plateaux, préampli), profils nommés, import des profils AutoEQ, courbe de réponse ; sur le bureau, retenu pour chaque sortie audio.
-- Chaîne audio affichée en direct : format reçu, décodage, format envoyé à la sortie, avance déjà en mémoire.
+- Chaîne audio affichée en direct : format reçu, décodage, format envoyé à la sortie, partie du titre déjà en mémoire.
 - Choix de la sortie audio (réglages propres à chaque sortie sur le bureau), normalisation du volume, pause quand le casque est débranché.
 - Minuteur de mise en veille, aussi en fin d'album, de playlist ou de file.
 - File d'attente : contexte d'origine, « Lire ensuite », « Ajouter à la file », lecture aléatoire, répétition (tout / un titre), précédent, enregistrement de la file en playlist, bouton « Annuler » après un retrait.

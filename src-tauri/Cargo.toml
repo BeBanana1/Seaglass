@@ -1,6 +1,6 @@
 [package]
 name = "seaglass"
-version = "0.5.95"
+version = "0.5.96"
 description = "Seaglass, client de streaming non officiel"
 authors = ["Seaglass contributors"]
 edition = "2024"
