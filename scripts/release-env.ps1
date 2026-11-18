@@ -47,3 +47,13 @@ function Use-UpdaterPubkey([string]$keyPath) {
     }
     $env:SEAGLASS_UPDATER_PUBKEY = $pubkey
 }
+
+# Fichier `--config` du CLI Tauri avec la clé publique posée par Use-UpdaterPubkey : le CLI
+# vérifie la signature des artefacts de l'updater avec `plugins.updater.pubkey`, vide dans
+# `tauri.conf.json`. Fichier temporaire (UTF-8 sans BOM), à supprimer après le build.
+function New-UpdaterConfig {
+    $path = [IO.Path]::GetTempFileName()
+    $json = '{"plugins":{"updater":{"pubkey":"' + $env:SEAGLASS_UPDATER_PUBKEY + '"}}}'
+    [IO.File]::WriteAllText($path, $json, (New-Object Text.UTF8Encoding $false))
+    return $path
+}

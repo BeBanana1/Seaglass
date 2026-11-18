@@ -128,7 +128,8 @@ if (-not $PublishOnly) {
     # Vide = variable absente sous PowerShell 5.1 : Tauri suppose alors un mot de passe vide.
     $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = $keyPassword
     try {
-        $configs = @('--config', (Join-Path $root 'src-tauri\tauri.release.conf.json'))
+        $updaterConfig = New-UpdaterConfig
+        $configs = @('--config', (Join-Path $root 'src-tauri\tauri.release.conf.json'), '--config', $updaterConfig)
         if ($dirty) {
             # Build de test, jamais publiable (-PublishOnly refuse un arbre modifié) : la
             # compression LZMA de mpv (~50 s, un seul cœur) ne sert qu'aux téléchargements.
@@ -140,6 +141,7 @@ if (-not $PublishOnly) {
     } finally {
         Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY, Env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue
         $keyPassword = $null
+        if ($updaterConfig) { Remove-Item $updaterConfig -ErrorAction SilentlyContinue }
     }
     if ($buildExit -ne 0) { Fail "échec du build" }
 
