@@ -45,9 +45,11 @@ internal object Playback {
      * Position envoyée pendant la lecture (#147) : l'UI interpole entre deux envois et Rust
      * n'en a besoin que pour le préchargement (30 s avant la fin) et la sauvegarde. Plus
      * espacée quand aucune activité n'est visible (écran éteint, autre app au premier plan).
-     * Un saut, une pause ou un changement de titre l'envoient toujours aussitôt.
+     * Un saut, une pause ou un changement de titre l'envoient toujours aussitôt. Au premier
+     * plan, toutes les 2 s depuis #473 (1 s avant) : chaque envoi réveille tout ce qui lit
+     * l'état du lecteur dans l'UI, qui interpole de toute façon.
      */
-    private const val FOREGROUND_POSITION_MS = 1_000L
+    private const val FOREGROUND_POSITION_MS = 2_000L
     private const val BACKGROUND_POSITION_MS = 5_000L
 
     /**

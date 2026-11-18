@@ -151,3 +151,25 @@ export function followPosition(
   });
   return () => cancelAnimationFrame(frame);
 }
+
+/** Barre de progression animée par le compositeur (#473) : `el` reçoit `transform: scaleX`
+ *  à la position estimée puis, tant que la lecture avance et que la page est affichée, une
+ *  animation linéaire jusqu'à la fin du titre, à la vitesse réelle. Aucun minuteur JS ni
+ *  recalcul de style entre deux états. Comme `followPosition`, à appeler dans un `$effect`,
+ *  qui la reprend à chaque état reçu (saut, pause, nouvelle position) ; renvoie le nettoyage. */
+export function animateProgress(el: HTMLElement): (() => void) | undefined {
+  void player.state;
+  const visible = page.visible;
+  const duration = player.state.duration;
+  const position = estimatedPosition(performance.now());
+  const from = duration > 0 ? Math.min(position / duration, 1) : 0;
+  el.style.transform = `scaleX(${from})`;
+  const remaining = duration - position;
+  if (!player.advancing || !visible || remaining <= 0 || typeof el.animate !== "function") return;
+  const animation = el.animate([{ transform: `scaleX(${from})` }, { transform: "scaleX(1)" }], {
+    duration: remaining * 1000,
+    easing: "linear",
+    fill: "forwards",
+  });
+  return () => animation.cancel();
+}
