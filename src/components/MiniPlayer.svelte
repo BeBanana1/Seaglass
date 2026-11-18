@@ -1,8 +1,12 @@
 <script lang="ts">
   // Mini-lecteur d'Android (#24), au-dessus de la navigation du bas : un appui ouvre
   // « En lecture » en plein écran, où sont les autres commandes.
+  // Pas de barre de progression (#473, #480) : une barre qui avance oblige la WebView à recomposer
+  // la page, 4 fois par seconde avec un minuteur (24 % d'un cœur en lecture sur le S21),
+  // à chaque rafraîchissement de l'écran avec une animation du compositeur (98 %). La
+  // position se lit dans « En lecture », comme dans l'app TIDAL.
   import { commands } from "../lib/ipc";
-  import { animateProgress, player } from "../lib/stores/player.svelte";
+  import { player } from "../lib/stores/player.svelte";
   import { coverSmall, fullTitle } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
   import Icon from "./Icon.svelte";
@@ -14,18 +18,10 @@
   const track = $derived(player.currentTrack);
   const playing = $derived(player.playing);
   const s = $derived(player.state);
-
-  let bar = $state<HTMLElement>();
-  // Barre animée par le compositeur (#473), reprise à chaque état reçu : ni minuteur ni
-  // recalcul de style pendant la lecture.
-  $effect(() => {
-    if (bar) return animateProgress(bar);
-  });
 </script>
 
 {#if track}
   <div class="mini-player panel">
-    <div class="mini-progress" bind:this={bar}></div>
     <button class="mini-open" onclick={onOpenNowPlaying} aria-label={t.player.openNowPlaying}>
       <span class="mini-cover">
         {#if track.album.coverUrl}<img src={coverSmall(track.album)} alt="" />{/if}
@@ -75,19 +71,6 @@
     gap: 4px;
     padding: 6px 6px 6px 6px;
     overflow: hidden;
-  }
-
-  /* Fine barre en haut du mini-lecteur ; le saut se fait dans « En lecture ». */
-  .mini-progress {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--accent);
-    transform: scaleX(0);
-    transform-origin: left;
-    will-change: transform;
   }
 
   .mini-open {

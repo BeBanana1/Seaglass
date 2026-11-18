@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.89
+
+- Android : plus de barre de progression dans le mini-lecteur ; son animation faisait redessiner l'app en continu pendant la lecture (#480)
+
 ## 0.5.88
 
 - Android : le lecteur sollicite moins le processeur pendant la lecture écran éteint (ordonnancement dynamique d'ExoPlayer, #474)
