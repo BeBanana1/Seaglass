@@ -1,0 +1,5 @@
+# Commits that only reformat code: `git blame` skips them with
+# git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style(ui): format the frontend with Prettier
+0137560fe77313dfdd7a763968b5b9bc80217325
