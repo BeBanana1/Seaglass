@@ -16,8 +16,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use serde::{Deserialize, Serialize};
 
 use crate::tidal::models::{
-    AlbumPage, AlbumRelated, AlbumSummary, ArtistExtra, ArtistPage, FeedItem, HomeRow, MediaItem,
-    MixPage, PlaylistPage, RadioPage, SearchResults, Track,
+    AlbumPage, AlbumRelated, AlbumSummary, ArtistExtra, ArtistPage, ContributorPage, FeedItem,
+    HomeRow, MediaItem, MixPage, PlaylistPage, RadioPage, SearchResults, Track,
 };
 
 // Valeurs de `ContentFilter::default()` jusqu'au premier `apply`.
@@ -156,6 +156,12 @@ impl Filtered for PlaylistPage {
         if !self.playlist.mine {
             self.tracks.retain(|e| filter.allows_track(&e.track));
         }
+    }
+}
+
+impl Filtered for ContributorPage {
+    fn filter_with(&mut self, filter: &ContentFilter) {
+        self.tracks.retain(|c| filter.allows_track(&c.track));
     }
 }
 

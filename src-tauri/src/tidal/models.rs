@@ -671,6 +671,26 @@ pub struct AlbumContributor {
     pub tracks: Vec<TrackId>,
 }
 
+/// Page d'un contributeur (#429) : titres où une personne est créditée, par lots.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContributorPage {
+    pub artist: ArtistSummary,
+    /// Nombre de titres annoncé par le service, pour tout le catalogue.
+    pub total: u32,
+    pub tracks: Vec<Contribution>,
+    /// À repasser à `contributor` pour le lot suivant ; `None` à la fin.
+    pub next_offset: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Contribution {
+    pub track: Track,
+    /// Rôles sur ce titre (`Producer`, `Composer`…, texte libre en anglais de l'API).
+    pub roles: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HiresEdition {

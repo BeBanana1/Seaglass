@@ -10,6 +10,7 @@ pub mod cache;
 mod catalog;
 mod cleanup;
 mod collection;
+mod contributor;
 mod credits;
 mod date;
 mod feed;

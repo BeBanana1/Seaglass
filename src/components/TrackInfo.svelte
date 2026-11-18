@@ -74,9 +74,10 @@
     go({ name: "album", id });
   }
 
-  function openArtist(id: number) {
+  /** Titres où la personne est créditée (#429) ; sa page d'artiste est liée depuis là. */
+  function openContributor(id: number) {
     closeTrackInfo();
-    go({ name: "artist", id });
+    go({ name: "contributor", id });
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -222,7 +223,7 @@
                     {#each group.contributors as person, i (person.name)}
                       {#if i > 0}{", "}{/if}{#if person.artistId !== null}
                         {@const id = person.artistId}
-                        <button class="link credit-artist" onclick={() => openArtist(id)}>{person.name}</button>
+                        <button class="link credit-artist" onclick={() => openContributor(id)}>{person.name}</button>
                       {:else}{person.name}{/if}
                     {/each}
                   </dd>

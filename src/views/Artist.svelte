@@ -59,7 +59,14 @@
       source={{ kind: "artist", id: page.artist.id, name: page.artist.name }}
       favorite={{ kind: "artist", id: page.artist.id }}
       onRadio={() => go({ name: "radio", seed: "artist", id })}
-    />
+    >
+      {#snippet meta()}
+        <!-- Titres où l'artiste est crédité (#429), producteur ou compositeur compris. -->
+        <button class="artist-credits" onclick={() => go({ name: "contributor", id })}
+          >{t.views.artist.credits}</button
+        >
+      {/snippet}
+    </PageHeader>
     {#if page.topTracks.length > 0}
       <h2>{t.views.artist.popular}</h2>
       <TrackList
@@ -151,6 +158,16 @@
     text-underline-offset: 2px;
   }
 
+  .artist-credits {
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    text-underline-offset: 2px;
+  }
+
+  .artist-credits:hover,
   .bio-link:hover {
     color: var(--accent);
   }

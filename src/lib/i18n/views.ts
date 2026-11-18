@@ -105,6 +105,16 @@ export const fr = {
     readLess: "Réduire",
     appearsOn: "Apparaît sur",
     similar: "Artistes similaires",
+    credits: "Crédits",
+  },
+  // Titres où une personne est créditée (#429).
+  contributor: {
+    eyebrow: "Crédits",
+    tracks: (n: number) => `${num(n)} ${n > 1 ? "titres" : "titre"}`,
+    artistPage: "Page d'artiste",
+    more: "Plus de titres",
+    loading: "Chargement…",
+    empty: "Aucun titre disponible.",
   },
   playlist: {
     removed: (title: string) => `« ${title} » retiré de la playlist`,
@@ -223,6 +233,7 @@ export const fr = {
     playedEdition: "Son de l'édition",
     popularBy: (name: string) => `Titres populaires de ${name}`,
     searchFor: (query: string) => `Recherche « ${query} »`,
+    creditsOf: (name: string) => `Crédits de ${name}`,
     fullQueue: "Toute la file",
     empty: "Rien en lecture.",
   },
@@ -328,6 +339,15 @@ export const en: typeof fr = {
     readLess: "Show less",
     appearsOn: "Appears on",
     similar: "Similar artists",
+    credits: "Credits",
+  },
+  contributor: {
+    eyebrow: "Credits",
+    tracks: (n: number) => `${num(n)} ${n === 1 ? "track" : "tracks"}`,
+    artistPage: "Artist page",
+    more: "More tracks",
+    loading: "Loading…",
+    empty: "No tracks available.",
   },
   playlist: {
     removed: (title: string) => `“${title}” removed from the playlist`,
@@ -442,6 +462,7 @@ export const en: typeof fr = {
     playedEdition: "Sound from",
     popularBy: (name: string) => `Popular tracks by ${name}`,
     searchFor: (query: string) => `Search “${query}”`,
+    creditsOf: (name: string) => `Credits of ${name}`,
     fullQueue: "Full queue",
     empty: "Nothing playing.",
   },

@@ -40,6 +40,7 @@
   import Folder from "./views/Folder.svelte";
   import Album from "./views/Album.svelte";
   import Artist from "./views/Artist.svelte";
+  import Contributor from "./views/Contributor.svelte";
   import Playlist from "./views/Playlist.svelte";
   import Mix from "./views/Mix.svelte";
   import Queue from "./views/Queue.svelte";
@@ -476,6 +477,8 @@
         <Album id={route.id} track={route.track} />
       {:else if route.name === "artist"}
         <Artist id={route.id} />
+      {:else if route.name === "contributor"}
+        <Contributor id={route.id} />
       {:else if route.name === "playlist"}
         <Playlist uuid={route.uuid} />
       {:else if route.name === "mix"}

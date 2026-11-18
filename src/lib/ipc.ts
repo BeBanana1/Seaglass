@@ -178,6 +178,22 @@ export interface AlbumCreditGroup {
   contributors: AlbumContributor[];
 }
 
+/** Titres où une personne est créditée (#429), par lots. */
+export interface ContributorPage {
+  artist: ArtistSummary;
+  /** Nombre de titres annoncé par le service. */
+  total: number;
+  tracks: Contribution[];
+  /** À repasser à `contributor` pour le lot suivant ; `null` à la fin. */
+  nextOffset: number | null;
+}
+
+export interface Contribution {
+  track: Track;
+  /** Rôles en anglais de l'API (`Producer`, `Composer`…), traduits par `creditRole`. */
+  roles: string[];
+}
+
 export interface AlbumContributor {
   name: string;
   artistId: number | null;
@@ -384,6 +400,7 @@ export type PlaySource =
   | { kind: "mix"; id: string; title: string }
   | { kind: "radio"; seed: RadioSeed; id: number; title: string }
   | { kind: "artist"; id: number; name: string }
+  | { kind: "contributor"; id: number; name: string }
   | { kind: "likedTracks" }
   | { kind: "later" }
   | { kind: "search"; query: string }
@@ -1119,6 +1136,9 @@ export const commands = {
   cancelImport: () => invoke<void>("cancel_import"),
   /** Crédits de tout l'album, à la demande (une requête par page de 100 titres). */
   albumCredits: (albumId: number) => invoke<AlbumCreditGroup[]>("album_credits", { albumId }),
+  /** Lot de titres d'un contributeur (#429) : `offset` = `nextOffset` du lot précédent, 0 au départ. */
+  contributor: (artistId: number, offset: number) =>
+    invoke<ContributorPage>("contributor", { artistId, offset }),
   /** Album hi-res au même titre, pour un album qui ne l'est pas (#59). */
   hiresTwinAlbum: (albumId: number) => invoke<AlbumSummary | null>("hires_twin_album", { albumId }),
   /** Identifiants de tous les favoris (mis à jour ensuite par l'événement `likes`). */

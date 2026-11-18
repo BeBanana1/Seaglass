@@ -5,6 +5,7 @@
 //! - `cargo test live_track_info -- --ignored --nocapture` : infos détaillées d'un titre (#3).
 //! - `cargo test live_track_credits -- --ignored --nocapture` : crédits d'un titre (#84).
 //! - `cargo test live_album_credits -- --ignored --nocapture` : crédits d'un album (#206).
+//! - `cargo test live_contributor -- --ignored --nocapture` : page d'un contributeur (#429).
 //! - `cargo test live_album_related -- --ignored --nocapture` : autres versions d'un album (#350).
 //! - `cargo test live_hires_twin_album -- --ignored --nocapture` : album jumeau hi-res (#59).
 //! - `cargo test live_locale -- --ignored --nocapture` : titres de l'accueil en anglais (#7).
@@ -496,6 +497,62 @@ async fn live_album_credits() {
         .find(|c| c.name == "Hans Zimmer")
         .expect("Hans Zimmer crédité");
     assert_eq!(zimmer.artist_id, Some(ARTIST_ID));
+}
+
+/// Page d'un contributeur (#429) : Hans Zimmer (compositeur, 7 605 titres le 2026-11-18),
+/// lot suivant, fin du catalogue ; Mike Stone (ingénieur de *Bohemian Rhapsody*).
+#[tokio::test]
+#[ignore = "réseau et session TIDAL requis"]
+async fn live_contributor() {
+    use super::contributor::BATCH;
+    let client = client().await;
+    let start = std::time::Instant::now();
+    let page = client.contributor(ARTIST_ID, 0).await.unwrap();
+    println!(
+        "{} : {} titres sur {} en {:?}, suite {:?}",
+        page.artist.name,
+        page.tracks.len(),
+        page.total,
+        start.elapsed(),
+        page.next_offset
+    );
+    for c in page.tracks.iter().take(5) {
+        println!("  {} : {}", c.track.title, c.roles.join(", "));
+    }
+    assert_eq!(page.artist.id, ARTIST_ID);
+    assert!(page.total > 1_000);
+    assert!(page.tracks.len() > 150, "lots suivants non lus ?");
+    assert!(
+        page.tracks
+            .iter()
+            .any(|c| c.roles.iter().any(|r| r == "Composer"))
+    );
+    assert_eq!(page.next_offset, Some(BATCH));
+    let more = client.contributor(ARTIST_ID, BATCH).await.unwrap();
+    assert_eq!(more.next_offset, Some(2 * BATCH));
+    let first: Vec<_> = page.tracks.iter().map(|c| c.track.id).collect();
+    let overlap = more
+        .tracks
+        .iter()
+        .filter(|c| first.contains(&c.track.id))
+        .count();
+    println!("lot 2 : {} titres, {overlap} déjà vus", more.tracks.len());
+    assert!(overlap < 10);
+    let last = client
+        .contributor(ARTIST_ID, page.total - 10)
+        .await
+        .unwrap();
+    assert!(!last.tracks.is_empty() && last.next_offset.is_none());
+
+    let stone = client.contributor(5_022_424, 0).await.unwrap();
+    println!("{} : {} titres", stone.artist.name, stone.total);
+    assert!(
+        stone
+            .tracks
+            .iter()
+            .any(|c| c.roles.iter().any(|r| r.contains("Engineer")))
+    );
+    assert!(client.contributor(1, 0).await.is_err());
 }
 
 /// Compléments de la page d'artiste (#205) : bio avec liens, similaires, « Apparaît sur ».

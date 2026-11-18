@@ -182,6 +182,7 @@ pub fn run() {
             commands::catalog::lyrics,
             commands::catalog::track_info,
             commands::catalog::album_credits,
+            commands::catalog::contributor,
             commands::link::open_link,
             commands::import::import_playlist,
             commands::import::cancel_import,
