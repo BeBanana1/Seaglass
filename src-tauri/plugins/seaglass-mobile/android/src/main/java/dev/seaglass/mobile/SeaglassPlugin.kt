@@ -39,6 +39,8 @@ class EngineArgs {
     var on: Boolean? = null
     var level: Int? = null
     var muted: Boolean? = null
+    /** Égaliseur (#467) avec `play` et `currentGain` ; `null` = désactivé. */
+    internal var eq: EqSpec? = null
 }
 
 @InvokeArg

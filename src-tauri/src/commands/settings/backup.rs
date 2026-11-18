@@ -33,8 +33,6 @@ const PLAYBACK_DESKTOP: &[&str] = &[
     "pauseOnUnplug",
     "resumeOnLaunch",
     "deviceProfiles",
-    // Égaliseur (#428) : pas encore appliqué sur Android.
-    "equalizer",
 ];
 /// Réglages d'Android seulement (bureau : ignorés à l'import).
 const PLAYBACK_ANDROID: &[&str] = &["wifiQuality", "cellularQuality", "lowBatteryQuality"];

@@ -333,8 +333,7 @@ export interface PlayerState {
   /** Gain de normalisation appliqué au titre courant, en dB (#82) ; `null` si le signal
    *  n'est pas modifié. */
   normalization: number | null;
-  /** Profil d'égaliseur appliqué (#428) ; `null` si l'égaliseur est désactivé (toujours
-   *  sous Android). */
+  /** Profil d'égaliseur appliqué (#428) ; `null` si l'égaliseur est désactivé. */
   equalizer: string | null;
   /** Minuteur de mise en veille actif (#85). */
   sleep: SleepState | null;

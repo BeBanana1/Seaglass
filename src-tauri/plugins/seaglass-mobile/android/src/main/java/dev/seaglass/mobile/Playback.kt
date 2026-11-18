@@ -20,9 +20,11 @@ import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import app.tauri.plugin.Channel
 import app.tauri.plugin.JSObject
 import kotlin.math.min
@@ -75,6 +77,8 @@ internal object Playback {
     private var muted = false
     private var currentGain: Double? = null
     private var nextGain: Double? = null
+    /** Égaliseur (#467), dans le sink audio ; le profil vaut pour toute la lecture. */
+    private val equalizer = EqAudioProcessor()
     private var metadata: MediaMetadata = MediaMetadata.EMPTY
     private var idle: Boolean? = null
     private var buffering: Boolean? = null
@@ -214,6 +218,7 @@ internal object Playback {
                 p.setMediaItem(item(url, metadata), ((args.start ?: 0.0) * 1000).toLong())
                 currentGain = args.gain
                 nextGain = null
+                equalizer.profile = args.eq
                 applyVolume()
                 p.prepare()
                 p.playWhenReady = true
@@ -249,6 +254,7 @@ internal object Playback {
             }
             "currentGain" -> {
                 currentGain = args.gain
+                equalizer.profile = args.eq
                 applyVolume()
             }
             else -> throw IllegalArgumentException("opération inconnue : ${args.op}")
@@ -293,7 +299,19 @@ internal object Playback {
             )
             .setTargetBufferBytes(TARGET_BUFFER_BYTES)
             .build()
-        val player = ExoPlayer.Builder(appContext)
+        // Sink par défaut de Media3, avec l'égaliseur en fin de chaîne de traitement.
+        val renderers = object : DefaultRenderersFactory(appContext) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean,
+            ): AudioSink = DefaultAudioSink.Builder(context)
+                .setEnableFloatOutput(enableFloatOutput)
+                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                .setAudioProcessors(arrayOf(equalizer))
+                .build()
+        }
+        val player = ExoPlayer.Builder(appContext, renderers)
             .setLoadControl(loadControl)
             .setAudioAttributes(attributes, true)
             .setHandleAudioBecomingNoisy(true)

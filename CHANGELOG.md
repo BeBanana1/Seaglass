@@ -11,6 +11,10 @@ une plateforme commence par `Android :`, `Windows :`, `Linux :` ou `Bureau :` (W
 Linux) et ne s'affiche que là ; sans préfixe, elle vaut pour toutes. Les entrées `chore:` ne
 s'affichent pas.
 
+## 0.5.82
+
+- Android : égaliseur paramétrique, mêmes profils et import AutoEQ que sur le bureau (#467)
+
 ## 0.5.81
 
 - Bureau : égaliseur paramétrique (pics et plateaux, préampli), profils nommés, import des profils AutoEQ, courbe de réponse ; retenu par sortie audio avec les réglages par périphérique (#428)

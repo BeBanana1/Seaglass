@@ -12,7 +12,7 @@ use base64::Engine as _;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::engine::{AudioParams, End, Event, Op};
+use crate::engine::{AudioParams, End, Event, Filters, Op};
 
 /// MPD en URL `data:` pour Media3.
 pub fn data_url(mpd: &str) -> String {
@@ -26,13 +26,14 @@ pub fn data_url(mpd: &str) -> String {
 /// Android (cache de mpv, périphérique de sortie).
 pub fn op_args(op: &Op) -> Option<Value> {
     Some(match op {
-        // Égaliseur (#428) pas encore appliqué par Media3 : seul le gain part.
+        // L'égaliseur (#467) vaut pour toute la lecture : il part avec `play` et
+        // `currentGain`, le préchargé n'en porte pas.
         Op::Play {
             url,
             start,
             filters,
         } => {
-            json!({"op": "play", "url": url, "start": start, "gain": filters.gain})
+            json!({"op": "play", "url": url, "start": start, "gain": filters.gain, "eq": eq_args(filters)})
         }
         Op::Preload { url, filters } => {
             json!({"op": "preload", "url": url, "gain": filters.gain})
@@ -45,9 +46,19 @@ pub fn op_args(op: &Op) -> Option<Value> {
         Op::Seek(secs) => json!({"op": "seek", "position": secs}),
         Op::LoopCurrent(on) => json!({"op": "loop", "on": on}),
         Op::Volume { level, muted } => json!({"op": "volume", "level": level, "muted": muted}),
-        Op::CurrentFilters(filters) => json!({"op": "currentGain", "gain": filters.gain}),
+        Op::CurrentFilters(filters) => {
+            json!({"op": "currentGain", "gain": filters.gain, "eq": eq_args(filters)})
+        }
         Op::CacheSize(_) | Op::OutputDevice(_) | Op::Exclusive(_) => return None,
     })
+}
+
+/// Profil d'égaliseur pour `EqAudioProcessor.kt` : préampli effectif et filtres, ou `null`.
+fn eq_args(filters: &Filters) -> Value {
+    filters.eq.as_deref().map_or(
+        Value::Null,
+        |p| json!({"preamp": p.effective_preamp(), "filters": p.filters}),
+    )
 }
 
 /// Événement envoyé par `Playback.kt` (champ `type`).
@@ -223,7 +234,7 @@ mod tests {
         };
         assert_eq!(
             op_args(&play),
-            Some(json!({"op": "play", "url": "data:x", "start": 12.5, "gain": -3.0}))
+            Some(json!({"op": "play", "url": "data:x", "start": 12.5, "gain": -3.0, "eq": null}))
         );
         assert_eq!(
             op_args(&Op::Preload {
@@ -231,6 +242,28 @@ mod tests {
                 filters: crate::engine::Filters::default(),
             }),
             Some(json!({"op": "preload", "url": "u", "gain": null}))
+        );
+        // Égaliseur (#467) : préampli effectif et filtres, avec le titre en cours.
+        let eq = crate::engine::Filters {
+            gain: None,
+            eq: Some(std::sync::Arc::new(crate::player::eq::EqProfile {
+                id: 1,
+                name: "HD 600".into(),
+                preamp: None,
+                filters: vec![crate::player::eq::Filter {
+                    kind: crate::player::eq::FilterKind::LowShelf,
+                    freq: 105.0,
+                    gain: 5.5,
+                    q: 0.7,
+                }],
+            })),
+        };
+        assert_eq!(
+            op_args(&Op::CurrentFilters(eq)),
+            Some(json!({"op": "currentGain", "gain": null, "eq": {
+                "preamp": -5.5,
+                "filters": [{"kind": "lowShelf", "freq": 105.0, "gain": 5.5, "q": 0.7}],
+            }}))
         );
         assert_eq!(
             op_args(&Op::Seek(42.0)),

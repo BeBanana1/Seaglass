@@ -53,8 +53,7 @@ pub struct PlayerState {
     /// Gain de normalisation appliqué au titre courant, en dB (#82) ; `None` si le signal
     /// n'est pas modifié (réglage désactivé, gain inconnu ou nul).
     pub normalization: Option<f64>,
-    /// Profil d'égaliseur appliqué (#428) ; `None` si l'égaliseur est désactivé. Sur
-    /// Android, rien n'est appliqué : toujours `None`.
+    /// Profil d'égaliseur appliqué (#428) ; `None` si l'égaliseur est désactivé.
     pub equalizer: Option<String>,
     /// Minuteur de mise en veille actif (#85).
     pub sleep: Option<SleepState>,
