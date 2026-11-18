@@ -36,6 +36,7 @@ fi
 changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude,glob)**/*.md' \
   ':(exclude)LICENSE' \
+  ':(exclude).env.example' \
   ':(exclude).gitea/' \
   ':(exclude)ci/' \
   ':(exclude)scripts/' \

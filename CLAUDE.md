@@ -173,3 +173,4 @@ pnpm release:all -Publish                         # Windows + Android + Linux (W
 - **Documentation**: this file stays short. What is learned while handling an issue (verified endpoint, measurement, pitfall, decision and its reason) goes into the area's file in `docs/`, in the same PR. Fix or remove what is outdated rather than appending.
 - **Changelog**: every `VERSION` change adds its entry at the top of `CHANGELOG.md` (one line, with the issue number; platform prefixes `Android:`, `Windows:`, `Linux:`, `Desktop:`). After a release, the title of the tagged version gets "(published <YYYY-MM-DD>)": the app's parser reads these exact markers.
 - Update the "Status" line and the roadmap of this file at the end of each phase.
+- `CONTRIBUTING.md` restates the conventions for human contributors, `SECURITY.md` the reporting policy, `.gitea/ISSUE_TEMPLATE/` and `.gitea/PULL_REQUEST_TEMPLATE.md` the forms: update them when a convention here changes.
