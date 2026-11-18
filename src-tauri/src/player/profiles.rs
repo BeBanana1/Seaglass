@@ -1,5 +1,5 @@
-//! Réglages audio retenus par périphérique de sortie (#416) : volume, normalisation et mode
-//! exclusif de chaque périphérique réellement utilisé (le choix, ou en « par défaut du
+//! Réglages audio retenus par périphérique de sortie (#416) : volume, normalisation, mode
+//! exclusif et profil d'égaliseur (#428) de chaque périphérique réellement utilisé (le choix, ou en « par défaut du
 //! système » le périphérique Windows derrière), appliqués quand la sortie change.
 //!
 //! Chaque changement est noté dans le profil du périphérique en cours ; un périphérique
@@ -29,6 +29,10 @@ pub(super) struct DeviceProfile {
     pub volume: Volume,
     pub normalization: Normalization,
     pub exclusive: bool,
+    /// Profil d'égaliseur appliqué (#428), `None` = égaliseur désactivé. Absent des
+    /// profils notés avant la 0.5.81 : désactivé.
+    #[serde(default)]
+    pub equalizer: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -169,10 +173,11 @@ impl Player {
             volume: self.state.volume,
             normalization: self.normalizer.mode,
             exclusive: self.state.exclusive,
+            equalizer: self.equalizer.settings.device_choice(),
         }
     }
 
-    /// Volume, normalisation ou mode exclusif changé : noté pour le périphérique en cours.
+    /// Volume, normalisation, mode exclusif ou égaliseur changé : noté pour le périphérique en cours.
     pub(super) fn note_device_profile(&mut self) {
         let current = self.device_profile();
         if self.profiles.record(current) {
@@ -190,8 +195,9 @@ impl Player {
     }
 
     /// Sortie peut-être changée (liste, choix, repli) : applique le profil du périphérique
-    /// qui sert désormais. Normalisation et mode exclusif vivent dans les réglages de
-    /// lecture : ils sont réenregistrés, et l'UI les relit sur `playback-settings`.
+    /// qui sert désormais. Normalisation, mode exclusif et égaliseur vivent dans les
+    /// réglages de lecture : ils sont réenregistrés, et l'UI les relit sur
+    /// `playback-settings`.
     pub(super) async fn sync_device_profile(&mut self) {
         let id = self.output.in_use();
         let current = self.device_profile();
@@ -209,8 +215,13 @@ impl Player {
             self.apply_volume().await;
         }
         self.set_normalization(profile.normalization).await;
+        let mut equalizer = self.equalizer.settings.clone();
+        equalizer.apply_device_choice(profile.equalizer);
+        self.set_equalizer(equalizer.clone()).await;
         self.set_exclusive(profile.exclusive).await;
-        if profile.normalization == current.normalization && profile.exclusive == current.exclusive
+        if profile.normalization == current.normalization
+            && profile.exclusive == current.exclusive
+            && profile.equalizer == current.equalizer
         {
             return;
         }
@@ -222,6 +233,10 @@ impl Player {
             let mut settings = PlaybackSettings::load(Some(&store));
             settings.normalization = profile.normalization;
             settings.exclusive = profile.exclusive;
+            // Seuls l'interrupteur et le profil choisi viennent du périphérique : les profils
+            // enregistrés restent ceux des réglages.
+            settings.equalizer.enabled = equalizer.enabled;
+            settings.equalizer.active = equalizer.active;
             if let Err(e) = settings.save(&store) {
                 tracing::warn!("réglages de lecture non enregistrés : {e}");
                 return;
@@ -248,6 +263,7 @@ mod tests {
             },
             normalization,
             exclusive,
+            equalizer: None,
         }
     }
 
@@ -355,7 +371,33 @@ mod tests {
         }];
         assert_eq!(
             serde_json::to_string(&entries).unwrap(),
-            r#"[{"id":"wasapi/{dac}","profile":{"volume":{"level":100,"muted":false},"normalization":"off","exclusive":true}}]"#
+            r#"[{"id":"wasapi/{dac}","profile":{"volume":{"level":100,"muted":false},"normalization":"off","exclusive":true,"equalizer":null}}]"#
+        );
+    }
+
+    /// Profils notés avant l'égaliseur (#428) : relus, égaliseur désactivé.
+    #[test]
+    fn profiles_without_equalizer_are_kept() {
+        let old = r#"[{"id":"wasapi/{dac}","profile":{"volume":{"level":100,"muted":false},"normalization":"off","exclusive":true}}]"#;
+        let entries: Vec<Entry> = serde_json::from_str(old).unwrap();
+        assert_eq!(entries[0].profile, profile(100, Normalization::Off, true));
+    }
+
+    #[test]
+    fn each_device_keeps_its_equalizer() {
+        let dac = profile(100, Normalization::Off, true);
+        let headset = DeviceProfile {
+            equalizer: Some(3),
+            ..profile(40, Normalization::Off, false)
+        };
+        let mut p = Profiles::new(true, Vec::new());
+        p.switch(Some(DAC), dac);
+        p.switch(Some(HEADSET), dac);
+        assert!(p.record(headset));
+        assert_eq!(p.switch(Some(DAC), headset).0, Some(dac));
+        assert_eq!(
+            p.switch(Some(HEADSET), dac).0.and_then(|p| p.equalizer),
+            Some(3)
         );
     }
 }

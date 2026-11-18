@@ -9,6 +9,7 @@ import * as blindTest from "./i18n/blindTest";
 import * as common from "./i18n/common";
 import * as drive from "./i18n/drive";
 import * as eggs from "./i18n/eggs";
+import * as equalizer from "./i18n/equalizer";
 import * as format from "./i18n/format";
 import * as library from "./i18n/library";
 import * as menu from "./i18n/menu";
@@ -29,6 +30,7 @@ const fr = {
   common: common.fr,
   drive: drive.fr,
   eggs: eggs.fr,
+  equalizer: equalizer.fr,
   format: format.fr,
   library: library.fr,
   menu: menu.fr,
@@ -49,6 +51,7 @@ const en: Dict = {
   common: common.en,
   drive: drive.en,
   eggs: eggs.en,
+  equalizer: equalizer.en,
   format: format.en,
   library: library.en,
   menu: menu.en,

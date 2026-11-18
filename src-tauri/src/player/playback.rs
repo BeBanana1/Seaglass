@@ -145,7 +145,13 @@ impl Player {
                 // titre qui sera préchargé ensuite.
                 let gain = self.normalizer.loaded(stream.gain);
                 self.state.normalization = gain;
-                self.engine_op(Op::Play { url, start, gain }).await;
+                let filters = self.filters(gain);
+                self.engine_op(Op::Play {
+                    url,
+                    start,
+                    filters,
+                })
+                .await;
                 self.loaded = true;
                 // Le moteur n'émet rien si la pause était déjà levée : l'état est fixé ici.
                 self.state.paused = false;
@@ -163,7 +169,8 @@ impl Player {
                         };
                         log_stream("préchargement", &track, &stream);
                         let gain = self.normalizer.preloaded(stream.gain);
-                        self.engine_op(Op::Preload { url, gain }).await;
+                        let filters = self.filters(gain);
+                        self.engine_op(Op::Preload { url, filters }).await;
                         self.next_loaded = Some((track, stream.format));
                     }
                     // Sans préchargement, la fin du titre déclenchera un chargement classique.

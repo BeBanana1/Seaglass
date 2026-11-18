@@ -12,6 +12,7 @@ use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
 use super::blind::{self, BlindCmd, BlindTest};
+use super::eq::Equalizer;
 use super::handoff::Handoff;
 use super::listen::ListenTracker;
 use super::normalize::Normalizer;
@@ -197,6 +198,8 @@ pub(super) struct Player {
     pub(super) offer_req: u64,
     /// Normalisation du volume (#82) : réglage et ReplayGain des titres chargés.
     pub(super) normalizer: Normalizer,
+    /// Égaliseur (#428) : réglage et profil appliqué.
+    pub(super) equalizer: Equalizer,
     /// Périphérique de sortie choisi, liste de mpv et repli (#79).
     pub(super) output: Output,
     /// Pause quand le périphérique utilisé disparaît (#348).
@@ -300,6 +303,7 @@ pub fn spawn(
             hires_answers: HashMap::new(),
             offer_req: 0,
             normalizer: Normalizer::new(settings.normalization, exclusive),
+            equalizer: Equalizer::new(settings.equalizer.clone()),
             output,
             pause_on_unplug: settings.pause_on_unplug,
             profiles: device_profiles,
@@ -317,6 +321,7 @@ pub fn spawn(
             blind_dirty: false,
             observers: Observers::default(),
         };
+        player.state.equalizer = player.equalizer.applied_name();
         player.restore();
         if may_resume && settings.resume_on_launch {
             player.resume_when_signed_in();
@@ -486,6 +491,7 @@ impl Player {
                 // profil de la suivante.
                 self.set_device_profiles(settings.device_profiles);
                 self.set_normalization(settings.normalization).await;
+                self.set_equalizer(settings.equalizer).await;
                 self.set_exclusive(settings.exclusive).await;
                 self.set_audio_device(settings.audio_device).await;
             }

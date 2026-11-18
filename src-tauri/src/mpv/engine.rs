@@ -9,6 +9,7 @@ use tokio::sync::mpsc;
 
 use super::device::INIT_FAILED;
 use super::events::{EndReason, MpvEvent, Property};
+use super::filters::{af_value, file_options};
 use super::process::ProcessGuard;
 use super::{CacheSize, MpvHandle};
 use crate::engine::{End, Engine, Event, Op};
@@ -129,11 +130,15 @@ pub fn commands(op: &Op) -> Vec<Value> {
         cmd
     };
     match op {
-        Op::Play { url, start, gain } => vec![
-            load(url, "replace", file_options(*start, *gain)),
+        Op::Play {
+            url,
+            start,
+            filters,
+        } => vec![
+            load(url, "replace", file_options(*start, filters)),
             set("pause", json!(false)),
         ],
-        Op::Preload { url, gain } => vec![load(url, "append", file_options(0.0, *gain))],
+        Op::Preload { url, filters } => vec![load(url, "append", file_options(0.0, filters))],
         Op::RemoveNext => vec![json!(["playlist-remove", 1])],
         Op::DropPrevious => vec![json!(["playlist-remove", 0])],
         Op::Stop => vec![json!(["stop"])],
@@ -150,7 +155,9 @@ pub fn commands(op: &Op) -> Vec<Value> {
             .map(Value::from)
             .collect(),
         // Option locale du fichier : remise à la fin du titre, le préchargé garde la sienne.
-        Op::CurrentGain(gain) => vec![set("file-local-options/af", json!(af_value(*gain)))],
+        Op::CurrentFilters(filters) => {
+            vec![set("file-local-options/af", json!(af_value(filters)))]
+        }
         Op::OutputDevice(id) => vec![set("audio-device", json!(id))],
         Op::Exclusive(on) => vec![set("audio-exclusive", json!(on))],
     }
@@ -188,43 +195,13 @@ pub fn translate(ev: MpvEvent) -> Option<Event> {
     })
 }
 
-/// Valeur de `af` pour un gain (`volume=volume=-6.53dB`, filtre `volume` de libavfilter).
-pub fn af_value(gain: Option<f64>) -> String {
-    gain.map(|g| format!("volume=volume={g:.2}dB"))
-        .unwrap_or_default()
-}
-
-/// Options de fichier du `loadfile` (argument `options`, séparées par des virgules) : position de
-/// départ et filtre de gain. `None` s'il n'y en a aucune.
-pub fn file_options(start: f64, gain: Option<f64>) -> Option<String> {
-    let mut options = Vec::new();
-    if start > 0.0 {
-        options.push(format!("start={start}"));
-    }
-    if gain.is_some() {
-        options.push(format!("af={}", af_value(gain)));
-    }
-    (!options.is_empty()).then(|| options.join(","))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::Filters;
 
-    #[test]
-    fn file_options_syntax() {
-        assert_eq!(af_value(Some(-6.5)), "volume=volume=-6.50dB");
-        assert_eq!(af_value(None), "");
-        assert_eq!(file_options(0.0, None), None);
-        assert_eq!(file_options(12.5, None).as_deref(), Some("start=12.5"));
-        assert_eq!(
-            file_options(12.5, Some(3.1)).as_deref(),
-            Some("start=12.5,af=volume=volume=3.10dB")
-        );
-        assert_eq!(
-            file_options(0.0, Some(-1.0)).as_deref(),
-            Some("af=volume=volume=-1.00dB")
-        );
+    fn gain(g: Option<f64>) -> Filters {
+        Filters { gain: g, eq: None }
     }
 
     #[test]
@@ -232,7 +209,7 @@ mod tests {
         let play = Op::Play {
             url: "http://x/a.mpd".into(),
             start: 0.0,
-            gain: None,
+            filters: gain(None),
         };
         assert_eq!(
             commands(&play),
@@ -244,7 +221,7 @@ mod tests {
         let resumed = Op::Play {
             url: "u".into(),
             start: 42.0,
-            gain: Some(-6.5),
+            filters: gain(Some(-6.5)),
         };
         assert_eq!(
             commands(&resumed)[0],
@@ -261,7 +238,7 @@ mod tests {
     fn preload_carries_its_own_gain() {
         let preload = Op::Preload {
             url: "u".into(),
-            gain: Some(-3.0),
+            filters: gain(Some(-3.0)),
         };
         assert_eq!(
             commands(&preload),
@@ -274,7 +251,7 @@ mod tests {
         );
         let plain = Op::Preload {
             url: "u".into(),
-            gain: None,
+            filters: gain(None),
         };
         assert_eq!(
             commands(&plain),
@@ -312,7 +289,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            commands(&Op::CurrentGain(None)),
+            commands(&Op::CurrentFilters(gain(None))),
             vec![json!(["set_property", "file-local-options/af", ""])]
         );
         assert_eq!(commands(&Op::CacheSize(CacheSize::Mib64)).len(), 2);
@@ -452,7 +429,10 @@ mod tests {
             .apply(Op::Play {
                 url: url(&a),
                 start: 0.0,
-                gain: Some(-6.0),
+                filters: Filters {
+                    gain: Some(-6.0),
+                    eq: None,
+                },
             })
             .await
             .unwrap();
@@ -460,7 +440,7 @@ mod tests {
         engine
             .apply(Op::Preload {
                 url: url(&b),
-                gain: None,
+                filters: Filters::default(),
             })
             .await
             .unwrap();

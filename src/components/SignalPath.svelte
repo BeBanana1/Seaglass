@@ -29,13 +29,14 @@
   const s = $derived(player.state);
   /** Format réellement écrit sur la sortie (#245), sinon celui du décodage (Android). */
   const sink = $derived(s.deviceFormat ?? s.output);
-  const verdict = $derived(signalVerdict(s.stream, sink, s.volume, s.normalization, s.exclusive));
+  const verdict = $derived(signalVerdict(s.stream, sink, s.volume, s.normalization, s.exclusive, s.equalizer));
   const mode = $derived(s.exclusive ? t.player.exclusive : t.player.shared);
   /** Sous-titre du nœud du moteur : format de sortie, et le volume s'il modifie le signal. */
   const decodeSub = $derived(
     [
       s.output ? outputFormat(s.output.format) : "—",
       s.normalization !== null ? `RG ${gainLabel(s.normalization)}` : "",
+      s.equalizer !== null ? t.player.equalizerShort(s.equalizer) : "",
       softwareGain(s.volume) ? t.player.volumeShort(volumeLabel(s.volume)) : "",
     ]
       .filter(Boolean)

@@ -1,6 +1,7 @@
 //! Normalisation du volume (#82) : gain ReplayGain de l'API (pas les tags du FLAC),
 //! limité par la crête pour ne jamais écrêter, appliqué par le moteur **à chaque fichier**
-//! séparément (`Op::Play`, `Op::Preload`, `Op::CurrentGain`).
+//! séparément (`Op::Play`, `Op::Preload`, `Op::CurrentFilters`), avant l'égaliseur
+//! (#428, `player::eq`).
 //!
 //! Sous mpv (`mpv::engine`), vérifié avec mpv 0.41 et 0.37 (`live_per_file_af`) : `loadfile` avec `options` `af=…` pose le
 //! filtre en option locale du fichier préchargé ; le titre en cours garde le sien jusqu'au
@@ -11,7 +12,6 @@
 use serde::{Deserialize, Serialize};
 
 use super::actor::Player;
-use crate::engine::Op;
 use crate::tidal::models::ReplayGain;
 
 /// Bornes du gain appliqué, en dB : au-delà, une valeur de l'API serait suspecte.
@@ -120,12 +120,7 @@ impl Player {
         if self.normalizer.effective() == before {
             return;
         }
-        let gain = self.normalizer.current_gain();
-        if self.loaded {
-            self.engine_op(Op::CurrentGain(gain)).await;
-            self.state.normalization = gain;
-        }
-        self.invalidate_next().await;
+        self.refresh_filters().await;
     }
 }
 
@@ -255,15 +250,18 @@ pub(crate) mod tests {
     /// filtre posé par `loadfile` (`append`, `options` `af=…`, commandes de `mpv::engine`) ne vaut que pour le fichier préchargé,
     /// le titre en cours garde le sien jusqu'au passage gapless ; `file-local-options/af`
     /// change celui du titre en cours sans déborder sur les suivants (le préchargé garde
-    /// le sien, un fichier chargé ensuite sans option revient à `af=[]`).
+    /// le sien, un fichier chargé ensuite sans option revient à `af=[]`). Avec l'égaliseur
+    /// (#428) : la chaîne à plusieurs filtres passe dans `options` en `%longueur%valeur`.
     /// `cargo test live_per_file_af -- --ignored --nocapture`
     #[tokio::test]
     #[ignore = "lance un vrai mpv sur la sortie audio"]
     async fn live_per_file_af() {
-        use crate::engine::Op;
+        use crate::engine::{Filters, Op};
         use crate::mpv::CacheSize;
-        use crate::mpv::engine::{af_value, commands};
+        use crate::mpv::engine::commands;
         use crate::mpv::events::{MpvEvent, Property};
+        use crate::mpv::filters::af_value;
+        use crate::mpv::filters::tests::hd600;
         use serde_json::{Value, json};
         use std::time::Duration;
 
@@ -282,6 +280,19 @@ pub(crate) mod tests {
                 .find(|f| f["name"] == "volume")
                 .and_then(|f| f["params"]["volume"].as_str().map(str::to_owned))
         };
+        let names = |v: Value| -> Vec<String> {
+            v.as_array()
+                .map(|l| {
+                    l.iter()
+                        .filter_map(|f| f["name"].as_str().map(str::to_owned))
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
+        let with_eq = |gain| Filters {
+            gain: Some(gain),
+            eq: Some(hd600()),
+        };
         cmd(json!(["set_property", "volume", 30])).await;
 
         let a = quiet_wav("af-a", 3, 440.0);
@@ -293,32 +304,44 @@ pub(crate) mod tests {
         let play = Op::Play {
             url: url(&a),
             start: 0.0,
-            gain: Some(-6.0),
+            filters: with_eq(-6.0),
         };
         let preload = Op::Preload {
             url: url(&b),
-            gain: Some(-12.0),
+            filters: Filters {
+                gain: Some(-12.0),
+                eq: None,
+            },
         };
         for c in commands(&play).into_iter().chain(commands(&preload)) {
             cmd(c).await;
         }
         tokio::time::sleep(Duration::from_millis(800)).await;
+        let on_a = af().await;
+        println!("A : af = {on_a}");
         assert_eq!(
-            volume_of(af().await).as_deref(),
-            Some("-6.00dB"),
-            "titre en cours"
+            volume_of(on_a.clone()).as_deref(),
+            Some("-12.20dB"),
+            "titre en cours : gain −6 dB + préampli −6,2 dB"
+        );
+        assert_eq!(
+            names(on_a),
+            ["volume", "bass", "equalizer", "treble"],
+            "chaîne de l'égaliseur entière malgré les virgules"
         );
         let params = cmd(json!(["get_property", "audio-params"])).await;
-        println!("A : af = -6 dB, préchargé B en attente, audio-params = {params}");
+        println!("A : préchargé B en attente, audio-params = {params}");
 
         // Changement à chaud du titre en cours : option locale seulement.
         cmd(json!([
             "set_property",
             "file-local-options/af",
-            af_value(Some(-3.0))
+            af_value(&with_eq(-3.0))
         ]))
         .await;
-        assert_eq!(volume_of(af().await).as_deref(), Some("-3.00dB"));
+        let hot = af().await;
+        assert_eq!(volume_of(hot.clone()).as_deref(), Some("-9.20dB"));
+        assert_eq!(names(hot).len(), 4);
 
         // Passage gapless sur B : son propre filtre.
         tokio::time::timeout(Duration::from_secs(6), async {
@@ -334,6 +357,7 @@ pub(crate) mod tests {
         let on_b = volume_of(af().await);
         println!("B après passage gapless : {on_b:?}");
         assert_eq!(on_b.as_deref(), Some("-12.00dB"));
+        assert_eq!(names(af().await), ["volume"], "B sans égaliseur");
 
         // Fichier sans option : aucun filtre.
         cmd(json!(["loadfile", path(&c), "replace"])).await;

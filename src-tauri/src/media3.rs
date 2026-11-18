@@ -26,10 +26,17 @@ pub fn data_url(mpd: &str) -> String {
 /// Android (cache de mpv, périphérique de sortie).
 pub fn op_args(op: &Op) -> Option<Value> {
     Some(match op {
-        Op::Play { url, start, gain } => {
-            json!({"op": "play", "url": url, "start": start, "gain": gain})
+        // Égaliseur (#428) pas encore appliqué par Media3 : seul le gain part.
+        Op::Play {
+            url,
+            start,
+            filters,
+        } => {
+            json!({"op": "play", "url": url, "start": start, "gain": filters.gain})
         }
-        Op::Preload { url, gain } => json!({"op": "preload", "url": url, "gain": gain}),
+        Op::Preload { url, filters } => {
+            json!({"op": "preload", "url": url, "gain": filters.gain})
+        }
         Op::RemoveNext => json!({"op": "removeNext"}),
         Op::DropPrevious => json!({"op": "dropPrevious"}),
         Op::Stop => json!({"op": "stop"}),
@@ -38,7 +45,7 @@ pub fn op_args(op: &Op) -> Option<Value> {
         Op::Seek(secs) => json!({"op": "seek", "position": secs}),
         Op::LoopCurrent(on) => json!({"op": "loop", "on": on}),
         Op::Volume { level, muted } => json!({"op": "volume", "level": level, "muted": muted}),
-        Op::CurrentGain(gain) => json!({"op": "currentGain", "gain": gain}),
+        Op::CurrentFilters(filters) => json!({"op": "currentGain", "gain": filters.gain}),
         Op::CacheSize(_) | Op::OutputDevice(_) | Op::Exclusive(_) => return None,
     })
 }
@@ -209,7 +216,10 @@ mod tests {
         let play = Op::Play {
             url: "data:x".into(),
             start: 12.5,
-            gain: Some(-3.0),
+            filters: crate::engine::Filters {
+                gain: Some(-3.0),
+                eq: None,
+            },
         };
         assert_eq!(
             op_args(&play),
@@ -218,7 +228,7 @@ mod tests {
         assert_eq!(
             op_args(&Op::Preload {
                 url: "u".into(),
-                gain: None
+                filters: crate::engine::Filters::default(),
             }),
             Some(json!({"op": "preload", "url": "u", "gain": null}))
         );
