@@ -48,7 +48,7 @@ Tests marked `#[ignore]` (`cargo test live_… -- --ignored`) call the real TIDA
 
 ## AI assistants
 
-The maintainer works with Claude Code: [`CLAUDE.md`](CLAUDE.md) and `.claude/` hold its instructions, and some issues, comments and pull requests come from the `claude` account. Contributions made with an assistant are welcome under the same rules; you stay responsible for what you submit and must have checked it.
+The maintainer works with Claude Code: [`CLAUDE.md`](CLAUDE.md) and `.claude/` hold its instructions (the parts specific to the maintainer's machine and accounts are in [`docs/maintainer.md`](docs/maintainer.md)), and some issues, comments and pull requests come from the `claude` account. Contributions made with an assistant are welcome under the same rules; you stay responsible for what you submit and must have checked it.
 
 ## License
 
