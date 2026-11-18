@@ -12,12 +12,14 @@ const EMBEDDED_ENV: [&str; 4] = [
     "DISCORD_CLIENT_ID",
 ];
 
-/// Adresses des services (#452, voir `src/servers.rs`), deviennent `SEAGLASS_BUILD_<…>`.
-/// L'environnement de la compilation l'emporte sur `.env` : les scripts de release y
-/// mettent l'adresse qui sert aussi à écrire les manifestes. Absentes : service absent.
-const SERVER_ENV: [(&str, &str); 2] = [
+/// Adresses des services (#452, voir `src/servers.rs`) et clé publique de l'updater
+/// (#489), deviennent `SEAGLASS_BUILD_<…>`. L'environnement de la compilation l'emporte
+/// sur `.env` : les scripts de release y mettent l'adresse qui sert aussi à écrire les
+/// manifestes, et la clé lue à côté de la clé privée. Absentes : service absent.
+const SERVER_ENV: [(&str, &str); 3] = [
     ("SEAGLASS_UPDATE_BASE_URL", "SEAGLASS_BUILD_UPDATE_BASE_URL"),
     ("SEAGLASS_RELAY_BASE_URL", "SEAGLASS_BUILD_RELAY_BASE_URL"),
+    ("SEAGLASS_UPDATER_PUBKEY", "SEAGLASS_BUILD_UPDATER_PUBKEY"),
 ];
 
 fn main() {

@@ -26,8 +26,9 @@
     SEAGLASS_GITEA_TOKEN  jeton Gitea de l'utilisateur (droit write:repository) ; sinon
                           entrée générique « seaglass-gitea-token » du Gestionnaire
                           d'identifiants (cmdkey /generic:seaglass-gitea-token /user:seaglass /pass)
-    SEAGLASS_GITEA_URL    défaut : https://git.bebanana.ch
-    SEAGLASS_GITEA_REPO   défaut : bebanana/Seaglass
+    SEAGLASS_GITEA_URL    adresse du Gitea, par exemple https://git.example.org (requise ;
+                          environnement ou .env)
+    SEAGLASS_GITEA_REPO   dépôt `propriétaire/nom` (requis ; environnement ou .env)
 
 .EXAMPLE
   powershell -File scripts/gitea-release.ps1   # version de VERSION
@@ -46,8 +47,12 @@ function Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
 if (-not $Version) { $Version = (Get-Content (Join-Path $root 'VERSION') -Raw).Trim() }
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { Fail "version invalide : '$Version'" }
 $tag = "v$Version"
-$giteaUrl = if ($env:SEAGLASS_GITEA_URL) { $env:SEAGLASS_GITEA_URL.TrimEnd('/') } else { 'https://git.bebanana.ch' }
-$repo = if ($env:SEAGLASS_GITEA_REPO) { $env:SEAGLASS_GITEA_REPO } else { 'bebanana/Seaglass' }
+# Aucune valeur par défaut (#489).
+. (Join-Path $PSScriptRoot 'release-env.ps1')
+$giteaUrl = Get-ReleaseSetting 'SEAGLASS_GITEA_URL'
+$repo = Get-ReleaseSetting 'SEAGLASS_GITEA_REPO'
+if (-not $giteaUrl -or -not $repo) { Fail "SEAGLASS_GITEA_URL et SEAGLASS_GITEA_REPO sont requis (environnement ou .env)" }
+$giteaUrl = $giteaUrl.TrimEnd('/')
 $api = "$giteaUrl/api/v1/repos/$repo"
 
 Step "release Gitea $tag"

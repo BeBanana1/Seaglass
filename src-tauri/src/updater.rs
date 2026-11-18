@@ -16,7 +16,8 @@
 //! mises à jour y sont désactivées (`supported`).
 //!
 //! Adresse (#452) : `latest.json` du dossier compilé (`servers::update_base`), absent de
-//! `tauri.conf.json`. Sans adresse compilée, rien n'est vérifié. La vérification
+//! `tauri.conf.json`. Clé publique (#489) : compilée elle aussi (`servers::updater_pubkey`,
+//! passée au plugin dans `lib.rs`). Sans adresse ou sans clé, rien n'est vérifié. La vérification
 //! périodique suit l'interrupteur « Mises à jour automatiques » ; le bouton, toujours.
 
 use std::sync::{Arc, Mutex};
@@ -37,8 +38,9 @@ const FIRST_CHECK_DELAY: Duration = Duration::from_secs(20);
 const ENDPOINT_ENV: &str = "SEAGLASS_UPDATE_URL";
 
 /// Manifeste à lire : `SEAGLASS_UPDATE_URL` au lancement, sinon `latest.json` du dossier
-/// compilé (#452). `None` : app compilée sans mises à jour.
+/// compilé (#452). `None` : app compilée sans mises à jour (ni adresse, ni clé publique).
 fn endpoint() -> Option<String> {
+    crate::servers::updater_pubkey()?;
     std::env::var(ENDPOINT_ENV)
         .ok()
         .filter(|v| !v.is_empty())
@@ -137,7 +139,7 @@ pub fn spawn(app: AppHandle, mpv: Arc<ProcessGuard>) {
         return;
     }
     let Some(endpoint) = endpoint() else {
-        tracing::info!("mises à jour absentes : aucune adresse compilée");
+        tracing::info!("mises à jour absentes : adresse ou clé publique non compilée");
         return;
     };
     tauri::async_runtime::spawn(async move {

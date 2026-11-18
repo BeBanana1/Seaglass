@@ -43,7 +43,7 @@ const MAX_DEVICE_MESSAGE: usize = 12 * 1024 * 1024;
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    /// Adresse publique sans `/` final, par exemple `https://jam.bebanana.ch`.
+    /// Adresse publique sans `/` final, par exemple `https://jam.example.org`.
     pub public_url: String,
     /// Clé de build de l'app (`SEAGLASS_RELAY_KEY`) : écarte les robots, pas un secret.
     pub host_key: String,

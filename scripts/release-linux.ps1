@@ -30,8 +30,8 @@
   Variables d'environnement :
     SEAGLASS_LINUX_DISTRO      distribution WSL de build (défaut : Ubuntu-22.04)
     SEAGLASS_LINUX_GLIBC_MAX   glibc la plus récente admise (défaut : 2.35, celle d'Ubuntu 22.04)
-    SEAGLASS_UPDATE_BASE_URL   URL publique du dossier de mises à jour
-                               (défaut : https://updates.bebanana.ch/seaglass)
+    SEAGLASS_UPDATE_BASE_URL   URL publique du dossier de mises à jour (requise ; environnement ou .env)
+    SEAGLASS_UPDATER_PUBKEY    clé publique de l'updater (défaut : <clé privée>.pub)
     SEAGLASS_RELEASE_DEST      destination de publication (voir release.ps1)
     SEAGLASS_SIGNING_KEY       clé privée de l'updater (défaut : ~/.tauri/seaglass.key)
     TAURI_SIGNING_PRIVATE_KEY_PASSWORD
@@ -80,10 +80,10 @@ if ($Publish) {
     }
 }
 
-$baseUrl = if ($env:SEAGLASS_UPDATE_BASE_URL) { $env:SEAGLASS_UPDATE_BASE_URL.TrimEnd('/') } else { 'https://updates.bebanana.ch/seaglass' }
 # Même adresse compilée dans l'app (#452, lue par build.rs, passée à WSL) et écrite dans
-# le manifeste.
-$env:SEAGLASS_UPDATE_BASE_URL = $baseUrl
+# le manifeste. Aucune valeur par défaut (#489).
+. (Join-Path $PSScriptRoot 'release-env.ps1')
+$baseUrl = Use-UpdateBaseUrl
 $imageName = "Seaglass_${version}_amd64.AppImage"
 $out = Join-Path $root "release\$version"
 $imageOut = Join-Path $out $imageName
@@ -97,6 +97,7 @@ if (-not $PublishOnly) {
     if ($glibcMax -notmatch '^\d+\.\d+$') { Fail "SEAGLASS_LINUX_GLIBC_MAX invalide : '$glibcMax'" }
     $keyPath = if ($env:SEAGLASS_SIGNING_KEY) { $env:SEAGLASS_SIGNING_KEY } else { Join-Path $HOME '.tauri\seaglass.key' }
     if (-not (Test-Path $keyPath)) { Fail "clé de signature introuvable : $keyPath" }
+    Use-UpdaterPubkey $keyPath
 
     # `wsl -l -q` écrit en UTF-16 : les caractères nuls sont retirés avant la comparaison.
     $distros = @(wsl.exe -l -q | ForEach-Object { ($_ -replace "`0", '').Trim() } | Where-Object { $_ })
@@ -140,7 +141,7 @@ if (-not $PublishOnly) {
     $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content $keyPath -Raw).Trim()
     $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = $keyPassword
     $savedWslEnv = $env:WSLENV
-    $env:WSLENV = (@($env:WSLENV, 'TAURI_SIGNING_PRIVATE_KEY', 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD', 'SEAGLASS_UPDATE_BASE_URL') | Where-Object { $_ }) -join ':'
+    $env:WSLENV = (@($env:WSLENV, 'TAURI_SIGNING_PRIVATE_KEY', 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD', 'SEAGLASS_UPDATE_BASE_URL', 'SEAGLASS_UPDATER_PUBKEY') | Where-Object { $_ }) -join ':'
     try {
         # Sortie affichée telle quelle (pas capturée) ; le nom de l'AppImage est connu d'avance.
         wsl.exe -d $distro --cd $wslRoot bash scripts/linux-build.sh $wslRoot $wslOut $glibcMax $wslFileList

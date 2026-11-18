@@ -29,8 +29,8 @@
                                    « seaglass-android-key » du Gestionnaire d'identifiants,
                                    sinon demandé au clavier
     SEAGLASS_UPDATE_BASE_URL       URL publique du dossier de mises à jour
-                                   (défaut : https://updates.bebanana.ch/seaglass ; compilée
-                                   dans l'app, qui n'accepte que cette adresse)
+                                   (requise ; environnement ou .env ; compilée dans l'app,
+                                   qui n'accepte que cette adresse)
     SEAGLASS_RELEASE_DEST          destination de publication (voir release.ps1)
     ANDROID_HOME, NDK_HOME         défaut : %LOCALAPPDATA%\Android\Sdk et son NDK le plus récent
 
@@ -82,9 +82,10 @@ if (-not (Test-Path $keystore)) { Fail "clé de release Android introuvable : $k
 $keystore = (Resolve-Path $keystore).Path
 $alias = if ($env:SEAGLASS_ANDROID_KEY_ALIAS) { $env:SEAGLASS_ANDROID_KEY_ALIAS } else { 'seaglass' }
 
-$baseUrl = if ($env:SEAGLASS_UPDATE_BASE_URL) { $env:SEAGLASS_UPDATE_BASE_URL.TrimEnd('/') } else { 'https://updates.bebanana.ch/seaglass' }
 # Même adresse compilée dans l'app (#452, lue par build.rs) et écrite dans le manifeste.
-$env:SEAGLASS_UPDATE_BASE_URL = $baseUrl
+# Aucune valeur par défaut (#489).
+. (Join-Path $PSScriptRoot 'release-env.ps1')
+$baseUrl = Use-UpdateBaseUrl
 
 # Outils Android.
 $sdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { Join-Path $env:LOCALAPPDATA 'Android\Sdk' }

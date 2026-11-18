@@ -21,8 +21,8 @@
   commit, arbre propre (`release-all.ps1` construit Windows et Android avant de publier).
 
   Variables d'environnement :
-    SEAGLASS_UPDATE_BASE_URL  URL publique du dossier de mises à jour
-                              (défaut : https://updates.bebanana.ch/seaglass)
+    SEAGLASS_UPDATE_BASE_URL  URL publique du dossier de mises à jour (requise ; environnement ou .env)
+    SEAGLASS_UPDATER_PUBKEY   clé publique de l'updater (défaut : <clé privée>.pub)
     SEAGLASS_RELEASE_DEST     destination de publication : dossier local ou UNC, ou cible
                               scp « utilisateur@hôte:/chemin » ou « alias-ssh:/chemin »
     SEAGLASS_MPV_PATH         mpv.exe à embarquer (défaut : celui du PATH), conforme à mpv.lock ;
@@ -84,9 +84,11 @@ if (-not (Test-Path .env)) { Fail ".env absent : l'identifiant client est inject
 $keyPath = if ($env:SEAGLASS_SIGNING_KEY) { $env:SEAGLASS_SIGNING_KEY } else { Join-Path $HOME '.tauri\seaglass.key' }
 if (-not (Test-Path $keyPath)) { Fail "clé de signature introuvable : $keyPath" }
 
-$baseUrl = if ($env:SEAGLASS_UPDATE_BASE_URL) { $env:SEAGLASS_UPDATE_BASE_URL.TrimEnd('/') } else { 'https://updates.bebanana.ch/seaglass' }
-# Même adresse compilée dans l'app (#452, lue par build.rs) et écrite dans les manifestes.
-$env:SEAGLASS_UPDATE_BASE_URL = $baseUrl
+# Même adresse compilée dans l'app (#452, lue par build.rs) et écrite dans les manifestes ;
+# clé publique compilée elle aussi (#489). Aucune valeur par défaut.
+. (Join-Path $PSScriptRoot 'release-env.ps1')
+$baseUrl = Use-UpdateBaseUrl
+Use-UpdaterPubkey $keyPath
 
 if (-not $PublishOnly) {
     # --- 2. mpv embarqué --------------------------------------------------------------------
