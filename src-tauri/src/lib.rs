@@ -377,7 +377,16 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
                 tray::show_main(app);
             }
         }))
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        // Clé publique compilée (#489) : `tauri.conf.json` n'en a pas. Sans elle, `updater`
+        // ne vérifie rien.
+        .plugin({
+            let builder = tauri_plugin_updater::Builder::new();
+            match servers::updater_pubkey() {
+                Some(key) => builder.pubkey(key),
+                None => builder,
+            }
+            .build()
+        })
         // Lancement au démarrage (clé `Run` de l'utilisateur, exe courant). Piloté
         // seulement par les commandes `settings` : aucune permission côté UI. L'app lancée
         // ainsi démarre cachée dans la zone de notification (#83).

@@ -3,7 +3,7 @@
 Rend une Jam Seaglass joignable depuis Internet (#25, étape 3a) : les invités n'ont pas besoin d'être sur le même Wi-Fi que l'hôte, chacun reste sur ses données mobiles.
 
 - L'app de l'hôte se connecte en WebSocket à `/host` (connexion sortante : aucun port à ouvrir chez l'hôte, fonctionne derrière le réseau mobile).
-- Les invités ouvrent `https://jam.bebanana.ch/j/<id>/#<code>` (QR code). La page est celle de la Jam locale (`src-tauri/src/jam/page/`, embarquée à la compilation).
+- Les invités ouvrent `https://<relais>/j/<id>/#<code>` (QR code). La page est celle de la Jam locale (`src-tauri/src/jam/page/`, embarquée à la compilation).
 - Tunnels d'appareils (#430) : un PC se connecte à `/device` (même clé) et son téléphone lié l'appelle par `POST /d/<id>`, pour le transfert de la lecture et l'historique d'écoute. Les corps sont chiffrés de bout en bout par les deux appareils : le relais ne les lit pas. Détails dans `docs/jam.md`.
 - Leurs appels (`join`, `search`, `add`, `state`) sont transmis à l'hôte, qui seul parle à TIDAL et au lecteur. Le relais sert lui-même le flux d'état (`api/events`) à partir du dernier état poussé par l'hôte.
 - Le relais ne voit passer que des titres, des prénoms et le code de la Jam : jamais de jeton TIDAL, d'URL de flux ni d'audio.
@@ -20,8 +20,12 @@ Protocole : `src/protocol.rs`.
 
 ## Déploiement (serveur, Docker, derrière Caddy)
 
-1. **DNS** : `jam.bebanana.ch` en CNAME vers `bebanana.internet-box.ch` (comme `updates`).
-2. **Clé** : `openssl rand -hex 32`. La mettre dans `relay/.env` (copie de `.env.example`) et dans le `.env` de l'app (`SEAGLASS_RELAY_KEY`, utilisé à partir de l'étape 3b).
+Exemple avec `jam.example.org` : remplacer par son propre nom de domaine.
+
+1. **DNS** : `jam.example.org` vers le serveur (enregistrement A ou CNAME).
+2. **`relay/.env`** (copie de `.env.example`) :
+   - `RELAY_PUBLIC_URL=https://jam.example.org` (obligatoire), la même adresse que `SEAGLASS_RELAY_BASE_URL` dans le `.env` de l'app ;
+   - `SEAGLASS_RELAY_KEY` : `openssl rand -hex 32`, la même valeur dans le `.env` de l'app.
 3. **Port** : Caddy tourne en `network_mode: host`, il joint le relais par `127.0.0.1:47880` (`RELAY_PORT` dans `relay/.env` si ce port est pris : `ss -ltn | grep 47880`). Le port n'est publié que sur la boucle locale : personne ne contourne Caddy.
 4. **Construire et lancer**, depuis un clone du dépôt :
 
@@ -33,14 +37,14 @@ Protocole : `src/protocol.rs`.
 5. **Caddy** : ajouter au Caddyfile, puis recharger Caddy.
 
    ```caddyfile
-   jam.bebanana.ch {
+   jam.example.org {
        reverse_proxy 127.0.0.1:47880
    }
    ```
 
    Caddy gère seul le WebSocket et le flux d'état (`text/event-stream`, envoyé sans tampon), et pose `X-Forwarded-For`, que le relais lit (`RELAY_TRUST_PROXY=1` dans l'image).
 
-6. **Vérifier** : `curl http://127.0.0.1:47880/healthz` puis `curl https://jam.bebanana.ch/healthz` répondent `ok`. Journaux : `docker compose logs -f relay`.
+6. **Vérifier** : `curl http://127.0.0.1:47880/healthz` puis `curl https://jam.example.org/healthz` répondent `ok`. Journaux : `docker compose logs -f relay`.
 
 Mise à jour : `git pull` puis `docker compose up -d --build`.
 

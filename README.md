@@ -123,7 +123,7 @@ Même playlist, en FLAC 16 bits / 44,1 kHz dans les deux apps : Seaglass la lisa
 
 ## Installation
 
-Tout se télécharge sur **https://updates.bebanana.ch/seaglass/**. Ensuite, l'app se met à jour toute seule : quand une nouvelle version est prête, elle propose « Installer et redémarrer » ou « Plus tard ».
+Les versions publiées par l'auteur se téléchargent sur **https://updates.bebanana.ch/seaglass/** ; pour construire et distribuer les siennes, sans ce serveur, voir « Construire et héberger soi-même ». Ensuite, l'app se met à jour toute seule : quand une nouvelle version est prête, elle propose « Installer et redémarrer » ou « Plus tard ».
 
 - **Windows 10 / 11** : lancer l'installeur. L'installation se fait pour l'utilisateur courant, sans droits administrateur, et mpv est inclus. L'installeur n'a pas de certificat de signature Windows : SmartScreen demande « Informations complémentaires » puis « Exécuter quand même ». Processeur compatible AVX2 requis par le build de mpv livré.
 - **Android** (arm64) : installer l'APK en autorisant les sources inconnues.
@@ -172,7 +172,18 @@ L'architecture, les conventions et la feuille de route sont décrites dans [`CLA
 
 ## Construire et héberger soi-même
 
-Aucune adresse de serveur n'est écrite dans le code : elles sont lues à la compilation, dans l'environnement ou dans `.env` (modèle complet : [`.env.example`](.env.example)). Sans elles, l'app marche sans le service correspondant.
+Rien ne dépend du serveur de l'auteur : aucune adresse ni clé n'est écrite dans le code ou les scripts. Elles sont lues à la compilation, dans l'environnement ou dans `.env` (modèle complet : [`.env.example`](.env.example)). Sans elles, l'app marche sans le service correspondant.
+
+À fournir soi-même :
+
+| Quoi | Requis pour | Où |
+|---|---|---|
+| `TIDAL_CLIENT_ID` / `TIDAL_CLIENT_SECRET` | se connecter | `.env` (voir [`docs/tidal.md`](docs/tidal.md)) |
+| Clé de l'updater (`tauri signer generate -w ~/.tauri/seaglass.key`) | publier des mises à jour du bureau | hors du dépôt ; la clé publique est compilée depuis le `.pub` |
+| `SEAGLASS_UPDATE_BASE_URL` + un dossier public en HTTPS | publier des versions | `.env` ; `SEAGLASS_RELEASE_DEST` pour l'envoi |
+| Keystore Android | publier l'APK | voir [`docs/android.md`](docs/android.md) |
+| `SEAGLASS_RELAY_BASE_URL` / `SEAGLASS_RELAY_KEY` + un relais | Jam en ligne, transfert de lecture | `.env`, et [`relay/`](relay/README.md) |
+| `DISCORD_CLIENT_ID` | présence Discord | `.env` |
 
 ```
 # Relais de la Jam en ligne et du transfert de lecture (facultatif)
@@ -183,7 +194,7 @@ SEAGLASS_UPDATE_BASE_URL=https://updates.example.org/seaglass
 ```
 
 - **Relais** : chacun peut héberger le sien (dossier [`relay/`](relay/README.md), même clé `SEAGLASS_RELAY_KEY` que l'app). Dans l'app, Réglages › Application › Relais permet aussi d'en choisir un autre, avec sa clé, ou de le couper. Sans relais, la Jam reste possible sur le réseau local (ordinateur), et l'interrupteur « Jam » la retire de l'app.
-- **Mises à jour** : l'app n'installe que des versions signées par la clé dont la partie publique est compilée (`src-tauri/tauri.conf.json` › `plugins.updater.pubkey`, certificat de l'APK sur Android). Pour publier ses propres versions, il faut donc sa propre clé, son propre dossier, et les compiler dans son build. Sans adresse, l'app ne propose aucune mise à jour ; avec, la vérification automatique se coupe dans Réglages › Application.
+- **Mises à jour** : l'app n'installe que des versions signées par la clé dont la partie publique est compilée (`SEAGLASS_UPDATER_PUBKEY`, que les scripts de release lisent dans `<clé privée>.pub` ; certificat de l'APK sur Android). Pour publier ses propres versions, il faut donc sa propre clé, son propre dossier, et les compiler dans son build. Sans adresse ou sans clé, l'app ne propose aucune mise à jour ; avec, la vérification automatique se coupe dans Réglages › Application.
 
 ## Publier une version
 

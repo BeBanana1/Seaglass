@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
     environment:
       SEAGLASS_RELAY_KEY: ${SEAGLASS_RELAY_KEY:?à définir dans .env (voir .env.example)}
-      RELAY_PUBLIC_URL: ${RELAY_PUBLIC_URL:-https://jam.bebanana.ch}
+      RELAY_PUBLIC_URL: ${RELAY_PUBLIC_URL:?à définir dans .env (voir .env.example)}
     ports:
       - "127.0.0.1:${RELAY_PORT:-47880}:8080"
     read_only: true

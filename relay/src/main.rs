@@ -1,7 +1,7 @@
 //! Relais de la Jam Seaglass. Configuration par variables d'environnement :
 //!
 //! - `SEAGLASS_RELAY_KEY` (obligatoire) : clé de build de l'app, la même que son `.env`.
-//! - `RELAY_PUBLIC_URL` : adresse publique (défaut `https://jam.bebanana.ch`).
+//! - `RELAY_PUBLIC_URL` (obligatoire) : adresse publique, par exemple `https://jam.example.org`.
 //! - `RELAY_BIND` : adresse d'écoute (défaut `0.0.0.0:8080`).
 //! - `RELAY_TRUST_PROXY` : `1` derrière Caddy (lit `X-Forwarded-For`), défaut `0`.
 //! - `RELAY_MAX_JAMS` : Jams ouvertes en même temps (défaut 20).
@@ -25,10 +25,11 @@ async fn main() -> ExitCode {
         tracing::error!("SEAGLASS_RELAY_KEY manquante");
         return ExitCode::FAILURE;
     };
-    let mut config = Config::new(
-        &env("RELAY_PUBLIC_URL").unwrap_or_else(|| "https://jam.bebanana.ch".into()),
-        &key,
-    );
+    let Some(public_url) = env("RELAY_PUBLIC_URL") else {
+        tracing::error!("RELAY_PUBLIC_URL manquante (adresse publique du relais)");
+        return ExitCode::FAILURE;
+    };
+    let mut config = Config::new(&public_url, &key);
     config.trust_proxy = env("RELAY_TRUST_PROXY").is_some_and(|v| v == "1");
     if let Some(max) = env("RELAY_MAX_JAMS").and_then(|v| v.parse().ok()) {
         config.max_jams = max;
