@@ -318,6 +318,10 @@ internal object Playback {
             .setAudioAttributes(attributes, true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
+            // Ordonnancement dynamique (#474) : quand le tampon de l'AudioTrack est plein, le
+            // thread de lecture dort jusqu'à ce que le rendu audio ait de nouveau besoin de lui,
+            // au lieu de tourner toutes les 10 ms (4,4 % d'un cœur écran éteint en 0.5.85).
+            .experimentalSetDynamicSchedulingEnabled(true)
             .build()
         player.addListener(listener)
         player.addAnalyticsListener(analytics)
