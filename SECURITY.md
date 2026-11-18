@@ -8,7 +8,7 @@ Only the latest published version gets fixes (see [`CHANGELOG.md`](CHANGELOG.md)
 
 **Do not open a public issue** for a vulnerability, and do not include exploit details in a public comment.
 
-Instead, open an issue titled "Security contact request", with no details, and the maintainer will get back to you through a private channel. Then send:
+Instead, write to **seaglass-security@proton.me** (Proton Mail: you can write from a Proton address for end-to-end encryption). Please include:
 
 - what is affected (version, platform: Windows, Linux or Android) and what an attacker could do;
 - how to reproduce it;
