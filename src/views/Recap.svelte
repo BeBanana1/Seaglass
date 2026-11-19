@@ -7,6 +7,8 @@
   import CardGrid from "../components/CardGrid.svelte";
   import TrackList from "../components/TrackList.svelte";
   import RecapBars from "../components/RecapBars.svelte";
+  import RecapHeatmap from "../components/RecapHeatmap.svelte";
+  import RecapMoments from "../components/RecapMoments.svelte";
   import { t, num, locale } from "../lib/i18n.svelte";
   import { watchHistory } from "../lib/stores/handoff.svelte";
 
@@ -95,6 +97,20 @@
   const newArtists = $derived<MediaItem[]>(
     recap?.newArtists.map((c) => ({ kind: "artist", ...c.item })) ?? [],
   );
+  /** Timeline tick: every month of a year, every fifth day of a month. */
+  function tick(i: number): string {
+    if (period?.month !== null) return i % 5 === 0 ? String(i + 1) : "";
+    return new Date(2000, i, 1).toLocaleDateString(locale(), { month: "narrow" });
+  }
+
+  function slot(i: number): string {
+    if (period?.month === null)
+      return new Date(period.year, i, 1).toLocaleDateString(locale(), { month: "long" });
+    return period
+      ? new Date(period.year, period.month - 1, i + 1).toLocaleDateString(locale())
+      : "";
+  }
+
   const topTrack = $derived(recap?.tracks[0]);
   const topArtist = $derived(recap?.artists[0]);
 </script>
@@ -232,6 +248,35 @@
             top={recap.topHour}
             label={t.library.recap.hoursLabel}
           />
+        </div>
+      </div>
+
+      <div class="recap-panels">
+        <div class="recap-panel">
+          <h2>{t.library.recap.timeline}</h2>
+          <RecapBars
+            values={recap.timeline}
+            labels={recap.timeline.map((_, i) => tick(i))}
+            titles={recap.timeline.map((n, i) => `${slot(i)} · ${t.library.stats.plays(n)}`)}
+            top={null}
+            label={period.month === null
+              ? t.library.recap.timelineMonths
+              : t.library.recap.timelineDays}
+          />
+        </div>
+        <div class="recap-panel">
+          <h2>{t.library.recap.heatmap}</h2>
+          <RecapHeatmap
+            grid={recap.grid}
+            days={t.library.recap.weekdaysShort}
+            dayNames={t.library.recap.weekdays}
+            label={t.library.recap.heatmapLabel}
+            title={(day, hour, n) => `${day} ${hour} h · ${t.library.stats.plays(n)}`}
+          />
+        </div>
+        <div class="recap-panel">
+          <h2>{t.library.recap.moments}</h2>
+          <RecapMoments {recap} />
         </div>
       </div>
 

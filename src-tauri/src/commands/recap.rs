@@ -2,14 +2,18 @@
 //! habitudes d'un mois ou d'une année civils, en heure locale. Tout vient de l'historique
 //! de cet appareil (`store::recap`, `store::stats`) ; seuls les titres d'anciennes écoutes
 //! et les photos des artistes sont demandés à TIDAL, comme pour les statistiques.
+//! Timeline, heatmap and highlights since #521 (`store::moments`).
+
+use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::State;
 
 use super::play_stats::{Counted, blocking, complete, pictured, start_backfill};
 use super::{AppState, CmdResult};
-use crate::store::{CivilPeriod, Habits};
-use crate::tidal::models::{AlbumSummary, ArtistSummary, Track};
+use crate::store::{CivilPeriod, Habits, Moments, Store};
+use crate::tidal::TidalClient;
+use crate::tidal::models::{AlbumSummary, ArtistSummary, Track, TrackId};
 
 const LIMIT: usize = 10;
 
@@ -44,6 +48,24 @@ pub struct Recap {
     /// Jour le plus écouté (0 = lundi), absent sans écoute.
     pub top_weekday: Option<usize>,
     pub top_hour: Option<usize>,
+    /// Plays per month for a year, per day for a month.
+    pub timeline: Vec<i64>,
+    /// Plays by weekday (Monday first) then local hour.
+    pub grid: Vec<Vec<i64>>,
+    /// Longest run of consecutive listening days.
+    pub streak: i64,
+    /// Track played the most times in a single day (at least twice).
+    pub top_day: Option<TopDay>,
+    pub first_track: Option<Track>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopDay {
+    pub track: Track,
+    pub plays: i64,
+    /// Local day, `YYYY-MM-DD`.
+    pub date: String,
 }
 
 /// Mois qui ont des écoutes, groupés sous leur année : l'année d'abord, puis ses mois, du
@@ -74,6 +96,9 @@ pub async fn recap(state: State<'_, AppState>, year: i32, month: Option<u32>) ->
     })
     .await?;
     let artists = pictured(&state.tidal, &store, top_artists).await;
+    let (timeline, moments) =
+        blocking(&store, move |s| Ok((s.timeline(period)?, s.moments(span)?))).await?;
+    let (top_day, first_track) = highlights(&state.tidal, &store, moments.clone()).await;
     let new_artists = pictured(&state.tidal, &store, new_artists).await;
     let recap = blocking(&store, move |s| {
         let totals = s.play_totals(span)?;
@@ -94,6 +119,10 @@ pub async fn recap(state: State<'_, AppState>, year: i32, month: Option<u32>) ->
             new_artists,
             new_artist_count,
             new_track_count,
+            timeline,
+            streak: moments.streak,
+            top_day,
+            first_track,
             ..from_habits(&habits)
         })
     })
@@ -102,6 +131,38 @@ pub async fn recap(state: State<'_, AppState>, year: i32, month: Option<u32>) ->
         start_backfill(&state.tidal, &store);
     }
     Ok(recap)
+}
+
+/// Completes the tracks of the highlights from TIDAL when the history lacks them (old
+/// plays), like the rankings. A track TIDAL no longer has is left out.
+async fn highlights(
+    tidal: &Arc<TidalClient>,
+    store: &Arc<Store>,
+    moments: Moments,
+) -> (Option<TopDay>, Option<Track>) {
+    let mut wanted = Vec::new();
+    if let Some(day) = &moments.top_day {
+        wanted.push(day.track.clone());
+    }
+    if let Some(first) = &moments.first {
+        wanted.push(first.clone());
+    }
+    let found = complete(tidal, store, wanted).await;
+    let pick = |id: TrackId| {
+        found
+            .iter()
+            .find(|c| c.item.id == id)
+            .map(|c| c.item.clone())
+    };
+    let top_day = moments.top_day.and_then(|day| {
+        Some(TopDay {
+            track: pick(day.track.0)?,
+            plays: day.track.2,
+            date: day.date,
+        })
+    });
+    let first_track = moments.first.and_then(|first| pick(first.0));
+    (top_day, first_track)
 }
 
 /// Ajoute chaque année devant ses mois (déjà triés du plus récent au plus ancien).
@@ -126,7 +187,9 @@ fn with_years(months: &[CivilPeriod]) -> Vec<RecapPeriod> {
 fn from_habits(habits: &Habits) -> Recap {
     let weekdays: Vec<i64> = (1..=7).map(|d| habits.weekdays[d % 7]).collect();
     let hours = habits.hours.to_vec();
+    let grid = (1..=7).map(|d| habits.grid[d % 7].to_vec()).collect();
     Recap {
+        grid,
         top_weekday: busiest(&weekdays),
         top_hour: busiest(&hours),
         weekdays,
@@ -176,8 +239,11 @@ mod tests {
         habits.weekdays[1] = 2; // lundi
         habits.hours[22] = 4;
         habits.hours[8] = 4;
+        habits.grid[0][22] = 5;
         let recap = from_habits(&habits);
         assert_eq!(recap.weekdays, [2, 0, 0, 0, 0, 0, 5]);
+        assert_eq!(recap.grid.len(), 7);
+        assert_eq!(recap.grid[6][22], 5);
         assert_eq!(recap.top_weekday, Some(6));
         // Égalité : la première heure l'emporte.
         assert_eq!(recap.top_hour, Some(8));

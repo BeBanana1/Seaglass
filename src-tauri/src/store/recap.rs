@@ -26,10 +26,12 @@ pub struct Habits {
     pub weekdays: [i64; 7],
     /// Par heure locale, de 0 à 23.
     pub hours: [i64; 24],
+    /// By weekday (Sunday first) then local hour: the heatmap (#521).
+    pub grid: [[i64; 24]; 7],
 }
 
 /// Arguments SQL de l'heure locale d'une écoute (`played_at` en ms).
-const LOCAL: &str = "played_at / 1000, 'unixepoch', 'localtime'";
+pub(super) const LOCAL: &str = "played_at / 1000, 'unixepoch', 'localtime'";
 
 impl Store {
     /// Intervalle de la période en heure locale : de minuit le premier jour à minuit le
@@ -83,22 +85,28 @@ impl Store {
             )?,
             ..Habits::default()
         };
-        for (format, slots) in [
-            ("%w", &mut habits.weekdays[..]),
-            ("%H", &mut habits.hours[..]),
-        ] {
-            let mut stmt = db.conn.prepare(&format!(
-                "SELECT CAST(strftime('{format}', {LOCAL}) AS INTEGER) AS k, COUNT(*)
-                 FROM plays WHERE played_at >= ?1 AND played_at < ?2 GROUP BY k"
-            ))?;
-            let rows = stmt.query_map([span.since, span.until], |r| {
-                Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?))
-            })?;
-            for row in rows {
-                let (key, count) = row?;
-                if let Some(slot) = usize::try_from(key).ok().and_then(|k| slots.get_mut(k)) {
-                    *slot = count;
-                }
+        // One pass over (weekday, hour): the two distributions are sums of the grid.
+        let mut stmt = db.conn.prepare(&format!(
+            "SELECT CAST(strftime('%w', {LOCAL}) AS INTEGER) AS w,
+                    CAST(strftime('%H', {LOCAL}) AS INTEGER) AS h, COUNT(*)
+             FROM plays WHERE played_at >= ?1 AND played_at < ?2 GROUP BY w, h"
+        ))?;
+        let rows = stmt.query_map([span.since, span.until], |r| {
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, i64>(1)?,
+                r.get::<_, i64>(2)?,
+            ))
+        })?;
+        for row in rows {
+            let (day, hour, count) = row?;
+            let (Ok(day), Ok(hour)) = (usize::try_from(day), usize::try_from(hour)) else {
+                continue;
+            };
+            if day < 7 && hour < 24 {
+                habits.grid[day][hour] = count;
+                habits.weekdays[day] += count;
+                habits.hours[hour] += count;
             }
         }
         Ok(habits)
@@ -185,6 +193,9 @@ mod tests {
         assert_eq!(habits.hours[0], 1);
         assert_eq!(habits.hours[1], 3);
         assert_eq!(habits.hours.iter().sum::<i64>(), 4);
+        assert_eq!(habits.grid[0][1], 2);
+        assert_eq!(habits.grid[1][1], 1);
+        assert_eq!(habits.grid[0][0], 1);
 
         // Découvertes de mars : l'artiste 120 et les titres 2 et 3, pas le titre 1.
         assert_eq!(store.discovery_counts(march).unwrap(), (1, 2));

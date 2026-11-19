@@ -45,6 +45,16 @@ pub struct TopArtist {
     pub picture_known: bool,
 }
 
+/// Copy of a track kept in `played_tracks`; an unreadable one (other version) counts as
+/// missing.
+pub(super) fn parse_track(json: Option<String>) -> Option<Track> {
+    json.and_then(|json| {
+        serde_json::from_str(&json)
+            .inspect_err(|e| tracing::debug!("unreadable history track: {e}"))
+            .ok()
+    })
+}
+
 impl Store {
     /// Titres les plus écoutés sur `span`, avec au moins `min_plays` écoutes, et leurs
     /// métadonnées si elles sont enregistrées (`None` : écoute d'avant la 0.5.33, à
@@ -84,12 +94,7 @@ impl Store {
         let mut out = Vec::new();
         for row in rows {
             let (id, json, count) = row?;
-            let track = json.and_then(|json| {
-                serde_json::from_str(&json)
-                    .inspect_err(|e| tracing::debug!("titre de l'historique illisible : {e}"))
-                    .ok()
-            });
-            out.push((TrackId(id as u64), track, count));
+            out.push((TrackId(id as u64), parse_track(json), count));
         }
         Ok(out)
     }
