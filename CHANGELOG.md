@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.100
+
+- The home customization page opens again when the same album appears in several sections (#514).
+
 ## 0.5.99
 
 - Smoother blind test clip bar and ring: no more small roll-backs, and the playback bar benefits too (#501).

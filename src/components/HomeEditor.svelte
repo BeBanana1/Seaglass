@@ -1,12 +1,12 @@
 <script lang="ts">
-  // Mode « Personnaliser l'accueil » (#21, #22) : une ligne par section, avec Monter /
-  // Descendre et Masquer / Afficher. Tout se fait avec des boutons, donc au clavier ; sur
-  // le bureau, une ligne se déplace aussi par glisser-déposer (#246, comme la file) ; sur
-  // Android, par un appui long puis en glissant le doigt (#290).
-  // Le composant ne fait que réordonner la liste affichée : l'enregistrement et la règle
-  // des sections absentes ou nouvelles sont côté backend (`HomeLayout`).
+  // "Customize home" mode (#21, #22): one row per section, with Move up / Move down and
+  // Hide / Show. Everything works with buttons, so from the keyboard; on desktop a row can
+  // also be dragged and dropped (#246, like the queue); on Android, with a long press then
+  // a finger drag (#290).
+  // The component only reorders the shown list: saving, and the rule for missing or new
+  // sections, live in the backend (`HomeLayout`).
   import { tick } from "svelte";
-  import type { HomeSection } from "../lib/ipc";
+  import type { HomeSection, MediaItem } from "../lib/ipc";
   import { mediaImage } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
   import { platform } from "../lib/platform.svelte";
@@ -23,26 +23,30 @@
     onreset,
   }: {
     sections: HomeSection[];
-    /** Faux si la disposition est déjà celle par défaut. */
+    /** False when the layout is already the default one. */
     canReset: boolean;
-    /** Bandeau « À la une » masqué (#185) : toujours en tête, il ne se déplace pas. */
+    /** "Featured" banner hidden (#185): always first, it cannot be moved. */
     featuredHidden: boolean;
     onchange: (next: HomeSection[]) => void;
     onfeatured: (shown: boolean) => void;
     onreset: () => void;
   } = $props();
 
-  // Vignettes du bandeau : les premiers albums des sections affichées, d'où il est tiré.
+  /** First three distinct images: the thumbnails are keyed by URL, and the same album often
+   *  shows up in several sections, so a duplicate would break the whole editor (#514). */
+  function thumbs(items: MediaItem[]): string[] {
+    const urls = items.map(mediaImage).filter((i): i is string => !!i);
+    return [...new Set(urls)].slice(0, 3);
+  }
+
+  // Featured banner thumbnails: the first albums of the shown sections, which it is drawn from.
   const featuredImages = $derived(
-    sections
-      .filter((s) => !s.hidden)
-      .flatMap((s) => s.items.filter((i) => i.kind === "album"))
-      .map(mediaImage)
-      .filter((i): i is string => !!i)
-      .slice(0, 3),
+    thumbs(
+      sections.filter((s) => !s.hidden).flatMap((s) => s.items.filter((i) => i.kind === "album")),
+    ),
   );
 
-  // Deux lignes peuvent partager une clé (backend : groupées) : une seule entrée ici.
+  // Two rows can share a key (grouped by the backend): a single entry here.
   const groups = $derived.by(() => {
     const seen = new Map<
       string,
@@ -54,16 +58,12 @@
         g.count += s.items.length;
         continue;
       }
-      const images = s.items
-        .map(mediaImage)
-        .filter((i): i is string => !!i)
-        .slice(0, 3);
       seen.set(s.key, {
         key: s.key,
         title: s.title,
         hidden: s.hidden,
         count: s.items.length,
-        images,
+        images: thumbs(s.items),
       });
     }
     return [...seen.values()];
@@ -72,7 +72,7 @@
   let list = $state<HTMLOListElement>();
   let announce = $state("");
 
-  /** Place la section `index` en position `target` (les autres glissent d'un cran). */
+  /** Moves section `index` to position `target` (the others shift by one). */
   function moveTo(index: number, target: number): string | null {
     const keys = groups.map((g) => g.key);
     if (target < 0 || target >= keys.length || target === index) return null;
@@ -86,7 +86,7 @@
   async function move(index: number, dir: -1 | 1) {
     const key = moveTo(index, index + dir);
     if (key === null) return;
-    // Le nœud déplacé perd le focus : on le rend au même bouton, ou à l'autre s'il est désactivé.
+    // The moved node loses focus: give it back to the same button, or the other one if disabled.
     await tick();
     const sel = (d: string) => `[data-key="${CSS.escape(key)}"] [data-dir="${d}"]`;
     const btn =
@@ -97,7 +97,7 @@
 
   const reorder = new Reorder((from, to) => void moveTo(from, to));
 
-  /** Lignes réorganisables, dans l'ordre (sans le bandeau « À la une »). */
+  /** Reorderable rows, in order (without the "Featured" banner). */
   const items = () =>
     Array.from(list?.querySelectorAll<HTMLElement>(".home-editor-item.draggable") ?? []);
 
@@ -134,7 +134,7 @@
         </span>
       </span>
       <span class="home-editor-actions">
-        <!-- Pas de Monter / Descendre : le bandeau reste en tête. Place gardée pour l'alignement. -->
+        <!-- No Move up / Move down: the banner stays first. Space kept for alignment. -->
         <span class="home-editor-spacer" aria-hidden="true"></span>
         <button
           class="home-editor-toggle"
@@ -151,7 +151,7 @@
       </span>
     </li>
     {#each groups as g, i (g.key)}
-      <!-- Le glisser double les boutons Monter / Descendre, qui restent pour le clavier. -->
+      <!-- Dragging duplicates the Move up / Move down buttons, which stay for the keyboard. -->
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <li
         class="home-editor-item draggable"
@@ -266,16 +266,16 @@
     opacity: 0.4;
   }
 
-  /* Ligne saisie au doigt (#290) : elle suit le doigt, au-dessus des autres. */
+  /* Row grabbed with a finger (#290): it follows the finger, above the others. */
   .home-editor-item:global(.touch-dragging) {
     z-index: 1;
     transform: translateY(var(--drag-y, 0px)) scale(1.02);
-    /* Fond opaque : la surface des thèmes est translucide, le texte dessous transparaissait. */
+    /* Opaque background: theme surfaces are translucent and the text below showed through. */
     background: linear-gradient(var(--bg-raised), var(--bg-raised)), var(--bg);
     box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
   }
 
-  /* Repère d'insertion, comme dans la file (`QueueList`). */
+  /* Insertion marker, as in the queue (`QueueList`). */
   .home-editor-item.drop-before::before,
   .home-editor-item.drop-after::after {
     content: "";
@@ -428,8 +428,8 @@
     white-space: nowrap;
   }
 
-  /* Téléphone (#135) : vignettes et libellé de la bascule ne laissaient plus de place au
-     titre et poussaient les boutons hors du cadre. Icônes seules, à la taille du doigt. */
+  /* Phone (#135): thumbnails and the toggle label left no room for the title and pushed
+     the buttons out of the frame. Icons only, finger-sized. */
   :global(:root[data-platform="android"]) .home-editor {
     margin: 0;
   }
@@ -437,7 +437,7 @@
   :global(:root[data-platform="android"]) .home-editor-item {
     gap: 8px;
     padding: 6px 6px 6px 12px;
-    /* Appui long = saisie de la ligne, pas sélection de texte ni menu de la WebView. */
+    /* Long press = grabbing the row, not text selection or the WebView menu. */
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
