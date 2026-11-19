@@ -1007,6 +1007,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       { length: 24 },
       (_, h) => Math.round((h >= 8 ? 3 : 0) + (h >= 18 ? 6 : 0) + (h === 22 ? 4 : 0)) * scale,
     );
+    const weekdays = [5, 4, 6, 4, 9, 12, 8].map((n) => n * scale);
+    const days =
+      month == null ? 12 : new Date(new Date().getFullYear(), Number(month), 0).getDate();
+    const timeline = Array.from({ length: days }, (_, i) =>
+      month == null ? 40 + ((i * 37) % 60) : (i * 7) % 5 === 0 ? 0 : 3 + ((i * 5) % 9),
+    );
     return {
       plays: tracks.reduce((n, t) => n + t.plays, 0),
       seconds: tracks.reduce((n, t) => n + t.plays * t.item.duration, 0),
@@ -1018,10 +1024,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       newArtists: artists.slice(3).map((a) => ({ ...a, plays: a.plays - 3 })),
       newArtistCount: 7 * scale,
       newTrackCount: 31 * scale,
-      weekdays: [5, 4, 6, 4, 9, 12, 8].map((n) => n * scale),
+      weekdays,
       hours,
       topWeekday: 5,
       topHour: 22,
+      timeline,
+      // Hours spread over each day in proportion to that day's plays.
+      grid: weekdays.map((w) => hours.map((h) => Math.round((h * w) / 60))),
+      streak: month == null ? 19 : 9,
+      topDay: { track: tracks[1].item, plays: 7, date: `${new Date().getFullYear()}-03-14` },
+      firstTrack: tracks[4]?.item ?? null,
     };
   },
   // Playlists intelligentes (#383) : vides tant que l'historique l'est, comme le vrai backend.

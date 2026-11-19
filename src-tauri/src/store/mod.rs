@@ -20,6 +20,7 @@ use crate::player::queue::Queue;
 use crate::player::volume::Volume;
 use crate::tidal::models::{Track, TrackId};
 
+mod moments;
 mod plays;
 mod recap;
 mod scrobbles;
@@ -28,6 +29,7 @@ mod snapshots;
 mod stats;
 mod sync;
 
+pub use moments::Moments;
 pub use plays::Play;
 pub use recap::{CivilPeriod, Habits};
 pub use smart::SmartList;

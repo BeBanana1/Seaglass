@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.102
+
+- Recap: plays over the period (by month or by day), a day × hour heatmap, and moments: longest listening streak, most replayed track in a day, first track of the period (#521).
+
 ## 0.5.101
 
 - Project website at seaglass.bebanana.ch: home and download pages, linked from Settings › Application; updates now come from seaglass.bebanana.ch/updates (#517)

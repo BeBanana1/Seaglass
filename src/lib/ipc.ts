@@ -622,6 +622,15 @@ export interface Recap {
   /** 0 = lundi. */
   topWeekday: number | null;
   topHour: number | null;
+  /** Plays per month for a year, per day for a month (#521). */
+  timeline: number[];
+  /** Plays by weekday (Monday first) then local hour: 7 rows of 24. */
+  grid: number[][];
+  /** Longest run of consecutive listening days. */
+  streak: number;
+  /** Track played the most times in a single day (at least twice). */
+  topDay: { track: Track; plays: number; date: string } | null;
+  firstTrack: Track | null;
 }
 
 /**
