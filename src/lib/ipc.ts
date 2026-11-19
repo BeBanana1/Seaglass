@@ -81,6 +81,9 @@ export interface LibraryList<T> {
 
 export type AudioQuality = "LOW" | "HIGH" | "LOSSLESS" | "HI_RES_LOSSLESS";
 
+/** `commands::project::ProjectPage`: project page opened in the browser (#188, #517). */
+export type ProjectPage = "website" | "repo" | "newIssue";
+
 export interface StreamFormat {
   quality: AudioQuality;
   codec: string;
@@ -1351,8 +1354,8 @@ export const commands = {
   /** Affiche ou masque le bandeau « À la une » (#185) ; renvoie la disposition enregistrée. */
   setHomeFeatured: (shown: boolean) => invoke<HomeLayout>("set_home_featured", { shown }),
   resetHomeLayout: () => invoke<HomeLayout>("reset_home_layout"),
-  /** Ouvre le dépôt ou une nouvelle issue dans le navigateur (#188) ; URLs fixes côté Rust. */
-  openProjectPage: (page: "repo" | "newIssue") => invoke<void>("open_project_page", { page }),
+  /** Opens the website, the repository or a new issue in the browser (#188, #517); fixed URLs on the Rust side. */
+  openProjectPage: (page: ProjectPage) => invoke<void>("open_project_page", { page }),
   /** #192 : vrai une seule fois si le lancement précédent a planté. */
   takeCrashNotice: () => invoke<boolean>("take_crash_notice"),
   /** Rapport du dernier plantage, à copier dans une issue. */

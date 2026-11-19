@@ -1,11 +1,11 @@
 # Seaglass
 
-[![Latest version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fupdates.bebanana.ch%2Fseaglass%2Flatest.json&query=%24.version&label=latest%20version&prefix=v&color=brightgreen&cacheSeconds=3600)](https://updates.bebanana.ch/seaglass/)
+[![Latest version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fseaglass.bebanana.ch%2Fupdates%2Flatest.json&query=%24.version&label=latest%20version&prefix=v&color=brightgreen&cacheSeconds=3600)](https://seaglass.bebanana.ch/download)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 ![Platforms: Windows, Linux, Android](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android-informational)
 ![Built with Tauri 2, Rust and Svelte 5](https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Rust%20%C2%B7%20Svelte%205-orange)
 
-Music streaming client for Windows, Android and Linux, with a fully custom interface and lossless / bit-perfect playback handed to [mpv](https://mpv.io) (desktop) or Media3 (Android).
+Music streaming client for Windows, Android and Linux, with a fully custom interface and lossless / bit-perfect playback handed to [mpv](https://mpv.io) (desktop) or Media3 (Android). Website: **https://seaglass.bebanana.ch**.
 
 > **Unofficial client, not affiliated with TIDAL.** A valid subscription is required. Streaming only: no audio stream is downloaded or written to disk, and DRM-protected streams are not played.
 
@@ -139,7 +139,7 @@ Same playlist, in FLAC 16-bit / 44.1 kHz in both apps: Seaglass streamed it, the
 
 ## Installation
 
-Versions published by the author can be downloaded from **https://updates.bebanana.ch/seaglass/**; to build and distribute your own, without that server, see "Building and self-hosting". After that, the app updates itself: when a new version is ready, it offers "Install and restart" or "Later".
+Versions published by the author can be downloaded from **https://seaglass.bebanana.ch/download**; to build and distribute your own, without that server, see "Building and self-hosting". After that, the app updates itself: when a new version is ready, it offers "Install and restart" or "Later".
 
 - **Windows 10 / 11**: run the installer. It installs for the current user, without administrator rights, and mpv is included. The installer has no Windows code-signing certificate: SmartScreen asks for "More info" then "Run anyway". A CPU with AVX2 is required by the bundled mpv build.
 - **Android** (arm64): install the APK, allowing unknown sources.

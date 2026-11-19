@@ -1,5 +1,5 @@
-/* Styles de la page de téléchargement (download-page.html), publiés à côté d'elle :
-   la CSP du serveur interdit les styles en ligne. */
+/* Styles of the project website (site/, #517), served next to the pages: the server's CSP
+   forbids inline styles. */
 :root {
   --bg: #eef3f2;
   --panel: #ffffff;
@@ -28,8 +28,21 @@ body {
   color: var(--text);
   font: 16px/1.55 "Segoe UI", system-ui, sans-serif;
 }
-main { max-width: 640px; margin: 0 auto; padding: 56px 16px 40px; }
-h1 { margin: 0; font-size: 2.2rem; letter-spacing: -0.02em; }
+a { color: var(--accent); }
+main { max-width: 640px; margin: 0 auto; padding: 24px 16px 40px; }
+main.wide { max-width: 960px; }
+nav {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 16px 0;
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+}
+nav.narrow { max-width: 640px; }
+nav .brand { font-weight: 700; color: var(--text); text-decoration: none; margin-right: auto; }
+nav a { text-decoration: none; }
+h1 { margin: 32px 0 0; font-size: 2.2rem; letter-spacing: -0.02em; }
 .tagline { margin: 4px 0 28px; color: var(--muted); }
 .card {
   background: var(--panel);
@@ -53,3 +66,28 @@ h2 { margin: 0 0 10px; font-size: 1.05rem; }
 ul, ol { margin: 0; padding-left: 1.2em; }
 li + li { margin-top: 4px; }
 footer { color: var(--muted); font-size: 0.85rem; }
+.shots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.shots img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.shots .wide { grid-column: 1 / -1; }
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.features .card { margin-bottom: 0; }
+.features p { margin: 0; color: var(--muted); }
+.notice { color: var(--muted); font-size: 0.9rem; margin: 0 0 20px; }
+@media (max-width: 600px) {
+  .shots { grid-template-columns: 1fr; }
+}

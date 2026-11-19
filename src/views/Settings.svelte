@@ -12,6 +12,7 @@
     type LanguagePref,
     type Normalization,
     type PlaybackSettings,
+    type ProjectPage,
     type QualityCap,
   } from "../lib/ipc";
   import { replace, type SettingsSection } from "../lib/stores/nav.svelte";
@@ -389,7 +390,7 @@
     void copyText(commands.lastCrashReport, t.settings.crashCopied, t.settings.noCrash);
   }
 
-  async function openProject(page: "repo" | "newIssue") {
+  async function openProject(page: ProjectPage) {
     try {
       await commands.openProjectPage(page);
     } catch (e) {
@@ -1150,6 +1151,9 @@
       <p>{t.settings.license}</p>
       <!-- #188 : URLs fixes côté Rust, ouvertes dans le navigateur du système. -->
       <div class="project-links">
+        <button class="update-check" onclick={() => openProject("website")}>
+          {t.settings.website}
+        </button>
         <button class="update-check" onclick={() => openProject("repo")}>
           {t.settings.sourceCode}
         </button>

@@ -10,8 +10,7 @@
      l'updater (`pnpm tauri build`).
   4. Range les fichiers à publier dans `release/` :
        release/latest.json                       manifeste lu par l'updater
-       release/index.html                        page de téléchargement (lien stable),
-                                                 publiée avec scripts/download-page.css et .js
+       release/windows.json                      read by the website's download page (#517)
        release/<version>/Seaglass_<version>_x64-setup.exe
   5. Avec -Publish : copie `release/` vers SEAGLASS_RELEASE_DEST, pose et pousse le tag
      git `v<version>` (sauf s'il est déjà sur HEAD : release Android), puis crée la release
@@ -169,36 +168,31 @@ if (-not $PublishOnly) {
     $announced = Write-UpdaterManifest $version $Notes $baseUrl
     $manifestPath = Join-Path $root 'release\latest.json'
 
-    $size = [math]::Round((Get-Item $setup).Length / 1MB, 1)
+    $item = Get-Item $setup
+    $size = [math]::Round($item.Length / 1MB, 1)
 
-    # Page de téléchargement : l'adresse du dossier ($baseUrl/) mène toujours à la dernière version.
-    Step "page de téléchargement"
-    function Html($text) { [System.Net.WebUtility]::HtmlEncode($text) }
-    $fr = [System.Globalization.CultureInfo]::GetCultureInfo('fr-FR')
-    $noteItems = ($Notes -split "`r?`n" | Where-Object { $_.Trim() } | ForEach-Object {
-        '      <li>' + (Html ($_ -replace '^\s*-\s*', '')) + '</li>'
-    }) -join "`n"
-    $fields = [ordered]@{
-        '{{VERSION}}' = Html $version
-        '{{DATE}}'    = Html (Get-Date).ToString('d MMMM yyyy', $fr)
-        '{{SIZE}}'    = Html $size.ToString($fr)
-        '{{URL}}'     = Html "$baseUrl/$version/$setupName"
-        '{{NOTES}}'   = $noteItems
+    # Manifest of the website's download page (#517), same format as android.json: the page
+    # is static (site/download/) and reads it from the updates folder.
+    $download = [ordered]@{
+        version  = $version
+        url      = "$baseUrl/$version/$setupName"
+        sha256   = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+        size     = $item.Length
+        notes    = $Notes
+        pub_date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     }
-    $page = Get-Content (Join-Path $PSScriptRoot 'download-page.html') -Raw -Encoding UTF8
-    foreach ($field in $fields.GetEnumerator()) { $page = $page.Replace($field.Key, $field.Value) }
-    $pagePath = Join-Path $root 'release\index.html'
-    [System.IO.File]::WriteAllText($pagePath, $page, [System.Text.UTF8Encoding]::new($false))
+    $downloadPath = Join-Path $root 'release\windows.json'
+    [System.IO.File]::WriteAllText($downloadPath, ($download | ConvertTo-Json -Depth 3), [System.Text.UTF8Encoding]::new($false))
 
     Write-Host "    installeur : release\$version\$setupName ($size Mo)"
     Write-Host "    manifeste  : release\latest.json -> $baseUrl/latest.json ($($announced -join ', '))"
-    Write-Host "    page       : release\index.html -> $baseUrl/"
+    Write-Host "    page       : release\windows.json -> $baseUrl/windows.json"
 } else {
     $setupName = "Seaglass_${version}_x64-setup.exe"
     $out = Join-Path $root "release\$version"
     $manifestPath = Join-Path $root 'release\latest.json'
-    $pagePath = Join-Path $root 'release\index.html'
-    Assert-BuildStamp 'windows' $version @((Join-Path $out $setupName), (Join-Path $out "$setupName.sig"), $manifestPath, $pagePath)
+    $downloadPath = Join-Path $root 'release\windows.json'
+    Assert-BuildStamp 'windows' $version @((Join-Path $out $setupName), (Join-Path $out "$setupName.sig"), $manifestPath, $downloadPath)
     if ((Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json).version -ne $version) {
         Fail "release\latest.json ne décrit pas la $version"
     }
@@ -213,9 +207,6 @@ if (-not $Publish) {
 
 Step "publication vers $env:SEAGLASS_RELEASE_DEST"
 $dest = $env:SEAGLASS_RELEASE_DEST
-# Fichiers statiques de la page, pris dans ce commit (pas de build) : ils portent le
-# même nom à chaque version, la page les charge avec « ?v=<version> ».
-$pageAssets = @('css', 'js') | ForEach-Object { Join-Path $PSScriptRoot "download-page.$_" }
 # latest.json peut aussi annoncer l'AppImage (#314) : elle doit déjà être en ligne.
 Assert-ManifestOnline $manifestPath $dest @('windows-x86_64')
 # Le manifeste part en dernier : l'updater ne voit la version qu'une fois l'installeur en place.
@@ -232,20 +223,17 @@ if ($dest -match '^[^\\/:]{2,}:') {
     # remet à 755 / 644 avant de rendre la version visible.
     ssh $sshHost "chmod 755 '$remotePath/$version' && chmod 644 '$remotePath/$version'/*"
     if ($LASTEXITCODE -ne 0) { Fail "échec du réglage des droits sur le serveur" }
-    # Styles et script avant la page qui les charge (la CSP du serveur interdit le code en ligne).
-    scp $pageAssets "$dest/"
-    if ($LASTEXITCODE -ne 0) { Fail "échec de scp (styles et script de la page)" }
-    scp $pagePath "$dest/index.html"
-    if ($LASTEXITCODE -ne 0) { Fail "échec de scp (page de téléchargement)" }
+    # The download page's manifest (#517), then the updater's last.
+    scp $downloadPath "$dest/windows.json"
+    if ($LASTEXITCODE -ne 0) { Fail "échec de scp (windows.json)" }
     scp $manifestPath "$dest/latest.json"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (manifeste)" }
-    ssh $sshHost "chmod 644 '$remotePath/index.html' '$remotePath/latest.json' '$remotePath/download-page.css' '$remotePath/download-page.js'"
+    ssh $sshHost "chmod 644 '$remotePath/windows.json' '$remotePath/latest.json'"
 } else {
     New-Item -ItemType Directory -Force $dest | Out-Null
     New-Item -ItemType Directory -Force (Join-Path $dest $version) | Out-Null
     Copy-Item (Join-Path $out $setupName), (Join-Path $out "$setupName.sig") (Join-Path $dest $version) -Force
-    Copy-Item $pageAssets $dest -Force
-    Copy-Item $pagePath (Join-Path $dest 'index.html') -Force
+    Copy-Item $downloadPath (Join-Path $dest 'windows.json') -Force
     Copy-Item $manifestPath (Join-Path $dest 'latest.json') -Force
 }
 
