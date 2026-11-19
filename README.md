@@ -9,6 +9,17 @@ Music streaming client for Windows, Android and Linux, with a fully custom inter
 
 > **Unofficial client, not affiliated with TIDAL.** A valid subscription is required. Streaming only: no audio stream is downloaded or written to disk, and DRM-protected streams are not played.
 
+<p>
+  <img src="docs/images/playlist-seaglass.webp" alt="A playlist in the Seaglass theme" width="77%">
+  <img src="docs/images/android-midnight.webp" alt="An album in the Android app, Midnight theme" width="21%">
+</p>
+<p>
+  <img src="docs/images/album-estampe.webp" alt="An album in the light Estampe theme" width="49%">
+  <img src="docs/images/now-playing-cassette.webp" alt="Now playing with the signal path, Cassette theme" width="49%">
+</p>
+
+<sub>Seaglass, Midnight (Android), Estampe and Cassette: 4 of the 23 themes.</sub>
+
 Current version: see [`VERSION`](VERSION); what's new in [`CHANGELOG.md`](CHANGELOG.md), also shown in the app (Settings › Application).
 
 ## Features

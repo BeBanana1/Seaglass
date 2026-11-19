@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Vérifie que `VERSION` a changé si l'app livrée a changé depuis la dernière release.
-# Lancé par la CI (historique complet et tags requis : `fetch-depth: 0`) ; utilisable en
-# local avant une PR : `bash scripts/check-version.sh`.
+# Checks that `VERSION` changed if the shipped app changed since the last release.
+# Run by CI (full history and tags required: `fetch-depth: 0`); usable locally before a
+# PR: `bash scripts/check-version.sh`.
 #
-# Échoue si :
-#   - `VERSION` est inférieure à la dernière release (tag `v*` le plus proche) ;
-#   - `VERSION` vaut encore celle de la dernière release alors que des fichiers de l'app
-#     ont changé depuis ce tag. Sinon les installations ne verraient pas la mise à jour
-#     (même numéro) et `main` ne correspondrait plus à la version publiée.
+# Fails if:
+#   - `VERSION` is lower than the last release (closest `v*` tag);
+#   - `VERSION` still equals the last release while app files changed since that tag.
+#     Otherwise installs would not see the update (same number) and `main` would no
+#     longer match the published version.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -15,7 +15,7 @@ cd "$(git rev-parse --show-toplevel)"
 version=$(tr -d '[:space:]' < VERSION)
 tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
 if [[ -z "$tag" ]]; then
-  echo "Aucun tag de release dans l'historique : rien à comparer."
+  echo "No release tag in the history: nothing to compare."
   exit 0
 fi
 released=${tag#v}
@@ -23,18 +23,19 @@ released=${tag#v}
 if [[ "$version" != "$released" ]]; then
   newest=$(printf '%s\n%s\n' "$version" "$released" | sort -V | tail -n1)
   if [[ "$newest" != "$version" ]]; then
-    echo "::error::VERSION ($version) est inférieure à la dernière release ($tag)."
+    echo "::error::VERSION ($version) is lower than the last release ($tag)."
     exit 1
   fi
-  echo "VERSION $version > dernière release $released : OK."
+  echo "VERSION $version > last release $released: OK."
   exit 0
 fi
 
-# Ce qui ne change pas l'app livrée : documentation, CI, outillage, backend factice
-# (éliminé du build de production), tests du frontend (#264, hors du bundle), relais de la
-# Jam (déployé à part sur le serveur).
+# What does not change the shipped app: documentation (including the README screenshots
+# in `docs/images/`), CI, tooling, mock backend (removed from the production build),
+# frontend tests (#264, outside the bundle), Jam relay (deployed separately on the server).
 changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude,glob)**/*.md' \
+  ':(exclude)docs/' \
   ':(exclude)LICENSE' \
   ':(exclude).env.example' \
   ':(exclude).gitea/' \
@@ -51,9 +52,9 @@ changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude)src/lib/testing/')
 
 if [[ -n "$changed" ]]; then
-  echo "::error::L'app a changé depuis $tag mais VERSION vaut encore $version : passer à la version suivante (VERSION et src-tauri/Cargo.toml)."
-  echo "Fichiers modifiés depuis $tag :"
+  echo "::error::The app changed since $tag but VERSION is still $version: move to the next version (VERSION and src-tauri/Cargo.toml)."
+  echo "Files changed since $tag:"
   echo "$changed" | sed 's/^/  /'
   exit 1
 fi
-echo "VERSION $version = dernière release, sans changement de l'app depuis $tag : OK."
+echo "VERSION $version = last release, no app change since $tag: OK."
