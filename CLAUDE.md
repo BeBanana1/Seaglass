@@ -42,6 +42,7 @@ seaglass/
 ├─ ci/                       # CI job image and act_runner (Docker, server)
 ├─ spike/                    # phase 0: throwaway Python scripts
 ├─ relay/                    # Jam relay (#25): separate crate, Docker behind Caddy
+├─ site/                     # project website (#517): static pages, scripts/publish-site.ps1
 ├─ src/                      # Svelte frontend
 │  ├─ lib/ipc.ts             # typed wrappers for Tauri commands and events
 │  ├─ lib/transport.ts       # real invoke/listen, or a mock backend outside Tauri (dev)

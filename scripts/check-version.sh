@@ -32,7 +32,8 @@ fi
 
 # What does not change the shipped app: documentation (including the README screenshots
 # in `docs/images/`), CI, tooling, mock backend (removed from the production build),
-# frontend tests (#264, outside the bundle), Jam relay (deployed separately on the server).
+# frontend tests (#264, outside the bundle), Jam relay (deployed separately on the server),
+# project website (#517, published by scripts/publish-site.ps1).
 changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude,glob)**/*.md' \
   ':(exclude)docs/' \
@@ -43,6 +44,7 @@ changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude)scripts/' \
   ':(exclude)spike/' \
   ':(exclude)relay/' \
+  ':(exclude)site/' \
   ':(exclude).claude/' \
   ':(exclude).mcp.json' \
   ':(exclude).gitignore' \

@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.101
+
+- Project website at seaglass.bebanana.ch: home and download pages, linked from Settings › Application; updates now come from seaglass.bebanana.ch/updates (#517)
+
 ## 0.5.100
 
 - The home customization page opens again when the same album appears in several sections (#514).

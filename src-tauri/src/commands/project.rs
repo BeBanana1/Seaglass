@@ -1,6 +1,6 @@
-//! Liens vers le dépôt du projet (#188), ouverts dans le navigateur du système par
-//! `tauri-plugin-opener`. Les URLs sont fixes ici : l'UI ne choisit qu'une page, jamais
-//! une adresse, et n'a aucune permission du plugin.
+//! Links to the project's pages (#188, website #517), opened in the system browser by
+//! `tauri-plugin-opener`. The URLs are fixed here: the UI only picks a page, never an
+//! address, and has no permission of the plugin.
 
 use serde::Deserialize;
 use tauri::AppHandle;
@@ -9,19 +9,23 @@ use tauri_plugin_opener::OpenerExt;
 use super::{CmdResult, err};
 
 const REPO: &str = "https://git.bebanana.ch/bebanana/Seaglass";
+const WEBSITE: &str = "https://seaglass.bebanana.ch";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ProjectPage {
-    /// Code source.
+    /// Project website: presentation and downloads.
+    Website,
+    /// Source code.
     Repo,
-    /// Nouvelle issue : signaler un bug ou proposer une idée.
+    /// New issue: report a bug or suggest an idea.
     NewIssue,
 }
 
 impl ProjectPage {
     fn url(self) -> String {
         match self {
+            Self::Website => WEBSITE.to_owned(),
             Self::Repo => REPO.to_owned(),
             Self::NewIssue => format!("{REPO}/issues/new"),
         }
@@ -48,6 +52,8 @@ mod tests {
             ProjectPage::Repo.url(),
             "https://git.bebanana.ch/bebanana/Seaglass"
         );
+        let page: ProjectPage = serde_json::from_str(r#""website""#).unwrap();
+        assert_eq!(page.url(), "https://seaglass.bebanana.ch");
         assert!(serde_json::from_str::<ProjectPage>(r#""https://evil""#).is_err());
     }
 }
