@@ -329,14 +329,16 @@ function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
 }
 // `?normalization=track|album` : normalisation active (gain factice de −6,5 dB).
 const normalizationParam = params.get("normalization") as PlaybackSettings["normalization"] | null;
-// `?device=missing` : le périphérique choisi est débranché ; `?device=dac` : il est branché.
+// `?device=missing`: the chosen device is unplugged; `?device=dac`: it is plugged in.
+// Windows names its outputs in the system language: English with `?lang=en` (screenshots).
+const speakersLabel = params.get("lang") === "en" ? "Speakers" : "Haut-parleurs";
 const DAC = {
   id: "wasapi/{27264a86-c734-4c85-876c-dcfeb567529f}",
-  name: "Haut-parleurs (Focusrite USB Audio)",
+  name: `${speakersLabel} (Focusrite USB Audio)`,
 };
 const SPEAKERS = {
   id: "wasapi/{0d7e4c2b-58a1-4c5e-9f1e-3b2a9c1d7e44}",
-  name: "Haut-parleurs (Realtek(R) Audio)",
+  name: `${speakersLabel} (Realtek(R) Audio)`,
 };
 const deviceParam = params.get("device");
 /** Profil de démonstration (extrait d'AutoEQ, Sennheiser HD 600). */
