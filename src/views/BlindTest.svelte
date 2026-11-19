@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Blind test (#434) : réglages de la partie, manche en cours, révélation et score. La
-  // partie (tirage, comparaison des réponses, score) est tenue par le backend : cette page
-  // affiche `blind-test` et envoie les réponses.
+  // Blind test (#434): game settings, current round, reveal and score. The game (draw,
+  // answer matching, score) is run by the backend: this page shows `blind-test` and sends the
+  // answers.
   import { tick } from "svelte";
   import { commands, type BlindAnswer, type BlindMode, type BlindRoundResult } from "../lib/ipc";
   import { artistNames, coverLarge, coverSmall, fullTitle } from "../lib/format";
@@ -18,15 +18,15 @@
 
   let mode = $state<BlindMode>("typing");
   let rounds = $state(10);
-  /** À plusieurs, par la Jam (#441). */
+  /** Together, through the Jam (#441). */
   let withJam = $state(true);
   let hostPlays = $state(true);
-  /** Secondes avant la révélation automatique (à plusieurs). */
+  /** Seconds before the automatic reveal (together). */
   let revealIn = $state(0);
   let text = $state("");
   let busy = $state(false);
   let input = $state<HTMLInputElement | null>(null);
-  /** Avancement de l'extrait, de 0 à 1, interpolé entre deux `player-state`. */
+  /** Clip progress, from 0 to 1, interpolated between two `player-state`. */
   let clip = $state(0);
 
   const view = $derived(blindTest.view);
@@ -35,16 +35,21 @@
     view?.phase === "revealed" ? (view.results.at(-1) ?? null) : null,
   );
   const lastRound = $derived(!!view && view.round >= view.rounds);
-  /** Extrait pas encore lancé par le moteur (#445) : l'anneau attend au départ. */
+  /** Clip not started by the engine yet (#445): the ring waits at the start. */
   const clipLoading = $derived(
     view?.phase === "guess" && (player.state.loading || !view.clipPlaying),
   );
   const clipOver = $derived(
     view?.phase === "guess" && !clipLoading && clip >= 1 && player.state.paused,
   );
+  /** Clip playing: the `?` pulses. Not `player.advancing`, which flickers with buffering and
+   *  restarted the animation (#501). */
+  const clipRunning = $derived(
+    view?.phase === "guess" && !clipLoading && !clipOver && !player.state.paused,
+  );
   const multi = $derived(!!view?.party.jam);
   const hostPlaying = $derived(!view || view.party.hostPlays);
-  /** L'hôte peut encore répondre à la manche. */
+  /** The host can still answer this round. */
   const hostCanAnswer = $derived(
     !!view && hostPlaying && !view.players.find((p) => p.host)?.answered,
   );
@@ -65,7 +70,7 @@
     }
   }
 
-  /** Nouvelle partie ; « Rejouer » reprend le mode et le nombre de manches de la dernière. */
+  /** New game; "Play again" reuses the mode and round count of the last one. */
   function start(again = false) {
     if (!pool) return;
     if (again && view) {
@@ -97,7 +102,7 @@
     if (text.trim()) answer({ kind: "text", text });
   }
 
-  // Nouvelle manche : saisie vidée et prête.
+  // New round: input cleared and focused.
   let lastRoundShown = 0;
   $effect(() => {
     const round = view?.phase === "guess" ? view.round : 0;
@@ -108,7 +113,7 @@
     } else if (!round) lastRoundShown = 0;
   });
 
-  // Compte à rebours de la révélation automatique, à plusieurs.
+  // Countdown to the automatic reveal, together.
   $effect(() => {
     const at = view?.phase === "guess" ? view.revealAt : null;
     if (!at) {
@@ -121,7 +126,8 @@
     return () => clearInterval(timer);
   });
 
-  // Barre de l'extrait : position interpolée comme la barre de lecture.
+  // Clip bar and ring: position interpolated like the progress bar. On Android, 30 updates per
+  // second rather than 4: a 15 s clip moves the ring ~35 px/s, which 4 Hz turns into steps (#501).
   $effect(() => {
     if (view?.phase !== "guess") return;
     const { clipStart, clipLength } = view;
@@ -129,7 +135,10 @@
       clip = 0;
       return;
     }
-    return followPosition((p) => (clip = Math.min(1, Math.max(0, (p - clipStart) / clipLength))));
+    return followPosition(
+      (p) => (clip = Math.min(1, Math.max(0, (p - clipStart) / clipLength))),
+      30,
+    );
   });
 
   function verdict(r: BlindRoundResult): string {
@@ -234,7 +243,7 @@
     {/if}
   {:else if view.phase === "guess"}
     <div class="round">
-      <div class="disc" class:spinning={player.advancing && !clipLoading} style:--clip={clip}>
+      <div class="disc" class:spinning={clipRunning} style:--clip={clip}>
         <span class="mystery">?</span>
       </div>
       <p class="status" aria-live="polite">
@@ -541,7 +550,7 @@
     text-align: center;
   }
 
-  /* Disque masqué : l'anneau suit l'avancement de l'extrait. */
+  /* Hidden disc: the ring follows the clip progress. */
   .disc {
     position: relative;
     display: grid;
@@ -656,8 +665,8 @@
     overflow: hidden;
   }
 
-  /* Titre sur 2 lignes au plus : sur une colonne étroite (Android), une
-     seule ligne rognait les titres longs au point de les rendre illisibles (#446). */
+  /* Title on 2 lines at most: in a narrow column (Android), a single line cut long titles
+     until they were unreadable (#446). */
   .choice-title {
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -807,7 +816,7 @@
     gap: 10px;
   }
 
-  /* Android : disque plus petit, pour que les quatre propositions tiennent à l'écran. */
+  /* Android: smaller disc, so the four choices fit on screen. */
   :global(:root[data-platform="android"]) .disc,
   :global(:root[data-platform="android"]) .cover {
     width: 128px;
