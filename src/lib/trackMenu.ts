@@ -27,6 +27,8 @@ export interface TrackMenuOptions {
   onBlocked?: () => void;
   /** Liste qui permet la sélection multiple (#332) : « Sélectionner ». */
   onSelect?: () => void;
+  /** Track being played (#518): "Copy as image" renders the "Now playing" card. */
+  onShareImage?: () => void;
 }
 
 /** Lien public du titre, à partager. */
@@ -70,6 +72,7 @@ export function trackMenu(
     onRemoveFromPlaylist,
     onBlocked,
     onSelect,
+    onShareImage,
   }: TrackMenuOptions,
 ): MenuEntry[] {
   const m = t.menu;
@@ -134,14 +137,14 @@ export function trackMenu(
     "separator",
     { label: m.trackInfo, icon: "info", action: () => openTrackInfo(track) },
     { label: m.copyLink, icon: "link", action: () => run(() => copyLink(track)) },
-    "separator",
-    {
-      label: m.blockTrack,
-      icon: "block",
-      action: () =>
-        block({ kind: "track", id: track.id }, m.trackBlocked(fullTitle(track)), onBlocked),
-    },
   );
+  if (onShareImage) entries.push({ label: m.shareImage, icon: "image", action: onShareImage });
+  entries.push("separator", {
+    label: m.blockTrack,
+    icon: "block",
+    action: () =>
+      block({ kind: "track", id: track.id }, m.trackBlocked(fullTitle(track)), onBlocked),
+  });
   // Artiste principal seulement : un invité se bloque depuis un de ses propres titres.
   const main = track.artists[0];
   if (main) {

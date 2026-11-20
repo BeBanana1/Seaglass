@@ -7,7 +7,8 @@
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { commands, type Track } from "../lib/ipc";
   import { ui } from "../lib/stores/ui.svelte";
-  import { coverLarge, coverSmall, formatStream, fullTitle } from "../lib/format";
+  import { coverLarge, coverSmall, formatStream, fullTitle, signalVerdict } from "../lib/format";
+  import { copyCard } from "../lib/shareCard";
   import { go, nav } from "../lib/stores/nav.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
   import { openTrackInfo } from "../lib/stores/trackInfo.svelte";
@@ -99,6 +100,25 @@
     });
   }
 
+  /** "Now playing" card as a PNG in the clipboard (#518), with the format actually played. */
+  async function shareImage(track: Track) {
+    const s = player.state;
+    const verdict = signalVerdict(
+      s.stream,
+      s.deviceFormat ?? s.output,
+      s.volume,
+      s.normalization,
+      s.exclusive,
+      s.equalizer,
+    );
+    try {
+      await copyCard(track, s.stream, verdict);
+      pushToast({ level: "info", message: t.menu.imageCopied });
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
+
   function toggleMore(track: Track) {
     if (!moreButton) return;
     if (menu.open?.from === moreButton) return closeMenu();
@@ -108,6 +128,8 @@
       // Le titre bloqué (ou celui de l'artiste bloqué) est celui qu'on écoute : on le passe.
       onBlocked: () =>
         commands.next().catch((e) => pushToast({ level: "error", message: String(e) })),
+      // Desktop only for now: Android has no outgoing share sheet yet (#518).
+      onShareImage: platform.mobile ? undefined : () => shareImage(track),
     });
     openMenu({ x: rect.left, y: rect.bottom + 4, entries, from: moreButton });
   }
