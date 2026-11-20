@@ -110,7 +110,7 @@
         label: fullTitle(track),
         detail: artistNames(track),
         image: coverSmall(track.album),
-        run: () => commands.playTracks([track.id], 0, false, { kind: "search", query: q }),
+        run: () => commands.playTracks([track.id], 0, null, { kind: "search", query: q }),
       });
     }
     for (const album of results.albums.slice(0, PER_KIND)) {

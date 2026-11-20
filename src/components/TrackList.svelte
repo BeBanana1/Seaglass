@@ -118,7 +118,8 @@
   async function play(index: number) {
     const { ids, start } = context?.(index) ?? { ids: tracks.map((t) => t.id), start: index };
     try {
-      await commands.playTracks(ids, start, false, source ?? null);
+      // A track picked in a list keeps the current shuffle mode (#526).
+      await commands.playTracks(ids, start, null, source ?? null);
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }

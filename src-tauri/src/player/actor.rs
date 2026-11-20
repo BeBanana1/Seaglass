@@ -42,8 +42,10 @@ pub enum Cmd {
     PlayTracks {
         ids: Vec<TrackId>,
         start: usize,
-        /// Active la lecture aléatoire et part d'un titre au hasard (`start` est ignoré).
-        shuffle: bool,
+        /// `Some(true)`: turns shuffle on and starts on a random track (`start` is ignored).
+        /// `Some(false)`: turns shuffle off, as the "Play" buttons do (#526). `None`: keeps
+        /// the current mode (a track picked in a list).
+        shuffle: Option<bool>,
         /// Album, playlist… d'où vient le contexte (« Joué depuis », #124).
         source: Option<PlaySource>,
     },
@@ -365,8 +367,10 @@ impl Player {
                 shuffle,
                 source,
             } => {
-                let start = if shuffle && !ids.is_empty() {
-                    self.queue.set_shuffle(true, &mut self.rng);
+                if let Some(on) = shuffle {
+                    self.queue.set_shuffle(on, &mut self.rng);
+                }
+                let start = if shuffle == Some(true) && !ids.is_empty() {
                     self.rng.random_range(0..ids.len())
                 } else {
                     start

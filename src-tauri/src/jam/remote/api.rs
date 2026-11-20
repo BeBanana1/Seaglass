@@ -61,7 +61,8 @@ pub enum Command {
     Remove(TrackId),
     Play {
         ids: Vec<TrackId>,
-        shuffle: bool,
+        /// As in `Cmd::PlayTracks`: `None` keeps the current mode (a single track).
+        shuffle: Option<bool>,
         source: Option<PlaySource>,
     },
     Enqueue {
@@ -362,7 +363,7 @@ fn command(path: &str, body: &[u8]) -> Result<Option<Command>, &'static str> {
         "/api/remove" => Command::Remove(TrackId(parse::<TrackBody>(body)?.track_id)),
         "/api/play" => Command::Play {
             ids: vec![TrackId(parse::<TrackBody>(body)?.track_id)],
-            shuffle: false,
+            shuffle: None,
             source: None,
         },
         "/api/enqueue" => {
@@ -410,7 +411,8 @@ async fn context<R: Remote>(path: &str, body: &[u8], remote: &R) -> Result<Comma
     }
     Ok(Command::Play {
         ids: tracks.iter().take(MAX_CONTEXT).map(|t| t.id).collect(),
-        shuffle,
+        // "Play" turns shuffle off, "Shuffle" turns it on (#526).
+        shuffle: Some(shuffle),
         source: Some(source),
     })
 }

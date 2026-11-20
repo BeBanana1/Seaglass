@@ -1324,11 +1324,12 @@ export const commands = {
   blindTestNext: () => invoke<void>("blind_test_next"),
   blindTestQuit: () => invoke<void>("blind_test_quit"),
   blindTestState: () => invoke<BlindTestView | null>("blind_test_state"),
-  /** Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard. */
+  /** `shuffle`: `true` turns shuffle on and starts on a random track, `false` turns it off
+   *  ("Play" buttons, #526), `null` keeps the current mode (a track picked in a list). */
   playTracks: (
     trackIds: TrackId[],
     startIndex: number,
-    shuffle = false,
+    shuffle: boolean | null = null,
     source: PlaySource | null = null,
   ) => invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
   /** Android : vrai une fois après le lien `seaglass://drive` ou le raccourci de l'app (#193). */
