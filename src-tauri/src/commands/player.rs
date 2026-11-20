@@ -15,9 +15,10 @@ const MAX_CONTEXT_LEN: usize = 10_000;
 // Lire ou mélanger toute une catégorie de la bibliothèque doit rester accepté (#91).
 const _: () = assert!(crate::tidal::LIBRARY_MAX <= MAX_CONTEXT_LEN);
 
-/// Lit `track_ids` comme contexte (album, playlist, résultats de recherche) à partir de
-/// `start_index`. Avec `shuffle`, active la lecture aléatoire et part d'un titre au hasard.
-/// `source` (#124) n'est qu'affichée : invalide, elle est ignorée sans refuser la lecture.
+/// Plays `track_ids` as the context (album, playlist, search results) from `start_index`.
+/// `shuffle`: `true` turns shuffle on and starts on a random track, `false` turns it off
+/// ("Play" buttons, #526), absent keeps the current mode. `source` (#124) is only displayed:
+/// an invalid one is dropped without refusing playback.
 #[tauri::command]
 pub async fn play_tracks(
     state: State<'_, AppState>,
@@ -45,7 +46,7 @@ pub async fn play_tracks(
         Cmd::PlayTracks {
             ids,
             start: start_index,
-            shuffle: shuffle.unwrap_or(false),
+            shuffle,
             source: source.and_then(|s| s.sanitize(is_uuid)),
         },
     )

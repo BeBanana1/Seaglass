@@ -249,7 +249,7 @@ async fn transport_commands_reach_the_player() {
             r#"{"trackId":2}"#,
             Command::Play {
                 ids: vec![TrackId(2)],
-                shuffle: false,
+                shuffle: None,
                 source: None,
             },
         ),
@@ -296,7 +296,7 @@ async fn albums_and_playlists_play_from_the_start() {
         last(fake),
         Some(Command::Play {
             ids: vec![TrackId(100), TrackId(101), TrackId(102)],
-            shuffle: true,
+            shuffle: Some(true),
             source: Some(PlaySource::Album {
                 id: 40,
                 title: "Album 40".into()
@@ -309,7 +309,7 @@ async fn albums_and_playlists_play_from_the_start() {
         last(fake),
         Some(Command::Play {
             ids: vec![TrackId(5), TrackId(6)],
-            shuffle: false,
+            shuffle: Some(false),
             source: Some(PlaySource::Playlist {
                 uuid: PLAYLIST.into(),
                 title: "Ma playlist".into()

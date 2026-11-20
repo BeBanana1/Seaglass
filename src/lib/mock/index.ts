@@ -1551,7 +1551,8 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     radioSeed = null;
     playSource = source ? (JSON.parse(JSON.stringify(source)) as PlaySource) : null;
     index = shuffle ? Math.floor(Math.random() * context.length) : Number(startIndex);
-    state.shuffle = state.shuffle || Boolean(shuffle);
+    // `null` keeps the mode, `false` ("Play") turns it off (#526).
+    if (typeof shuffle === "boolean") state.shuffle = shuffle;
     setCurrent(context[index]);
   },
   play_next: ({ trackId }) => {

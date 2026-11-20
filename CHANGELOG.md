@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.104
+
+- The "Play" buttons (album, playlist, mix, library, recap, drive mode, remote control) now turn shuffle off and play in order; a track picked in a list keeps the current shuffle mode (#526).
+
 ## 0.5.103
 
 - Recap: audio panel with the share of hi-res, lossless and lossy listens, the share and time in bit-perfect, and the formats played most; each listen now records the format it was played in, synced with the linked device (#524).
