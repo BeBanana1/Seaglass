@@ -83,8 +83,7 @@ impl Volume {
         }
     }
 
-    /// Vrai si mpv ne modifie pas l'amplitude (niveau 100, son non coupé).
-    #[cfg(test)]
+    /// True when mpv leaves the amplitude untouched (level 100, not muted).
     pub fn is_unity(self) -> bool {
         self.level == MAX_LEVEL && !self.muted
     }

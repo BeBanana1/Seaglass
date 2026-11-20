@@ -9,6 +9,7 @@
   import RecapBars from "../components/RecapBars.svelte";
   import RecapHeatmap from "../components/RecapHeatmap.svelte";
   import RecapMoments from "../components/RecapMoments.svelte";
+  import RecapAudio from "../components/RecapAudio.svelte";
   import { t, num, locale } from "../lib/i18n.svelte";
   import { watchHistory } from "../lib/stores/handoff.svelte";
 
@@ -278,6 +279,12 @@
           <h2>{t.library.recap.moments}</h2>
           <RecapMoments {recap} />
         </div>
+        {#if recap.audio}
+          <div class="recap-panel">
+            <h2>{t.library.recap.audio}</h2>
+            <RecapAudio audio={recap.audio} plays={recap.plays} />
+          </div>
+        {/if}
       </div>
 
       {#if newArtists.length > 0}

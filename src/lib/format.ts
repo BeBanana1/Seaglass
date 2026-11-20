@@ -109,7 +109,7 @@ export function mediaImage(item: MediaItem): string | null {
   }
 }
 
-export function formatStream(f: StreamFormat): string {
+export function formatStream(f: Pick<StreamFormat, "codec" | "bitDepth" | "sampleRate">): string {
   const codec = f.codec.startsWith("mp4a") ? "AAC" : f.codec.toUpperCase();
   if (f.bitDepth && f.sampleRate && codec === "FLAC") {
     return `FLAC ${f.bitDepth}/${khz(f.sampleRate)}`;

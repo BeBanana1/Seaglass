@@ -1034,6 +1034,21 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       streak: month == null ? 19 : 9,
       topDay: { track: tracks[1].item, plays: 7, date: `${new Date().getFullYear()}-03-14` },
       firstTrack: tracks[4]?.item ?? null,
+      audio: {
+        known: 96 * scale,
+        hires: 41 * scale,
+        lossless: 49 * scale,
+        lossy: 6 * scale,
+        bitPerfect: 58 * scale,
+        bitPerfectSeconds: 58 * 230 * scale,
+        formats: [
+          { codec: "flac", bitDepth: 16, sampleRate: 44100, plays: 49 * scale },
+          { codec: "flac", bitDepth: 24, sampleRate: 96000, plays: 23 * scale },
+          { codec: "flac", bitDepth: 24, sampleRate: 48000, plays: 12 * scale },
+          { codec: "flac", bitDepth: 24, sampleRate: 192000, plays: 6 * scale },
+          { codec: "mp4a.40.2", bitDepth: null, sampleRate: 44100, plays: 6 * scale },
+        ],
+      },
     };
   },
   // Playlists intelligentes (#383) : vides tant que l'historique l'est, comme le vrai backend.

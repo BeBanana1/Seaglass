@@ -631,6 +631,26 @@ export interface Recap {
   /** Track played the most times in a single day (at least twice). */
   topDay: { track: Track; plays: number; date: string } | null;
   firstTrack: Track | null;
+  /** Audio side (#524), over the listens recorded with their format; null when none has one. */
+  audio: AudioRecap | null;
+}
+
+export interface AudioRecap {
+  /** Listens with a known format: the shares below are out of this number. */
+  known: number;
+  hires: number;
+  lossless: number;
+  lossy: number;
+  bitPerfect: number;
+  bitPerfectSeconds: number;
+  formats: PlayedFormat[];
+}
+
+export interface PlayedFormat {
+  codec: string;
+  bitDepth: number | null;
+  sampleRate: number | null;
+  plays: number;
 }
 
 /**

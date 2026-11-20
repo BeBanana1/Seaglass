@@ -11,7 +11,7 @@ use tauri::State;
 
 use super::play_stats::{Counted, blocking, complete, pictured, start_backfill};
 use super::{AppState, CmdResult};
-use crate::store::{CivilPeriod, Habits, Moments, Store};
+use crate::store::{AudioTotals, CivilPeriod, Habits, Moments, Store};
 use crate::tidal::TidalClient;
 use crate::tidal::models::{AlbumSummary, ArtistSummary, Track, TrackId};
 
@@ -57,6 +57,54 @@ pub struct Recap {
     /// Track played the most times in a single day (at least twice).
     pub top_day: Option<TopDay>,
     pub first_track: Option<Track>,
+    /// Audio side (#524), over the listens recorded with their format; absent when none of
+    /// the period has one.
+    pub audio: Option<AudioRecap>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioRecap {
+    /// Listens with a known format: the shares below are out of this number.
+    pub known: i64,
+    pub hires: i64,
+    pub lossless: i64,
+    pub lossy: i64,
+    pub bit_perfect: i64,
+    pub bit_perfect_seconds: i64,
+    pub formats: Vec<PlayedFormat>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayedFormat {
+    pub codec: String,
+    pub bit_depth: Option<u8>,
+    pub sample_rate: Option<u32>,
+    pub plays: i64,
+}
+
+impl AudioRecap {
+    fn from_totals(totals: AudioTotals) -> Option<Self> {
+        (totals.known > 0).then(|| Self {
+            known: totals.known,
+            hires: totals.hires,
+            lossless: totals.lossless,
+            lossy: totals.lossy,
+            bit_perfect: totals.bit_perfect,
+            bit_perfect_seconds: totals.bit_perfect_seconds,
+            formats: totals
+                .formats
+                .into_iter()
+                .map(|f| PlayedFormat {
+                    codec: f.codec,
+                    bit_depth: f.bit_depth,
+                    sample_rate: f.sample_rate,
+                    plays: f.plays,
+                })
+                .collect(),
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -105,6 +153,7 @@ pub async fn recap(state: State<'_, AppState>, year: i32, month: Option<u32>) ->
         let (new_artist_count, new_track_count) = s.discovery_counts(span)?;
         let habits = s.habits(span)?;
         let albums = s.top_albums(span, 1, LIMIT)?;
+        let audio = AudioRecap::from_totals(s.audio_totals(span)?);
         Ok(Recap {
             plays: totals.plays,
             seconds: totals.seconds,
@@ -123,6 +172,7 @@ pub async fn recap(state: State<'_, AppState>, year: i32, month: Option<u32>) ->
             streak: moments.streak,
             top_day,
             first_track,
+            audio,
             ..from_habits(&habits)
         })
     })

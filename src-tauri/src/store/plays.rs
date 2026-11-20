@@ -11,6 +11,7 @@
 
 use rusqlite::{Connection, params};
 
+use super::formats::{self, PlayFormat};
 use super::stats::Span;
 use super::{Result, Store, StoreError};
 use crate::player::source::PlaySource;
@@ -101,6 +102,8 @@ pub struct Play<'a> {
     pub source: Option<&'a PlaySource>,
     /// Millisecondes depuis l'epoch Unix.
     pub played_at: i64,
+    /// Format actually played (#524); `None` when unknown.
+    pub format: Option<&'a PlayFormat>,
 }
 
 const UPSERT_TRACK: &str = "INSERT INTO played_tracks (id, json) VALUES (?1, ?2)
@@ -115,12 +118,17 @@ impl Store {
         let album = serde_json::to_string(play.album)?;
         let source = play.source.map(serde_json::to_string).transpose()?;
         let artist = play.track.artists.first();
+        let (quality, codec, bit_depth, sample_rate, bit_perfect) = formats::values(play.format);
         let mut db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let tx = db.conn.transaction()?;
         tx.execute(
-            "INSERT INTO plays
-                 (track_id, album_id, source, played_at, artist_id, artist, duration)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            &format!(
+                "INSERT INTO plays
+                     (track_id, album_id, source, played_at, artist_id, artist, duration,
+                      {})
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                formats::COLUMNS
+            ),
             params![
                 play.track.id.0 as i64,
                 play.album.id as i64,
@@ -129,6 +137,11 @@ impl Store {
                 artist.map(|a| a.id as i64),
                 artist.map(|a| a.name.as_str()),
                 play.track.duration,
+                quality,
+                codec,
+                bit_depth,
+                sample_rate,
+                bit_perfect,
             ],
         )?;
         tx.execute(UPSERT_TRACK, params![play.track.id.0 as i64, track])?;
@@ -296,6 +309,7 @@ pub(super) mod tests {
                 album: &album(album_id),
                 source: None,
                 played_at: at,
+                format: None,
             })
             .unwrap();
     }

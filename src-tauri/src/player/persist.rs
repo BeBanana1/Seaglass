@@ -223,6 +223,7 @@ impl Player {
         let album = album_of(track);
         let source = self.queue.source().cloned();
         let track = track.clone();
+        let format = self.state.played_format();
         let played_at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_millis() as i64);
@@ -235,6 +236,7 @@ impl Player {
                 album: &album,
                 source: source.as_ref(),
                 played_at,
+                format: format.as_ref(),
             };
             if let Err(e) = store.add_play(&play) {
                 tracing::warn!("écoute non enregistrée : {e}");
