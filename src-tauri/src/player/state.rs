@@ -10,6 +10,7 @@ use super::source::PlaySource;
 use super::volume::Volume;
 use crate::engine::AudioParams;
 use crate::mpv::MpvIssue;
+use crate::store::PlayFormat;
 use crate::tidal::models::{StreamFormat, Track};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -116,6 +117,36 @@ impl PlayerState {
         }
     }
 
+    /// Format of the current listen, recorded with it (#524); `None` before the stream is
+    /// known.
+    pub fn played_format(&self) -> Option<PlayFormat> {
+        let stream = self.stream.as_ref()?;
+        Some(PlayFormat {
+            quality: stream.quality.as_api_str().into(),
+            codec: stream.codec.clone(),
+            bit_depth: stream.bit_depth,
+            sample_rate: stream.sample_rate,
+            bit_perfect: self.bit_perfect(stream),
+        })
+    }
+
+    /// Same rule as the UI's "Bit-perfect" verdict (`signalVerdict` in `lib/format.ts`):
+    /// FLAC in exclusive mode, written at the stream's sample rate, not reduced to 16 bits,
+    /// with no software volume, normalization or equalizer. The written format is the
+    /// device's (#245), otherwise the decoder's.
+    fn bit_perfect(&self, stream: &StreamFormat) -> bool {
+        let Some(output) = self.device_format.as_ref().or(self.output.as_ref()) else {
+            return false;
+        };
+        stream.codec == "flac"
+            && self.exclusive
+            && stream.sample_rate.is_none_or(|r| r == output.samplerate)
+            && !(output.format == "s16" && stream.bit_depth.unwrap_or(16) > 16)
+            && self.volume.is_unity()
+            && self.normalization.is_none()
+            && self.equalizer.is_none()
+    }
+
     /// Applique `idle-active` : sans fichier, mpv n'a plus de sortie audio ouverte.
     pub fn set_idle(&mut self, idle: bool) {
         self.idle = idle;
@@ -202,6 +233,78 @@ mod tests {
             samplerate,
             channel_count: 2,
         })
+    }
+
+    #[test]
+    fn bit_perfect_follows_the_signal_path() {
+        use crate::tidal::models::AudioQuality;
+        let stream = StreamFormat {
+            quality: AudioQuality::HiResLossless,
+            codec: "flac".into(),
+            bit_depth: Some(24),
+            sample_rate: Some(96000),
+            bitrate: None,
+            hires_edition: None,
+        };
+        let clean = PlayerState {
+            stream: Some(stream.clone()),
+            device_format: params(96000),
+            exclusive: true,
+            ..PlayerState::default()
+        };
+        let format = clean.played_format().unwrap();
+        assert_eq!(format.quality, "HI_RES_LOSSLESS");
+        assert_eq!(
+            (format.bit_depth, format.sample_rate),
+            (Some(24), Some(96000))
+        );
+        assert!(format.bit_perfect);
+
+        let not = |state: PlayerState| !state.played_format().unwrap().bit_perfect;
+        assert!(not(PlayerState {
+            exclusive: false,
+            ..clean.clone()
+        }));
+        assert!(not(PlayerState {
+            device_format: params(48000),
+            ..clean.clone()
+        }));
+        assert!(not(PlayerState {
+            device_format: Some(AudioParams {
+                format: "s16".into(),
+                samplerate: 96000,
+                channel_count: 2,
+            }),
+            ..clean.clone()
+        }));
+        assert!(not(PlayerState {
+            normalization: Some(-3.0),
+            ..clean.clone()
+        }));
+        assert!(not(PlayerState {
+            equalizer: Some("Harman".into()),
+            ..clean.clone()
+        }));
+        let mut quiet = clean.clone();
+        quiet.volume.set_level(80);
+        assert!(not(quiet));
+        assert!(not(PlayerState {
+            device_format: None,
+            output: None,
+            ..clean.clone()
+        }));
+        // Decoder format when the device's is unknown.
+        assert!(
+            PlayerState {
+                device_format: None,
+                output: params(96000),
+                ..clean.clone()
+            }
+            .played_format()
+            .unwrap()
+            .bit_perfect
+        );
+        assert_eq!(PlayerState::default().played_format(), None);
     }
 
     /// Changement de titre de même format : mpv envoie `null` puis plus rien (#12).

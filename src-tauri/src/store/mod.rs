@@ -20,6 +20,7 @@ use crate::player::queue::Queue;
 use crate::player::volume::Volume;
 use crate::tidal::models::{Track, TrackId};
 
+mod formats;
 mod moments;
 mod plays;
 mod recap;
@@ -29,6 +30,7 @@ mod snapshots;
 mod stats;
 mod sync;
 
+pub use formats::{AudioTotals, PlayFormat};
 pub use moments::Moments;
 pub use plays::Play;
 pub use recap::{CivilPeriod, Habits};
@@ -110,6 +112,7 @@ impl Store {
         conn.execute_batch(SCHEMA)?;
         conn.execute_batch(plays::SCHEMA)?;
         plays::migrate(&conn)?;
+        formats::migrate(&conn)?;
         conn.execute_batch(scrobbles::SCHEMA)?;
         let saved = conn
             .prepare("SELECT id FROM tracks")?

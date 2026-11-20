@@ -125,6 +125,7 @@ fn listen(store: &Store, id: u64, at: i64) {
             album: &album(id),
             source: None,
             played_at: at,
+            format: None,
         })
         .unwrap();
 }

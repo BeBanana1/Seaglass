@@ -14,6 +14,7 @@ use std::collections::BTreeSet;
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
+use super::formats::{self, PlayFormat};
 use super::plays::prune;
 use super::{Result, Store, StoreError};
 use crate::player::source::PlaySource;
@@ -48,6 +49,9 @@ pub struct SyncPlay {
     /// Secondes.
     #[serde(default)]
     pub duration: Option<i64>,
+    /// Format played (#524); absent from older versions, which ignore it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<PlayFormat>,
 }
 
 /// Lot d'écoutes avec les fiches de leurs titres et albums (dernière copie connue).
@@ -83,6 +87,7 @@ impl PlayBatch {
             .map(|p| SyncPlay {
                 artist: p.artist.map(|a| a.chars().take(MAX_ARTIST_CHARS).collect()),
                 source: p.source.and_then(|s| s.sanitize(&is_uuid)),
+                format: p.format.and_then(PlayFormat::sanitize),
                 ..p
             })
             .collect();
@@ -172,8 +177,9 @@ impl Store {
         };
         let sql = format!(
             "SELECT p.id, p.device, p.track_id, p.album_id, p.source, p.played_at,
-                    p.artist_id, p.artist, p.duration
-             FROM plays p WHERE p.id > ?1 AND {sql} ORDER BY p.id LIMIT ?2"
+                    p.artist_id, p.artist, p.duration, {}
+             FROM plays p WHERE p.id > ?1 AND {sql} ORDER BY p.id LIMIT ?2",
+            formats::COLUMNS
         );
         let mut stmt = conn.prepare(&sql)?;
         let map = |r: &rusqlite::Row| {
@@ -192,6 +198,7 @@ impl Store {
                     artist_id: r.get::<_, Option<i64>>(6)?.map(|id| id as u64),
                     artist: r.get(7)?,
                     duration: r.get(8)?,
+                    format: formats::read(r, 9)?,
                 },
             ))
         };
@@ -244,12 +251,18 @@ impl Store {
                 .as_ref()
                 .map(serde_json::to_string)
                 .transpose()?;
+            let (quality, codec, bit_depth, sample_rate, bit_perfect) =
+                formats::values(play.format.as_ref());
             added += tx.execute(
-                "INSERT INTO plays
-                     (track_id, album_id, source, played_at, artist_id, artist, duration, device)
-                 SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
-                 WHERE NOT EXISTS
-                     (SELECT 1 FROM plays WHERE track_id = ?1 AND played_at = ?4)",
+                &format!(
+                    "INSERT INTO plays
+                         (track_id, album_id, source, played_at, artist_id, artist, duration,
+                          device, {})
+                     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13
+                     WHERE NOT EXISTS
+                         (SELECT 1 FROM plays WHERE track_id = ?1 AND played_at = ?4)",
+                    formats::COLUMNS
+                ),
                 params![
                     play.track_id as i64,
                     play.album_id.map(|id| id as i64),
@@ -259,6 +272,11 @@ impl Store {
                     play.artist,
                     play.duration,
                     play.device,
+                    quality,
+                    codec,
+                    bit_depth,
+                    sample_rate,
+                    bit_perfect,
                 ],
             )?;
         }
@@ -405,6 +423,7 @@ mod tests {
                 artist_id: None,
                 artist: None,
                 duration: None,
+                format: None,
             }],
             ..PlayBatch::default()
         };
@@ -450,6 +469,7 @@ mod tests {
             artist_id: Some(3),
             artist: Some("a".repeat(1_000)),
             duration: Some(200),
+            format: Some(formats::tests::format("LOSSLESS", 16, 44100, false)),
         };
         let batch = PlayBatch {
             plays: vec![
@@ -466,11 +486,22 @@ mod tests {
                     duration: Some(-1),
                     ..good.clone()
                 },
+                // Unknown quality (newer version): the listen is kept without its format.
+                SyncPlay {
+                    track_id: 7,
+                    format: Some(PlayFormat {
+                        quality: "DOLBY_ATMOS".into(),
+                        ..formats::tests::format("LOSSLESS", 16, 44100, false)
+                    }),
+                    ..good.clone()
+                },
             ],
             ..PlayBatch::default()
         };
         let checked = batch.received(10_000, is_uuid).unwrap();
-        assert_eq!(checked.plays.len(), 1);
+        assert_eq!(checked.plays.len(), 2);
+        assert!(checked.plays[0].format.is_some());
+        assert_eq!(checked.plays[1].format, None);
         assert_eq!(
             checked.plays[0].artist.as_ref().unwrap().chars().count(),
             300
@@ -498,5 +529,31 @@ mod tests {
         };
         store.set_sync_state(&state).unwrap();
         assert_eq!(store.sync_state().unwrap(), state);
+    }
+
+    #[test]
+    fn formats_travel_with_their_listens() {
+        let pc = Store::in_memory().unwrap();
+        let phone = Store::in_memory().unwrap();
+        let hires = formats::tests::format("HI_RES_LOSSLESS", 24, 96000, true);
+        phone
+            .add_play(&super::super::plays::Play {
+                track: &super::super::plays::tests::track(1, 10, 110),
+                album: &super::super::plays::tests::album(10),
+                source: None,
+                played_at: 100,
+                format: Some(&hires),
+            })
+            .unwrap();
+        play(&phone, 2, 10, 200);
+        let push = sent(&phone, 0, Outgoing::Own);
+        assert_eq!(push.batch.plays[0].format, Some(hires));
+        assert_eq!(push.batch.plays[1].format, None);
+        let json = serde_json::to_string(&push.batch.plays[1]).unwrap();
+        assert!(!json.contains("format"), "{json}");
+        pc.merge_plays(&push.batch, &pc.device_id().unwrap())
+            .unwrap();
+        let totals = pc.audio_totals(super::super::Span::since(0)).unwrap();
+        assert_eq!((totals.known, totals.hires, totals.bit_perfect), (1, 1, 1));
     }
 }
