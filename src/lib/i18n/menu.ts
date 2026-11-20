@@ -25,6 +25,9 @@ export const fr = {
   artistBlocked: (name: string) => `${name} ne sera plus proposé`,
   trackInfo: "Infos du titre",
   copyLink: "Copier le lien",
+  // "Now playing" card as an image (#518).
+  shareImage: "Copier en image",
+  imageCopied: "Image copiée",
   // Dossiers de playlists (#331).
   moveToFolder: "Déplacer vers un dossier…",
   pin: "Épingler dans la barre latérale",
@@ -78,6 +81,8 @@ export const en: typeof fr = {
   artistBlocked: (name: string) => `${name} won't be suggested any more`,
   trackInfo: "Track info",
   copyLink: "Copy link",
+  shareImage: "Copy as image",
+  imageCopied: "Image copied",
   moveToFolder: "Move to folder…",
   pin: "Pin to sidebar",
   unpin: "Unpin from sidebar",
