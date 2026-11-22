@@ -13,7 +13,7 @@ Instructions specific to the maintainer's machine and accounts, imported by [`CL
 - Repository: [`BeBanana1/Seaglass`](https://github.com/BeBanana1/Seaglass) (public, `origin`), since 2026-11-22. Issues, PRs, CI and releases all live there.
 - Claude acts as the maintainer's **BeBanana1** account (their choice: no separate bot account), through `gh` with the fine-grained token in the user environment variable `GITHUB_CLAUDE_TOKEN`, passed per command: `$env:GH_TOKEN = [Environment]::GetEnvironmentVariable('GITHUB_CLAUDE_TOKEN','User'); gh …`. Never write the token to a file or display it.
 - **Never use the default `gh` login** of the PC: it is another personal account (Guenin04), unrelated to the project, whose name must not appear on it. Check before acting: `gh api user --jq .login` must return `BeBanana1`. If the variable is missing or the token is refused, report it rather than falling back to another login.
-- **Signature**: every comment, issue or PR description Claude writes on GitHub ends with `— Bebanana's Claude companion`, so that the maintainer's own words and Claude's stay apart. Commits are not signed this way (they have `Co-Authored-By`).
+- **Signature**: every comment, issue or PR description Claude writes on GitHub ends with `— Bebanana's Claude companion`, so that the maintainer's own words and Claude's stay apart. It is the only signature: no "Generated with Claude Code" footer in PR descriptions (maintainer's choice, it would sign twice). Commits are not signed this way (they keep `Co-Authored-By`).
 - Pushes go over SSH with the PC's key, registered on BeBanana1 (`ssh -T git@github.com` answers `Hi BeBanana1!`).
 
 ## Gitea archive
