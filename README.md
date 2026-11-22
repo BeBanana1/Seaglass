@@ -197,7 +197,7 @@ pnpm test
 
 Interface preview without Tauri, on mock data: `pnpm dev`, then `http://127.0.0.1:1420/?theme=studio&route=album` (see [`docs/interface.md`](docs/interface.md), "Preview without Tauri").
 
-How to contribute (build, checks, commits, pull requests) is in [`CONTRIBUTING.md`](CONTRIBUTING.md), how to report a vulnerability in [`SECURITY.md`](SECURITY.md). Architecture, conventions and roadmap are described in [`CLAUDE.md`](CLAUDE.md), implementation notes per area in [`docs/`](docs/) and versions in [`CHANGELOG.md`](CHANGELOG.md). Bugs and requests are tracked in the issues of the Gitea repository; each fix goes through an `issue-<n>-…` branch and a PR that closes the issue. The `relay/` folder holds the Jam relay (deployment in [`relay/README.md`](relay/README.md)), and `spike/` the phase 0 Python script that validated the stream formats.
+How to contribute (build, checks, commits, pull requests) is in [`CONTRIBUTING.md`](CONTRIBUTING.md), how to report a vulnerability in [`SECURITY.md`](SECURITY.md). Architecture, conventions and roadmap are described in [`CLAUDE.md`](CLAUDE.md), implementation notes per area in [`docs/`](docs/) and versions in [`CHANGELOG.md`](CHANGELOG.md). Bugs and requests are tracked in the [GitHub issues](https://github.com/BeBanana1/Seaglass/issues); each fix goes through an `issue-<n>-…` branch and a PR that closes the issue. The `relay/` folder holds the Jam relay (deployment in [`relay/README.md`](relay/README.md)), and `spike/` the phase 0 Python script that validated the stream formats.
 
 ## Building and self-hosting
 

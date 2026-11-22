@@ -39,8 +39,7 @@ changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude)docs/' \
   ':(exclude)LICENSE' \
   ':(exclude).env.example' \
-  ':(exclude).gitea/' \
-  ':(exclude)ci/' \
+  ':(exclude).github/' \
   ':(exclude)scripts/' \
   ':(exclude)spike/' \
   ':(exclude)relay/' \
@@ -49,6 +48,7 @@ changed=$(git diff --name-only "$tag" HEAD -- . \
   ':(exclude).mcp.json' \
   ':(exclude).gitignore' \
   ':(exclude).gitattributes' \
+  ':(exclude).git-blame-ignore-revs' \
   ':(exclude)src/lib/mock/' \
   ':(exclude,glob)src/**/*.test.ts' \
   ':(exclude)src/lib/testing/')

@@ -22,8 +22,6 @@ src/lib/mock/fixtures.json
 src-tauri/binaries/
 # Artefacts produits par scripts/release.ps1
 release/
-# État du runner CI (identité, cache), s'il est lancé depuis le dépôt
-ci/data/
 
 # Worktrees des sessions Claude Code (locaux)
 .claude/worktrees/
