@@ -229,7 +229,7 @@ SEAGLASS_UPDATE_BASE_URL=https://updates.example.org/seaglass
 
 1. Bump `VERSION` (and `src-tauri/Cargo.toml`), add the `CHANGELOG.md` entry, commit.
 2. `pnpm release:all`: builds the Windows installer, the APK and the AppImage (in WSL), signed, with the update manifests, without publishing anything. `pnpm release` only builds the Windows installer.
-3. `pnpm release:all -Publish`: publishes to the updates folder, adds the `v<version>` tag and creates the Gitea release.
+3. `pnpm release:all -Publish`: publishes to the updates folder, adds the `v<version>` tag and creates the GitHub release.
 
 Details, environment variables and keys in [`docs/release.md`](docs/release.md). The private signing keys (updater and APK) must be backed up: without them, installed versions will refuse every update.
 

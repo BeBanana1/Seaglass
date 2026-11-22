@@ -12,8 +12,8 @@
        release/<version>/Seaglass_<version>_arm64.apk
   5. Avec -Publish : copie l'APK puis le manifeste vers SEAGLASS_RELEASE_DEST, pose le
      tag `v<version>` s'il n'existe pas (même tag que l'installeur Windows : il doit alors
-     pointer sur HEAD), puis joint l'APK à la release Gitea du tag (`gitea-release.ps1`,
-     sauf avec -SkipGiteaRelease).
+     pointer sur HEAD), puis joint l'APK à la release GitHub du tag (`github-release.ps1`,
+     sauf avec -SkipGitHubRelease).
 
   -PublishOnly saute les étapes 2 à 4 et publie le dernier build, s'il a été fait sur ce
   commit, arbre propre (`release-all.ps1` construit Windows et Android avant de publier).
@@ -46,8 +46,8 @@ param(
     [switch]$AllowDirty,
     # Publie le dernier build au lieu d'en refaire un (implique -Publish).
     [switch]$PublishOnly,
-    # La release Gitea est faite par l'appelant (release-all.ps1).
-    [switch]$SkipGiteaRelease
+    # La release GitHub est faite par l'appelant (release-all.ps1).
+    [switch]$SkipGitHubRelease
 )
 
 $ErrorActionPreference = 'Stop'
@@ -244,17 +244,17 @@ if ($tagExists) {
     if ($LASTEXITCODE -ne 0) { Fail "échec du push du tag" }
 }
 Write-Host "APK Seaglass $version publié." -ForegroundColor Green
-if ($SkipGiteaRelease) { exit 0 }
+if ($SkipGitHubRelease) { exit 0 }
 
 # L'APK est déjà en ligne : un échec ici n'est qu'un avertissement (#108).
 try {
-    & (Join-Path $PSScriptRoot 'gitea-release.ps1') -Version $version
-    $giteaOk = $LASTEXITCODE -eq 0
+    & (Join-Path $PSScriptRoot 'github-release.ps1') -Version $version
+    $githubOk = $LASTEXITCODE -eq 0
 } catch {
     Write-Host "ERREUR : $_" -ForegroundColor Red
-    $giteaOk = $false
+    $githubOk = $false
 }
-if (-not $giteaOk) {
-    Write-Host ("ATTENTION : APK non joint à la release Gitea, il reste publié.`n" +
-        "    Pour le refaire seul : powershell -File scripts/gitea-release.ps1") -ForegroundColor Yellow
+if (-not $githubOk) {
+    Write-Host ("ATTENTION : APK non joint à la release GitHub, il reste publié.`n" +
+        "    Pour le refaire seul : powershell -File scripts/github-release.ps1") -ForegroundColor Yellow
 }

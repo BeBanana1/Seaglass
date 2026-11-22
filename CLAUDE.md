@@ -141,7 +141,7 @@ pnpm format                                       # Prettier on src/ (CI: pnpm f
 pnpm check
 pnpm test                                         # frontend tests (vitest)
 pnpm release                                      # signed installer in release/ (see docs/release.md)
-pnpm release:all -Publish                         # Windows + Android + Linux (WSL), tag, Gitea release
+pnpm release:all -Publish                         # Windows + Android + Linux (WSL), tag, GitHub release
 ```
 
 ## Conventions

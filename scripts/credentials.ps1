@@ -1,5 +1,5 @@
 # Lecture d'une entrée générique du Gestionnaire d'identifiants Windows, partagée par
-# release.ps1 (mot de passe de la clé de signature) et gitea-release.ps1 (jeton Gitea).
+# release.ps1 (mot de passe de la clé de signature) et github-release.ps1 (jeton GitHub).
 # À charger avec « . (Join-Path $PSScriptRoot 'credentials.ps1') ».
 
 # Secret d'une entrée générique (CRED_TYPE_GENERIC), $null si elle n'existe pas.
