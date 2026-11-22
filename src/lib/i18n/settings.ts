@@ -431,7 +431,7 @@ export const fr = {
   website: "Site web",
   sourceCode: "Code source",
   reportIssue: "Signaler un bug ou proposer une idée",
-  reportIssueHint: "Un compte sur git.bebanana.ch est nécessaire pour ouvrir une issue.",
+  reportIssueHint: "Un compte GitHub est nécessaire pour ouvrir une issue.",
 
   update: {
     ready: "Mise à jour prête",
@@ -852,7 +852,7 @@ export const en: typeof fr = {
   website: "Website",
   sourceCode: "Source code",
   reportIssue: "Report a bug or suggest an idea",
-  reportIssueHint: "Opening an issue requires an account on git.bebanana.ch.",
+  reportIssueHint: "Opening an issue requires a GitHub account.",
 
   update: {
     ready: "Update ready",

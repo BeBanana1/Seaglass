@@ -38,8 +38,7 @@ seaglass/
 ├─ CLAUDE.md
 ├─ CHANGELOG.md              # version log
 ├─ docs/                     # implementation notes per area (see "Documentation")
-├─ .gitea/workflows/ci.yml   # CI (dedicated runner, see ci/)
-├─ ci/                       # CI job image and act_runner (Docker, server)
+├─ .github/                  # CI (workflows/ci.yml, GitHub Actions), issue and PR templates
 ├─ spike/                    # phase 0: throwaway Python scripts
 ├─ relay/                    # Jam relay (#25): separate crate, Docker behind Caddy
 ├─ site/                     # project website (#517): static pages, scripts/publish-site.ps1
@@ -116,7 +115,7 @@ Implementation notes, read on demand: verified endpoints, measurements, pitfalls
 | [`docs/linux.md`](docs/linux.md) | what differs on Linux (audio output, stopping mpv, exclusive mode), building and testing in WSL | desktop `cfg(not(windows))` code, a Linux package |
 | [`docs/android.md`](docs/android.md) | Android app status, Media3 engine, media session, native bridge, secrets, touch layout, APK distribution, building and testing on the S21 | `media3.rs`, `android.rs`, `plugins/seaglass-mobile/`, `gen/android/`, `data-platform="android"` styles |
 | [`docs/jam.md`](docs/jam.md) | local and online Jam, guest API, safeguards, relay, links from other services, remote control | `jam/`, `foreign/`, `relay/` |
-| [`docs/release.md`](docs/release.md) | NSIS installer, bundled mpv, updates, signing, release scripts, Gitea release, CI and runner | `scripts/`, `updater.rs`, `tauri*.conf.json`, `.gitea/`, `ci/` |
+| [`docs/release.md`](docs/release.md) | NSIS installer, bundled mpv, updates, signing, release scripts, release on the forge, CI | `scripts/`, `updater.rs`, `tauri*.conf.json`, `.github/` |
 | [`docs/audits.md`](docs/audits.md) | past audits and what they ruled out | a security or performance question already settled |
 
 ## Commands
@@ -158,7 +157,8 @@ pnpm release:all -Publish                         # Windows + Android + Linux (W
 
 ## Issues and pull requests
 
-- **Labels** (Gitea scoped labels): `platform/android` | `platform/windows` | `platform/linux` (exclusive; none = all), `type/bug` | `feature` | `improvement` | `perf` | `security` | `chore` | `docs` (exclusive), `area/player` | `tidal` | `ui` | `theme` | `library` | `release` | `ci` (several allowed), `status/needs-info` | `blocked` | `wontdo` | `duplicate` (exclusive). Every issue created or handled gets at least one `type/` and one `area/`; `status/needs-info` when it waits for an answer from the maintainer or the reporter, removed once they answered; `status/wontdo` on a rejected proposal.
+- **Repository**: [`BeBanana1/Seaglass`](https://github.com/BeBanana1/Seaglass) on GitHub (issues, PRs, CI, releases). The former Gitea repository is a private archive (`docs/maintainer.md`): a `#n` up to 528 in a commit older than 2026-11-22 refers to a Gitea issue or PR, not a GitHub one.
+- **Labels**: `platform/android` | `platform/windows` | `platform/linux` (one at most; none = all), `type/bug` | `feature` | `improvement` | `perf` | `security` | `chore` | `docs` (one), `area/player` | `tidal` | `ui` | `theme` | `library` | `release` | `ci` (several allowed), `status/needs-info` | `blocked` | `wontdo` | `duplicate` (one at most; GitHub does not enforce it). Every issue created or handled gets at least one `type/` and one `area/`; `status/needs-info` when it waits for an answer from the maintainer or the reporter, removed once they answered; `status/wontdo` on a rejected proposal.
 - To handle an issue: read it with its comments, post a comment with the plan before coding, work on an `issue-<n>-<topic>` branch, reference the issue in the commit (`fix(ui): … (#8)`) and open a PR to `main` with `Closes #<n>`. Answer in the issue when a question comes up rather than guessing.
 - **Several issues in a row**: open each issue's PR as soon as its branch is verified and pushed, before moving to the next one, so that CI jobs spread out instead of piling up at the end. Each change set bumps `VERSION` and `CHANGELOG.md`: branch off the previous branch rather than `main` (stacked PRs, otherwise they conflict) and state the merge order in each description.
 
@@ -172,10 +172,10 @@ pnpm release:all -Publish                         # Windows + Android + Linux (W
 - **Documentation**: this file stays short. What is learned while handling an issue (verified endpoint, measurement, pitfall, decision and its reason) goes into the area's file in `docs/`, in the same PR. Fix or remove what is outdated rather than appending.
 - **Changelog**: every `VERSION` change adds its entry at the top of `CHANGELOG.md` (one line, with the issue number; platform prefixes `Android:`, `Windows:`, `Linux:`, `Desktop:`). After a release, the title of the tagged version gets "(published <YYYY-MM-DD>)": the app's parser reads these exact markers.
 - Update the "Status" line and the roadmap of this file at the end of each phase.
-- `CONTRIBUTING.md` restates the conventions for human contributors, `SECURITY.md` the reporting policy, `.gitea/ISSUE_TEMPLATE/` and `.gitea/PULL_REQUEST_TEMPLATE.md` the forms: update them when a convention here changes.
+- `CONTRIBUTING.md` restates the conventions for human contributors, `SECURITY.md` the reporting policy, `.github/ISSUE_TEMPLATE/` and `.github/PULL_REQUEST_TEMPLATE.md` the forms: update them when a convention here changes.
 
 ## Maintainer setup
 
-Accounts, tools and devices specific to the maintainer (Gitea access through the `claude` account, answering in French, test devices) are in `docs/maintainer.md`, imported here:
+Accounts, tools and devices specific to the maintainer (GitHub access as BeBanana1 with a signature, Gitea archive, answering in French, test devices) are in `docs/maintainer.md`, imported here:
 
 @docs/maintainer.md

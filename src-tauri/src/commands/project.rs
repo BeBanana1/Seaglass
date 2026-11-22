@@ -8,7 +8,7 @@ use tauri_plugin_opener::OpenerExt;
 
 use super::{CmdResult, err};
 
-const REPO: &str = "https://git.bebanana.ch/bebanana/Seaglass";
+const REPO: &str = "https://github.com/BeBanana1/Seaglass";
 const WEBSITE: &str = "https://seaglass.bebanana.ch";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -27,7 +27,7 @@ impl ProjectPage {
         match self {
             Self::Website => WEBSITE.to_owned(),
             Self::Repo => REPO.to_owned(),
-            Self::NewIssue => format!("{REPO}/issues/new"),
+            Self::NewIssue => format!("{REPO}/issues/new/choose"),
         }
     }
 }
@@ -46,11 +46,11 @@ mod tests {
         let page: ProjectPage = serde_json::from_str(r#""newIssue""#).unwrap();
         assert_eq!(
             page.url(),
-            "https://git.bebanana.ch/bebanana/Seaglass/issues/new"
+            "https://github.com/BeBanana1/Seaglass/issues/new/choose"
         );
         assert_eq!(
             ProjectPage::Repo.url(),
-            "https://git.bebanana.ch/bebanana/Seaglass"
+            "https://github.com/BeBanana1/Seaglass"
         );
         let page: ProjectPage = serde_json::from_str(r#""website""#).unwrap();
         assert_eq!(page.url(), "https://seaglass.bebanana.ch");

@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.106
+
+- The project moved to GitHub: "Source code" and "Report a bug" in Settings › Application now open github.com/BeBanana1/Seaglass.
+
 ## 0.5.105
 
 - Desktop: "Copy as image" in the Now playing menu: a square card with the cover, title, artists, album and the played format, in the theme's colors, copied to the clipboard (#518).

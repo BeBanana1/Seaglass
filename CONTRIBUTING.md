@@ -42,13 +42,14 @@ Tests marked `#[ignore]` (`cargo test live_… -- --ignored`) call the real TIDA
 ## Commits and pull requests
 
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/) with a scope: `fix(player): …`, `feat(ui): …`, `docs: …`. Reference the issue: `fix(ui): … (#123)`.
-- One branch per issue, named `issue-<n>-<topic>`, and a pull request to `main` with `Closes #<n>`.
+- One branch per issue, named `issue-<n>-<topic>`, and a pull request to `main` with `Closes #<n>` (from a fork if you are not a collaborator). CI (GitHub Actions) must pass.
+- Issue numbers before 2026-11-22 (up to #528, in old commits and docs) refer to the project's former Gitea repository, now a private archive, not to GitHub issues.
 - **Version**: any change to the shipped app (code, config, dependencies) bumps the patch number in `VERSION` **and** in `src-tauri/Cargo.toml`, and adds a one-line entry at the top of [`CHANGELOG.md`](CHANGELOG.md) (prefix `Android:`, `Windows:`, `Linux:` or `Desktop:` when it concerns one platform only; the app shows this log to users). Documentation alone (`*.md`) does not change the version. CI checks this (`scripts/check-version.sh`).
 - What you learn while working (verified endpoint, measurement, pitfall, decision and its reason) goes into the area's file in `docs/`, in the same pull request.
 
 ## AI assistants
 
-The maintainer works with Claude Code: [`CLAUDE.md`](CLAUDE.md) and `.claude/` hold its instructions (the parts specific to the maintainer's machine and accounts are in [`docs/maintainer.md`](docs/maintainer.md)), and some issues, comments and pull requests come from the `claude` account. Contributions made with an assistant are welcome under the same rules; you stay responsible for what you submit and must have checked it.
+The maintainer works with Claude Code: [`CLAUDE.md`](CLAUDE.md) and `.claude/` hold its instructions (the parts specific to the maintainer's machine and accounts are in [`docs/maintainer.md`](docs/maintainer.md)), and the issues, comments and pull requests it writes on the maintainer's account end with "— Bebanana's Claude companion". Contributions made with an assistant are welcome under the same rules; you stay responsible for what you submit and must have checked it.
 
 ## License
 

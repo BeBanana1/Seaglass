@@ -22,5 +22,5 @@ indent_size = 4
 # Two trailing spaces are a line break in Markdown.
 trim_trailing_whitespace = false
 
-[{*.sh,ci/**}]
+[*.sh]
 end_of_line = lf
