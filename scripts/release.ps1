@@ -14,7 +14,7 @@
        release/<version>/Seaglass_<version>_x64-setup.exe
   5. Avec -Publish : copie `release/` vers SEAGLASS_RELEASE_DEST, pose et pousse le tag
      git `v<version>` (sauf s'il est déjà sur HEAD : release Android), puis crée la release
-     Gitea du tag (`gitea-release.ps1`, sauf avec -SkipGiteaRelease).
+     GitHub du tag (`github-release.ps1`, sauf avec -SkipGitHubRelease).
 
   -PublishOnly saute les étapes 2 à 4 et publie le dernier build, s'il a été fait sur ce
   commit, arbre propre (`release-all.ps1` construit Windows et Android avant de publier).
@@ -31,7 +31,7 @@
                               mot de passe de la clé ; sinon entrée générique
                               « seaglass-signing-key » du Gestionnaire d'identifiants,
                               sinon demandé au clavier
-    SEAGLASS_GITEA_TOKEN      jeton Gitea de la release (voir gitea-release.ps1)
+    SEAGLASS_GITHUB_TOKEN     jeton GitHub de la release (voir github-release.ps1)
 
 .EXAMPLE
   pnpm release                      # construit dans release/, ne publie rien
@@ -47,8 +47,8 @@ param(
     [switch]$AllowDirty,
     # Publie le dernier build au lieu d'en refaire un (implique -Publish).
     [switch]$PublishOnly,
-    # La release Gitea est faite par l'appelant (release-all.ps1).
-    [switch]$SkipGiteaRelease
+    # La release GitHub est faite par l'appelant (release-all.ps1).
+    [switch]$SkipGitHubRelease
 )
 
 $ErrorActionPreference = 'Stop'
@@ -246,17 +246,17 @@ if ($tagExists) {
     if ($LASTEXITCODE -ne 0) { Fail "échec du push du tag" }
 }
 Write-Host "Seaglass $version publiée." -ForegroundColor Green
-if ($SkipGiteaRelease) { exit 0 }
+if ($SkipGitHubRelease) { exit 0 }
 
 # La mise à jour est déjà en ligne : un échec ici n'est qu'un avertissement (#108).
 try {
-    & (Join-Path $PSScriptRoot 'gitea-release.ps1') -Version $version
-    $giteaOk = $LASTEXITCODE -eq 0
+    & (Join-Path $PSScriptRoot 'github-release.ps1') -Version $version
+    $githubOk = $LASTEXITCODE -eq 0
 } catch {
     Write-Host "ERREUR : $_" -ForegroundColor Red
-    $giteaOk = $false
+    $githubOk = $false
 }
-if (-not $giteaOk) {
-    Write-Host ("ATTENTION : release Gitea non créée, la mise à jour reste publiée.`n" +
-        "    Pour la refaire seule : powershell -File scripts/gitea-release.ps1") -ForegroundColor Yellow
+if (-not $githubOk) {
+    Write-Host ("ATTENTION : release GitHub non créée, la mise à jour reste publiée.`n" +
+        "    Pour la refaire seule : powershell -File scripts/github-release.ps1") -ForegroundColor Yellow
 }

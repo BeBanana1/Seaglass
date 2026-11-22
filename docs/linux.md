@@ -105,7 +105,7 @@ Debian 12, Mint 21, Fedora 36 and newer (stated on the download page).
   fails. Outputs: `release/<version>/Seaglass_<version>_amd64.AppImage` and its `.sig`,
   `release/linux.json` (version, URL, SHA-256, size, glibc, notes) and the marker
   `release/.build/linux.json`. `-PublishOnly`, publishing (AppImage then manifest), tag
-  and Gitea release as for Android.
+  and GitHub release as for Android.
 - **Download page**: Linux card filled from `linux.json` (same code as the
   Android card), with the note "mpv required".
 - First build (2026-11-11, 0.5.7): full build in 2 min, 94 MB AppImage,
