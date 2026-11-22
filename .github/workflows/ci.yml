@@ -3,12 +3,12 @@
 # the signing keys stay on the maintainer's PC (docs/release.md, "No release in CI").
 name: CI
 
+# No `paths-ignore`: `linux` and `windows` are required checks on `main`, and a PR whose
+# required checks never run (documentation only) could never be merged.
 on:
   push:
     branches: [main]
-    paths-ignore: ["**.md", "LICENSE"]
   pull_request:
-    paths-ignore: ["**.md", "LICENSE"]
 
 # A PR's code must not be able to write to the repository.
 permissions:
