@@ -25,7 +25,8 @@
 
   Settings:
     SEAGLASS_GITHUB_TOKEN  token of the account that owns the release (fine-grained,
-                           "Contents: Read and write" on the repository); otherwise the
+                           "Contents: Read and write" on the repository; environment or
+                           .env, never embedded in the app by build.rs); otherwise the
                            generic Credential Manager entry "seaglass-github-token"
                            (cmdkey /generic:seaglass-github-token /user:seaglass /pass)
     SEAGLASS_GITHUB_REPO   repository `owner/name` (required; environment or .env)
@@ -118,15 +119,19 @@ if (-not $remoteTag) { Fail "tag $tag is not on origin (push it first)" }
 
 # --- Token ------------------------------------------------------------------------------
 # Never shown nor written; only this process's `gh` calls see it.
-$token = $env:SEAGLASS_GITHUB_TOKEN
+$token = Get-ReleaseSetting 'SEAGLASS_GITHUB_TOKEN'
 if (-not $token) { $token = Read-StoredSecret 'seaglass-github-token' }
 if (-not $token) {
-    Fail "GitHub token missing: set SEAGLASS_GITHUB_TOKEN or the Credential Manager entry 'seaglass-github-token'"
+    Fail "GitHub token missing: set SEAGLASS_GITHUB_TOKEN (environment or .env) or the Credential Manager entry 'seaglass-github-token'"
 }
 $previousToken = $env:GH_TOKEN
 $env:GH_TOKEN = $token
 $token = $null
 
+# Under Windows PowerShell 5.1, 'Stop' turns any stderr line of a native command into a
+# terminating error ("release not found" is an expected answer): every `gh` call below
+# checks $LASTEXITCODE instead.
+$ErrorActionPreference = 'Continue'
 try {
     $login = gh api user --jq .login 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $login) { Fail "GitHub token refused" }
