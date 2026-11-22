@@ -2,6 +2,11 @@
 
 Seaglass implementation notes, read on demand (index in [`CLAUDE.md`](../CLAUDE.md)).
 
+## Dependency advisories that cannot be fixed (2026-11-22)
+
+- **`glib` 0.18, RUSTSEC-2024-0429** (unsound `VariantStrIter` iterators, Dependabot asks for `>= 0.20`): pulled in by Tauri itself on Linux (`tauri`, `tauri-runtime-wry`, `wry`, `tao`, `muda`, `webkit2gtk` through `gtk` 0.18, `cargo tree -i glib@0.18.5 --target x86_64-unknown-linux-gnu`). The Rust GTK 3 bindings stopped at 0.18; 0.20 only exists for GTK 4, so no compatible version exists until Tauri moves to GTK 4. Seaglass never calls `VariantStrIter` and the crate is Linux-only. `cargo audit` only warns on it; the Dependabot alert is dismissed as "vulnerable code is not actually used". Recheck when Tauri changes its GTK version.
+- Same situation, warnings only: `proc-macro-error` (build-time macro), `zbus_names` / `zvariant` / `zvariant_derive` (D-Bus, Linux), all unmaintained, no fixed upgrade.
+
 ## Audit of 2026-11-10 (0.4.94)
 
 Audit of the whole project by reading the code, with `fmt`, `clippy`, the tests and `pnpm check`. Nothing serious. Follow-ups in issues #253 to #265: Jam relay reconnection (#253), Android media session commands (#254), frozen or crashed mpv (#255), Jam limits (#256, #257), sign-in page cookies (#258), session rejected midway (#259), saving on close (#260), mpv from `PATH` (#261), small defects (#262), `cargo audit` in CI (#263), frontend tests (#264), this split of the documentation (#265). Checked on that occasion in the Tauri 2.12.5 code: a remote origin (sign-in window) always goes through the ACL, even for the app's own commands. Not covered: `cargo audit` (tool missing), on-device testing, Windows `unsafe` code in detail.
