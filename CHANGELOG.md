@@ -14,6 +14,7 @@ shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 ## 0.5.106
 
 - The project moved to GitHub: "Source code" and "Report a bug" in Settings › Application now open github.com/BeBanana1/Seaglass.
+- chore: `url` 2.5.9 (RUSTSEC-2026-0592, stack overflow on nested `blob:` URLs).
 
 ## 0.5.105
 
