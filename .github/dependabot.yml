@@ -1,0 +1,19 @@
+# Dependabot version updates: GitHub Actions only (docs/release.md, "Dependabot").
+# Cargo and npm are covered by Dependabot security alerts and `cargo audit` / `pnpm audit`
+# in CI: a lockfile change counts as an app change for scripts/check-version.sh, so automatic
+# PRs for them would always fail until VERSION is bumped by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # One PR for all the actions of the month.
+    groups:
+      actions:
+        patterns: ["*"]
+    labels:
+      - type/chore
+      - area/ci
+    commit-message:
+      prefix: ci
