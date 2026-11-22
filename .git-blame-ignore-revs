@@ -2,6 +2,6 @@
 # git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 # style(ui): format the frontend with Prettier
-0137560fe77313dfdd7a763968b5b9bc80217325
+20df053d226fc0baa82806b4e1942f385b432e51
 # style(ui): second Prettier pass on the mock backend
-4088ed7eb977f381a230ee0ec34a50e2726b0ab6
+da2ec1ecddf92edd2e678e0f338a66eed85f51ea
