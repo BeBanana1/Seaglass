@@ -64,6 +64,14 @@ jobs:
           pnpm test
           pnpm build
 
+      # Website (#18): its own package, outside the app. The build fails if inline code that
+      # the server's CSP would block is left in a page (site/scripts/no-inline.mjs).
+      - name: Website
+        working-directory: site
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy

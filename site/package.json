@@ -1,0 +1,17 @@
+{
+  "name": "seaglass-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assets": "node scripts/assets.mjs",
+    "dev": "node scripts/assets.mjs && astro dev",
+    "build": "node scripts/assets.mjs && astro build && node scripts/no-inline.mjs",
+    "preview": "node scripts/preview.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.43.1",
+    "astro": "^7.3.6",
+    "sharp": "^0.35.3"
+  }
+}

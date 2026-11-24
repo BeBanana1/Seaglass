@@ -172,7 +172,7 @@ if (-not $PublishOnly) {
     $size = [math]::Round($item.Length / 1MB, 1)
 
     # Manifest of the website's download page (#517), same format as android.json: the page
-    # is static (site/download/) and reads it from the updates folder.
+    # is static (/download/ page of site/) and reads it from the updates folder.
     $download = [ordered]@{
         version  = $version
         url      = "$baseUrl/$version/$setupName"

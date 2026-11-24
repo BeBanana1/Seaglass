@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.astro/
+# Copied from the repository by scripts/assets.mjs
+public/images/
+public/favicon.png
+src/assets/seaglass.svg

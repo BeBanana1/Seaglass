@@ -1,0 +1,214 @@
+/*
+ * Seaglass theme for Starlight: sea-glass teal on deep blue-green greys, in dark (default) and
+ * light mode. Served as a file: the server's CSP forbids inline styles.
+ */
+
+:root {
+  --sl-color-accent-low: #0d3330;
+  --sl-color-accent: #3fb3a4;
+  --sl-color-accent-high: #b6ece4;
+
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #e4eeec;
+  --sl-color-gray-2: #c3d2cf;
+  --sl-color-gray-3: #93a6a3;
+  --sl-color-gray-4: #5f726f;
+  --sl-color-gray-5: #34433f;
+  --sl-color-gray-6: #1b2725;
+  --sl-color-black: #0f1615;
+
+  --sl-font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --sg-glow: rgba(63, 179, 164, 0.3);
+  --sg-sun: rgba(255, 190, 110, 0.16);
+  --sg-card-bg: rgba(27, 39, 37, 0.6);
+  --sg-card-border: rgba(147, 166, 163, 0.18);
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #d3efeb;
+  --sl-color-accent: #24857a;
+  --sl-color-accent-high: #0f4640;
+
+  --sl-color-white: #17201f;
+  --sl-color-gray-1: #24302e;
+  --sl-color-gray-2: #3a4a47;
+  --sl-color-gray-3: #5b6b69;
+  --sl-color-gray-4: #93a6a3;
+  --sl-color-gray-5: #d5dfdd;
+  --sl-color-gray-6: #e6eeec;
+  --sl-color-gray-7: #f1f6f5;
+  --sl-color-black: #ffffff;
+
+  --sg-glow: rgba(36, 133, 122, 0.18);
+  --sg-sun: rgba(255, 170, 80, 0.14);
+  --sg-card-bg: rgba(255, 255, 255, 0.82);
+  --sg-card-border: rgba(23, 32, 31, 0.1);
+}
+
+/* Header: a touch of glass. */
+.header {
+  backdrop-filter: blur(10px);
+  background-color: color-mix(in srgb, var(--sl-color-bg-nav) 85%, transparent);
+}
+
+/* ---------- Home page (splash template) ---------- */
+
+/* Sea glow at the top, a warm sun on the right, like the icon. */
+[data-has-hero] .main-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 46rem;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 40% 35% at 78% 18%, var(--sg-sun), transparent 70%),
+    radial-gradient(ellipse 70% 55% at 30% 0%, var(--sg-glow), transparent 70%);
+}
+
+[data-has-hero] .content-panel {
+  border-top: none;
+}
+
+.hero {
+  position: relative;
+  padding-block: clamp(2.5rem, 8vw, 6rem) clamp(1.5rem, 4vw, 3rem);
+}
+
+.hero h1 {
+  font-size: clamp(2.3rem, 5.2vw, 3.5rem);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  background: linear-gradient(120deg, var(--sl-color-white) 30%, var(--sl-color-accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero .tagline {
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  color: var(--sl-color-gray-2);
+  max-width: 38rem;
+}
+
+.hero img {
+  filter: drop-shadow(0 24px 48px var(--sg-glow));
+}
+
+.sl-link-button {
+  border-radius: 999px !important;
+}
+
+/* Screenshots: one wide, two below. */
+.sg-shots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.sg-shots img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.8rem;
+  border: 1px solid var(--sg-card-border);
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.55);
+}
+
+.sg-shots img.wide {
+  grid-column: 1 / -1;
+}
+
+.sg-caption,
+.sg-notice {
+  text-align: center;
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3);
+}
+
+.sg-notice {
+  margin-top: 3rem !important;
+}
+
+/* Cards: glassy, lift on hover. */
+.card,
+.sg-platform,
+.sg-notes {
+  background: var(--sg-card-bg);
+  border: 1px solid var(--sg-card-border) !important;
+  border-radius: 0.9rem;
+  backdrop-filter: blur(6px);
+}
+
+.card {
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--sl-color-accent) 60%, transparent) !important;
+  box-shadow: 0 14px 32px -16px var(--sg-glow);
+}
+
+/* ---------- Download page ---------- */
+
+.sg-downloads {
+  display: grid;
+  gap: 1rem;
+}
+
+.sg-platform,
+.sg-notes {
+  padding: 1.25rem 1.5rem;
+}
+
+.sg-platform h2,
+.sg-notes h2 {
+  margin: 0 0 0.75rem;
+  font-size: var(--sl-text-h4);
+  color: var(--sl-color-white);
+}
+
+.sg-platform p {
+  margin: 0.75rem 0 0;
+  color: var(--sl-color-gray-2);
+}
+
+.sg-platform code {
+  font-size: 0.9em;
+}
+
+.sg-button {
+  display: inline-block;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  background: var(--sl-color-accent);
+  color: var(--sl-color-black);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sg-button:hover {
+  background: var(--sl-color-accent-high);
+}
+
+.sg-meta {
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3) !important;
+}
+
+.sg-notes {
+  margin-top: 1.5rem;
+}
+
+.sg-notes ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--sl-color-gray-2);
+}
+
+[hidden] {
+  display: none !important;
+}

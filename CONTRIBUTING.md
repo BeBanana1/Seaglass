@@ -15,6 +15,8 @@ Follow "Requirements (development)" and "Getting started" in the [README](README
 
 Without Tauri, the interface runs on mock data in a browser: `pnpm dev`, then `http://127.0.0.1:1420/?theme=studio&route=album`. The URL parameters are listed in [`docs/interface.md`](docs/interface.md) ("Preview without Tauri"). It is the fastest way to work on the UI and the themes.
 
+The website (`site/`, Astro + Starlight) is a separate package: `pnpm --dir site install`, then `pnpm --dir site dev` while writing a page. Before a pull request that touches it, `pnpm --dir site build` (CI runs it: it fails if a page has inline code the server's CSP would block) and `pnpm --dir site preview` to see the build under that CSP ([`docs/release.md`](docs/release.md), "Website").
+
 ## Checks
 
 Everything must pass before a pull request (CI runs the same):
