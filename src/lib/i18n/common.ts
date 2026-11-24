@@ -28,7 +28,7 @@ export const fr = {
   logout: "Se déconnecter",
   loading: "Chargement…",
   close: "Fermer",
-  /** Bandeau de la démo du site (#28). */
+  /** Banner of the website demo (#28). */
   demo: {
     label: "Démo",
     text: "Catalogue inventé, aucun son",

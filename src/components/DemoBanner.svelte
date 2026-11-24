@@ -42,6 +42,11 @@
     font-weight: 600;
   }
 
+  /* Touch layout: above the mini player and the bottom navigation. */
+  :global([data-platform="android"]) .demo-banner {
+    bottom: 136px;
+  }
+
   @media (max-width: 640px) {
     span {
       display: none;

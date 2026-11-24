@@ -1581,7 +1581,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   audio_devices: () => audioDevices,
   // `?platform=android` : mise en page tactile.
-  platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
+  // Website demo (#28): a phone gets the touch layout, as the Android app would show it.
+  platform: () =>
+    params.get("platform") === "android" ||
+    (__DEMO__ && !params.has("platform") && matchMedia("(max-width: 700px)").matches)
+      ? "android"
+      : "desktop",
   autostart_enabled: () => autostart,
   discord_available: () => true,
   exclusive_available: () => true,
