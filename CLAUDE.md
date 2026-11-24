@@ -1,4 +1,4 @@
-# Seaglass
+﻿# Seaglass
 
 Unofficial TIDAL desktop client, with a fully custom UI and lossless / bit-perfect playback handed to mpv.
 Personal project, Windows first.
@@ -26,6 +26,7 @@ This file only keeps what matters for every task. Implementation notes live in `
 | Storage | SQLite (`rusqlite`) for the queue, settings and metadata cache |
 | Secrets | `keyring` (Credential Manager on Windows) |
 | Integrations | Windows SMTC (`windows` crate), MPRIS on Linux (`zbus` 5, already pulled in by the plugins, #312), notification area icon (`tauri`, `tray-icon` feature), Discord presence (hand-written IPC, #215), Last.fm (later) |
+| Website | Astro + Starlight in `site/` (own package, not shipped in the app, GitHub #18) |
 | Updates | `tauri-plugin-updater` (signed NSIS installer, `latest.json` manifest) |
 | System | `tauri-plugin-autostart` (launch at startup, driven from Rust only), `tauri-plugin-single-instance` (single instance, #83), `tauri-plugin-opener` (links in the browser, from Rust only, #188), `tauri-plugin-global-shortcut` (global shortcuts, from Rust only, #413), `qrcode` without its default features (Jam QR code as SVG, #25), `tokio-tungstenite` (connection to the Jam relay, #25; with `rustls`, `rustls-platform-verifier` and `futures-util` as direct dependencies, already compiled by `reqwest`) |
 
@@ -140,6 +141,7 @@ cargo test dump_ui_fixtures -- --ignored          # UI preview data
 pnpm format                                       # Prettier on src/ (CI: pnpm format:check)
 pnpm check
 pnpm test                                         # frontend tests (vitest)
+pnpm --dir site dev                               # website (build: `build`, then `preview` under the server's CSP)
 pnpm release                                      # signed installer in release/ (see docs/release.md)
 pnpm release:all -Publish                         # Windows + Android + Linux (WSL), tag, GitHub release
 ```
