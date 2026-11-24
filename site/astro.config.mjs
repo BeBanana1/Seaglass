@@ -33,6 +33,8 @@ export default defineConfig({
       sidebar: [
         { label: "Download", slug: "download" },
         { label: "Installation", slug: "install" },
+        // The app demo (#28): built from the app by scripts/publish-site.ps1, not a Starlight page.
+        { label: "Try it in your browser", link: "/try/" },
       ],
     }),
   ],

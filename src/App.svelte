@@ -63,6 +63,7 @@
   import SelectionBar from "./components/SelectionBar.svelte";
   import { selection } from "./lib/stores/selection.svelte";
   import Toasts from "./components/Toasts.svelte";
+  import DemoBanner from "./components/DemoBanner.svelte";
   import UpdatePrompt from "./components/UpdatePrompt.svelte";
   import ContextMenu from "./components/ContextMenu.svelte";
   import PlaylistPicker from "./components/PlaylistPicker.svelte";
@@ -140,7 +141,7 @@
       void events.onOpenPin(playPinFromOutside);
       void playPinFromOutside();
     }
-    if (import.meta.env.DEV && !("__TAURI_INTERNALS__" in window)) {
+    if ((import.meta.env.DEV || __DEMO__) && !("__TAURI_INTERNALS__" in window)) {
       const view = (await import("./lib/mock")).initialView();
       if (view.route) go(view.route);
       nowPlayingOpen = view.nowPlaying;
@@ -595,6 +596,7 @@
   <SelectionBar />
 {/if}
 <Toasts />
+{#if __DEMO__}<DemoBanner />{/if}
 <UpdatePrompt />
 <ContextMenu />
 <PlaylistPicker />

@@ -13,6 +13,11 @@ const LIVE = "https://seaglass.bebanana.ch";
 const CSP =
   "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; " +
   "base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+// The app demo (/try/, #28): built by Vite, not by Astro, and Svelte writes `style` attributes;
+// it also draws a few images as `data:` (theme effects). Same as the Caddy block.
+const TRY_CSP =
+  "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; " +
+  "img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -32,9 +37,9 @@ async function file(path) {
 }
 
 createServer(async (req, res) => {
-  res.setHeader("Content-Security-Policy", CSP);
-  res.setHeader("X-Content-Type-Options", "nosniff");
   const url = new URL(req.url ?? "/", "http://localhost");
+  res.setHeader("Content-Security-Policy", url.pathname.startsWith("/try/") ? TRY_CSP : CSP);
+  res.setHeader("X-Content-Type-Options", "nosniff");
   if (url.pathname.startsWith("/updates/")) {
     const live = await fetch(LIVE + url.pathname).catch(() => null);
     res.writeHead(live?.status ?? 502, { "Content-Type": "application/json" });
