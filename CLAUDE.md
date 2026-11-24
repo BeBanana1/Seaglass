@@ -117,6 +117,7 @@ Implementation notes, read on demand: verified endpoints, measurements, pitfalls
 | [`docs/android.md`](docs/android.md) | Android app status, Media3 engine, media session, native bridge, secrets, touch layout, APK distribution, building and testing on the S21 | `media3.rs`, `android.rs`, `plugins/seaglass-mobile/`, `gen/android/`, `data-platform="android"` styles |
 | [`docs/jam.md`](docs/jam.md) | local and online Jam, guest API, safeguards, relay, links from other services, remote control | `jam/`, `foreign/`, `relay/` |
 | [`docs/release.md`](docs/release.md) | NSIS installer, bundled mpv, updates, signing, release scripts, release on the forge, CI | `scripts/`, `updater.rs`, `tauri*.conf.json`, `.github/` |
+| [`docs/self-hosting.md`](docs/self-hosting.md) | step-by-step guide to build, sign and distribute your own Seaglass (links to the files above) | a build or release variable, key or script step, to keep the guide in step |
 | [`docs/audits.md`](docs/audits.md) | past audits and what they ruled out | a security or performance question already settled |
 
 ## Commands

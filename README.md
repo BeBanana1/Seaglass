@@ -199,7 +199,7 @@ How to contribute (build, checks, commits, pull requests) is in [`CONTRIBUTING.m
 
 ## Building and self-hosting
 
-Nothing depends on the author's server: no address or key is written in the code or scripts. They are read at build time, from the environment or from `.env` (full template: [`.env.example`](.env.example)). Without them, the app works without the matching service.
+Nothing depends on the author's server: no address or key is written in the code or scripts. They are read at build time, from the environment or from `.env` (full template: [`.env.example`](.env.example)). Without them, the app works without the matching service. Step-by-step guide, from the keys to the checks: [`docs/self-hosting.md`](docs/self-hosting.md).
 
 To provide yourself:
 
