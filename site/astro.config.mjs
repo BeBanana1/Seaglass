@@ -30,7 +30,10 @@ export default defineConfig({
       social: [{ icon: "github", label: "Source code", href: REPO }],
       editLink: { baseUrl: `${REPO}/edit/main/site/` },
       lastUpdated: false,
-      sidebar: [{ label: "Download", slug: "download" }],
+      sidebar: [
+        { label: "Download", slug: "download" },
+        { label: "Installation", slug: "install" },
+      ],
     }),
   ],
 });

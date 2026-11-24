@@ -139,11 +139,9 @@ Same playlist, in FLAC 16-bit / 44.1 kHz in both apps: Seaglass streamed it, the
 
 ## Installation
 
-Versions published by the author can be downloaded from **https://seaglass.bebanana.ch/download**; to build and distribute your own, without that server, see "Building and self-hosting". After that, the app updates itself: when a new version is ready, it offers "Install and restart" or "Later".
+Versions published by the author can be downloaded from **https://seaglass.bebanana.ch/download**. The step-by-step guide for each system, sign-in and updates is on the website: **https://seaglass.bebanana.ch/install/**. To build and distribute your own, without that server, see "Building and self-hosting".
 
-- **Windows 10 / 11**: run the installer. It installs for the current user, without administrator rights, and mpv is included. The installer has no Windows code-signing certificate: SmartScreen asks for "More info" then "Run anyway". A CPU with AVX2 is required by the bundled mpv build.
-- **Android** (arm64): install the APK, allowing unknown sources.
-- **Linux** (x86_64): make the AppImage executable and run it. mpv comes from the system (`sudo apt install mpv`); tokens are stored in the keyring (Secret Service). Sign-in goes through the system browser: paste the redirect address shown into the app.
+In short: Windows 10 / 11 (64-bit, AVX2) per-user installer with mpv included; Android 7+ (arm64) APK; Linux (x86_64) AppImage, with mpv and a desktop keyring from the system. The app then updates itself.
 
 ## Requirements (development)
 
