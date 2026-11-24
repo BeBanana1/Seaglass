@@ -1,0 +1,125 @@
+---
+title: Installation
+description: Install Seaglass on Windows, Android or Linux, sign in and keep it up to date.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+Seaglass is free, but playing music needs a **TIDAL subscription**. Get the file for your
+system on the [download page](/download/), then follow the steps below.
+
+<Aside type="note">
+  Seaglass is an unofficial client, not affiliated with TIDAL. Streaming only: no audio is
+  downloaded or written to disk, and DRM-protected streams are not played.
+</Aside>
+
+<Tabs syncKey="platform">
+<TabItem label="Windows" icon="seti:windows">
+
+**Requirements**: Windows 10 or 11, 64-bit, with a processor that supports AVX2 (needed by the bundled
+audio player, mpv).
+
+<Steps>
+
+1. Download `Seaglass_<version>_x64-setup.exe` from the [download page](/download/).
+
+2. Run it. Windows may show **"Windows protected your PC"**: click **More info**, then
+   **Run anyway**. The installer is safe but has no Windows code-signing certificate yet, so
+   SmartScreen does not know its publisher.
+
+3. The installer needs no administrator rights: it installs for your user only, in
+   `%LOCALAPPDATA%\Seaglass`, and adds a Start menu shortcut.
+
+4. Launch Seaglass and [sign in](#signing-in).
+
+</Steps>
+
+</TabItem>
+<TabItem label="Android" icon="mobile-android">
+
+**Requirements**: Android 7 or newer, on a 64-bit (ARM) phone or tablet.
+
+<Steps>
+
+1. Open the [download page](/download/) on the phone and download the APK.
+
+2. Open the downloaded file. The first time, Android asks to allow your browser to
+   **install unknown apps**: allow it in the screen it opens, then go back and tap
+   **Install**.
+
+3. Launch Seaglass and [sign in](#signing-in).
+
+</Steps>
+
+Updates are offered by the app itself: no need to come back here.
+
+</TabItem>
+<TabItem label="Linux" icon="linux">
+
+**Requirements**: a 64-bit (x86-64) distribution as recent as Ubuntu 22.04, Debian 12,
+Linux Mint 21 or Fedora 36, a desktop keyring (GNOME Keyring, KWallet) and **mpv**.
+
+<Steps>
+
+1. Install mpv from your distribution:
+
+   ```sh
+   sudo apt install mpv      # Debian, Ubuntu, Mint
+   sudo dnf install mpv      # Fedora
+   ```
+
+2. Download the AppImage from the [download page](/download/) and put it in a folder of your
+   own, for example `~/Applications`: the app replaces this file when it updates, so the
+   folder must be writable.
+
+3. Make it executable and run it:
+
+   ```sh
+   chmod +x ~/Applications/Seaglass_*_amd64.AppImage
+   ~/Applications/Seaglass_*_amd64.AppImage
+   ```
+
+4. [Sign in](#signing-in): on Linux, this goes through your web browser (see below).
+
+</Steps>
+
+<Aside type="caution" title="It does not start?">
+  AppImages need FUSE 2. On Ubuntu 22.04 and newer, install it with
+  `sudo apt install libfuse2` (`libfuse2t64` on Ubuntu 24.04), or run the file with
+  `--appimage-extract-and-run`.
+</Aside>
+
+The session is kept in the desktop keyring. Without one (some minimal window managers),
+sign-in fails with an error rather than losing your session at every launch: install
+GNOME Keyring or KWallet.
+
+</TabItem>
+</Tabs>
+
+## Signing in
+
+The first time, Seaglass asks you to sign in with your TIDAL account. Your password is only
+typed on TIDAL's own page, never in Seaglass; the app keeps a session token in the system's
+secure storage (Windows Credential Manager, Android Keystore, Linux keyring).
+
+- **Windows and Android**: a sign-in window opens inside the app. Sign in; it closes on its own.
+- **Linux**: Seaglass opens TIDAL's sign-in page in your web browser (if none opens, copy the
+  address it shows into any browser). After you sign in, TIDAL shows an **error page**: that
+  is expected. Copy the full address of that page from the address bar (it starts with
+  `https://tidal.com/android/login/auth?code=`), paste it into Seaglass and confirm.
+
+## Updates
+
+Seaglass checks for a new version shortly after it starts, then every few hours.
+
+- **Windows and Linux**: the update downloads in the background and its signature is checked.
+  When it is ready, choose **Install and restart**, or **Later** to install it when you quit.
+- **Android**: the app offers the new version and opens the system installer.
+
+What changed in each version is shown in **Settings › Application**.
+
+## Problems and questions
+
+Report a bug or ask a question on [GitHub](https://github.com/BeBanana1/Seaglass/issues/new/choose)
+(also reachable from **Settings › Application › Report a bug or suggest an idea**; it needs a GitHub account). Say which system and version
+you use, and what you did just before the problem.
