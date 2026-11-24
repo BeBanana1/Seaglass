@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.110
+
+- Desktop: "Copy as image" in the Recap view copies a summary card of the period (listening time, plays, days, new artists and the top 5 tracks) in the active theme's colors (#16).
+
 ## 0.5.109
 
 - Desktop: the soundtrack widescreen bars in "Now playing" no longer hide the end of the queue or lyrics: the content fits between them, the bars follow the window's shape and slide out when the soundtrack ends (#11).

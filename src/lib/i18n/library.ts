@@ -1,8 +1,8 @@
-// Bibliothèque, épingles, filtre et tri des listes, ajout à une playlist.
+// Library, pins, list filter and sort, adding to a playlist.
 
 import { num } from "./state.svelte";
 
-/** Catégories de la bibliothèque chargées avec un plafond (#91). */
+/** Library categories loaded with a cap (#91). */
 export type LimitedTab = "playlists" | "albums" | "artists" | "tracks";
 
 export const fr = {
@@ -18,7 +18,7 @@ export const fr = {
   },
   empty: "Rien ici pour l'instant.",
   noMatch: (query: string) => `Aucun titre ne correspond à « ${query} ».`,
-  // Catégorie coupée au plafond de chargement (#91) ; `total` inconnu : `null`.
+  // Category cut at the loading cap (#91); unknown `total`: `null`.
   truncated: (tab: LimitedTab, shown: number, total: number | null) => {
     const of = total !== null && total > shown ? ` sur ${num(total)}` : "";
     if (tab === "playlists")
@@ -30,7 +30,7 @@ export const fr = {
       : text;
   },
   likedTracks: "Titres likés",
-  // « Plus tard » (#196).
+  // "Save for later" (#196).
   later: {
     empty:
       "Rien de côté. « Enregistrer pour plus tard » dans le menu d'un titre, d'un album ou d'une playlist l'ajoute ici.",
@@ -56,7 +56,7 @@ export const fr = {
     duration: "Durée",
   },
 
-  // Statistiques d'écoute locales (#326).
+  // Local listening stats (#326).
   stats: {
     open: "Statistiques",
     title: "Statistiques d'écoute",
@@ -76,7 +76,7 @@ export const fr = {
     note: "Calculées sur cet appareil, à partir de l'historique d'écoute de Seaglass (avec celui de l'appareil lié, s'il y en a un) : rien n'est envoyé à TIDAL. Elles sont effacées avec l'historique (déconnexion, Réglages › Application).",
   },
 
-  // Rétrospective du mois et de l'année (#417).
+  // Month and year recap (#417).
   recap: {
     open: "Rétrospective",
     title: "Rétrospective",
@@ -118,10 +118,12 @@ export const fr = {
     audioNote: (known: number, plays: number) =>
       `Sur ${num(known)} écoutes sur ${num(plays)} : le format n'est enregistré que depuis la version 0.5.103.`,
     empty: "Pas encore de rétrospective : elle se remplit avec l'historique d'écoute de Seaglass.",
+    share: "Copier en image",
+    topTracks: "Titres les plus écoutés",
     note: "Calculée sur cet appareil, en heure locale. Les découvertes sont les artistes et titres jamais écoutés avant dans Seaglass.",
   },
 
-  // Dossiers de playlists (#331).
+  // Playlist folders (#331).
   folders: {
     count: (n: number) => `${num(n)} ${n > 1 ? "playlists" : "playlist"}`,
     rename: "Renommer",
@@ -273,6 +275,8 @@ export const en: typeof fr = {
     audioNote: (known: number, plays: number) =>
       `Out of ${num(known)} of ${num(plays)} listens: the format is only recorded since version 0.5.103.`,
     empty: "No recap yet: it fills up with Seaglass's listening history.",
+    share: "Copy as image",
+    topTracks: "Most played tracks",
     note: "Computed on this device, in local time. Discoveries are artists and tracks never played before in Seaglass.",
   },
 

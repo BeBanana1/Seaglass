@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Rétrospective du mois et de l'année (#417) : tout est calculé par le backend (`recap`),
-  // la page n'affiche que le résultat de la période choisie parmi celles qui ont des écoutes.
+  // Month and year recap (#417): everything is computed by the backend (`recap`), the page
+  // only shows the result for the period picked among those that have listens.
   import { commands, type MediaItem, type Recap, type RecapPeriod } from "../lib/ipc";
   import { go } from "../lib/stores/nav.svelte";
   import { coverLarge } from "../lib/format";
@@ -12,17 +12,21 @@
   import RecapAudio from "../components/RecapAudio.svelte";
   import { t, num, locale } from "../lib/i18n.svelte";
   import { watchHistory } from "../lib/stores/handoff.svelte";
+  import { platform } from "../lib/platform.svelte";
+  import { pushToast } from "../lib/stores/toasts.svelte";
+  import { copyRecapCard, recapCardText } from "../lib/recapCard";
+  import Icon from "../components/Icon.svelte";
 
   type Mode = "month" | "year";
 
   let periods = $state<RecapPeriod[] | null>(null);
   let mode = $state<Mode>("month");
-  // Index dans `shown`, du plus récent (0) au plus ancien.
+  // Index in `shown`, from the most recent (0) to the oldest.
   let index = $state(0);
   let recap = $state<Recap | null>(null);
   let error = $state<string | null>(null);
 
-  /** Relu quand des écoutes arrivent de l'appareil lié (#430). */
+  /** Reloaded when listens arrive from the linked device (#430). */
   let version = $state(0);
 
   $effect(() => {
@@ -57,7 +61,7 @@
 
   function setMode(next: Mode) {
     if (next === mode) return;
-    // Passe au mois le plus récent de l'année affichée, ou à l'année du mois affiché.
+    // Goes to the latest month of the shown year, or to the year of the shown month.
     const year = period?.year;
     mode = next;
     recap = null;
@@ -112,6 +116,31 @@
       : "";
   }
 
+  /** Summary card as a PNG in the clipboard (#16). Desktop only: Android has no outgoing
+   *  share sheet yet, as for the Now playing card. */
+  async function shareImage() {
+    if (!recap || !period) return;
+    const r = t.library.recap;
+    const s = t.library.stats;
+    const text = recapCardText(recap, label(period), {
+      kicker: r.title,
+      time: s.time,
+      timeLabel: s.timeLabel,
+      playsLabel: s.playsLabel,
+      daysLabel: r.daysLabel,
+      newArtistsLabel: r.newArtistsTitle,
+      topLabel: r.topTracks,
+      plays: s.plays,
+      num: (n) => num(n),
+    });
+    try {
+      await copyRecapCard(text);
+      pushToast({ level: "info", message: t.menu.imageCopied });
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
+
   const topTrack = $derived(recap?.tracks[0]);
   const topArtist = $derived(recap?.artists[0]);
 </script>
@@ -153,6 +182,17 @@
         >
           ›
         </button>
+        {#if !platform.mobile}
+          <button
+            class="recap-share"
+            onclick={shareImage}
+            disabled={!recap || recap.plays === 0}
+            title={t.library.recap.share}
+          >
+            <Icon name="image" size={16} />
+            <span>{t.library.recap.share}</span>
+          </button>
+        {/if}
       </div>
     </div>
   {/if}
@@ -392,6 +432,24 @@
     opacity: 0.35;
   }
 
+  .recap-share {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--bg-raised);
+  }
+
+  .recap-share:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+
+  .recap-share:disabled {
+    opacity: 0.35;
+  }
+
   .recap-hero {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
@@ -454,7 +512,7 @@
     z-index: 0;
   }
 
-  /* Voile sous le texte : lisible sur n'importe quelle pochette. */
+  /* Scrim under the text: readable over any cover. */
   .recap-highlight::after {
     content: "";
     position: absolute;
@@ -525,7 +583,7 @@
     color: var(--danger);
   }
 
-  /* Téléphone : les trois totaux sur une ligne. */
+  /* Phone: the three totals on one line. */
   :global(:root[data-platform="android"]) .recap-hero {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     padding: 14px;
