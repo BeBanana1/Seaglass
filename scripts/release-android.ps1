@@ -221,13 +221,13 @@ $dest = $env:SEAGLASS_RELEASE_DEST
 # Le manifeste part en dernier : l'app ne voit la version qu'une fois l'APK en place.
 if ($dest -match '^[^\\/:]{2,}:') {
     $sshHost, $remotePath = $dest -split ':', 2
-    ssh $sshHost "mkdir -p '$remotePath/$version' && chmod 755 '$remotePath/$version'"
+    ssh -n $sshHost "mkdir -p '$remotePath/$version' && chmod 755 '$remotePath/$version'"
     if ($LASTEXITCODE -ne 0) { Fail "échec de la création du dossier de version" }
     scp $apkOut "$dest/$version/$apkName"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (APK)" }
     scp $manifestPath "$dest/android.json"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (manifeste)" }
-    ssh $sshHost "chmod 644 '$remotePath/$version/$apkName' '$remotePath/android.json'"
+    ssh -n $sshHost "chmod 644 '$remotePath/$version/$apkName' '$remotePath/android.json'"
     if ($LASTEXITCODE -ne 0) { Fail "échec du réglage des droits sur le serveur" }
 } else {
     New-Item -ItemType Directory -Force (Join-Path $dest $version) | Out-Null

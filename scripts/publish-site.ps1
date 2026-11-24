@@ -121,7 +121,7 @@ if ($dest -match '^[^\\/:]{2,}:') {
         Remove-Item $list
         if ($code -ne 0) { Fail "copy to the server failed" }
     }
-    ssh $sshHost "find '$remotePath' -type d -exec chmod 755 {} + && find '$remotePath' -type f -exec chmod 644 {} +"
+    ssh -n $sshHost "find '$remotePath' -type d -exec chmod 755 {} + && find '$remotePath' -type f -exec chmod 644 {} +"
     if ($LASTEXITCODE -ne 0) { Fail "could not set the permissions on the server" }
 } else {
     foreach ($file in $assets + $pages) {
