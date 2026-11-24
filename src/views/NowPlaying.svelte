@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Vue immersive « En lecture » : grande pochette, chaîne audio, à suivre,
-  // et panneau latéral repliable : file d'attente (#20) ou paroles (#5).
+  // Immersive "Now playing" view: large cover, signal path, up next,
+  // and a collapsible side panel: queue (#20) or lyrics (#5).
   import { untrack } from "svelte";
   import { player } from "../lib/stores/player.svelte";
   import { queue } from "../lib/stores/queue.svelte";
@@ -41,11 +41,11 @@
 
   const current = $derived(player.currentTrack);
   const stream = $derived(player.state.stream);
-  /** Autre édition hi-res réellement lue (#111). */
+  /** Other hi-res edition actually played (#111). */
   const edition = $derived(stream?.hiresEdition ?? null);
   const upNext = $derived([...queue.view.manual, ...queue.view.upcoming].slice(0, 5));
 
-  /** Lit le titre `i` de `upNext` (#167) : file manuelle d'abord, puis suite du contexte. */
+  /** Plays track `i` of `upNext` (#167): manual queue first, then the rest of the context. */
   async function playUpNext(i: number, track: Track) {
     const manual = queue.view.manual.length;
     try {
@@ -58,8 +58,8 @@
   const panel = $derived(ui.nowPlayingPanel);
   const from = $derived(playedFrom(queue.view.source));
 
-  // Fenêtre large (#119) : paroles et file côte à côte, boutons indépendants. Ailleurs, un seul
-  // panneau à la fois ; « both » (fenêtre rétrécie) garde les paroles, avec la bande « À suivre ».
+  // Wide window (#119): lyrics and queue side by side, independent buttons. Elsewhere, one
+  // panel at a time; "both" (window made narrower) keeps the lyrics, with the "Up next" strip.
   const WIDE = "(min-width: 1400px)";
   let wide = $state(!platform.mobile && matchMedia(WIDE).matches);
   $effect(() => {
@@ -74,12 +74,14 @@
   const queueOpen = $derived(panel === "queue" || (panel === "both" && wide));
   const bothOpen = $derived(lyricsOpen && queueOpen);
   const anyOpen = $derived(lyricsOpen || queueOpen);
-  /** Android (#173) : un panneau ouvert remplace toute la vue au lieu de s'ajouter dessous. */
+  /** Android (#173): an open panel replaces the whole view instead of being added below. */
   const sheet = $derived(platform.mobile && anyOpen);
+  /** #399, #11: widescreen bars for a hand-picked soundtrack. */
+  const scope = $derived(player.soundtrack && ui.settings.easterEggs);
 
   let moreButton = $state<HTMLButtonElement | null>(null);
 
-  // #414 : transfert avec l'ordinateur lié (Android).
+  // #414: handoff with the linked computer (Android).
   let handoffButton = $state<HTMLButtonElement>();
   $effect(() => {
     if (platform.mobile) untrack(loadLinkedComputer);
@@ -125,7 +127,7 @@
     const rect = moreButton.getBoundingClientRect();
     const entries = trackMenu(track, {
       queueable: false,
-      // Le titre bloqué (ou celui de l'artiste bloqué) est celui qu'on écoute : on le passe.
+      // The blocked track (or the blocked artist's) is the one playing: skip it.
       onBlocked: () =>
         commands.next().catch((e) => pushToast({ level: "error", message: String(e) })),
       // Desktop only for now: Android has no outgoing share sheet yet (#518).
@@ -139,7 +141,7 @@
     let queueShown = queueOpen;
     if (p === "lyrics") lyrics = !lyrics;
     else queueShown = !queueShown;
-    // Fenêtre étroite : ouvrir un panneau ferme l'autre.
+    // Narrow window: opening a panel closes the other one.
     if (!wide && lyrics && queueShown) {
       if (p === "lyrics") queueShown = false;
       else lyrics = false;
@@ -148,12 +150,12 @@
       lyrics && queueShown ? "both" : lyrics ? "lyrics" : queueShown ? "queue" : null;
   }
 
-  // Toute navigation (lien d'artiste ou d'album, ici ou dans la file) ferme la vue,
-  // sinon la page ouverte resterait cachée derrière.
+  // Any navigation (artist or album link, here or in the queue) closes the view,
+  // otherwise the opened page would stay hidden behind it.
   const stackAtOpen = untrack(() => nav.stack);
 
-  // Android (#173) : rouvrir « En lecture » (mini-lecteur, notification) montre la pochette et
-  // les commandes, pas le dernier panneau plein écran.
+  // Android (#173): reopening "Now playing" (mini player, notification) shows the cover and
+  // the controls, not the last fullscreen panel.
   $effect(() => () => {
     if (platform.mobile) ui.nowPlayingPanel = null;
   });
@@ -166,16 +168,15 @@
   class="now-playing"
   class:lyrics-open={lyricsOpen && !queueOpen}
   class:both-open={bothOpen}
+  class:scope
   role="dialog"
   aria-modal="true"
   aria-label={t.views.nowPlaying.title}
 >
   <Backdrop context="nowplaying" />
-  <!-- #399 : bande originale choisie (liste du backend), la vue passe en format large. -->
-  {#if player.soundtrack && ui.settings.easterEggs}<div
-      class="egg-scope"
-      aria-hidden="true"
-    ></div>{/if}
+  <!-- #399, #11: hand-picked soundtrack (backend list), the view goes widescreen. The bars stay
+       mounted so they can slide out as well as in. -->
+  {#if ui.settings.easterEggs}<div class="egg-scope" aria-hidden="true"></div>{/if}
   <div class="top-actions" class:with-panel={anyOpen}>
     <button
       class="lyrics-toggle"
@@ -216,7 +217,7 @@
   </div>
 
   {#if sheet}
-    <!-- Android (#173) : paroles ou file en plein écran, avec de quoi piloter la lecture. -->
+    <!-- Android (#173): lyrics or queue fullscreen, with what it takes to control playback. -->
     <div class="np-sheet">
       <div class="np-sheet-head">
         {#if current}
@@ -272,8 +273,8 @@
                 {track.album.title}
               </button>
               {#if edition && stream}
-                <!-- Flux pris sur une autre édition hi-res (#18, #111) : le titre reste celui
-                     choisi (like, playlists, file), seule la source du son est montrée. -->
+                <!-- Stream taken from another hi-res edition (#18, #111): the track stays the one
+                     chosen (like, playlists, queue), only the sound's source is shown. -->
                 <div class="played-from played-edition" title={t.player.hiresEditionHint}>
                   <span class="played-from-label">{t.views.nowPlaying.playedEdition}</span>
                   <button
@@ -320,7 +321,7 @@
                 >
                   <Icon name="info" size={20} />
                 </button>
-                <!-- #334 : menu du titre en cours (blocages compris) ; bloquer passe au suivant. -->
+                <!-- #334: menu of the current track (blocking included); blocking skips to the next. -->
                 <button
                   class="now-add"
                   bind:this={moreButton}
@@ -331,7 +332,7 @@
                 >
                   <Icon name="more" size={20} />
                 </button>
-                <!-- #25 : accès rapide à la Jam, allumé tant qu'elle tourne. -->
+                <!-- #25: quick access to the Jam, lit while it runs. -->
                 {#if jamAvailable(!platform.mobile)}
                   <button
                     class="now-add jam-open"
@@ -399,7 +400,7 @@
           <h2>{t.views.nowPlaying.lyrics}</h2>
           <Lyrics />
           {#if !queueOpen && upNext.length > 0}
-            <!-- Sans la file à côté, les prochains titres restent visibles sous les paroles (#119). -->
+            <!-- Without the queue beside them, the next tracks stay visible under the lyrics (#119). -->
             <section class="np-next" aria-label={t.views.nowPlaying.upNext}>
               <div class="np-next-head">
                 <h3>{t.views.nowPlaying.upNext}</h3>
@@ -432,8 +433,24 @@
 </div>
 
 <style>
+  /* Widescreen factor (#11): 0 without bars, 1 with them. Registered so it can be transitioned:
+     bars and inset follow the same value, and a window resize changes `--np-bars` at once
+     instead of lagging behind. */
+  @property --np-scope {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+
   .now-playing {
     --np-panel-width: 380px;
+    /* Aim for a 2.39:1 picture between the bars, capped at 10vh and never leaving less than
+       560 px of content; none in the single-column layout (max-width: 900px below). */
+    --np-bars: max(0px, min((100vh - 100vw / 2.39) / 2, (100vh - 560px) / 2, 10vh));
+    /* Inset of the content: the larger of the theme's own bars (Showing) and the easter egg's. */
+    --np-inset: max(var(--np-theme-bars, 0px), var(--np-bars) * var(--np-scope));
+    --np-scope: 0;
+    transition: --np-scope 1.2s ease-out;
     position: fixed;
     inset: 0;
     z-index: 50;
@@ -442,43 +459,44 @@
     animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
-  /* Format large : deux bandes noires glissent en haut et en bas, une fois, puis restent. */
+  .now-playing.scope {
+    --np-scope: 1;
+  }
+
+  :global(:root[data-motion="reduced"]) .now-playing {
+    transition: none;
+  }
+
+  /* Widescreen (#399): two black bars slide in at the top and bottom, and out when the next
+     track is not a soundtrack. The content is inset by as much (`.scroller`, #11). */
   .egg-scope::before,
   .egg-scope::after {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
-    /* Au-dessus de la mise en page (1), sous les boutons du haut (2, placés après). */
+    /* Above the layout (1), under the top buttons (2, placed after). */
     z-index: 2;
-    height: 9vh;
+    height: var(--np-bars);
     background: #000;
     pointer-events: none;
-    animation: egg-scope 1.2s ease-out 1 both;
   }
 
   .egg-scope::before {
     top: 0;
-    --from: -100%;
+    translate: 0 calc((var(--np-scope) - 1) * 100%);
   }
 
   .egg-scope::after {
     bottom: 0;
-    --from: 100%;
+    translate: 0 calc((1 - var(--np-scope)) * 100%);
   }
 
-  @keyframes egg-scope {
-    from {
-      translate: 0 var(--from);
-    }
+  /* Android: the status bar and the navigation already hold the edges. */
+  :global(:root[data-platform="android"]) .now-playing {
+    --np-bars: 0px;
   }
 
-  :global(:root[data-motion="reduced"]) .egg-scope::before,
-  :global(:root[data-motion="reduced"]) .egg-scope::after {
-    animation: none;
-  }
-
-  /* Android : la barre d'état et la navigation tiennent déjà les bords. */
   :global(:root[data-platform="android"]) .egg-scope {
     display: none;
   }
@@ -487,7 +505,7 @@
     --np-panel-width: 460px;
   }
 
-  /* Paroles + file (#119) : les deux colonnes et la marge entre elles. */
+  /* Lyrics + queue (#119): both columns and the gap between them. */
   .now-playing.both-open {
     --np-panel-width: calc(460px + 16px + 380px);
   }
@@ -533,12 +551,14 @@
     color: var(--accent);
   }
 
-  /* Défilement : la vue entière, ou chaque colonne quand la file est à droite. */
+  /* Scrolling: the whole view, or each column when the queue is on the right. Inset between
+     the widescreen bars (#11). */
   .scroller {
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     height: 100%;
+    padding-block: var(--np-inset);
     overflow: auto;
   }
 
@@ -629,7 +649,7 @@
     text-decoration: underline;
   }
 
-  /* « Joué depuis » (#124) : libellé discret, nom cliquable. */
+  /* "Played from" (#124): discreet label, clickable name. */
   .played-from {
     display: flex;
     align-items: baseline;
@@ -681,7 +701,7 @@
     list-style: none;
   }
 
-  /* Un titre « À suivre » se lit d'un clic (#167). */
+  /* An "Up next" track plays in one click (#167). */
   .next-item {
     display: grid;
     grid-template-columns: 32px minmax(0, 1fr) minmax(0, 0.8fr);
@@ -725,8 +745,8 @@
     color: var(--text-muted);
   }
 
-  /* Clin d'œil (#399), thème Cyberpunk : rien en lecture, l'écran montre une neige de
-     télévision fixe (bruit SVG, sans animation). */
+  /* Easter egg (#399), Cyberpunk theme: nothing playing, the screen shows fixed TV snow
+     (SVG noise, no animation). */
   :global(:root[data-eggs][data-theme="cyberpunk"]) .empty {
     display: grid;
     place-items: center;
@@ -741,7 +761,7 @@
     text-shadow: 0 0 6px #000;
   }
 
-  /* Panneau latéral : sous la vue par défaut (fenêtre étroite), à droite si la place le permet. */
+  /* Side panel: under the view by default (narrow window), on the right when there is room. */
   .np-panel {
     position: relative;
     justify-self: center;
@@ -762,7 +782,7 @@
     font-weight: 600;
   }
 
-  /* Bande « À suivre » sous les paroles (#119). */
+  /* "Up next" strip under the lyrics (#119). */
   .np-next {
     flex: none;
     margin-top: 8px;
@@ -798,6 +818,10 @@
   }
 
   @media (max-width: 900px) {
+    .now-playing {
+      --np-bars: 0px;
+    }
+
     .layout {
       grid-template-columns: minmax(0, 420px);
       padding: 72px 24px 24px;
@@ -828,12 +852,12 @@
       overflow: auto;
     }
 
-    /* Les paroles défilent dans leur propre zone, sous le titre du panneau. */
+    /* The lyrics scroll in their own area, under the panel's title. */
     .with-panel .np-lyrics {
       overflow: hidden;
     }
 
-    /* Les boutons restent au-dessus de la pochette, pas sur le panneau. */
+    /* The buttons stay above the cover, not on the panel. */
     .top-actions.with-panel {
       right: calc(var(--np-panel-width) + 34px);
     }
@@ -844,7 +868,7 @@
     }
   }
 
-  /* Entre les deux : file à droite, pochette au-dessus des commandes. */
+  /* In between: queue on the right, cover above the controls. */
   @media (min-width: 901px) and (max-width: 1280px) {
     .with-panel .layout {
       grid-template-columns: minmax(0, 420px);
@@ -852,7 +876,7 @@
     }
   }
 
-  /* Deux panneaux : pochette au-dessus des commandes tant que la place manque à côté. */
+  /* Two panels: cover above the controls as long as there is no room beside them. */
   @media (max-width: 1799px) {
     .two-panels .layout {
       grid-template-columns: minmax(0, 420px);
@@ -860,7 +884,7 @@
     }
   }
 
-  /* Studio : pas de flou, grille nette, pochette sans ombre colorée. */
+  /* Studio: no blur, sharp grid, cover without a colored shadow. */
   :global([data-theme="studio"]) .art {
     box-shadow: none;
     outline: 1px solid var(--border);
@@ -871,7 +895,7 @@
     backdrop-filter: none;
   }
 
-  /* Android (#146) : pas de flou recalculé à chaque image sous la chaîne audio animée. */
+  /* Android (#146): no blur recomputed every frame under the animated signal path. */
   :global(:root[data-platform="android"]) .signal {
     backdrop-filter: none;
   }
@@ -888,7 +912,7 @@
     border: 1px solid var(--border);
   }
 
-  /* Atelier : page de magazine, sans fond flouté. */
+  /* Atelier: magazine page, no blurred background. */
   :global([data-theme="atelier"]) .art {
     box-shadow: 18px 18px 0 color-mix(in oklab, var(--album) 35%, var(--bg));
   }
@@ -903,8 +927,8 @@
     font-size: clamp(32px, 5vw, 64px);
   }
 
-  /* Android (#24) : plein écran sous les barres système ; le volume passe par les touches du
-     téléphone. */
+  /* Android (#24): fullscreen under the system bars; the volume goes through the phone's
+     keys. */
   :global(:root[data-platform="android"]) .top-actions {
     top: calc(var(--safe-top) + 8px);
     right: 12px;
@@ -915,9 +939,9 @@
     padding: calc(var(--safe-top) + 56px) 20px calc(var(--safe-bottom) + 24px);
   }
 
-  /* #195 : tout jusqu'à la lecture / pause tient au-dessus des boutons du téléphone. Pas
-     d'étiquette « En lecture » (tout l'écran le dit), pochette bornée en hauteur sur les écrans
-     courts, album et « Joué depuis » sur une ligne, commandes resserrées. */
+  /* #195: everything down to play / pause fits above the phone's buttons. No "Now playing"
+     label (the whole screen says it), cover height bounded on short screens, album and
+     "Played from" on one line, tighter controls. */
   :global(:root[data-platform="android"]) .art {
     width: min(100%, 40dvh);
     justify-self: center;
@@ -952,8 +976,8 @@
     margin-bottom: calc(var(--safe-bottom) + 16px);
   }
 
-  /* Android (#173) : paroles ou file en plein écran. En-tête réduit à côté des boutons du haut,
-     panneau sur toute la hauteur restante, progression et commandes en bas. */
+  /* Android (#173): lyrics or queue fullscreen. Small header next to the top buttons, panel
+     over the whole remaining height, progress and controls at the bottom. */
   .np-sheet {
     position: relative;
     display: flex;
@@ -969,7 +993,7 @@
     align-items: center;
     gap: 10px;
     min-height: 40px;
-    /* Place des trois boutons du haut (Paroles, File, Fermer). */
+    /* Room for the three top buttons (Lyrics, Queue, Close). */
     padding-right: 140px;
   }
 
@@ -1004,8 +1028,8 @@
     color: var(--text-muted);
   }
 
-  /* Préfixe Android : sans lui, la règle `.np-panel` d'Android (plus spécifique)
-     l'emporte sur la largeur et la marge du bas, et la tuile est décalée à gauche (#242). */
+  /* Android prefix: without it, Android's `.np-panel` rule (more specific) wins on the width
+     and the bottom margin, and the tile is shifted to the left (#242). */
   :global(:root[data-platform="android"]) .np-sheet .np-sheet-body {
     display: flex;
     flex: 1;
@@ -1018,8 +1042,8 @@
     overflow: hidden;
   }
 
-  /* Même préfixe que la règle du dessus, sinon son `overflow: hidden` l'emporte et la file
-     ne défile plus (#342). */
+  /* Same prefix as the rule above, otherwise its `overflow: hidden` wins and the queue no
+     longer scrolls (#342). */
   :global(:root[data-platform="android"]) .np-sheet .np-queue {
     overflow: auto;
   }
