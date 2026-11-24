@@ -199,13 +199,13 @@ $dest = $env:SEAGLASS_RELEASE_DEST
 # Le manifeste part en dernier : la page ne propose la version qu'une fois l'AppImage en place.
 if ($dest -match '^[^\\/:]{2,}:') {
     $sshHost, $remotePath = $dest -split ':', 2
-    ssh $sshHost "mkdir -p '$remotePath/$version' && chmod 755 '$remotePath/$version'"
+    ssh -n $sshHost "mkdir -p '$remotePath/$version' && chmod 755 '$remotePath/$version'"
     if ($LASTEXITCODE -ne 0) { Fail "échec de la création du dossier de version" }
     scp $imageOut $sigOut "$dest/$version/"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (AppImage)" }
     scp $manifestPath "$dest/linux.json"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (manifeste)" }
-    ssh $sshHost "chmod 644 '$remotePath/$version/$imageName' '$remotePath/$version/$imageName.sig' '$remotePath/linux.json'"
+    ssh -n $sshHost "chmod 644 '$remotePath/$version/$imageName' '$remotePath/$version/$imageName.sig' '$remotePath/linux.json'"
     if ($LASTEXITCODE -ne 0) { Fail "échec du réglage des droits sur le serveur" }
 } else {
     New-Item -ItemType Directory -Force (Join-Path $dest $version) | Out-Null

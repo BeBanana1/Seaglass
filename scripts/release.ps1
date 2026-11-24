@@ -215,20 +215,20 @@ Assert-ManifestOnline $manifestPath $dest @('windows-x86_64')
 if ($dest -match '^[^\\/:]{2,}:') {
     $sshHost, $remotePath = $dest -split ':', 2
     # Seulement les fichiers Windows : release/<version>/ peut aussi contenir l'APK.
-    ssh $sshHost "mkdir -p '$remotePath/$version'"
+    ssh -n $sshHost "mkdir -p '$remotePath/$version'"
     if ($LASTEXITCODE -ne 0) { Fail "échec de la création du dossier de version" }
     scp (Join-Path $out $setupName) (Join-Path $out "$setupName.sig") "$dest/$version/"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (installeur)" }
     # scp reprend des droits Windows trop larges (dossier en écriture pour tous) : on les
     # remet à 755 / 644 avant de rendre la version visible.
-    ssh $sshHost "chmod 755 '$remotePath/$version' && chmod 644 '$remotePath/$version'/*"
+    ssh -n $sshHost "chmod 755 '$remotePath/$version' && chmod 644 '$remotePath/$version'/*"
     if ($LASTEXITCODE -ne 0) { Fail "échec du réglage des droits sur le serveur" }
     # The download page's manifest (#517), then the updater's last.
     scp $downloadPath "$dest/windows.json"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (windows.json)" }
     scp $manifestPath "$dest/latest.json"
     if ($LASTEXITCODE -ne 0) { Fail "échec de scp (manifeste)" }
-    ssh $sshHost "chmod 644 '$remotePath/windows.json' '$remotePath/latest.json'"
+    ssh -n $sshHost "chmod 644 '$remotePath/windows.json' '$remotePath/latest.json'"
 } else {
     New-Item -ItemType Directory -Force $dest | Out-Null
     New-Item -ItemType Directory -Force (Join-Path $dest $version) | Out-Null
