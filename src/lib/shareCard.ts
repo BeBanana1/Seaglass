@@ -1,7 +1,7 @@
 // "Now playing" card as a shareable image (#518): a square PNG drawn on a canvas, in the active
 // theme's colors, copied to the clipboard. The layout helpers are pure (tested); the drawing
-// part only runs in the WebView. The Recap summary PNG (#521) can reuse `themePalette`,
-// `loadImage` and `fitText`.
+// part only runs in the WebView. The Recap summary card (`recapCard.ts`, #16) reuses the
+// exported helpers: palette, images, text fitting, background and PNG export.
 
 import type { StreamFormat, Track } from "./ipc";
 import { artistNames, coverLarge, formatStream, fullTitle, type SignalVerdict } from "./format";
@@ -124,9 +124,35 @@ export function corsUrl(url: string): string {
   return url.startsWith("data:") ? url : `${url}${url.includes("?") ? "&" : "?"}cors`;
 }
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, r: number) {
+export function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  r: number,
+) {
   ctx.beginPath();
   ctx.roundRect(x, y, size, size, r);
+}
+
+/** Theme background with an accent glow from the top. */
+export function paintBackground(ctx: CanvasRenderingContext2D, p: Palette) {
+  const S = CARD_SIZE;
+  ctx.fillStyle = p.bg;
+  ctx.fillRect(0, 0, S, S);
+  const glow = ctx.createRadialGradient(S / 2, 0, 0, S / 2, 0, S);
+  glow.addColorStop(0, p.accent);
+  glow.addColorStop(1, "transparent");
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, S, S);
+  ctx.globalAlpha = 1;
+}
+
+export function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas 2d context unavailable");
+  return ctx;
 }
 
 function draw(
@@ -135,21 +161,10 @@ function draw(
   p: Palette,
   cover: HTMLImageElement | null,
 ) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas 2d context unavailable");
+  const ctx = context2d(canvas);
   const S = CARD_SIZE;
   const width = S - 2 * MARGIN;
-
-  ctx.fillStyle = p.bg;
-  ctx.fillRect(0, 0, S, S);
-  // Accent glow from the top, fading into the theme background.
-  const glow = ctx.createRadialGradient(S / 2, 0, 0, S / 2, 0, S);
-  glow.addColorStop(0, p.accent);
-  glow.addColorStop(1, "transparent");
-  ctx.globalAlpha = 0.28;
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, S, S);
-  ctx.globalAlpha = 1;
+  paintBackground(ctx, p);
 
   const x = (S - COVER) / 2;
   const y = 90;
@@ -218,8 +233,33 @@ function isTainted(canvas: HTMLCanvasElement): boolean {
   }
 }
 
-/** Draws the card and returns it as a PNG. A cover the canvas cannot read back (no CORS
- *  answer) would make the export fail: the card is then drawn without it. */
+/** Draws a square card with `paint(canvas, withImages)`, then as a PNG. An image the canvas
+ *  cannot read back (no CORS answer) would make the export fail: the card is then redrawn
+ *  without images. */
+export function cardPng(
+  paint: (canvas: HTMLCanvasElement, withImages: boolean) => void,
+  hasImages: boolean,
+): Promise<Blob> {
+  const make = (withImages: boolean) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = CARD_SIZE;
+    paint(canvas, withImages);
+    return canvas;
+  };
+  let canvas = make(true);
+  if (hasImages && isTainted(canvas)) canvas = make(false);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG export failed"))), "image/png"),
+  );
+}
+
+/** Puts a PNG in the clipboard. The blob is handed over as a promise so the clipboard write
+ *  starts within the click (user activation) while the card is still being drawn. */
+export async function copyPng(png: Promise<Blob>): Promise<void> {
+  await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
+}
+
+/** Draws the card and returns it as a PNG. */
 export async function renderCard(
   track: Track,
   stream: StreamFormat | null,
@@ -234,26 +274,17 @@ export async function renderCard(
   const [cover] = await Promise.all([loadImage(coverLarge(track.album)), document.fonts.ready]);
   const palette = themePalette(toneToken);
   const text = cardText(track, stream, verdict);
-  let canvas = document.createElement("canvas");
-  canvas.width = canvas.height = CARD_SIZE;
-  draw(canvas, text, palette, cover);
-  if (cover && isTainted(canvas)) {
-    canvas = document.createElement("canvas");
-    canvas.width = canvas.height = CARD_SIZE;
-    draw(canvas, text, palette, null);
-  }
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG export failed"))), "image/png"),
+  return cardPng(
+    (canvas, withImages) => draw(canvas, text, palette, withImages ? cover : null),
+    cover !== null,
   );
 }
 
-/** Copies the card to the clipboard. The blob is handed over as a promise so the clipboard
- *  write starts within the click (user activation) while the card is still being drawn. */
-export async function copyCard(
+/** Copies the card to the clipboard. */
+export function copyCard(
   track: Track,
   stream: StreamFormat | null,
   verdict: SignalVerdict,
 ): Promise<void> {
-  const png = renderCard(track, stream, verdict);
-  await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
+  return copyPng(renderCard(track, stream, verdict));
 }
