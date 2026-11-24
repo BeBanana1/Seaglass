@@ -3,7 +3,9 @@
 // - every inline <script> becomes a <script src> to a file named by its content hash (same
 //   attributes, so a classic script still runs synchronously at the same place);
 // - every style="…" attribute becomes data-sgs="<hash>", with one generated stylesheet holding
-//   the matching rules, linked from each page.
+//   the matching rules, linked from each page;
+// - every data: image in a stylesheet (icons of Starlight and of the code blocks, blocked by
+//   `img-src 'self'`) becomes a file, /_astro/data.<hash>.<ext>.
 // Fails if anything inline is left, so a Starlight update cannot break the site silently.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -15,16 +17,40 @@ const assets = join(dist, "_astro");
 
 const hash = (text) => createHash("sha256").update(text).digest("hex").slice(0, 10);
 
-function pages(dir) {
+function walk(dir, ext) {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
-    if (statSync(path).isDirectory()) return pages(path);
-    return name.endsWith(".html") ? [path] : [];
+    if (statSync(path).isDirectory()) return walk(path, ext);
+    return name.endsWith(ext) ? [path] : [];
   });
 }
 
+// data: images in stylesheets -> files.
+// The data may hold the other quote ("…'…'…"), so each quoting has its own pattern.
+const DATA_URL =
+  /url\(\s*(?:"data:image\/([a-z+]+)(;base64)?,([^"]*)"|'data:image\/([a-z+]+)(;base64)?,([^']*)'|data:image\/([a-z+]+)(;base64)?,([^)\s]*))\s*\)/g;
+const ext = { "svg+xml": "svg", png: "png", gif: "gif", webp: "webp" };
+let images = 0;
+for (const sheet of walk(dist, ".css")) {
+  const text = readFileSync(sheet, "utf8");
+  const out = text.replace(DATA_URL, (all, ...groups) => {
+    const [type, b64, data] = [0, 3, 6].map((i) => groups.slice(i, i + 3)).find((g) => g[0]);
+    if (!ext[type]) return all;
+    const bytes = b64 ? Buffer.from(data, "base64") : Buffer.from(decodeURIComponent(data));
+    const name = `data.${createHash("sha256").update(bytes).digest("hex").slice(0, 10)}.${ext[type]}`;
+    writeFileSync(join(assets, name), bytes);
+    images++;
+    return `url("/_astro/${name}")`;
+  });
+  if (/url\(\s*["']?data:/.test(out)) {
+    console.error(`data: URL left in ${relative(dist, sheet)}`);
+    process.exit(1);
+  }
+  if (out !== text) writeFileSync(sheet, out);
+}
+
 const styles = new Map(); // declarations -> hash
-const files = pages(dist);
+const files = walk(dist, ".html");
 const html = new Map();
 
 for (const file of files) {
@@ -63,4 +89,7 @@ for (const [file, text] of html) {
   writeFileSync(file, out);
 }
 
-console.log(`no-inline: ${files.length} pages, ${styles.size} style attributes moved to ${sheet}`);
+console.log(
+  `no-inline: ${files.length} pages, ${styles.size} style attributes moved to ${sheet}, ` +
+    `${images} data: images moved to files`,
+);
