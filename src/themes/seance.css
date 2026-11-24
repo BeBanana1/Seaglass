@@ -1,11 +1,10 @@
-/* Thème Séance (#339) : la salle de cinéma plutôt qu'un film.
-   Jetons (noir de salle, velours, ivoire, accent rouge) dans app.css ; ici, ce que les jetons
-   ne disent pas : titres en capitales de générique, « En lecture » en format large avec un
-   carton-titre, repère de changement de bobine, décompte d'amorce pour le chargement, chaîne
-   audio en fiche technique de projection.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Showing theme (#339): the movie theater rather than a film.
+   Tokens (theater black, velvet, ivory, red accent) in app.css; here, what the tokens do not
+   say: titles in credit capitals, widescreen "Now playing" with a title card, reel change cue,
+   leader countdown while loading, signal path as a projection technical sheet.
+   Overrides per component class (higher specificity than Svelte's scoped styles). */
 
-/* Titres de générique : serif en capitales espacées. */
+/* Credit titles: serif in spaced capitals. */
 :root[data-theme="seance"] h1 {
   text-transform: uppercase;
   font-weight: 400;
@@ -60,14 +59,14 @@
   color: var(--accent);
 }
 
-/* Progression : fil fin ivoire, sans halo. */
+/* Progress: thin ivory line, no glow. */
 :root[data-theme="seance"] .progress .fill {
   box-shadow: none;
 }
 
-/* --- Chargement : décompte d'amorce de pellicule -------------------------------------
-   Cercle et croix de visée, secteur qui balaie, chiffre 3-2-1 (une seconde chacun).
-   Remplace la roue de tous les indicateurs `.spinner` (barre, mini-lecteur, conduite). */
+/* --- Loading: film leader countdown ---------------------------------------------------
+   Circle and crosshair, sweeping sector, 3-2-1 digit (one second each).
+   Replaces the wheel of every `.spinner` (bar, mini player, driving mode). */
 :root[data-theme="seance"] .spinner {
   position: relative;
   border: 1.5px solid currentColor;
@@ -98,7 +97,7 @@
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
-  /* Le chiffre se détache sur la croix : petit disque sombre derrière lui. */
+  /* The digit stands out from the cross: small dark disc behind it. */
   background: radial-gradient(circle, rgb(0 0 0 / 0.75) 0 34%, transparent 36%);
   animation: se-count 3s steps(1) infinite;
 }
@@ -121,12 +120,15 @@
   }
 }
 
-/* --- « En lecture » ------------------------------------------------------------------ */
+/* --- "Now playing" ------------------------------------------------------------------- */
 
-/* Format large (bureau) : bandes noires en haut et en bas, au-dessus du fond et sous les
-   boutons du coin ; le contenu défile entre les deux. Sur Android, l'écran est trop étroit. */
+/* Widescreen (desktop): black bars at the top and bottom, above the backdrop and under the
+   corner buttons; the content scrolls between them (`--np-theme-bars`, read by `.scroller` of
+   `NowPlaying.svelte`, which keeps the larger of these bars and the soundtrack ones, #11). On
+   Android, the screen is too narrow. */
 :root[data-theme="seance"]:not([data-platform="android"]) .now-playing {
   --se-bar: clamp(36px, 8vh, 88px);
+  --np-theme-bars: var(--se-bar);
 }
 
 :root[data-theme="seance"]:not([data-platform="android"]) .now-playing::before,
@@ -151,11 +153,7 @@
   box-shadow: 0 -1px 0 rgb(239 230 210 / 0.06);
 }
 
-:root[data-theme="seance"]:not([data-platform="android"]) .now-playing .scroller {
-  padding-block: var(--se-bar);
-}
-
-/* Les boutons du coin restent dans la bande du haut. */
+/* The corner buttons stay in the top bar. */
 :root[data-theme="seance"]:not([data-platform="android"]) .now-playing .top-actions {
   top: calc((var(--se-bar) - 40px) / 2);
 }
@@ -178,8 +176,8 @@
   color: var(--accent);
 }
 
-/* Carton de générique : libellé entre deux filets, titre en capitales, artiste en italique
-   plus petit, comme « un film de ». */
+/* Credit card: label between two rules, title in capitals, artist in smaller italics, like
+   "a film by". */
 :root[data-theme="seance"] .now-playing .info > .label {
   display: flex;
   align-items: center;
@@ -214,9 +212,8 @@
   letter-spacing: 0.08em;
 }
 
-/* Repère de changement de bobine : petit rond en haut à droite de l'image pendant les
-   30 dernières secondes, quand le titre suivant est préchargé (`.progress.ending`). Il
-   apparaît une fois, puis reste fixe. */
+/* Reel change cue: small dot at the top right of the picture during the last 30 seconds,
+   when the next track is preloaded (`.progress.ending`). It appears once, then stays still. */
 :root[data-theme="seance"] .now-playing .art {
   position: relative;
 }
@@ -247,8 +244,8 @@
   }
 }
 
-/* Chaîne audio en fiche technique de projection : cadre à double filet, libellés à la
-   machine, étapes reliées par des pointillés. */
+/* Signal path as a projection technical sheet: double-ruled frame, typewriter labels, steps
+   joined by dotted lines. */
 :root[data-theme="seance"] .signal {
   border: 3px double rgb(239 230 210 / 0.35);
   border-radius: 2px;
