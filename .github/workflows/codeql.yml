@@ -1,0 +1,36 @@
+# CodeQL code scanning, weekly instead of on every PR (GitHub's default setup ran it on each
+# push: 9 to 12 min for Rust, though it never blocked a merge). Replaces the default setup,
+# which must stay off in the repository settings (both cannot upload at once).
+# docs/release.md, "CodeQL".
+name: CodeQL
+
+on:
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # No Python: only the phase 0 spike (spike/), never shipped.
+        language: [actions, javascript-typescript, rust]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
