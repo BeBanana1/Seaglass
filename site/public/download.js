@@ -1,6 +1,6 @@
-// Script of the download page (site/download/index.html, #517), served next to it: the server's
-// CSP forbids inline scripts. Each platform is published on its own by its release script: its
-// card only appears if its manifest is online and points to an HTTPS address.
+// Script of the download page (site/src/components/DownloadCards.astro, #517), served from
+// public/: the server's CSP forbids inline scripts. Each platform is published on its own by
+// its release script: its card only appears if its manifest is online and points to an HTTPS address.
 const platforms = ["windows", "android", "linux"];
 
 function show(id, m) {
