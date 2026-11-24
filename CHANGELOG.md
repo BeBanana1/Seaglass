@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.107
+
+- chore: `cookie` 0.18.3 (RUSTSEC-2026-0594, private cookie nonces can repeat after a fork), pulled in by Tauri.
+
 ## 0.5.106 (published 2026-11-22)
 
 - The project moved to GitHub: "Source code" and "Report a bug" in Settings › Application now open github.com/BeBanana1/Seaglass.
