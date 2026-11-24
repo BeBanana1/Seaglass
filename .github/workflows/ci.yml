@@ -4,11 +4,16 @@
 name: CI
 
 # No `paths-ignore`: `linux` and `windows` are required checks on `main`, and a PR whose
-# required checks never run (documentation only) could never be merged.
+# required checks never start could never be merged. The `changes` job decides instead which
+# jobs run (#24); a job skipped by its `if:` reports success.
 on:
   push:
     branches: [main]
   pull_request:
+  # Weekly full run: catches a new advisory (dependency audit) even when no app PR runs it.
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
 
 # A PR's code must not be able to write to the repository.
 permissions:
@@ -27,7 +32,25 @@ env:
   PNPM_VERSION: "12.16.1"
 
 jobs:
+  # Which parts the change touches (scripts/ci-changes.sh). Outside a PR, everything.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.paths.outputs.app }}
+      site: ${{ steps.paths.outputs.site }}
+      relay: ${{ steps.paths.outputs.relay }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: paths
+        run: bash scripts/ci-changes.sh "${{ github.event.pull_request.base.sha }}" | tee -a "$GITHUB_OUTPUT"
+
   linux:
+    needs: changes
+    # Also runs if `changes` failed: an error must never skip a required check.
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.app == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -64,37 +87,19 @@ jobs:
           pnpm test
           pnpm build
 
-      # Website (#18): its own package, outside the app. The build fails if inline code that
-      # the server's CSP would block is left in a page (site/scripts/no-inline.mjs).
-      - name: Website
-        working-directory: site
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            src-tauri
-            relay
+          workspaces: src-tauri
           # Keep the cache even when clippy or a test fails: the next run stays fast.
           cache-on-failure: true
 
       # `pnpm build` first: `tauri::generate_context!` requires `dist/` to exist.
       - name: Rust
         working-directory: src-tauri
-        run: |
-          cargo fmt --check
-          cargo clippy --all-targets -- -D warnings
-          cargo test
-
-      # Jam relay (#25): separate crate, deployed on the server (relay/README.md).
-      - name: Relay
-        working-directory: relay
         run: |
           cargo fmt --check
           cargo clippy --all-targets -- -D warnings
@@ -110,10 +115,11 @@ jobs:
         run: |
           pnpm audit --prod --ignore-registry-errors
           cargo audit --file src-tauri/Cargo.lock
-          cargo audit --file relay/Cargo.lock
 
   # The `#[cfg(windows)]` code (SMTC, Job Object, WASAPI) is not compiled on Linux.
   windows:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.app == 'true') }}
     runs-on: windows-2025
     timeout-minutes: 45
     # bash stops at the first failing command; pwsh would only report the last one.
@@ -151,3 +157,53 @@ jobs:
         run: |
           cargo clippy --all-targets -- -D warnings
           cargo test
+
+  # Website (#18): its own package, outside the app. The build fails if inline code that
+  # the server's CSP would block is left in a page (site/scripts/no-inline.mjs).
+  site:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.site == 'true') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+      - name: Build
+        working-directory: site
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+  # Jam relay (#25): separate crate, deployed on the server (relay/README.md).
+  relay:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.relay == 'true') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: relay
+          cache-on-failure: true
+      - name: Rust
+        working-directory: relay
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - name: Dependencies
+        run: cargo audit --file relay/Cargo.lock

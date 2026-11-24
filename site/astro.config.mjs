@@ -10,7 +10,10 @@ export default defineConfig({
   site: "https://seaglass.bebanana.ch",
   trailingSlash: "always",
   build: { inlineStylesheets: "never" },
-  vite: { build: { assetsInlineLimit: 0 } },
+  // tsconfig pinned: without it, Vite looks up the folders for the files Starlight ships and
+  // reaches the app's tsconfig.json at the root, whose `extends` needs the app's dependencies
+  // (the CI `site` job installs only the site's).
+  vite: { tsconfig: "./tsconfig.json", build: { assetsInlineLimit: 0 } },
   integrations: [
     starlight({
       title: "Seaglass",
