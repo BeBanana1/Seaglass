@@ -1,4 +1,4 @@
-﻿# Seaglass
+# Seaglass
 
 Unofficial TIDAL desktop client, with a fully custom UI and lossless / bit-perfect playback handed to mpv.
 Personal project, Windows first.
