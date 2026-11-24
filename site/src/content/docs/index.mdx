@@ -1,0 +1,46 @@
+---
+title: Lossless music streaming client
+description: Lossless music streaming client for Windows, Android and Linux, with bit-perfect playback.
+template: splash
+editUrl: false
+hero:
+  title: Lossless streaming, played bit-perfect
+  tagline: A music streaming client for Windows, Android and Linux, with an interface of its own and playback handed to mpv on the desktop. Requires a TIDAL subscription.
+  image:
+    file: ../../assets/seaglass.svg
+    alt: The Seaglass icon, a vinyl record whose label is a sun above the sea
+  actions:
+    - text: Download
+      link: /download/
+      icon: right-arrow
+    - text: Source code
+      link: https://github.com/BeBanana1/Seaglass
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+import Screenshots from "../../components/Screenshots.astro";
+
+<Screenshots />
+
+<CardGrid stagger>
+  <Card title="Bit-perfect playback" icon="seti:audio">
+    Lossless and hi-res streams played by mpv on the desktop, with exclusive mode on Windows and
+    the signal path shown from the stream to the output device.
+  </Card>
+  <Card title="An interface of its own" icon="pencil">
+    23 themes, each with its own look, a "Now playing" view, keyboard and global shortcuts, and a
+    home page you can arrange.
+  </Card>
+  <Card title="Listen together" icon="signal">
+    Jam sessions on the local network or online, remote control from a phone, and playback
+    handoff between the computer and the Android app.
+  </Card>
+  <Card title="Streaming only" icon="padlock">
+    No audio stream is downloaded or written to disk, and DRM-protected streams are not played.
+    Free software, GPL-3.0.
+  </Card>
+</CardGrid>
+
+<p class="sg-notice">Unofficial client, not affiliated with TIDAL.</p>

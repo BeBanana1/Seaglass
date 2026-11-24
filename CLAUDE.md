@@ -41,7 +41,7 @@ seaglass/
 ├─ .github/                  # CI (workflows/ci.yml, GitHub Actions), issue and PR templates
 ├─ spike/                    # phase 0: throwaway Python scripts
 ├─ relay/                    # Jam relay (#25): separate crate, Docker behind Caddy
-├─ site/                     # project website (#517): static pages, scripts/publish-site.ps1
+├─ site/                     # project website (#517): Astro + Starlight (GitHub #18), own package, scripts/publish-site.ps1
 ├─ src/                      # Svelte frontend
 │  ├─ lib/ipc.ts             # typed wrappers for Tauri commands and events
 │  ├─ lib/transport.ts       # real invoke/listen, or a mock backend outside Tauri (dev)

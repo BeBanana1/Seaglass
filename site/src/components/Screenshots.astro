@@ -1,0 +1,25 @@
+---
+// Screenshots of the home page: the README's (docs/images/, copied to /images/ by
+// scripts/assets.mjs). Plain <img>: the files are already sized webp.
+const shots = [
+  { src: "playlist-seaglass.webp", alt: "A playlist in the Seaglass theme", wide: true },
+  { src: "album-estampe.webp", alt: "An album in the light Estampe theme" },
+  { src: "now-playing-cassette.webp", alt: "Now playing with the signal path, Cassette theme" },
+];
+---
+
+<div class="sg-shots not-content">
+  {
+    shots.map((s) => (
+      <img
+        class:list={{ wide: s.wide }}
+        src={`/images/${s.src}`}
+        alt={s.alt}
+        width="2160"
+        height="1350"
+        loading={s.wide ? "eager" : "lazy"}
+      />
+    ))
+  }
+</div>
+<p class="sg-caption">Seaglass, Estampe and Cassette: 3 of the 23 themes.</p>
