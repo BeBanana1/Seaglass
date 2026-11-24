@@ -59,7 +59,7 @@ updates.example.org {
 
 `no-cache` on the manifests makes clients see a new version at once. The author's full configuration, with security headers and the website on the same domain: [`release.md`](release.md), "Caddy block".
 
-**Website** (optional): the download page reads the same manifests. `scripts/publish-site.ps1` publishes `site/` to `SEAGLASS_SITE_DEST`: [`release.md`](release.md), "Website". It expects the manifests under `/updates/` of its own domain; with another layout, adapt the paths in `site/`.
+**Website** (optional): the download page reads the same manifests. `scripts/publish-site.ps1` publishes `site/` to `SEAGLASS_SITE_DEST`: [`release.md`](release.md), "Website". It expects the manifests under `/updates/` of its own domain; with another layout, adapt the paths in `site/`. It also builds the app demo served at `/try/` from your latest `v*` tag; that folder needs its own CSP (same section).
 
 ## 5. Releasing
 

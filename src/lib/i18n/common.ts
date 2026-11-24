@@ -28,6 +28,12 @@ export const fr = {
   logout: "Se déconnecter",
   loading: "Chargement…",
   close: "Fermer",
+  /** Banner of the website demo (#28). */
+  demo: {
+    label: "Démo",
+    text: "Catalogue inventé, aucun son",
+    download: "Télécharger Seaglass",
+  },
   cancel: "Annuler",
   undo: "Annuler",
   unliked: "Retiré des favoris",
@@ -65,6 +71,11 @@ export const en: typeof fr = {
   logout: "Sign out",
   loading: "Loading…",
   close: "Close",
+  demo: {
+    label: "Demo",
+    text: "Invented catalog, no sound",
+    download: "Download Seaglass",
+  },
   cancel: "Cancel",
   undo: "Undo",
   unliked: "Removed from favourites",

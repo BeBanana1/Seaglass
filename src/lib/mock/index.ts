@@ -21,6 +21,7 @@
 // copie gardée affichée aussitôt à la réouverture, #152).
 
 import { blindTestMock } from "./blindTest";
+import { demoFixtures, searchDemo } from "./demo";
 import type {
   EqFilter,
   EqFilterKind,
@@ -75,7 +76,7 @@ import type {
 } from "../ipc";
 import type { LibraryTab, Route, SettingsSection } from "../stores/nav.svelte";
 
-interface Fixtures {
+export interface Fixtures {
   search: SearchResults;
   album: AlbumPage;
   artist: ArtistPage;
@@ -93,11 +94,24 @@ interface Fixtures {
     playlists: PlaylistSummary[];
     mixes?: MixSummary[];
   };
+  /** Pages per identifier (invented catalog of `demo.ts`, #28): without them, every album,
+   *  artist, playlist or mix opens the single page above. */
+  pages?: {
+    albums: AlbumPage[];
+    artists: ArtistPage[];
+    playlists: PlaylistPage[];
+    mixes: MixPage[];
+  };
 }
 
-const found = import.meta.glob<Fixtures>("./fixtures.json", { eager: true, import: "default" });
-const fx: Fixtures = Object.values(found)[0] ?? synthetic();
 const params = new URLSearchParams(location.search);
+// In the demo build, `fixtures.json` loads as `null` (vite.config.ts): the invented catalog
+// is always used there. `?demo=1` forces it in `pnpm dev` too.
+const found = import.meta.glob<Fixtures | null>("./fixtures.json", {
+  eager: true,
+  import: "default",
+});
+const fx: Fixtures = (params.has("demo") ? null : Object.values(found)[0]) ?? demoFixtures();
 let pinShortcutParam = params.has("pinshortcut");
 
 const demoMix: MixSummary = {
@@ -130,6 +144,7 @@ for (const t of [
   ...fx.library.tracks,
   ...mixPage.tracks,
   ...radioPage.tracks,
+  ...(fx.pages?.albums.flatMap((p) => p.tracks) ?? []),
 ]) {
   allTracks.set(t.id, t);
 }
@@ -298,6 +313,35 @@ let ui: UiSettings = {
   releaseNotifications: false,
 };
 
+/** Website demo (#28): the appearance choices are kept between visits, in the browser. */
+const DEMO_UI_KEY = "seaglass-demo-ui";
+const DEMO_UI_FIELDS = [
+  "theme",
+  "accents",
+  "favoriteThemes",
+  "language",
+  "motion",
+  "zoom",
+] as const;
+if (__DEMO__) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DEMO_UI_KEY) ?? "{}") as Partial<UiSettings>;
+    for (const field of DEMO_UI_FIELDS) {
+      if (saved[field] !== undefined && !params.has(field)) ui = { ...ui, [field]: saved[field] };
+    }
+  } catch {
+    // Storage blocked or unreadable: the defaults stay.
+  }
+}
+function saveDemoUi() {
+  try {
+    const kept = Object.fromEntries(DEMO_UI_FIELDS.map((field) => [field, ui[field]]));
+    localStorage.setItem(DEMO_UI_KEY, JSON.stringify(kept));
+  } catch {
+    // Storage blocked: the choices only last for the visit.
+  }
+}
+
 /** « Système » du backend factice : la langue du navigateur. */
 function effectiveLanguage(pref: LanguagePref): Lang {
   if (pref !== "system") return pref;
@@ -313,7 +357,9 @@ let playedAlbums: AlbumSummary[] = fx.search.albums.slice(0, 5);
 function withPlayed(rows: HomeRow[]): HomeRow[] {
   if (playedAlbums.length === 0) return rows;
   const items = playedAlbums.map((a) => ({ kind: "album" as const, ...a }));
-  return [{ key: "SEAGLASS_RECENT", title: "Écoutés dans Seaglass", items }, ...rows];
+  const title =
+    effectiveLanguage(ui.language) === "en" ? "Played in Seaglass" : "Écoutés dans Seaglass";
+  return [{ key: "SEAGLASS_RECENT", title, items }, ...rows];
 }
 
 function arrangeHome(rows: HomeRow[], layout: HomeLayout): HomeSection[] {
@@ -709,7 +755,8 @@ function ownPage(uuid: string): PlaylistPage | undefined {
   if (!page) {
     const summary = own.find((p) => p.uuid === uuid);
     if (!summary) return undefined;
-    page = { playlist: summary, tracks: fx.playlist.tracks.map((t) => ({ ...t })), revision: null };
+    const start = fx.pages?.playlists.find((p) => p.playlist.uuid === uuid) ?? fx.playlist;
+    page = { playlist: summary, tracks: start.tracks.map((t) => ({ ...t })), revision: null };
     ownPages.set(uuid, page);
   }
   page.playlist.numberOfTracks = page.tracks.length;
@@ -767,7 +814,11 @@ const slowPlaylist = Math.max(0, Number(params.get("slow")) || 0);
 
 /** Page actuelle, avec une révision tirée de ses titres (l'ETag du vrai backend). */
 function currentPlaylist(uuid: string): PlaylistPage {
-  const page = ownPage(uuid) ?? longPlaylist ?? fx.playlist;
+  const page =
+    ownPage(uuid) ??
+    longPlaylist ??
+    fx.pages?.playlists.find((p) => p.playlist.uuid === uuid) ??
+    fx.playlist;
   let hash = 5381;
   for (const t of page.tracks) hash = (Math.imul(hash, 33) ^ t.id) >>> 0;
   return { ...page, revision: `"${hash}-${page.tracks.length}"` };
@@ -779,11 +830,31 @@ export function playbackTick() {
   if (state.paused || state.idle || state.loading || !(state.track || state.blindTest)) return;
   state.timePos = Math.min(state.timePos + 0.25, state.duration);
   blind.tick();
+  // Website demo (#28): at the end of a track, the queue moves on as with the real player.
+  if (__DEMO__ && !state.blindTest && state.timePos >= state.duration) return demoTrackEnd();
   emit("player-state", state);
 }
-if (params.has("ticks")) setInterval(playbackTick, 250);
+if (__DEMO__ || params.has("ticks")) setInterval(playbackTick, 250);
 
-let searchHistory: string[] = ["Daft Punk", "Moon Safari", "Bohemian Rhapsody"];
+/** End of a track in the demo: Repeat One starts it again, then the manual queue, the
+ *  context (from the start again with Repeat All), or the end of the queue. */
+function demoTrackEnd() {
+  if (state.repeat === "one") {
+    state.timePos = 0;
+    emit("player-state", state);
+  } else if (manual.length) setCurrent(manual.shift());
+  else if (index + 1 < context.length) setCurrent(context[++index]);
+  else if (state.repeat === "all") setCurrent(context[(index = 0)]);
+  else {
+    state.paused = true;
+    state.timePos = 0;
+    emit("player-state", state);
+  }
+}
+
+let searchHistory: string[] = __DEMO__
+  ? ["Lumen Tide", "Warm Currents", "Night Ferry"]
+  : ["Daft Punk", "Moon Safari", "Bohemian Rhapsody"];
 
 // Jam (#25) : `?jam=1` l'affiche démarrée en ligne, `?jam=local` sur le réseau local,
 // `?jam=reconnecting` en reconnexion ; avec `manual=1`, le premier titre de la file manuelle
@@ -941,7 +1012,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   search: ({ query }) => {
     const q = String(query).trim().replace(/\s+/g, " ");
     if (!q) return { tracks: [], albums: [], artists: [], playlists: [] };
-    return fx.search;
+    return fx.pages ? searchDemo(q) : fx.search;
   },
   search_history: () => searchHistory,
   note_search_history: ({ query }) => {
@@ -1130,7 +1201,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
         })
       : null,
   // Avec `?hirestwin=1`, l'album affiché n'est pas hi-res et a un jumeau qui l'est.
-  album: () => (hiresTwin ? { ...fx.album, album: { ...fx.album.album, hires: false } } : fx.album),
+  album: ({ id }) => {
+    const page = fx.pages?.albums.find((p) => p.album.id === Number(id)) ?? fx.album;
+    return hiresTwin ? { ...page, album: { ...page.album, hires: false } } : page;
+  },
   hires_twin_album: () =>
     hiresTwin
       ? {
@@ -1140,7 +1214,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
           hires: true,
         }
       : null,
-  artist: () => fx.artist,
+  artist: ({ id }) => fx.pages?.artists.find((p) => p.artist.id === Number(id)) ?? fx.artist,
   album_related: () => ({
     versions: fx.search.albums.slice(0, 4).map((a, i) => ({
       ...a,
@@ -1326,7 +1400,7 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       if (i >= 0) list.splice(i, 1);
     }
   },
-  mix: () => mixPage,
+  mix: ({ id }) => fx.pages?.mixes.find((p) => p.mix.id === String(id)) ?? mixPage,
   // La radio factice garde ses titres, mais reprend le point de départ demandé.
   radio: ({ seed, id }) => ({ ...radioPage, seed, id }),
   library_mixes: () => libraryMixes,
@@ -1388,7 +1462,16 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   set_home_featured: ({ shown }) => (ui.home = { ...ui.home, featuredHidden: !shown }),
   open_project_page: ({ page }) => {
-    console.info("open_project_page", page);
+    // Website demo (#28): the real links, in a new tab.
+    if (__DEMO__) {
+      const repo = "https://github.com/BeBanana1/Seaglass";
+      const url = {
+        website: "https://seaglass.bebanana.ch/",
+        repo,
+        newIssue: `${repo}/issues/new/choose`,
+      }[String(page)];
+      if (url) window.open(url, "_blank", "noopener");
+    } else console.info("open_project_page", page);
     return null;
   },
   // #192 : `?crash=1` simule un plantage au lancement précédent (toast et rapport).
@@ -1498,7 +1581,12 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   },
   audio_devices: () => audioDevices,
   // `?platform=android` : mise en page tactile.
-  platform: () => (params.get("platform") === "android" ? "android" : "desktop"),
+  // Website demo (#28): a phone gets the touch layout, as the Android app would show it.
+  platform: () =>
+    params.get("platform") === "android" ||
+    (__DEMO__ && !params.has("platform") && matchMedia("(max-width: 700px)").matches)
+      ? "android"
+      : "desktop",
   autostart_enabled: () => autostart,
   discord_available: () => true,
   exclusive_available: () => true,
@@ -1681,8 +1769,10 @@ export async function invoke<T>(cmd: string, args: Record<string, unknown> = {})
   const delay =
     cmd === "playlist" ? slowPlaylist : cmd === "home_rest" || cmd.endsWith("_cleanup") ? 500 : 0;
   await new Promise((r) => setTimeout(r, 120 + delay));
-  // Un gestionnaire peut être asynchrone (progression émise en route, #330).
-  return structuredClone(await handler(args)) as T;
+  // A handler can be asynchronous (progress emitted along the way, #330).
+  const result = structuredClone(await handler(args)) as T;
+  if (__DEMO__) saveDemoUi();
+  return result;
 }
 
 export async function listen<T>(event: string, cb: (e: { payload: T }) => void) {
@@ -1879,99 +1969,5 @@ export function initialView(): {
     trackInfo: params.has("trackinfo"),
     drive: params.has("drive"),
     palette: params.has("palette"),
-  };
-}
-
-function synthetic(): Fixtures {
-  const track = (id: number, title: string): Track => ({
-    id,
-    title,
-    version: null,
-    duration: 200 + id,
-    artists: [{ id: 1, name: "Artiste de démonstration" }],
-    album: { id: 1, title: "Album de démonstration", coverUrl: null, color: "#4f95b0" },
-    explicit: false,
-    ai: false,
-    hires: id % 2 === 0,
-  });
-  const tracks = Array.from({ length: 12 }, (_, i) => track(i + 1, `Titre ${i + 1}`));
-  // Dates d'ajout dans le désordre (playlist) ou décroissantes (favoris), comme l'API.
-  const day = (d: number) => Date.UTC(2024, 0, d);
-  const playlistTracks = tracks.map((t, i) => ({ ...t, addedAt: day(1 + ((i * 5) % 12)) }));
-  const likedTracks = tracks.map((t, i) => ({ ...t, addedAt: day(12 - i) }));
-  const album = {
-    id: 1,
-    title: "Album de démonstration",
-    artists: [{ id: 1, name: "Artiste de démonstration" }],
-    coverUrl: null,
-    color: "#4f95b0",
-    releaseDate: "2024-01-01",
-    numberOfTracks: 12,
-    albumType: "ALBUM",
-    explicit: false,
-    ai: false,
-    hires: true,
-  };
-  return {
-    search: { tracks, albums: [album], artists: [], playlists: [] },
-    album: { album, coverLargeUrl: null, duration: 2600, copyright: null, tracks },
-    artist: {
-      artist: { id: 1, name: "Artiste de démonstration", pictureUrl: null },
-      topTracks: tracks.slice(0, 5),
-      albums: [album],
-      singles: [],
-    },
-    playlist: {
-      playlist: {
-        uuid: "00000000-0000-0000-0000-000000000000",
-        title: "Playlist de démonstration",
-        description: null,
-        imageUrl: null,
-        numberOfTracks: 12,
-        duration: 2600,
-        editorial: true,
-        mine: false,
-      },
-      tracks: playlistTracks,
-      revision: null,
-    },
-    home: [
-      { key: "FOR_YOU", title: "Pour vous", items: [{ kind: "album", ...album }] },
-      {
-        key: "HISTORY_MIXES",
-        title: "Votre historique de lecture",
-        items: [
-          {
-            kind: "mix",
-            id: "0000000000000000000000000000ff",
-            title: "My Mix 1",
-            subtitle: "Artiste de démonstration et d'autres",
-            imageUrl: null,
-            mixType: "DAILY_MIX",
-          },
-        ],
-      },
-    ],
-    feed: [
-      {
-        occurredAt: Date.now(),
-        seen: false,
-        item: { kind: "album", ...album, albumType: "SINGLE" },
-      },
-      {
-        occurredAt: Date.UTC(2024, 0, 1),
-        seen: true,
-        item: {
-          kind: "mix",
-          id: "0000000000000000000000000000fe",
-          title: "December 2023",
-          subtitle: "Artiste de démonstration et plus",
-          imageUrl: null,
-          mixType: "HISTORY_MONTHLY_MIX",
-        },
-      },
-      { occurredAt: Date.UTC(2024, 0, 1), seen: true, item: { kind: "album", ...album } },
-    ],
-    library: { tracks: likedTracks, albums: [album], artists: [], playlists: [] },
   };
 }
