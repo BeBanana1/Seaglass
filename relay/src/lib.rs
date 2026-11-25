@@ -44,13 +44,23 @@ const MAX_HOST_MESSAGE: usize = 256 * 1024;
 /// Encrypted packet from the phone to its PC (history batch, handed-off queue: 4 MiB at
 /// most in plain text, base64 included).
 const MAX_DEVICE_BODY: usize = 8 * 1024 * 1024;
-/// Message from a PC (encrypted answer, JSON envelope included).
-const MAX_DEVICE_MESSAGE: usize = 12 * 1024 * 1024;
+/// Message from a PC (encrypted answer, JSON envelope included). Largest measured on
+/// 2026-11-25: about 2.4 MiB, a handoff at the limits the phone accepts (20,000 tracks in
+/// the context, 2,000 in the manual queue); a full history batch is about 2 MiB.
+const MAX_DEVICE_MESSAGE: usize = 4 * 1024 * 1024;
 /// Phone packets held in memory at the same time, all devices together, in KiB. A packet
-/// is held twice while forwarded (body, then the message to the PC): 2 × 32 MiB stays well
-/// under the container's 128 MiB. A packet reserves its `Content-Length`, the maximum
-/// without one; beyond the budget, `503 busy` (the phone already retries on it).
-const DEVICE_UPLOAD_BUDGET_KIB: usize = 32 * 1024;
+/// reserves its `Content-Length`, the maximum without one; beyond the budget, `503 busy`,
+/// which the phone treats as an unreachable PC (history sync tries again later, a handoff
+/// can be retried).
+const DEVICE_UPLOAD_BUDGET_KIB: usize = 16 * 1024;
+/// PC connections read at the same time (`device::run`): a PC is only read while its phone
+/// awaits an answer, and with one of these slots, released after each message.
+///
+/// **Memory budget** (container: 128 MiB): uploads are held twice while forwarded (body,
+/// then the message to the PC), 2 × 16 MiB; a message read is held twice while parsed
+/// (frame, then the answer's body), 4 slots × 2 × 4 MiB; 20 Jams with 256 KiB host
+/// messages, about 10 MiB; the process itself, about 10 MiB. About 85 MiB in all.
+const DEVICE_READ_SLOTS: usize = 4;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -113,6 +123,8 @@ pub(crate) struct Relay {
     device_calls: Mutex<Rate>,
     /// Memory left for phone packets, in KiB (`DEVICE_UPLOAD_BUDGET_KIB`).
     device_uploads: Semaphore,
+    /// PC connections that may be read now (`DEVICE_READ_SLOTS`).
+    device_reads: Semaphore,
 }
 
 impl Relay {
@@ -181,6 +193,7 @@ pub async fn serve(listener: TcpListener, config: Config) -> std::io::Result<()>
             Duration::from_secs(60),
         )),
         device_uploads: Semaphore::new(DEVICE_UPLOAD_BUDGET_KIB),
+        device_reads: Semaphore::new(DEVICE_READ_SLOTS),
         jams: Registry::default(),
         devices: Devices::default(),
         config,

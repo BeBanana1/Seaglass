@@ -1,11 +1,9 @@
-//! Tunnels d'appareils (#430) : l'ordinateur d'un utilisateur reste joignable par le
-//! téléphone qui lui est lié, hors du réseau local, pour le transfert de la lecture et
-//! l'historique d'écoute.
+//! Device tunnels (#430): a user's computer stays reachable by its paired phone outside
+//! the local network, for playback handoff and listening history.
 //!
-//! Contrairement à une Jam, rien n'est créé ni retenu par le relais : le PC tire lui-même
-//! son identifiant et son secret, et le tunnel n'existe que tant qu'il est connecté. Le
-//! relais ne transmet que des paquets chiffrés de bout en bout (clé connue des deux
-//! appareils seulement) : il n'en lit rien.
+//! Unlike a Jam, the relay creates and keeps nothing: the PC draws its own identifier and
+//! secret, and the tunnel only exists while it is connected. The relay only forwards
+//! end-to-end encrypted packets (key known to both devices only): it reads nothing of them.
 
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -18,23 +16,23 @@ use crate::jams::{ForwardError, Reply};
 use crate::limits::same;
 use crate::protocol::ToDevice;
 
-/// Réponse du PC attendue au plus ce délai (un lot d'historique fait environ 1 Mo).
+/// Longest wait for the PC's answer (a history batch is about 1 MB).
 pub const DEVICE_TIMEOUT: Duration = Duration::from_secs(30);
 const QUEUE: usize = 16;
 const MAX_PENDING: usize = 16;
 
-/// Identifiant ou secret valable : 32 à 64 caractères hexadécimaux.
+/// Valid identifier or secret: 32 to 64 hexadecimal characters.
 pub fn is_token(s: &str) -> bool {
     (32..=64).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttachError {
-    /// Identifiant déjà connecté avec un autre secret.
+    /// Identifier already connected with another secret.
     Taken,
-    /// Le relais a déjà tous ses tunnels.
+    /// The relay already has all its tunnels.
     Full,
-    /// Cette adresse a déjà tous les siens.
+    /// This address already has all of its own.
     TooManyForAddress,
 }
 
@@ -49,7 +47,7 @@ pub struct Device {
     secret: String,
     ip: IpAddr,
     inner: Mutex<Inner>,
-    /// Une nouvelle connexion du même PC a pris la place : l'ancienne se ferme.
+    /// A new connection of the same PC took the place: the old one closes.
     pub replaced: Notify,
 }
 
@@ -58,7 +56,14 @@ impl Device {
         self.inner.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    /// Transmet un paquet du téléphone au PC et attend sa réponse.
+    /// True while a request from the phone awaits the PC's answer: the only time the relay
+    /// reads the PC's connection (`device::run`). `forward` registers the request before
+    /// handing it to the connection, which therefore sees it on its next turn.
+    pub fn awaits_answer(&self) -> bool {
+        !self.lock().pending.is_empty()
+    }
+
+    /// Forwards a packet from the phone to the PC and waits for its answer.
     pub async fn forward(&self, client: IpAddr, body: String) -> Result<Reply, ForwardError> {
         let (host, rid, rx) = {
             let mut inner = self.lock();
@@ -121,9 +126,9 @@ impl Devices {
         self.lock().is_empty()
     }
 
-    /// Branche la connexion d'un PC : renvoie la file de ses messages et son numéro. Une
-    /// connexion du même PC encore branchée (même secret) est remplacée : il revient
-    /// souvent avant que le relais ait vu mourir l'ancienne.
+    /// Attaches a PC's connection: returns the queue of its messages and its number. A
+    /// connection of the same PC still attached (same secret) is replaced: it often comes
+    /// back before the relay has seen the old one die.
     pub fn attach(
         &self,
         id: &str,
@@ -167,15 +172,15 @@ impl Devices {
         });
         devices.insert(id.to_owned(), Arc::clone(&device));
         if let Some(previous) = previous {
-            // Ses requêtes en attente échouent ; sa session se ferme.
+            // Its pending requests fail; its session closes.
             previous.lock().pending.clear();
             previous.replaced.notify_one();
         }
         Ok((device, rx, generation))
     }
 
-    /// La connexion `generation` est fermée : le tunnel disparaît, sauf s'il a déjà été
-    /// repris par une nouvelle connexion.
+    /// Connection `generation` is closed: the tunnel disappears, unless a new connection
+    /// has already taken it back.
     pub fn detach(&self, id: &str, generation: u64) {
         let mut devices = self.lock();
         if devices
@@ -214,7 +219,7 @@ mod tests {
             Some(AttachError::Taken)
         );
         let (_, _rx2, second) = devices.attach(ID, SECRET, OTHER, 10, 3).unwrap();
-        // L'ancienne connexion qui se ferme ne détache pas la nouvelle.
+        // The old connection closing does not detach the new one.
         devices.detach(ID, first);
         assert!(devices.get(ID).is_some());
         devices.detach(ID, second);
@@ -248,6 +253,10 @@ mod tests {
         let answering = Arc::clone(&device);
         tokio::spawn(async move {
             if let Some(ToDevice::Request { rid, body, .. }) = rx.recv().await {
+                // Registered before it reached the connection: no answer without it.
+                if !answering.awaits_answer() {
+                    return;
+                }
                 answering.respond(
                     rid,
                     Reply {
@@ -257,7 +266,9 @@ mod tests {
                 );
             }
         });
+        assert!(!device.awaits_answer());
         let reply = device.forward(OTHER, "x".into()).await.unwrap();
         assert_eq!(reply.body, "re:x");
+        assert!(!device.awaits_answer());
     }
 }
