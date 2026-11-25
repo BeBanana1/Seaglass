@@ -1,9 +1,33 @@
-// Wrappers typés des commandes et événements Tauri.
-// Types dupliqués depuis Rust : tidal/models.rs, player/state.rs, mpv/events.rs.
+// Typed wrappers for the Tauri commands and events.
+// Types generated from Rust by ts-rs live in `bindings/` (#44, `cargo test` writes them) and are
+// re-exported here; the others are still copied by hand from Rust (tidal/models.rs,
+// player/state.rs…) until their group moves to `bindings/`.
 
 import { invoke, listen, type UnlistenFn } from "./transport";
+import type { AlbumRef } from "./bindings/AlbumRef";
+import type { ArtistRef } from "./bindings/ArtistRef";
+import type { AudioParams } from "./bindings/AudioParams";
+import type { PlayerState } from "./bindings/PlayerState";
+import type { Repeat } from "./bindings/Repeat";
+import type { StreamFormat } from "./bindings/StreamFormat";
+import type { Track } from "./bindings/Track";
+import type { TrackId } from "./bindings/TrackId";
+import type { Volume } from "./bindings/Volume";
 
-export type TrackId = number;
+export type { AlbumRef } from "./bindings/AlbumRef";
+export type { ArtistRef } from "./bindings/ArtistRef";
+export type { AudioParams } from "./bindings/AudioParams";
+export type { AudioQuality } from "./bindings/AudioQuality";
+export type { EditionAlbum } from "./bindings/EditionAlbum";
+export type { MpvIssue } from "./bindings/MpvIssue";
+export type { OutputDevice } from "./bindings/OutputDevice";
+export type { PlayerState } from "./bindings/PlayerState";
+export type { Repeat } from "./bindings/Repeat";
+export type { SleepState } from "./bindings/SleepState";
+export type { StreamFormat } from "./bindings/StreamFormat";
+export type { Track } from "./bindings/Track";
+export type { TrackId } from "./bindings/TrackId";
+export type { Volume } from "./bindings/Volume";
 
 /** Résultat d'un import de réglages (#352). */
 /** #330 : export de la bibliothèque terminé (dossier déjà ouvert). */
@@ -30,40 +54,6 @@ export interface ImportReport {
   ignored: string[];
 }
 
-export interface ArtistRef {
-  id: number;
-  name: string;
-}
-
-export interface AlbumRef {
-  id: number;
-  title: string;
-  /** Pochette 320×320. */
-  coverUrl: string | null;
-  /** 160×160 et 640×640 (#89). Toujours envoyées par le backend (déduites de la 320 pour un titre
-   *  enregistré avant 0.4.36), absentes des anciennes fixtures : voir `coverSmall`. */
-  coverSmallUrl?: string | null;
-  coverLargeUrl?: string | null;
-  /** Couleur dominante de la pochette (`#rrggbb`). */
-  color: string | null;
-}
-
-export interface Track {
-  id: TrackId;
-  title: string;
-  version: string | null;
-  /** Secondes. */
-  duration: number;
-  artists: ArtistRef[];
-  album: AlbumRef;
-  explicit: boolean;
-  /** Généré par IA selon le service (#369). */
-  ai: boolean;
-  hires: boolean;
-  /** Identifiant de l'enregistrement, commun à ses éditions. */
-  isrc?: string | null;
-}
-
 /** Titre d'une liste (playlist ou favoris) avec sa date d'ajout à cette liste. */
 export interface TrackEntry extends Track {
   /** Millisecondes depuis l'epoch Unix (UTC) ; `null` si l'API ne la donne pas. */
@@ -79,27 +69,8 @@ export interface LibraryList<T> {
   total: number | null;
 }
 
-export type AudioQuality = "LOW" | "HIGH" | "LOSSLESS" | "HI_RES_LOSSLESS";
-
 /** `commands::project::ProjectPage`: project page opened in the browser (#188, #517). */
 export type ProjectPage = "website" | "repo" | "newIssue" | "clientId";
-
-export interface StreamFormat {
-  quality: AudioQuality;
-  codec: string;
-  bitDepth: number | null;
-  sampleRate: number | null;
-  /** Débit moyen déclaré par le manifeste, en kbps (#3). */
-  bitrate: number | null;
-  /** Album de l'édition hi-res réellement lue, quand ce n'est pas celle du titre affiché (#18). */
-  hiresEdition: EditionAlbum | null;
-}
-
-/** Album d'une autre édition hi-res, ouvrable depuis « En lecture » (#111). */
-export interface EditionAlbum {
-  id: number;
-  title: string;
-}
 
 /** Infos détaillées d'un titre (#3), demandées à l'ouverture du panneau. */
 export interface TrackInfo {
@@ -213,14 +184,6 @@ export interface HiresEdition {
   played: boolean;
 }
 
-export interface AudioParams {
-  format: string;
-  samplerate: number;
-  channelCount: number;
-}
-
-export type Repeat = "off" | "all" | "one";
-
 /** Périphérique de sortie WASAPI (#79) : identifiant mpv (`wasapi/{guid}`) et nom Windows. */
 export interface AudioDevice {
   id: string;
@@ -232,16 +195,6 @@ export interface AudioDevices {
   devices: AudioDevice[];
   /** Identifiant du périphérique par défaut de Windows, s'il est connu. */
   systemDefault: string | null;
-}
-
-/** Sortie réellement utilisée, pour la chaîne audio (#79). */
-export interface OutputDevice {
-  /** Nom Windows du périphérique ouvert ; `null` si inconnu. */
-  name: string | null;
-  /** Périphérique par défaut du système (aucun choix, ou repli). */
-  systemDefault: boolean;
-  /** Périphérique choisi mais indisponible : nom enregistré. */
-  missing: string | null;
 }
 
 /** Blind test (#434) : saisie libre ou quatre propositions. */
@@ -323,71 +276,8 @@ export interface BlindTestView {
   clipPlaying: boolean;
 }
 
-export interface PlayerState {
-  track: Track | null;
-  stream: StreamFormat | null;
-  output: AudioParams | null;
-  /** Format réellement écrit sur la sortie (#245) : mixage de Windows en partagé, format
-   *  ouvert sur le périphérique en exclusif. `null` sur Android. */
-  deviceFormat: AudioParams | null;
-  outputDriver: string | null;
-  /** Mode exclusif WASAPI actif (#245). */
-  exclusive: boolean;
-  outputDevice: OutputDevice | null;
-  loading: boolean;
-  paused: boolean;
-  buffering: boolean;
-  idle: boolean;
-  timePos: number;
-  duration: number;
-  /** Position jusqu'où le titre est déjà en mémoire, en secondes (#453) ; 0 si inconnue. */
-  cached: number;
-  /** Le titre suivant est préchargé dans le moteur. */
-  nextReady: boolean;
-  shuffle: boolean;
-  repeat: Repeat;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  volume: Volume;
-  /** Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son format,
-   *  l'album dans `hiresEdition`. */
-  hiresOffer: StreamFormat | null;
-  /** Gain de normalisation appliqué au titre courant, en dB (#82) ; `null` si le signal
-   *  n'est pas modifié. */
-  normalization: number | null;
-  /** Profil d'égaliseur appliqué (#428) ; `null` si l'égaliseur est désactivé. */
-  equalizer: string | null;
-  /** Minuteur de mise en veille actif (#85). */
-  sleep: SleepState | null;
-  /** mpv ne tourne pas, avec sa cause probable (#92) ; `null` quand tout va bien. */
-  mpvIssue: MpvIssue | null;
-  /** Titre d'une bande originale choisie à la main (clin d'œil #399). */
-  soundtrack: boolean;
-  /** La file s'est arrêtée d'elle-même, rien ne suit (clin d'œil #399). */
-  ended: boolean;
-  /** Partie de blind test en cours (#434) : `track` est nul tant que la manche n'est pas révélée. */
-  blindTest: boolean;
-}
-
-/**
- * `cpuUnsupported` : mpv embarqué (x86-64-v3) sur un processeur sans AVX2.
- * `missing` : build installé sans son mpv (#261).
- */
-export type MpvIssue = "stopped" | "cpuUnsupported" | "missing";
-
-/** Minuteur actif : échéance en ms epoch (l'UI calcule le temps restant), ou fin du titre. */
-export type SleepState =
-  { kind: "minutes"; endsAt: number } | { kind: "endOfTrack" } | { kind: "endOfContext" };
-
 export type SleepRequest =
   { kind: "minutes"; minutes: number } | { kind: "endOfTrack" } | { kind: "endOfContext" };
-
-/** Volume logiciel de mpv : 100 non coupé = gain unitaire (seul réglage bit-perfect). */
-export interface Volume {
-  /** 0 à 100. */
-  level: number;
-  muted: boolean;
-}
 
 /** Partie de `QueueView` d'où lire un titre (#167). */
 export type QueuePart = "manual" | "upcoming";

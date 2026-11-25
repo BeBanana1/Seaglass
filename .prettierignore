@@ -1,2 +1,4 @@
 # Generated from the account's library by `cargo test dump_ui_fixtures -- --ignored` (gitignored).
 src/lib/mock/fixtures.json
+# Generated from the Rust types by ts-rs (`cargo test`, #44): CI checks them against Rust instead.
+src/lib/bindings/

@@ -1,8 +1,8 @@
-//! Pilotage de mpv : processus dédié, JSON IPC sur named pipe, événements typés, et
-//! petit serveur HTTP local qui sert les manifestes DASH depuis la mémoire.
+//! mpv control: dedicated process, JSON IPC over a named pipe, typed events, and a small
+//! local HTTP server that serves the DASH manifests from memory.
 
-// Sur Android (#24), seuls le serveur de manifestes et les types de réglages servent :
-// mpv n'y est jamais lancé.
+// On Android (#24), only the manifest server and the settings types are used: mpv is
+// never launched there.
 #![cfg_attr(mobile, allow(dead_code))]
 
 #[cfg(any(target_os = "linux", test))]
@@ -28,21 +28,26 @@ pub use device::AudioDevice;
 
 pub use ipc::MpvHandle;
 
-/// Pourquoi mpv ne tourne pas : affiché en bandeau par l'UI tant que l'app tourne (#92).
+/// Why mpv is not running: shown as a banner by the UI while the app runs (#92).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub enum MpvIssue {
-    /// mpv n'a pas démarré, ou s'est arrêté.
+    /// mpv did not start, or stopped.
     Stopped,
-    /// mpv de l'installeur (x86-64-v3) sur un processeur sans AVX2 : il ne peut pas tourner.
+    /// The installer's mpv (x86-64-v3) on a processor without AVX2: it cannot run.
     CpuUnsupported,
-    /// Build installé sans son `mpv.exe` (installation abîmée, antivirus) : pas de repli sur
-    /// le `PATH` hors debug (#261).
+    /// Installed build without its `mpv.exe` (damaged install, antivirus): no fallback to the
+    /// `PATH` outside debug (#261).
     Missing,
 }
 
 impl MpvIssue {
-    /// Cause probable d'un échec de mpv sur cette machine.
+    /// Probable cause of an mpv failure on this machine.
     pub fn diagnose() -> Self {
         if process::is_missing() {
             return Self::Missing;
@@ -58,7 +63,7 @@ impl MpvIssue {
         }
     }
 
-    /// Message des toasts (lecture demandée alors que mpv ne tourne pas).
+    /// Toast message (playback asked while mpv is not running).
     pub fn message(self) -> &'static str {
         match self {
             Self::Stopped => tr(
@@ -85,7 +90,7 @@ pub enum MpvError {
         .0
     ))]
     Spawn(std::io::Error),
-    /// Build installé sans le `mpv.exe` de l'installeur ni `SEAGLASS_MPV_PATH` (#261).
+    /// Installed build without the installer's `mpv.exe` nor `SEAGLASS_MPV_PATH` (#261).
     #[error(
         "{}",
         tr(
@@ -113,7 +118,7 @@ mod tests {
     #[test]
     fn avx2_is_blamed_only_for_the_bundled_mpv() {
         assert_eq!(MpvIssue::classify(true, true), MpvIssue::CpuUnsupported);
-        // mpv choisi par l'utilisateur (SEAGLASS_MPV_PATH, PATH) : peut-être une build v1.
+        // mpv chosen by the user (SEAGLASS_MPV_PATH, PATH): maybe a v1 build.
         assert_eq!(MpvIssue::classify(false, true), MpvIssue::Stopped);
         assert_eq!(MpvIssue::classify(true, false), MpvIssue::Stopped);
     }

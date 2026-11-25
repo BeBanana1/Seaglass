@@ -1,5 +1,5 @@
-//! États envoyés à l'UI : `player-state` (fréquent, léger) et `queue-state`
-//! (seulement quand la file change, car il contient des listes de titres).
+//! States sent to the UI: `player-state` (frequent, light) and `queue-state`
+//! (only when the queue changes, since it holds track lists).
 
 use serde::Serialize;
 
@@ -15,67 +15,72 @@ use crate::tidal::models::{StreamFormat, Track};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub struct PlayerState {
     pub track: Option<Track>,
-    /// Format servi par TIDAL.
+    /// Format served by TIDAL.
     pub stream: Option<StreamFormat>,
-    /// Format réellement envoyé à la sortie audio par mpv.
+    /// Format actually sent to the audio output by mpv.
     pub output: Option<AudioParams>,
-    /// Format réellement écrit sur la sortie (#245) : mixage de Windows en partagé, format
-    /// ouvert sur le périphérique en exclusif. `None` sur Android.
+    /// Format actually written to the output (#245): Windows mix in shared mode, format
+    /// opened on the device in exclusive mode. `None` on Android.
     pub device_format: Option<AudioParams>,
     pub output_driver: Option<String>,
-    /// Mode exclusif WASAPI actif (#245).
+    /// WASAPI exclusive mode active (#245).
     pub exclusive: bool,
-    /// Périphérique de sortie réellement utilisé (#79).
+    /// Output device actually in use (#79).
     pub output_device: Option<OutputDevice>,
-    /// Un titre est en cours de résolution (métadonnées + manifeste).
+    /// A track is being resolved (metadata + manifest).
     pub loading: bool,
     pub paused: bool,
     pub buffering: bool,
     pub idle: bool,
-    /// Position en secondes ; l'UI interpole entre deux événements.
+    /// Position in seconds; the UI interpolates between two events.
     pub time_pos: f64,
     pub duration: f64,
-    /// Position jusqu'où le titre courant est déjà en mémoire, en secondes (#453) ; 0 si
-    /// inconnue. Arrondie à la seconde près par `set_cached`.
+    /// Position up to which the current track is already in memory, in seconds (#453); 0 if
+    /// unknown. Rounded to the second by `set_cached`.
     pub cached: f64,
-    /// Le titre suivant est préchargé dans le moteur (fenêtre de 2 entrées).
+    /// The next track is preloaded in the engine (2-entry window).
     pub next_ready: bool,
     pub shuffle: bool,
     pub repeat: Repeat,
     pub has_previous: bool,
     pub has_next: bool,
-    /// Volume logiciel de mpv ; tout autre réglage que 100 non coupé n'est plus bit-perfect.
+    /// mpv software volume; any setting other than 100 unmuted is no longer bit-perfect.
     pub volume: Volume,
-    /// Édition hi-res proposée pour le titre courant (réglage « Demander », #59) : son
-    /// format, l'album dans `hires_edition`.
+    /// Hi-res edition offered for the current track ("Ask" setting, #59): its format, the
+    /// album in `hires_edition`.
     pub hires_offer: Option<StreamFormat>,
-    /// Gain de normalisation appliqué au titre courant, en dB (#82) ; `None` si le signal
-    /// n'est pas modifié (réglage désactivé, gain inconnu ou nul).
+    /// Normalization gain applied to the current track, in dB (#82); `None` if the signal
+    /// is not modified (setting off, gain unknown or zero).
     pub normalization: Option<f64>,
-    /// Profil d'égaliseur appliqué (#428) ; `None` si l'égaliseur est désactivé.
+    /// Equalizer profile applied (#428); `None` if the equalizer is off.
     pub equalizer: Option<String>,
-    /// Minuteur de mise en veille actif (#85).
+    /// Active sleep timer (#85).
     pub sleep: Option<SleepState>,
-    /// mpv ne tourne pas (lancement raté ou arrêt), avec sa cause probable (#92). Dans
-    /// l'état plutôt qu'en toast : l'échec au lancement précède l'écoute de la webview.
+    /// mpv is not running (failed launch or stop), with its probable cause (#92). In the
+    /// state rather than a toast: the launch failure comes before the webview listens.
     pub mpv_issue: Option<MpvIssue>,
-    /// Le titre courant vient d'une bande originale choisie (clin d'œil #399), recalculé à
-    /// chaque émission.
+    /// The current track comes from a chosen soundtrack (easter egg #399), recomputed on
+    /// each emission.
     pub soundtrack: bool,
-    /// La file s'est arrêtée d'elle-même, rien ne suit (clin d'œil #399) ; remis à faux au
-    /// chargement suivant. `idle` ne suffit pas : il vaut aussi au démarrage.
+    /// The queue stopped by itself, nothing follows (easter egg #399); reset to false at
+    /// the next load. `idle` is not enough: it is also true at startup.
     pub ended: bool,
-    /// Partie de blind test en cours (#434) : sans `track` tant que la manche n'est pas
-    /// révélée.
+    /// Blind test game in progress (#434): no `track` until the round is
+    /// revealed.
     pub blind_test: bool,
 }
 
 impl PlayerState {
-    /// Vrai si seuls `time_pos` et `cached` diffèrent : ces changements sont limités à
-    /// ~4 Hz. Sans copie de l'état (appelé à chaque position reçue, #147) : les deux champs
-    /// sont échangés le temps de la comparaison.
+    /// True if only `time_pos` and `cached` differ: those changes are limited to
+    /// ~4 Hz. Without copying the state (called on every position received, #147): both
+    /// fields are swapped for the time of the comparison.
     pub fn differs_only_by_time(&mut self, other: &Self) -> bool {
         if self.time_pos == other.time_pos && self.cached == other.cached {
             return false;
@@ -88,9 +93,9 @@ impl PlayerState {
         same
     }
 
-    /// Applique la position mise en mémoire (#453). Le cache se remplit par petits paquets :
-    /// seuls un écart d'une seconde ou plus, une baisse (nouveau titre, saut) et la fin du
-    /// titre sont gardés, pour ne pas réveiller l'UI à chaque paquet.
+    /// Applies the position held in memory (#453). The cache fills in small packets: only
+    /// a gap of one second or more, a decrease (new track, seek) and the end of the track are
+    /// kept, so as not to wake the UI on every packet.
     pub fn set_cached(&mut self, end: Option<f64>) {
         let end = end.unwrap_or(0.0).max(0.0);
         let reaches_end = self.duration > 0.0 && end >= self.duration - 1.0;
@@ -99,18 +104,18 @@ impl PlayerState {
         }
     }
 
-    /// Applique `audio-params`. mpv le passe à `null` à chaque fin de fichier, mais ne renvoie
-    /// pas la valeur si le fichier suivant a le même format (la chaîne audio n'est pas
-    /// reconfigurée) : un `null` est donc ignoré, la sortie n'est effacée qu'avec `set_idle`.
-    /// Un changement de format, lui, est toujours notifié.
+    /// Applies `audio-params`. mpv sets it to `null` at every end of file, but does not send
+    /// the value again if the next file has the same format (the signal path is not
+    /// reconfigured): a `null` is therefore ignored, the output is only cleared by `set_idle`.
+    /// A format change is always notified.
     pub fn set_output(&mut self, params: Option<AudioParams>) {
         if params.is_some() {
             self.output = params;
         }
     }
 
-    /// Applique `audio-out-params`, avec la même règle que `set_output` : un `null` (fin de
-    /// fichier, réouverture de la sortie) n'efface rien.
+    /// Applies `audio-out-params`, with the same rule as `set_output`: a `null` (end of file,
+    /// output reopened) clears nothing.
     pub fn set_device_format(&mut self, params: Option<AudioParams>) {
         if params.is_some() {
             self.device_format = params;
@@ -147,7 +152,7 @@ impl PlayerState {
             && self.equalizer.is_none()
     }
 
-    /// Applique `idle-active` : sans fichier, mpv n'a plus de sortie audio ouverte.
+    /// Applies `idle-active`: without a file, mpv has no audio output open anymore.
     pub fn set_idle(&mut self, idle: bool) {
         self.idle = idle;
         if idle {
@@ -160,13 +165,13 @@ impl PlayerState {
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QueueView {
-    /// File manuelle (« Lire ensuite » / « Ajouter à la file »).
+    /// Manual queue ("Play next" / "Add to queue").
     pub manual: Vec<Track>,
-    /// Prochains titres du contexte.
+    /// Next tracks of the context.
     pub upcoming: Vec<Track>,
-    /// Titre de départ quand le contexte est une radio qui prolonge la file (#78).
+    /// Starting track when the context is a radio that extends the queue (#78).
     pub radio: Option<Track>,
-    /// D'où vient le titre en cours (« Joué depuis », #124), s'il vient du contexte.
+    /// Where the current track comes from ("Playing from", #124), if it comes from the context.
     pub source: Option<PlaySource>,
 }
 
@@ -190,10 +195,10 @@ mod tests {
         assert!(!a.differs_only_by_time(&c));
         let same = a.clone();
         assert!(!a.differs_only_by_time(&same));
-        // L'état comparé est rendu intact.
+        // The compared state is given back intact.
         assert_eq!(a, PlayerState::default());
 
-        // Le cache qui avance est limité comme la position.
+        // The advancing cache is limited like the position.
         let d = PlayerState {
             time_pos: 1.0,
             cached: 30.0,
@@ -211,16 +216,16 @@ mod tests {
         };
         s.set_cached(Some(10.0));
         assert_eq!(s.cached, 10.0);
-        // Petit paquet : ignoré.
+        // Small packet: ignored.
         s.set_cached(Some(10.6));
         assert_eq!(s.cached, 10.0);
         s.set_cached(Some(11.2));
         assert_eq!(s.cached, 11.2);
-        // Fin du titre atteinte : gardée même à moins d'une seconde.
+        // End of the track reached: kept even under one second.
         s.set_cached(Some(198.8));
         s.set_cached(Some(199.5));
         assert_eq!(s.cached, 199.5);
-        // Nouveau titre ou saut en arrière : toujours appliqué.
+        // New track or backward seek: always applied.
         s.set_cached(Some(3.0));
         assert_eq!(s.cached, 3.0);
         s.set_cached(None);
@@ -307,7 +312,7 @@ mod tests {
         assert_eq!(PlayerState::default().played_format(), None);
     }
 
-    /// Changement de titre de même format : mpv envoie `null` puis plus rien (#12).
+    /// Track change with the same format: mpv sends `null` then nothing more (#12).
     #[test]
     fn output_survives_track_change_with_same_format() {
         let mut s = PlayerState::default();
@@ -316,11 +321,11 @@ mod tests {
         s.set_output(None);
         assert_eq!(s.output, params(96000));
 
-        // Un nouveau format remplace la sortie.
+        // A new format replaces the output.
         s.set_output(params(44100));
         assert_eq!(s.output, params(44100));
 
-        // Plus rien à lire : la sortie est fermée.
+        // Nothing left to play: the output is closed.
         s.set_idle(true);
         assert_eq!(s.output, None);
         assert!(s.idle);

@@ -1,11 +1,11 @@
-//! File d'attente : logique pure, sans mpv ni réseau.
+//! Queue: pure logic, with no mpv or network.
 //!
-//! - `context` : titres de l'album / playlist / recherche d'origine ;
-//!   `order` : ordre de lecture (indices dans `context`) ; `pos` : curseur dans `order`.
-//! - `manual` : file manuelle, prioritaire sur le contexte ; « Précédent » y remet aussi en
-//!   tête le titre quitté quand le curseur ne peut pas y ramener (voir `Entry`).
-//! - `history` : titres précédents, indépendant du shuffle.
-//! - `Repeat::One` est géré par mpv (`loop-file=inf`) : la file l'ignore.
+//! - `context`: tracks of the original album / playlist / search;
+//!   `order`: play order (indices into `context`); `pos`: cursor in `order`.
+//! - `manual`: manual queue, takes priority over the context; Previous also puts back at
+//!   its head the track left when the cursor cannot bring it back (see `Entry`).
+//! - `history`: previous tracks, independent of shuffle.
+//! - `Repeat::One` is handled by mpv (`loop-file=inf`): the queue ignores it.
 
 use std::collections::{HashSet, VecDeque};
 
@@ -18,11 +18,16 @@ use crate::tidal::models::TrackId;
 use entry::{Entry, Origin};
 
 const HISTORY_MAX: usize = 500;
-/// Titres récents de l'historique écartés d'une radio automatique (#78).
+/// Recent history tracks kept out of an automatic radio (#78).
 const RADIO_RECENT: usize = 100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub enum Repeat {
     #[default]
     Off,
@@ -30,13 +35,13 @@ pub enum Repeat {
     One,
 }
 
-/// Partie de la file affichée par l'UI (`QueueView`), pour « Lire depuis la file » (#167).
+/// Part of the queue shown by the UI (`QueueView`), for "Play from the queue" (#167).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum QueuePart {
-    /// `QueueView::manual` : la file manuelle.
+    /// `QueueView::manual`: the manual queue.
     Manual,
-    /// `QueueView::upcoming` : la suite du contexte (`upcoming_context`).
+    /// `QueueView::upcoming`: the rest of the context (`upcoming_context`).
     Upcoming,
 }
 
@@ -50,10 +55,10 @@ pub struct Queue {
     current: Option<Entry>,
     repeat: Repeat,
     shuffle: bool,
-    /// Titre dont la radio prolonge la file épuisée (#78) ; effacé par un nouveau contexte.
+    /// Track whose radio extends the exhausted queue (#78); cleared by a new context.
     #[serde(default)]
     radio: Option<TrackId>,
-    /// D'où vient le contexte (#124) ; effacé avec lui.
+    /// Where the context comes from (#124); cleared with it.
     #[serde(default)]
     source: Option<PlaySource>,
 }
@@ -75,8 +80,8 @@ impl Queue {
         !self.history.is_empty()
     }
 
-    /// Remplace le contexte et démarre sur `start`. La file manuelle est conservée, sauf les
-    /// titres rappelés par « Précédent ».
+    /// Replaces the context and starts on `start`. The manual queue is kept, except the
+    /// tracks recalled by Previous.
     pub fn set_context(
         &mut self,
         tracks: Vec<TrackId>,
@@ -95,14 +100,14 @@ impl Queue {
         } else {
             self.pos = start;
         }
-        // Les titres rappelés par « Précédent » appartenaient à la navigation précédente.
+        // The tracks recalled by Previous belonged to the previous navigation.
         self.manual.retain(|e| e.queued_by_user());
         self.current = Some(Entry::new(id, Origin::Context));
         Some(id)
     }
 
-    /// Active : Fisher-Yates sur les autres titres, piste courante en tête.
-    /// Désactive : ordre d'origine, curseur replacé sur la piste courante.
+    /// On: Fisher-Yates over the other tracks, current track first.
+    /// Off: original order, cursor put back on the current track.
     pub fn set_shuffle(&mut self, on: bool, rng: &mut impl Rng) {
         if on == self.shuffle {
             return;
@@ -123,21 +128,21 @@ impl Queue {
         self.repeat = repeat;
     }
 
-    /// « Lire ensuite ».
+    /// "Play next".
     pub fn play_next(&mut self, id: TrackId) {
         self.enqueue(&[id], true);
     }
 
-    /// « Ajouter à la file ».
+    /// "Add to queue".
     pub fn add_to_queue(&mut self, id: TrackId) {
         self.enqueue(&[id], false);
     }
 
-    /// Ajoute plusieurs titres à la file manuelle en gardant leur ordre (album, playlist) :
-    /// en tête avec `next` (« Lire ensuite »), sinon à la fin (« Ajouter à la file »).
+    /// Adds several tracks to the manual queue keeping their order (album, playlist): at
+    /// the head with `next` ("Play next"), otherwise at the end ("Add to queue").
     pub fn enqueue(&mut self, ids: &[TrackId], next: bool) {
         if next {
-            // `push_front` titre par titre inverserait l'ordre : on part du dernier.
+            // `push_front` track by track would reverse the order: start from the last one.
             for &id in ids.iter().rev() {
                 self.manual.push_front(Entry::new(id, Origin::Manual));
             }
@@ -151,8 +156,8 @@ impl Queue {
         self.manual.remove(index).is_some()
     }
 
-    /// Retire de la file manuelle une entrée par identifiant donné, la première trouvée
-    /// (invités de la Jam qui retirent leurs ajouts, #223). Renvoie le nombre retiré.
+    /// Removes from the manual queue one entry per given identifier, the first one found
+    /// (Jam guests removing their additions, #223). Returns the number removed.
     pub fn remove_manual_ids(&mut self, ids: &[TrackId]) -> usize {
         let mut removed = 0;
         for id in ids {
@@ -164,8 +169,8 @@ impl Queue {
         removed
     }
 
-    /// Déplace l'entrée `from` de la file manuelle pour qu'elle finisse à l'index `to`
-    /// (glisser-déposer, Monter / Descendre). Renvoie `false` si rien ne change.
+    /// Moves the manual queue entry `from` so that it ends at index `to` (drag and drop,
+    /// Move up / Move down). Returns `false` if nothing changes.
     pub fn move_manual(&mut self, from: usize, to: usize) -> bool {
         let len = self.manual.len();
         if from == to || from >= len || to >= len {
@@ -177,9 +182,9 @@ impl Queue {
         true
     }
 
-    /// Vide la file manuelle et la suite du contexte, sans toucher au titre courant ni à
-    /// l'historique. Le titre courant est détaché du contexte : rien ne le suit plus,
-    /// même en repeat All. Renvoie `false` s'il n'y avait rien à vider.
+    /// Empties the manual queue and the rest of the context, without touching the current
+    /// track or the history. The current track is detached from the context: nothing follows
+    /// it anymore, even in repeat All. Returns `false` if there was nothing to empty.
     pub fn clear_upcoming(&mut self) -> bool {
         if self.manual.is_empty() && self.peek_next().is_none() {
             return false;
@@ -196,37 +201,37 @@ impl Queue {
         true
     }
 
-    /// Titre dont la radio prolonge la file, s'il y en a une (séparateur de l'UI).
+    /// Track whose radio extends the queue, if there is one (UI separator).
     pub fn radio(&self) -> Option<TrackId> {
         self.radio
     }
 
-    /// Source du contexte, seulement si le titre courant en vient (pas d'un titre de la file
-    /// manuelle, ni d'un titre de l'historique dont le contexte a été remplacé).
+    /// Source of the context, only if the current track comes from it (not a manual queue
+    /// track, nor a history track whose context was replaced).
     pub fn source(&self) -> Option<&PlaySource> {
         self.current
             .filter(|c| c.in_context())
             .and(self.source.as_ref())
     }
 
-    /// Titre de départ de la radio automatique quand le titre courant en vient (#78, #124).
+    /// Starting track of the automatic radio when the current track comes from it (#78, #124).
     pub fn radio_playing(&self) -> Option<TrackId> {
         let cur = self.current.filter(|c| c.in_context())?;
         self.radio.filter(|&seed| seed != cur.id)
     }
 
-    /// Une radio peut prolonger la file : rien ne suit le titre courant, sans répétition
-    /// (repeat All est prioritaire, repeat One est géré par mpv).
+    /// A radio may extend the queue: nothing follows the current track, without repeat
+    /// (repeat All takes priority, repeat One is handled by mpv).
     pub fn wants_radio(&self) -> bool {
         self.repeat == Repeat::Off && self.current.is_some() && self.peek_next().is_none()
     }
 
-    /// Prolonge une file épuisée par la radio de `seed`, le titre courant (#78).
+    /// Extends an exhausted queue with the radio of `seed`, the current track (#78).
     ///
-    /// Refusé si le titre courant a changé ou si un suivant existe déjà (file modifiée
-    /// pendant la requête). Le titre courant, les titres récents de l'historique et les
-    /// doublons sont écartés. Le nouveau contexte commence par le titre courant, curseur
-    /// dessus : « Suivant » passe au premier titre de la radio.
+    /// Refused if the current track changed or a next one already exists (queue changed
+    /// during the request). The current track, recent history tracks and duplicates are
+    /// discarded. The new context starts with the current track, cursor on it: Next moves
+    /// to the first track of the radio.
     pub fn extend_with_radio(&mut self, seed: TrackId, tracks: &[TrackId]) -> bool {
         if self.current() != Some(seed) || !self.wants_radio() {
             return false;
@@ -258,7 +263,7 @@ impl Queue {
         true
     }
 
-    /// Titre qui suivra naturellement le titre courant (pour le préchargement).
+    /// Track that will naturally follow the current one (for the preload).
     pub fn peek_next(&self) -> Option<TrackId> {
         self.manual
             .front()
@@ -266,18 +271,18 @@ impl Queue {
             .or_else(|| self.next_pos().map(|p| self.context[self.order[p]]))
     }
 
-    /// Plus rien à lire après le titre courant sans boucler (repeat All) ni radio : file
-    /// manuelle vide et curseur sur le dernier titre de l'ordre de lecture (minuteur, #436).
+    /// Nothing left to play after the current track without looping (repeat All) or radio:
+    /// empty manual queue and cursor on the last track of the play order (sleep timer, #436).
     pub fn at_end(&self) -> bool {
         self.manual.is_empty() && self.pos + 1 >= self.order.len()
     }
 
-    /// Passe au titre suivant ; `None` en fin de file (l'état reste inchangé).
+    /// Moves to the next track; `None` at the end of the queue (the state stays unchanged).
     pub fn advance(&mut self) -> Option<TrackId> {
         if let Some(mut entry) = self.manual.pop_front() {
             self.push_history();
-            // Titre du contexte rappelé par « Précédent » : le curseur n'a pas bougé et le
-            // désigne encore, sauf si le contexte a changé depuis.
+            // Context track recalled by Previous: the cursor did not move and still points
+            // to it, unless the context changed since.
             if entry.in_context() && self.context_at_cursor() != Some(entry.id) {
                 entry.origin = Origin::Detached;
             }
@@ -292,14 +297,14 @@ impl Queue {
         Some(id)
     }
 
-    /// Lit le titre `index` de la partie `part` telle que l'UI l'affiche (#167), s'il s'agit
-    /// toujours de `id` (sinon la file a changé depuis l'affichage : `None`, rien ne bouge).
+    /// Plays the track `index` of the part `part` as the UI shows it (#167), if it is still
+    /// `id` (otherwise the queue changed since it was shown: `None`, nothing moves).
     ///
-    /// - File manuelle : les titres avant lui sont retirés, ceux d'après restent.
-    /// - Suite du contexte : le curseur saute dessus, dans l'ordre de lecture courant (repeat
-    ///   All compris) ; la file manuelle est gardée et passe juste après lui.
+    /// - Manual queue: the tracks before it are removed, those after it stay.
+    /// - Rest of the context: the cursor jumps to it, in the current play order (repeat
+    ///   All included); the manual queue is kept and comes right after it.
     ///
-    /// Les titres sautés ne vont pas dans l'historique ; le titre quitté, si.
+    /// Skipped tracks do not go into the history; the track left does.
     pub fn jump_to(&mut self, part: QueuePart, index: usize, id: TrackId) -> Option<TrackId> {
         match part {
             QueuePart::Manual => {
@@ -322,7 +327,7 @@ impl Queue {
         }
     }
 
-    /// Position dans `order` du titre `offset` de `upcoming_context`.
+    /// Position in `order` of the track `offset` of `upcoming_context`.
     fn upcoming_pos(&self, offset: usize) -> Option<usize> {
         let len = self.order.len();
         let p = self.pos.checked_add(1)?.checked_add(offset)?;
@@ -335,22 +340,22 @@ impl Queue {
         }
     }
 
-    /// Revient au dernier titre de l'historique.
+    /// Goes back to the last track of the history.
     ///
-    /// Un titre du contexte replace le curseur, pour que « Suivant » ramène au titre quitté.
-    /// Sinon, le titre quitté est remis en tête de la file manuelle : à sa place s'il venait
-    /// de la file, rappelé (écarté par un nouveau contexte) s'il venait d'ailleurs (#166).
+    /// A context track moves the cursor back, so that Next returns to the track left.
+    /// Otherwise, the track left is put back at the head of the manual queue: in its place if
+    /// it came from the queue, recalled (discarded by a new context) if from elsewhere (#166).
     pub fn previous(&mut self) -> Option<TrackId> {
         let mut entry = self.history.pop()?;
         if entry.in_context() {
             match self.order.iter().position(|&i| self.context[i] == entry.id) {
                 Some(p) => self.pos = p,
-                // Contexte remplacé depuis : on rejoue le titre sans bouger le curseur.
+                // Context replaced since: the track is replayed without moving the cursor.
                 None => entry.origin = Origin::Detached,
             }
         }
         if let Some(cur) = self.current {
-            // Entre deux titres du contexte, le curseur suffit à ramener au titre quitté.
+            // Between two context tracks, the cursor is enough to return to the track left.
             let cursor_returns = cur.in_context() && entry.in_context();
             if !cursor_returns {
                 self.manual.push_front(cur);
@@ -364,7 +369,7 @@ impl Queue {
         self.manual.iter().map(|e| e.id)
     }
 
-    /// Prochains titres du contexte (après le curseur, puis le début si repeat All).
+    /// Next tracks of the context (after the cursor, then the start if repeat All).
     pub fn upcoming_context(&self, limit: usize) -> Vec<TrackId> {
         let after = self.order.iter().skip(self.pos + 1);
         let wrapped = self.order.iter().take(self.pos + 1);
@@ -378,8 +383,8 @@ impl Queue {
         }
     }
 
-    /// Ordre de lecture complet (#327) : titre en cours, file manuelle, puis la suite du
-    /// contexte, `limit` titres au plus.
+    /// Full play order (#327): current track, manual queue, then the rest of the context,
+    /// at most `limit` tracks.
     pub fn play_order(&self, limit: usize) -> Vec<TrackId> {
         let mut ids: Vec<TrackId> = self.current().into_iter().chain(self.manual()).collect();
         ids.truncate(limit);
@@ -388,7 +393,7 @@ impl Queue {
         ids
     }
 
-    /// Tous les identifiants référencés (pour persister leurs métadonnées).
+    /// Every referenced identifier (to persist their metadata).
     pub fn referenced_ids(&self) -> Vec<TrackId> {
         let mut ids: Vec<TrackId> = self.context.clone();
         ids.extend(self.manual.iter().map(|e| e.id));
@@ -417,7 +422,7 @@ impl Queue {
 
     fn shuffle_around(&mut self, head: usize, rng: &mut impl Rng) {
         let mut rest: Vec<usize> = (0..self.context.len()).filter(|&i| i != head).collect();
-        // `SliceRandom::shuffle` est un Fisher-Yates.
+        // `SliceRandom::shuffle` is a Fisher-Yates.
         rest.shuffle(rng);
         self.order = std::iter::once(head).chain(rest).collect();
         self.pos = 0;
