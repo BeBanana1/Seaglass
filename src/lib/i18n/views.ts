@@ -52,7 +52,7 @@ export const fr = {
     placeholder: "Titres, artistes, albums, playlists…",
     searching: "Recherche…",
     noResults: "Aucun résultat.",
-    /** Thème Film noir (#339) : la même chose, dite par un détective fatigué. */
+    /** Film noir theme (#339): the same thing, told by a tired detective. */
     noResultsNoir:
       "Rien. Pas une empreinte, pas un témoin. La ville a avalé votre piste, comme les autres.",
     tracks: "Titres",
@@ -71,6 +71,9 @@ export const fr = {
     pending: "Connexion en cours…",
     signIn: "Se connecter",
     disclaimer: "Client non officiel, non affilié à TIDAL.",
+    clientNotice:
+      "Seaglass se connecte avec l'identifiant de l'app Android de TIDAL, que TIDAL n'autorise pas pour d'autres apps : l'utiliser peut aller contre les conditions d'utilisation de TIDAL.",
+    clientNoticeMore: "En savoir plus",
     sessionLost: "Session expirée, reconnectez-vous.",
     unreachable: "Impossible de reprendre la session, nouvel essai automatique.",
     signInBrowser: "Se connecter dans le navigateur",
@@ -110,7 +113,7 @@ export const fr = {
     similar: "Artistes similaires",
     credits: "Crédits",
   },
-  // Titres où une personne est créditée (#429).
+  // Tracks where a person is credited (#429).
   contributor: {
     eyebrow: "Crédits",
     tracks: (n: number) => `${num(n)} ${n > 1 ? "titres" : "titre"}`,
@@ -310,6 +313,9 @@ export const en: typeof fr = {
     pending: "Signing in…",
     signIn: "Sign in",
     disclaimer: "Unofficial client, not affiliated with TIDAL.",
+    clientNotice:
+      "Seaglass signs in with the identifier of TIDAL's Android app, which TIDAL has not authorized for other apps: using it may go against TIDAL's terms of use.",
+    clientNoticeMore: "Learn more",
     sessionLost: "Session expired, please sign in again.",
     unreachable: "Could not resume the session, retrying automatically.",
     signInBrowser: "Sign in with your browser",

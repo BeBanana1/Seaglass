@@ -1147,12 +1147,16 @@
       </p>
       {#if creditsOpen}<CreditsRoll onClose={() => (creditsOpen = false)} />{/if}
       <p><strong>{t.settings.disclaimer}</strong></p>
+      <p>{t.settings.clientNotice}</p>
       <p>{t.settings.streamingOnly}</p>
       <p>{t.settings.license}</p>
       <!-- #188 : URLs fixes côté Rust, ouvertes dans le navigateur du système. -->
       <div class="project-links">
         <button class="update-check" onclick={() => openProject("website")}>
           {t.settings.website}
+        </button>
+        <button class="update-check" onclick={() => openProject("clientId")}>
+          {t.settings.clientNoticeMore}
         </button>
         <button class="update-check" onclick={() => openProject("repo")}>
           {t.settings.sourceCode}
