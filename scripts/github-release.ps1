@@ -17,8 +17,8 @@
     release/linux.json                        (only if it describes this version)
 
   The release uses the `v<version>` tag (which must already be on origin), the title
-  "Seaglass <version>" and the manifest's notes (otherwise the git log since the previous
-  tag). If it already exists, its notes stay and attachments with the same name are replaced.
+  "Seaglass <version>" and the entries of CHANGELOG.md since the previous tag, every platform
+  (#49; without a log section for the version: the manifest's notes, then the git log). If it already exists, its notes stay and attachments with the same name are replaced.
 
   Goes through the GitHub CLI (`gh`), never through its default login: the token is given
   explicitly, so that a release never goes out under another account signed in on the PC.
@@ -42,6 +42,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 . (Join-Path $PSScriptRoot 'credentials.ps1')
+. (Join-Path $PSScriptRoot 'release-notes.ps1')
 
 function Fail($message) { Write-Host "ERROR: $message" -ForegroundColor Red; exit 1 }
 function Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
@@ -59,8 +60,8 @@ $expectedUser = Get-ReleaseSetting 'SEAGLASS_GITHUB_USER'
 Step "GitHub release $tag"
 
 # --- Files ------------------------------------------------------------------------------
-# A manifest is only attached to the version it describes (the last one built); its notes
-# become the release's. For an older version, notes come from the git log.
+# A manifest is only attached to the version it describes (the last one built); its notes are
+# the fallback when CHANGELOG.md has no section for the version.
 function Read-Manifest([string]$name) {
     $path = Join-Path $root "release\$name"
     if (-not (Test-Path $path)) { return $null }
@@ -104,6 +105,13 @@ if (Test-Path $appImage) {
 }
 if (-not $files) { Fail "no installer, APK or AppImage of $Version in release\" }
 
+# The release holds every platform: all of the log's entries, prefixes kept (#49).
+try {
+    $fromLog = Get-ReleaseNotes $Version 'all'
+    if ($fromLog) { $notes = $fromLog; Write-Host "    notes taken from CHANGELOG.md" }
+} catch {
+    Write-Host "    $($_.Exception.Message): manifest notes kept"
+}
 if (-not $notes) {
     Write-Host "    notes taken from git"
     $tags = @(git tag --list 'v*' --sort=v:refname)

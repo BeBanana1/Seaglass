@@ -57,6 +57,7 @@ Set-Location $root
 function Fail($message) { Write-Host "ERREUR : $message" -ForegroundColor Red; exit 1 }
 function Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
 . (Join-Path $PSScriptRoot 'build-stamp.ps1')
+. (Join-Path $PSScriptRoot 'release-notes.ps1')
 if ($PublishOnly) { $Publish = $true }
 
 # --- 1. Vérifications -------------------------------------------------------------------
@@ -177,11 +178,8 @@ if (-not $PublishOnly) {
     $apkOut = Join-Path $out $apkName
     Copy-Item $apk $apkOut -Force
 
-    if (-not $Notes) {
-        $previous = git tag --list 'v*' --sort=-v:refname | Where-Object { $_ -ne $tag } | Select-Object -First 1
-        $range = if ($previous) { "$previous..HEAD" } else { 'HEAD' }
-        $Notes = (git log $range --no-merges --pretty=format:'- %s' -n 30) -join "`n"
-    }
+    # From CHANGELOG.md (#49).
+    if (-not $Notes) { $Notes = Get-ReleaseNotes $version 'android' }
     $item = Get-Item $apkOut
     $manifest = [ordered]@{
         version  = $version

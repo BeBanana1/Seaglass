@@ -61,6 +61,7 @@ function Fail($message) { Write-Host "ERREUR : $message" -ForegroundColor Red; e
 function Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
 . (Join-Path $PSScriptRoot 'build-stamp.ps1')
 . (Join-Path $PSScriptRoot 'updater-manifest.ps1')
+. (Join-Path $PSScriptRoot 'release-notes.ps1')
 if ($PublishOnly) { $Publish = $true }
 
 # --- 1. Vérifications -------------------------------------------------------------------
@@ -156,11 +157,10 @@ if (-not $PublishOnly) {
 
     # --- 3. Fichiers à publier --------------------------------------------------------------
     Step "manifeste"
-    if (-not $Notes) {
-        $previous = git tag --list 'v*' --sort=-v:refname | Where-Object { $_ -ne $tag } | Select-Object -First 1
-        $range = if ($previous) { "$previous..HEAD" } else { 'HEAD' }
-        $Notes = (git log $range --no-merges --pretty=format:'- %s' -n 30) -join "`n"
-    }
+    # From CHANGELOG.md (#49): linux.json gets Linux's entries, latest.json (shared with
+    # Windows) the desktop ones.
+    $desktopNotes = if ($Notes) { $Notes } else { Get-ReleaseNotes $version 'desktop' }
+    if (-not $Notes) { $Notes = Get-ReleaseNotes $version 'linux' }
     $item = Get-Item $imageOut
     $manifest = [ordered]@{
         version  = $version
@@ -174,7 +174,7 @@ if (-not $PublishOnly) {
     [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 3), [System.Text.UTF8Encoding]::new($false))
     $size = [math]::Round($item.Length / 1MB, 1)
     Write-BuildStamp 'linux' $version
-    $announced = Write-UpdaterManifest $version $Notes $baseUrl
+    $announced = Write-UpdaterManifest $version $desktopNotes $baseUrl
     Write-Host "    AppImage  : release\$version\$imageName ($size Mo)"
     Write-Host "    manifeste : release\linux.json -> $baseUrl/linux.json"
     Write-Host "    updater   : release\latest.json ($($announced -join ', ')), envoyé par la publication Windows"
