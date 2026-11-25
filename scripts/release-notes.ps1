@@ -28,7 +28,7 @@ function Select-ReleaseNotesEntry([string]$text, [string]$platform) {
         if (-not $text.StartsWith($prefix, [StringComparison]::Ordinal)) { continue }
         if ($ReleaseNotesPrefixes[$prefix] -notcontains $platform) { return $null }
         if ($platform -eq 'desktop' -and $prefix -ne 'Desktop:') { return $text }
-        # "Desktop: the bars…" → "The bars…"
+        # "Desktop: the bars..." becomes "The bars..."
         $rest = $text.Substring($prefix.Length).TrimStart()
         if (-not $rest) { return $null }
         return $rest.Substring(0, 1).ToUpperInvariant() + $rest.Substring(1)
@@ -53,7 +53,8 @@ function Get-ReleaseNotes([string]$version, [ValidateSet('windows', 'linux', 'an
     $target = [version]$version
     $previous = Get-PreviousReleaseVersion $target
     $path = Join-Path (Split-Path -Parent $PSScriptRoot) 'CHANGELOG.md'
-    # Read as UTF-8 whatever the console's code page: the log holds "›" and other non-ASCII text.
+    # Read as UTF-8 whatever the code page: the log holds non-ASCII text (U+203A in
+    # "Settings > Application"). This file stays ASCII: PowerShell 5.1 reads it as ANSI.
     $lines = [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) -split '\r?\n'
 
     $found = $false
