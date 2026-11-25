@@ -15,7 +15,7 @@ Usage:
         USER_ACTION (what an explicit Play sends); --user-action sends one right away.
         Ctrl+C quits, or --duration (also lets it run without a console).
 
-    python -I spike/pushkin.py play <track id or URL> [--no-pushkin]
+    python -I spike/pushkin.py play <track id or URL> [--no-pushkin] [--ao null]
         Connects, sends a USER_ACTION, then plays the track in mpv. On a
         PRIVILEGED_SESSION_NOTIFICATION, pauses mpv as the SDK does. Enter in this console
         is an explicit Play: a USER_ACTION, then mpv resumes. --no-pushkin plays without
@@ -302,7 +302,8 @@ def cmd_play(args: argparse.Namespace) -> None:
         "--cache=yes",
         "--cache-on-disk=no",  # principle 1: nothing on disk
         "--idle=no",
-        "--msg-level=all=error",
+        "--msg-level=all=warn",
+        *([f"--ao={args.ao}"] if args.ao else []),
         f"--input-ipc-server={PIPE}",
         f"--force-media-title={track.artist.name} – {track.full_name}",
         url,
@@ -342,6 +343,7 @@ def main() -> None:
     p = sub.add_parser("play", help="play a track, pausing when another device takes over")
     p.add_argument("track")
     p.add_argument("--no-pushkin", action="store_true", help="play without connecting to Pushkin")
+    p.add_argument("--ao", help="mpv audio output, e.g. null on a PC without an audio device")
     p.set_defaults(func=cmd_play)
 
     args = parser.parse_args()
