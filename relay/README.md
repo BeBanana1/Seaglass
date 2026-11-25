@@ -16,6 +16,7 @@ Protocol: `src/protocol.rs`.
 - 128-bit Jam identifier in the link, access code checked by the host (and by the relay for the state stream, 10 failed attempts per address).
 - At most 20 open Jams (`RELAY_MAX_JAMS`), of which 3 for the same host address (`RELAY_MAX_JAMS_PER_ADDRESS`), 10 creations per address per hour, 12 h lifetime, 30 min for the host to come back after a drop or a screen-off pause (same address, same QR code). Resuming uses the Jam's secret, even if the relay still believes the old connection is open: a phone that switches networks comes back before the relay has noticed the drop.
 - 300 calls per minute per address (several guests on mobile data often share an address), 10 wrong codes per quarter hour per address for a Jam, 2 KiB bodies, 64 open pages per Jam, 256 KiB host messages, host answer awaited for 15 s.
+- "Address" means an IPv4 address or an IPv6 /64 network. A body is only read once its call has passed the rate limit and found its Jam or device; phone packets in memory share a 32 MiB budget (the container has 128 MiB).
 - Read-only container, no capabilities, non-root user, 128 MB of memory.
 
 ## Deployment (server, Docker, behind Caddy)

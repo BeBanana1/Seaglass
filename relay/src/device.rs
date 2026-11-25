@@ -1,12 +1,11 @@
-//! Connexion d'un PC (`GET /device`, WebSocket) et appels de son téléphone lié
-//! (`POST /d/<id>`), #430. Les corps sont chiffrés de bout en bout : le relais les passe
-//! tels quels.
+//! Connection of a PC (`GET /device`, WebSocket) and calls from its paired phone
+//! (`POST /d/<id>`), #430. Bodies are end-to-end encrypted: the relay passes them as is.
 
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::body::Bytes;
+use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{ConnectInfo, Path, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
@@ -18,7 +17,7 @@ use crate::devices::{AttachError, Device, is_token};
 use crate::jams::{ForwardError, Reply};
 use crate::limits::same;
 use crate::protocol::{FromDevice, ToDevice};
-use crate::{MAX_DEVICE_MESSAGE, Relay};
+use crate::{MAX_DEVICE_BODY, MAX_DEVICE_MESSAGE, Relay, content_length, into_text, read_body};
 
 const HELLO_TIMEOUT: Duration = Duration::from_secs(10);
 const PING_INTERVAL: Duration = Duration::from_secs(20);
@@ -59,7 +58,7 @@ async fn session(socket: WebSocket, relay: Arc<Relay>, ip: IpAddr) {
         message: message.to_owned(),
     };
     if !is_token(&id) || !is_token(&secret) {
-        let _ = send(&mut sink, &refuse("identifiant invalide")).await;
+        let _ = send(&mut sink, &refuse("invalid identifier")).await;
         return;
     }
     let attached = relay.devices.attach(
@@ -73,16 +72,16 @@ async fn session(socket: WebSocket, relay: Arc<Relay>, ip: IpAddr) {
         Ok(attached) => attached,
         Err(e) => {
             let message = match e {
-                AttachError::Taken => "identifiant déjà utilisé",
-                AttachError::Full => "relais complet",
-                AttachError::TooManyForAddress => "trop d'appareils depuis cette adresse",
+                AttachError::Taken => "identifier already in use",
+                AttachError::Full => "relay full",
+                AttachError::TooManyForAddress => "too many devices from this address",
             };
             let _ = send(&mut sink, &refuse(message)).await;
             return;
         }
     };
     tracing::info!(
-        "Appareil {} connecté ({} en tout)",
+        "Device {} connected ({} in all)",
         short(&id),
         relay.devices.len()
     );
@@ -93,7 +92,7 @@ async fn session(socket: WebSocket, relay: Arc<Relay>, ip: IpAddr) {
         run(&mut sink, &mut stream, &mut outbox, &device).await;
     }
     relay.devices.detach(&id, generation);
-    tracing::info!("Appareil {} déconnecté", short(&id));
+    tracing::info!("Device {} disconnected", short(&id));
 }
 
 async fn run(
@@ -170,14 +169,22 @@ fn error(status: StatusCode, kind: &str) -> Response {
     response
 }
 
-/// Appel du téléphone : paquet chiffré transmis au PC, sa réponse renvoyée telle quelle.
-/// 404 `offline` : le PC n'est pas connecté.
+/// KiB of `Relay::device_uploads` a packet reserves: its declared length, the maximum
+/// without one.
+fn reservation(headers: &HeaderMap) -> u32 {
+    let bytes = content_length(headers).map_or(MAX_DEVICE_BODY, |n| n.min(MAX_DEVICE_BODY));
+    u32::try_from(bytes.div_ceil(1024).max(1)).unwrap_or(u32::MAX)
+}
+
+/// Call from the phone: encrypted packet forwarded to the PC, its answer sent back as is.
+/// 404 `offline`: the PC is not connected. The body is only read once the rate limit, the
+/// device and the memory budget have let the call through.
 pub async fn call(
     State(relay): State<Arc<Relay>>,
     ConnectInfo(peer): ConnectInfo<SocketAddr>,
     Path(id): Path<String>,
     headers: HeaderMap,
-    body: Bytes,
+    body: Body,
 ) -> Response {
     let ip = relay.client_ip(peer, &headers);
     if !Relay::allow(&relay.device_calls, ip) {
@@ -186,7 +193,14 @@ pub async fn call(
     let Some(device) = relay.devices.get(&id) else {
         return error(StatusCode::NOT_FOUND, "offline");
     };
-    let Ok(body) = String::from_utf8(body.to_vec()) else {
+    // Held until the answer: the packet stays in memory while the PC handles it.
+    let Ok(_reserved) = relay.device_uploads.try_acquire_many(reservation(&headers)) else {
+        return error(StatusCode::SERVICE_UNAVAILABLE, "busy");
+    };
+    let Some(body) = read_body(body, &headers, MAX_DEVICE_BODY).await else {
+        return error(StatusCode::PAYLOAD_TOO_LARGE, "too_large");
+    };
+    let Some(body) = into_text(body) else {
         return error(StatusCode::BAD_REQUEST, "body");
     };
     match device.forward(ip, body).await {
@@ -201,4 +215,22 @@ pub async fn call(
 
 fn short(id: &str) -> &str {
     id.get(..6).unwrap_or(id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn packets_reserve_their_declared_size() {
+        let headers = |length: &str| {
+            let mut h = HeaderMap::new();
+            h.insert("content-length", length.parse().unwrap());
+            h
+        };
+        assert_eq!(reservation(&headers("0")), 1);
+        assert_eq!(reservation(&headers("1025")), 2);
+        assert_eq!(reservation(&HeaderMap::new()), 8 * 1024);
+        assert_eq!(reservation(&headers("999999999")), 8 * 1024);
+    }
 }

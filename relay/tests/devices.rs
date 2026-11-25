@@ -1,5 +1,5 @@
-//! Tunnels d'appareils (#430) de bout en bout : un faux PC en WebSocket, son téléphone en
-//! HTTP. Les corps sont opaques pour le relais : on vérifie qu'ils passent intacts.
+//! Device tunnels (#430) end to end: a fake PC over WebSocket, its phone over HTTP. Bodies
+//! are opaque to the relay: the tests check that they go through intact.
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -48,7 +48,7 @@ async fn receive(socket: &mut Socket) -> ToDevice {
     loop {
         let message = tokio::time::timeout(Duration::from_secs(5), socket.next())
             .await
-            .expect("rien reçu du relais")
+            .expect("nothing received from the relay")
             .unwrap()
             .unwrap();
         if let Message::Text(text) = message {
@@ -57,7 +57,7 @@ async fn receive(socket: &mut Socket) -> ToDevice {
     }
 }
 
-/// Répond à chaque paquet par son inverse.
+/// Answers each packet with its reverse.
 fn echo(mut socket: Socket) {
     tokio::spawn(async move {
         while let Some(Ok(message)) = socket.next().await {
@@ -105,7 +105,7 @@ async fn a_large_packet_goes_through_and_back() {
         }
     );
     echo(socket);
-    // Bien plus que les 2 Kio des appels de la Jam.
+    // Far more than the 2 KiB of Jam calls.
     let packet: String = (0..3_000_000)
         .map(|i| char::from(b'a' + (i % 26) as u8))
         .collect();
@@ -126,7 +126,7 @@ async fn only_the_secret_takes_an_id_back() {
     let (_first, _) = hello(addr, ID, SECRET).await;
     let (_, refused) = hello(addr, ID, &"0".repeat(32)).await;
     assert!(matches!(refused, ToDevice::Error { .. }), "{refused:?}");
-    // Le même PC qui revient prend la place de son ancienne connexion.
+    // The same PC coming back takes the place of its old connection.
     let (again, ready) = hello(addr, ID, SECRET).await;
     assert!(matches!(ready, ToDevice::Ready { .. }));
     echo(again);
@@ -136,4 +136,44 @@ async fn only_the_secret_takes_an_id_back() {
     );
     let (_, bad) = hello(addr, "court", SECRET).await;
     assert!(matches!(bad, ToDevice::Error { .. }));
+}
+
+/// Sends only the head of a POST declaring `length` bytes, then reads the answer: the relay
+/// must answer without waiting for a body it will not read.
+async fn head_only(addr: SocketAddr, path: &str, length: usize) -> u16 {
+    let mut s = TcpStream::connect(addr).await.unwrap();
+    let head = format!(
+        "POST {path} HTTP/1.1
+Host: x
+Content-Length: {length}
+
+"
+    );
+    s.write_all(head.as_bytes()).await.unwrap();
+    let mut out = [0u8; 12];
+    tokio::time::timeout(Duration::from_secs(5), s.read_exact(&mut out))
+        .await
+        .expect("the relay waited for the body")
+        .unwrap();
+    std::str::from_utf8(&out[9..12]).unwrap().parse().unwrap()
+}
+
+#[tokio::test]
+async fn bodies_are_not_read_for_an_absent_device() {
+    let addr = start().await;
+    assert_eq!(
+        head_only(addr, &format!("/d/{ID}"), 8 * 1024 * 1024).await,
+        404
+    );
+}
+
+#[tokio::test]
+async fn packets_beyond_the_limit_are_refused_unread() {
+    let addr = start().await;
+    let (socket, _) = hello(addr, ID, SECRET).await;
+    echo(socket);
+    assert_eq!(
+        head_only(addr, &format!("/d/{ID}"), 8 * 1024 * 1024 + 1).await,
+        413
+    );
 }

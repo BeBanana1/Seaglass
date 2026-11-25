@@ -1,4 +1,4 @@
-//! Côté invités : page de la Jam, appels de l'API transmis à l'hôte, flux d'état.
+//! Guest side: the Jam page, API calls forwarded to the host, state stream.
 
 use std::collections::HashMap;
 use std::convert::Infallible;
@@ -6,22 +6,22 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::body::Bytes;
+use axum::body::Body;
 use axum::extract::{ConnectInfo, Path, Query, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Redirect, Response};
 use futures_util::stream;
 
-use crate::Relay;
 use crate::jams::{CodeError, ForwardError};
+use crate::{MAX_BODY, Relay, into_text, read_body};
 
-/// La page est celle de la Jam locale : un seul fichier à maintenir.
+/// The page is the local Jam's: a single file to maintain.
 const PAGE: &str = include_str!("../../src-tauri/src/jam/page/index.html");
 const SCRIPT: &str = include_str!("../../src-tauri/src/jam/page/jam.js");
 const STYLE: &str = include_str!("../../src-tauri/src/jam/page/jam.css");
 
-/// Même politique que la Jam locale.
+/// Same policy as the local Jam.
 const CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; \
                    img-src https://resources.tidal.com; connect-src 'self'; \
                    base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
@@ -90,13 +90,14 @@ pub async fn style() -> Response {
     reply(StatusCode::OK, "text/css; charset=utf-8", STYLE)
 }
 
-/// Appel de l'API (`join`, `search`, `add`, `state`) transmis tel quel à l'hôte.
+/// API call (`join`, `search`, `add`, `state`) forwarded as is to the host. The body is
+/// only read once the rate limit and the Jam have let the call through.
 pub async fn api(
     State(relay): State<Arc<Relay>>,
     ConnectInfo(peer): ConnectInfo<SocketAddr>,
     Path((id, call)): Path<(String, String)>,
     headers: HeaderMap,
-    body: Bytes,
+    body: Body,
 ) -> Response {
     let ip = relay.client_ip(peer, &headers);
     if !Relay::allow(&relay.requests, ip) {
@@ -105,7 +106,10 @@ pub async fn api(
     let Some(jam) = relay.jams.get(&id) else {
         return error(StatusCode::NOT_FOUND, "ended");
     };
-    let Ok(body) = String::from_utf8(body.to_vec()) else {
+    let Some(body) = read_body(body, &headers, MAX_BODY).await else {
+        return error(StatusCode::PAYLOAD_TOO_LARGE, "too_large");
+    };
+    let Some(body) = into_text(body) else {
         return error(StatusCode::BAD_REQUEST, "body");
     };
     let code = headers
@@ -117,13 +121,13 @@ pub async fn api(
             let status = StatusCode::from_u16(answer.status).unwrap_or(StatusCode::BAD_GATEWAY);
             reply(status, "application/json", answer.body)
         }
-        // L'hôte a perdu le réseau : la page le dit, il peut revenir.
+        // The host lost the network: the page says so, it can come back.
         Err(ForwardError::Offline) => error(StatusCode::SERVICE_UNAVAILABLE, "offline"),
         Err(ForwardError::Busy) => error(StatusCode::SERVICE_UNAVAILABLE, "busy"),
     }
 }
 
-/// Flux de l'état (`EventSource`, code dans la query : il ne pose pas d'en-tête).
+/// State stream (`EventSource`, code in the query: it sets no header).
 pub async fn events(
     State(relay): State<Arc<Relay>>,
     ConnectInfo(peer): ConnectInfo<SocketAddr>,
@@ -154,7 +158,7 @@ pub async fn events(
         .comment("seaglass");
     let changes = stream::unfold((updates, slot), |(mut updates, slot)| async move {
         loop {
-            // Jam fermée : le flux se termine.
+            // Jam closed: the stream ends.
             updates.changed().await.ok()?;
             let data = Arc::clone(&updates.borrow_and_update());
             if !data.is_empty() {
