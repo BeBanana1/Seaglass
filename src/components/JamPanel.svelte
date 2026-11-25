@@ -1,7 +1,7 @@
-<!-- Contenu de la Jam (#25) : démarrer, état de la connexion, QR code, adresse, code, arrêter.
-     Partagé par Réglages › Application et la fenêtre ouverte depuis « En lecture »
-     (JamDialog), avec les contrôles de l'hôte (JamHostControls, #288). Classes `.setting-row` et `.update-check` reprises de Réglages : les thèmes
-     les habillent déjà. -->
+<!-- Jam content (#25): start, connection state, QR code, address, code, stop.
+     Shared by Settings › Application and the dialog opened from "Now playing"
+     (JamDialog), with the host controls (JamHostControls, #288). Classes `.setting-row` and
+     `.update-check` come from Settings: the themes already dress them. -->
 <script lang="ts">
   import type { JamMode } from "../lib/ipc";
   import JamHostControls from "./JamHostControls.svelte";
@@ -10,7 +10,7 @@
   import { platform } from "../lib/platform.svelte";
   import { t } from "../lib/i18n.svelte";
 
-  // Le réseau local n'existe que sur le bureau : un téléphone n'ouvre aucun port.
+  // The local network only exists on desktop: a phone opens no port.
   const desktop = $derived(!platform.mobile);
 
   function fail(e: unknown) {
@@ -59,7 +59,7 @@
     </p>
     <div class="setting-row jam-info">
       {#if jam.status.qrSvg}
-        <!-- SVG produit par le backend (crate qrcode) à partir de l'adresse et du code. -->
+        <!-- SVG made by the backend (qrcode crate) from the address and the code. -->
         <div class="jam-qr" role="img" aria-label={t.jam.qr}>{@html jam.status.qrSvg}</div>
       {/if}
       <dl class="jam-fields">
@@ -78,7 +78,7 @@
     <JamHostControls status={jam.status} />
     <p class="note">{jam.status.lan ? t.jam.howTo : t.jam.noLan}</p>
   {:else}
-    <!-- En ligne par défaut (relais, sans Wi-Fi commun) ; le réseau local en second choix. -->
+    <!-- Online by default (relay, no shared Wi-Fi); the local network as a second choice. -->
     <div class="setting-row jam-start">
       <span class="text">
         <span class="hint">{jam.onlineAvailable ? t.jam.onlineHint : t.jam.localHint}</span>
@@ -106,6 +106,8 @@
       <p class="note">{t.jam.phoneHint}</p>
     {/if}
   {/if}
+  <!-- TIDAL's terms (#39): personal use, no public playback. -->
+  <p class="note jam-private">{t.jam.privateUse}</p>
 </div>
 
 <style>
@@ -235,7 +237,7 @@
     gap: 8px;
   }
 
-  /* Studio : angles vifs. Atelier : angles à peine arrondis, pas de fond. */
+  /* Studio: sharp corners. Atelier: barely rounded corners, no background. */
   :global([data-theme="studio"]) .setting-row,
   :global([data-theme="studio"]) .update-check {
     border-radius: 0;
