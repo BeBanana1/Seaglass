@@ -59,6 +59,7 @@ function Fail($message) { Write-Host "ERREUR : $message" -ForegroundColor Red; e
 function Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
 . (Join-Path $PSScriptRoot 'build-stamp.ps1')
 . (Join-Path $PSScriptRoot 'updater-manifest.ps1')
+. (Join-Path $PSScriptRoot 'release-notes.ps1')
 if ($PublishOnly) { $Publish = $true }
 
 # --- 1. Vérifications -------------------------------------------------------------------
@@ -155,13 +156,8 @@ if (-not $PublishOnly) {
     New-Item -ItemType Directory -Force $out | Out-Null
     Copy-Item $setup, "$setup.sig" $out -Force
 
-    if (-not $Notes) {
-        # Pas de `git describe` : sans tag, il écrit sur stderr, ce que PowerShell 5.1 traite
-        # comme une erreur fatale avec $ErrorActionPreference = 'Stop'.
-        $previous = git tag --list 'v*' --sort=-v:refname | Select-Object -First 1
-        $range = if ($previous) { "$previous..HEAD" } else { 'HEAD' }
-        $Notes = (git log $range --no-merges --pretty=format:'- %s' -n 30) -join "`n"
-    }
+    # From CHANGELOG.md (#49): latest.json is shared with Linux, windows.json feeds the website.
+    if (-not $Notes) { $Notes = Get-ReleaseNotes $version 'desktop' }
     # Repère avant le manifeste : il décide des plateformes annoncées (Linux s'il a été
     # construit sur ce commit, #314).
     Write-BuildStamp 'windows' $version
