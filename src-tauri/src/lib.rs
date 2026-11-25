@@ -20,6 +20,7 @@ mod player;
 mod servers;
 mod store;
 mod tidal;
+mod tls;
 #[cfg(desktop)]
 mod updater;
 mod utc;
