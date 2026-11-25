@@ -5,6 +5,7 @@ pub mod api;
 mod artist_extra;
 pub mod auth;
 pub mod availability;
+mod backoff;
 mod blocks;
 pub mod cache;
 mod catalog;

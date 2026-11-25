@@ -82,7 +82,7 @@ export interface LibraryList<T> {
 export type AudioQuality = "LOW" | "HIGH" | "LOSSLESS" | "HI_RES_LOSSLESS";
 
 /** `commands::project::ProjectPage`: project page opened in the browser (#188, #517). */
-export type ProjectPage = "website" | "repo" | "newIssue";
+export type ProjectPage = "website" | "repo" | "newIssue" | "clientId";
 
 export interface StreamFormat {
   quality: AudioQuality;

@@ -11,9 +11,21 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
-## 0.5.112
+## 0.5.114
 
 - Each listen is now reported to TIDAL the way its official apps report theirs (play log), so that it can count for the artists (#34).
+
+## 0.5.113
+
+- When TIDAL answers "too many requests", every request now waits for the same pause (following `Retry-After`) instead of retrying on its own, and new releases of followed artists are read 3 artists at a time (#37).
+
+## 0.5.112
+
+- The sign-in screen and Settings › Application say that Seaglass signs in with the identifier of TIDAL's Android app, not authorized by TIDAL for other apps, with a link to the explanation (#38).
+
+## 0.5.111
+
+- The Jam panel says that a Jam is for private use: TIDAL's terms do not allow public or commercial playback (#39).
 
 ## 0.5.110
 

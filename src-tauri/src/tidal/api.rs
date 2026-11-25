@@ -13,6 +13,7 @@ use serde::de::DeserializeOwned;
 use tokio::sync::{Notify, OnceCell, RwLock};
 
 use super::auth::{self, ClientCredentials, PkceChallenge, Tokens};
+use super::backoff::{self, Backoff, Gate};
 use super::cache::TrackCache;
 use super::hires::HiresCache;
 use super::likes::Likes;
@@ -24,6 +25,7 @@ use super::models::{
 use super::playlist::PlaylistCache;
 use super::raw::RawTrack;
 use super::{Result, TidalError};
+use crate::i18n::trf;
 
 pub(super) const API_V1: &str = "https://api.tidal.com/v1/";
 pub(super) const API_V2: &str = "https://api.tidal.com/v2/";
@@ -66,6 +68,8 @@ pub struct TidalClient {
     pub(super) home: super::home::HomeCache,
     /// Sorties récentes des artistes suivis (#415).
     pub(super) releases: super::releases::ReleasesCache,
+    /// Pause shared by all requests after a 429 (#37).
+    backoff: Backoff,
 }
 
 impl TidalClient {
@@ -91,6 +95,7 @@ impl TidalClient {
             versions: Default::default(),
             home: Default::default(),
             releases: Default::default(),
+            backoff: Backoff::default(),
         })
     }
 
@@ -363,7 +368,9 @@ impl TidalClient {
     /// Requête authentifiée avec `countryCode`, en rafraîchissant le token sur 401.
     pub(super) async fn call(&self, call: &Call<'_>) -> Result<reqwest::Response> {
         let mut rejected: Option<String> = None;
+        let mut retried = false;
         loop {
+            self.wait_backoff().await?;
             let (access, country) = self.credentials(rejected.as_deref()).await?;
             let mut query: Vec<(&str, String)> = vec![("countryCode", country)];
             query.extend(call.query.iter().cloned());
@@ -380,8 +387,29 @@ impl TidalClient {
                 Err(TidalError::Api { status: 401, .. }) if rejected.is_none() => {
                     rejected = Some(access);
                 }
+                // One more try after the shared pause (#37).
+                Err(TidalError::Api { status: 429, .. }) if !retried => retried = true,
                 other => return other,
             }
+        }
+    }
+
+    /// Waits for the pause after a 429, or fails at once if it is too long (#37).
+    async fn wait_backoff(&self) -> Result<()> {
+        match self.backoff.gate(Instant::now()) {
+            Gate::Go => Ok(()),
+            Gate::Wait(left) => {
+                tokio::time::sleep(left).await;
+                Ok(())
+            }
+            Gate::Refuse(left) => Err(TidalError::Api {
+                status: 429,
+                message: trf!(
+                    "trop de requêtes, nouvel essai possible dans {} s",
+                    "too many requests, try again in {} s",
+                    left.as_secs().max(1)
+                ),
+            }),
         }
     }
 
@@ -411,7 +439,17 @@ impl TidalClient {
         let path = call.path;
         let status = resp.status();
         if status.is_success() {
+            self.backoff.success();
             return Ok(resp);
+        }
+        if status == StatusCode::TOO_MANY_REQUESTS {
+            let retry_after = resp
+                .headers()
+                .get(reqwest::header::RETRY_AFTER)
+                .and_then(|v| v.to_str().ok())
+                .and_then(backoff::parse_retry_after);
+            let pause = self.backoff.hit(retry_after, Instant::now());
+            tracing::warn!("429 on {path}, requests paused for {} s", pause.as_secs());
         }
         let message = resp
             .json::<RawApiError>()

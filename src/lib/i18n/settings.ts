@@ -1,4 +1,4 @@
-// Réglages, thèmes, couleur d'accent, mises à jour.
+// Settings, themes, accent color, updates.
 
 import { num } from "./state.svelte";
 
@@ -238,7 +238,7 @@ export const fr = {
   lowBatteryQualityHint:
     "Sous 50 % : Haute au plus. Sous 20 % ou avec l'économiseur de batterie : Basse. " +
     "Rien ne change pendant la charge.",
-  /** #492 : plafond de batterie en ce moment ; `quality` et `chosen` déjà traduites. */
+  /** #492: current battery cap; `quality` and `chosen` already translated. */
   qualityCap: (quality: string, chosen: string, powerSave: boolean, battery: number | null) =>
     `Pour l'instant : ${quality} au lieu de ${chosen}, ` +
     (powerSave
@@ -276,7 +276,7 @@ export const fr = {
   hideAiHint:
     "Titres et albums que le service marque comme générés par IA (badge « IA »). Même portée : " +
     "vos favoris et vos playlists restent complets. Le marquage vient du service et peut en manquer.",
-  // #334 : blocages enregistrés chez le service.
+  // #334: blocks saved at the service.
   blocked: "Titres et artistes bloqués",
   blockedHint:
     "Ils ne sont plus proposés par les mixes ni par les radios, sur tous vos appareils. Ils restent " +
@@ -379,7 +379,7 @@ export const fr = {
 
   playHistory: "Historique d'écoute",
   playHistoryHint:
-    "Gardé dans Seaglass, pour « Écoutés dans Seaglass », « À la une » et les statistiques ; échangé seulement avec l'appareil lié (ordinateur ↔ téléphone). Rien n'est envoyé à TIDAL. Effacer n'efface que cet appareil.",
+    "Gardé dans Seaglass, pour « Écoutés dans Seaglass », « À la une » et les statistiques ; échangé seulement avec l'appareil lié (ordinateur ↔ téléphone). Cet historique n'est pas envoyé à TIDAL, qui reçoit chaque écoute à part, comme avec ses applications. Effacer n'efface que cet appareil.",
   clearPlayHistory: "Effacer",
   playHistoryCleared: "Historique d'écoute effacé",
 
@@ -426,6 +426,9 @@ export const fr = {
   about: "À propos",
   account: "Compte",
   disclaimer: "Client non officiel, non affilié à TIDAL.",
+  clientNotice:
+    "Seaglass se connecte avec l'identifiant de l'app Android de TIDAL, que TIDAL n'autorise pas pour d'autres apps : l'utiliser peut aller contre les conditions d'utilisation de TIDAL.",
+  clientNoticeMore: "En savoir plus",
   streamingOnly: "Streaming uniquement : aucun flux n'est téléchargé ni enregistré sur disque.",
   license: "Licence GPL-3.0. Lecture assurée par mpv.",
   website: "Site web",
@@ -801,7 +804,7 @@ export const en: typeof fr = {
 
   playHistory: "Listening history",
   playHistoryHint:
-    "Kept in Seaglass, for “Played in Seaglass”, “Featured” and the stats; only exchanged with the linked device (computer ↔ phone). Nothing is sent to TIDAL. Clearing only clears this device.",
+    "Kept in Seaglass, for “Played in Seaglass”, “Featured” and the stats; only exchanged with the linked device (computer ↔ phone). This history is not sent to TIDAL, which is told of each listen separately, as with its own apps. Clearing only clears this device.",
   clearPlayHistory: "Clear",
   playHistoryCleared: "Listening history cleared",
 
@@ -847,6 +850,9 @@ export const en: typeof fr = {
   about: "About",
   account: "Account",
   disclaimer: "Unofficial client, not affiliated with TIDAL.",
+  clientNotice:
+    "Seaglass signs in with the identifier of TIDAL's Android app, which TIDAL has not authorized for other apps: using it may go against TIDAL's terms of use.",
+  clientNoticeMore: "Learn more",
   streamingOnly: "Streaming only: no stream is downloaded or saved to disk.",
   license: "Licensed under GPL-3.0. Playback by mpv.",
   website: "Website",

@@ -73,7 +73,7 @@ export const fr = {
     artists: "Artistes",
     empty:
       "Aucune écoute sur cette période. Un titre compte une fois joué à moitié (ou 4 minutes).",
-    note: "Calculées sur cet appareil, à partir de l'historique d'écoute de Seaglass (avec celui de l'appareil lié, s'il y en a un) : rien n'est envoyé à TIDAL. Elles sont effacées avec l'historique (déconnexion, Réglages › Application).",
+    note: "Calculées sur cet appareil, à partir de l'historique d'écoute de Seaglass (avec celui de l'appareil lié, s'il y en a un) : elles ne sont pas envoyées à TIDAL. Elles sont effacées avec l'historique (déconnexion, Réglages › Application).",
   },
 
   // Month and year recap (#417).
@@ -231,7 +231,7 @@ export const en: typeof fr = {
     albums: "Albums",
     artists: "Artists",
     empty: "No plays in this period. A track counts once half of it (or 4 minutes) has played.",
-    note: "Computed on this device from Seaglass's listening history (including the linked device's, if any): nothing is sent to TIDAL. They are cleared along with the history (sign-out, Settings › App).",
+    note: "Computed on this device from Seaglass's listening history (including the linked device's, if any): they are not sent to TIDAL. They are cleared along with the history (sign-out, Settings › App).",
   },
 
   recap: {

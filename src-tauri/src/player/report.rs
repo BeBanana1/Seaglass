@@ -190,6 +190,9 @@ impl Player {
     }
 
     pub(super) fn log_position(&mut self) {
+        if self.blind.is_some() {
+            return;
+        }
         let s = &self.state;
         let ended = self.playlog.position(
             s.time_pos,
@@ -202,10 +205,16 @@ impl Player {
     }
 
     pub(super) fn log_paused(&mut self, paused: bool) {
+        if self.blind.is_some() {
+            return;
+        }
         self.playlog.paused(paused, now_ms());
     }
 
     pub(super) fn log_seek(&mut self, to: f64) {
+        if self.blind.is_some() {
+            return;
+        }
         self.playlog.seek(to, now_ms());
     }
 
