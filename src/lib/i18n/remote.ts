@@ -21,6 +21,8 @@ export const fr = {
   handoff: "Accepter les transferts",
   handoffHint:
     "L'app Android liée peut reprendre ici ce qui joue sur le téléphone, ou continuer sur le téléphone ce qui joue ici, et les deux échangent leur historique d'écoute.",
+  handoffHowToLan:
+    "Sur le téléphone : Réglages › Application › Ordinateur lié, puis tapez l'adresse et le code ci-dessus.",
   handoffHowTo:
     "Appuyez sur « Lier un téléphone », puis sur le téléphone : Réglages › Application › Ordinateur lié, et tapez l'adresse et le code ci-dessus dans les 10 minutes. Le téléphone apprend alors aussi à joindre cet ordinateur hors de chez vous.",
   pair: "Lier un téléphone",
@@ -49,6 +51,8 @@ export const en: typeof fr = {
   handoff: "Accept transfers",
   handoffHint:
     "The linked Android app can resume here what plays on the phone, or continue on the phone what plays here, and both exchange their listening history.",
+  handoffHowToLan:
+    "On the phone: Settings › App › Linked computer, then type the address and code above.",
   handoffHowTo:
     "Press “Link a phone”, then on the phone: Settings › App › Linked computer, and type the address and code above within 10 minutes. The phone then also learns how to reach this computer away from home.",
   pair: "Link a phone",

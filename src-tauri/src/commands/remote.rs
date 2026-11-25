@@ -242,3 +242,18 @@ pub fn restore(app: &AppHandle) {
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_new_key_keeps_the_tunnel_identity() {
+        let before = TunnelSettings::new();
+        let after = with_new_key(Some(before.clone())).unwrap();
+        assert_eq!((&after.id, &after.secret), (&before.id, &before.secret));
+        assert_ne!(after.key, before.key);
+        assert_eq!(after.clone().checked(), Some(after));
+        assert_eq!(with_new_key(None), None);
+    }
+}

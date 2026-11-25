@@ -947,6 +947,8 @@ export interface RemoteStatus {
   qrSvg: string | null;
   /** End of the last pairing window (ms since the epoch, #62), `null` before any. */
   pairingUntil: number | null;
+  /** A relay is set up: handoffs also work away from home, "Link a phone" is offered. */
+  relay: boolean;
 }
 
 /** Ordinateur lié pour les transferts de lecture (#414), côté téléphone. */

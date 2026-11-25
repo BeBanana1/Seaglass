@@ -132,7 +132,7 @@
       <div class="remote-actions">
         <button class="update-check" onclick={copyUrl}>{t.remote.copy}</button>
         <button class="update-check" onclick={renew}>{t.remote.renew}</button>
-        {#if handoffOn}
+        {#if handoffOn && status.relay}
           <button class="update-check" disabled={busy} onclick={pair}>{t.remote.pair}</button>
         {/if}
       </div>
@@ -141,10 +141,12 @@
       <p class="note">{t.remote.noLan}</p>
     {:else}
       {#if remoteOn}<p class="note">{t.remote.howTo}</p>{/if}
-      {#if handoffOn}
+      {#if handoffOn && status.relay}
         <p class="note">{t.remote.handoffHowTo}</p>
         {#if pairingUntil}<p class="note remote-pairing">{t.remote.pairing(pairingUntil)}</p>{/if}
         <p class="note">{t.remote.pairNote}</p>
+      {:else if handoffOn}
+        <p class="note">{t.remote.handoffHowToLan}</p>
       {/if}
     {/if}
   {:else}

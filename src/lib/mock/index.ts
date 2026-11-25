@@ -935,6 +935,7 @@ const mockRemote = () => ({
   lan: true,
   qrSvg: fakeQr,
   pairingUntil,
+  relay: relayParam !== "off" && relayParam !== "none",
 });
 let remote: ReturnType<typeof mockRemote> | null = remoteOn || handoffOn ? mockRemote() : null;
 const remoteUpdate = () => (remote = remoteOn || handoffOn ? mockRemote() : null);
