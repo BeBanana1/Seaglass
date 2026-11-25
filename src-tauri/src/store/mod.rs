@@ -1,13 +1,14 @@
-//! Persistance SQLite : file d'attente, position de lecture, réglages et métadonnées des
-//! titres en file ; copies des listes affichées (`snapshots`, #181) ; historique d'écoute
-//! (`plays`, #202), ses statistiques (`stats`, #326) et les playlists intelligentes
-//! (`smart`, #383), la rétrospective du mois et de l'année (`recap`, #417) et son échange
-//! avec un autre appareil (`sync`, #430) ; file d'envoi à ListenBrainz (`scrobbles`, #431).
+//! SQLite persistence: queue, playback position, settings and metadata of the queued
+//! tracks; copies of displayed lists (`snapshots`, #181); listening history (`plays`,
+//! #202), its statistics (`stats`, #326) and smart playlists (`smart`, #383), the month and
+//! year recap (`recap`, #417) and its exchange with another device (`sync`, #430);
+//! ListenBrainz send queue (`scrobbles`, #431); TIDAL play log send queue (`playlogs`,
+//! #34).
 //!
-//! La table `tracks` ne contient que les titres référencés par la file sauvegardée : chaque
-//! sauvegarde de la file n'écrit que les titres absents et supprime ceux qui ne sont plus
-//! référencés, dans la même transaction (#90). L'ensemble des ids présents est tenu en
-//! mémoire sous le même verrou que la connexion, et mis à jour seulement après le commit.
+//! The `tracks` table only holds the tracks referenced by the saved queue: each save of
+//! the queue writes only the missing tracks and deletes those no longer referenced, in the
+//! same transaction (#90). The set of present ids is kept in memory under the same lock as
+//! the connection, and updated only after the commit.
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -22,6 +23,7 @@ use crate::tidal::models::{Track, TrackId};
 
 mod formats;
 mod moments;
+mod playlogs;
 mod plays;
 mod recap;
 mod scrobbles;
@@ -114,6 +116,7 @@ impl Store {
         plays::migrate(&conn)?;
         formats::migrate(&conn)?;
         conn.execute_batch(scrobbles::SCHEMA)?;
+        conn.execute_batch(playlogs::SCHEMA)?;
         let saved = conn
             .prepare("SELECT id FROM tracks")?
             .query_map([], |r| r.get::<_, i64>(0))?

@@ -138,12 +138,17 @@ impl Player {
         }
         let previous = self.last_write.take();
         let write = self.write();
+        // The current listen ends here and is queued for TIDAL's play log (#34).
+        let playlog = self.log_close_for_exit();
         tokio::spawn(async move {
             if let Some(previous) = previous {
                 let _ = previous.await;
             }
             if let Some(write) = write {
                 let _ = tokio::task::spawn_blocking(write).await;
+            }
+            if let Some(playlog) = playlog {
+                playlog.await;
             }
             let _ = reply.send(());
         });

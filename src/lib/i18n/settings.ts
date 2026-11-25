@@ -379,7 +379,7 @@ export const fr = {
 
   playHistory: "Historique d'écoute",
   playHistoryHint:
-    "Gardé dans Seaglass, pour « Écoutés dans Seaglass », « À la une » et les statistiques ; échangé seulement avec l'appareil lié (ordinateur ↔ téléphone). Rien n'est envoyé à TIDAL. Effacer n'efface que cet appareil.",
+    "Gardé dans Seaglass, pour « Écoutés dans Seaglass », « À la une » et les statistiques ; échangé seulement avec l'appareil lié (ordinateur ↔ téléphone). Cet historique n'est pas envoyé à TIDAL, qui reçoit chaque écoute à part, comme avec ses applications. Effacer n'efface que cet appareil.",
   clearPlayHistory: "Effacer",
   playHistoryCleared: "Historique d'écoute effacé",
 
@@ -804,7 +804,7 @@ export const en: typeof fr = {
 
   playHistory: "Listening history",
   playHistoryHint:
-    "Kept in Seaglass, for “Played in Seaglass”, “Featured” and the stats; only exchanged with the linked device (computer ↔ phone). Nothing is sent to TIDAL. Clearing only clears this device.",
+    "Kept in Seaglass, for “Played in Seaglass”, “Featured” and the stats; only exchanged with the linked device (computer ↔ phone). This history is not sent to TIDAL, which is told of each listen separately, as with its own apps. Clearing only clears this device.",
   clearPlayHistory: "Clear",
   playHistoryCleared: "Listening history cleared",
 

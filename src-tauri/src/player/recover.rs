@@ -1,5 +1,5 @@
-//! Relance du moteur après un arrêt inattendu (#255) : mpv planté, ou figé puis arrêté par
-//! le délai des commandes (`mpv/engine.rs`).
+//! Restart of the engine after an unexpected stop (#255): mpv crashed, or froze and was
+//! stopped by the command timeout (`mpv/engine.rs`).
 
 use std::time::{Duration, Instant};
 
@@ -9,8 +9,8 @@ use crate::engine;
 use crate::i18n::tr;
 use crate::mpv::MpvIssue;
 
-/// Une relance au plus par période : un mpv qui retombe aussitôt ne tourne pas en boucle,
-/// le bandeau prend le relais.
+/// One restart per period at most: an mpv that falls again at once does not loop,
+/// the banner takes over.
 const RESTART_COOLDOWN: Duration = Duration::from_secs(5 * 60);
 
 fn restart_allowed(last: Option<Instant>, now: Instant) -> bool {
@@ -21,20 +21,21 @@ impl Player {
     pub(super) async fn on_engine_stopped(&mut self) {
         let issue = engine::diagnose().unwrap_or(MpvIssue::Stopped);
         let was_playing = self.loaded && !self.state.paused;
+        self.log_close();
         self.engine = Err(issue.message().into());
         self.loaded = false;
         self.next_loaded = None;
         self.preloading = false;
         self.preload_req += 1;
-        // Fermeture de l'app ou mise à jour : arrêt voulu, rien à signaler.
+        // App closing or update: intended stop, nothing to report.
         if !self.launch.may_restart() {
             return;
         }
         let now = Instant::now();
-        // AVX2 absent ou mpv manquant : une relance échouerait pareil (#92, #261).
+        // No AVX2 or mpv missing: a restart would fail the same way (#92, #261).
         if issue == MpvIssue::Stopped && restart_allowed(self.last_restart, now) {
             self.last_restart = Some(now);
-            tracing::warn!("mpv arrêté, relance");
+            tracing::warn!("mpv stopped, restarting");
             let cache = PlaybackSettings::load(self.store.as_deref()).cache_size;
             let started = self
                 .launch
@@ -51,8 +52,8 @@ impl Player {
                     self.state.mpv_issue = None;
                     self.apply_loop_file().await;
                     self.apply_volume().await;
-                    // En pause, le titre sera chargé au prochain Lecture, comme après une
-                    // restauration.
+                    // Paused: the track is loaded on the next Play, as after a
+                    // restore.
                     if was_playing && let Some(id) = self.queue.current() {
                         self.load_current(id, self.state.time_pos);
                     }
@@ -66,7 +67,7 @@ impl Player {
                     );
                     return;
                 }
-                Err(e) => tracing::error!("relance de mpv impossible : {e}"),
+                Err(e) => tracing::error!("cannot restart mpv: {e}"),
             }
         }
         self.state.mpv_issue = Some(issue);

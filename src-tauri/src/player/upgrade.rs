@@ -14,7 +14,7 @@ use std::time::Duration;
 use super::actor::{Cmd, Player};
 use super::settings::HiresUpgrade;
 use crate::tidal::TidalClient;
-use crate::tidal::models::{AudioQuality, Stream, StreamFormat, Track};
+use crate::tidal::models::{AudioQuality, Stream, StreamFormat, StreamUse, Track};
 
 /// Temps maximal accordé à la recherche d'une édition hi-res pour le titre courant.
 const CURRENT_LOOKUP_LIMIT: Duration = Duration::from_millis(1500);
@@ -27,14 +27,19 @@ pub(super) async fn resolve_stream(
     upgrade: bool,
     current: bool,
 ) -> crate::tidal::Result<Stream> {
+    let use_ = if current {
+        StreamUse::Play
+    } else {
+        StreamUse::Preload
+    };
     if !upgrade || track.hires || quality != AudioQuality::HiResLossless {
-        return tidal.stream(track.id, quality).await;
+        return tidal.stream(track.id, quality, use_).await;
     }
     let (original, edition) = match tidal.known_hires_edition(track.id) {
         Some(known) => (None, known),
         None if current => {
             let lookup = tokio::time::timeout(CURRENT_LOOKUP_LIMIT, tidal.hires_edition(track));
-            let (original, edition) = tokio::join!(tidal.stream(track.id, quality), lookup);
+            let (original, edition) = tokio::join!(tidal.stream(track.id, quality, use_), lookup);
             let edition = match edition {
                 Ok(found) => found,
                 Err(_) => {
@@ -48,7 +53,7 @@ pub(super) async fn resolve_stream(
     };
     if let Some(edition) = edition {
         let base = original.as_ref().and_then(|r| r.as_ref().ok());
-        match tidal.stream(edition.id, quality).await {
+        match tidal.stream(edition.id, quality, use_).await {
             Ok(mut stream) if is_better(&stream.format, base.map(|s| &s.format)) => {
                 tracing::info!(
                     "{} : édition hi-res {} ({})",
@@ -71,7 +76,7 @@ pub(super) async fn resolve_stream(
     }
     match original {
         Some(result) => result,
-        None => tidal.stream(track.id, quality).await,
+        None => tidal.stream(track.id, quality, use_).await,
     }
 }
 

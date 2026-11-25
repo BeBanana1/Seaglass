@@ -387,6 +387,7 @@ impl TidalClient {
             form,
             json: None,
             if_none_match,
+            headers: &[],
         })
         .await
     }

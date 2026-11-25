@@ -285,7 +285,7 @@ async fn dump_ui_fixtures() {
 #[tokio::test]
 #[ignore = "réseau et session TIDAL requis"]
 async fn live_hires() {
-    use super::models::{AudioQuality, TrackId};
+    use super::models::{AudioQuality, StreamUse, TrackId};
 
     let client = client().await;
     let track = client.track(TrackId(1_632_061)).await.unwrap();
@@ -302,7 +302,7 @@ async fn live_hires() {
     assert!(edition.hires);
     assert!(client.known_hires_edition(track.id).is_some());
     let stream = client
-        .stream(edition.id, AudioQuality::HiResLossless)
+        .stream(edition.id, AudioQuality::HiResLossless, StreamUse::Play)
         .await
         .unwrap();
     println!("flux : {:?}", stream.format);
@@ -317,7 +317,7 @@ async fn live_hires() {
 #[tokio::test]
 #[ignore = "réseau et session TIDAL requis"]
 async fn live_hires_twin() {
-    use super::models::AudioQuality;
+    use super::models::{AudioQuality, StreamUse};
 
     let client = client().await;
     let album = client.album(20_767_338).await.unwrap();
@@ -340,7 +340,7 @@ async fn live_hires_twin() {
     println!("{} → {} en {:?}", second.title, next.id, start.elapsed());
     assert_eq!(next.album.id, 68_709_104);
     let stream = client
-        .stream(edition.id, AudioQuality::HiResLossless)
+        .stream(edition.id, AudioQuality::HiResLossless, StreamUse::Play)
         .await
         .unwrap();
     println!("flux : {:?}", stream.format);
@@ -695,7 +695,7 @@ async fn live_import_playlists() {
 #[tokio::test]
 #[ignore = "réseau et session TIDAL requis"]
 async fn live_mobile_qualities() {
-    use super::models::{AudioQuality, StreamSource};
+    use super::models::{AudioQuality, StreamSource, StreamUse};
 
     let client = client().await;
     for id in [
@@ -713,7 +713,7 @@ async fn live_mobile_qualities() {
             AudioQuality::HiResLossless,
         ] {
             // `stream` refuse un manifeste ou un segment d'initialisation chiffré.
-            let stream = client.stream(id, quality).await.unwrap();
+            let stream = client.stream(id, quality, StreamUse::Play).await.unwrap();
             let kind = match &stream.source {
                 StreamSource::Dash(mpd) => {
                     let shape: String = mpd

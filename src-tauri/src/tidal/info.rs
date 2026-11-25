@@ -41,7 +41,7 @@ impl TidalClient {
         self.cache.insert_all([&track]);
 
         let (playback, edition, credits) = tokio::join!(
-            self.playback(id, QUALITY),
+            self.playback(id, QUALITY, None),
             self.hires_edition(&track),
             self.track_credits(id)
         );
@@ -65,7 +65,7 @@ impl TidalClient {
         };
         let hires_edition = match edition {
             Ok(Some(edition)) => {
-                let stream = match self.playback(edition.id, QUALITY).await {
+                let stream = match self.playback(edition.id, QUALITY, None).await {
                     Ok((raw, decoded)) => Some(stream_format(&raw, &decoded)),
                     Err(e) => {
                         tracing::warn!("format de l'édition {} : {e}", edition.id);
