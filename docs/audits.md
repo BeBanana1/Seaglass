@@ -6,6 +6,13 @@ Seaglass implementation notes, read on demand (index in [`CLAUDE.md`](../CLAUDE.
 
 - **`glib` 0.18, RUSTSEC-2024-0429** (unsound `VariantStrIter` iterators, Dependabot asks for `>= 0.20`): pulled in by Tauri itself on Linux (`tauri`, `tauri-runtime-wry`, `wry`, `tao`, `muda`, `webkit2gtk` through `gtk` 0.18, `cargo tree -i glib@0.18.5 --target x86_64-unknown-linux-gnu`). The Rust GTK 3 bindings stopped at 0.18; 0.20 only exists for GTK 4, so no compatible version exists until Tauri moves to GTK 4. Seaglass never calls `VariantStrIter` and the crate is Linux-only. `cargo audit` only warns on it; the Dependabot alert is dismissed as "vulnerable code is not actually used". Recheck when Tauri changes its GTK version.
 - Same situation, warnings only: `proc-macro-error` (build-time macro), `zbus_names` / `zvariant` / `zvariant_derive` (D-Bus, Linux), all unmaintained, no fixed upgrade.
+- **`chrono` 0.4.45, RUSTSEC-2026-0543** (unmaintained, warning only, seen on 2026-11-25): pulled in by `tauri-utils` through `serde_with`, not by Seaglass. Recheck when Tauri drops it.
+
+## Audit of 2026-11-25 (0.5.117)
+
+Audit by reading the code added since 0.4.94 (remote, playback handoff and its relay tunnel, Pushkin, play log, playlist import, relay) and the Windows `unsafe` code, with `fmt`, `clippy`, the tests, `pnpm check`, `pnpm audit` and `cargo audit` (app and relay: no vulnerability). Checked and sound: one `expect` outside tests (startup), `SAFETY` notes on every Windows `unsafe` block, no token in logs (URLs redacted, Pushkin's signed URL kept out of errors), strict CSPs and no `innerHTML` in the guest and remote pages, tunnel route allowlist (tested), tunnel AEAD bound to direction and request with replay refusal, constant-time code comparison, short links of other services only followed to a recognized link, no secret committed.
+
+Fixed in the relay (to redeploy): bodies were buffered before the rate limit and the lookup of their Jam or device, and per-address limits counted each IPv6 address on its own (details in `docs/jam.md`, "Relay"). Left open, to decide: the remote and handoff server speaks plain HTTP on the local network with a long-lived owner code, which since #430 also unlocks the tunnel route; the owner code and tunnel key stay in SQLite rather than the credential manager; files well over 400 lines (`Settings.svelte`, `ipc.ts`, `jam.js`, `NowPlaying.svelte`, `App.svelte`); the 5 s read timeout of the local server also covers 4 MiB handoff bodies; `/device` WebSocket messages up to 12 MiB for any holder of the build key. Not covered: on-device testing, the Android Kotlin code, `site/`, ListenBrainz and playlist import in detail, the deployed relay.
 
 ## Audit of 2026-11-10 (0.4.94)
 
