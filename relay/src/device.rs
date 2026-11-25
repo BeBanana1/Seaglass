@@ -89,25 +89,44 @@ async fn session(socket: WebSocket, relay: Arc<Relay>, ip: IpAddr) {
         url: format!("{}/d/{id}", relay.config.public_url),
     };
     if send(&mut sink, &ready).await {
-        run(&mut sink, &mut stream, &mut outbox, &device).await;
+        run(&relay, &mut sink, &mut stream, &mut outbox, &device).await;
     }
     relay.devices.detach(&id, generation);
     tracing::info!("Device {} disconnected", short(&id));
 }
 
+/// Serves a PC's connection. It is **only read while its phone awaits an answer**, and with
+/// one of the relay's read slots (`Relay::device_reads`): a PC cannot make the relay hold
+/// messages nobody asked for, and all PCs together never have more than `DEVICE_READ_SLOTS`
+/// messages of `MAX_DEVICE_MESSAGE` in memory. What a PC sends meanwhile waits in the
+/// system's socket buffer, which is bounded.
+///
+/// A slot is kept from the start of a read until the next complete message (a message cut
+/// halfway would otherwise stay buffered without one), then released. Holding it for
+/// `IDLE_TIMEOUT` without a complete message, while the relay pings every `PING_INTERVAL`
+/// and a live PC answers with a pong, closes the connection. When nothing is awaited, the
+/// connection is not read: a dead PC is only noticed when a ping can no longer be written,
+/// or replaced when it comes back.
 async fn run(
+    relay: &Relay,
     sink: &mut Sink,
     stream: &mut SplitStream<WebSocket>,
     outbox: &mut tokio::sync::mpsc::Receiver<ToDevice>,
     device: &Device,
 ) {
     let mut ping = tokio::time::interval(PING_INTERVAL);
-    let mut last_seen = tokio::time::Instant::now();
+    let mut slot = None;
+    let mut reading_since = tokio::time::Instant::now();
     loop {
+        let waiting = device.awaits_answer();
         tokio::select! {
-            incoming = stream.next() => {
+            acquired = relay.device_reads.acquire(), if waiting && slot.is_none() => {
+                slot = acquired.ok();
+                reading_since = tokio::time::Instant::now();
+            }
+            incoming = stream.next(), if slot.is_some() => {
+                slot = None;
                 let Some(Ok(message)) = incoming else { return };
-                last_seen = tokio::time::Instant::now();
                 match message {
                     Message::Text(text) => {
                         if let Ok(FromDevice::Response { rid, status, body }) =
@@ -128,9 +147,11 @@ async fn run(
             }
             () = device.replaced.notified() => return,
             _ = ping.tick() => {
-                if last_seen.elapsed() >= IDLE_TIMEOUT
-                    || sink.send(Message::Ping(Default::default())).await.is_err()
-                {
+                if slot.is_some() && reading_since.elapsed() >= IDLE_TIMEOUT {
+                    return;
+                }
+                let ping = sink.send(Message::Ping(Default::default()));
+                if !matches!(tokio::time::timeout(PING_INTERVAL, ping).await, Ok(Ok(()))) {
                     return;
                 }
             }

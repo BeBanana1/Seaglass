@@ -177,3 +177,56 @@ async fn packets_beyond_the_limit_are_refused_unread() {
         413
     );
 }
+
+/// Waits for the relay to close `socket`.
+async fn closed(socket: &mut Socket) -> bool {
+    loop {
+        match tokio::time::timeout(Duration::from_secs(5), socket.next()).await {
+            Err(_) => return false,
+            Ok(None | Some(Err(_)) | Some(Ok(Message::Close(_)))) => return true,
+            Ok(Some(Ok(_))) => {}
+        }
+    }
+}
+
+#[tokio::test]
+async fn an_oversized_answer_closes_the_tunnel() {
+    let addr = start().await;
+    let (mut socket, _) = hello(addr, ID, SECRET).await;
+    let phone = tokio::spawn(async move { post(addr, &format!("/d/{ID}"), "x").await });
+    let ToDevice::Request { rid, .. } = receive(&mut socket).await else {
+        panic!("no request");
+    };
+    let reply = FromDevice::Response {
+        rid,
+        status: 200,
+        body: "a".repeat(4 * 1024 * 1024),
+    };
+    let text = serde_json::to_string(&reply).unwrap();
+    let _ = socket.send(Message::Text(text.into())).await;
+    assert!(closed(&mut socket).await, "the relay kept the connection");
+    phone.abort();
+}
+
+#[tokio::test]
+async fn a_message_sent_while_idle_does_not_answer_the_next_request() {
+    let addr = start().await;
+    let (mut socket, _) = hello(addr, ID, SECRET).await;
+    // Nobody asked: not read now, then read and dropped (unknown `rid`) once a request
+    // waits, before the real answer. (Request ids only grow: a late answer of the PC to a
+    // request that timed out always carries an older one.)
+    for rid in [998, 999] {
+        let stray = FromDevice::Response {
+            rid,
+            status: 200,
+            body: "stray".into(),
+        };
+        let text = serde_json::to_string(&stray).unwrap();
+        socket.send(Message::Text(text.into())).await.unwrap();
+    }
+    echo(socket);
+    assert_eq!(
+        post(addr, &format!("/d/{ID}"), "abc").await,
+        (200, "cba".into())
+    );
+}
