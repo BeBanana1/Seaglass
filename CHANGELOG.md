@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.112
+
+- The sign-in screen and Settings › Application say that Seaglass signs in with the identifier of TIDAL's Android app, not authorized by TIDAL for other apps, with a link to the explanation (#38).
+
 ## 0.5.111
 
 - The Jam panel says that a Jam is for private use: TIDAL's terms do not allow public or commercial playback (#39).

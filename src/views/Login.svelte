@@ -1,9 +1,10 @@
 <script lang="ts">
   import { commands, type SessionInfo } from "../lib/ipc";
+  import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
 
-  // `restoreError` : la session enregistrée n'a pas pu être reprise (réseau absent au
-  // démarrage, panne passagère) ; elle n'est pas perdue et l'app réessaie seule (#252).
+  // `restoreError`: the saved session could not be resumed (no network at startup, transient
+  // outage); it is not lost and the app retries on its own (#252).
   let {
     onLogin,
     restoreError = null,
@@ -11,7 +12,7 @@
 
   let pending = $state(false);
   let error = $state<string | null>(null);
-  // Linux (#17) : connexion dans le navigateur du système, puis adresse de retour collée ici.
+  // Linux (#17): sign-in in the system browser, then the return address pasted here.
   let inBrowser = $state(false);
   let loginUrl = $state<string | null>(null);
   let copied = $state(false);
@@ -49,11 +50,20 @@
       await navigator.clipboard.writeText(input.value);
       copied = true;
     } catch {
-      // Texte sélectionné : Ctrl+C reste possible.
+      // Text selected: Ctrl+C still works.
     }
   }
 
   let urlInput = $state<HTMLInputElement>();
+
+  // #38: the published builds carry TIDAL's client identifier; the README explains it.
+  async function openClientNotice() {
+    try {
+      await commands.openProjectPage("clientId");
+    } catch (e) {
+      pushToast({ level: "error", message: String(e) });
+    }
+  }
 
   const finishBrowser = () => run(async () => onLogin(await commands.browserLoginFinish(redirect)));
 </script>
@@ -113,6 +123,10 @@
     <p class="error">{t.views.login.unreachable}<br />{restoreError}</p>
   {/if}
   <p class="disclaimer">{t.views.login.disclaimer}</p>
+  <p class="client-notice">
+    {t.views.login.clientNotice}
+    <button class="link" onclick={openClientNotice}>{t.views.login.clientNoticeMore}</button>
+  </p>
 </section>
 
 <style>
@@ -204,5 +218,16 @@
   .disclaimer {
     margin-top: 24px;
     font-size: 12px;
+  }
+
+  .client-notice {
+    max-width: 420px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .client-notice .link {
+    padding: 0;
+    font-size: inherit;
   }
 </style>

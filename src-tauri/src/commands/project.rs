@@ -20,6 +20,8 @@ pub enum ProjectPage {
     Repo,
     /// New issue: report a bug or suggest an idea.
     NewIssue,
+    /// README section on the TIDAL client identifier built into the app (#38).
+    ClientId,
 }
 
 impl ProjectPage {
@@ -28,6 +30,7 @@ impl ProjectPage {
             Self::Website => WEBSITE.to_owned(),
             Self::Repo => REPO.to_owned(),
             Self::NewIssue => format!("{REPO}/issues/new/choose"),
+            Self::ClientId => format!("{REPO}#tidal-client-identifiers"),
         }
     }
 }
@@ -54,6 +57,11 @@ mod tests {
         );
         let page: ProjectPage = serde_json::from_str(r#""website""#).unwrap();
         assert_eq!(page.url(), "https://seaglass.bebanana.ch");
+        let page: ProjectPage = serde_json::from_str(r#""clientId""#).unwrap();
+        assert_eq!(
+            page.url(),
+            "https://github.com/BeBanana1/Seaglass#tidal-client-identifiers"
+        );
         assert!(serde_json::from_str::<ProjectPage>(r#""https://evil""#).is_err());
     }
 }
