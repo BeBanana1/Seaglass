@@ -10,10 +10,10 @@ Read in tidal-music/tidal-sdk-web, packages/player/src/internal/services/pushkin
 
 Usage:
 
-    python -I spike/pushkin.py listen [--user-action]
+    python -I spike/pushkin.py listen [--user-action] [--duration <s>]
         Connects and prints every message from the server, with the time. Enter sends a
         USER_ACTION (what an explicit Play sends); --user-action sends one right away.
-        Ctrl+C quits.
+        Ctrl+C quits, or --duration (also lets it run without a console).
 
     python -I spike/pushkin.py play <track id or URL> [--no-pushkin]
         Connects, sends a USER_ACTION, then plays the track in mpv. On a
@@ -60,6 +60,9 @@ import playlog  # noqa: E402 - stream request with a streaming session id, DRM-c
 
 RT_CONNECT_URL = "https://api.tidal.com/v1/rt/connect"
 PIPE = r"\\.\pipe\seaglass-pushkin-spike"
+# Measured: the server closes a connection after 5 s without traffic (no close frame,
+# with or without an Origin header). Client pings, answered by pongs, keep it open.
+KEEPALIVE_S = 2
 
 
 def now_ms() -> int:
@@ -171,6 +174,17 @@ class Pushkin:
             return
         log(f"Sent {json.dumps(message)}")
 
+    def keepalive(self) -> None:
+        """The server drops a connection idle for 5 s (no close frame): ping every 2 s."""
+        while not self.closed:
+            time.sleep(KEEPALIVE_S)
+            try:
+                with self._send_lock:
+                    if self.ws is not None and self.ws.connected:
+                        self.ws.ping()
+            except (OSError, websocket.WebSocketException):
+                pass  # the receive loop sees the drop and reconnects
+
     def run(self) -> None:
         """Receive loop: prints and handles every message, reconnects when the socket drops."""
         while not self.closed:
@@ -227,6 +241,7 @@ def start(session, on_revoked=None) -> Pushkin:
     log(f"Token sid claim: {'present' if pushkin.own_sid else 'absent'}")
     pushkin.connect()
     threading.Thread(target=pushkin.run, daemon=True).start()
+    threading.Thread(target=pushkin.keepalive, daemon=True).start()
     return pushkin
 
 
@@ -252,11 +267,17 @@ def cmd_listen(args: argparse.Namespace) -> None:
     if args.user_action:
         pushkin.user_action()
     log("Listening. Enter = USER_ACTION, Ctrl+C = quit.")
+    deadline = time.time() + args.duration if args.duration else None
     try:
-        for _ in sys.stdin:
-            pushkin.user_action()
+        if sys.stdin and sys.stdin.isatty():
+            for _ in sys.stdin:
+                pushkin.user_action()
+        # Without a console (or after EOF): keep listening until the deadline or Ctrl+C.
+        while deadline is None or time.time() < deadline:
+            time.sleep(0.5)
     except KeyboardInterrupt:
         pass
+    log("Done.")
     pushkin.close()
 
 
@@ -315,6 +336,7 @@ def main() -> None:
 
     p = sub.add_parser("listen", help="connect and print every message")
     p.add_argument("--user-action", action="store_true", help="send a USER_ACTION right away")
+    p.add_argument("--duration", type=float, help="stop after this many seconds")
     p.set_defaults(func=cmd_listen)
 
     p = sub.add_parser("play", help="play a track, pausing when another device takes over")
