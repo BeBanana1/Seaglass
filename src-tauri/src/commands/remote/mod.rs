@@ -1,72 +1,38 @@
 //! Remote (#336) and playback handoff (#414): turn on, turn off, change the code, link a
-//! phone (#62). The choices and the code are kept: the server starts again at the next
-//! launch with the same code (the QR code is only scanned once, the phone stays linked).
+//! phone (#62). The choices and the code are kept (`stored`, credential store since #61):
+//! the server starts again at the next launch with the same code (the QR code is only
+//! scanned once, the phone stays linked).
 
-use serde::{Deserialize, Serialize};
+mod stored;
+
 #[cfg(desktop)]
 use tauri::Manager;
 use tauri::{AppHandle, Emitter, State};
 
 use super::{AppState, CmdResult, err};
 use crate::i18n::tr;
-use crate::jam::remote::{self, Features, RemoteState, RemoteStatus, TunnelSettings};
-use crate::store::Store;
+use crate::jam::remote::{self, RemoteState, RemoteStatus, TunnelSettings};
+use stored::{Keyring, RemoteSettings};
 
-const KEY: &str = "remote";
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-struct RemoteSettings {
-    /// Remote turned on.
-    enabled: bool,
-    /// Playback handoffs accepted from the Android app (#414).
-    #[serde(default)]
-    handoff: bool,
-    /// Owner code; drawn the first time it is turned on, kept afterwards.
-    code: Option<String>,
-    /// Identity on the relay and key shared with the phone (#430); drawn the first time
-    /// it is turned on, the key changed with the code and at each "Link a phone" (#62).
-    #[serde(default)]
-    tunnel: Option<TunnelSettings>,
+/// Kept settings, read off the async threads (the credential store blocks).
+async fn load(state: &AppState) -> CmdResult<RemoteSettings> {
+    let store = state.store.clone();
+    tokio::task::spawn_blocking(move || stored::load(store.as_deref(), &Keyring))
+        .await
+        .map_err(err)?
 }
 
-fn load(store: Option<&Store>) -> RemoteSettings {
-    let settings = store
-        .and_then(|s| match s.get_setting::<RemoteSettings>(KEY) {
-            Ok(settings) => settings,
-            Err(e) => {
-                tracing::warn!("Remote: unreadable setting ({e})");
-                None
-            }
-        })
-        .unwrap_or_default();
-    RemoteSettings {
-        // A damaged code (edited by hand) is replaced rather than accepted.
-        code: settings.code.filter(|c| remote::is_code(c)),
-        tunnel: settings.tunnel.and_then(TunnelSettings::checked),
-        ..settings
-    }
-}
-
-fn save(store: Option<&Store>, settings: &RemoteSettings) -> CmdResult<()> {
-    if let Some(store) = store {
-        store.set_setting(KEY, settings).map_err(err)?;
-    }
-    Ok(())
+async fn save(state: &AppState, settings: RemoteSettings) -> CmdResult<()> {
+    let store = state.store.clone();
+    tokio::task::spawn_blocking(move || stored::save(store.as_deref(), &Keyring, &settings))
+        .await
+        .map_err(err)?
 }
 
 /// Current remote (address, code, QR code), or `null` if it is off.
 #[tauri::command]
 pub async fn remote_status(remote: State<'_, RemoteState>) -> CmdResult<Option<RemoteStatus>> {
     Ok(remote.status())
-}
-
-impl RemoteSettings {
-    fn features(&self) -> Features {
-        Features {
-            remote: self.enabled,
-            handoff: self.handoff,
-        }
-    }
 }
 
 /// Listening history served to the linked phone (#430): the UI reloads the home page and
@@ -89,7 +55,6 @@ async fn apply(
     remote: &RemoteState,
     mut settings: RemoteSettings,
 ) -> CmdResult<Option<RemoteStatus>> {
-    let store = state.store.as_deref();
     let code = settings.code.clone().unwrap_or_else(remote::new_code);
     let tunnel = settings.tunnel.clone().unwrap_or_else(TunnelSettings::new);
     let status = remote
@@ -104,7 +69,7 @@ async fn apply(
         .await?;
     settings.code = Some(code);
     settings.tunnel = Some(tunnel);
-    save(store, &settings)?;
+    save(state, settings).await?;
     Ok(status)
 }
 
@@ -117,7 +82,7 @@ pub async fn start_remote(
 ) -> CmdResult<Option<RemoteStatus>> {
     let settings = RemoteSettings {
         enabled: true,
-        ..load(state.store.as_deref())
+        ..load(&state).await?
     };
     apply(&app, &state, &remote, settings).await
 }
@@ -132,7 +97,7 @@ pub async fn stop_remote(
 ) -> CmdResult<Option<RemoteStatus>> {
     let settings = RemoteSettings {
         enabled: false,
-        ..load(state.store.as_deref())
+        ..load(&state).await?
     };
     apply(&app, &state, &remote, settings).await
 }
@@ -148,7 +113,7 @@ pub async fn set_handoff_accepted(
 ) -> CmdResult<Option<RemoteStatus>> {
     let settings = RemoteSettings {
         handoff: enabled,
-        ..load(state.store.as_deref())
+        ..load(&state).await?
     };
     apply(&app, &state, &remote, settings).await
 }
@@ -168,9 +133,8 @@ pub async fn renew_remote_code(
     state: State<'_, AppState>,
     remote: State<'_, RemoteState>,
 ) -> CmdResult<Option<RemoteStatus>> {
-    let store = state.store.as_deref();
     let code = remote::new_code();
-    let previous = load(store);
+    let previous = load(&state).await?;
     // New tunnel key too (#430): an unlinked phone no longer gets through the relay.
     let tunnel = with_new_key(previous.tunnel.clone());
     let settings = RemoteSettings {
@@ -178,7 +142,7 @@ pub async fn renew_remote_code(
         tunnel: tunnel.clone(),
         ..previous
     };
-    save(store, &settings)?;
+    save(&state, settings).await?;
     Ok(remote.set_code(code, tunnel))
 }
 
@@ -190,8 +154,7 @@ pub async fn open_handoff_pairing(
     state: State<'_, AppState>,
     remote: State<'_, RemoteState>,
 ) -> CmdResult<Option<RemoteStatus>> {
-    let store = state.store.as_deref();
-    let previous = load(store);
+    let previous = load(&state).await?;
     if !previous.handoff {
         return Err(tr(
             "activez d'abord « Accepter les transferts »",
@@ -204,17 +167,24 @@ pub async fn open_handoff_pairing(
         tunnel: tunnel.clone(),
         ..previous
     };
-    save(store, &settings)?;
+    save(&state, settings).await?;
     Ok(remote.open_pairing(tunnel))
 }
 
-/// At launch: turns the remote and / or handoffs back on (desktop only).
+/// At launch: turns the remote and / or handoffs back on (desktop only). Not if the
+/// credential store cannot be read: the code would otherwise be replaced.
 #[cfg(desktop)]
 pub fn restore(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let state = app.state::<AppState>();
-        let mut settings = load(state.store.as_deref());
+        let mut settings = match load(&state).await {
+            Ok(settings) => settings,
+            Err(e) => {
+                tracing::warn!("Remote: not restored ({e})");
+                return;
+            }
+        };
         let features = settings.features();
         let (true, Some(code)) = (features.any(), settings.code.clone()) else {
             return;
@@ -222,7 +192,7 @@ pub fn restore(app: &AppHandle) {
         // Settings from before #430: identity on the relay drawn now.
         if settings.tunnel.is_none() {
             settings.tunnel = Some(TunnelSettings::new());
-            if let Err(e) = save(state.store.as_deref(), &settings) {
+            if let Err(e) = save(&state, settings.clone()).await {
                 tracing::warn!("Remote: {e}");
             }
         }

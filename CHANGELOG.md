@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.120
+
+- Desktop: the remote's code and the handoff key now live in the system's credential store, like the TIDAL session, instead of the settings database; existing ones move there on their own (#61).
+
 ## 0.5.119
 
 - Desktop: handing playback over, or syncing a long history, from the phone over weak Wi-Fi no longer fails after 5 seconds: a large transfer gets up to 20 seconds (#60).
