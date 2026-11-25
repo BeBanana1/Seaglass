@@ -945,6 +945,10 @@ export interface RemoteStatus {
   /** Faux si aucune adresse du réseau local n'a été trouvée. */
   lan: boolean;
   qrSvg: string | null;
+  /** End of the last pairing window (ms since the epoch, #62), `null` before any. */
+  pairingUntil: number | null;
+  /** A relay is set up: handoffs also work away from home, "Link a phone" is offered. */
+  relay: boolean;
 }
 
 /** Ordinateur lié pour les transferts de lecture (#414), côté téléphone. */
@@ -1082,6 +1086,8 @@ export const commands = {
   syncHistory: (force: boolean) => invoke<number | null>("sync_history", { force }),
   /** Nouveau code : les téléphones appairés sont déconnectés. */
   renewRemoteCode: () => invoke<RemoteStatus | null>("renew_remote_code"),
+  /** #62: "Link a phone", new relay key and 10 minutes for a phone to learn the route. */
+  openHandoffPairing: () => invoke<RemoteStatus | null>("open_handoff_pairing"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
   /** Autres versions et autres albums de l'artiste (#350), album affiché exclu. */

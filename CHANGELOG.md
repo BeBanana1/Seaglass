@@ -11,6 +11,11 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.118
+
+- Desktop: "Link a phone" (Settings › App › Remote) opens 10 minutes during which a phone can learn how to reach the computer away from home, with a new relay key each time; outside that window the key is no longer handed out on the local network (#62).
+- Android: the linked computer's texts say to press "Link a phone" on the computer to also reach it away from home (#62).
+
 ## 0.5.117
 
 - One stream per account, as TIDAL's terms require: pressing Play pauses the account's other devices (official apps included), and when another device starts playing, Seaglass pauses and says so (#35).

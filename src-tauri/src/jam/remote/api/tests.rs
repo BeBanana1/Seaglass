@@ -377,6 +377,28 @@ async fn events_push_the_player_state() {
 }
 
 /// Page servie avec ce faux lecteur, pour la regarder dans un navigateur (30 min) :
+/// #62: the relay route (and its key) is only given during a pairing window.
+#[tokio::test]
+async fn the_relay_route_waits_for_a_pairing_window() {
+    let (addr, site) = start().await;
+    site.owner.set_features(false, true);
+    site.owner.set_relay(Some(crate::jam::remote::RelayRoute {
+        url: "https://relay.example/d/x".into(),
+        key: "k".into(),
+    }));
+    let refused = (403, r#"{"error":"pairing"}"#.to_owned());
+    assert_eq!(post(addr, "/api/relay", "").await, refused);
+    site.owner.open_pairing(Duration::from_secs(60));
+    let (status, body) = post(addr, "/api/relay", "").await;
+    assert_eq!(status, 200);
+    assert!(body.contains("relay.example"), "{body}");
+    // Window over.
+    site.owner.open_pairing(Duration::ZERO);
+    assert_eq!(post(addr, "/api/relay", "").await, refused);
+    // The rest of the phone's routes do not depend on it.
+    assert_eq!(post(addr, "/api/join", "").await.0, 200);
+}
+
 /// `cargo test remote_page_preview -- --ignored --nocapture`, puis
 /// `http://127.0.0.1:47899/#AB23CDEF45GH`.
 #[tokio::test]

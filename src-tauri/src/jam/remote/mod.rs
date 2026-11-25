@@ -29,8 +29,8 @@ use crate::player::{Cmd, Handoff, PlayerState, QueueView};
 use crate::store::Store;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{PlaylistSummary, SearchResults, Track};
-pub use api::OWNER_CODE_LEN;
 use api::{Command, Owner, Remote};
+pub use api::{OWNER_CODE_LEN, PAIRING_WINDOW};
 pub use tunnel::{RelayRoute, TunnelSettings};
 
 /// Port préféré : l'adresse reste la même d'un lancement à l'autre (marque-page).
@@ -65,6 +65,12 @@ pub struct RemoteStatus {
     pub lan: bool,
     /// QR code de `url#code` en SVG (noir sur blanc).
     pub qr_svg: Option<String>,
+    /// End of the last pairing window, ms since the Unix epoch (#62): a phone can learn
+    /// the relay route until then. `None` before the first "Link a phone".
+    pub pairing_until: Option<i64>,
+    /// A relay is set up (#62): handoffs also work away from home, and "Link a phone" is
+    /// worth offering. Read again each time the status is given (Settings › Relay).
+    pub relay: bool,
 }
 
 /// Historique d'écoute servi au téléphone lié (#430).
@@ -109,6 +115,25 @@ impl Running {
         }
     }
 
+    /// Status for the UI, with whether a relay is set up right now.
+    fn view(&self) -> RemoteStatus {
+        RemoteStatus {
+            relay: crate::jam::relay::RelayConfig::current().is_some(),
+            ..self.status.clone()
+        }
+    }
+
+    /// New tunnel settings (key changed): the tunnel reopens with them, so the old key no
+    /// longer opens anything. Unchanged settings keep the tunnel as it is.
+    fn replace_tunnel(&mut self, tunnel: Option<TunnelSettings>) {
+        if tunnel != self.tunnel {
+            self.tunnel = tunnel;
+            let handoff = self.status.handoff;
+            self.sync_tunnel(false);
+            self.sync_tunnel(handoff);
+        }
+    }
+
     fn stop(self) {
         self.task.abort();
         if let Some(task) = self.tunnel_task {
@@ -123,7 +148,7 @@ pub struct RemoteState(Mutex<Option<Running>>);
 impl RemoteState {
     pub fn status(&self) -> Option<RemoteStatus> {
         let slot = self.0.lock().ok()?;
-        slot.as_ref().map(|r| r.status.clone())
+        slot.as_ref().map(Running::view)
     }
 
     /// Sert la télécommande et / ou les transferts avec `code` : démarre le serveur, ou
@@ -170,6 +195,8 @@ impl RemoteState {
             url,
             code,
             lan,
+            pairing_until: None,
+            relay: false,
         };
         let mut slot = self
             .0
@@ -178,11 +205,11 @@ impl RemoteState {
         // Deux démarrages simultanés : le premier arrivé reste.
         if let Some(running) = slot.as_ref() {
             task.abort();
-            return Ok(Some(running.status.clone()));
+            return Ok(Some(running.view()));
         }
         tracing::info!("Télécommande démarrée");
         let mut running = Running {
-            status: status.clone(),
+            status,
             owner,
             task,
             site,
@@ -190,8 +217,9 @@ impl RemoteState {
             tunnel_task: None,
         };
         running.sync_tunnel(features.handoff);
+        let view = running.view();
         *slot = Some(running);
-        Ok(Some(status))
+        Ok(Some(view))
     }
 
     /// Change ce que sert le serveur en cours ; `None` s'il ne tourne pas.
@@ -205,7 +233,7 @@ impl RemoteState {
         running.status.handoff = features.handoff;
         running.sync_tunnel(features.handoff);
         running.owner.refresh.notify_one();
-        Some(running.status.clone())
+        Some(running.view())
     }
 
     /// Remplace le code de la télécommande en cours : les téléphones déjà appairés devront
@@ -214,16 +242,23 @@ impl RemoteState {
         let mut slot = self.0.lock().ok()?;
         let running = slot.as_mut()?;
         running.owner.set_code(code.clone());
-        // Nouvelle clé du tunnel : l'ancienne ne déchiffre plus rien.
-        if tunnel != running.tunnel {
-            running.tunnel = tunnel;
-            let handoff = running.status.handoff;
-            running.sync_tunnel(false);
-            running.sync_tunnel(handoff);
-        }
+        running.replace_tunnel(tunnel);
         running.status.qr_svg = qr_svg(&format!("{}#{code}", running.status.url));
         running.status.code = code;
-        Some(running.status.clone())
+        Some(running.view())
+    }
+
+    /// "Link a phone" (#62): reopens the tunnel with `tunnel` (a new key) and opens the
+    /// pairing window, during which a phone on the local network can learn the relay
+    /// route. `None` if the server is not running.
+    pub fn open_pairing(&self, tunnel: Option<TunnelSettings>) -> Option<RemoteStatus> {
+        let mut slot = self.0.lock().ok()?;
+        let running = slot.as_mut()?;
+        running.replace_tunnel(tunnel);
+        running.owner.open_pairing(PAIRING_WINDOW);
+        let length = i64::try_from(PAIRING_WINDOW.as_millis()).unwrap_or(i64::MAX);
+        running.status.pairing_until = Some(crate::jam::clock::now_ms() + length);
+        Some(running.view())
     }
 
     /// Arrête la télécommande : port fermé, pages coupées.

@@ -1,6 +1,6 @@
-//! Tunnel du relais (#430) de bout en bout : le PC (faux lecteur, vrai historique en
-//! mémoire) branché sur un faux relais, et le client du téléphone qui ne joint pas le
-//! réseau local et passe par le relais, chiffré.
+//! Relay tunnel (#430) end to end: the PC (fake player, real in-memory history) plugged
+//! into a fake relay, and the phone's client that cannot reach the local network and goes
+//! through the relay, encrypted.
 
 use std::collections::HashMap;
 
@@ -20,8 +20,8 @@ const KEY: &str = "cle-de-test";
 
 type Forward = (String, oneshot::Sender<(u16, String)>);
 
-/// Faux relais : un PC en WebSocket (`/device`), les appels du téléphone en HTTP
-/// (`POST /d/<id>`) transmis tels quels. Renvoie l'adresse et l'URL du tunnel.
+/// Fake relay: a PC over WebSocket (`/device`), the phone's calls over HTTP
+/// (`POST /d/<id>`) forwarded as is. Returns the address and the tunnel's URL.
 async fn fake_relay() -> (SocketAddr, oneshot::Receiver<String>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
@@ -37,10 +37,10 @@ async fn fake_relay() -> (SocketAddr, oneshot::Receiver<String>) {
             if &head == b"GET " && device.is_none() {
                 let mut socket = tokio_tungstenite::accept_async(stream).await.unwrap();
                 let Some(Ok(Message::Text(text))) = socket.next().await else {
-                    panic!("pas de hello");
+                    panic!("no hello");
                 };
                 let FromDevice::Hello { id, .. } = serde_json::from_str(&text).unwrap() else {
-                    panic!("pas de hello");
+                    panic!("no hello");
                 };
                 let url = format!("http://{addr}/d/{id}");
                 let ready = ToDevice::Ready { url: url.clone() };
@@ -83,7 +83,7 @@ async fn fake_relay() -> (SocketAddr, oneshot::Receiver<String>) {
     (addr, ready_rx)
 }
 
-/// Un appel HTTP du téléphone : corps transmis au PC, réponse renvoyée.
+/// One HTTP call of the phone: body forwarded to the PC, answer sent back.
 async fn phone_call(stream: TcpStream, forward: mpsc::Sender<Forward>) {
     let mut reader = BufReader::new(stream);
     let mut length = 0;
@@ -134,7 +134,10 @@ fn listen(store: &Store, id: u64, at: i64) {
 async fn the_phone_reaches_the_computer_through_the_relay() {
     let (lan, site) = start().await;
     site.owner.set_features(false, true);
-    // Avant le tunnel, le PC n'a pas de chemin en ligne à donner.
+    // No route outside a pairing window (#62), even for the right code.
+    assert_eq!(post(lan, "/api/relay", "").await.0, 403);
+    site.owner.open_pairing(Duration::from_secs(60));
+    // Before the tunnel, the PC has no online route to give.
     assert_eq!(post(lan, "/api/relay", "").await.0, 404);
 
     let (relay, ready) = fake_relay().await;
@@ -148,7 +151,7 @@ async fn the_phone_reaches_the_computer_through_the_relay() {
         .await
         .unwrap()
         .unwrap();
-    // Le téléphone apprend le chemin sur le réseau local.
+    // The phone learns the route on the local network.
     let mut route = None;
     for _ in 0..50 {
         let linked = crate::handoff::Link::parse(&format!("http://{lan}/#{CODE}")).unwrap();
@@ -158,11 +161,11 @@ async fn the_phone_reaches_the_computer_through_the_relay() {
         }
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
-    let route = route.expect("chemin par le relais");
+    let route = route.expect("relay route");
     assert_eq!(route.url, url);
     assert_eq!(route.key, settings.key);
 
-    // Hors du réseau local (port fermé) : tout passe par le relais.
+    // Away from the local network (closed port): everything goes through the relay.
     let away = crate::handoff::Link::parse(&format!("http://127.0.0.1:1/#{CODE}"))
         .unwrap()
         .with_relay(Some(route.clone()));
@@ -181,7 +184,7 @@ async fn the_phone_reaches_the_computer_through_the_relay() {
         phone.played_track_ids().unwrap()
     );
 
-    // Une clé changée (« Nouveau code ») : le PC refuse, message de code refusé.
+    // A changed key ("New code", "Link a phone"): the PC refuses, code refused message.
     let stale = crate::handoff::Link::parse(&format!("http://127.0.0.1:1/#{CODE}"))
         .unwrap()
         .with_relay(Some(tunnel::RelayRoute {

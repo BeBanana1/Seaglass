@@ -312,6 +312,7 @@ pub fn run() {
             commands::handoff::handoff_push,
             commands::handoff::sync_history,
             commands::remote::renew_remote_code,
+            commands::remote::open_handoff_pairing,
             #[cfg(desktop)]
             commands::window::fullscreen,
             #[cfg(desktop)]

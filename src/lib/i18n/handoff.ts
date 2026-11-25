@@ -1,12 +1,11 @@
-// Transfert de la lecture avec l'ordinateur (#414), côté téléphone : Réglages › Application
-// et « En lecture ».
+// Playback handoff with the computer (#414), phone side: Settings › App and "Now playing".
 
 export const fr = {
   title: "Ordinateur lié",
-  hint: "Reprenez sur le téléphone ce qui joue sur l'ordinateur, ou l'inverse, avec Seaglass ouvert sur l'ordinateur et « Accepter les transferts » activé (Réglages › Application › Télécommande). Liez-les sur le même Wi-Fi ; ensuite, ça marche aussi hors de chez vous.",
+  hint: "Reprenez sur le téléphone ce qui joue sur l'ordinateur, ou l'inverse, avec Seaglass ouvert sur l'ordinateur et « Accepter les transferts » activé (Réglages › Application › Télécommande). Liez-les sur le même Wi-Fi, après « Lier un téléphone » sur l'ordinateur ; ensuite, ça marche aussi hors de chez vous.",
   online: "Joignable aussi hors de chez vous, par le relais (chiffré de bout en bout).",
   lanOnly:
-    "Sur le même réseau seulement pour l'instant : le chemin en ligne sera appris à la prochaine synchro sur place.",
+    "Sur le même réseau seulement : pour le joindre aussi hors de chez vous, appuyez sur « Lier un téléphone » sur l'ordinateur, puis liez-le de nouveau ici.",
   linkLabel: "Adresse de l'ordinateur",
   linkPlaceholder: "192.168.1.20:47801 XXXX-XXXX-XXXX",
   linkHint:
@@ -34,9 +33,10 @@ export const fr = {
 
 export const en: typeof fr = {
   title: "Linked computer",
-  hint: "Resume on the phone what plays on the computer, or the other way round, with Seaglass open on the computer and “Accept transfers” turned on (Settings › App › Remote). Link them on the same Wi-Fi; after that, it also works away from home.",
+  hint: "Resume on the phone what plays on the computer, or the other way round, with Seaglass open on the computer and “Accept transfers” turned on (Settings › App › Remote). Link them on the same Wi-Fi, after “Link a phone” on the computer; after that, it also works away from home.",
   online: "Also reachable away from home, through the relay (end-to-end encrypted).",
-  lanOnly: "Same network only for now: the online route will be learned at the next sync at home.",
+  lanOnly:
+    "Same network only: to also reach it away from home, press “Link a phone” on the computer, then link it again here.",
   linkLabel: "Computer address",
   linkPlaceholder: "192.168.1.20:47801 XXXX-XXXX-XXXX",
   linkHint:

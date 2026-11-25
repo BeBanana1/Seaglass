@@ -1,4 +1,4 @@
-// Télécommande (#336) : Réglages › Application.
+// Remote (#336) and playback handoff (#414, #62): Settings › App.
 
 export const fr = {
   title: "Télécommande",
@@ -21,8 +21,14 @@ export const fr = {
   handoff: "Accepter les transferts",
   handoffHint:
     "L'app Android liée peut reprendre ici ce qui joue sur le téléphone, ou continuer sur le téléphone ce qui joue ici, et les deux échangent leur historique d'écoute.",
-  handoffHowTo:
+  handoffHowToLan:
     "Sur le téléphone : Réglages › Application › Ordinateur lié, puis tapez l'adresse et le code ci-dessus.",
+  handoffHowTo:
+    "Appuyez sur « Lier un téléphone », puis sur le téléphone : Réglages › Application › Ordinateur lié, et tapez l'adresse et le code ci-dessus dans les 10 minutes. Le téléphone apprend alors aussi à joindre cet ordinateur hors de chez vous.",
+  pair: "Lier un téléphone",
+  pairing: (until: string) => `Un téléphone peut se lier jusqu'à ${until}.`,
+  pairNote:
+    "Chaque « Lier un téléphone » change la clé du relais : les téléphones liés avant gardent le Wi-Fi, mais doivent être liés de nouveau pour vous joindre hors de chez vous. Liez vos appareils dans la même fenêtre.",
 };
 
 export const en: typeof fr = {
@@ -45,6 +51,12 @@ export const en: typeof fr = {
   handoff: "Accept transfers",
   handoffHint:
     "The linked Android app can resume here what plays on the phone, or continue on the phone what plays here, and both exchange their listening history.",
-  handoffHowTo:
+  handoffHowToLan:
     "On the phone: Settings › App › Linked computer, then type the address and code above.",
+  handoffHowTo:
+    "Press “Link a phone”, then on the phone: Settings › App › Linked computer, and type the address and code above within 10 minutes. The phone then also learns how to reach this computer away from home.",
+  pair: "Link a phone",
+  pairing: (until: string) => `A phone can link until ${until}.`,
+  pairNote:
+    "Each “Link a phone” changes the relay key: phones linked before keep the Wi-Fi, but must be linked again to reach you away from home. Link your devices in the same window.",
 };

@@ -926,6 +926,7 @@ let jam: ReturnType<typeof mockJam> | null =
 let remoteCode = "H4KX9QMT2WZP";
 let remoteOn = params.get("remote") === "1";
 let handoffOn = params.get("handoff") === "1";
+let pairingUntil: number | null = null;
 const mockRemote = () => ({
   remote: remoteOn,
   handoff: handoffOn,
@@ -933,6 +934,8 @@ const mockRemote = () => ({
   code: remoteCode,
   lan: true,
   qrSvg: fakeQr,
+  pairingUntil,
+  relay: relayParam !== "off" && relayParam !== "none",
 });
 let remote: ReturnType<typeof mockRemote> | null = remoteOn || handoffOn ? mockRemote() : null;
 const remoteUpdate = () => (remote = remoteOn || handoffOn ? mockRemote() : null);
@@ -1184,6 +1187,11 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   handoff_pull: () => undefined,
   handoff_push: () => undefined,
   sync_history: () => (linkedComputer ? (linkedComputer.syncedAt = Date.now()) : null),
+  open_handoff_pairing: () => {
+    if (!handoffOn) throw new Error("activez d'abord « Accepter les transferts »");
+    pairingUntil = Date.now() + 10 * 60_000;
+    return (remote = mockRemote());
+  },
   renew_remote_code: () => {
     remoteCode = "QZ7M3KD8XF2N";
     return remote ? (remote = mockRemote()) : null;
