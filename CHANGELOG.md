@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.116
+
+- chore: the player state types the interface receives are now generated from the Rust ones, so the two can no longer drift apart (#44).
+
 ## 0.5.115
 
 - Previous while paused now resumes playback, also when it goes back to the start of the track (#47).

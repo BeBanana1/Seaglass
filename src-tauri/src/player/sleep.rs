@@ -1,6 +1,6 @@
-//! Minuteur de mise en veille (#85) : pause après une durée, à la fin du titre en cours ou à
-//! la fin de la file (album, playlist… et file manuelle, sans boucler ni radio, #436).
-//! Non persisté : un redémarrage l'annule.
+//! Sleep timer (#85): pause after a duration, at the end of the current track or at the
+//! end of the queue (album, playlist… and manual queue, without looping or radio, #436).
+//! Not persisted: a restart cancels it.
 
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -10,10 +10,10 @@ use super::actor::Player;
 use super::queue::Repeat;
 use crate::i18n::trf;
 
-/// Durée maximale acceptée (l'UI propose 15 à 90 min).
+/// Maximum accepted duration (the UI offers 15 to 90 min).
 const MAX_MINUTES: u16 = 600;
 
-/// Demande de l'UI.
+/// Request from the UI.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum SleepRequest {
@@ -34,24 +34,30 @@ impl SleepRequest {
     }
 }
 
-/// Minuteur actif, dans `PlayerState::sleep`.
+/// Active timer, in `PlayerState::sleep`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub enum SleepState {
-    /// Échéance en ms depuis l'epoch UNIX : l'UI calcule le temps restant elle-même,
-    /// sans un `player-state` par seconde.
+    /// Deadline in ms since the UNIX epoch: the UI computes the remaining time itself,
+    /// without a `player-state` every second.
     Minutes {
         #[serde(rename = "endsAt")]
+        #[cfg_attr(test, ts(type = "number"))]
         ends_at: u64,
     },
     EndOfTrack,
-    /// Pause après le dernier titre de la file (#436) : se ramène à `EndOfTrack` une fois la
-    /// file au bout (`Queue::at_end`), ou tout de suite en repeat One (le titre boucle).
+    /// Pause after the last track of the queue (#436): becomes `EndOfTrack` once the queue
+    /// reaches its end (`Queue::at_end`), or at once in repeat One (the track loops).
     EndOfContext,
 }
 
 impl Player {
-    /// Le titre en cours est le dernier avant la pause : rien ne doit le suivre en gapless.
+    /// The current track is the last one before the pause: nothing must follow it gaplessly.
     pub(super) fn sleeps_at_end_of_track(&self) -> bool {
         match self.state.sleep {
             Some(SleepState::EndOfTrack) => true,
@@ -78,32 +84,32 @@ impl Player {
         });
         let end_of_track = self.sleeps_at_end_of_track();
         if end_of_track {
-            // Le suivant préchargé (retour au début en repeat All, radio) serait enchaîné en
-            // gapless : il est retiré, et `maybe_preload` ne recharge rien tant que le
-            // minuteur vise la fin du titre.
+            // The preloaded next one (back to the start in repeat All, radio) would follow
+            // gaplessly: it is removed, and `maybe_preload` loads nothing while the timer
+            // targets the end of the track.
             self.invalidate_next().await;
         }
         if end_of_track != was_end_of_track {
-            // Repeat One boucle avec `loop-file` : levé tant que le minuteur est actif.
+            // Repeat One loops with `loop-file`: lifted while the timer is active.
             self.apply_loop_file().await;
         }
     }
 
-    /// Appelé par le tick d'une seconde de l'acteur.
+    /// Called by the actor's one-second tick.
     pub(super) async fn check_sleep_timer(&mut self) {
         if self.sleep_deadline.is_some_and(|d| Instant::now() >= d) {
-            tracing::info!("minuteur de mise en veille : pause");
+            tracing::info!("sleep timer: pause");
             self.sleep_deadline = None;
             self.state.sleep = None;
             self.set_paused(true).await;
         }
     }
 
-    /// Fin naturelle du dernier titre avant la pause : la file avance sans charger le
-    /// suivant, en pause, comme une file restaurée au démarrage (Lecture le chargera).
-    /// En repeat One, le même titre reste, au début.
+    /// Natural end of the last track before the pause: the queue advances without loading
+    /// the next one, paused, like a queue restored at startup (Play will load it).
+    /// In repeat One, the same track stays, at the start.
     pub(super) async fn sleep_after_track(&mut self) {
-        tracing::info!("minuteur de mise en veille : fin du titre ou de la file");
+        tracing::info!("sleep timer: end of the track or of the queue");
         self.state.sleep = None;
         if self.queue.repeat() == Repeat::One {
             self.apply_loop_file().await;

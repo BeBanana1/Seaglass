@@ -1,17 +1,17 @@
-//! Contrat entre l'acteur du lecteur et le moteur qui décode le son : mpv sur le bureau,
-//! Media3 sur Android (#24, `media3.rs`).
+//! Contract between the player actor and the engine that decodes the sound: mpv on desktop,
+//! Media3 on Android (#24, `media3.rs`).
 //!
-//! Le moteur tient une **fenêtre de 2 entrées au maximum** : le titre courant (0) et le
-//! suivant préchargé (1). L'acteur décide de tout (file, préchargement, erreurs) ; le
-//! moteur exécute des opérations sémantiques (`Op`) et remonte des événements (`Event`),
-//! sans rien savoir de TIDAL ni de la file.
+//! The engine holds a **window of at most 2 entries**: the current track (0) and the
+//! preloaded next one (1). The actor decides everything (queue, preload, errors); the
+//! engine runs semantic operations (`Op`) and reports events (`Event`), knowing nothing
+//! of TIDAL or the queue.
 //!
-//! Le périphérique de sortie (`AudioDevice`) et la taille du cache (`CacheSize`) restent
-//! définis dans `mpv` : ce sont des réglages du bureau, à revoir avec le moteur Android.
+//! The output device (`AudioDevice`) and the cache size (`CacheSize`) stay defined in
+//! `mpv`: they are desktop settings, to revisit with the Android engine.
 
-// Sur Android, Media3 n'a ni périphérique à choisir ni liste à remonter, ni mode
-// exclusif : `End::OutputFailed`, `Event::Devices` et `Event::DeviceFormat` n'y sont pas
-// construits.
+// On Android, Media3 has no device to choose nor list to report, and no exclusive
+// mode: `End::OutputFailed`, `Event::Devices` and `Event::DeviceFormat` are not built
+// there.
 #![cfg_attr(mobile, allow(dead_code))]
 
 use serde::{Deserialize, Serialize};
@@ -21,59 +21,64 @@ use std::sync::Arc;
 use crate::mpv::{AudioDevice, CacheSize};
 use crate::player::eq::EqProfile;
 
-/// Filtres d'un fichier : gain de normalisation (#82) puis égaliseur (#428), dans cet
-/// ordre.
+/// A file's filters: normalization gain (#82) then equalizer (#428), in that
+/// order.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Filters {
     pub gain: Option<f64>,
     pub eq: Option<Arc<EqProfile>>,
 }
 
-/// Opération demandée au moteur.
+/// Operation asked of the engine.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
-    /// Remplace toute la fenêtre par `url` (entrée 0) à partir de `start` secondes, avec
-    /// ses filtres, et lance la lecture.
+    /// Replaces the whole window with `url` (entry 0) from `start` seconds, with its
+    /// filters, and starts playback.
     Play {
         url: String,
         start: f64,
         filters: Filters,
     },
-    /// Précharge `url` en entrée 1 pour un enchaînement sans blanc, avec ses propres
-    /// filtres (le titre en cours garde les siens).
+    /// Preloads `url` as entry 1 for a gapless transition, with its own filters (the
+    /// current track keeps its own).
     Preload {
         url: String,
         filters: Filters,
     },
-    /// Retire le titre préchargé (la file a changé).
+    /// Removes the preloaded track (the queue changed).
     RemoveNext,
-    /// Oublie le titre terminé après `Event::Advanced` : la fenêtre redevient une entrée.
+    /// Forgets the finished track after `Event::Advanced`: the window is one entry again.
     DropPrevious,
-    /// Arrête la lecture et vide la fenêtre.
+    /// Stops playback and empties the window.
     Stop,
     TogglePause,
     SetPaused(bool),
-    /// Saut absolu, en secondes.
+    /// Absolute seek, in seconds.
     Seek(f64),
-    /// Lecture en boucle du titre courant (repeat One), sans rechargement.
+    /// Loops the current track (repeat One), without a reload.
     LoopCurrent(bool),
-    /// Volume logiciel 0–100 (100 = gain unitaire) et coupure.
+    /// Software volume 0–100 (100 = unity gain) and mute.
     Volume {
         level: u8,
         muted: bool,
     },
     CacheSize(CacheSize),
-    /// Nouveaux filtres du titre en cours seulement (normalisation ou égaliseur changé).
+    /// New filters for the current track only (normalization or equalizer changed).
     CurrentFilters(Filters),
-    /// Identifiant du périphérique de sortie (`auto` = défaut du système).
+    /// Output device identifier (`auto` = system default).
     OutputDevice(String),
-    /// Mode exclusif WASAPI (#245) : le moteur rouvre la sortie sans interrompre le titre.
+    /// WASAPI exclusive mode (#245): the engine reopens the output without interrupting the track.
     Exclusive(bool),
 }
 
-/// Format décodé envoyé à la sortie (`audio-params` de mpv).
+/// Decoded format sent to the output (mpv's `audio-params`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub struct AudioParams {
     pub format: String,
     pub samplerate: u32,
@@ -81,48 +86,48 @@ pub struct AudioParams {
     pub channel_count: u32,
 }
 
-/// Fin d'un fichier qui intéresse l'acteur.
+/// End of a file that matters to the actor.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum End {
-    /// Fin naturelle du titre.
+    /// Natural end of the track.
     Eof,
-    /// Le périphérique de sortie n'a pas pu s'ouvrir : repli, pas une erreur du flux (#79).
+    /// The output device could not open: fallback, not a stream error (#79).
     OutputFailed,
-    /// Flux illisible (URL expirée, réseau…), avec le détail du moteur.
+    /// Unreadable stream (expired URL, network…), with the engine's detail.
     Error(Option<String>),
 }
 
-/// Événement du moteur, déjà traduit.
+/// Engine event, already translated.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
     Position(Option<f64>),
-    /// Position (secondes) jusqu'où le titre courant est déjà en mémoire (#453) : cache du
-    /// démultiplexeur de mpv, `bufferedPosition` de Media3. Rien sur disque.
+    /// Position (seconds) up to which the current track is already in memory (#453): mpv's
+    /// demuxer cache, Media3's `bufferedPosition`. Nothing on disk.
     Cached(Option<f64>),
     Duration(Option<f64>),
     Paused(bool),
     Buffering(bool),
-    /// `None` entre deux fichiers : sans effet sur l'affichage (#12).
+    /// `None` between two files: no effect on the display (#12).
     Format(Option<AudioParams>),
-    /// Format réellement écrit sur la sortie (#245) : mixage de Windows en partagé, format
-    /// ouvert sur le périphérique en exclusif. `None` pendant une réouverture.
+    /// Format actually written to the output (#245): Windows mix in shared mode, format
+    /// opened on the device in exclusive mode. `None` while reopening.
     DeviceFormat(Option<AudioParams>),
-    /// Pilote de sortie (`wasapi`…).
+    /// Output driver (`wasapi`…).
     Driver(Option<String>),
     Idle(bool),
-    /// Le moteur est passé sur l'entrée préchargée, sans blanc.
+    /// The engine moved to the preloaded entry, gaplessly.
     Advanced,
-    /// Fichier ouvert et décodable.
+    /// File opened and decodable.
     Loaded,
     Ended(End),
-    /// Périphériques de sortie connus, renvoyés au branchement (#79).
+    /// Known output devices, sent again on plugging (#79).
     Devices(Vec<AudioDevice>),
-    /// Le moteur s'est arrêté (processus terminé ou planté).
+    /// The engine stopped (process ended or crashed).
     Stopped,
 }
 
-/// Ce qu'un moteur doit savoir faire. Une erreur est un message déjà traduit, affiché en
-/// toast par l'acteur.
+/// What an engine must be able to do. An error is an already translated message, shown
+/// as a toast by the actor.
 pub(crate) trait Engine {
     async fn apply(&self, op: Op) -> Result<(), String>;
 }
@@ -132,7 +137,7 @@ pub use crate::media3::{Launch, Media3Engine as ActiveEngine};
 #[cfg(desktop)]
 pub use crate::mpv::engine::{Launch, MpvEngine as ActiveEngine};
 
-/// Problème du moteur à signaler en bandeau après un échec de lancement ou un arrêt (#92).
+/// Engine problem to show as a banner after a failed launch or a stop (#92).
 pub fn diagnose() -> Option<crate::mpv::MpvIssue> {
     #[cfg(desktop)]
     return Some(crate::mpv::MpvIssue::diagnose());

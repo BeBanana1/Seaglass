@@ -1,10 +1,10 @@
-// Données des tests du frontend (#264) : titres minimaux, champs utiles seulement.
+// Frontend test data (#264): minimal tracks, only the useful fields.
 
 import type { TrackEntry } from "../ipc";
 
 let nextId = 1;
 
-/** Titre de liste ; les champs non donnés prennent une valeur neutre. */
+/** List track; the fields not given take a neutral value. */
 export function entry(
   fields: Partial<Omit<TrackEntry, "artists" | "album">> & {
     artists?: string[];
@@ -21,9 +21,17 @@ export function entry(
     explicit: false,
     ai: false,
     hires: false,
+    isrc: null,
     addedAt: null,
     ...rest,
     artists: artists.map((name, i) => ({ id: i + 1, name })),
-    album: { id, title: album, coverUrl: null, color: null },
+    album: {
+      id,
+      title: album,
+      coverUrl: null,
+      coverSmallUrl: null,
+      coverLargeUrl: null,
+      color: null,
+    },
   };
 }

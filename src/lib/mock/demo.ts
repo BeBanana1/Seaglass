@@ -205,10 +205,18 @@ const albumPages: AlbumPage[] = ALBUMS.map((def, a) => {
       version,
       duration: duration(trackId),
       artists: [{ id: artist.id, name: artist.name }],
-      album: { id, title: def.title, coverUrl: cover, coverLargeUrl: cover, color: def.color },
+      album: {
+        id,
+        title: def.title,
+        coverUrl: cover,
+        coverSmallUrl: cover,
+        coverLargeUrl: cover,
+        color: def.color,
+      },
       explicit: (def.explicit ?? []).includes(n + 1),
       ai: false,
       hires: def.hires,
+      isrc: null,
     };
   });
   return {

@@ -1,10 +1,16 @@
-//! Types métier exposés au reste de l'app (et dupliqués dans `src/lib/ipc.ts`).
+//! Domain types exposed to the rest of the app. The UI sees them through `src/lib/ipc.ts`;
+//! those deriving `ts_rs::TS` are generated into `src/lib/bindings/` (#44).
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct TrackId(pub u64);
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
+pub struct TrackId(#[cfg_attr(test, ts(type = "number"))] pub u64);
 
 impl std::fmt::Display for TrackId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -14,28 +20,40 @@ impl std::fmt::Display for TrackId {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub struct ArtistRef {
+    #[cfg_attr(test, ts(type = "number"))]
     pub id: u64,
     pub name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", from = "StoredAlbumRef")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub struct AlbumRef {
+    #[cfg_attr(test, ts(type = "number"))]
     pub id: u64,
     pub title: String,
-    /// URL d'une pochette 320×320, si disponible.
+    /// URL of a 320×320 cover, if available.
     pub cover_url: Option<String>,
-    /// Même pochette en 160×160, pour les vignettes des listes (#89).
+    /// Same cover at 160×160, for list thumbnails (#89).
     pub cover_small_url: Option<String>,
-    /// Même pochette en 640×640, pour « En lecture ».
+    /// Same cover at 640×640, for "Now playing".
     pub cover_large_url: Option<String>,
-    /// Couleur dominante de la pochette (`#rrggbb`), pour accorder l'interface.
+    /// Dominant color of the cover (`#rrggbb`), to tune the interface.
     pub color: Option<String>,
 }
 
-/// `AlbumRef` relu (SQLite) : les titres enregistrés avant 0.4.36 n'ont que la pochette 320,
-/// les autres tailles en sont déduites.
+/// `AlbumRef` read back (SQLite): tracks saved before 0.4.36 only have the 320 cover, the
+/// other sizes are derived from it.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct StoredAlbumRef {
@@ -70,55 +88,65 @@ impl From<StoredAlbumRef> for AlbumRef {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub struct Track {
     pub id: TrackId,
     pub title: String,
     pub version: Option<String>,
-    /// Durée en secondes.
+    /// Duration in seconds.
     pub duration: u32,
     pub artists: Vec<ArtistRef>,
     pub album: AlbumRef,
     pub explicit: bool,
-    /// Généré par IA selon le service (champ `ai`, #369). Absent des titres enregistrés
-    /// avant la 0.5.29.
+    /// AI-generated according to the service (`ai` field, #369). Missing from tracks saved
+    /// before 0.5.29.
     #[serde(default)]
     pub ai: bool,
-    /// Disponible en 24 bits (tag `HIRES_LOSSLESS`).
+    /// Available in 24 bits (`HIRES_LOSSLESS` tag).
     pub hires: bool,
-    /// Identifiant de l'enregistrement, commun à toutes ses éditions (#18). Absent des
-    /// titres enregistrés avant la 0.4.8.
+    /// Identifier of the recording, shared by all its editions (#18). Missing from tracks
+    /// saved before 0.4.8.
     #[serde(default)]
     pub isrc: Option<String>,
 }
 
-/// Titre d'une liste (playlist ou favoris) avec sa date d'ajout à cette liste.
-/// Sérialisé à plat : côté UI, c'est un `Track` avec un champ `addedAt` en plus.
-/// La date n'appartient qu'à la liste : elle ne va ni dans le cache ni dans la file.
+/// Track of a list (playlist or favorites) with the date it was added to that list.
+/// Serialized flat: on the UI side, it is a `Track` with an extra `addedAt` field.
+/// The date only belongs to the list: it goes neither into the cache nor into the queue.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackEntry {
     #[serde(flatten)]
     pub track: Track,
-    /// Millisecondes depuis l'epoch Unix (UTC) : `dateAdded` d'un titre de playlist,
-    /// `created` d'un favori. `None` si l'API ne la donne pas ou si elle est illisible.
+    /// Milliseconds since the Unix epoch (UTC): `dateAdded` of a playlist track, `created`
+    /// of a favorite. `None` if the API does not give it or it cannot be read.
     pub added_at: Option<i64>,
 }
 
-/// Une catégorie de la bibliothèque (titres, albums, artistes, playlists), du plus récent au
-/// plus ancien, éventuellement coupée au plafond de chargement (#91).
+/// A library category (tracks, albums, artists, playlists), newest first, possibly cut
+/// at the loading cap (#91).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryList<T> {
     pub items: Vec<T>,
-    /// Coupée au plafond : seuls les plus récents sont là, d'autres suivent.
+    /// Cut at the cap: only the newest are there, more follow.
     pub truncated: bool,
-    /// Nombre annoncé par l'API (`totalNumberOfItems`, éléments indisponibles compris),
-    /// s'il est connu : il peut dépasser `items.len()` sans que la liste soit coupée.
+    /// Count announced by the API (`totalNumberOfItems`, unavailable items included), if
+    /// known: it can exceed `items.len()` without the list being cut.
     pub total: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub enum AudioQuality {
     Low,
     High,
@@ -137,26 +165,37 @@ impl AudioQuality {
     }
 }
 
-/// Format réellement servi par TIDAL pour une lecture donnée.
+/// Format actually served by TIDAL for a given playback.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub struct StreamFormat {
     pub quality: AudioQuality,
     pub codec: String,
     pub bit_depth: Option<u8>,
     pub sample_rate: Option<u32>,
-    /// Débit moyen déclaré par le manifeste, en kbps (#3).
+    /// Average bitrate declared by the manifest, in kbps (#3).
     pub bitrate: Option<u32>,
-    /// Album de l'édition réellement lue quand le flux vient d'une autre édition hi-res du
-    /// même enregistrement (#18) ; `None` pour le titre affiché.
+    /// Album of the edition actually played when the stream comes from another hi-res edition
+    /// of the same recording (#18); `None` for the track shown.
     pub hires_edition: Option<EditionAlbum>,
 }
 
-/// Album d'une autre édition hi-res : affiché et ouvrable depuis « En lecture » (#111),
-/// sans changer le titre en cours (like, playlists et file gardent son id).
+/// Album of another hi-res edition: shown and openable from "Now playing" (#111), without
+/// changing the current track (like, playlists and queue keep its id).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub struct EditionAlbum {
+    #[cfg_attr(test, ts(type = "number"))]
     pub id: u64,
     pub title: String,
 }
@@ -172,9 +211,9 @@ impl From<&Track> for EditionAlbum {
 
 #[derive(Debug, Clone)]
 pub enum StreamSource {
-    /// Manifeste MPEG-DASH (XML) à servir à mpv en HTTP local.
+    /// MPEG-DASH manifest (XML) served to mpv over local HTTP.
     Dash(String),
-    /// URL directe (manifeste BTS).
+    /// Direct URL (BTS manifest).
     Direct(String),
 }
 
@@ -182,8 +221,8 @@ pub enum StreamSource {
 pub struct Stream {
     pub format: StreamFormat,
     pub source: StreamSource,
-    /// ReplayGain du flux réellement lu (édition hi-res comprise), pour la normalisation
-    /// du volume (#82).
+    /// ReplayGain of the stream actually played (hi-res edition included), for volume
+    /// normalization (#82).
     pub gain: ReplayGain,
     /// Streaming session the play log reports this stream under (#34).
     pub session: PlaybackSession,
@@ -246,7 +285,7 @@ pub struct PlayLog {
     pub actions: Vec<LogAction>,
 }
 
-/// ReplayGain de `playbackinfopostpaywall` : gains en dB, crêtes en pleine échelle (1 = 0 dBFS).
+/// ReplayGain from `playbackinfopostpaywall`: gains in dB, peaks in full scale (1 = 0 dBFS).
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct ReplayGain {
     pub track_gain: Option<f64>,
@@ -262,17 +301,17 @@ pub struct AlbumSummary {
     pub title: String,
     pub artists: Vec<ArtistRef>,
     pub cover_url: Option<String>,
-    /// Même pochette en 640×640, pour le bandeau de l'accueil (#89).
+    /// Same cover at 640×640, for the home banner (#89).
     pub cover_large_url: Option<String>,
-    /// Couleur dominante de la pochette (`#rrggbb`).
+    /// Dominant color of the cover (`#rrggbb`).
     pub color: Option<String>,
-    /// `AAAA-MM-JJ`.
+    /// `YYYY-MM-DD`.
     pub release_date: Option<String>,
     pub number_of_tracks: Option<u32>,
-    /// `ALBUM`, `EP` ou `SINGLE`.
+    /// `ALBUM`, `EP` or `SINGLE`.
     pub album_type: Option<String>,
     pub explicit: bool,
-    /// Généré par IA selon le service (champ `ai`, #369).
+    /// AI-generated according to the service (`ai` field, #369).
     #[serde(default)]
     pub ai: bool,
     pub hires: bool,
@@ -294,39 +333,39 @@ pub struct PlaylistSummary {
     pub description: Option<String>,
     pub image_url: Option<String>,
     pub number_of_tracks: Option<u32>,
-    /// Durée totale en secondes.
+    /// Total duration in seconds.
     pub duration: Option<u32>,
-    /// Playlist éditoriale du service.
+    /// Editorial playlist of the service.
     pub editorial: bool,
-    /// Créée par l'utilisateur connecté.
+    /// Created by the signed-in user.
     pub mine: bool,
 }
 
-/// Dossier de playlists de la bibliothèque (#331). Un seul niveau : pas de sous-dossier.
+/// Playlist folder of the library (#331). A single level: no subfolders.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistFolder {
     pub id: String,
     pub name: String,
-    /// Uuids des playlists rangées (les vôtres et celles que vous suivez).
+    /// Uuids of the playlists filed there (yours and the ones you follow).
     pub playlists: Vec<String>,
 }
 
-/// Mix généré par le service (My Mix, Daily Discovery, mix d'artiste…). Son contenu
-/// change dans le temps : il n'est jamais mis en cache.
+/// Mix generated by the service (My Mix, Daily Discovery, artist mix…). Its content changes
+/// over time: it is never cached.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MixSummary {
     pub id: String,
     pub title: String,
     pub subtitle: Option<String>,
-    /// URL d'une image 320×320.
+    /// URL of a 320×320 image.
     pub image_url: Option<String>,
     /// `DAILY_MIX`, `DISCOVERY_MIX`, `ARTIST_MIX`, `TRACK_MIX`…
     pub mix_type: Option<String>,
 }
 
-/// Élément de « Plus tard » (#196) : un titre (avec sa date d'ajout) ou une carte.
+/// "Save for later" item (#196): a track (with the date it was added) or a card.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum LaterItem {
@@ -336,7 +375,7 @@ pub enum LaterItem {
     Playlist(PlaylistSummary),
 }
 
-/// Élément affichable sous forme de carte (accueil, résultats).
+/// Item shown as a card (home, results).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum MediaItem {
@@ -349,19 +388,19 @@ pub enum MediaItem {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HomeRow {
-    /// Identifiant stable de la ligne (sert à la masquer ou la déplacer), voir `catalog::row_key`.
+    /// Stable row identifier (used to hide or move it), see `catalog::row_key`.
     pub key: String,
     pub title: String,
     pub items: Vec<MediaItem>,
 }
 
-/// Élément du fil d'actualité : sortie d'un artiste suivi (album) ou mix mensuel (mix).
+/// Feed item: release of a followed artist (album) or monthly mix (mix).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedItem {
-    /// Date de la sortie, en millisecondes UTC.
+    /// Release date, in UTC milliseconds.
     pub occurred_at: Option<i64>,
-    /// Déjà vue dans un client TIDAL (état lu, jamais modifié par l'app).
+    /// Already seen in a TIDAL client (read state, never changed by the app).
     pub seen: bool,
     pub item: MediaItem,
 }
@@ -370,7 +409,7 @@ pub struct FeedItem {
 #[serde(rename_all = "camelCase")]
 pub struct AlbumPage {
     pub album: AlbumSummary,
-    /// Pochette en grand format pour l'en-tête.
+    /// Large cover for the header.
     pub cover_large_url: Option<String>,
     pub duration: Option<u32>,
     pub copyright: Option<String>,
@@ -386,8 +425,8 @@ pub struct ArtistPage {
     pub singles: Vec<AlbumSummary>,
 }
 
-/// Bas de la page d'album (#350), chargé après elle : autres éditions du même album
-/// (deluxe, remaster…) et autres albums de l'artiste, album affiché exclu.
+/// Bottom of the album page (#350), loaded after it: other editions of the same album
+/// (deluxe, remaster…) and other albums of the artist, the album shown excluded.
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlbumRelated {
@@ -395,26 +434,26 @@ pub struct AlbumRelated {
     pub by_artist: Vec<AlbumSummary>,
 }
 
-/// Compléments de la page d'artiste (#205), chargés après elle.
+/// Extras of the artist page (#205), loaded after it.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArtistExtra {
     pub bio: Option<Bio>,
     pub similar: Vec<ArtistSummary>,
-    /// Albums où l'artiste apparaît (compilations, collaborations).
+    /// Albums the artist appears on (compilations, collaborations).
     pub appears_on: Vec<AlbumSummary>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Bio {
-    /// Fournisseur du texte (« TiVo »), à créditer.
+    /// Provider of the text ("TiVo"), to credit.
     pub source: Option<String>,
-    /// Paragraphes de segments.
+    /// Paragraphs of segments.
     pub paragraphs: Vec<Vec<BioPart>>,
 }
 
-/// Segment de biographie : texte, ou lien interne de TIDAL vers un artiste ou un album.
+/// Biography segment: text, or an internal TIDAL link to an artist or an album.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum BioPart {
@@ -427,31 +466,31 @@ pub enum BioPart {
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistPage {
     pub playlist: PlaylistSummary,
-    /// Dans l'ordre de la playlist.
+    /// In playlist order.
     pub tracks: Vec<TrackEntry>,
-    /// ETag de la playlist quand la page a été lue (#152) : à rendre à `playlist` pour
-    /// savoir si elle a changé depuis.
+    /// ETag of the playlist when the page was read (#152): to give back to `playlist` to know
+    /// whether it changed since.
     pub revision: Option<String>,
 }
 
-/// Changement proposé par « Nettoyer » (#382). `index` = position dans la liste lue
-/// (0 = premier titre).
+/// Change proposed by "Clean up" (#382). `index` = position in the list read
+/// (0 = first track).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum CleanupItem {
-    /// Copie d'un titre déjà présent à `kept_index` : même titre (`same_track`) ou même
-    /// chanson dans une autre édition.
+    /// Copy of a track already at `kept_index`: same track (`same_track`) or same song in
+    /// another edition.
     #[serde(rename_all = "camelCase")]
     Duplicate {
         index: usize,
         track: Track,
         kept_index: usize,
-        /// Le titre gardé.
+        /// The track kept.
         kept: Box<Track>,
         same_track: bool,
     },
-    /// Titre retiré du catalogue, avec la même chanson dans une édition lisible si on en
-    /// trouve une.
+    /// Track removed from the catalog, with the same song in a playable edition if one is
+    /// found.
     #[serde(rename_all = "camelCase")]
     Unavailable {
         index: usize,
@@ -461,8 +500,8 @@ pub enum CleanupItem {
 }
 
 impl CleanupItem {
-    /// Ce que l'accepter fait : retirer le doublon ou l'indisponible sans remplaçant,
-    /// remplacer sinon.
+    /// What accepting it does: remove the duplicate or the unavailable track with no
+    /// replacement, replace otherwise.
     pub fn op(&self) -> ListOp {
         match self {
             Self::Unavailable {
@@ -484,15 +523,15 @@ impl CleanupItem {
     }
 }
 
-/// Changement proposé, avec l'opération qui l'applique (l'UI la renvoie telle quelle).
+/// Proposed change, with the operation that applies it (the UI sends it back as is).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CleanupChange {
     #[serde(flatten)]
     pub item: CleanupItem,
     pub op: ListOp,
-    /// Coché d'office. Pas un indisponible sans remplaçant : le retirer est définitif (le
-    /// service refuse de le rajouter), et il reviendra peut-être au catalogue.
+    /// Checked by default. Not an unavailable track without a replacement: removing it is final
+    /// (the service refuses to add it back), and it may come back to the catalog.
     pub suggested: bool,
 }
 
@@ -512,17 +551,17 @@ impl From<CleanupItem> for CleanupChange {
     }
 }
 
-/// Ce que « Nettoyer » propose pour une liste, dans l'ordre de la liste.
+/// What "Clean up" proposes for a list, in list order.
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CleanupReport {
     pub items: Vec<CleanupChange>,
-    /// Titres lus.
+    /// Tracks read.
     pub scanned: usize,
 }
 
-/// Modification d'une liste (#382). Pour une playlist, `index` = position au moment où
-/// l'opération s'applique ; les favoris l'ignorent.
+/// Change to a list (#382). For a playlist, `index` = position when the operation
+/// applies; favorites ignore it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "camelCase")]
 pub enum ListOp {
@@ -530,7 +569,7 @@ pub enum ListOp {
     Remove { index: usize, track_id: TrackId },
     #[serde(rename_all = "camelCase")]
     Insert { index: usize, track_id: TrackId },
-    /// `track_id` laisse sa place à `with`.
+    /// `track_id` gives its place to `with`.
     #[serde(rename_all = "camelCase")]
     Replace {
         index: usize,
@@ -539,14 +578,14 @@ pub enum ListOp {
     },
 }
 
-/// Résultat d'une suite de modifications : arrêtée à la première erreur.
+/// Result of a series of changes: stopped at the first error.
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListOpsResult {
     pub applied: usize,
-    /// Opérations sautées : titre que le service refuse de rajouter (retiré du catalogue).
+    /// Skipped operations: a track the service refuses to add back (removed from the catalog).
     pub skipped: usize,
-    /// Opérations qui défont celles appliquées, dans l'ordre où les appliquer.
+    /// Operations that undo the applied ones, in the order to apply them.
     pub undo: Vec<ListOp>,
     pub error: Option<String>,
 }
@@ -555,12 +594,12 @@ pub struct ListOpsResult {
 #[serde(rename_all = "camelCase")]
 pub struct MixPage {
     pub mix: MixSummary,
-    /// Image 640×640 pour l'en-tête.
+    /// 640×640 image for the header.
     pub image_large_url: Option<String>,
     pub tracks: Vec<Track>,
 }
 
-/// Point de départ d'une radio.
+/// Starting point of a radio.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RadioSeed {
@@ -568,7 +607,7 @@ pub enum RadioSeed {
     Artist,
 }
 
-/// Ce qu'on peut ajouter aux favoris (#4, #81), mixes compris (#204).
+/// What can be added to favorites (#4, #81), mixes included (#204).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum LikeTarget {
@@ -579,7 +618,7 @@ pub enum LikeTarget {
     Mix { id: String },
 }
 
-/// Ce qu'on peut bloquer (#334) : ni proposé par les mixes ni par les radios.
+/// What can be blocked (#334): offered neither by mixes nor by radios.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum BlockTarget {
@@ -587,7 +626,7 @@ pub enum BlockTarget {
     Artist { id: u64 },
 }
 
-/// Titres et artistes bloqués, du plus récent au plus ancien.
+/// Blocked tracks and artists, newest first.
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Blocked {
@@ -595,26 +634,26 @@ pub struct Blocked {
     pub artists: Vec<ArtistSummary>,
 }
 
-/// Tous les favoris, en identifiants (événement `likes`). Chaque liste est triée.
+/// All favorites, as identifiers (`likes` event). Each list is sorted.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LikedIds {
     pub tracks: Vec<TrackId>,
     pub albums: Vec<u64>,
     pub artists: Vec<u64>,
-    /// Playlists suivies (et parfois les vôtres : `favorites/ids` en mêle).
+    /// Followed playlists (and sometimes yours: `favorites/ids` mixes them).
     pub playlists: Vec<String>,
-    /// Mixes enregistrés (#204), lus à part : `favorites/ids` ne les contient pas.
+    /// Saved mixes (#204), read separately: `favorites/ids` does not hold them.
     pub mixes: Vec<String>,
 }
 
-/// Radio d'un titre ou d'un artiste : une liste de titres proches, calculée par le service.
+/// Radio of a track or an artist: a list of close tracks, computed by the service.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RadioPage {
     pub seed: RadioSeed,
     pub id: u64,
-    /// Titre du morceau ou nom de l'artiste de départ.
+    /// Title of the starting track or name of the starting artist.
     pub title: String,
     pub image_url: Option<String>,
     pub tracks: Vec<Track>,
@@ -636,14 +675,14 @@ pub struct SessionInfo {
     pub country_code: String,
 }
 
-/// Paroles d'un titre (`tracks/{id}/lyrics`).
+/// Lyrics of a track (`tracks/{id}/lyrics`).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Lyrics {
     pub track_id: TrackId,
-    /// Fournisseur à créditer (« MUSIXMATCH »).
+    /// Provider to credit ("MUSIXMATCH").
     pub provider: Option<String>,
-    /// Écriture de droite à gauche.
+    /// Right-to-left script.
     pub rtl: bool,
     pub text: LyricsText,
 }
@@ -651,51 +690,51 @@ pub struct Lyrics {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum LyricsText {
-    /// Lignes horodatées, triées par temps ; une ligne vide marque un passage instrumental.
+    /// Timed lines, sorted by time; an empty line marks an instrumental passage.
     Synced { lines: Vec<LyricLine> },
-    /// Texte sans horodatage, ligne par ligne (lignes vides = séparation de couplets).
+    /// Text without timing, line by line (empty lines = break between verses).
     Plain { lines: Vec<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LyricLine {
-    /// Début de la ligne, en millisecondes.
+    /// Start of the line, in milliseconds.
     pub time_ms: u32,
     pub text: String,
 }
 
-/// Infos détaillées d'un titre (#3), demandées à l'ouverture du panneau.
+/// Detailed info of a track (#3), asked for when the panel opens.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackInfo {
     pub track: Track,
-    /// Tags de disponibilité (`LOSSLESS`, `HIRES_LOSSLESS`, `DOLBY_ATMOS`…).
+    /// Availability tags (`LOSSLESS`, `HIRES_LOSSLESS`, `DOLBY_ATMOS`…).
     pub tags: Vec<String>,
-    /// Format servi en qualité maximale, comme pour une lecture ; `None` si refusé.
+    /// Format served at maximum quality, as for playback; `None` if refused.
     pub stream: Option<StreamFormat>,
-    /// Raison du refus du flux (DRM, titre indisponible…).
+    /// Why the stream was refused (DRM, track unavailable…).
     pub stream_error: Option<String>,
-    /// ReplayGain (dB) et crêtes (pleine échelle = 1), lus mais jamais appliqués.
+    /// ReplayGain (dB) and peaks (full scale = 1), read but never applied.
     pub track_gain: Option<f64>,
     pub track_peak: Option<f64>,
     pub album_gain: Option<f64>,
     pub album_peak: Option<f64>,
     pub bpm: Option<u32>,
-    /// Tonalité telle que donnée par l'API (`B`, `FSharp`…) et son mode (`MAJOR`, `MINOR`).
+    /// Key as given by the API (`B`, `FSharp`…) and its mode (`MAJOR`, `MINOR`).
     pub key: Option<String>,
     pub key_scale: Option<String>,
     pub copyright: Option<String>,
     pub track_number: Option<u32>,
     pub volume_number: Option<u32>,
-    /// Autre édition hi-res du même enregistrement (#18, #55), si le titre n'est pas hi-res.
+    /// Other hi-res edition of the same recording (#18, #55), if the track is not hi-res.
     pub hires_edition: Option<HiresEdition>,
-    /// Crédits groupés par rôle (#84) ; vide si TIDAL n'en a pas.
+    /// Credits grouped by role (#84); empty if TIDAL has none.
     pub credits: Vec<CreditGroup>,
 }
 
-/// Un rôle (`Composer`, `Producer`, `Bass guitar`…, texte libre en anglais de l'API) et
-/// ses contributeurs.
+/// A role (`Composer`, `Producer`, `Bass guitar`…, free English text from the API) and its
+/// contributors.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreditGroup {
@@ -707,12 +746,12 @@ pub struct CreditGroup {
 #[serde(rename_all = "camelCase")]
 pub struct Contributor {
     pub name: String,
-    /// Artiste TIDAL correspondant (page artiste), s'il y en a un.
+    /// Matching TIDAL artist (artist page), if there is one.
     pub artist_id: Option<u64>,
 }
 
-/// Crédits d'un album entier (#206) : un rôle et ses contributeurs, avec les titres où
-/// chacun apparaît.
+/// Credits of a whole album (#206): a role and its contributors, with the tracks each one
+/// appears on.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlbumCreditGroup {
@@ -725,20 +764,20 @@ pub struct AlbumCreditGroup {
 pub struct AlbumContributor {
     pub name: String,
     pub artist_id: Option<u64>,
-    /// Titres où il apparaît, dans l'ordre de l'album ; vide = tous les titres. Des
-    /// identifiants plutôt que des numéros : l'UI les place dans la liste qu'elle affiche.
+    /// Tracks they appear on, in album order; empty = every track. Identifiers rather than
+    /// numbers: the UI places them in the list it shows.
     pub tracks: Vec<TrackId>,
 }
 
-/// Page d'un contributeur (#429) : titres où une personne est créditée, par lots.
+/// Page of a contributor (#429): tracks a person is credited on, in batches.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContributorPage {
     pub artist: ArtistSummary,
-    /// Nombre de titres annoncé par le service, pour tout le catalogue.
+    /// Number of tracks announced by the service, for the whole catalog.
     pub total: u32,
     pub tracks: Vec<Contribution>,
-    /// À repasser à `contributor` pour le lot suivant ; `None` à la fin.
+    /// To give back to `contributor` for the next batch; `None` at the end.
     pub next_offset: Option<u32>,
 }
 
@@ -746,7 +785,7 @@ pub struct ContributorPage {
 #[serde(rename_all = "camelCase")]
 pub struct Contribution {
     pub track: Track,
-    /// Rôles sur ce titre (`Producer`, `Composer`…, texte libre en anglais de l'API).
+    /// Roles on this track (`Producer`, `Composer`…, free English text from the API).
     pub roles: Vec<String>,
 }
 
@@ -755,6 +794,6 @@ pub struct Contribution {
 pub struct HiresEdition {
     pub track: Track,
     pub stream: Option<StreamFormat>,
-    /// Seaglass la lit à la place du titre (réglage actif et flux réellement meilleur).
+    /// Seaglass plays it instead of the track (setting on and stream actually better).
     pub played: bool,
 }

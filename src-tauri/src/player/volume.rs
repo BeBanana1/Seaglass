@@ -1,14 +1,14 @@
-//! Volume du lecteur : niveau 0–100 transmis tel quel à la propriété mpv `volume`.
+//! Player volume: level 0–100 passed as is to the mpv `volume` property.
 //!
-//! Pas de courbe côté app : mpv applique déjà un gain cubique (`(volume / 100)³`), donc
-//! perceptif, et 100 correspond exactement au gain unitaire. Tout autre niveau (ou la
-//! coupure) est un gain logiciel : la sortie n'est plus bit-perfect.
+//! No curve on the app side: mpv already applies a cubic gain (`(volume / 100)³`), so
+//! perceptual, and 100 is exactly unity gain. Any other level (or mute) is a software
+//! gain: the output is no longer bit-perfect.
 
 use serde::{Deserialize, Serialize};
 
-/// Niveau maximal, aussi plafonné par `volume-max=100` dans `seaglass.conf`.
+/// Maximum level, also capped by `volume-max=100` in `seaglass.conf`.
 pub const MAX_LEVEL: u8 = 100;
-/// Niveau repris quand on rétablit le son alors que le curseur est à 0.
+/// Level restored when unmuting while the slider is at 0.
 const UNMUTE_LEVEL: u8 = 50;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -21,6 +21,11 @@ pub struct InvalidVolume(pub u8);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub struct Volume {
     pub level: u8,
     pub muted: bool,
@@ -36,7 +41,7 @@ impl Default for Volume {
 }
 
 impl Volume {
-    /// Vérifie un niveau reçu de l'UI.
+    /// Checks a level received from the UI.
     pub fn validate(level: u8) -> Result<u8, InvalidVolume> {
         if level > MAX_LEVEL {
             Err(InvalidVolume(level))
@@ -45,8 +50,8 @@ impl Volume {
         }
     }
 
-    /// Change le niveau ; bouger le curseur rétablit le son coupé (comme les autres
-    /// lecteurs), sauf à 0.
+    /// Changes the level; moving the slider unmutes (like other players), except to
+    /// 0.
     pub fn set_level(&mut self, level: u8) {
         self.level = level.min(MAX_LEVEL);
         if self.level > 0 {
@@ -54,8 +59,8 @@ impl Volume {
         }
     }
 
-    /// Monte ou baisse d'un cran (raccourcis globaux, #413), à partir du niveau entendu :
-    /// 0 si le son est coupé. Baisser un son coupé ne change rien.
+    /// One step up or down (global shortcuts, #413), from the level heard: 0 when
+    /// muted. Lowering a muted sound changes nothing.
     #[cfg(any(desktop, test))]
     pub fn step(&mut self, delta: i8) {
         if self.muted && delta < 0 {
@@ -66,8 +71,8 @@ impl Volume {
         self.set_level(u8::try_from(next).unwrap_or(MAX_LEVEL));
     }
 
-    /// Coupe ou rétablit le son. Rétablir à 0 remonterait à un silence : le niveau repart
-    /// alors de `UNMUTE_LEVEL`.
+    /// Mutes or unmutes. Unmuting at 0 would bring back silence: the level then restarts
+    /// from `UNMUTE_LEVEL`.
     pub fn set_muted(&mut self, muted: bool) {
         self.muted = muted;
         if !muted && self.level == 0 {
@@ -75,7 +80,7 @@ impl Volume {
         }
     }
 
-    /// Valeur relue depuis la base : un niveau hors limites est ramené à 100.
+    /// Value read back from the database: an out-of-range level is brought back to 100.
     pub fn sanitized(self) -> Self {
         Self {
             level: self.level.min(MAX_LEVEL),
@@ -204,7 +209,7 @@ mod tests {
                 muted: false
             }
         );
-        // Coupé : monter repart de 0 et rétablit le son, baisser ne change rien.
+        // Muted: raising starts from 0 and unmutes, lowering changes nothing.
         let mut muted = Volume {
             level: 60,
             muted: true,

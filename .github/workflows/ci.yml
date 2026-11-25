@@ -105,6 +105,13 @@ jobs:
           cargo clippy --all-targets -- -D warnings
           cargo test
 
+      # `cargo test` rewrites the TypeScript types generated from Rust (#44): a Rust type changed
+      # without committing its bindings fails here.
+      - name: Generated bindings
+        run: |
+          git status --porcelain -- src/lib/bindings/
+          test -z "$(git status --porcelain -- src/lib/bindings/)"
+
       # Known vulnerabilities in the dependencies (#263). Fails on a vulnerability; a crate
       # only flagged unmaintained or yanked stays a warning. An outage of the npm registry
       # stays a warning. To ignore an advisory: `--ignore RUSTSEC-…` below, with its reason.

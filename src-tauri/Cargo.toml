@@ -1,16 +1,16 @@
 [package]
 name = "seaglass"
-version = "0.5.115"
+version = "0.5.116"
 description = "Seaglass, client de streaming non officiel"
 authors = ["Seaglass contributors"]
 edition = "2024"
 
 [lib]
-# Le suffixe `_lib` évite un conflit de nom entre lib et bin sous Windows
+# The `_lib` suffix avoids a name clash between lib and bin on Windows
 # (https://github.com/rust-lang/cargo/issues/8519).
 name = "seaglass_lib"
-# `cdylib` pour Android, `rlib` pour le binaire du bureau. Pas de `staticlib` (iOS seulement) :
-# chaque type de bibliothèque refait l'optimisation à l'édition de liens en release.
+# `cdylib` for Android, `rlib` for the desktop binary. No `staticlib` (iOS only): each library
+# type redoes link-time optimization in release.
 crate-type = ["cdylib", "rlib"]
 
 [build-dependencies]
@@ -30,22 +30,22 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util", "process", "fs"] }
-# Jam en ligne (#25) : connexion sortante au relais, certificats vérifiés par le magasin du
-# système comme `reqwest` (rustls et futures-util sont déjà compilés par reqwest et tauri).
+# Online Jam (#25): outgoing connection to the relay, certificates checked by the system store
+# like `reqwest` (rustls and futures-util are already compiled by reqwest and tauri).
 tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "__rustls-tls"] }
 rustls = { version = "0.23", default-features = false, features = ["std", "aws_lc_rs"] }
 rustls-platform-verifier = "0.7"
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
-# Transfert et historique par le relais (#430), chiffrés de bout en bout (ChaCha20-Poly1305) :
-# la crate du fournisseur de rustls ci-dessus, déjà compilée, mêmes fonctionnalités.
+# Handoff and history through the relay (#430), end-to-end encrypted (ChaCha20-Poly1305): the
+# crate of the rustls provider above, already compiled, same features.
 aws-lc-rs = { version = "1.19", default-features = false, features = ["aws-lc-sys", "prebuilt-nasm"] }
-# QR code de la Jam (#25), rendu en SVG : sans la génération d'images par défaut.
+# Jam QR code (#25), rendered as SVG: without the default image generation.
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
-# Bureau seulement : zone de notification, démarrage auto, instance unique, mises à jour.
-# Android (#24) n'a ni l'un ni l'autre ; les fonctionnalités de `tauri` s'additionnent.
+# Desktop only: notification area, launch at startup, single instance, updates. Android (#24)
+# has none of them; the features of `tauri` add up.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-autostart = "2"
@@ -53,24 +53,24 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
 
-# Android : vérification HTTPS par le magasin de certificats du système (#24), initialisée au
-# démarrage avec la JVM et le contexte posés par tao. Déjà tirées par reqwest et tauri.
+# Android: HTTPS checked by the system certificate store (#24), initialized at startup with the
+# JVM and context set by tao. Already pulled in by reqwest and tauri.
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.22"
 ndk-context = "0.1"
-# Pont natif (Kotlin) : connexion TIDAL dans sa propre WebView, puis Media3.
+# Native bridge (Kotlin): TIDAL sign-in in its own WebView, then Media3.
 tauri-plugin-seaglass-mobile = { path = "plugins/seaglass-mobile" }
 
-# Linux (#17) : jetons dans le Secret Service (GNOME Keyring, KWallet). Sans backend,
-# `keyring` n'a qu'un magasin en mémoire et la session est perdue à la fermeture.
+# Linux (#17): tokens in the Secret Service (GNOME Keyring, KWallet). Without a backend,
+# `keyring` only has an in-memory store and the session is lost on exit.
 [target.'cfg(target_os = "linux")'.dependencies]
 keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
-# Contrôles média (MPRIS, #312). Mêmes version et features que celles tirées par
-# tauri-plugin-opener et tauri-plugin-single-instance : aucune crate de plus à compiler.
+# Media controls (MPRIS, #312). Same version and features as those pulled in by
+# tauri-plugin-opener and tauri-plugin-single-instance: no extra crate to compile.
 zbus = "5"
 
 [target.'cfg(windows)'.dependencies]
-# Même version que celle tirée par Tauri : aucune compilation supplémentaire.
+# Same version as the one pulled in by Tauri: nothing extra to compile.
 windows = { version = "0.62", features = [
     "Data_Xml_Dom",
     "Foundation",
@@ -94,8 +94,14 @@ windows = { version = "0.62", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 
-# ThinLTO sur les 16 unités par défaut : parallèle, là où une LTO complète sur une seule unité
-# tournait sur un cœur. Différence de performance invisible pour l'app (réseau et mpv).
+# TypeScript types for the UI generated from the Rust ones (#44), in tests only: nothing
+# reaches the app. `cargo test` writes them to `src/lib/bindings/`.
+[dev-dependencies]
+# `no-serde-warnings`: serde attributes it does not need (`transparent`, `from`) stay silent.
+ts-rs = { version = "12.0.1", features = ["no-serde-warnings"] }
+
+# ThinLTO over the default 16 units: parallel, where a full LTO on a single unit ran on one
+# core. No visible performance difference for the app (network and mpv).
 [profile.release]
 lto = "thin"
 opt-level = 3
