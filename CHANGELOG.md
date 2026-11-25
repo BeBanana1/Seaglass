@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.111
+
+- The Jam panel says that a Jam is for private use: TIDAL's terms do not allow public or commercial playback (#39).
+
 ## 0.5.110
 
 - Desktop: "Copy as image" in the Recap view copies a summary card of the period (listening time, plays, days, new artists and the top 5 tracks) in the active theme's colors (#16).

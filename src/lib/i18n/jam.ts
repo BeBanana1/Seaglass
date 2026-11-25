@@ -1,4 +1,4 @@
-// Jam (#25) : contrôles de l'hôte dans Réglages › Application.
+// Jam (#25): host controls in Settings › Application.
 
 export const fr = {
   title: "Jam",
@@ -23,6 +23,8 @@ export const fr = {
     "Au premier démarrage sur le réseau local, Windows demande d'autoriser Seaglass : acceptez pour les réseaux privés.",
   noLan:
     "Aucun réseau local trouvé : seuls les navigateurs de cet ordinateur peuvent rejoindre la Jam.",
+  privateUse:
+    "Pour un usage privé : les conditions de TIDAL n'autorisent pas la diffusion publique ou commerciale (bar, boutique, événement public).",
   phoneHint:
     "Gardez la musique en lecture : en pause et écran éteint, Android coupe le réseau de Seaglass au bout d'une minute environ, et les invités ne peuvent plus ajouter de titres.",
   connection: {
@@ -110,6 +112,8 @@ export const en: typeof fr = {
   firewall:
     "The first time on the local network, Windows asks to allow Seaglass: accept for private networks.",
   noLan: "No local network found: only browsers on this computer can join the Jam.",
+  privateUse:
+    "For private use: TIDAL's terms do not allow public or commercial playback (bar, shop, public event).",
   phoneHint:
     "Keep the music playing: when paused with the screen off, Android cuts Seaglass off the network after about a minute, and guests can no longer add tracks.",
   connection: {
