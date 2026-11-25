@@ -26,7 +26,8 @@ use super::http::{Head, Method, Request, Response, query_param, read_request, wr
 const MAX_CONNECTIONS: usize = 32;
 /// Pages ouvertes qui suivent l'état, en plus des requêtes ordinaires.
 const MAX_STREAMS: usize = 64;
-/// Délai pour recevoir la requête, puis pour envoyer la réponse.
+/// Time to receive a request (more for a large body, `http::read_time`), then to send
+/// the answer.
 const IO_TIMEOUT: Duration = Duration::from_secs(5);
 /// Relecture de l'état du lecteur tant qu'une page écoute.
 pub(super) const PUSH_INTERVAL: Duration = Duration::from_secs(1);
@@ -148,9 +149,8 @@ async fn accept_loop<S: Site>(listener: TcpListener, shared: Arc<Shared<S>>) {
                         .check_code(ip, head.code.as_deref().unwrap_or(""))
                         .is_ok()
             };
-            let Ok(Some(req)) =
-                tokio::time::timeout(IO_TIMEOUT, read_request(&mut stream, allow_large)).await
-            else {
+            // The head within `IO_TIMEOUT`, a large body with more time (#60).
+            let Some(req) = read_request(&mut stream, allow_large, IO_TIMEOUT).await else {
                 return;
             };
             if req.head.method == Method::Get && req.head.path == "/api/events" {
