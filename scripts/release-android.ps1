@@ -1,52 +1,52 @@
 <#
 .SYNOPSIS
-  Construit, signe et (sur demande) publie l'APK Android de Seaglass (#24).
+  Builds, signs and (on request) publishes the Seaglass Android APK (#24).
 
 .DESCRIPTION
-  1. Vérifie l'arbre git, `.env`, la clé de release Android et la version (`VERSION`).
-  2. Vérifie le mot de passe de la clé (keytool), puis construit l'APK release arm64
-     signé (`pnpm tauri android build --apk --target aarch64`).
-  3. Vérifie la signature (apksigner : schéma v2 au moins, pas la clé de debug).
-  4. Range les fichiers à publier dans `release/` :
-       release/android.json                       manifeste lu par l'app (apk_update.rs)
+  1. Checks the git tree, `.env`, the Android release key and the version (`VERSION`).
+  2. Checks the key password (keytool), then builds the signed arm64 release APK
+     (`pnpm tauri android build --apk --target aarch64`).
+  3. Checks the signature (apksigner: at least scheme v2, not the debug key).
+  4. Puts the files to publish in `release/`:
+       release/android.json                       manifest read by the app (apk_update.rs)
        release/<version>/Seaglass_<version>_arm64.apk
-  5. Avec -Publish : copie l'APK puis le manifeste vers SEAGLASS_RELEASE_DEST, pose le
-     tag `v<version>` s'il n'existe pas (même tag que l'installeur Windows : il doit alors
-     pointer sur HEAD), puis joint l'APK à la release GitHub du tag (`github-release.ps1`,
-     sauf avec -SkipGitHubRelease).
+  5. With -Publish: copies the APK then the manifest to SEAGLASS_RELEASE_DEST, sets the tag
+     `v<version>` if it does not exist (same tag as the Windows installer: it must then
+     point to HEAD), then attaches the APK to the tag's GitHub release (`github-release.ps1`,
+     unless -SkipGitHubRelease).
 
-  -PublishOnly saute les étapes 2 à 4 et publie le dernier build, s'il a été fait sur ce
-  commit, arbre propre (`release-all.ps1` construit Windows et Android avant de publier).
+  -PublishOnly skips steps 2 to 4 and publishes the last build, if it was made on this
+  commit with a clean tree (`release-all.ps1` builds Windows and Android before publishing).
 
-  La clé de release se crée une fois (voir docs/android.md, puce « Distribution ») et se
-  sauvegarde comme la clé minisign : Android refuse toute mise à jour signée par une
-  autre clé que celle de l'app installée.
+  The release key is created once (see docs/android.md, "Distribution" bullet) and backed
+  up like the minisign key: Android refuses any update signed by another key than the
+  installed app's.
 
-  Variables d'environnement :
-    SEAGLASS_ANDROID_KEYSTORE      keystore PKCS12 (défaut : ~/.android/seaglass-release.jks)
-    SEAGLASS_ANDROID_KEY_ALIAS     alias de la clé (défaut : seaglass)
-    SEAGLASS_ANDROID_KEY_PASSWORD  mot de passe ; sinon entrée générique
-                                   « seaglass-android-key » du Gestionnaire d'identifiants,
-                                   sinon demandé au clavier
-    SEAGLASS_UPDATE_BASE_URL       URL publique du dossier de mises à jour
-                                   (requise ; environnement ou .env ; compilée dans l'app,
-                                   qui n'accepte que cette adresse)
-    SEAGLASS_RELEASE_DEST          destination de publication (voir release.ps1)
-    ANDROID_HOME, NDK_HOME         défaut : %LOCALAPPDATA%\Android\Sdk et son NDK le plus récent
+  Environment variables:
+    SEAGLASS_ANDROID_KEYSTORE      PKCS12 keystore (default: ~/.android/seaglass-release.jks)
+    SEAGLASS_ANDROID_KEY_ALIAS     key alias (default: seaglass)
+    SEAGLASS_ANDROID_KEY_PASSWORD  password; otherwise the generic Credential Manager
+                                   entry "seaglass-android-key", otherwise asked on the
+                                   keyboard
+    SEAGLASS_UPDATE_BASE_URL       public URL of the updates folder
+                                   (required; environment or .env; compiled into the app,
+                                   which only accepts this address)
+    SEAGLASS_RELEASE_DEST          publishing destination (see release.ps1)
+    ANDROID_HOME, NDK_HOME         default: %LOCALAPPDATA%\Android\Sdk and its latest NDK
 
 .EXAMPLE
-  powershell -File scripts/release-android.ps1             # construit dans release/
-  powershell -File scripts/release-android.ps1 -Publish    # construit, publie et tague
-  powershell -File scripts/release-android.ps1 -PublishOnly  # publie le dernier build
+  powershell -File scripts/release-android.ps1             # builds into release/
+  powershell -File scripts/release-android.ps1 -Publish    # builds, publishes and tags
+  powershell -File scripts/release-android.ps1 -PublishOnly  # publishes the last build
 #>
 param(
     [switch]$Publish,
     [string]$Notes,
-    # Pour tester un build avec des modifications non commitées (refusé avec -Publish).
+    # To test a build with uncommitted changes (refused with -Publish).
     [switch]$AllowDirty,
-    # Publie le dernier build au lieu d'en refaire un (implique -Publish).
+    # Publishes the last build instead of making a new one (implies -Publish).
     [switch]$PublishOnly,
-    # La release GitHub est faite par l'appelant (release-all.ps1).
+    # The GitHub release is made by the caller (release-all.ps1).
     [switch]$SkipGitHubRelease
 )
 
@@ -54,64 +54,64 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-function Fail($message) { Write-Host "ERREUR : $message" -ForegroundColor Red; exit 1 }
+function Fail($message) { Write-Host "ERROR: $message" -ForegroundColor Red; exit 1 }
 function Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
 . (Join-Path $PSScriptRoot 'build-stamp.ps1')
 . (Join-Path $PSScriptRoot 'release-notes.ps1')
 if ($PublishOnly) { $Publish = $true }
 
-# --- 1. Vérifications -------------------------------------------------------------------
+# --- 1. Checks --------------------------------------------------------------------------
 $version = (Get-Content VERSION -Raw).Trim()
-if ($version -notmatch '^\d+\.\d+\.\d+$') { Fail "VERSION invalide : '$version'" }
+if ($version -notmatch '^\d+\.\d+\.\d+$') { Fail "invalid VERSION: '$version'" }
 $tag = "v$version"
 
 $dirty = git status --porcelain
 if ($dirty -and ($Publish -or -not $AllowDirty)) {
-    Fail "des modifications ne sont pas commitées (utiliser -AllowDirty pour un build de test)"
+    Fail "there are uncommitted changes (use -AllowDirty for a test build)"
 }
 $tagExists = [bool](git tag --list $tag)
 if ($Publish) {
-    if (-not $env:SEAGLASS_RELEASE_DEST) { Fail "SEAGLASS_RELEASE_DEST n'est pas défini" }
+    if (-not $env:SEAGLASS_RELEASE_DEST) { Fail "SEAGLASS_RELEASE_DEST is not set" }
     if ($tagExists -and (git rev-parse "$tag^{commit}") -ne (git rev-parse HEAD)) {
-        Fail "le tag $tag existe sur un autre commit : monter VERSION avant de publier"
+        Fail "tag $tag exists on another commit: bump VERSION before publishing"
     }
 }
-if (-not (Test-Path .env)) { Fail ".env absent : l'identifiant client est injecté à la compilation" }
+if (-not (Test-Path .env)) { Fail ".env missing: the client ID is injected at build time" }
 
 $keystore = if ($env:SEAGLASS_ANDROID_KEYSTORE) { $env:SEAGLASS_ANDROID_KEYSTORE } else { Join-Path $HOME '.android\seaglass-release.jks' }
-if (-not (Test-Path $keystore)) { Fail "clé de release Android introuvable : $keystore (création : docs/android.md, puce « Distribution »)" }
+if (-not (Test-Path $keystore)) { Fail "Android release key not found: $keystore (to create it: docs/android.md, 'Distribution' bullet)" }
 $keystore = (Resolve-Path $keystore).Path
 $alias = if ($env:SEAGLASS_ANDROID_KEY_ALIAS) { $env:SEAGLASS_ANDROID_KEY_ALIAS } else { 'seaglass' }
 
-# Même adresse compilée dans l'app (#452, lue par build.rs) et écrite dans le manifeste.
-# Aucune valeur par défaut (#489).
+# Same address compiled into the app (#452, read by build.rs) and written into the manifest.
+# No default value (#489).
 . (Join-Path $PSScriptRoot 'release-env.ps1')
 $baseUrl = Use-UpdateBaseUrl
 
-# Outils Android.
+# Android tools.
 $sdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { Join-Path $env:LOCALAPPDATA 'Android\Sdk' }
-if (-not (Test-Path $sdk)) { Fail "SDK Android introuvable : $sdk" }
+if (-not (Test-Path $sdk)) { Fail "Android SDK not found: $sdk" }
 $env:ANDROID_HOME = $sdk
 if (-not $env:NDK_HOME) {
     $ndk = Get-ChildItem (Join-Path $sdk 'ndk') -Directory -ErrorAction SilentlyContinue |
         Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
-    if (-not $ndk) { Fail "NDK introuvable dans $sdk\ndk" }
+    if (-not $ndk) { Fail "NDK not found in $sdk\ndk" }
     $env:NDK_HOME = $ndk.FullName
 }
 $buildTools = Get-ChildItem (Join-Path $sdk 'build-tools') -Directory -ErrorAction SilentlyContinue |
     Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
-if (-not $buildTools) { Fail "build-tools introuvables dans $sdk\build-tools" }
+if (-not $buildTools) { Fail "build-tools not found in $sdk\build-tools" }
 $apksigner = Join-Path $buildTools.FullName 'apksigner.bat'
 $keytool = if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME 'bin\keytool.exe'))) {
     Join-Path $env:JAVA_HOME 'bin\keytool.exe'
 } else { (Get-Command keytool -ErrorAction SilentlyContinue).Source }
-if (-not $keytool) { Fail "keytool introuvable (JAVA_HOME ou PATH)" }
+if (-not $keytool) { Fail "keytool not found (JAVA_HOME or PATH)" }
 
 if (-not $PublishOnly) {
-    # --- 2. Mot de passe puis build ---------------------------------------------------------
-    # Comme pour la clé minisign (#87) : variable de session, sinon Gestionnaire
-    # d'identifiants, sinon saisie. Il ne passe que par l'environnement du build.
-    Step "clé de release Android"
+    # --- 2. Password, then build ------------------------------------------------------------
+    # As for the minisign key (#87): session variable, otherwise Credential Manager,
+    # otherwise typed. It only goes through the build's environment.
+    Step "Android release key"
     . (Join-Path $PSScriptRoot 'credentials.ps1')
     $credentialTarget = 'seaglass-android-key'
     if ($env:SEAGLASS_ANDROID_KEY_PASSWORD) {
@@ -119,43 +119,43 @@ if (-not $PublishOnly) {
         $origin = 'SEAGLASS_ANDROID_KEY_PASSWORD'
     } else {
         $keyPassword = Read-StoredSecret $credentialTarget
-        $origin = "Gestionnaire d'identifiants ($credentialTarget)"
+        $origin = "Credential Manager ($credentialTarget)"
     }
     if (-not $keyPassword) {
-        $origin = 'saisie'
-        try { $secure = Read-Host "    Mot de passe de la clé Android" -AsSecureString }
-        catch { Fail "mot de passe de la clé absent (session non interactive) : définir SEAGLASS_ANDROID_KEY_PASSWORD" }
+        $origin = 'typed'
+        try { $secure = Read-Host "    Android key password" -AsSecureString }
+        catch { Fail "key password missing (non-interactive session): set SEAGLASS_ANDROID_KEY_PASSWORD" }
         $keyPassword = [System.Net.NetworkCredential]::new('', $secure).Password
     }
-    if (-not $keyPassword) { Fail "mot de passe de la clé vide ($origin)" }
+    if (-not $keyPassword) { Fail "empty key password ($origin)" }
 
     $env:SEAGLASS_ANDROID_KEYSTORE = $keystore
     $env:SEAGLASS_ANDROID_KEY_ALIAS = $alias
     $env:SEAGLASS_ANDROID_KEY_PASSWORD = $keyPassword
     try {
-        # -storepass:env : le mot de passe n'apparaît pas dans la ligne de commande.
+        # -storepass:env: the password does not appear on the command line.
         & $keytool -list -keystore $keystore -storetype PKCS12 -alias $alias -storepass:env SEAGLASS_ANDROID_KEY_PASSWORD *> $null
-        if ($LASTEXITCODE -ne 0) { Fail "mot de passe ou alias de la clé incorrect ($origin, alias $alias)" }
-        Write-Host "    mot de passe vérifié ($origin)"
+        if ($LASTEXITCODE -ne 0) { Fail "wrong key password or alias ($origin, alias $alias)" }
+        Write-Host "    password checked ($origin)"
 
-        Step "build de l'APK $version"
+        Step "build of the $version APK"
         pnpm tauri android build --apk --target aarch64
         $buildExit = $LASTEXITCODE
     } finally {
         Remove-Item Env:SEAGLASS_ANDROID_KEY_PASSWORD -ErrorAction SilentlyContinue
         $keyPassword = $null
     }
-    if ($buildExit -ne 0) { Fail "échec du build" }
+    if ($buildExit -ne 0) { Fail "build failed" }
 
     $apk = 'src-tauri\gen\android\app\build\outputs\apk\universal\release\app-universal-release.apk'
-    if (-not (Test-Path $apk)) { Fail "APK signé absent : $apk (clé non prise en compte par Gradle ?)" }
+    if (-not (Test-Path $apk)) { Fail "signed APK missing: $apk (key not picked up by Gradle?)" }
 
     # --- 3. Signature -----------------------------------------------------------------------
     Step "signature"
-    # apksigner écrit sur stderr un avertissement du JDK (« A restricted method in
-    # java.lang.System has been called ») : sous PowerShell 5.1, avec
-    # $ErrorActionPreference = 'Stop', `2>&1` en fait une erreur bloquante (#443). Seul le
-    # code de sortie compte ici ; les lignes sont ramenées à du texte pour les filtres.
+    # apksigner writes a JDK warning to stderr ("A restricted method in java.lang.System has
+    # been called"): under PowerShell 5.1, with $ErrorActionPreference = 'Stop', `2>&1` turns
+    # it into a terminating error (#443). Only the exit code matters here; the lines are
+    # turned back into text for the filters.
     $previousPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
@@ -164,14 +164,14 @@ if (-not $PublishOnly) {
     } finally {
         $ErrorActionPreference = $previousPreference
     }
-    if ($verifyExit -ne 0) { Fail "signature de l'APK invalide :`n$($certs -join "`n")" }
-    if (-not ($certs -match 'Verified using v2 scheme \(APK Signature Scheme v2\): true')) { Fail "APK non signé en v2" }
-    if ($certs -match 'CN=Android Debug') { Fail "APK signé par la clé de debug" }
+    if ($verifyExit -ne 0) { Fail "invalid APK signature:`n$($certs -join "`n")" }
+    if (-not ($certs -match 'Verified using v2 scheme \(APK Signature Scheme v2\): true')) { Fail "APK not signed with scheme v2" }
+    if ($certs -match 'CN=Android Debug') { Fail "APK signed with the debug key" }
     $certSha = ($certs | Select-String 'Signer #1 certificate SHA-256 digest: (.+)$').Matches.Groups[1].Value
-    Write-Host "    certificat SHA-256 : $certSha"
+    Write-Host "    certificate SHA-256: $certSha"
 
-    # --- 4. Fichiers à publier --------------------------------------------------------------
-    Step "manifeste"
+    # --- 4. Files to publish ----------------------------------------------------------------
+    Step "manifest"
     $out = Join-Path $root "release\$version"
     New-Item -ItemType Directory -Force $out | Out-Null
     $apkName = "Seaglass_${version}_arm64.apk"
@@ -192,8 +192,8 @@ if (-not $PublishOnly) {
     $manifestPath = Join-Path $root 'release\android.json'
     [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 3), [System.Text.UTF8Encoding]::new($false))
     $size = [math]::Round($item.Length / 1MB, 1)
-    Write-Host "    APK       : release\$version\$apkName ($size Mo)"
-    Write-Host "    manifeste : release\android.json -> $baseUrl/android.json"
+    Write-Host "    APK     : release\$version\$apkName ($size MB)"
+    Write-Host "    manifest: release\android.json -> $baseUrl/android.json"
     Write-BuildStamp 'android' $version
 } else {
     $apkName = "Seaglass_${version}_arm64.apk"
@@ -201,32 +201,32 @@ if (-not $PublishOnly) {
     $manifestPath = Join-Path $root 'release\android.json'
     Assert-BuildStamp 'android' $version @($apkOut, $manifestPath)
     $manifest = Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($manifest.version -ne $version) { Fail "release\android.json ne décrit pas la $version" }
+    if ($manifest.version -ne $version) { Fail "release\android.json does not describe $version" }
     if ((Get-FileHash $apkOut -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.sha256) {
-        Fail "l'APK ne correspond plus à release\android.json"
+        Fail "the APK no longer matches release\android.json"
     }
-    Write-Host "    build $version de ce commit repris"
+    Write-Host "    reusing the $version build of this commit"
 }
 
-# --- 5. Publication ---------------------------------------------------------------------
+# --- 5. Publishing ----------------------------------------------------------------------
 if (-not $Publish) {
-    Write-Host "Build terminé, rien n'a été publié (ajouter -Publish)." -ForegroundColor Green
+    Write-Host "Build done, nothing was published (add -Publish)." -ForegroundColor Green
     exit 0
 }
 
-Step "publication vers $env:SEAGLASS_RELEASE_DEST"
+Step "publishing to $env:SEAGLASS_RELEASE_DEST"
 $dest = $env:SEAGLASS_RELEASE_DEST
-# Le manifeste part en dernier : l'app ne voit la version qu'une fois l'APK en place.
+# The manifest goes last: the app only sees the version once the APK is in place.
 if ($dest -match '^[^\\/:]{2,}:') {
     $sshHost, $remotePath = $dest -split ':', 2
     ssh -n $sshHost "mkdir -p '$remotePath/$version' && chmod 755 '$remotePath/$version'"
-    if ($LASTEXITCODE -ne 0) { Fail "échec de la création du dossier de version" }
+    if ($LASTEXITCODE -ne 0) { Fail "could not create the version folder" }
     scp $apkOut "$dest/$version/$apkName"
-    if ($LASTEXITCODE -ne 0) { Fail "échec de scp (APK)" }
+    if ($LASTEXITCODE -ne 0) { Fail "scp failed (APK)" }
     scp $manifestPath "$dest/android.json"
-    if ($LASTEXITCODE -ne 0) { Fail "échec de scp (manifeste)" }
+    if ($LASTEXITCODE -ne 0) { Fail "scp failed (manifest)" }
     ssh -n $sshHost "chmod 644 '$remotePath/$version/$apkName' '$remotePath/android.json'"
-    if ($LASTEXITCODE -ne 0) { Fail "échec du réglage des droits sur le serveur" }
+    if ($LASTEXITCODE -ne 0) { Fail "could not set the permissions on the server" }
 } else {
     New-Item -ItemType Directory -Force (Join-Path $dest $version) | Out-Null
     Copy-Item $apkOut (Join-Path $dest "$version\$apkName") -Force
@@ -234,25 +234,25 @@ if ($dest -match '^[^\\/:]{2,}:') {
 }
 
 if ($tagExists) {
-    Write-Host "    tag $tag déjà posé sur HEAD (release Windows)"
+    Write-Host "    tag $tag already set on HEAD (Windows release)"
 } else {
     Step "tag $tag"
     git tag -a $tag -m "Seaglass $version"
     git push origin $tag
-    if ($LASTEXITCODE -ne 0) { Fail "échec du push du tag" }
+    if ($LASTEXITCODE -ne 0) { Fail "tag push failed" }
 }
-Write-Host "APK Seaglass $version publié." -ForegroundColor Green
+Write-Host "Seaglass $version APK published." -ForegroundColor Green
 if ($SkipGitHubRelease) { exit 0 }
 
-# L'APK est déjà en ligne : un échec ici n'est qu'un avertissement (#108).
+# The APK is already online: a failure here is only a warning (#108).
 try {
     & (Join-Path $PSScriptRoot 'github-release.ps1') -Version $version
     $githubOk = $LASTEXITCODE -eq 0
 } catch {
-    Write-Host "ERREUR : $_" -ForegroundColor Red
+    Write-Host "ERROR: $_" -ForegroundColor Red
     $githubOk = $false
 }
 if (-not $githubOk) {
-    Write-Host ("ATTENTION : APK non joint à la release GitHub, il reste publié.`n" +
-        "    Pour le refaire seul : powershell -File scripts/github-release.ps1") -ForegroundColor Yellow
+    Write-Host ("WARNING: APK not attached to the GitHub release, it stays published.`n" +
+        "    To redo it alone: powershell -File scripts/github-release.ps1") -ForegroundColor Yellow
 }
