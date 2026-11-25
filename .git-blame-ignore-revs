@@ -1,7 +1,9 @@
-# Commits that only reformat code: `git blame` skips them with
+# Commits that only reformat code or translate comments and messages (#8): `git blame` skips them with
 # git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 # style(ui): format the frontend with Prettier
 20df053d226fc0baa82806b4e1942f385b432e51
 # style(ui): second Prettier pass on the mock backend
 da2ec1ecddf92edd2e678e0f338a66eed85f51ea
+# chore(release): translate the release scripts to English (#52)
+a653ca0784661fe7b93abbeee6e5005969d6fee0
