@@ -23,8 +23,9 @@ const WINDOW_DAYS: i64 = 90;
 const DAY_MS: i64 = 86_400_000;
 /// Éléments lus par liste (albums, puis EP et singles), les plus récents d'abord.
 const PER_LIST: u32 = 10;
-/// Artistes lus en même temps.
-const PARALLEL: usize = 6;
+/// Artists read at the same time: 3 rather than 6 since #37, the background watch reads
+/// them every 6 h and should not burst.
+const PARALLEL: usize = 3;
 /// Durée de vie de la copie : le fil est demandé à chaque visite et toutes les 6 h.
 const TTL: Duration = Duration::from_secs(30 * 60);
 
