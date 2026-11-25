@@ -47,6 +47,7 @@ pub mod models;
 mod paging;
 mod playlist;
 pub mod playlog;
+pub mod pushkin;
 mod rank;
 mod raw;
 mod releases;

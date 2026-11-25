@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.117
+
+- One stream per account, as TIDAL's terms require: pressing Play pauses the account's other devices (official apps included), and when another device starts playing, Seaglass pauses and says so (#35).
+
 ## 0.5.116
 
 - chore: the player state types the interface receives are now generated from the Rust ones, so the two can no longer drift apart (#44).

@@ -22,6 +22,7 @@ pub mod settings;
 pub mod sleep;
 pub mod source;
 pub mod state;
+mod takeover;
 mod upgrade;
 pub mod volume;
 

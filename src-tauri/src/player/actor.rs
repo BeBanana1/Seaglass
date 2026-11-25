@@ -26,13 +26,16 @@ use super::settings::{HiresUpgrade, PlaybackSettings};
 use super::sleep::SleepRequest;
 use super::source::PlaySource;
 use super::state::{PlayerState, QueueView};
+use super::takeover::Takeover;
 use crate::engine::{self, ActiveEngine, Event, Launch};
 use crate::i18n::trf;
 use crate::integrations::Observers;
 use crate::mpv::{MpvIssue, serve::ManifestServer};
 use crate::store::Store;
 use crate::tidal::TidalClient;
-use crate::tidal::models::{PlaybackSession, RadioSeed, Stream, StreamFormat, Track, TrackId};
+use crate::tidal::models::{
+    PlaybackSession, PlaybackTaken, RadioSeed, Stream, StreamFormat, Track, TrackId,
+};
 
 /// Intervalle minimal entre deux événements qui ne changent que `time_pos` (~4 Hz).
 const TIME_EMIT_INTERVAL: Duration = Duration::from_millis(250);
@@ -139,6 +142,8 @@ pub enum Cmd {
         seed: TrackId,
         result: Result<Vec<TrackId>, String>,
     },
+    /// Another client of the account started playing (#35, `takeover.rs`).
+    PlaybackTaken(PlaybackTaken),
 }
 
 /// Destination d'un flux résolu dans la fenêtre du moteur.
@@ -230,6 +235,8 @@ pub(super) struct Player {
     pub(super) blind: Option<BlindTest>,
     /// La partie a changé : `blind-test` part à la prochaine émission.
     pub(super) blind_dirty: bool,
+    /// One stream per account (#35).
+    pub(super) takeover: Takeover,
     observers: Observers,
 }
 
@@ -275,6 +282,7 @@ pub fn spawn(
             .ok();
         #[cfg(mobile)]
         let server: Option<ManifestServer> = None;
+        let takeover = Takeover::start(Arc::clone(&tidal), actor_tx.clone());
         let mut player = Player {
             app,
             tidal,
@@ -325,6 +333,7 @@ pub fn spawn(
             playlog: PlayLogTracker::default(),
             blind: None,
             blind_dirty: false,
+            takeover,
             observers: Observers::default(),
         };
         player.state.equalizer = player.equalizer.applied_name();
@@ -356,10 +365,12 @@ impl Player {
                 }
             }
             self.emit();
+            self.sync_takeover();
         }
     }
 
     async fn handle_cmd(&mut self, cmd: Cmd) {
+        self.note_claim(&cmd);
         let cmd = match self.blind_route(cmd).await {
             Some(cmd) => cmd,
             None => return,
@@ -543,6 +554,7 @@ impl Player {
                 seed,
                 result,
             } => self.on_radio_resolved(request, seed, result).await,
+            Cmd::PlaybackTaken(taken) => self.on_playback_taken(taken).await,
         }
     }
 

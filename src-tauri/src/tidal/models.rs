@@ -253,6 +253,15 @@ pub struct PlaybackSession {
     pub quality: AudioQuality,
 }
 
+/// Another client of the account started playing (#35, Pushkin's
+/// `PRIVILEGED_SESSION_NOTIFICATION`): TIDAL allows one stream at a time, this one pauses.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlaybackTaken {
+    /// What the other client calls itself (`clientDisplayName`: "Android" for the official
+    /// app), when it says.
+    pub device: Option<String>,
+}
+
 /// Where a listen was played from, as the play log names it (#34). Other sources are
 /// reported under the track's album.
 #[derive(Debug, Clone, PartialEq, Eq)]

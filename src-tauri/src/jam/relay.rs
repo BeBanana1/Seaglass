@@ -110,18 +110,6 @@ pub async fn run<B: Backend>(
     }
 }
 
-pub(crate) fn tls() -> Result<Arc<rustls::ClientConfig>, String> {
-    use rustls_platform_verifier::BuilderVerifierExt;
-    let provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
-    let config = rustls::ClientConfig::builder_with_provider(provider)
-        .with_safe_default_protocol_versions()
-        .map_err(|e| e.to_string())?
-        .with_platform_verifier()
-        .map_err(|e| e.to_string())?
-        .with_no_client_auth();
-    Ok(Arc::new(config))
-}
-
 fn unreachable_relay() -> Failure {
     Failure::Retry(Some(
         tr("relais injoignable", "relay unreachable").to_owned(),
@@ -146,7 +134,9 @@ async fn session<B: Backend>(
         .map_err(|e| Failure::Fatal(e.to_string()))?;
     request.headers_mut().insert("authorization", bearer);
     let connector = if config.url.starts_with("wss://") {
-        Some(Connector::Rustls(tls().map_err(Failure::Fatal)?))
+        Some(Connector::Rustls(
+            crate::tls::client().map_err(Failure::Fatal)?,
+        ))
     } else {
         None
     };

@@ -24,7 +24,8 @@ use super::RemoteSite;
 use super::api::{Owner, Remote};
 use crate::handoff::sealed::{self, Replay, TunnelKey};
 use crate::jam::protocol::{FromDevice, ToDevice};
-use crate::jam::relay::{RelayConfig, tls};
+use crate::jam::relay::RelayConfig;
+use crate::tls;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 const READY_TIMEOUT: Duration = Duration::from_secs(10);
@@ -193,7 +194,7 @@ async fn session<R: Remote>(
         .map_err(|e| Failure::Refused(e.to_string()))?;
     request.headers_mut().insert("authorization", bearer);
     let connector = if url.starts_with("wss://") {
-        Some(Connector::Rustls(tls().map_err(Failure::Refused)?))
+        Some(Connector::Rustls(tls::client().map_err(Failure::Refused)?))
     } else {
         None
     };
