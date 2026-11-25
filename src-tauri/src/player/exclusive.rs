@@ -1,27 +1,27 @@
-//! Mode exclusif WASAPI (#245) : le moteur ouvre le périphérique pour lui seul. La
-//! normalisation est suspendue (aucun filtre posé) ; le volume logiciel reste possible,
-//! la chaîne audio signale alors que le signal n'est plus bit-perfect.
+//! WASAPI exclusive mode (#245): the engine opens the device for itself alone.
+//! Normalization is suspended (no filter set); the software volume stays available,
+//! and the signal path then says the signal is no longer bit-perfect.
 
 use super::actor::Player;
 use crate::engine::Op;
 use crate::i18n::{tr, trf};
 
-/// Le moteur sait-il ouvrir une sortie en exclusif ? mpv sous Windows seulement : Media3
-/// n'a pas de mode exclusif utilisable, et sous Linux (#17) ni PipeWire ni PulseAudio ne
-/// l'offrent par mpv (ALSA direct sur `hw:` reste à étudier).
+/// Can the engine open an output in exclusive mode? mpv on Windows only: Media3
+/// has no usable exclusive mode, and on Linux (#17) neither PipeWire nor PulseAudio
+/// offers it through mpv (direct ALSA on `hw:` is still to be studied).
 pub fn supported() -> bool {
     cfg!(all(desktop, windows))
 }
 
 impl Player {
-    /// Réglage changé : appliqué à chaud (mpv rouvre la sortie, un micro-blanc est normal),
-    /// puis la normalisation est retirée ou rétablie sur le titre en cours.
+    /// Setting changed: applied live (mpv reopens the output, a tiny gap is normal),
+    /// then normalization is removed from or restored on the current track.
     pub(super) async fn set_exclusive(&mut self, on: bool) {
         let on = on && supported();
         if on == self.state.exclusive {
             return;
         }
-        tracing::info!("mode exclusif : {on}");
+        tracing::info!("exclusive mode: {on}");
         self.state.exclusive = on;
         self.note_device_profile();
         self.engine_op(Op::Exclusive(on)).await;
@@ -30,12 +30,13 @@ impl Player {
         self.on_normalization_changed(before).await;
     }
 
-    /// La sortie ne s'ouvre pas en exclusif (périphérique déjà pris par une autre app, ou
-    /// format refusé) : lecture arrêtée en pause sur le titre, avec un message clair. Pas de
-    /// bascule silencieuse en partagé : Lecture réessaie à la même position.
+    /// The output does not open in exclusive mode (device already taken by another app, or
+    /// format refused): playback stops, paused on the track, with a clear message. No
+    /// silent switch to shared mode: Play tries again at the same position.
     pub(super) async fn on_exclusive_failed(&mut self) {
-        tracing::warn!("ouverture de la sortie en mode exclusif impossible");
+        tracing::warn!("cannot open the output in exclusive mode");
         self.engine_op(Op::Stop).await;
+        self.log_close();
         self.loaded = false;
         self.next_loaded = None;
         self.preloading = false;

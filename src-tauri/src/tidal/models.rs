@@ -185,6 +185,65 @@ pub struct Stream {
     /// ReplayGain du flux réellement lu (édition hi-res comprise), pour la normalisation
     /// du volume (#82).
     pub gain: ReplayGain,
+    /// Streaming session the play log reports this stream under (#34).
+    pub session: PlaybackSession,
+}
+
+/// What a stream is requested for (#34): played now, or preloaded for gapless (sent as
+/// `x-tidal-prefetch`, as the official clients do).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StreamUse {
+    Play,
+    Preload,
+}
+
+/// Streaming session of one stream request (#34): its id goes out with
+/// `playbackinfopostpaywall` and comes back in the play log, with what TIDAL served.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlaybackSession {
+    /// UUID created by the client for this request.
+    pub id: String,
+    /// Track requested from TIDAL (a hi-res edition when the stream comes from one).
+    pub requested: TrackId,
+    /// Track TIDAL actually served (`trackId` of the answer).
+    pub served: TrackId,
+    /// `assetPresentation` of the answer (`FULL`, `PREVIEW`).
+    pub presentation: String,
+    /// `audioMode` of the answer (`STEREO`…).
+    pub audio_mode: Option<String>,
+    pub quality: AudioQuality,
+}
+
+/// Where a listen was played from, as the play log names it (#34). Other sources are
+/// reported under the track's album.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LogSource {
+    Album(u64),
+    Playlist(String),
+    Mix(String),
+    Artist(u64),
+}
+
+/// Pause, resume or seek during a listen (#34), position in seconds, time in Unix ms.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LogAction {
+    /// `PLAYBACK_START` if true, `PLAYBACK_STOP` otherwise.
+    pub start: bool,
+    pub position: f64,
+    pub timestamp: i64,
+}
+
+/// One listen of one stream, from the first sound heard to the last (#34): the official
+/// clients' `playback_session` event.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlayLog {
+    pub session: PlaybackSession,
+    pub source: LogSource,
+    pub start_timestamp: i64,
+    pub start_position: f64,
+    pub end_timestamp: i64,
+    pub end_position: f64,
+    pub actions: Vec<LogAction>,
 }
 
 /// ReplayGain de `playbackinfopostpaywall` : gains en dB, crêtes en pleine échelle (1 = 0 dBFS).

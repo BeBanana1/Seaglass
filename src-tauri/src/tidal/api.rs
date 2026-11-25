@@ -17,7 +17,10 @@ use super::cache::TrackCache;
 use super::hires::HiresCache;
 use super::likes::Likes;
 use super::manifest;
-use super::models::{AudioQuality, ReplayGain, SessionInfo, Stream, StreamFormat, Track, TrackId};
+use super::models::{
+    AudioQuality, PlaybackSession, ReplayGain, SessionInfo, Stream, StreamFormat, StreamUse, Track,
+    TrackId,
+};
 use super::playlist::PlaylistCache;
 use super::raw::RawTrack;
 use super::{Result, TidalError};
@@ -43,8 +46,8 @@ struct AuthState {
 }
 
 pub struct TidalClient {
-    http: reqwest::Client,
-    creds: ClientCredentials,
+    pub(super) http: reqwest::Client,
+    pub(super) creds: ClientCredentials,
     auth: RwLock<Option<AuthState>>,
     restored: OnceCell<()>,
     /// Signalé quand TIDAL refuse le rafraîchissement en cours de route (#259).
@@ -179,8 +182,20 @@ impl TidalClient {
     }
 
     /// Demande un flux et refuse tout flux chiffré (manifeste ou segment d'initialisation).
-    pub async fn stream(&self, id: TrackId, quality: AudioQuality) -> Result<Stream> {
-        let (raw, decoded) = self.playback(id, quality).await?;
+    /// Each request opens its own streaming session, reported by the play log once the
+    /// stream is heard (#34).
+    pub async fn stream(
+        &self,
+        id: TrackId,
+        quality: AudioQuality,
+        use_: StreamUse,
+    ) -> Result<Stream> {
+        let session_id = super::playlog::new_uuid();
+        let fetch = Fetch {
+            session_id: &session_id,
+            prefetch: use_ == StreamUse::Preload,
+        };
+        let (raw, decoded) = self.playback(id, quality, Some(fetch)).await?;
         if let Some(init_url) = &decoded.init_url {
             self.check_init_segment(init_url).await?;
         }
@@ -193,6 +208,14 @@ impl TidalClient {
                 album_gain: raw.album_replay_gain,
                 album_peak: raw.album_peak_amplitude,
             },
+            session: PlaybackSession {
+                id: session_id,
+                requested: id,
+                served: raw.track_id.map_or(id, TrackId),
+                presentation: raw.asset_presentation.unwrap_or_else(|| "FULL".to_owned()),
+                audio_mode: raw.audio_mode,
+                quality: raw.audio_quality,
+            },
         })
     }
 
@@ -202,27 +225,41 @@ impl TidalClient {
         id: TrackId,
         quality: AudioQuality,
     ) -> Result<StreamFormat> {
-        let (raw, decoded) = self.playback(id, quality).await?;
+        let (raw, decoded) = self.playback(id, quality, None).await?;
         Ok(stream_format(&raw, &decoded))
     }
 
-    /// `playbackinfopostpaywall` et son manifeste décodé (refusé s'il déclare du DRM). Le
-    /// segment d'initialisation n'est pas lu : `stream` le vérifie avant toute lecture.
+    /// `playbackinfopostpaywall` and its decoded manifest (refused if it declares DRM). The
+    /// init segment is not read: `stream` checks it before any playback. `fetch` only for a
+    /// stream that may be played (#34): without it, nothing is reported.
     pub(super) async fn playback(
         &self,
         id: TrackId,
         quality: AudioQuality,
+        fetch: Option<Fetch<'_>>,
     ) -> Result<(RawPlayback, manifest::Decoded)> {
+        let path = format!("tracks/{id}/playbackinfopostpaywall");
+        let query = [
+            ("playbackmode", "STREAM".to_owned()),
+            ("audioquality", quality.as_api_str().to_owned()),
+            ("assetpresentation", "FULL".to_owned()),
+        ];
+        let mut headers = Vec::new();
+        if let Some(fetch) = fetch {
+            headers.push(("x-tidal-streamingsessionid", fetch.session_id));
+            if fetch.prefetch {
+                headers.push(("x-tidal-prefetch", "true"));
+            }
+        }
         let raw: RawPlayback = self
-            .get(
-                &format!("tracks/{id}/playbackinfopostpaywall"),
-                &[
-                    ("playbackmode", "STREAM".to_owned()),
-                    ("audioquality", quality.as_api_str().to_owned()),
-                    ("assetpresentation", "FULL".to_owned()),
-                ],
-            )
-            .await?;
+            .call(&Call {
+                headers: &headers,
+                ..Call::get(API_V1, &path, &query)
+            })
+            .await?
+            .json()
+            .await
+            .map_err(|e| TidalError::Decode(format!("{path} : {e}")))?;
         let decoded = manifest::decode(&raw.manifest_mime_type, &raw.manifest)?;
         Ok((raw, decoded))
     }
@@ -264,7 +301,7 @@ impl TidalClient {
 
     /// Access token valide et code pays, en rafraîchissant s'il expire ou si `rejected`
     /// (token refusé par un 401) est encore le token courant.
-    async fn credentials(&self, rejected: Option<&str>) -> Result<(String, String)> {
+    pub(super) async fn credentials(&self, rejected: Option<&str>) -> Result<(String, String)> {
         {
             let guard = self.auth.read().await;
             let state = guard.as_ref().ok_or(TidalError::NotLoggedIn)?;
@@ -367,6 +404,9 @@ impl TidalClient {
         if let Some(etag) = call.if_none_match {
             req = req.header("If-None-Match", etag);
         }
+        for (name, value) in call.headers {
+            req = req.header(*name, *value);
+        }
         let resp = req.send().await?;
         let path = call.path;
         let status = resp.status();
@@ -422,6 +462,8 @@ pub(super) struct Call<'a> {
     pub json: Option<&'a serde_json::Value>,
     /// ETag de la ressource : TIDAL refuse une modification de playlist sans lui.
     pub if_none_match: Option<&'a str>,
+    /// Extra headers (streaming session of a stream request, #34).
+    pub headers: &'a [(&'a str, &'a str)],
 }
 
 impl<'a> Call<'a> {
@@ -434,8 +476,17 @@ impl<'a> Call<'a> {
             form: None,
             json: None,
             if_none_match: None,
+            headers: &[],
         }
     }
+}
+
+/// Streaming session sent with a stream request that may be played (#34).
+#[derive(Clone, Copy)]
+pub(super) struct Fetch<'a> {
+    pub session_id: &'a str,
+    /// Preloaded for gapless, not played yet (`x-tidal-prefetch`).
+    pub prefetch: bool,
 }
 
 // --- Formats JSON bruts --------------------------------------------------------------
@@ -473,6 +524,10 @@ impl RawApiError {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct RawPlayback {
+    /// Track actually served, reported in the play log (#34).
+    track_id: Option<u64>,
+    asset_presentation: Option<String>,
+    audio_mode: Option<String>,
     audio_quality: AudioQuality,
     manifest_mime_type: String,
     manifest: String,

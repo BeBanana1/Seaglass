@@ -45,6 +45,7 @@ mod mix;
 pub mod models;
 mod paging;
 mod playlist;
+pub mod playlog;
 mod rank;
 mod raw;
 mod releases;

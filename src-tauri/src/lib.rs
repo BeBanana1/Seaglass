@@ -78,6 +78,8 @@ pub fn run() {
             jam::relay_settings::load(store.as_deref());
             // Envoi des écoutes à ListenBrainz (#431), si un compte est connecté.
             integrations::listenbrainz::start(app.handle().clone(), store.clone());
+            // TIDAL play log (#34): listens reported so that they are counted.
+            player::start_play_log(Arc::clone(&tidal), store.clone());
             commands::shortcuts::sync(&ui_settings.pins);
             #[cfg(desktop)]
             commands::settings::zoom::apply(app.handle(), ui_settings.zoom);

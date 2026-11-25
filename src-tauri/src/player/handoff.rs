@@ -1,6 +1,6 @@
-//! Transfert de la lecture entre deux appareils (#414) : la file, la position et les
-//! métadonnées de ce qui s'affiche. Jamais d'URL de flux (signées, elles expirent) :
-//! l'appareil qui reprend redemande les siennes.
+//! Playback handoff between two devices (#414): the queue, the position and the
+//! metadata of what is shown. Never a stream URL (signed, they expire): the
+//! device that takes over requests its own.
 
 use serde::{Deserialize, Serialize};
 
@@ -8,24 +8,24 @@ use super::actor::Player;
 use super::queue::Queue;
 use crate::tidal::models::Track;
 
-/// Titres de la suite du contexte dont les métadonnées voyagent (l'UI en montre 50).
+/// Upcoming context tracks whose metadata travels (the UI shows 50).
 const UPCOMING_TRACKS: usize = 100;
-/// Métadonnées acceptées au plus : au-delà, le reste est ignoré.
+/// Most metadata accepted: beyond, the rest is ignored.
 pub const MAX_TRACKS: usize = 2_500;
 
-/// Ce qui passe d'un appareil à l'autre.
+/// What goes from one device to the other.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Handoff {
     pub queue: Queue,
-    /// Position dans le titre courant, en secondes.
+    /// Position in the current track, in seconds.
     pub position: f64,
-    /// Métadonnées du titre courant, de la file manuelle et du début de la suite, pour
-    /// un affichage immédiat ; les autres sont lues au moment de les jouer.
+    /// Metadata of the current track, the manual queue and the start of the rest, for an
+    /// immediate display; the others are read when they are played.
     pub tracks: Vec<Track>,
 }
 
 impl Handoff {
-    /// Le transfert s'il est cohérent (file vérifiée, position bornée), sinon `None`.
+    /// The handoff if it is consistent (queue checked, position bounded), otherwise `None`.
     pub fn received(self, is_uuid: impl Fn(&str) -> bool) -> Option<Self> {
         let queue = self.queue.received(is_uuid)?;
         let position = if self.position.is_finite() {
@@ -44,9 +44,9 @@ impl Handoff {
 }
 
 impl Player {
-    /// Instantané de la lecture, puis pause : TIDAL limite la lecture simultanée par
-    /// compte, l'appareil qui reprend ne doit pas jouer en même temps. `None` si rien
-    /// n'est en cours.
+    /// Snapshot of the playback, then pause: TIDAL limits simultaneous playback per
+    /// account, the device that takes over must not play at the same time. `None` if
+    /// nothing is playing.
     pub(super) async fn take_handoff(&mut self) -> Option<Handoff> {
         let current = self.queue.current()?;
         let mut ids = vec![current];
@@ -58,16 +58,18 @@ impl Player {
             tracks: self.tidal.cache.get_many(ids),
         };
         self.set_paused(true).await;
+        // The other device goes on: this listen ends here (#34).
+        self.log_close();
         tracing::info!(
-            "lecture transférée : titre {} à {:.0} s",
+            "playback handed off: track {} at {:.0} s",
             current.0,
             handoff.position
         );
         Some(handoff)
     }
 
-    /// Reprend la lecture transférée : la file remplace celle d'ici, puis le titre courant
-    /// est lu à la position reçue. `handoff` a déjà été vérifié (`Handoff::received`).
+    /// Takes over a handed-off playback: its queue replaces this one, then the current track
+    /// is played at the received position. `handoff` is already checked (`Handoff::received`).
     pub(super) async fn apply_handoff(&mut self, handoff: Handoff) -> bool {
         let Some(id) = handoff.queue.current() else {
             return false;
@@ -76,7 +78,7 @@ impl Player {
         self.queue = handoff.queue;
         self.on_queue_changed().await;
         tracing::info!(
-            "lecture reprise d'un autre appareil : titre {} à {:.0} s",
+            "playback taken over from another device: track {} at {:.0} s",
             id.0,
             handoff.position
         );

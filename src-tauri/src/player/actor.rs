@@ -17,6 +17,7 @@ use super::handoff::Handoff;
 use super::listen::ListenTracker;
 use super::normalize::Normalizer;
 use super::output::{AudioDevices, Output};
+use super::playlog::PlayLogTracker;
 use super::profiles::{self, Profiles};
 use super::quality::QualityPolicy;
 use super::queue::{Queue, QueuePart, Repeat};
@@ -31,7 +32,7 @@ use crate::integrations::Observers;
 use crate::mpv::{MpvIssue, serve::ManifestServer};
 use crate::store::Store;
 use crate::tidal::TidalClient;
-use crate::tidal::models::{RadioSeed, Stream, StreamFormat, Track, TrackId};
+use crate::tidal::models::{PlaybackSession, RadioSeed, Stream, StreamFormat, Track, TrackId};
 
 /// Intervalle minimal entre deux événements qui ne changent que `time_pos` (~4 Hz).
 const TIME_EMIT_INTERVAL: Duration = Duration::from_millis(250);
@@ -185,7 +186,7 @@ pub(super) struct Player {
     pub(super) loaded: bool,
     pub(super) preloading: bool,
     /// Titre préchargé en entrée 1 du moteur.
-    pub(super) next_loaded: Option<(Track, StreamFormat)>,
+    pub(super) next_loaded: Option<(Track, StreamFormat, PlaybackSession)>,
     /// Titre pour lequel une nouvelle URL a déjà été demandée après une erreur.
     pub(super) retried: Option<TrackId>,
     pub(super) failures: u32,
@@ -223,6 +224,8 @@ pub(super) struct Player {
     pub(super) last_write: Option<tokio::task::JoinHandle<()>>,
     /// Temps réellement écouté du titre courant, pour l'historique local (#202).
     pub(super) listen: ListenTracker,
+    /// Listen of the current stream for TIDAL's play log (#34).
+    pub(super) playlog: PlayLogTracker,
     /// Partie de blind test en cours (#434), avec la file mise de côté.
     pub(super) blind: Option<BlindTest>,
     /// La partie a changé : `blind-test` part à la prochaine émission.
@@ -319,6 +322,7 @@ pub fn spawn(
             last_persist: Instant::now(),
             last_write: None,
             listen: ListenTracker::default(),
+            playlog: PlayLogTracker::default(),
             blind: None,
             blind_dirty: false,
             observers: Observers::default(),
@@ -551,6 +555,7 @@ impl Player {
                 s.time_pos = t.unwrap_or(0.0);
                 self.persist_position = true;
                 self.note_listen();
+                self.log_position();
                 self.maybe_preload();
                 self.blind_on_position().await;
             }
@@ -563,6 +568,7 @@ impl Player {
             Event::Paused(p) if self.loaded => {
                 s.paused = p;
                 self.persist_position = true;
+                self.log_paused(p);
             }
             Event::Paused(_) => {}
             Event::Buffering(b) => s.buffering = b,

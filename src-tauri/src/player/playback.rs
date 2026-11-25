@@ -9,7 +9,7 @@ use super::upgrade;
 use crate::engine::{End, Engine, Op};
 use crate::i18n::{tr, trf};
 use crate::mpv::CacheSize;
-use crate::tidal::models::{AudioQuality, Stream, StreamSource, Track, TrackId};
+use crate::tidal::models::{AudioQuality, Stream, StreamSource, StreamUse, Track, TrackId};
 
 /// Préchargement du suivant quand il reste moins que ça sur le titre courant.
 const PRELOAD_BEFORE_END: f64 = 30.0;
@@ -29,6 +29,7 @@ impl Player {
         if self.retried != Some(id) {
             self.retried = None;
         }
+        self.log_close();
         self.load_req += 1;
         self.preload_req += 1;
         self.preloading = false;
@@ -99,7 +100,13 @@ impl Player {
                 // Sans édition hi-res possible (Android, réglage « Non »), le flux ne dépend
                 // pas des métadonnées : les deux requêtes partent ensemble (#148).
                 if quality != AudioQuality::HiResLossless || mode == HiresUpgrade::Off {
-                    let (track, stream) = tokio::join!(tidal.track(id), tidal.stream(id, quality));
+                    let use_ = if current {
+                        StreamUse::Play
+                    } else {
+                        StreamUse::Preload
+                    };
+                    let (track, stream) =
+                        tokio::join!(tidal.track(id), tidal.stream(id, quality, use_));
                     return Ok(Box::new((track?, stream?)));
                 }
                 let track = tidal.track(id).await?;
@@ -153,7 +160,8 @@ impl Player {
                 })
                 .await;
                 self.loaded = true;
-                // Le moteur n'émet rien si la pause était déjà levée : l'état est fixé ici.
+                self.log_loaded(stream.session, track.album.id, start);
+                // The engine emits nothing if it was not paused: the state is set here.
                 self.state.paused = false;
                 self.state.track = Some(track);
                 self.state.stream = Some(stream.format);
@@ -171,7 +179,7 @@ impl Player {
                         let gain = self.normalizer.preloaded(stream.gain);
                         let filters = self.filters(gain);
                         self.engine_op(Op::Preload { url, filters }).await;
-                        self.next_loaded = Some((track, stream.format));
+                        self.next_loaded = Some((track, stream.format, stream.session));
                     }
                     // Sans préchargement, la fin du titre déclenchera un chargement classique.
                     Err(e) => tracing::warn!("préchargement de {id} impossible : {e}"),
@@ -184,13 +192,21 @@ impl Player {
     /// Le moteur est passé sur l'entrée préchargée : on avance la file et on retire
     /// l'ancienne.
     pub(super) async fn on_advanced(&mut self) {
-        let Some((track, format)) = self.next_loaded.take() else {
+        let Some((track, format, session)) = self.next_loaded.take() else {
             return;
         };
         let advanced = self.queue.advance();
         self.mark_queue_dirty();
         self.engine_op(Op::DropPrevious).await;
         if advanced == Some(track.id) {
+            // The engine may already report the next track's duration: the previous one ends
+            // at its own.
+            let previous = self
+                .state
+                .track
+                .as_ref()
+                .map_or(self.state.duration, |t| f64::from(t.duration));
+            self.log_advanced(session, track.album.id, previous);
             self.retried = None;
             self.state.track = Some(track);
             self.state.stream = Some(format);
@@ -208,6 +224,7 @@ impl Player {
         match end {
             // Fin naturelle sans suivant préchargé (préchargement absent ou en échec).
             End::Eof if self.loaded && self.next_loaded.is_none() => {
+                self.log_ended();
                 self.loaded = false;
                 if self.sleeps_at_end_of_track() {
                     self.sleep_after_track().await;
@@ -258,6 +275,7 @@ impl Player {
 
     /// Le titre courant ne peut pas être lu : toast, puis titre suivant.
     async fn on_track_failed(&mut self, message: String) {
+        self.log_close();
         self.toast_kind("error", Some("unplayable"), message);
         self.failures += 1;
         self.loaded = false;
@@ -326,6 +344,7 @@ impl Player {
 
     pub(super) async fn seek(&mut self, secs: f64) {
         if self.loaded {
+            self.log_seek(secs);
             self.engine_op(Op::Seek(secs)).await;
         } else {
             self.state.time_pos = secs;
