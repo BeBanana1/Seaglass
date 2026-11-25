@@ -10,7 +10,7 @@ use std::future::Future;
 use std::net::IpAddr;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -39,6 +39,8 @@ const MAX_OWN_PLAYLISTS: usize = 200;
 const MAX_CONTEXT: usize = 10_000;
 /// Clé des limites : un seul propriétaire, l'adresse borne le reste.
 const OWNER: &str = "owner";
+/// How long a phone can learn the relay route after "Link a phone" (#62).
+pub const PAIRING_WINDOW: Duration = Duration::from_secs(10 * 60);
 
 /// Ce que la télécommande demande au lecteur, traduit en `Cmd` par l'app.
 #[derive(Debug, Clone, PartialEq)]
@@ -109,6 +111,8 @@ pub struct Owner {
     /// Adresse en ligne et clé du tunnel du relais (#430), données au téléphone lié sur
     /// le réseau local ; `None` tant que le tunnel n'est pas ouvert.
     relay: Mutex<Option<super::tunnel::RelayRoute>>,
+    /// End of the pairing window (#62): `api/relay` only answers before it.
+    pairing_until: Mutex<Option<Instant>>,
 }
 
 impl Owner {
@@ -120,7 +124,24 @@ impl Owner {
             handoff: AtomicBool::new(false),
             refresh: Notify::new(),
             relay: Mutex::new(None),
+            pairing_until: Mutex::new(None),
         }
+    }
+
+    /// Opens the pairing window for `length` from now (#62); a new opening replaces it.
+    pub fn open_pairing(&self, length: Duration) {
+        if let Ok(mut until) = self.pairing_until.lock() {
+            *until = Some(Instant::now() + length);
+        }
+    }
+
+    /// True while a phone can learn the relay route.
+    pub fn pairing_open(&self) -> bool {
+        self.pairing_until
+            .lock()
+            .ok()
+            .and_then(|until| *until)
+            .is_some_and(|until| Instant::now() < until)
     }
 
     /// Ce que sert le serveur : la télécommande, les transferts, ou les deux.
@@ -143,11 +164,17 @@ impl Owner {
         }
     }
 
-    /// `POST api/relay` (#430) : de quoi joindre ce PC par le relais, chiffré. Jamais servi
-    /// par le tunnel lui-même ; 404 `relay` si le tunnel n'est pas ouvert.
+    /// `POST api/relay` (#430): what the phone needs to reach this PC through the relay,
+    /// encrypted. Never served through the tunnel itself. Only during the pairing window
+    /// (#62), otherwise 403 `pairing`: the owner code travels in clear on the local
+    /// network, the tunnel key must not be one request away from whoever read it. 404
+    /// `relay` if the tunnel is not open.
     fn relay_route(&self) -> Response {
         if !self.handoff_enabled() {
             return Response::error(403, "handoff");
+        }
+        if !self.pairing_open() {
+            return Response::error(403, "pairing");
         }
         match self.relay.lock().ok().and_then(|r| r.clone()) {
             Some(route) => match serde_json::to_string(&route) {

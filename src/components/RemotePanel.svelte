@@ -1,19 +1,31 @@
-<!-- Télécommande (#336) et transferts de lecture (#414), Réglages › Application, bureau
-     seulement : deux interrupteurs sur le même serveur, puis QR code, adresse, code et
-     « Nouveau code » dès que l'un des deux est allumé. Classes `.setting-row`,
-     `.setting-switch` et `.update-check` reprises de Réglages : les thèmes les habillent
-     déjà ; la mise en page du QR code reprend celle de la Jam (`.jam-qr`, `.jam-fields`). -->
+<!-- Remote (#336) and playback handoffs (#414), Settings › App, desktop only: two switches
+     on the same server, then QR code, address, code and "New code" as soon as either is
+     on, and "Link a phone" with handoffs (#62). Classes `.setting-row`, `.setting-switch`
+     and `.update-check` taken from Settings: the themes already dress them; the QR code
+     layout is the Jam's (`.jam-qr`, `.jam-fields`). -->
 <script lang="ts">
   import { onMount } from "svelte";
   import { commands, type RemoteStatus } from "../lib/ipc";
   import { pushToast } from "../lib/stores/toasts.svelte";
-  import { t } from "../lib/i18n.svelte";
+  import { t, locale } from "../lib/i18n.svelte";
 
   let status = $state<RemoteStatus | null>(null);
   let busy = $state(false);
 
   const remoteOn = $derived(status?.remote ?? false);
   const handoffOn = $derived(status?.handoff ?? false);
+
+  // Clock of the pairing window (#62): the line goes away when it closes.
+  let now = $state(Date.now());
+  $effect(() => {
+    const timer = setInterval(() => (now = Date.now()), 10_000);
+    return () => clearInterval(timer);
+  });
+  const pairingUntil = $derived(
+    status?.pairingUntil && status.pairingUntil > now
+      ? new Date(status.pairingUntil).toLocaleTimeString(locale(), { timeStyle: "short" })
+      : null,
+  );
 
   onMount(async () => {
     try {
@@ -41,6 +53,8 @@
 
   const toggleRemote = () => change(remoteOn ? commands.stopRemote : commands.startRemote);
   const toggleHandoff = () => change(() => commands.setHandoffAccepted(!handoffOn));
+  /** New relay key and 10 minutes for a phone to learn the route (#62). */
+  const pair = () => change(commands.openHandoffPairing);
 
   async function renew() {
     try {
@@ -51,7 +65,7 @@
     }
   }
 
-  /** Adresse avec le code après `#`, comme le QR code : un téléphone l'ouvre ou la colle. */
+  /** Address with the code after `#`, like the QR code: a phone opens or pastes it. */
   async function copyUrl() {
     if (!status) return;
     try {
@@ -62,7 +76,7 @@
     }
   }
 
-  /** `H4KX9QMT2WZP` → `H4KX-9QMT-2WZP` : plus facile à recopier (tirets ignorés). */
+  /** `H4KX9QMT2WZP` → `H4KX-9QMT-2WZP`: easier to copy by hand (dashes are ignored). */
   const grouped = (code: string) => code.match(/.{1,4}/g)?.join("-") ?? code;
 </script>
 
@@ -106,7 +120,7 @@
   {#if status}
     <div class="setting-row remote-info">
       {#if status.qrSvg && remoteOn}
-        <!-- SVG produit par le backend (crate qrcode) à partir de l'adresse et du code. -->
+        <!-- SVG made by the backend (qrcode crate) from the address and the code. -->
         <div class="jam-qr remote-qr" role="img" aria-label={t.remote.qr}>{@html status.qrSvg}</div>
       {/if}
       <dl class="jam-fields">
@@ -118,13 +132,20 @@
       <div class="remote-actions">
         <button class="update-check" onclick={copyUrl}>{t.remote.copy}</button>
         <button class="update-check" onclick={renew}>{t.remote.renew}</button>
+        {#if handoffOn}
+          <button class="update-check" disabled={busy} onclick={pair}>{t.remote.pair}</button>
+        {/if}
       </div>
     </div>
     {#if !status.lan}
       <p class="note">{t.remote.noLan}</p>
     {:else}
       {#if remoteOn}<p class="note">{t.remote.howTo}</p>{/if}
-      {#if handoffOn}<p class="note">{t.remote.handoffHowTo}</p>{/if}
+      {#if handoffOn}
+        <p class="note">{t.remote.handoffHowTo}</p>
+        {#if pairingUntil}<p class="note remote-pairing">{t.remote.pairing(pairingUntil)}</p>{/if}
+        <p class="note">{t.remote.pairNote}</p>
+      {/if}
     {/if}
   {:else}
     <p class="note">{t.remote.firewall}</p>
@@ -181,7 +202,11 @@
     color: var(--text-muted);
   }
 
-  /* Interrupteur repris de Réglages : les thèmes l'habillent déjà par son nom de classe. */
+  .note.remote-pairing {
+    color: var(--accent);
+  }
+
+  /* Switch taken from Settings: the themes already dress it by its class name. */
   .setting-switch {
     position: relative;
     flex-shrink: 0;
@@ -284,7 +309,7 @@
     gap: 8px;
   }
 
-  /* Studio : angles vifs. Atelier : angles à peine arrondis, pas de fond. */
+  /* Studio: sharp corners. Atelier: barely rounded corners, no background. */
   :global([data-theme="studio"]) .setting-row,
   :global([data-theme="studio"]) .update-check {
     border-radius: 0;
