@@ -2,6 +2,9 @@ node_modules/
 dist/
 .astro/
 # Copied from the repository by scripts/assets.mjs
-public/images/
-public/favicon.png
+src/assets/screenshots/
 src/assets/seaglass.svg
+public/favicon.png
+public/og.jpg
+# Served from there before #48: removed by scripts/assets.mjs
+public/images/

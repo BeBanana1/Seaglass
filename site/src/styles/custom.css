@@ -17,7 +17,8 @@
   --sl-color-gray-6: #1b2725;
   --sl-color-black: #0f1615;
 
-  --sl-font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* The app's own stack (src/app.css): no web font to download (#48). */
+  --sl-font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
 
   --sg-glow: rgba(63, 179, 164, 0.3);
   --sg-sun: rgba(255, 190, 110, 0.16);
@@ -27,7 +28,8 @@
 
 :root[data-theme="light"] {
   --sl-color-accent-low: #d3efeb;
-  --sl-color-accent: #24857a;
+  /* At least 4.5:1 with white text and on the white and gray-7 backgrounds (WCAG AA, #48). */
+  --sl-color-accent: #1d776d;
   --sl-color-accent-high: #0f4640;
 
   --sl-color-white: #17201f;
@@ -52,6 +54,13 @@
   background-color: color-mix(in srgb, var(--sl-color-bg-nav) 85%, transparent);
 }
 
+/* Keyboard focus in the accent, on the site's own buttons and Starlight's. */
+.sg-button:focus-visible,
+.sl-link-button:focus-visible {
+  outline: 2px solid var(--sl-color-accent-high);
+  outline-offset: 3px;
+}
+
 /* ---------- Home page (splash template) ---------- */
 
 /* Sea glow at the top, a warm sun on the right, like the icon. */
@@ -73,6 +82,17 @@
 .hero {
   position: relative;
   padding-block: clamp(2.5rem, 8vw, 6rem) clamp(1.5rem, 4vw, 3rem);
+}
+
+/* Phone: a smaller icon, so the actions and the first screenshot fit the first screen. */
+@media (max-width: 49.99rem) {
+  .hero {
+    padding-block-start: 1.5rem;
+  }
+
+  .hero > img {
+    width: min(40%, 9rem);
+  }
 }
 
 .hero h1 {
@@ -99,11 +119,17 @@
   border-radius: 999px !important;
 }
 
-/* Screenshots: one wide, two below. */
+/* Screenshots: one wide, two below (stacked on a phone). */
 .sg-shots {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .sg-shots {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .sg-shots img {
@@ -164,16 +190,47 @@
   padding: 1.25rem 1.5rem;
 }
 
+.sg-platform-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
 .sg-platform h2,
 .sg-notes h2 {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: var(--sl-text-h4);
   color: var(--sl-color-white);
+}
+
+.sg-notes h2 {
+  margin-bottom: 0.75rem;
+}
+
+/* The visitor's system, put first by download.js. */
+.sg-platform.sg-recommended {
+  border-color: color-mix(in srgb, var(--sl-color-accent) 60%, transparent) !important;
+}
+
+.sg-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-accent-high);
+  font-size: var(--sl-text-xs);
+  font-weight: 600;
 }
 
 .sg-platform p {
   margin: 0.75rem 0 0;
   color: var(--sl-color-gray-2);
+}
+
+/* `not-content` leaves links to the browser's colours. */
+.sg-platform p a {
+  color: var(--sl-color-text-accent);
 }
 
 .sg-platform code {
@@ -183,6 +240,7 @@
 .sg-button {
   display: inline-block;
   padding: 0.6rem 1.4rem;
+  border: 1px solid var(--sl-color-accent);
   border-radius: 999px;
   background: var(--sl-color-accent);
   color: var(--sl-color-black);
@@ -191,7 +249,14 @@
 }
 
 .sg-button:hover {
+  border-color: var(--sl-color-accent-high);
   background: var(--sl-color-accent-high);
+}
+
+/* Once the visitor's system is known, the other downloads step back. */
+.sg-downloads:has(.sg-recommended) .sg-platform:not(.sg-recommended) .sg-button:not(:hover) {
+  background: transparent;
+  color: var(--sl-color-white);
 }
 
 .sg-meta {
@@ -211,4 +276,15 @@
 
 [hidden] {
   display: none !important;
+}
+
+/* No lift or fade for those who asked their system for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+
+  .card:hover {
+    transform: none;
+  }
 }

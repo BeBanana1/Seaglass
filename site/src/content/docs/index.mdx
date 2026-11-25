@@ -16,19 +16,19 @@ hero:
     - text: Try it in your browser
       link: /try/
       variant: secondary
-    - text: How to install
-      link: /install/
-      variant: minimal
-    - text: Source code
-      link: https://github.com/BeBanana1/Seaglass
-      icon: github
-      variant: minimal
 ---
 
 import { Card, CardGrid } from "@astrojs/starlight/components";
 import Screenshots from "../../components/Screenshots.astro";
 
+{/* Hidden headings (#48): the card titles are not headings, so without them a screen reader's
+    heading list holds the page title alone. */}
+
+<h2 class="sr-only">Screenshots</h2>
+
 <Screenshots />
+
+<h2 class="sr-only">Features</h2>
 
 <CardGrid stagger>
   <Card title="Bit-perfect playback" icon="seti:audio">

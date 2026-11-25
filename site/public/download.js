@@ -3,11 +3,29 @@
 // its release script: its card only appears if its manifest is online and points to an HTTPS address.
 const platforms = ["windows", "android", "linux"];
 
+// The visitor's system (#48), whose card goes first. Android before Linux: its user agent says
+// "Linux" too. ChromeOS, macOS and iOS get no card of their own.
+function detect() {
+  const ua = navigator.userAgent;
+  if (/Android/i.test(ua)) return "android";
+  if (/Windows/i.test(ua)) return "windows";
+  if (/CrOS|iPhone|iPad|Macintosh/i.test(ua)) return null;
+  if (/Linux|X11/i.test(ua)) return "linux";
+  return null;
+}
+
 function show(id, m) {
   document.getElementById(`${id}-link`).href = m.url;
   const size = (m.size / 1048576).toLocaleString("en", { maximumFractionDigits: 1 });
   document.getElementById(`${id}-meta`).textContent = `Version ${m.version} · ${size} MB`;
   document.getElementById(id).hidden = false;
+}
+
+function recommend(id) {
+  const card = document.getElementById(id);
+  card.classList.add("sg-recommended");
+  card.querySelector(".sg-badge").hidden = false;
+  document.getElementById("downloads").prepend(card);
 }
 
 // "What's new": notes of the Windows manifest (one "- …" line per change).
@@ -39,5 +57,10 @@ Promise.all(
       .catch(() => false),
   ),
 ).then((shown) => {
-  if (!shown.some(Boolean)) document.getElementById("none").hidden = false;
+  if (!shown.some(Boolean)) {
+    document.getElementById("none").hidden = false;
+    return;
+  }
+  const mine = detect();
+  if (mine && shown[platforms.indexOf(mine)]) recommend(mine);
 });

@@ -1,49 +1,58 @@
 ---
 // Download cards (#517). Static: /download.js (public/) fills each platform from its manifest
 // in /updates/ (windows.json, android.json, linux.json, written by the release scripts); a card
-// stays hidden until its manifest is online. External script: the server's CSP forbids inline
-// code.
+// stays hidden until its manifest is online. The script also puts the visitor's system first
+// and marks it (#48). The steps live in the installation guide, not here. External script:
+// the server's CSP forbids inline code.
 ---
 
-<div class="sg-downloads not-content">
-  <section class="sg-platform" id="windows" hidden>
-    <h2>Windows</h2>
+<div class="sg-downloads not-content" id="downloads">
+  <section class="sg-platform" id="windows" aria-labelledby="windows-title" hidden>
+    <div class="sg-platform-head">
+      <h2 id="windows-title">Windows</h2>
+      <span class="sg-badge" hidden>Your system</span>
+    </div>
     <a class="sg-button" id="windows-link" href="#">Download for Windows</a>
     <p class="sg-meta" id="windows-meta"></p>
     <p>
-      Windows 10 or 11, 64-bit, AVX2-capable processor. The installer needs no administrator
-      rights. If Windows shows "Windows protected your PC", click "More info" then "Run anyway":
-      the installer has no Windows signing certificate. After that, the app updates itself.
+      Windows 10 or 11, 64-bit, AVX2-capable processor. No administrator rights needed. Windows may
+      warn about an unrecognised app the first time: see the{" "}
+      <a href="/install/">installation guide</a>.
     </p>
   </section>
 
-  <section class="sg-platform" id="android" hidden>
-    <h2>Android</h2>
+  <section class="sg-platform" id="android" aria-labelledby="android-title" hidden>
+    <div class="sg-platform-head">
+      <h2 id="android-title">Android</h2>
+      <span class="sg-badge" hidden>Your system</span>
+    </div>
     <a class="sg-button" id="android-link" href="#">Download for Android</a>
     <p class="sg-meta" id="android-meta"></p>
     <p>
-      Android 7 or newer, 64-bit (ARM) processor. On the first download, allow the browser to
-      install apps; after that, the app offers its own updates.
+      Android 7 or newer, 64-bit (ARM). The first time, allow your browser to install apps (<a
+        href="/install/">installation guide</a>).
     </p>
   </section>
 
-  <section class="sg-platform" id="linux" hidden>
-    <h2>Linux</h2>
+  <section class="sg-platform" id="linux" aria-labelledby="linux-title" hidden>
+    <div class="sg-platform-head">
+      <h2 id="linux-title">Linux</h2>
+      <span class="sg-badge" hidden>Your system</span>
+    </div>
     <a class="sg-button" id="linux-link" href="#">Download the AppImage</a>
     <p class="sg-meta" id="linux-meta"></p>
     <p>
-      64-bit (x86-64): Ubuntu 22.04, Debian 12, Linux Mint 21, Fedora 36 or newer.
-      <strong>mpv required</strong>: <code>sudo apt install mpv</code> (or your distribution's
-      <code>mpv</code> package). Make the file executable (<code>chmod +x</code>) then run it; the
-      session is kept in the desktop keyring (GNOME Keyring, KWallet). The app updates itself if
-      the AppImage is kept in a folder of your own (for example <code>~/Applications</code>).
+      64-bit (x86-64): Ubuntu 22.04, Debian 12, Fedora 36 or newer. Needs <strong>mpv</strong> and
+      a desktop keyring: see the <a href="/install/">installation guide</a>.
     </p>
   </section>
 </div>
 
 <p class="sg-meta" id="none" hidden>No version is available right now.</p>
 
-<section class="sg-notes not-content" id="notes-card" hidden>
+<p class="sg-meta">Once installed, the app checks for new versions on its own.</p>
+
+<section class="sg-notes not-content" id="notes-card" aria-labelledby="notes-title" hidden>
   <h2 id="notes-title">What's new</h2>
   <ul id="notes"></ul>
 </section>

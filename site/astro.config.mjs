@@ -4,10 +4,14 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 
+const SITE = "https://seaglass.bebanana.ch";
 const REPO = "https://github.com/BeBanana1/Seaglass";
+// Link preview image (#48), written by scripts/assets.mjs; og:image needs an absolute address.
+const PREVIEW = `${SITE}/og.jpg`;
+const PREVIEW_ALT = "A playlist in Seaglass, a lossless music streaming client";
 
 export default defineConfig({
-  site: "https://seaglass.bebanana.ch",
+  site: SITE,
   trailingSlash: "always",
   build: { inlineStylesheets: "never" },
   // tsconfig pinned: without it, Vite looks up the folders for the files Starlight ships and
@@ -24,6 +28,14 @@ export default defineConfig({
       logo: { src: "./src/assets/seaglass.svg", alt: "Seaglass" },
       favicon: "/favicon.png",
       customCss: ["./src/styles/custom.css"],
+      head: [
+        { tag: "meta", attrs: { property: "og:image", content: PREVIEW } },
+        { tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
+        { tag: "meta", attrs: { property: "og:image:height", content: "630" } },
+        { tag: "meta", attrs: { property: "og:image:alt", content: PREVIEW_ALT } },
+        { tag: "meta", attrs: { name: "twitter:image", content: PREVIEW } },
+        { tag: "meta", attrs: { name: "twitter:image:alt", content: PREVIEW_ALT } },
+      ],
       // Pagefind needs 'wasm-unsafe-eval', which the CSP does not allow; a handful of pages
       // need no search anyway.
       pagefind: false,
