@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.115
+
+- Previous while paused now resumes playback, also when it goes back to the start of the track (#47).
+
 ## 0.5.114
 
 - Each listen is now reported to TIDAL the way its official apps report theirs (play log), so that it can count for the artists (#34).
