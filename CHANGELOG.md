@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.119
+
+- Desktop: handing playback over, or syncing a long history, from the phone over weak Wi-Fi no longer fails after 5 seconds: a large transfer gets up to 20 seconds (#60).
+
 ## 0.5.118
 
 - Desktop: "Link a phone" (Settings › App › Remote) opens 10 minutes during which a phone can learn how to reach the computer away from home, with a new relay key each time; outside that window the key is no longer handed out on the local network (#62).

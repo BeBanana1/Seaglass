@@ -1,14 +1,19 @@
-//! HTTP/1.1 minimal de la Jam : une requête par connexion, en-tête et corps bornés.
+//! Minimal HTTP/1.1 of the Jam: one request per connection, bounded head and body.
 //!
-//! Écrit à la main comme `mpv::serve` (aucune dépendance) : la page des invités ne fait
-//! que des GET de fichiers fixes et des POST JSON courts.
+//! Written by hand like `mpv::serve` (no dependency): the guest page only makes GETs of
+//! fixed files and short JSON POSTs.
+
+use std::time::Duration;
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::time::{Instant, timeout_at};
 
 const MAX_HEAD: usize = 8 * 1024;
 const MAX_BODY: usize = 2 * 1024;
-/// Corps d'une route qui l'accepte (`Site::large_body`) : transfert de lecture (#414).
+/// Body of a route that accepts it (`Site::large_body`): playback handoff (#414).
 pub const MAX_LARGE_BODY: usize = 4 * 1024 * 1024;
+/// A large body gets `base / 5` more per slice of this size (#60).
+const LARGE_SLICE: usize = 256 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
@@ -20,11 +25,11 @@ pub enum Method {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Head {
     pub method: Method,
-    /// Chemin sans la query string.
+    /// Path without the query string.
     pub path: String,
-    /// Query string, sans le `?`.
+    /// Query string, without the `?`.
     pub query: String,
-    /// En-tête `X-Jam-Code`.
+    /// `X-Jam-Code` header.
     pub code: Option<String>,
     pub content_length: usize,
 }
@@ -35,18 +40,55 @@ pub struct Request {
     pub body: Vec<u8>,
 }
 
-/// Lit une requête complète ; `None` si elle est illisible, trop grande ou interrompue.
-/// Un corps de plus de 2 Kio n'est lu que si `allow_large` l'accepte d'après l'en-tête
-/// (chemin, code), et jamais au-delà de `MAX_LARGE_BODY`.
+/// Time a whole request may take, from its first byte (#60): `base` for the head and a
+/// small body, as for every request of the Jam and the remote page. A large body (only
+/// read once `allow_large` accepted it, code checked) gets `base / 5` more per 256 KiB,
+/// up to `4 × base`: with `base` = 5 s, 4 MiB in 20 s (about 1.7 Mbit/s, weak Wi-Fi), the
+/// phone's own limit on the local network.
+pub fn read_time(base: Duration, content_length: usize) -> Duration {
+    if content_length <= MAX_BODY {
+        return base;
+    }
+    let slices = u32::try_from(content_length.div_ceil(LARGE_SLICE)).unwrap_or(u32::MAX);
+    base.saturating_add((base / 5).saturating_mul(slices))
+        .min(base.saturating_mul(4))
+}
+
+/// Reads a whole request within `read_time(base, …)`; `None` if it is unreadable, too
+/// large, cut or too slow. A body over 2 KiB is only read if `allow_large` accepts it from
+/// the head (path, code), and never beyond `MAX_LARGE_BODY`.
 pub async fn read_request<S: AsyncRead + Unpin>(
     stream: &mut S,
     allow_large: impl FnOnce(&Head) -> bool,
+    base: Duration,
 ) -> Option<Request> {
+    let start = Instant::now();
     let mut buf = Vec::with_capacity(1024);
+    let end = timeout_at(start + base, read_head(stream, &mut buf))
+        .await
+        .ok()??;
+    let head = parse_head(&buf[..end])?;
+    if head.content_length > MAX_BODY
+        && (head.content_length > MAX_LARGE_BODY || !allow_large(&head))
+    {
+        return None;
+    }
+    let mut body = buf.split_off(end);
+    let deadline = start + read_time(base, head.content_length);
+    timeout_at(deadline, read_body(stream, &mut body, head.content_length))
+        .await
+        .ok()??;
+    body.truncate(head.content_length);
+    Some(Request { head, body })
+}
+
+/// Reads up to the empty line; returns where the head ends in `buf` (which may already
+/// hold the start of the body).
+async fn read_head<S: AsyncRead + Unpin>(stream: &mut S, buf: &mut Vec<u8>) -> Option<usize> {
     let mut chunk = [0u8; 1024];
-    let end = loop {
+    loop {
         if let Some(i) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
-            break i + 4;
+            return Some(i + 4);
         }
         if buf.len() >= MAX_HEAD {
             return None;
@@ -55,25 +97,26 @@ pub async fn read_request<S: AsyncRead + Unpin>(
             Ok(0) | Err(_) => return None,
             Ok(n) => buf.extend_from_slice(&chunk[..n]),
         }
-    };
-    let head = parse_head(&buf[..end])?;
-    if head.content_length > MAX_BODY
-        && (head.content_length > MAX_LARGE_BODY || !allow_large(&head))
-    {
-        return None;
     }
-    let mut body = buf.split_off(end);
-    while body.len() < head.content_length {
+}
+
+/// Reads until `body` holds `length` bytes.
+async fn read_body<S: AsyncRead + Unpin>(
+    stream: &mut S,
+    body: &mut Vec<u8>,
+    length: usize,
+) -> Option<()> {
+    let mut chunk = [0u8; 8 * 1024];
+    while body.len() < length {
         match stream.read(&mut chunk).await {
             Ok(0) | Err(_) => return None,
             Ok(n) => body.extend_from_slice(&chunk[..n]),
         }
     }
-    body.truncate(head.content_length);
-    Some(Request { head, body })
+    Some(())
 }
 
-/// En-tête de requête (ligne de requête et champs, jusqu'à la ligne vide comprise).
+/// Request head (request line and fields, up to and including the empty line).
 pub fn parse_head(raw: &[u8]) -> Option<Head> {
     let text = std::str::from_utf8(raw).ok()?;
     let mut lines = text.split("\r\n");
@@ -99,7 +142,7 @@ pub fn parse_head(raw: &[u8]) -> Option<Head> {
         } else if name.eq_ignore_ascii_case("x-jam-code") {
             code = Some(value.to_owned());
         } else if name.eq_ignore_ascii_case("transfer-encoding") {
-            // Corps découpé : jamais envoyé par `fetch` pour un corps de cette taille.
+            // Chunked body: never sent by `fetch` for a body of this size.
             return None;
         }
     }
@@ -112,7 +155,7 @@ pub fn parse_head(raw: &[u8]) -> Option<Head> {
     })
 }
 
-/// Valeur d'un paramètre de la query string, sans décodage (codes alphanumériques).
+/// Value of a query string parameter, not decoded (alphanumeric codes).
 pub fn query_param<'a>(query: &'a str, name: &str) -> Option<&'a str> {
     query
         .split('&')
@@ -127,8 +170,7 @@ pub struct Response {
     pub body: Vec<u8>,
 }
 
-/// Politique de la page des invités : rien d'autre que ses propres fichiers et les
-/// pochettes de TIDAL.
+/// Policy of the guest page: nothing but its own files and TIDAL's covers.
 const CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; \
                    img-src https://resources.tidal.com; connect-src 'self'; \
                    base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
@@ -194,6 +236,8 @@ fn reason(status: u16) -> &'static str {
 mod tests {
     use super::*;
 
+    const BASE: Duration = Duration::from_secs(5);
+
     #[test]
     fn parses_post_with_code_and_length() {
         let head = parse_head(
@@ -232,6 +276,19 @@ mod tests {
         assert_eq!(query_param("", "code"), None);
     }
 
+    #[test]
+    fn large_bodies_get_more_time() {
+        let secs = |length| read_time(BASE, length).as_secs_f64();
+        assert_eq!(secs(0), 5.0);
+        assert_eq!(secs(MAX_BODY), 5.0);
+        // One slice of 256 KiB started: one more second.
+        assert_eq!(secs(MAX_BODY + 1), 6.0);
+        assert_eq!(secs(1024 * 1024), 9.0);
+        // 4 MiB would be 21 s: capped at the phone's 20 s.
+        assert_eq!(secs(MAX_LARGE_BODY), 20.0);
+        assert_eq!(secs(usize::MAX), 20.0);
+    }
+
     #[tokio::test]
     async fn reads_body_split_across_packets() {
         let (mut client, mut server) = tokio::io::duplex(64);
@@ -242,7 +299,7 @@ mod tests {
                 .unwrap();
             client.write_all(b":42}").await.unwrap();
         });
-        let req = read_request(&mut server, |_| false).await.unwrap();
+        let req = read_request(&mut server, |_| false, BASE).await.unwrap();
         assert_eq!(req.body, b"{\"trackId\":42}");
     }
 
@@ -254,7 +311,7 @@ mod tests {
                 .write_all(b"POST / HTTP/1.1\r\nContent-Length: 999999\r\n\r\n")
                 .await;
         });
-        assert!(read_request(&mut server, |_| false).await.is_none());
+        assert!(read_request(&mut server, |_| false, BASE).await.is_none());
     }
 
     #[tokio::test]
@@ -275,10 +332,10 @@ mod tests {
         };
         let allow = |head: &Head| head.path == "/api/big";
         let mut server = send("/api/big");
-        let req = read_request(&mut server, allow).await.unwrap();
+        let req = read_request(&mut server, allow, BASE).await.unwrap();
         assert_eq!(req.body.len(), 10_000);
         let mut server = send("/api/small");
-        assert!(read_request(&mut server, allow).await.is_none());
+        assert!(read_request(&mut server, allow, BASE).await.is_none());
     }
 
     #[tokio::test]
@@ -291,6 +348,51 @@ mod tests {
             );
             let _ = client.write_all(head.as_bytes()).await;
         });
-        assert!(read_request(&mut server, |_| true).await.is_none());
+        assert!(read_request(&mut server, |_| true, BASE).await.is_none());
+    }
+
+    /// Sends `length` bytes of body in 4 parts, `pause` apart, after the head.
+    fn slow(length: usize, pause: Duration) -> tokio::io::DuplexStream {
+        let (mut client, server) = tokio::io::duplex(256 * 1024);
+        tokio::spawn(async move {
+            let head = format!("POST /api/big HTTP/1.1\r\nContent-Length: {length}\r\n\r\n");
+            let _ = client.write_all(head.as_bytes()).await;
+            let part = vec![b'x'; length / 4];
+            for _ in 0..4 {
+                tokio::time::sleep(pause).await;
+                if client.write_all(&part).await.is_err() {
+                    return;
+                }
+            }
+        });
+        server
+    }
+
+    /// #60 with short durations (base 500 ms): a 1 MiB body has 900 ms in all.
+    #[tokio::test]
+    async fn a_slow_large_body_is_read_within_its_own_time() {
+        let base = Duration::from_millis(500);
+        let length = 1024 * 1024;
+        // About 600 ms: past the base, within the body's time.
+        let mut server = slow(length, Duration::from_millis(150));
+        let req = read_request(&mut server, |_| true, base).await;
+        assert_eq!(req.map(|r| r.body.len()), Some(length));
+        // About 1.2 s: too slow.
+        let mut server = slow(length, Duration::from_millis(300));
+        assert!(read_request(&mut server, |_| true, base).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn a_small_body_only_gets_the_base() {
+        let base = Duration::from_millis(300);
+        let (mut client, mut server) = tokio::io::duplex(1024);
+        tokio::spawn(async move {
+            let _ = client
+                .write_all(b"POST /api/add HTTP/1.1\r\nContent-Length: 2\r\n\r\n{")
+                .await;
+            tokio::time::sleep(Duration::from_millis(600)).await;
+            let _ = client.write_all(b"}").await;
+        });
+        assert!(read_request(&mut server, |_| false, base).await.is_none());
     }
 }
