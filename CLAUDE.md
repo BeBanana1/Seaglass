@@ -61,12 +61,12 @@ seaglass/
       ├─ engine.rs           # playback engine contract (`Op`, `Event`, `Engine` trait)
       ├─ media3.rs           # Android Media3 engine (plugin `plugins/seaglass-mobile`)
       ├─ apk_update.rs       # Android app updates (`android.json` manifest, APK)
-      ├─ jam/                # Jam (#25): api.rs (shared rules), server.rs (local network), relay.rs (online), page/, remote/ (remote control, #336)
+      ├─ jam/                # Jam (#25): api.rs (shared rules), backend.rs (the app's side), server.rs (local network), relay.rs (online), page/, remote/ (remote control, #336)
       ├─ logs/               # on-disk log, crash reports (#192)
       ├─ i18n.rs             # effective language, translated messages (`tr`, `trf!`), TIDAL locale
-      ├─ commands/           # auth.rs, player.rs, catalog.rs, settings.rs: validate input then delegate
+      ├─ commands/           # auth.rs, player.rs, catalog.rs, settings/ (playback.rs, system.rs…): validate input then delegate
       ├─ tidal/              # auth.rs, api.rs, session.rs (sign-in state, token refresh), request.rs (authenticated calls), catalog.rs, home.rs (paged home), playlist.rs (cached pages), mix.rs (mixes, radios), hires.rs + twin.rs (hi-res editions), credits.rs, raw.rs (raw JSON), paging.rs (paged lists), models/, cache.rs, manifest.rs (DRM), soundtracks.rs (curated soundtracks, #399), folders.rs (playlist folders, #331), playlog.rs (play log reported to TIDAL, #34), pushkin.rs (one stream per account, #35)
-      ├─ player/             # actor.rs, command.rs (`Cmd`), dispatch.rs, queue.rs, state.rs
+      ├─ player/             # actor.rs, command.rs (`Cmd`), dispatch.rs, playback.rs (engine window), controls.rs, queue.rs, state.rs
       ├─ mpv/                # engine.rs (mpv engine), process.rs, ipc.rs, events.rs, serve.rs (MPDs served over local HTTP)
       ├─ store/              # SQLite (including snapshots.rs: copies of lists)
       ├─ tls.rs              # TLS config of the app's WebSockets (Jam relay, tunnel, Pushkin)
