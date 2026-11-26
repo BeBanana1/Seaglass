@@ -1,15 +1,14 @@
-//! Jam sur le réseau local (#25) : page des invités et API, servies en HTTP par l'app.
+//! Jam on the local network (#25): guest page and API, served over HTTP by the app.
 //!
-//! Les invités n'ont que trois actions : chercher un titre (compte de l'hôte), l'ajouter
-//! à la fin de la file manuelle, voir le titre en cours et la suite (`api.rs`). Chaque
-//! appel de l'API porte le code d'accès dans l'en-tête `X-Jam-Code` : un en-tête
-//! personnalisé oblige aussi un autre site à passer par une requête CORS préalable, que ce
-//! serveur ne connaît pas (pas d'ajout depuis une page malveillante ouverte sur le
-//! téléphone d'un invité).
+//! Guests only have three actions: search for a track (host's account), add it at the end
+//! of the manual queue, see the current track and what follows (`api.rs`). Every API call
+//! carries the access code in the `X-Jam-Code` header: a custom header also forces another
+//! site through a CORS preflight request, which this server does not know (no additions
+//! from a malicious page open on a guest's phone).
 //!
-//! L'état est poussé aux pages ouvertes (Server-Sent Events, `GET /api/events?code=…` :
-//! `EventSource` ne pose pas d'en-tête). Tant qu'une page écoute, l'état du lecteur est
-//! relu toutes les secondes et aussitôt après un ajout ; il n'est envoyé que s'il change.
+//! The state is pushed to open pages (Server-Sent Events, `GET /api/events?code=…`:
+//! `EventSource` sets no header). While a page listens, the player state is read again
+//! every second and right after an addition; it is only sent when it changes.
 
 use std::future::Future;
 use std::net::{IpAddr, SocketAddr};
@@ -24,29 +23,29 @@ use super::api::{BACKEND_TIMEOUT, Backend, Core};
 use super::http::{Head, Method, Request, Response, query_param, read_request, write_response};
 
 const MAX_CONNECTIONS: usize = 32;
-/// Pages ouvertes qui suivent l'état, en plus des requêtes ordinaires.
+/// Open pages following the state, on top of ordinary requests.
 const MAX_STREAMS: usize = 64;
 /// Time to receive a request (more for a large body, `http::read_time`), then to send
 /// the answer.
 const IO_TIMEOUT: Duration = Duration::from_secs(5);
-/// Relecture de l'état du lecteur tant qu'une page écoute.
+/// Rereading of the player state while a page listens.
 pub(super) const PUSH_INTERVAL: Duration = Duration::from_secs(1);
-/// Commentaire envoyé sur un flux silencieux : garde la connexion ouverte (Wi-Fi, proxys).
+/// Comment sent on a silent stream: keeps the connection open (Wi-Fi, proxies).
 const KEEPALIVE: Duration = Duration::from_secs(20);
 
 const PAGE: &str = include_str!("page/index.html");
 const SCRIPT: &str = include_str!("page/jam.js");
 pub(super) const STYLE: &str = include_str!("page/jam.css");
 
-/// Ce qu'un serveur local sert : la page des invités de la Jam, ou celle de la télécommande
-/// (#336). Le serveur ne connaît que ce trait : les droits de chaque page restent dans son
-/// API, et aucune ne peut appeler les commandes de l'autre.
+/// What a local server serves: the Jam guest page, or the remote control one (#336). The
+/// server only knows this trait: each page's rights stay in its API, and neither can call
+/// the other's commands.
 pub trait Site: Send + Sync + 'static {
-    /// Fichier fixe de la page (`GET`), `None` = 404.
+    /// Static file of the page (`GET`), `None` = 404.
     fn file(&self, path: &str) -> Option<Response>;
-    /// Adresse bloquée ou code faux (compté comme un essai raté) : la réponse d'erreur.
+    /// Blocked address or wrong code (counted as a failed attempt): the error answer.
     fn check_code(&self, ip: IpAddr, given: &str) -> Result<(), Response>;
-    /// Appel `POST /api/<…>`, `path` compris, code de l'en-tête `X-Jam-Code`.
+    /// `POST /api/<…>` call, `path` included, code from the `X-Jam-Code` header.
     fn api(
         &self,
         path: &str,
@@ -54,18 +53,18 @@ pub trait Site: Send + Sync + 'static {
         body: &[u8],
         ip: IpAddr,
     ) -> impl Future<Output = Response> + Send;
-    /// État poussé aux pages ouvertes, `None` si le lecteur ne répond pas.
+    /// State pushed to open pages, `None` if the player does not answer.
     fn state_json(&self) -> impl Future<Output = Option<String>> + Send;
-    /// Relire l'état sans attendre.
+    /// Read the state again without waiting.
     fn refresh(&self) -> &Notify;
-    /// Vrai si `path` accepte un corps de plus de 2 Kio (`http::MAX_LARGE_BODY` au plus) ;
-    /// le code est alors vérifié avant de lire le corps.
+    /// True if `path` accepts a body over 2 KiB (`http::MAX_LARGE_BODY` at most); the code is
+    /// then checked before the body is read.
     fn large_body(&self, _path: &str) -> bool {
         false
     }
 }
 
-/// Page des invités de la Jam.
+/// Jam guest page.
 struct JamSite<B> {
     core: Arc<Core>,
     backend: Arc<B>,
@@ -100,17 +99,17 @@ impl<B: Backend> Site for JamSite<B> {
 
 struct Shared<S> {
     site: Arc<S>,
-    /// Dernier état envoyé (JSON). L'émetteur vit dans `serve_site` : le serveur arrêté,
-    /// il disparaît et les flux ouverts se terminent.
+    /// Last state sent (JSON). The sender lives in `serve_site`: once the server stops, it
+    /// goes away and the open streams end.
     updates: watch::Receiver<Arc<str>>,
 }
 
-/// Sert la Jam jusqu'à ce que la tâche soit annulée (fin de la Jam).
+/// Serves the Jam until the task is cancelled (end of the Jam).
 pub async fn serve<B: Backend>(listener: TcpListener, core: Arc<Core>, backend: Arc<B>) {
     serve_site(listener, Arc::new(JamSite { core, backend })).await;
 }
 
-/// Sert `site` jusqu'à ce que la tâche soit annulée.
+/// Serves `site` until the task is cancelled.
 pub async fn serve_site<S: Site>(listener: TcpListener, site: Arc<S>) {
     let (tx, rx) = watch::channel(Arc::<str>::from(""));
     let shared = Arc::new(Shared { site, updates: rx });
@@ -127,7 +126,7 @@ async fn accept_loop<S: Site>(listener: TcpListener, shared: Arc<Shared<S>>) {
         let (mut stream, addr) = match listener.accept().await {
             Ok(c) => c,
             Err(e) => {
-                tracing::warn!("Jam : {e}");
+                tracing::warn!("Jam: {e}");
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 continue;
             }
@@ -139,8 +138,8 @@ async fn accept_loop<S: Site>(listener: TcpListener, shared: Arc<Shared<S>>) {
         let streams = Arc::clone(&streams);
         tokio::spawn(async move {
             let ip = client_ip(addr);
-            // Gros corps (transfert de lecture) : seulement là où le site l'accepte, et avec
-            // le bon code, vérifié avant de lire.
+            // Large body (playback handoff): only where the site accepts it, and with the
+            // right code, checked before reading.
             let allow_large = |head: &Head| {
                 head.method == Method::Post
                     && shared.site.large_body(&head.path)
@@ -154,7 +153,7 @@ async fn accept_loop<S: Site>(listener: TcpListener, shared: Arc<Shared<S>>) {
                 return;
             };
             if req.head.method == Method::Get && req.head.path == "/api/events" {
-                // Un flux dure : il libère la place des requêtes ordinaires.
+                // A stream lasts: it frees the slot of ordinary requests.
                 drop(permit);
                 let given = query_param(&req.head.query, "code").unwrap_or("");
                 if let Err(response) = shared.site.check_code(ip, given) {
@@ -183,14 +182,15 @@ async fn accept_loop<S: Site>(listener: TcpListener, shared: Arc<Shared<S>>) {
     }
 }
 
-/// Relit l'état du lecteur pendant qu'au moins une page écoute, et le publie s'il change.
+/// Reads the player state again while at least one page listens, and publishes it if it
+/// changes.
 async fn push_loop<S: Site>(tx: watch::Sender<Arc<str>>, shared: &Shared<S>) {
     loop {
         tokio::select! {
             () = tokio::time::sleep(PUSH_INTERVAL) => {}
             () = shared.site.refresh().notified() => {}
         }
-        // `Shared` garde un récepteur : au-delà, des pages écoutent.
+        // `Shared` keeps one receiver: beyond it, pages are listening.
         if tx.receiver_count() <= 1 {
             continue;
         }
@@ -207,7 +207,7 @@ async fn push_loop<S: Site>(tx: watch::Sender<Arc<str>>, shared: &Shared<S>) {
     }
 }
 
-/// Flux `text/event-stream` : l'état courant, puis chaque changement.
+/// `text/event-stream` stream: the current state, then each change.
 async fn stream_events(mut stream: TcpStream, mut updates: watch::Receiver<Arc<str>>) {
     let head = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\n\
                 Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n\
@@ -244,7 +244,7 @@ async fn send(stream: &mut TcpStream, text: &str) -> bool {
     )
 }
 
-/// Une adresse IPv4 vue en IPv6 (`::ffff:a.b.c.d`) compte comme l'IPv4.
+/// An IPv4 address seen as IPv6 (`::ffff:a.b.c.d`) counts as the IPv4 one.
 fn client_ip(addr: SocketAddr) -> IpAddr {
     match addr.ip() {
         IpAddr::V6(v6) => v6.to_ipv4_mapped().map_or(IpAddr::V6(v6), IpAddr::V4),

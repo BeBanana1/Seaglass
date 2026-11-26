@@ -1,5 +1,5 @@
-//! Aiguillage de l'acteur lecteur : une commande (`Cmd`) ou un événement du moteur
-//! (`Event`) vers la méthode de `Player` qui le traite.
+//! Routing of the player actor: a command (`Cmd`) or an engine event (`Event`) to the
+//! `Player` method that handles it.
 
 use rand::Rng;
 
@@ -63,8 +63,8 @@ impl Player {
                 }
             }
             Cmd::MoveInQueue { from, to } => {
-                // Le préchargé est toujours `peek_next` : réordonner le milieu de la file ne
-                // le retire pas de mpv (gapless intact, pas de nouvelle résolution).
+                // The preloaded track is always `peek_next`: reordering the middle of the
+                // queue does not remove it from mpv (gapless intact, no new resolution).
                 let next = self.main_queue().peek_next();
                 if self.main_queue_mut().move_manual(from, to) {
                     if self.main_queue().peek_next() == next {
@@ -90,7 +90,7 @@ impl Player {
                     self.on_queue_changed().await;
                     self.load_current(id, 0.0);
                 }
-                None => tracing::debug!("file modifiée depuis l'affichage : titre {} ignoré", id.0),
+                None => tracing::debug!("queue changed since it was shown: track {} ignored", id.0),
             },
             Cmd::Next => self.skip_next().await,
             Cmd::Previous => self.previous().await,
@@ -129,14 +129,14 @@ impl Player {
                 self.on_volume_changed().await;
             }
             Cmd::SetPlaybackSettings(settings) => {
-                // Pris en compte à la prochaine résolution : le titre en cours n'est pas
-                // rechargé, mais passer à « Demander » propose déjà son édition hi-res.
+                // Applied at the next resolution: the current track is not reloaded, but
+                // switching to "Ask" already offers its hi-res edition.
                 if settings.hires_upgrade != self.hires_upgrade {
                     self.hires_upgrade = settings.hires_upgrade;
                     self.maybe_offer_hires();
                 }
-                // Le suivant préchargé est peut-être dans l'ancienne qualité : il sera
-                // redemandé.
+                // The preloaded next track may be in the old quality: it is requested
+                // again.
                 let quality = QualityPolicy::new(&settings);
                 if quality != self.quality {
                     self.quality = quality;
@@ -145,9 +145,9 @@ impl Player {
                 self.radio.enabled = settings.auto_radio;
                 self.pause_on_unplug = settings.pause_on_unplug;
                 self.apply_cache_size(settings.cache_size).await;
-                // Profils par périphérique (#416) : normalisation et exclusif sont notés
-                // pour la sortie en cours avant qu'un changement de sortie n'applique le
-                // profil de la suivante.
+                // Per-device profiles (#416): normalization and exclusive mode are noted
+                // for the current output before a change of output applies the next
+                // one's profile.
                 self.set_device_profiles(settings.device_profiles);
                 self.set_normalization(settings.normalization).await;
                 self.set_equalizer(settings.equalizer).await;
@@ -201,8 +201,8 @@ impl Player {
     pub(super) async fn handle_event(&mut self, ev: Event) {
         let s = &mut self.state;
         match ev {
-            // Position et durée ne valent que pour un titre chargé : avant, elles écraseraient
-            // la position restaurée ou celle du titre en cours de résolution.
+            // Position and duration only hold for a loaded track: before that, they would
+            // overwrite the restored position or that of the track being resolved.
             Event::Position(t) if self.loaded => {
                 s.time_pos = t.unwrap_or(0.0);
                 self.persist_position = true;
@@ -212,11 +212,11 @@ impl Player {
                 self.blind_on_position().await;
             }
             Event::Duration(d) if self.loaded => s.duration = d.unwrap_or(0.0),
-            // Après un enchaînement, le moteur renvoie la valeur du nouveau titre : une baisse
-            // est toujours appliquée (`set_cached`).
+            // After a gapless transition, the engine sends the new track's value: a drop is
+            // always applied (`set_cached`).
             Event::Cached(t) if self.loaded => s.set_cached(t),
             Event::Position(_) | Event::Duration(_) | Event::Cached(_) => {}
-            // Sans titre chargé, la pause reste celle de l'état restauré.
+            // With no track loaded, the pause stays that of the restored state.
             Event::Paused(p) if self.loaded => {
                 s.paused = p;
                 self.persist_position = true;
@@ -239,8 +239,8 @@ impl Player {
         }
     }
 
-    /// Remet la file gardée avant un vidage ou un retrait (#349), si le titre en cours est
-    /// toujours le même. Toute autre modification de la file l'a déjà oubliée.
+    /// Puts back the queue kept before a clear or a removal (#349), if the current track is
+    /// still the same. Any other change to the queue has already dropped it.
     pub(super) async fn restore_queue(&mut self) -> bool {
         match self.undo_queue.take() {
             Some(before) if before.current() == self.main_queue().current() => {

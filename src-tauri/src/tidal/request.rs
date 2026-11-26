@@ -1,5 +1,5 @@
-//! Requêtes authentifiées vers l'API TIDAL : `countryCode`, token rafraîchi sur 401,
-//! pause partagée après un 429.
+//! Authenticated requests to the TIDAL API: `countryCode`, token refreshed on a 401, pause
+//! shared after a 429.
 
 use std::time::Instant;
 
@@ -16,7 +16,7 @@ const JSON_API: &str = "application/vnd.api+json";
 const CLIENT_VERSION: &str = "2025.7.16";
 
 impl TidalClient {
-    /// GET sur l'API v1 avec `countryCode`, en rafraîchissant le token sur 401.
+    /// GET on the v1 API with `countryCode`, refreshing the token on a 401.
     pub(super) async fn get<T: DeserializeOwned>(
         &self,
         path: &str,
@@ -35,10 +35,10 @@ impl TidalClient {
             .await?
             .json()
             .await
-            .map_err(|e| TidalError::Decode(format!("{path} : {e}")))
+            .map_err(|e| TidalError::Decode(format!("{path}: {e}")))
     }
 
-    /// Requête authentifiée avec `countryCode`, en rafraîchissant le token sur 401.
+    /// Authenticated request with `countryCode`, refreshing the token on a 401.
     pub(super) async fn call(&self, call: &Call<'_>) -> Result<reqwest::Response> {
         let mut rejected: Option<String> = None;
         let mut retried = false;
@@ -97,7 +97,7 @@ impl TidalClient {
             req = req.form(form);
         }
         if let Some(json) = call.json {
-            // JSON:API de `openapi.tidal.com` (#196) : un autre type de contenu y est refusé.
+            // JSON:API of `openapi.tidal.com` (#196): any other content type is refused there.
             req = req
                 .header(reqwest::header::CONTENT_TYPE, JSON_API)
                 .body(json.to_string());
@@ -133,7 +133,7 @@ impl TidalClient {
         Err(TidalError::Api {
             status: status.as_u16(),
             message: if status == StatusCode::NOT_FOUND {
-                format!("{path} introuvable ({message})")
+                format!("{path} not found ({message})")
             } else {
                 message
             },
@@ -141,18 +141,18 @@ impl TidalClient {
     }
 }
 
-/// Une requête vers l'API : GET par défaut, ou écriture avec formulaire et ETag.
+/// A request to the API: GET by default, or a write with a form and an ETag.
 #[derive(Clone)]
 pub(super) struct Call<'a> {
     pub method: Method,
     pub base: &'a str,
     pub path: &'a str,
     pub query: &'a [(&'a str, String)],
-    /// Corps `application/x-www-form-urlencoded`.
+    /// `application/x-www-form-urlencoded` body.
     pub form: Option<&'a [(&'a str, String)]>,
-    /// Corps JSON:API (`application/vnd.api+json`), pour `openapi.tidal.com`.
+    /// JSON:API body (`application/vnd.api+json`), for `openapi.tidal.com`.
     pub json: Option<&'a serde_json::Value>,
-    /// ETag de la ressource : TIDAL refuse une modification de playlist sans lui.
+    /// ETag of the resource: TIDAL refuses a playlist change without it.
     pub if_none_match: Option<&'a str>,
     /// Extra headers (streaming session of a stream request, #34).
     pub headers: &'a [(&'a str, &'a str)],
@@ -177,7 +177,7 @@ impl<'a> Call<'a> {
 #[serde(rename_all = "camelCase")]
 struct RawApiError {
     user_message: Option<String>,
-    /// Format des erreurs de l'API v2.
+    /// Error format of the v2 API.
     #[serde(default)]
     errors: Vec<RawApiErrorDetail>,
 }

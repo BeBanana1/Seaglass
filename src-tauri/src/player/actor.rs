@@ -1,5 +1,6 @@
-//! Acteur lecteur : seule tâche qui possède la file, `PlayerState` et le moteur de lecture.
-//! La gestion de la fenêtre du moteur (gapless, erreurs) est dans `playback.rs`.
+//! Player actor: the only task that owns the queue, `PlayerState` and the playback engine.
+//! Commands are in `command.rs` and routed by `dispatch.rs`; the engine window (gapless,
+//! errors) is handled in `playback.rs`.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -33,9 +34,9 @@ use crate::store::Store;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{PlaybackSession, RadioSeed, StreamFormat, Track, TrackId};
 
-/// Intervalle minimal entre deux événements qui ne changent que `time_pos` (~4 Hz).
+/// Minimum interval between two events that only change `time_pos` (~4 Hz).
 const TIME_EMIT_INTERVAL: Duration = Duration::from_millis(250);
-/// Nombre de titres du contexte envoyés à l'UI dans `queue-state`.
+/// Number of context tracks sent to the UI in `queue-state`.
 const UPCOMING_LIMIT: usize = 50;
 
 pub use super::command::{Cmd, Slot};
@@ -44,8 +45,8 @@ pub use super::command::{Cmd, Slot};
 struct Toast {
     level: &'static str,
     message: String,
-    /// Refus du lecteur (clin d'œil #399) : l'UI peut l'habiller selon le thème, le message
-    /// reste celui-ci.
+    /// Refusal by the player (easter egg #399): the UI may dress it up per theme, the
+    /// message stays this one.
     #[serde(skip_serializing_if = "Option::is_none")]
     kind: Option<&'static str>,
 }
@@ -56,52 +57,52 @@ pub(super) struct Player {
     pub(super) store: Option<Arc<Store>>,
     pub(super) tx: mpsc::Sender<Cmd>,
     pub(super) engine: Result<ActiveEngine, String>,
-    /// De quoi relancer le moteur après un arrêt inattendu (#255, `recover.rs`).
+    /// What it takes to restart the engine after an unexpected stop (#255, `recover.rs`).
     pub(super) launch: Launch,
     pub(super) events_tx: mpsc::Sender<Event>,
     pub(super) last_restart: Option<Instant>,
     pub(super) server: Option<ManifestServer>,
     pub(super) rng: StdRng,
     pub(super) queue: Queue,
-    /// File d'avant le dernier vidage ou retrait, tant que rien d'autre ne l'a modifiée
+    /// Queue from before the last clear or removal, as long as nothing else changed it
     /// (#349).
     pub(super) undo_queue: Option<Queue>,
     pub(super) state: PlayerState,
     emitted: PlayerState,
     last_emit: Instant,
-    /// Compteurs qui invalident les résolutions devenues obsolètes.
+    /// Counters that invalidate resolutions gone stale.
     pub(super) load_req: u64,
     pub(super) preload_req: u64,
-    /// Le moteur a le titre courant en entrée 0 (faux après restauration, avant lecture).
+    /// The engine has the current track as entry 0 (false after a restore, before playing).
     pub(super) loaded: bool,
     pub(super) preloading: bool,
-    /// Titre préchargé en entrée 1 du moteur.
+    /// Track preloaded as entry 1 of the engine.
     pub(super) next_loaded: Option<(Track, StreamFormat, PlaybackSession)>,
-    /// Titre pour lequel une nouvelle URL a déjà été demandée après une erreur.
+    /// Track for which a new URL was already requested after an error.
     pub(super) retried: Option<TrackId>,
     pub(super) failures: u32,
-    /// Règles de la qualité demandée à TIDAL (réglages d'Android, #325, #365, #366).
+    /// Rules for the quality requested from TIDAL (Android settings, #325, #365, #366).
     pub(super) quality: QualityPolicy,
-    /// Lire une autre édition hi-res d'un titre qui n'en a pas (#18), ou la proposer (#59).
+    /// Play another hi-res edition of a track that is not hi-res (#18), or offer it (#59).
     pub(super) hires_upgrade: HiresUpgrade,
-    /// Réponses au bandeau « Demander » par album, pour la session : oui = les titres de
-    /// l'album passent à l'édition hi-res sans redemander, non = plus rien n'est proposé.
+    /// Answers to the "Ask" banner per album, for the session: yes = the album's tracks move
+    /// to the hi-res edition without asking again, no = nothing more is offered.
     pub(super) hires_answers: HashMap<u64, bool>,
-    /// Invalide les recherches d'offre lancées pour un titre qui n'est plus le courant.
+    /// Invalidates offer lookups started for a track that is no longer the current one.
     pub(super) offer_req: u64,
-    /// Normalisation du volume (#82) : réglage et ReplayGain des titres chargés.
+    /// Volume normalization (#82): setting and ReplayGain of the loaded tracks.
     pub(super) normalizer: Normalizer,
-    /// Égaliseur (#428) : réglage et profil appliqué.
+    /// Equalizer (#428): setting and applied profile.
     pub(super) equalizer: Equalizer,
-    /// Périphérique de sortie choisi, liste de mpv et repli (#79).
+    /// Chosen output device, mpv's list and fallback (#79).
     pub(super) output: Output,
-    /// Pause quand le périphérique utilisé disparaît (#348).
+    /// Pause when the device in use goes away (#348).
     pub(super) pause_on_unplug: bool,
-    /// Réglages audio retenus par périphérique de sortie (#416).
+    /// Audio settings kept per output device (#416).
     pub(super) profiles: Profiles,
-    /// Échéance du minuteur de mise en veille en durée (#85, état dans `state.sleep`).
+    /// Deadline of a duration sleep timer (#85, state in `state.sleep`).
     pub(super) sleep_deadline: Option<Instant>,
-    /// Radio automatique en fin de file (#78).
+    /// Automatic radio at the end of the queue (#78).
     pub(super) radio: AutoRadio,
     pub(super) queue_dirty: bool,
     pub(super) persist_queue: bool,
@@ -109,16 +110,16 @@ pub(super) struct Player {
     pub(super) persist_volume: bool,
     pub(super) persist_profiles: bool,
     pub(super) last_persist: Instant,
-    /// Dernière écriture lancée : une sauvegarde de fermeture l'attend pour ne pas être
-    /// écrasée par des données plus anciennes (#260).
+    /// Last write started: a save on close waits for it, so older data does not overwrite
+    /// it (#260).
     pub(super) last_write: Option<tokio::task::JoinHandle<()>>,
-    /// Temps réellement écouté du titre courant, pour l'historique local (#202).
+    /// Time actually listened to the current track, for the local history (#202).
     pub(super) listen: ListenTracker,
     /// Listen of the current stream for TIDAL's play log (#34).
     pub(super) playlog: PlayLogTracker,
-    /// Partie de blind test en cours (#434), avec la file mise de côté.
+    /// Blind test game in progress (#434), with the queue set aside.
     pub(super) blind: Option<BlindTest>,
-    /// La partie a changé : `blind-test` part à la prochaine émission.
+    /// The game changed: `blind-test` goes out with the next emit.
     pub(super) blind_dirty: bool,
     /// One stream per account (#35).
     pub(super) takeover: Takeover,
@@ -130,7 +131,7 @@ pub fn spawn(
     tidal: Arc<TidalClient>,
     store: Option<Arc<Store>>,
     launch: Launch,
-    // Lancement par l'utilisateur, sans plantage juste avant : la reprise est permise (#353).
+    // Launched by the user, with no crash just before: resuming is allowed (#353).
     may_resume: bool,
 ) -> mpsc::Sender<Cmd> {
     let (tx, rx) = mpsc::channel(64);
@@ -155,11 +156,11 @@ pub fn spawn(
             tracing::error!("{e}");
             mpv_issue = engine::diagnose();
             if mpv_issue == Some(MpvIssue::CpuUnsupported) {
-                tracing::error!("processeur sans AVX2 : le mpv embarqué ne peut pas tourner");
+                tracing::error!("CPU without AVX2: the bundled mpv cannot run");
                 engine = Err(MpvIssue::CpuUnsupported.message().into());
             }
         }
-        // Android passe le MPD à Media3 en URL `data:` : pas de serveur local.
+        // Android hands the MPD to Media3 as a `data:` URL: no local server.
         #[cfg(desktop)]
         let server = ManifestServer::start()
             .await
@@ -254,7 +255,7 @@ impl Player {
         }
     }
 
-    /// Toute modification de la file invalide le titre préchargé (fenêtre de 2 entrées).
+    /// Any change to the queue invalidates the preloaded track (window of 2 entries).
     pub(super) async fn on_queue_changed(&mut self) {
         self.invalidate_next().await;
         self.mark_queue_dirty();
@@ -265,12 +266,12 @@ impl Player {
         self.queue_dirty = true;
         self.persist_queue = true;
         self.pin_queue_tracks();
-        // File changée : une radio peut de nouveau être demandée.
+        // Queue changed: a radio may be asked for again.
         self.radio.asked = None;
     }
 
-    /// Protège de l'éviction du cache borné les titres de la file (#90) : `queue_view` et
-    /// la sauvegarde les y relisent.
+    /// Shields the queue's tracks from eviction from the bounded cache (#90): `queue_view`
+    /// and the save read them back from it.
     pub(super) fn pin_queue_tracks(&self) {
         let mut ids = self.queue.referenced_ids();
         if let Some(blind) = &self.blind {
@@ -279,7 +280,7 @@ impl Player {
         self.tidal.cache.set_pinned(ids);
     }
 
-    /// File de l'utilisateur, celle mise de côté pendant un blind test (#434).
+    /// The user's queue, the one set aside during a blind test (#434).
     pub(super) fn queue_view(&self) -> QueueView {
         let queue = self.main_queue();
         QueueView {
@@ -293,8 +294,8 @@ impl Player {
         }
     }
 
-    /// « Joué depuis » (#124) : la radio automatique si le titre courant en vient, sinon la
-    /// source donnée avec le contexte.
+    /// "Playing from" (#124): the automatic radio if the current track comes from it, else
+    /// the source given with the context.
     fn play_source(&self) -> Option<PlaySource> {
         let queue = self.main_queue();
         match queue.radio_playing() {
@@ -314,7 +315,7 @@ impl Player {
         let s = &mut self.state;
         s.shuffle = shuffle;
         s.repeat = repeat;
-        // Blind test : Précédent réécoute l'extrait, Suivant passe la manche.
+        // Blind test: Previous replays the clip, Next skips the round.
         s.has_previous = playing || self.queue.has_previous();
         s.has_next = playing || self.queue.peek_next().is_some();
         s.blind_test = playing;
@@ -330,10 +331,10 @@ impl Player {
         if self.queue_dirty {
             self.queue_dirty = false;
             if let Err(e) = self.app.emit("queue-state", self.queue_view()) {
-                tracing::warn!("émission queue-state : {e}");
+                tracing::warn!("emitting queue-state: {e}");
             }
         }
-        // Sans le titre tant qu'une manche de blind test n'est pas révélée (#434).
+        // Without the track while a blind test round is not revealed (#434).
         let state = blind::public_state(&self.state, self.masks_track());
         if *state == self.emitted
             || (self.emitted.differs_only_by_time(&state)
@@ -342,7 +343,7 @@ impl Player {
             return;
         }
         if let Err(e) = self.app.emit("player-state", &*state) {
-            tracing::warn!("émission player-state : {e}");
+            tracing::warn!("emitting player-state: {e}");
         }
         self.observers.notify(&state);
         self.emitted = state.into_owned();
@@ -353,7 +354,7 @@ impl Player {
         self.toast_kind(level, None, message);
     }
 
-    /// Toast d'un refus nommé (`unplayable`, `stopped`), voir `Toast::kind`.
+    /// Toast of a named refusal (`unplayable`, `stopped`), see `Toast::kind`.
     pub(super) fn toast_kind(
         &self,
         level: &'static str,

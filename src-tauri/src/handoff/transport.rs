@@ -1,4 +1,5 @@
-//! Appels au PC lié : réseau local, puis relais chiffré, et messages de ses refus.
+//! Calls to the linked PC: local network, then the encrypted relay, and messages for its
+//! refusals.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -9,21 +10,21 @@ use super::{Link, history, sealed};
 use crate::i18n::{tr, trf};
 use crate::jam::remote::RelayRoute;
 
-/// Réseau local : au-delà, le PC est éteint ou ailleurs.
+/// Local network: past this, the PC is off or elsewhere.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(4);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
-/// Par le relais : réseau mobile, et le relais attend le PC jusqu'à 30 s.
+/// Through the relay: mobile network, and the relay waits up to 30 s for the PC.
 const RELAY_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const RELAY_TIMEOUT: Duration = Duration::from_secs(45);
 
-/// Le dernier appel n'a trouvé le PC que par le relais : les suivants y passent d'abord
-/// (sinon chaque appel attendrait 4 s le réseau local), jusqu'au prochain lancement ou
-/// jusqu'à ce que le relais ne réponde plus.
+/// The last call only reached the PC through the relay: the next ones try it first
+/// (otherwise each call would wait 4 s for the local network), until the next launch or
+/// until the relay stops answering.
 pub(super) static PREFER_RELAY: AtomicBool = AtomicBool::new(false);
 
 impl Link {
-    /// Réseau local, puis relais s'il est connu (ou l'inverse si le dernier appel n'a
-    /// abouti que par le relais).
+    /// Local network, then the relay if it is known (or the other way round if the last
+    /// call only went through the relay).
     pub(super) async fn post(&self, path: &str, body: Option<Vec<u8>>) -> Result<Vec<u8>, String> {
         let answer = match &self.relay {
             None => self.post_lan(path, body).await,
@@ -39,7 +40,7 @@ impl Link {
                 Err(Unreachable) => {
                     let answer = self.post_relay(route, path, body.as_deref()).await;
                     if answer.is_ok() {
-                        tracing::info!("Transfert : ordinateur joint par le relais");
+                        tracing::info!("Handoff: computer reached through the relay");
                         PREFER_RELAY.store(true, Ordering::Relaxed);
                     }
                     answer
@@ -74,7 +75,7 @@ impl Link {
                 .body(body);
         }
         let response = request.send().await.map_err(|e| {
-            tracing::info!("Transfert : PC injoignable sur le réseau local ({e})");
+            tracing::info!("Handoff: PC unreachable on the local network ({e})");
             Unreachable
         })?;
         let status = response.status().as_u16();
@@ -82,7 +83,7 @@ impl Link {
         Ok((status, body.to_vec()))
     }
 
-    /// Même appel, chiffré, par le tunnel du PC sur le relais.
+    /// Same call, encrypted, through the PC's tunnel on the relay.
     async fn post_relay(
         &self,
         route: &RelayRoute,
@@ -110,7 +111,7 @@ impl Link {
             .send()
             .await
             .map_err(|e| {
-                tracing::info!("Transfert : relais injoignable ({e})");
+                tracing::info!("Handoff: relay unreachable ({e})");
                 Unreachable
             })?;
         let status = response.status().as_u16();
@@ -119,31 +120,31 @@ impl Link {
             200 => {
                 let answer =
                     sealed::open_response(&key, tunnel, &nonce, &text).ok_or_else(|| {
-                        tracing::warn!("Transfert : réponse du relais illisible");
+                        tracing::warn!("Handoff: unreadable answer from the relay");
                         Unreachable
                     })?;
                 Ok((answer.status, answer.body.into_bytes()))
             }
-            // Clé refusée par le PC (« Nouveau code ») : même effet qu'un code refusé.
+            // Key refused by the PC ("New code"): same effect as a refused code.
             403 => Ok((401, br#"{"error":"code"}"#.to_vec())),
             _ => {
-                tracing::info!("Transfert : PC absent du relais ({status})");
+                tracing::info!("Handoff: PC not on the relay ({status})");
                 Err(Unreachable)
             }
         }
     }
 }
 
-/// Ni le réseau local ni le relais n'ont atteint le PC.
+/// Neither the local network nor the relay reached the PC.
 #[derive(Debug)]
 pub(super) struct Unreachable;
 
-/// Message d'une réponse d'erreur du PC.
+/// Message for an error answer from the PC.
 pub(super) fn refused(status: u16, body: &[u8]) -> String {
     let kind = serde_json::from_slice::<ErrorBody>(body)
         .map(|b| b.error)
         .unwrap_or_default();
-    tracing::info!("Transfert : refus du PC ({status} {kind})");
+    tracing::info!("Handoff: refused by the PC ({status} {kind})");
     refusal(status, &kind)
 }
 
@@ -161,7 +162,7 @@ pub(super) fn unreachable_pc() -> String {
     .to_owned()
 }
 
-/// Message d'un refus du PC (code HTTP et type d'erreur de l'API de la télécommande).
+/// Message for a refusal by the PC (HTTP status and error kind of the remote control API).
 fn refusal(status: u16, kind: &str) -> String {
     match (status, kind) {
         (401, _) => tr(

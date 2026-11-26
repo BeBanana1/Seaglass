@@ -1,8 +1,8 @@
-//! Client HTTP TIDAL : authentification, requêtes, titres et flux.
-//! Les endpoints de catalogue (albums, artistes, playlists, favoris, accueil) sont dans
-//! `catalog.rs` ; les formats JSON bruts dans `raw.rs`.
+//! TIDAL HTTP client: tracks and streams. The session (sign-in, token refresh) is in
+//! `session.rs`, the authenticated requests in `request.rs`, the catalog endpoints (albums,
+//! artists, playlists, favorites, home) in `catalog.rs` and the raw JSON formats in `raw.rs`.
 //!
-//! Endpoints vérifiés avec le spike : `sessions`, `tracks/{id}`,
+//! Endpoints checked with the spike: `sessions`, `tracks/{id}`,
 //! `tracks/{id}/playbackinfopostpaywall`.
 
 use std::time::Duration;
@@ -27,11 +27,11 @@ use super::{Result, TidalError};
 
 pub(super) const API_V1: &str = "https://api.tidal.com/v1/";
 pub(super) const API_V2: &str = "https://api.tidal.com/v2/";
-/// API officielle (JSON:API), acceptée avec le token du client PKCE (vérifié le
-/// 2026-11-05, #196).
+/// Official API (JSON:API), accepted with the PKCE client's token (checked on 2026-11-05,
+/// #196).
 pub(super) const OPEN_API: &str = "https://openapi.tidal.com/v2/";
 const USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 12; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/91.0.4472.114 Safari/537.36";
-/// Taille maximale lue dans un segment d'initialisation pour y chercher du DRM.
+/// Maximum size read from an init segment to look for DRM in it.
 const INIT_PROBE_BYTES: usize = 256 * 1024;
 
 pub struct TidalClient {
@@ -39,21 +39,21 @@ pub struct TidalClient {
     pub(super) creds: ClientCredentials,
     pub(super) auth: RwLock<Option<AuthState>>,
     pub(super) restored: OnceCell<()>,
-    /// Signalé quand TIDAL refuse le rafraîchissement en cours de route (#259).
+    /// Signaled when TIDAL refuses the refresh along the way (#259).
     pub(super) session_lost: Notify,
     pub cache: TrackCache,
     pub(super) hires: HiresCache,
     pub(super) likes: Likes,
-    /// Identifiants de « Plus tard » (#196), mêmes ensembles que les favoris.
+    /// Ids of "Save for later" (#196), same sets as the favorites.
     pub(super) later: Likes,
-    /// Titres et artistes bloqués (#334), pour filtrer mixes et radios.
+    /// Blocked tracks and artists (#334), to filter mixes and radios.
     pub(super) blocks: super::blocks::Blocks,
-    /// Titres lisibles ou non, retenus pour la session (#383).
+    /// Tracks known to be playable or not, kept for the session (#383).
     pub(super) availability: super::availability::Availability,
     pub(super) playlists: PlaylistCache,
     pub(super) versions: super::versions::PlaylistVersions,
     pub(super) home: super::home::HomeCache,
-    /// Sorties récentes des artistes suivis (#415).
+    /// Recent releases of the followed artists (#415).
     pub(super) releases: super::releases::ReleasesCache,
     /// Pause shared by all requests after a 429 (#37).
     pub(super) backoff: Backoff,
@@ -86,7 +86,7 @@ impl TidalClient {
         })
     }
 
-    /// Métadonnées d'un titre, depuis le cache si possible.
+    /// Metadata of a track, from the cache if possible.
     pub async fn track(&self, id: TrackId) -> Result<Track> {
         if let Some(track) = self.cache.get(id) {
             return Ok(track);
@@ -94,12 +94,12 @@ impl TidalClient {
         let raw: RawTrack = self.get(&format!("tracks/{id}"), &[]).await?;
         let track = raw
             .into_track()
-            .ok_or_else(|| TidalError::Decode(format!("titre {id} sans album")))?;
+            .ok_or_else(|| TidalError::Decode(format!("track {id} without an album")))?;
         self.cache.insert_all([&track]);
         Ok(track)
     }
 
-    /// Demande un flux et refuse tout flux chiffré (manifeste ou segment d'initialisation).
+    /// Requests a stream and refuses any encrypted stream (manifest or init segment).
     /// Each request opens its own streaming session, reported by the play log once the
     /// stream is heard (#34).
     pub async fn stream(
@@ -137,7 +137,8 @@ impl TidalClient {
         })
     }
 
-    /// Format servi pour `id`, sans lire le flux : sert à proposer une édition hi-res (#59).
+    /// Format served for `id`, without reading the stream: used to offer a hi-res edition
+    /// (#59).
     pub async fn playback_format(
         &self,
         id: TrackId,
@@ -177,7 +178,7 @@ impl TidalClient {
             .await?
             .json()
             .await
-            .map_err(|e| TidalError::Decode(format!("{path} : {e}")))?;
+            .map_err(|e| TidalError::Decode(format!("{path}: {e}")))?;
         let decoded = manifest::decode(&raw.manifest_mime_type, &raw.manifest)?;
         Ok((raw, decoded))
     }
@@ -192,7 +193,7 @@ impl TidalClient {
             }
         }
         match manifest::find_init_drm_box(&head) {
-            Some(b) => Err(TidalError::Drm(format!("boîte {b} dans le segment d'init"))),
+            Some(b) => Err(TidalError::Drm(format!("{b} box in the init segment"))),
             None => Ok(()),
         }
     }
@@ -206,10 +207,10 @@ pub(super) struct Fetch<'a> {
     pub prefetch: bool,
 }
 
-// --- Formats JSON bruts --------------------------------------------------------------
+// --- Raw JSON formats -----------------------------------------------------------------
 
-/// Réponse de `playbackinfopostpaywall` (vérifiée le 2026-10-30) : le gain et les crêtes
-/// ReplayGain y sont aussi, lus par les infos du titre (#3).
+/// Answer of `playbackinfopostpaywall` (checked on 2026-10-30): the ReplayGain gains and
+/// peaks are there too, read by the track info (#3).
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct RawPlayback {

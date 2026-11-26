@@ -1,18 +1,17 @@
-//! Transfert de la lecture avec un ordinateur lié (#414), côté téléphone.
+//! Playback handoff with a linked computer (#414), phone side.
 //!
-//! Le PC sert les transferts sur le serveur de sa télécommande (`jam/remote`, réseau
-//! local, « Accepter les transferts ») ; c'est toujours le téléphone qui agit :
-//! « Reprendre ici » (`pull` : le PC donne sa lecture et se met en pause) et « Continuer
-//! sur le PC » (`push` : le téléphone se met en pause et envoie la sienne). Le téléphone
-//! n'écoute jamais sur le réseau.
+//! The PC serves handoffs on its remote control server (`jam/remote`, local network,
+//! "Accept handoffs"); the phone always acts: "Resume here" (`pull`: the PC gives its
+//! playback and pauses) and "Continue on the PC" (`push`: the phone pauses and sends its
+//! own). The phone never listens on the network.
 //!
-//! Le lien (adresse et code de la télécommande, `http://…:47801/#CODE`) est collé une fois
-//! et gardé dans le gestionnaire de secrets (Keystore sur Android) : le code donne le
-//! contrôle de la lecture du PC.
+//! The link (address and code of the remote control, `http://…:47801/#CODE`) is pasted once
+//! and kept in the credential store (`credentials.rs`, Keystore on Android): the code gives
+//! control of the PC's playback.
 //!
-//! Le même lien sert à synchroniser l'historique d'écoute (`history`, #430). Hors du réseau
-//! local, les deux passent par le relais, chiffrés de bout en bout (`sealed`) : l'adresse
-//! en ligne et la clé sont apprises du PC sur le réseau local et gardées avec le lien.
+//! The same link syncs the listening history (`history`, #430). Off the local network, both
+//! go through the relay, end-to-end encrypted (`sealed`, `transport.rs`): the online address
+//! and the key are learned from the PC on the local network and kept with the link.
 
 pub mod history;
 pub mod sealed;
@@ -30,33 +29,33 @@ use crate::i18n::tr;
 use crate::jam::remote::{RelayRoute, is_code};
 use crate::player::{Cmd, Handoff};
 
-/// Ordinateur lié : adresse de sa télécommande et code de propriétaire.
+/// Linked computer: address of its remote control and owner code.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Link {
-    /// `http://hôte:port/`.
+    /// `http://host:port/`.
     base: String,
     code: String,
-    /// Chemin par le relais (#430), appris sur le réseau local.
+    /// Route through the relay (#430), learned on the local network.
     relay: Option<RelayRoute>,
 }
 
-/// Ce que l'UI montre de l'ordinateur lié (jamais le code).
+/// What the UI shows of the linked computer (never the code).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkInfo {
     /// `192.168.1.105:47801`.
     pub host: String,
-    /// Dernière synchro réussie de l'historique (ms, #430).
+    /// Last successful history sync (ms, #430).
     pub synced_at: Option<i64>,
-    /// Joignable aussi par le relais, hors du réseau local (#430).
+    /// Also reachable through the relay, off the local network (#430).
     pub online: bool,
 }
 
 impl Link {
-    /// Lien saisi par l'utilisateur : l'adresse de la télécommande avec son code après
-    /// `#` (« Copier l'adresse » du PC), ou les deux tapés à la main, séparés par un espace
-    /// (`192.168.1.20:47801 XXXX-XXXX-XXXX`, `http://` facultatif). Casse, espaces et
-    /// tirets ignorés dans le code. `None` si ce n'en est pas un.
+    /// Link typed by the user: the remote control's address with its code after `#` (the
+    /// PC's "Copy address"), or both typed by hand, separated by a space
+    /// (`192.168.1.20:47801 XXXX-XXXX-XXXX`, `http://` optional). Case, spaces and dashes are
+    /// ignored in the code. `None` if it is not one.
     pub fn parse(text: &str) -> Option<Self> {
         let text = text.trim();
         let text = if text.contains('#') {
@@ -108,32 +107,32 @@ impl Link {
         }
     }
 
-    /// Forme gardée dans le gestionnaire de secrets.
+    /// Form kept in the credential store.
     fn stored(&self) -> String {
         format!("{}#{}", self.base, self.code)
     }
 
-    /// Le PC répond et accepte le code (`join`).
+    /// The PC answers and accepts the code (`join`).
     pub async fn check(&self) -> Result<(), String> {
         self.post("api/join", None).await.map(drop)
     }
 
-    /// « Reprendre ici » : la lecture du PC, qui se met en pause.
+    /// "Resume here": the PC's playback, and the PC pauses.
     pub async fn take(&self) -> Result<Handoff, String> {
         let body = self.post("api/handoff/take", None).await?;
         serde_json::from_slice(&body).map_err(|e| {
-            tracing::warn!("Transfert : réponse illisible ({e})");
+            tracing::warn!("Handoff: unreadable answer ({e})");
             unreachable_pc()
         })
     }
 
-    /// « Continuer sur le PC » : le PC reprend `handoff`.
+    /// "Continue on the PC": the PC resumes `handoff`.
     pub async fn give(&self, handoff: &Handoff) -> Result<(), String> {
         let body = serde_json::to_vec(handoff).map_err(|e| e.to_string())?;
         self.post("api/handoff/give", Some(body)).await.map(drop)
     }
 
-    /// Un échange de l'historique d'écoute (#430).
+    /// One exchange of the listening history (#430).
     pub async fn sync_plays(
         &self,
         request: &history::SyncRequest,
@@ -141,12 +140,12 @@ impl Link {
         let body = serde_json::to_vec(request).map_err(|e| e.to_string())?;
         let body = self.post("api/plays/sync", Some(body)).await?;
         serde_json::from_slice(&body).map_err(|e| {
-            tracing::warn!("Historique : réponse illisible ({e})");
+            tracing::warn!("History: unreadable answer ({e})");
             unreachable_pc()
         })
     }
 
-    /// Chemin par le relais connu du téléphone.
+    /// Route through the relay known to the phone.
     pub fn relay(&self) -> Option<&RelayRoute> {
         self.relay.as_ref()
     }
@@ -155,9 +154,9 @@ impl Link {
         Self { relay, ..self }
     }
 
-    /// Demande au PC, **sur le réseau local seulement**, de quoi le joindre par le relais
-    /// (#430). `None` s'il n'a pas de tunnel ouvert (pas de clé de relais, relais pas à
-    /// jour) ou s'il est trop ancien.
+    /// Asks the PC, **on the local network only**, how to reach it through the relay
+    /// (#430). `None` if it has no open tunnel (no relay key, relay not up to date) or if it
+    /// is too old.
     pub async fn fetch_relay(&self) -> Result<Option<RelayRoute>, String> {
         let (status, body) = self
             .post_lan("api/relay", None)
@@ -177,8 +176,7 @@ fn stopped() -> String {
     tr("lecteur arrêté", "player stopped").to_owned()
 }
 
-/// « Reprendre ici » : le PC donne sa lecture (et se met en pause), le lecteur d'ici la
-/// reprend.
+/// "Resume here": the PC gives its playback (and pauses), the player here resumes it.
 pub async fn pull(link: &Link, player: &mpsc::Sender<Cmd>) -> Result<(), String> {
     let handoff = link.take().await?;
     let handoff = handoff
@@ -195,8 +193,8 @@ pub async fn pull(link: &Link, player: &mpsc::Sender<Cmd>) -> Result<(), String>
         .ok_or_else(stopped)
 }
 
-/// « Continuer sur le PC » : le lecteur d'ici se met en pause et donne sa lecture au PC.
-/// Si le PC la refuse, la lecture reprend ici.
+/// "Continue on the PC": the player here pauses and gives its playback to the PC. If the
+/// PC refuses it, playback resumes here.
 pub async fn push(link: &Link, player: &mpsc::Sender<Cmd>) -> Result<(), String> {
     let (tx, rx) = oneshot::channel();
     player
@@ -257,7 +255,7 @@ mod tests {
         assert_eq!(Link::parse("ftp://192.168.1.105/#H4KX9QMT2WZP"), None);
         assert_eq!(Link::parse("http://a:b@192.168.1.105/#H4KX9QMT2WZP"), None);
         assert_eq!(Link::parse("H4KX9QMT2WZP"), None);
-        // Un chemin ou une query sont ignorés : seule l'origine sert.
+        // A path or a query is ignored: only the origin counts.
         let link = Link::parse("http://pc.local:47801/x?y=1#H4KX9QMT2WZP").unwrap();
         assert_eq!(link.base, "http://pc.local:47801/");
     }

@@ -1,4 +1,4 @@
-//! Commandes de l'acteur lecteur (`Cmd`) et destination d'un flux résolu (`Slot`).
+//! Commands of the player actor (`Cmd`) and destination of a resolved stream (`Slot`).
 
 use tokio::sync::oneshot;
 
@@ -21,30 +21,31 @@ pub enum Cmd {
         /// `Some(false)`: turns shuffle off, as the "Play" buttons do (#526). `None`: keeps
         /// the current mode (a track picked in a list).
         shuffle: Option<bool>,
-        /// Album, playlist… d'où vient le contexte (« Joué depuis », #124).
+        /// Album, playlist… the context comes from ("Playing from", #124).
         source: Option<PlaySource>,
     },
     PlayNext(TrackId),
     AddToQueue(TrackId),
-    /// Plusieurs titres dans l'ordre donné : en tête de la file manuelle si `next`, sinon à la fin.
+    /// Several tracks in the given order: at the head of the manual queue if `next`, else at
+    /// the end.
     Enqueue {
         ids: Vec<TrackId>,
         next: bool,
     },
     RemoveFromQueue(usize),
-    /// Retire de la file manuelle une entrée par identifiant (invités de la Jam, #223).
+    /// Removes entries from the manual queue by id (Jam guests, #223).
     RemoveFromQueueIds(Vec<TrackId>),
-    /// Déplace une entrée de la file manuelle (`from` finit à l'index `to`).
+    /// Moves an entry of the manual queue (`from` ends up at index `to`).
     MoveInQueue {
         from: usize,
         to: usize,
     },
-    /// Vide la file manuelle et la suite du contexte ; le titre courant continue.
+    /// Clears the manual queue and the rest of the context; the current track goes on.
     ClearQueue,
-    /// Annule le dernier « Vider la file » ou retrait d'un titre (#349) ; répond `false`
-    /// si la file a changé depuis.
+    /// Undoes the last "Clear queue" or track removal (#349); answers `false` if the queue
+    /// changed since.
     RestoreQueue(oneshot::Sender<bool>),
-    /// Lit un titre de la file tel que l'UI l'affiche (#167) ; ignoré si ce n'est plus `id`.
+    /// Plays a queue track as the UI shows it (#167); ignored if it is no longer `id`.
     PlayFromQueue {
         part: QueuePart,
         index: usize,
@@ -56,58 +57,57 @@ pub enum Cmd {
     Seek(f64),
     SetShuffle(bool),
     SetRepeat(Repeat),
-    /// Niveau 0–100, déjà validé par la commande.
+    /// Level 0–100, already checked by the command.
     SetVolume(u8),
-    /// Un cran de volume relatif au niveau entendu (raccourcis globaux, #413, bureau seulement).
+    /// One volume step from the level heard (global shortcuts, #413, desktop only).
     #[cfg(desktop)]
     StepVolume(i8),
     SetMuted(bool),
-    /// Réglages de lecture enregistrés, appliqués à chaud (taille du cache mpv, édition
-    /// hi-res).
+    /// Saved playback settings, applied live (mpv cache size, hi-res edition).
     SetPlaybackSettings(PlaybackSettings),
-    /// Réponse au bandeau qui propose l'édition hi-res du titre courant (#59).
+    /// Answer to the banner offering the hi-res edition of the current track (#59).
     AnswerHiresOffer(bool),
-    /// Minuteur de mise en veille (#85), déjà validé ; `None` l'annule.
+    /// Sleep timer (#85), already checked; `None` cancels it.
     SetSleepTimer(Option<SleepRequest>),
     GetState(oneshot::Sender<PlayerState>),
-    /// Sauvegarde immédiate de la file, de la position et du volume, à la fermeture
-    /// (#260) ; la réponse part une fois l'écriture terminée. Canal synchrone : attendu
-    /// depuis le thread principal (`RunEvent::Exit`) ou l'updater, hors de tokio.
+    /// Saves the queue, position and volume at once, on close (#260); the answer goes out
+    /// once the write is done. Synchronous channel: awaited from the main thread
+    /// (`RunEvent::Exit`) or the updater, outside tokio.
     Flush(std::sync::mpsc::Sender<()>),
     GetQueue(oneshot::Sender<QueueView>),
-    /// Transfert vers un autre appareil (#414) : instantané de la lecture, puis pause ;
-    /// `None` si rien n'est en cours.
+    /// Handoff to another device (#414): snapshot of the playback, then pause; `None` if
+    /// nothing is playing.
     TakeHandoff(oneshot::Sender<Option<Handoff>>),
-    /// Reprend une lecture transférée, déjà vérifiée (`Handoff::received`) ; répond
-    /// `false` si elle n'a pas de titre courant.
+    /// Resumes a handed-off playback, already checked (`Handoff::received`); answers `false`
+    /// if it has no current track.
     ApplyHandoff(Box<Handoff>, oneshot::Sender<bool>),
-    /// Ordre de lecture complet, plafonné (#327).
+    /// Full play order, capped (#327).
     GetPlayOrder(usize, oneshot::Sender<Vec<TrackId>>),
-    /// Périphériques de sortie connus de mpv, pour les Réglages (#79).
+    /// Output devices known to mpv, for Settings (#79).
     GetAudioDevices(oneshot::Sender<AudioDevices>),
-    /// Lecture (`false`) ou pause (`true`) explicite : touches média (SMTC, session média
-    /// d'Android) et invités de la Jam (#222).
+    /// Explicit play (`false`) or pause (`true`): media keys (SMTC, Android media session)
+    /// and Jam guests (#222).
     SetPaused(bool),
-    /// Session reprise au lancement : lire le titre restauré si rien n'a été lancé
-    /// entre-temps (#353).
+    /// Session resumed at launch: plays the restored track if nothing was started in the
+    /// meantime (#353).
     ResumeOnLaunch,
-    /// Branche les intégrations système (SMTC…), créées après l'acteur.
-    /// En boîte : les poignées des intégrations alourdiraient toutes les commandes.
+    /// Attaches the system integrations (SMTC…), created after the actor.
+    /// Boxed: the integration handles would make every command heavier.
     AttachObservers(Box<Observers>),
     /// Blind test (#434).
     BlindTest(BlindCmd),
-    /// Résultat d'une résolution réseau (métadonnées + flux) lancée par l'acteur.
+    /// Result of a network resolution (metadata + stream) started by the actor.
     Resolved {
         request: u64,
         slot: Slot,
         result: Result<Box<(Track, Stream)>, String>,
     },
-    /// Édition hi-res trouvée pour le titre courant, à proposer (mode « Demander »).
+    /// Hi-res edition found for the current track, to offer ("Ask" mode).
     HiresOffer {
         request: u64,
         offer: StreamFormat,
     },
-    /// Radio du titre `seed`, demandée quand la file s'épuise (#78).
+    /// Radio of track `seed`, asked for when the queue runs out (#78).
     RadioResolved {
         request: u64,
         seed: TrackId,
@@ -117,11 +117,11 @@ pub enum Cmd {
     PlaybackTaken(PlaybackTaken),
 }
 
-/// Destination d'un flux résolu dans la fenêtre du moteur.
+/// Where a resolved stream goes in the engine window.
 #[derive(Debug, Clone, Copy)]
 pub enum Slot {
-    /// Entrée 0, qui remplace la fenêtre, à partir de `start` secondes.
+    /// Entry 0, which replaces the window, from `start` seconds.
     Current { start: f64 },
-    /// Entrée 1, préchargée à la suite pour le gapless.
+    /// Entry 1, preloaded after it for gapless.
     Next(TrackId),
 }

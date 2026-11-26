@@ -43,7 +43,8 @@ async fn serves_the_page_without_code() {
     assert_eq!(call(addr, "GET", "/secret", "", "").await.0, 404);
 }
 
-/// Blind test à plusieurs (#441) : la route d'un seul segment passe aussi le relais.
+/// Blind test with several players (#441): the single-segment route also goes through the
+/// relay.
 #[tokio::test]
 async fn guests_answer_the_blind_test_over_http() {
     let (addr, fake) = start().await;
@@ -59,10 +60,10 @@ async fn guests_answer_the_blind_test_over_http() {
     );
 }
 
-/// Aperçu de la page des invités pendant un blind test (#441) :
-/// `cargo test jam_blind_preview -- --ignored --nocapture`, puis l'adresse affichée
-/// (10 min). La manche est révélée 3 s après la première réponse, puis la suivante
-/// commence 8 s plus tard.
+/// Preview of the guest page during a blind test (#441):
+/// `cargo test jam_blind_preview -- --ignored --nocapture`, then the address shown
+/// (10 min). The round is revealed 3 s after the first answer, then the next one starts
+/// 8 s later.
 #[tokio::test]
 #[ignore]
 async fn jam_blind_preview() {
@@ -170,7 +171,7 @@ async fn api_requires_the_code_and_blocks_guessing() {
     for _ in 0..crate::jam::guard::MAX_FAILURES {
         assert_eq!(call(addr, "POST", "/api/join", "ZZZZZZ", "").await.0, 401);
     }
-    // Bloqué : même le bon code est refusé, flux compris.
+    // Blocked: even the right code is refused, the stream included.
     assert_eq!(call(addr, "POST", "/api/join", CODE, "").await.0, 429);
     let events = format!("/api/events?code={CODE}");
     assert_eq!(call(addr, "GET", &events, "", "").await.0, 429);
@@ -203,7 +204,7 @@ async fn guest_names_reach_the_host_and_the_queue() {
     let add = r#"{"trackId":1,"name":"  Léa \n"}"#;
     assert_eq!(call(addr, "POST", "/api/add", CODE, add).await.0, 200);
     assert_eq!(*fake.named.lock().unwrap(), vec![(1, "Léa".to_owned())]);
-    // Sans nom : ajouté, mais anonyme.
+    // Without a name: added, but anonymous.
     assert_eq!(
         call(addr, "POST", "/api/add", CODE, r#"{"trackId":2}"#)
             .await
@@ -229,7 +230,7 @@ async fn events_push_the_state_and_its_changes() {
     let mut next_data = async || loop {
         let line = tokio::time::timeout(Duration::from_secs(5), lines.next_line())
             .await
-            .expect("aucun événement")
+            .expect("no event")
             .unwrap()
             .unwrap();
         if let Some(data) = line.strip_prefix("data: ") {
@@ -251,8 +252,8 @@ async fn events_push_the_state_and_its_changes() {
 #[tokio::test]
 async fn guests_never_reach_the_owner_commands() {
     let (addr, _) = start().await;
-    // Commandes de la télécommande (#336) : inconnues du serveur de la Jam. Le volume a
-    // sa route invité, fermée par défaut (#449).
+    // Remote control commands (#336): unknown to the Jam server. The volume has its
+    // guest route, closed by default (#449).
     assert_eq!(call(addr, "POST", "/api/volume", CODE, "{}").await.0, 403);
     for path in ["/api/next", "/api/seek", "/api/play-album"] {
         assert_eq!(call(addr, "POST", path, CODE, "{}").await.0, 404, "{path}");
@@ -296,7 +297,7 @@ async fn guests_pause_only_when_the_host_allows_it() {
     let state: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(state["controls"], false);
 
-    // Limite par adresse.
+    // Limit per address.
     core.set_controls(true);
     for _ in 1..crate::jam::guard::CONTROLS_PER_MINUTE {
         assert_eq!(call(addr, "POST", "/api/pause", CODE, pause).await.0, 200);
@@ -326,7 +327,7 @@ async fn albums_are_added_as_one_batch_that_only_its_owner_removes() {
     let (addr, fake) = start().await;
     let (lea, max) = ("a".repeat(32), "b".repeat(32));
     let album = format!(r#"{{"albumId":40,"name":"Léa","guest":"{lea}"}}"#);
-    // Pas encore proposé par une recherche.
+    // Not offered by a search yet.
     assert_eq!(
         call(addr, "POST", "/api/add-album", CODE, &album).await.0,
         400
@@ -347,7 +348,7 @@ async fn albums_are_added_as_one_batch_that_only_its_owner_removes() {
     assert_eq!(state["queue"][0]["by"], "Léa");
     assert_eq!(state["queue"][0]["batch"], batch);
 
-    // Un autre jeton ne retire rien ; sans jeton valable, la requête est refusée.
+    // Another token removes nothing; without a valid token, the request is refused.
     let remove =
         |guest: &str, track: &str| format!(r#"{{"guest":"{guest}","batch":{batch}{track}}}"#);
     let (_, body) = call(addr, "POST", "/api/remove", CODE, &remove(&max, "")).await;
@@ -359,7 +360,7 @@ async fn albums_are_added_as_one_batch_that_only_its_owner_removes() {
         400
     );
 
-    // Un titre, puis le reste du lot.
+    // One track, then the rest of the batch.
     let one = remove(&lea, r#","trackId":101"#);
     let (_, body) = call(addr, "POST", "/api/remove", CODE, &one).await;
     assert_eq!(body, r#"{"ok":true,"removed":1}"#);
@@ -381,8 +382,8 @@ async fn pasted_links_are_resolved_instead_of_searched() {
     let hits: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(hits["link"], true);
     assert_eq!(hits["albums"][0]["id"], 41);
-    // L'album du lien est proposé comme celui d'une recherche (le faux n'a pas de
-    // titres pour lui : « empty » et pas « unknown »).
+    // The link's album is offered like a searched one (the fake has no tracks for
+    // it: "empty", not "unknown").
     let add = r#"{"albumId":41}"#;
     let (_, body) = call(addr, "POST", "/api/add-album", CODE, add).await;
     assert_eq!(body, r#"{"error":"empty"}"#);

@@ -1,4 +1,4 @@
-//! Lien gardé dans le gestionnaire de secrets (Credential Manager, Keystore sur Android).
+//! Link kept in the credential store (Credential Manager, Keystore on Android).
 
 use std::sync::atomic::Ordering;
 
@@ -8,14 +8,14 @@ use crate::jam::remote::RelayRoute;
 
 const KEYRING_SERVICE: &str = "seaglass";
 const KEYRING_USER: &str = "handoff-link";
-/// Adresse en ligne et clé du tunnel (#430), JSON de `RelayRoute`.
+/// Online address and tunnel key (#430), JSON of `RelayRoute`.
 const KEYRING_RELAY: &str = "handoff-relay";
 
 fn keyring_entry() -> Result<keyring::Entry, String> {
     keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER).map_err(|e| e.to_string())
 }
 
-/// Ordinateur lié, `None` s'il n'y en a pas (ou si le lien gardé est abîmé).
+/// Linked computer, `None` if there is none (or if the stored link is damaged).
 pub async fn load() -> Result<Option<Link>, String> {
     blocking(|| {
         let link = match keyring_entry()?.get_password() {
@@ -24,7 +24,7 @@ pub async fn load() -> Result<Option<Link>, String> {
             Err(e) => return Err(e.to_string()),
         };
         let Some(link) = link else { return Ok(None) };
-        // Chemin par le relais abîmé ou absent : le lien reste, sans lui.
+        // Relay route damaged or missing: the link stays, without it.
         let relay = relay_entry()?
             .get_password()
             .ok()
@@ -38,7 +38,7 @@ fn relay_entry() -> Result<keyring::Entry, String> {
     keyring::Entry::new(KEYRING_SERVICE, KEYRING_RELAY).map_err(|e| e.to_string())
 }
 
-/// Garde (ou oublie) le chemin par le relais de l'ordinateur lié.
+/// Keeps (or forgets) the relay route of the linked computer.
 pub async fn save_relay(route: Option<RelayRoute>) -> Result<(), String> {
     blocking(move || {
         let entry = relay_entry()?;
@@ -76,7 +76,7 @@ pub async fn clear() -> Result<(), String> {
     .await
 }
 
-/// `keyring` est synchrone (et bloquant sur Android, appel au Keystore).
+/// `keyring` is synchronous (and blocking on Android, a call to the Keystore).
 async fn blocking<T: Send + 'static>(
     f: impl FnOnce() -> Result<T, String> + Send + 'static,
 ) -> Result<T, String> {

@@ -1,5 +1,5 @@
-//! Partie de blind test (#434) : tirage des manches, extraits, réponses et score. Logique
-//! pure, sans moteur ni réseau ; l'acteur la pilote depuis `blind/mod.rs`.
+//! Blind test game (#434): drawing the rounds, clips, answers and score. Pure logic, with
+//! no engine or network; the actor drives it from `blind/mod.rs`.
 
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -9,12 +9,12 @@ use super::answer::{self, title_key};
 use super::players::{HOST_KEY, Pending, PlayerResult, Players, Refusal};
 use crate::tidal::models::Track;
 
-/// Durée d'un extrait, en secondes.
+/// Length of a clip, in seconds.
 pub const CLIP_LENGTH: f64 = 15.0;
-/// Titres différents nécessaires : quatre propositions par manche.
+/// Distinct tracks needed: four choices per round.
 pub const MIN_POOL: usize = 4;
 const CHOICES: usize = 4;
-/// Points d'un titre trouvé, d'un artiste trouvé ; une bonne proposition vaut les deux.
+/// Points for a title found, for an artist found; a right choice is worth both.
 const TITLE_POINTS: u32 = 2;
 const ARTIST_POINTS: u32 = 1;
 pub const ROUND_POINTS: u32 = TITLE_POINTS + ARTIST_POINTS;
@@ -22,9 +22,9 @@ pub const ROUND_POINTS: u32 = TITLE_POINTS + ARTIST_POINTS;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Mode {
-    /// Saisie libre du titre et / ou de l'artiste.
+    /// Free typing of the title and / or the artist.
     Typing,
-    /// Quatre propositions « titre — artiste ».
+    /// Four "title — artist" choices.
     Choices,
 }
 
@@ -37,20 +37,20 @@ pub enum Answer {
     Choice {
         index: usize,
     },
-    /// Passer : la manche est révélée sans point.
+    /// Skip: the round is revealed with no points.
     Pass,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Phase {
-    /// Extrait en cours, réponse attendue : le titre est masqué partout.
+    /// Clip playing, answer awaited: the track is hidden everywhere.
     Guess,
     Revealed,
     Finished,
 }
 
-/// Une proposition du mode `Choices`.
+/// One choice of the `Choices` mode.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Choice {
@@ -58,30 +58,30 @@ pub struct Choice {
     pub artist: String,
 }
 
-/// Une manche révélée : la réponse de l'hôte (s'il joue) et le résultat de chacun.
+/// A revealed round: the host's answer (if they play) and everyone's result.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RoundResult {
     pub track: Track,
     pub title: bool,
     pub artist: bool,
-    /// Points de l'hôte, bonus du plus rapide compris.
+    /// The host's points, fastest bonus included.
     pub points: u32,
-    /// Saisie libre telle que tapée.
+    /// Free typing as typed.
     pub answer: Option<String>,
-    /// Proposition choisie et bonne proposition (mode `Choices`).
+    /// Choice picked and right choice (`Choices` mode).
     pub chosen: Option<usize>,
     pub correct: Option<usize>,
-    /// Tous les joueurs, du plus de points au moins (#441).
+    /// All players, from most points to fewest (#441).
     pub players: Vec<PlayerResult>,
 }
 
-/// Qui joue : l'hôte seul, ou avec les invités de la Jam (#441).
+/// Who plays: the host alone, or with the Jam guests (#441).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Party {
     pub jam: bool,
-    /// L'hôte répond aussi ; sinon il anime seulement (à plusieurs).
+    /// The host answers too; otherwise they only run the game (with several players).
     pub host_plays: bool,
 }
 
@@ -105,10 +105,10 @@ struct Round {
 pub struct Game {
     pub mode: Mode,
     pub party: Party,
-    /// Titres candidats, dans l'ordre du tirage ; `next` est le prochain à jouer.
+    /// Candidate tracks, in draw order; `next` is the next one to play.
     pool: Vec<Track>,
     next: usize,
-    /// Manches prévues (réduites si des titres ne peuvent pas être lus).
+    /// Planned rounds (fewer if some tracks cannot be played).
     rounds: usize,
     round: Option<Round>,
     pub phase: Phase,
@@ -118,13 +118,13 @@ pub struct Game {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameError {
-    /// Moins de `MIN_POOL` titres différents.
+    /// Fewer than `MIN_POOL` distinct tracks.
     TooFewTracks,
 }
 
 impl Game {
-    /// Nouvelle partie de `rounds` manches tirées dans `pool` (doublons retirés), première
-    /// manche prête.
+    /// New game of `rounds` rounds drawn from `pool` (duplicates removed), first round
+    /// ready.
     pub fn new(
         pool: Vec<Track>,
         mode: Mode,
@@ -143,7 +143,7 @@ impl Game {
             return Err(GameError::TooFewTracks);
         }
         pool.shuffle(rng);
-        // Seul, l'hôte joue forcément.
+        // Alone, the host necessarily plays.
         let party = Party {
             host_plays: party.host_plays || !party.jam,
             ..party
@@ -163,7 +163,7 @@ impl Game {
         Ok(game)
     }
 
-    /// Prépare la manche suivante avec le prochain titre du pool ; faux s'il n'y en a plus.
+    /// Sets up the next round with the pool's next track; false if there is none left.
     fn deal(&mut self, rng: &mut impl Rng) -> bool {
         let Some(track) = self.pool.get(self.next).cloned() else {
             self.round = None;
@@ -181,7 +181,7 @@ impl Game {
         true
     }
 
-    /// Bonne proposition et trois autres titres du pool, aux noms différents, mélangés.
+    /// The right choice and three other pool tracks with different names, shuffled.
     fn choices_for(&self, track: &Track, rng: &mut impl Rng) -> (Vec<Choice>, usize) {
         if self.mode != Mode::Choices {
             return (Vec::new(), 0);
@@ -205,12 +205,12 @@ impl Game {
         (picked.into_iter().map(choice).collect(), correct)
     }
 
-    /// Titre de la manche en cours.
+    /// Track of the current round.
     pub fn track(&self) -> Option<&Track> {
         self.round.as_ref().map(|r| &r.track)
     }
 
-    /// Début de l'extrait de la manche en cours.
+    /// Start of the current round's clip.
     pub fn clip_start(&self) -> f64 {
         self.round.as_ref().map_or(0.0, |r| r.clip_start)
     }
@@ -223,7 +223,7 @@ impl Game {
         self.round.as_ref().map_or(&[], |r| &r.choices)
     }
 
-    /// Numéro de la manche en cours, à partir de 1.
+    /// Number of the current round, from 1.
     pub fn round_number(&self) -> usize {
         (self.results.len() + usize::from(self.phase == Phase::Guess)).max(1)
     }
@@ -240,19 +240,19 @@ impl Game {
         &self.players
     }
 
-    /// Score, série et meilleure série de l'hôte.
+    /// The host's score, streak and best streak.
     pub fn host_score(&self) -> (u32, u32, u32) {
         self.players.host_score()
     }
 
-    /// Le titre doit rester masqué (UI, intégrations système, Jam).
+    /// The track must stay hidden (UI, system integrations, Jam).
     pub fn hides_track(&self) -> bool {
         self.phase == Phase::Guess
     }
 
-    /// Réponse d'un joueur (`HOST_KEY` pour l'hôte, clé de la Jam pour un invité) à la
-    /// manche en cours. Seul, la manche est révélée aussitôt ; à plusieurs, quand tous les
-    /// joueurs ont répondu. Renvoie l'identifiant du joueur.
+    /// A player's answer (`HOST_KEY` for the host, the Jam key for a guest) to the current
+    /// round. Alone, the round is revealed at once; with several players, when they have
+    /// all answered. Returns the player's id.
     pub fn answer(
         &mut self,
         key: &str,
@@ -299,8 +299,8 @@ impl Game {
         pending
     }
 
-    /// Révèle la manche en cours (tous ont répondu, l'hôte le demande, délai écoulé) ;
-    /// faux hors de `Guess`.
+    /// Reveals the current round (all answered, the host asks for it, time is up); false
+    /// outside `Guess`.
     pub fn reveal(&mut self) -> bool {
         if self.phase != Phase::Guess {
             return false;
@@ -325,7 +325,7 @@ impl Game {
         true
     }
 
-    /// Manche suivante après une révélation ; faux si la partie est finie.
+    /// Next round after a reveal; false if the game is over.
     pub fn next_round(&mut self, rng: &mut impl Rng) -> bool {
         if self.phase != Phase::Revealed {
             return self.phase == Phase::Guess;
@@ -337,8 +337,8 @@ impl Game {
         true
     }
 
-    /// Le titre de la manche en cours ne peut pas être lu : un autre le remplace, sans
-    /// compter de manche. Faux s'il n'en reste pas : la partie s'arrête là.
+    /// The current round's track cannot be played: another one replaces it, without counting
+    /// a round. False if none is left: the game stops there.
     pub fn replace_track(&mut self, rng: &mut impl Rng) -> bool {
         if self.phase != Phase::Guess {
             return false;
@@ -369,9 +369,8 @@ fn choice(track: &Track) -> Choice {
     }
 }
 
-/// Début d'un extrait au hasard, loin du début (souvent une intro) et de la fin : entre
-/// 20 % du titre (au plus 60 s) et 10 s avant la fin de l'extrait. Titre court : au
-/// début.
+/// Random clip start, away from the beginning (often an intro) and the end: between 20 % of
+/// the track (60 s at most) and 10 s before the end of the clip. Short track: at the start.
 pub fn clip_start(duration: u32, rng: &mut impl Rng) -> f64 {
     let duration = f64::from(duration);
     let low = (duration * 0.2).min(60.0);

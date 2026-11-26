@@ -1,4 +1,4 @@
-//! Session TIDAL : restauration, connexion, déconnexion et rafraîchissement du token.
+//! TIDAL session: restore, sign-in, sign-out and access token refresh.
 
 use std::time::{Duration, Instant};
 
@@ -11,7 +11,7 @@ use super::models::SessionInfo;
 use super::request::Call;
 use super::{Result, TidalError};
 
-/// Marge avant expiration à partir de laquelle on rafraîchit l'access token.
+/// Margin before expiry from which the access token is refreshed.
 const REFRESH_MARGIN: Duration = Duration::from_secs(60);
 
 pub(super) struct AuthState {
@@ -22,7 +22,7 @@ pub(super) struct AuthState {
 }
 
 impl TidalClient {
-    /// Session courante, en restaurant au premier appel celle du refresh token stocké.
+    /// Current session, restoring the stored refresh token's one on the first call.
     pub async fn current_session(&self) -> Result<Option<SessionInfo>> {
         self.restored
             .get_or_try_init(|| async { self.restore().await })
@@ -40,9 +40,9 @@ impl TidalClient {
                 keep_rotated(&mut refresh, tokens.refresh.take());
                 self.install(tokens, refresh).await.map(drop)
             }
-            // Refresh token révoqué ou expiré : on l'oublie, l'UI proposera la connexion.
+            // Refresh token revoked or expired: it is forgotten, the UI will offer to sign in.
             Err(TidalError::Auth(reason)) => {
-                tracing::warn!("refresh token refusé ({reason}), reconnexion nécessaire");
+                tracing::warn!("refresh token refused ({reason}), sign-in needed");
                 auth::clear_refresh_token()
             }
             Err(e) => Err(e),
@@ -64,7 +64,7 @@ impl TidalClient {
         let refresh = tokens
             .refresh
             .take()
-            .ok_or_else(|| TidalError::Auth("pas de refresh token dans la réponse".into()))?;
+            .ok_or_else(|| TidalError::Auth("no refresh token in the answer".into()))?;
         auth::store_refresh_token(&refresh)?;
         self.install(tokens, refresh).await
     }
@@ -75,7 +75,7 @@ impl TidalClient {
         auth::clear_refresh_token()
     }
 
-    /// Caches propres au compte, vidés à la déconnexion et quand la session est perdue.
+    /// Caches tied to the account, cleared on sign-out and when the session is lost.
     fn forget_account(&self) {
         self.likes.clear();
         self.later.clear();
@@ -85,9 +85,9 @@ impl TidalClient {
         self.versions.clear();
     }
 
-    /// Attend que la session soit perdue en cours de route : TIDAL a refusé le
-    /// rafraîchissement, l'utilisateur doit se reconnecter (#259). Un signal émis sans
-    /// personne pour l'attendre est gardé pour le prochain appel.
+    /// Waits for the session to be lost along the way: TIDAL refused the refresh, the user
+    /// must sign in again (#259). A signal sent with no one waiting is kept for the next
+    /// call.
     pub async fn session_lost(&self) {
         self.session_lost.notified().await;
     }
@@ -102,7 +102,7 @@ impl TidalClient {
             .await?
             .json()
             .await
-            .map_err(|e| TidalError::Decode(format!("sessions : {e}")))?;
+            .map_err(|e| TidalError::Decode(format!("sessions: {e}")))?;
         let session = SessionInfo {
             user_id: raw.user_id,
             country_code: raw.country_code,
@@ -116,8 +116,8 @@ impl TidalClient {
         Ok(session)
     }
 
-    /// Access token valide et code pays, en rafraîchissant s'il expire ou si `rejected`
-    /// (token refusé par un 401) est encore le token courant.
+    /// Valid access token and country code, refreshing if it expires or if `rejected` (a
+    /// token refused by a 401) is still the current token.
     pub(super) async fn credentials(&self, rejected: Option<&str>) -> Result<(String, String)> {
         {
             let guard = self.auth.read().await;
@@ -128,21 +128,21 @@ impl TidalClient {
         }
         let mut guard = self.auth.write().await;
         let state = guard.as_mut().ok_or(TidalError::NotLoggedIn)?;
-        // Les requêtes qui attendaient ce verrou trouvent le token déjà rafraîchi par la
-        // première : un seul rafraîchissement par expiration ou par 401 (#148).
+        // Requests that waited for this lock find the token already refreshed by the first
+        // one: a single refresh per expiry or per 401 (#148).
         if usable(state, rejected, Instant::now()) {
             return Ok((state.access.clone(), state.session.country_code.clone()));
         }
         let tokens = match auth::refresh(&self.http, &self.creds, &state.refresh).await {
             Ok(tokens) => tokens,
-            // Refresh token révoqué ou expiré : sans ça, l'état resterait « connecté » et
-            // chaque requête retenterait un rafraîchissement voué à l'échec (#259).
+            // Refresh token revoked or expired: otherwise the state would stay "signed in"
+            // and every request would retry a refresh bound to fail (#259).
             Err(TidalError::Auth(reason)) => {
-                tracing::warn!("rafraîchissement refusé ({reason}), reconnexion nécessaire");
+                tracing::warn!("refresh refused ({reason}), sign-in needed");
                 *guard = None;
                 self.forget_account();
                 if let Err(e) = auth::clear_refresh_token() {
-                    tracing::warn!("refresh token non effacé : {e}");
+                    tracing::warn!("refresh token not cleared: {e}");
                 }
                 self.session_lost.notify_one();
                 return Err(TidalError::NotLoggedIn);
@@ -156,21 +156,21 @@ impl TidalClient {
     }
 }
 
-/// Le token courant peut servir : il n'expire pas avant la marge et n'est pas celui qu'un
-/// 401 vient de refuser (sinon, déjà remplacé par une autre requête).
+/// The current token can be used: it does not expire within the margin and is not the one
+/// a 401 just refused (otherwise, already replaced by another request).
 fn usable(state: &AuthState, rejected: Option<&str>, now: Instant) -> bool {
     rejected != Some(state.access.as_str()) && state.expires_at > now + REFRESH_MARGIN
 }
 
-/// Garde le refresh token renvoyé par un rafraîchissement s'il remplace l'ancien. TIDAL n'en
-/// renvoie pas aujourd'hui (#252) ; s'il se mettait à le faire en invalidant l'ancien, l'app
-/// perdrait sinon sa session au lancement suivant.
+/// Keeps the refresh token returned by a refresh if it replaces the old one. TIDAL returns
+/// none today (#252); if it started to while invalidating the old one, the app would
+/// otherwise lose its session at the next launch.
 fn keep_rotated(current: &mut String, new: Option<String>) {
     let Some(new) = new.filter(|n| n != current) else {
         return;
     };
     if let Err(e) = auth::store_refresh_token(&new) {
-        tracing::warn!("nouveau refresh token non enregistré : {e}");
+        tracing::warn!("new refresh token not saved: {e}");
     }
     *current = new;
 }
@@ -201,17 +201,17 @@ mod tests {
         }
     }
 
-    /// Une requête qui attendait le verrou réutilise le token rafraîchi par une autre (#148).
+    /// A request that waited for the lock reuses the token another one refreshed (#148).
     #[test]
     fn a_refreshed_token_is_reused() {
         let now = Instant::now();
         let fresh = state("new", Duration::from_secs(4 * 3600), now);
         assert!(usable(&fresh, None, now));
-        // 401 sur l'ancien token, déjà remplacé : pas de nouveau rafraîchissement.
+        // 401 on the old token, already replaced: no new refresh.
         assert!(usable(&fresh, Some("old"), now));
-        // 401 sur le token courant : il faut rafraîchir.
+        // 401 on the current token: it must be refreshed.
         assert!(!usable(&fresh, Some("new"), now));
-        // Expiré ou dans la marge de 60 s : il faut rafraîchir.
+        // Expired or within the 60 s margin: it must be refreshed.
         assert!(!usable(
             &state("new", Duration::from_secs(30), now),
             None,

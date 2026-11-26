@@ -34,7 +34,7 @@ fn pool(n: u64) -> Vec<Track> {
         .collect()
 }
 
-/// Réponse de l'hôte seul : la manche révélée.
+/// Answer of the host alone: the revealed round.
 fn solo(game: &mut Game, answer: Answer) -> Option<RoundResult> {
     game.answer(HOST_KEY, None, answer).ok()?;
     game.results().last().cloned()
@@ -51,7 +51,7 @@ fn needs_four_different_titles() {
         Game::new(pool(3), Mode::Typing, 5, Party::SOLO, &mut rng).err(),
         Some(GameError::TooFewTracks)
     );
-    // Doublons et éditions du même titre ne comptent qu'une fois.
+    // Duplicates and editions of the same track only count once.
     let mut same = pool(3);
     same.push(track(1, "Song 1", "Artist 1"));
     same.push(track(9, "Song 1 (Remastered)", "Artist 1"));
@@ -95,7 +95,7 @@ fn typing_scores_title_and_artist() {
     .unwrap();
     assert_eq!((r.title, r.artist, r.points), (true, false, 2));
     assert!(!game.hides_track());
-    // Une seule réponse par manche.
+    // A single answer per round.
     assert!(solo(&mut game, Answer::Pass).is_none());
 
     assert!(game.next_round(&mut rng));
@@ -154,7 +154,7 @@ fn a_wrong_choice_scores_nothing() {
     )
     .unwrap();
     assert_eq!(r.points, 0);
-    // Une proposition n'est pas une réponse valable en saisie libre.
+    // A choice is not a valid answer when typing.
     let mut game = Game::new(pool(4), Mode::Typing, 1, Party::SOLO, &mut rng).unwrap();
     assert_eq!(
         solo(&mut game, Answer::Choice { index: 0 }).unwrap().points,
@@ -170,7 +170,7 @@ fn an_unplayable_track_is_replaced() {
     assert!(game.replace_track(&mut rng));
     assert_ne!(game.track().unwrap().id, first);
     assert_eq!(game.round_number(), 1);
-    // Plus rien pour remplacer : la partie s'arrête sur les manches jouées.
+    // Nothing left to replace it: the game stops on the rounds played.
     solo(&mut game, Answer::Pass);
     assert!(game.next_round(&mut rng));
     while game.replace_track(&mut rng) {}
@@ -189,7 +189,7 @@ fn with_guests_the_round_waits_for_everyone() {
     let mut game = Game::new(pool(6), Mode::Typing, 3, JAM, &mut rng).unwrap();
     let title = game.track().unwrap().title.clone();
     assert_eq!(game.answer("lea", Some("Léa"), Answer::Pass), Ok(1));
-    assert!(game.hides_track(), "l'hôte n'a pas répondu");
+    assert!(game.hides_track(), "the host has not answered");
     assert_eq!(
         game.answer(
             HOST_KEY,
@@ -200,7 +200,7 @@ fn with_guests_the_round_waits_for_everyone() {
         ),
         Ok(0)
     );
-    // Tous les joueurs connus ont répondu : révélée.
+    // All known players answered: revealed.
     assert!(!game.hides_track());
     let r = game.results().last().unwrap();
     assert_eq!(r.points, 3, "titre + bonus du plus rapide");
@@ -211,7 +211,7 @@ fn with_guests_the_round_waits_for_everyone() {
         "trop tard"
     );
 
-    // L'hôte révèle sans attendre Léa.
+    // The host reveals without waiting for Léa.
     assert!(game.next_round(&mut rng));
     let title = game.track().unwrap().title.clone();
     game.answer(HOST_KEY, None, Answer::Text { text: title })
@@ -243,9 +243,9 @@ fn a_host_who_watches_reveals_on_the_guests() {
         Err(Refusal::Closed)
     );
     game.answer("lea", None, Answer::Pass).unwrap();
-    assert!(!game.hides_track(), "Léa était la seule joueuse");
+    assert!(!game.hides_track(), "Léa was the only player");
     assert_eq!(game.results().last().unwrap().points, 0);
-    // Seul, un invité ne peut pas répondre.
+    // Alone, a guest cannot answer.
     let mut solo_game = Game::new(pool(6), Mode::Typing, 2, Party::SOLO, &mut rng).unwrap();
     assert_eq!(
         solo_game.answer("lea", None, Answer::Pass),
