@@ -1,5 +1,5 @@
-//! Côté app des invités de la Jam : le `Backend` que `api.rs` appelle (recherche TIDAL,
-//! file, pause, blind test), branché sur le lecteur.
+//! The app's side of the Jam guests: the `Backend` that `api.rs` calls (TIDAL search,
+//! queue, pause, blind test), wired to the player.
 
 use std::sync::Arc;
 
@@ -89,7 +89,7 @@ impl Backend for AppBackend {
 
     async fn skip_by_vote(&self) -> Result<(), String> {
         self.player.send(Cmd::Next).await.map_err(|_| stopped())?;
-        tracing::info!("Jam : titre passé par le vote des invités");
+        tracing::info!("Jam: track skipped by the guests' vote");
         #[derive(Clone, Serialize)]
         struct Toast {
             level: &'static str,
@@ -121,7 +121,7 @@ impl Backend for AppBackend {
             .await
             .map_err(|_| stopped())?;
         let queue = rx.await.map_err(|_| stopped())?;
-        // La partie n'est demandée que si l'état en annonce une (#441).
+        // The game is only asked for if the state announces one (#441).
         let blind = if player.blind_test {
             let (tx, rx) = oneshot::channel();
             self.player

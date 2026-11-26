@@ -1,16 +1,16 @@
-//! Jam (#25) : des invités ajoutent des titres à la file de l'hôte depuis une page web,
-//! sans app ni compte. Seule la machine de l'hôte lit.
+//! Jam (#25): guests add tracks to the host's queue from a web page, with no app or
+//! account. Only the host's machine plays.
 //!
-//! Deux modes, mêmes règles (`api.rs`) :
-//! - **En ligne** (`relay.rs`) : l'app se connecte au relais (`relay/`), les invités ouvrent
-//!   `https://<relais>/j/<id>/`, sans Wi-Fi commun. Relais compilé ou choisi dans les Réglages
+//! Two modes, same rules (`api.rs`), and the app's side of them in `backend.rs`:
+//! - **Online** (`relay.rs`): the app connects to the relay (`relay/`), guests open
+//!   `https://<relay>/j/<id>/`, with no shared Wi-Fi. Relay built in or chosen in Settings
 //!   (#452, `relay_settings.rs`).
-//! - **Réseau local** (`server.rs`) : l'app ouvre un port (47800, sinon un port libre).
-//!   Bureau seulement : sur un téléphone en données mobiles (ou qui partage sa connexion),
-//!   l'adresse ne servirait à rien, et l'app n'ouvre aucun port sur Android.
+//! - **Local network** (`server.rs`): the app opens a port (47800, otherwise a free one).
+//!   Desktop only: on a phone on mobile data (or sharing its connection), the address would
+//!   be useless, and the app opens no port on Android.
 //!
-//! Le code d'accès est tiré pour chaque Jam ; arrêter rend le code invalide. Le QR code
-//! porte l'adresse et le code (après `#`, jamais envoyé au serveur ni journalisé).
+//! The access code is drawn for each Jam; stopping makes the code invalid. The QR code
+//! carries the address and the code (after `#`, never sent to the server or logged).
 
 mod api;
 mod backend;
@@ -55,12 +55,12 @@ use members::GuestInfo;
 use relay::{RelayConfig, RelayEvent};
 pub use rules::JamRules;
 
-/// Port préféré : l'adresse reste la même d'une Jam à l'autre (marque-page des invités).
+/// Preferred port: the address stays the same from one Jam to the next (guests' bookmark).
 const PORT: u16 = 47800;
 const SEARCH_LIMIT: u32 = 30;
-/// Événement vers l'UI de l'hôte : `GuestsUpdate` (noms des titres, invités).
+/// Event to the host's UI: `GuestsUpdate` (names on the tracks, guests).
 const GUESTS_EVENT: &str = "jam-guests";
-/// Événement vers l'UI de l'hôte : `JamStatus` (connexion au relais, adresse changée).
+/// Event to the host's UI: `JamStatus` (relay connection, address changed).
 const STATUS_EVENT: &str = "jam-status";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,7 +76,7 @@ pub enum Connection {
     Connecting,
     Online,
     Reconnecting,
-    /// Refus définitif du relais (clé) : la Jam reste affichée jusqu'à « Arrêter ».
+    /// Final refusal by the relay (key): the Jam stays shown until "Stop".
     Failed,
 }
 
@@ -84,35 +84,35 @@ pub enum Connection {
 #[serde(rename_all = "camelCase")]
 pub struct JamInfo {
     pub mode: JamMode,
-    /// Adresse à donner aux invités ; `None` tant que le relais n'a pas répondu.
+    /// Address to give the guests; `None` until the relay has answered.
     pub url: Option<String>,
     pub code: String,
-    /// Réseau local : faux si aucune adresse du réseau n'a été trouvée (`127.0.0.1`).
+    /// Local network: false if no network address was found (`127.0.0.1`).
     pub lan: bool,
-    /// QR code de `url#code` en SVG (noir sur blanc), `None` sans adresse.
+    /// QR code of `url#code` as SVG (black on white), `None` without an address.
     pub qr_svg: Option<String>,
     pub connection: Connection,
-    /// Raison d'une reconnexion ou d'un échec, traduite.
+    /// Reason for a reconnection or a failure, translated.
     pub reason: Option<String>,
 }
 
-/// État de la Jam pour l'UI de l'hôte.
+/// State of the Jam for the host's UI.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JamStatus {
     #[serde(flatten)]
     pub info: JamInfo,
-    /// Nom de l'invité de chaque titre ajouté par la Jam.
+    /// Name of the guest on each track the Jam added.
     pub guests: HashMap<u64, String>,
-    /// Règles de l'hôte (#222, #288), retenues d'une Jam à l'autre.
+    /// The host's rules (#222, #288), kept from one Jam to the next.
     pub rules: JamRules,
-    /// Les invités peuvent ajouter (suspension propre à la Jam, #288).
+    /// Guests may add (suspension specific to the Jam, #288).
     pub adds_open: bool,
-    /// Invités qui ont ajouté, exclus compris (#288).
+    /// Guests who added, banned ones included (#288).
     pub members: Vec<GuestInfo>,
 }
 
-/// Charge de l'événement `jam-guests`.
+/// Payload of the `jam-guests` event.
 #[derive(Debug, Clone, Serialize)]
 struct GuestsUpdate {
     guests: HashMap<u64, String>,
@@ -136,7 +136,7 @@ fn status_of(info: &Mutex<JamInfo>, core: &Core) -> Option<JamStatus> {
     })
 }
 
-/// Réglage « Jam » (#452) : désactivée, elle disparaît de l'UI et ne démarre plus.
+/// "Jam" setting (#452): off, it disappears from the UI and no longer starts.
 static ENABLED: AtomicBool = AtomicBool::new(true);
 
 pub fn set_enabled(enabled: bool) {
@@ -147,7 +147,7 @@ pub fn enabled() -> bool {
     ENABLED.load(Ordering::Relaxed)
 }
 
-/// Vrai si un relais est utilisable (adresse et clé) : la Jam en ligne est proposée.
+/// True if a relay can be used (address and key): the online Jam is offered.
 pub fn online_available() -> bool {
     RelayConfig::current().is_some()
 }
@@ -162,7 +162,7 @@ impl JamState {
         status_of(&running.info, &running.core)
     }
 
-    /// Règles de l'hôte (#222, #288), appliquées à la Jam en cours s'il y en a une.
+    /// The host's rules (#222, #288), applied to the running Jam if there is one.
     pub fn set_rules(&self, rules: JamRules) -> Option<JamStatus> {
         let slot = self.0.lock().ok()?;
         let running = slot.as_ref()?;
@@ -170,7 +170,7 @@ impl JamState {
         status_of(&running.info, &running.core)
     }
 
-    /// Suspend ou rouvre les ajouts des invités (#288).
+    /// Suspends or reopens the guests' additions (#288).
     pub fn set_adds_open(&self, open: bool) -> Option<JamStatus> {
         let slot = self.0.lock().ok()?;
         let running = slot.as_ref()?;
@@ -178,7 +178,7 @@ impl JamState {
         status_of(&running.info, &running.core)
     }
 
-    /// Exclut un invité (ses titres en attente sont retirés) ou le réadmet (#288).
+    /// Bans a guest (their pending tracks are removed) or lets them back in (#288).
     pub async fn set_guest_banned(&self, id: u32, banned: bool) -> Option<JamStatus> {
         let (info, core, backend) = {
             let slot = self.0.lock().ok()?;
@@ -193,7 +193,7 @@ impl JamState {
         status_of(&info, &core)
     }
 
-    /// Démarre la Jam, ou renvoie celle qui tourne déjà.
+    /// Starts the Jam, or returns the one already running.
     pub async fn start(
         &self,
         mode: JamMode,
@@ -214,7 +214,7 @@ impl JamState {
         }
         let code = guard::new_code();
         let guests: Arc<Mutex<Guests>> = Arc::default();
-        // Réseau local : une adresse = un appareil, l'exclusion la bloque aussi (#288).
+        // Local network: one address = one device, a ban blocks it too (#288).
         let ban_ips = mode == JamMode::Local;
         let core = Arc::new(Core::with_rules(
             code.clone(),
@@ -286,7 +286,7 @@ impl JamState {
             .0
             .lock()
             .map_err(|_| tr("Jam indisponible", "Jam unavailable").to_owned())?;
-        // Deux démarrages simultanés : le premier arrivé reste.
+        // Two starts at the same time: the first one stays.
         if slot.is_some() {
             task.abort();
             drop(slot);
@@ -294,7 +294,7 @@ impl JamState {
                 .status()
                 .ok_or_else(|| tr("Jam indisponible", "Jam unavailable").to_owned());
         }
-        tracing::info!("Jam démarrée ({mode:?})");
+        tracing::info!("Jam started ({mode:?})");
         let status = status_of(&info, &core);
         *slot = Some(Running {
             info,
@@ -305,16 +305,16 @@ impl JamState {
         status.ok_or_else(|| tr("Jam indisponible", "Jam unavailable").to_owned())
     }
 
-    /// Arrête la Jam : port fermé ou connexion au relais coupée, code invalide.
+    /// Stops the Jam: port closed or relay connection cut, code invalid.
     pub fn stop(&self) {
         if let Some(running) = self.0.lock().ok().and_then(|mut s| s.take()) {
             running.task.abort();
-            tracing::info!("Jam arrêtée");
+            tracing::info!("Jam stopped");
         }
     }
 }
 
-/// Ouvre le port de la Jam locale : écouteur, adresse à donner, adresse locale trouvée.
+/// Opens the local Jam's port: listener, address to give, local address found.
 async fn listen() -> Result<(TcpListener, String, bool), String> {
     let failed = |e: std::io::Error| {
         trf!(
@@ -338,7 +338,7 @@ async fn listen() -> Result<(TcpListener, String, bool), String> {
     Ok((listener, url, ip.is_some()))
 }
 
-/// Tient `JamInfo` à jour d'après la connexion au relais et prévient l'UI.
+/// Keeps `JamInfo` up to date from the relay connection and tells the UI.
 fn relay_notify(app: AppHandle, info: Arc<Mutex<JamInfo>>, core: Arc<Core>) -> relay::Notify {
     Arc::new(move |event| {
         let changed = match info.lock() {
@@ -354,7 +354,7 @@ fn relay_notify(app: AppHandle, info: Arc<Mutex<JamInfo>>, core: Arc<Core>) -> r
     })
 }
 
-/// Applique un événement du relais ; vrai si l'UI doit être prévenue.
+/// Applies a relay event; true if the UI must be told.
 fn apply(info: &mut JamInfo, event: RelayEvent) -> bool {
     let before = info.clone();
     match event {
@@ -387,7 +387,7 @@ fn apply(info: &mut JamInfo, event: RelayEvent) -> bool {
     *info != before
 }
 
-/// SVG sans la déclaration XML (inséré tel quel dans la page Réglages).
+/// SVG without the XML declaration (inserted as is in the Settings page).
 fn qr_svg(text: &str) -> Option<String> {
     let code = QrCode::new(text.as_bytes()).ok()?;
     let svg = code
@@ -438,7 +438,7 @@ mod tests {
         assert_eq!(info.connection, Connection::Online);
         assert!(info.qr_svg.is_some());
 
-        // Coupure : la même adresse reste affichée pendant la reconnexion.
+        // Disconnected: the same address stays shown during the reconnection.
         assert!(apply(&mut info, RelayEvent::Lost { reason: None }));
         assert_eq!(info.connection, Connection::Reconnecting);
         assert!(!apply(&mut info, RelayEvent::Connecting));

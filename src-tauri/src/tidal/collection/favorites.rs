@@ -1,5 +1,4 @@
-//! Favoris (#4, #81) et mixes enregistrés (#204) : lecture de tous les identifiants,
-//! ajout et retrait.
+//! Favorites (#4, #81) and saved mixes (#204): reading every id, adding and removing.
 
 use reqwest::Method;
 use serde::Deserialize;
@@ -9,7 +8,7 @@ use super::super::models::{LikeTarget, LikedIds, TrackId};
 use super::super::{Result, TidalClient};
 
 impl TidalClient {
-    /// Identifiants de tous les favoris, chargés au premier appel puis tenus à jour.
+    /// Ids of every favorite, loaded on the first call then kept up to date.
     pub async fn liked_ids(&self) -> Result<LikedIds> {
         if let Some(ids) = self.likes.get() {
             return Ok(ids);
@@ -26,8 +25,8 @@ impl TidalClient {
         Ok(self.likes.get().unwrap_or_default())
     }
 
-    /// Ajoute aux favoris ou retire : POST `users/{id}/favorites/<type>` (formulaire
-    /// `trackIds`, `albumIds`, `artistIds` ou `uuids`), DELETE `…/<type>/<id>`.
+    /// Adds to the favorites or removes: POST `users/{id}/favorites/<type>` (form `trackIds`,
+    /// `albumIds`, `artistIds` or `uuids`), DELETE `…/<type>/<id>`.
     pub async fn set_liked(&self, target: &LikeTarget, liked: bool) -> Result<()> {
         let user = self.user_id().await?;
         let (kind, field, id) = match target {
@@ -51,8 +50,8 @@ impl TidalClient {
         Ok(())
     }
 
-    /// Mixes (#204) : PUT v2 `favorites/mixes/add?mixIds=…` ou `…/remove?mixIds=…`, paramètres
-    /// en query, sans corps. Le retrait d'un mix absent répond aussi 200.
+    /// Mixes (#204): PUT v2 `favorites/mixes/add?mixIds=…` or `…/remove?mixIds=…`, parameters
+    /// in the query, with no body. Removing a mix that is not there also answers 200.
     async fn set_mix_liked(&self, id: &str, liked: bool) -> Result<()> {
         let (path, query) = if liked {
             (
@@ -87,7 +86,7 @@ struct RawFavoriteIds {
 }
 
 impl RawFavoriteIds {
-    /// Identifiants en chaînes ; un identifiant numérique illisible est ignoré.
+    /// Ids as strings; an unreadable numeric id is ignored.
     fn into_ids(self) -> LikedIds {
         let numbers = |ids: Vec<String>| -> Vec<u64> {
             ids.iter().filter_map(|id| id.parse().ok()).collect()

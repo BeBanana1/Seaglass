@@ -1,5 +1,5 @@
-//! Commandes du propriétaire lues depuis une requête : celles qui ne demandent rien à TIDAL,
-//! et la lecture d'un album ou d'une playlist entiers.
+//! The owner's commands read from a request: those that ask nothing of TIDAL, and playing
+//! a whole album or playlist.
 
 use serde::Deserialize;
 
@@ -9,7 +9,7 @@ use crate::player::volume::Volume;
 use crate::player::{PlaySource, QueuePart, Repeat};
 use crate::tidal::models::TrackId;
 
-/// Commande qui ne demande rien à TIDAL ; `Ok(None)` si `path` n'en est pas une.
+/// Command that asks nothing of TIDAL; `Ok(None)` if `path` is not one.
 pub(super) fn command(path: &str, body: &[u8]) -> Result<Option<Command>, &'static str> {
     let command = match path {
         "/api/pause" => Command::SetPaused(parse::<PausedBody>(body)?.paused),
@@ -55,7 +55,7 @@ pub(super) fn command(path: &str, body: &[u8]) -> Result<Option<Command>, &'stat
     Ok(Some(command))
 }
 
-/// Album ou playlist entiers, lus depuis le début (ou mélangés).
+/// Whole album or playlist, played from the start (or shuffled).
 pub(super) async fn context<R: Remote>(
     path: &str,
     body: &[u8],
@@ -140,7 +140,7 @@ struct JumpBody {
 #[serde(rename_all = "camelCase")]
 struct TrackBody {
     track_id: u64,
-    /// `enqueue` : en tête de la file manuelle (« Lire ensuite ») plutôt qu'à la fin.
+    /// `enqueue`: at the head of the manual queue ("Play next") rather than at the end.
     #[serde(default)]
     next: bool,
 }

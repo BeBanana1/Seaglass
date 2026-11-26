@@ -1,5 +1,5 @@
-//! Côté app de la télécommande : le `Remote` que `api.rs` appelle, branché sur le lecteur
-//! et le client TIDAL.
+//! The app's side of the remote control: the `Remote` that `api.rs` calls, wired to the
+//! player and the TIDAL client.
 
 use std::sync::Arc;
 
@@ -30,7 +30,7 @@ impl AppRemote {
     }
 }
 
-/// Traduit une commande de la télécommande pour l'acteur du lecteur.
+/// Translates a remote control command for the player actor.
 fn to_cmd(command: Command) -> Cmd {
     match command {
         Command::SetPaused(paused) => Cmd::SetPaused(paused),
@@ -126,7 +126,7 @@ impl Remote for AppRemote {
             let (response, added) = crate::handoff::history::answer(&history.store, &request)
                 .map_err(|e| e.to_string())?;
             if added > 0 {
-                tracing::info!("Historique : {added} écoutes reçues du téléphone");
+                tracing::info!("History: {added} listens received from the phone");
                 (history.on_added)(added);
             }
             Ok(response)

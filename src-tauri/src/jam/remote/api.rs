@@ -1,10 +1,10 @@
-//! API du propriétaire (télécommande, #336) : toutes les commandes du lecteur, derrière un
-//! code de propriétaire distinct de celui des invités de la Jam.
+//! Owner API (remote control, #336): every player command, behind an owner code distinct
+//! from the Jam guests' one. The commands are read from the request in `api/command.rs`.
 //!
-//! Séparée de l'API des invités (`jam/api.rs`) et servie sur un autre port : une page de
-//! la Jam ne peut appeler aucune de ces commandes, et le code d'une Jam n'ouvre rien ici.
-//! Rien n'écrit dans le compte (pas de like, pas de playlist modifiée) : « Mes playlists »
-//! n'est que lu.
+//! Separate from the guest API (`jam/api.rs`) and served on another port: a Jam page cannot
+//! call any of these commands, and a Jam's code opens nothing here.
+//! Nothing writes to the account (no like, no playlist changed): "My playlists" is only
+//! read.
 
 use std::future::Future;
 use std::net::IpAddr;
@@ -26,23 +26,23 @@ use crate::player::{Handoff, PlaySource, PlayerState, QueuePart, QueueView, Repe
 use crate::tidal::models::{PlaylistSummary, SearchResults, Track, TrackId};
 use command::{command, context};
 
-/// Longueur du code de propriétaire : 32¹² ≈ 1,2 × 10¹⁸ codes (60 bits), contre 6
-/// caractères pour une Jam. Avec 10 essais par quart d'heure et par adresse, inutile de
-/// le deviner.
+/// Length of the owner code: 32¹² ≈ 1.2 × 10¹⁸ codes (60 bits), against 6 characters for
+/// a Jam. With 10 attempts per quarter hour and per address, there is no point guessing
+/// it.
 pub const OWNER_CODE_LEN: usize = 12;
 const MAX_TRACKS: usize = 30;
 const MAX_ALBUMS: usize = 20;
 const MAX_PLAYLISTS: usize = 20;
-/// « Mes playlists » montrées au plus.
+/// "My playlists" shown at most.
 const MAX_OWN_PLAYLISTS: usize = 200;
-/// Titres lus au plus d'un album ou d'une playlist (borne de `play_tracks`).
+/// Tracks read at most from an album or a playlist (bound of `play_tracks`).
 const MAX_CONTEXT: usize = 10_000;
-/// Clé des limites : un seul propriétaire, l'adresse borne le reste.
+/// Key of the limits: a single owner, the address bounds the rest.
 const OWNER: &str = "owner";
 /// How long a phone can learn the relay route after "Link a phone" (#62).
 pub const PAIRING_WINDOW: Duration = Duration::from_secs(10 * 60);
 
-/// Ce que la télécommande demande au lecteur, traduit en `Cmd` par l'app.
+/// What the remote control asks of the player, translated into a `Cmd` by the app.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
     SetPaused(bool),
@@ -53,13 +53,13 @@ pub enum Command {
     Muted(bool),
     Shuffle(bool),
     Repeat(Repeat),
-    /// Lire un titre de la file tel que la page l'affiche.
+    /// Plays a queue track as the page shows it.
     Jump {
         part: QueuePart,
         index: usize,
         id: TrackId,
     },
-    /// Retirer une entrée de la file manuelle (la première de cet identifiant).
+    /// Removes an entry from the manual queue (the first one with this id).
     Remove(TrackId),
     Play {
         ids: Vec<TrackId>,
@@ -73,43 +73,43 @@ pub enum Command {
     },
 }
 
-/// Ce que l'API demande à l'app ; remplacé par un faux dans les tests.
+/// What the API asks of the app; replaced by a fake in the tests.
 pub trait Remote: Send + Sync + 'static {
     fn state(&self) -> impl Future<Output = Result<(PlayerState, QueueView), String>> + Send;
     fn run(&self, command: Command) -> impl Future<Output = Result<(), String>> + Send;
     fn search(&self, query: String) -> impl Future<Output = Result<SearchResults, String>> + Send;
-    /// Titre et titres lisibles d'un album.
+    /// Title and playable tracks of an album.
     fn album(&self, id: u64) -> impl Future<Output = Result<(String, Vec<Track>), String>> + Send;
-    /// Titre et titres lisibles d'une playlist.
+    /// Title and playable tracks of a playlist.
     fn playlist(
         &self,
         uuid: String,
     ) -> impl Future<Output = Result<(String, Vec<Track>), String>> + Send;
-    /// Playlists du compte (lecture seule).
+    /// The account's playlists (read only).
     fn playlists(&self) -> impl Future<Output = Result<Vec<PlaylistSummary>, String>> + Send;
-    /// Instantané de la lecture puis pause (#414) ; `None` si rien n'est en cours.
+    /// Snapshot of the playback then pause (#414); `None` if nothing is playing.
     fn take_handoff(&self) -> impl Future<Output = Result<Option<Handoff>, String>> + Send;
-    /// Reprend une lecture transférée, déjà vérifiée.
+    /// Resumes a handed-off playback, already checked.
     fn give_handoff(&self, handoff: Handoff) -> impl Future<Output = Result<bool, String>> + Send;
-    /// Échange de l'historique d'écoute avec le téléphone (#430), requête déjà vérifiée.
+    /// Exchange of the listening history with the phone (#430), request already checked.
     fn sync_plays(
         &self,
         request: SyncRequest,
     ) -> impl Future<Output = Result<SyncResponse, String>> + Send;
 }
 
-/// Télécommande en cours : code, limites, relecture de l'état.
+/// Running remote control: code, limits, state rereading.
 pub struct Owner {
     code: Mutex<String>,
     limits: Mutex<Limits>,
-    /// Page et commandes de la télécommande servies.
+    /// Remote control page and commands served.
     remote: AtomicBool,
-    /// Transferts de lecture acceptés (#414).
+    /// Playback handoffs accepted (#414).
     handoff: AtomicBool,
-    /// Relire l'état sans attendre (après une commande, nouvelle page).
+    /// Read the state again without waiting (after a command, a new page).
     pub refresh: Notify,
-    /// Adresse en ligne et clé du tunnel du relais (#430), données au téléphone lié sur
-    /// le réseau local ; `None` tant que le tunnel n'est pas ouvert.
+    /// Online address and key of the relay tunnel (#430), given to the linked phone on the
+    /// local network; `None` until the tunnel is open.
     relay: Mutex<Option<super::tunnel::RelayRoute>>,
     /// End of the pairing window (#62): `api/relay` only answers before it.
     pairing_until: Mutex<Option<Instant>>,
@@ -144,7 +144,7 @@ impl Owner {
             .is_some_and(|until| Instant::now() < until)
     }
 
-    /// Ce que sert le serveur : la télécommande, les transferts, ou les deux.
+    /// What the server serves: the remote control, handoffs, or both.
     pub fn set_features(&self, remote: bool, handoff: bool) {
         self.remote.store(remote, Ordering::Relaxed);
         self.handoff.store(handoff, Ordering::Relaxed);
@@ -185,14 +185,14 @@ impl Owner {
         }
     }
 
-    /// Nouveau code : les pages ouvertes avec l'ancien sont refusées dès leur prochain appel.
+    /// New code: pages opened with the old one are refused from their next call.
     pub fn set_code(&self, code: String) {
         if let Ok(mut current) = self.code.lock() {
             *current = code;
         }
     }
 
-    /// Adresse bloquée ou code faux (compté comme un essai raté) : la réponse d'erreur.
+    /// Blocked address or wrong code (counted as a failed attempt): the error answer.
     pub fn check_code(&self, ip: IpAddr, given: &str) -> Result<(), Response> {
         let (Ok(code), Ok(mut limits)) = (self.code.lock(), self.limits.lock()) else {
             return Err(Response::error(502, "backend"));
@@ -215,8 +215,8 @@ impl Owner {
             .unwrap_or(false)
     }
 
-    /// État de la télécommande en JSON, `None` si le lecteur ne répond pas ou si la
-    /// télécommande est éteinte (transferts seuls).
+    /// State of the remote control as JSON, `None` if the player does not answer or if the
+    /// remote control is off (handoffs only).
     pub async fn state_json<R: Remote>(&self, remote: &R) -> Option<String> {
         if !self.remote_enabled() {
             return None;
@@ -228,7 +228,7 @@ impl Owner {
         Some(serde_json::json!(RemoteView::new(&player, &queue)).to_string())
     }
 
-    /// Appel `POST /api/<…>` de la page, `path` compris (`/api/next`).
+    /// `POST /api/<…>` call from the page, `path` included (`/api/next`).
     pub async fn api<R: Remote>(
         &self,
         path: &str,
@@ -252,7 +252,7 @@ impl Owner {
         if let Some(response) = history::route(self, path, body, ip, remote).await {
             return response;
         }
-        // Transferts seuls : rien de la télécommande n'est servi.
+        // Handoffs only: nothing of the remote control is served.
         if !self.remote_enabled() {
             return Response::not_found();
         }
@@ -284,7 +284,7 @@ impl Owner {
             Ok(command) => command,
             Err(response) => return response,
         };
-        // `play-album` et `play-playlist` ont déjà été comptés avant d'appeler TIDAL.
+        // `play-album` and `play-playlist` were already counted before calling TIDAL.
         let counted = matches!(path, "/api/play-album" | "/api/play-playlist");
         if !counted && !self.allow(ip, Action::Command) {
             return Response::error(429, "slow");
@@ -367,9 +367,9 @@ fn ok() -> Response {
     Response::json(200, &serde_json::json!({ "ok": true }))
 }
 
-/// Le détail reste dans le journal : la page n'affiche qu'un message générique.
+/// The detail stays in the log: the page only shows a generic message.
 pub(super) fn backend_error(e: &str) -> Response {
-    tracing::warn!("Télécommande : {e}");
+    tracing::warn!("Remote control: {e}");
     Response::error(502, "backend")
 }
 

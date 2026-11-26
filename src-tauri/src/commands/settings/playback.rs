@@ -1,5 +1,4 @@
-//! Réglages de lecture (#79, #492) : lus et enregistrés dans SQLite, appliqués à chaud par
-//! le lecteur.
+//! Playback settings (#79, #492): read and saved in SQLite, applied live by the player.
 
 use tauri::State;
 
@@ -13,8 +12,8 @@ pub async fn playback_settings(state: State<'_, AppState>) -> CmdResult<Playback
     Ok(PlaybackSettings::load(state.store.as_deref()))
 }
 
-/// Qualité baissée par la batterie en ce moment (#492), pour Réglages › Lecture ; `None`
-/// si la batterie ne change rien.
+/// Quality currently lowered by the battery (#492), for Settings › Playback; `None` if the
+/// battery changes nothing.
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn quality_cap(
@@ -24,8 +23,8 @@ pub async fn quality_cap(
     Ok(crate::player::current_cap(&settings).await)
 }
 
-/// Enregistre puis applique à chaud. La désérialisation de `settings` valide la taille
-/// du cache : seules les valeurs proposées sont acceptées.
+/// Saves then applies live. Deserializing `settings` validates the cache size: only the
+/// values offered are accepted.
 #[tauri::command]
 pub async fn set_playback_settings(
     state: State<'_, AppState>,
@@ -46,8 +45,8 @@ pub async fn set_playback_settings(
         .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
 }
 
-/// Périphériques de sortie connus de mpv (#79) ; la liste suit ensuite l'événement
-/// `audio-devices` (branchement, changement du périphérique par défaut).
+/// Output devices known to mpv (#79); the list then follows the `audio-devices` event
+/// (device plugged in, default device changed).
 #[tauri::command]
 pub async fn audio_devices(state: State<'_, AppState>) -> CmdResult<AudioDevices> {
     let stopped = || tr("lecteur arrêté", "player stopped").to_owned();
