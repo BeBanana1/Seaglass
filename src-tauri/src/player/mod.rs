@@ -3,6 +3,8 @@
 pub mod actor;
 pub mod autoeq;
 pub mod blind;
+mod command;
+mod dispatch;
 pub mod eq;
 mod exclusive;
 pub mod handoff;

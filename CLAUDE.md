@@ -65,12 +65,12 @@ seaglass/
       ├─ logs/               # on-disk log, crash reports (#192)
       ├─ i18n.rs             # effective language, translated messages (`tr`, `trf!`), TIDAL locale
       ├─ commands/           # auth.rs, player.rs, catalog.rs, settings.rs: validate input then delegate
-      ├─ tidal/              # auth.rs, api.rs, catalog.rs, home.rs (paged home), playlist.rs (cached pages), mix.rs (mixes, radios), hires.rs + twin.rs (hi-res editions), credits.rs, raw.rs (raw JSON), paging.rs (paged lists), models.rs, cache.rs, manifest.rs (DRM), soundtracks.rs (curated soundtracks, #399), folders.rs (playlist folders, #331), playlog.rs (play log reported to TIDAL, #34), pushkin.rs (one stream per account, #35)
-      ├─ player/             # actor.rs, queue.rs, state.rs
+      ├─ tidal/              # auth.rs, api.rs, session.rs (sign-in state, token refresh), request.rs (authenticated calls), catalog.rs, home.rs (paged home), playlist.rs (cached pages), mix.rs (mixes, radios), hires.rs + twin.rs (hi-res editions), credits.rs, raw.rs (raw JSON), paging.rs (paged lists), models/, cache.rs, manifest.rs (DRM), soundtracks.rs (curated soundtracks, #399), folders.rs (playlist folders, #331), playlog.rs (play log reported to TIDAL, #34), pushkin.rs (one stream per account, #35)
+      ├─ player/             # actor.rs, command.rs (`Cmd`), dispatch.rs, queue.rs, state.rs
       ├─ mpv/                # engine.rs (mpv engine), process.rs, ipc.rs, events.rs, serve.rs (MPDs served over local HTTP)
       ├─ store/              # SQLite (including snapshots.rs: copies of lists)
       ├─ tls.rs              # TLS config of the app's WebSockets (Jam relay, tunnel, Pushkin)
-      ├─ handoff.rs          # playback handoff with the linked computer, phone side (#414)
+      ├─ handoff/            # playback handoff with the linked computer, phone side (#414): transport.rs, credentials.rs
       ├─ foreign/            # links from other services: Jam (#229, links.rs, meta.rs, matching.rs), playlist import (#328, playlists.rs, import.rs)
       └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs, mpris/ (Linux), tray.rs, discord/ (Discord presence), listenbrainz/ (scrobbling, #431)
 ```
@@ -173,7 +173,7 @@ pnpm release:all -Publish                         # Windows + Android + Linux (W
 - Provide **complete files** when modified, not partial patches.
 - Shell commands in PowerShell.
 - Before implementing anything that depends on a TIDAL endpoint, check its real behavior (spike or test request) rather than assuming it.
-- Keep modules small: if a file goes past about 400 lines, propose a split.
+- Keep modules small: past about 400 lines of code (not counting tests, generated types, i18n dictionaries and fixtures), look for a natural seam (a separate responsibility, a group of commands, a transport) and propose a split along it. No seam, no split: line count alone is not a reason.
 - **Documentation**: this file stays short. What is learned while handling an issue (verified endpoint, measurement, pitfall, decision and its reason) goes into the area's file in `docs/`, in the same PR. Fix or remove what is outdated rather than appending.
 - **Changelog**: every `VERSION` change adds its entry at the top of `CHANGELOG.md` (one line, with the issue number; platform prefixes `Android:`, `Windows:`, `Linux:`, `Desktop:`). After a release, the title of the tagged version gets "(published <YYYY-MM-DD>)": the app's parser reads these exact markers.
 - Update the "Status" line and the roadmap of this file at the end of each phase.

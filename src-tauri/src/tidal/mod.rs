@@ -1,4 +1,4 @@
-//! Tout ce qui touche à l'API privée TIDAL. Le reste de l'app ne dépend que de `models`.
+//! Everything about TIDAL's private API. The rest of the app only depends on `models`.
 
 mod album_related;
 pub mod api;
@@ -51,13 +51,15 @@ pub mod pushkin;
 mod rank;
 mod raw;
 mod releases;
+mod request;
+mod session;
 pub mod soundtracks;
 mod twin;
 mod versions;
 
 pub use api::TidalClient;
 pub use catalog::LIBRARY_MAX;
-/// Utilitaire générique (aucun format TIDAL) : resservi par l'import de playlists (#328).
+/// Generic helper (no TIDAL format): reused by the playlist import (#328).
 pub(crate) use paging::try_join_bounded;
 
 use crate::i18n::{tr, trf};
@@ -86,13 +88,13 @@ pub enum TidalError {
     Auth(String),
     #[error("{}", trf!("erreur API TIDAL {} : {}", "TIDAL API error {}: {}", .status, .message))]
     Api { status: u16, message: String },
-    /// Toujours sans URL (voir `From<reqwest::Error>`).
+    /// Always without a URL (see `From<reqwest::Error>`).
     #[error("{}", trf!("réseau : {}", "network: {}", .0))]
     Http(reqwest::Error),
     #[error("{}", trf!("réponse inattendue : {}", "unexpected response: {}", .0))]
     Decode(String),
-    /// La ressource a changé depuis sa lecture (ETag périmé, titre déplacé). Message déjà
-    /// dans la langue courante.
+    /// The resource changed since it was read (stale ETag, moved track). Message already in
+    /// the current language.
     #[error("{0}")]
     Conflict(String),
     #[error("{}", trf!(
@@ -116,8 +118,8 @@ pub enum TidalError {
 
 pub type Result<T> = std::result::Result<T, TidalError>;
 
-/// L'URL est retirée de l'erreur : celles des segments sont signées (`?token=…`) et le
-/// message finit dans les journaux et dans les toasts (#144).
+/// The URL is stripped from the error: segment URLs are signed (`?token=…`) and the message
+/// ends up in the logs and in toasts (#144).
 impl From<reqwest::Error> for TidalError {
     fn from(e: reqwest::Error) -> Self {
         Self::Http(e.without_url())
@@ -130,7 +132,7 @@ mod tests {
 
     use super::TidalError;
 
-    /// Une erreur réseau sur une URL signée ne garde ni l'URL ni sa signature (#144).
+    /// A network error on a signed URL keeps neither the URL nor its signature (#144).
     #[tokio::test]
     async fn network_errors_drop_the_signed_url() {
         let raw = reqwest::Client::new()
@@ -138,7 +140,7 @@ mod tests {
             .timeout(Duration::from_millis(1))
             .send()
             .await
-            .expect_err("délai de 1 ms");
+            .expect_err("1 ms timeout");
         assert!(raw.to_string().contains("secret-signature"), "{raw}");
         let message = TidalError::from(raw).to_string();
         assert!(!message.contains("secret-signature"), "{message}");
