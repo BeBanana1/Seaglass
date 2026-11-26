@@ -1,22 +1,22 @@
-// Sélection multiple de titres (#332). Une seule liste à la fois porte la sélection
-// (`owner`) ; elle est vidée quand cette liste disparaît (changement de page).
+// Multiple selection of tracks (#332). Only one list at a time holds the selection
+// (`owner`); it is cleared when that list goes away (page change).
 //
-// Listes de milliers de titres (#88) : chaque titre a sa propre cellule réactive, créée
-// hors rendu, si bien que cocher un titre ne redessine que sa ligne. Un `SvelteSet` ne
-// suffit pas : `has` d'un absent dépend de la version de tout l'ensemble, donc chaque ajout
-// réévaluerait toutes les lignes non cochées.
+// Lists of thousands of tracks (#88): each track has its own reactive cell, created outside
+// rendering, so checking a track only redraws its row. A `SvelteSet` is not enough: `has`
+// on a missing item depends on the version of the whole set, so each addition would
+// re-evaluate every unchecked row.
 
 import type { Track, TrackId } from "../ipc";
 
-/** Une liste de titres affichée, inscrite tant qu'elle est montée. */
+/** A track list on screen, registered while it is mounted. */
 export interface SelectionList {
-  /** Titres affichés, dans l'ordre (liste filtrée et triée). */
+  /** Tracks shown, in order (filtered and sorted list). */
   tracks: () => Track[];
-  /** Une de vos playlists : retire les titres sélectionnés. */
+  /** One of your playlists: removes the selected tracks. */
   removeFromPlaylist?: (ids: ReadonlySet<TrackId>) => Promise<void>;
 }
 
-/** Identifiants de `from` à `to` inclus dans l'ordre de `ids`, dans un sens ou dans l'autre. */
+/** Ids from `from` to `to` inclusive in the order of `ids`, in either direction. */
 export function rangeIds(ids: TrackId[], from: TrackId, to: TrackId): TrackId[] {
   const a = ids.indexOf(from);
   const b = ids.indexOf(to);
@@ -26,22 +26,22 @@ export function rangeIds(ids: TrackId[], from: TrackId, to: TrackId): TrackId[] 
 }
 
 class Selection {
-  /** Nombre de titres sélectionnés (0 = pas de sélection). */
+  /** Number of selected tracks (0 = no selection). */
   count = $state(0);
-  /** Liste qui porte la sélection. `raw` : comparée par identité. */
+  /** List that holds the selection. `raw`: compared by identity. */
   owner = $state.raw<SelectionList | null>(null);
   #ids = new Set<TrackId>();
   #cells = new Map<TrackId, { on: boolean }>();
-  /** Dernier titre coché ou décoché, point de départ de Maj+clic. */
+  /** Last track checked or unchecked, starting point of Shift+click. */
   #anchor: TrackId | null = null;
-  /** Listes montées, la plus récente en dernier (cible de Ctrl+A sans sélection). */
+  /** Mounted lists, the most recent last (target of Ctrl+A with no selection). */
   #lists: SelectionList[] = [];
 
-  /** Change quand des cellules sont créées : seules les lignes encore sans cellule le lisent. */
+  /** Changes when cells are created: only the rows still without a cell read it. */
   #created = $state(0);
 
-  // Jamais appelé pendant le rendu : un état créé dans un rendu n'y est pas suivi (Svelte
-  // le traite comme local à ce rendu), la ligne ne verrait donc pas ses changements.
+  // Never called during rendering: state created in a render is not tracked there (Svelte
+  // treats it as local to that render), so the row would not see its changes.
   #cell(id: TrackId) {
     const cell = this.#cells.get(id);
     if (cell) return cell;
@@ -51,7 +51,7 @@ class Selection {
     return fresh;
   }
 
-  /** Cellules des titres de la liste qui porte la sélection, créées avant leur lecture. */
+  /** Cells of the tracks of the list that holds the selection, created before they are read. */
   #prepare(ids: Iterable<TrackId>) {
     for (const id of ids) this.#cell(id);
   }
@@ -92,7 +92,7 @@ class Selection {
     if (this.owner === list) this.clear();
   }
 
-  /** Ctrl+clic, ou un appui pendant la sélection sur Android. */
+  /** Ctrl+click, or a tap during the selection on Android. */
   toggle(list: SelectionList, id: TrackId) {
     this.#take(list);
     this.#set(id, !this.#ids.has(id));
@@ -100,7 +100,7 @@ class Selection {
     if (this.count === 0) this.owner = null;
   }
 
-  /** Maj+clic : ajoute tout ce qui va du dernier titre cliqué à celui-ci. */
+  /** Shift+click: adds everything from the last clicked track to this one. */
   extend(list: SelectionList, id: TrackId) {
     const anchor = this.owner === list ? this.#anchor : null;
     this.#take(list);
@@ -109,7 +109,7 @@ class Selection {
     this.#anchor = id;
   }
 
-  /** Ctrl+A : la liste qui porte la sélection, sinon la dernière affichée. `false` sans liste. */
+  /** Ctrl+A: the list holding the selection, otherwise the last one shown. `false` with no list. */
   selectAll(list = this.owner ?? this.#lists.at(-1)): boolean {
     if (!list) return false;
     const tracks = list.tracks();
@@ -119,7 +119,7 @@ class Selection {
     return true;
   }
 
-  /** La liste a changé (filtre, rechargement) : les titres qui n'y sont plus sont décochés. */
+  /** The list changed (filter, reload): the tracks no longer in it are unchecked. */
   prune(list: SelectionList, ids: TrackId[]) {
     if (this.owner !== list) return;
     this.#prepare(ids);
@@ -128,7 +128,7 @@ class Selection {
     if (this.count === 0) this.clear();
   }
 
-  /** Titres sélectionnés dans l'ordre de la liste, sans doublon. */
+  /** Selected tracks in the list's order, with no duplicates. */
   tracks(): Track[] {
     const seen = new Set<TrackId>();
     return (this.owner?.tracks() ?? []).filter((t) => {

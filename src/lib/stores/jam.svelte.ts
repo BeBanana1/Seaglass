@@ -1,5 +1,5 @@
-// Jam (#25) : état de la Jam, connexion au relais et noms des invités, reçus du backend.
-// Sur Android, seulement en ligne (pas de Jam sur le réseau local).
+// Jam (#25): the Jam's state, relay connection and guest names, received from the backend.
+// On Android, online only (no Jam on the local network).
 
 import { commands, events, type JamMode, type JamRules, type JamStatus } from "../ipc";
 import { setUiToggle, ui } from "./ui.svelte";
@@ -8,7 +8,7 @@ export const jam = $state<{
   status: JamStatus | null;
   busy: boolean;
   onlineAvailable: boolean;
-  /** Fenêtre d'accès rapide ouverte depuis « En lecture » (JamDialog). */
+  /** Quick access dialog opened from "Now playing" (JamDialog). */
   dialogOpen: boolean;
 }>({
   status: null,
@@ -17,18 +17,18 @@ export const jam = $state<{
   dialogOpen: false,
 });
 
-/** La Jam est proposée : activée dans les Réglages (#452), et bureau (réseau local au
- *  moins) ou relais utilisable. */
+/** The Jam is offered: turned on in Settings (#452), and desktop (local network at
+ *  least) or a usable relay. */
 export function jamAvailable(desktop: boolean): boolean {
   return ui.settings.jam && (desktop || jam.onlineAvailable);
 }
 
-/** Relais changé dans les Réglages (#452) : la Jam en ligne est-elle encore proposée ? */
+/** Relay changed in Settings (#452): is the online Jam still offered? */
 export async function refreshJamOnline() {
   jam.onlineAvailable = await commands.jamOnlineAvailable();
 }
 
-/** Interrupteur « Jam » (#452) : désactivée, le backend arrête celle en cours. */
+/** "Jam" switch (#452): when turned off, the backend stops the current one. */
 export async function setJamEnabled(enabled: boolean) {
   await setUiToggle("jam", enabled);
   if (!enabled) {
@@ -49,7 +49,7 @@ export async function initJam() {
   void events.onJamGuests(({ guests, members }) => {
     if (jam.status) jam.status = { ...jam.status, guests, members };
   });
-  // Connexion au relais : connecté, reconnexion, nouvelle adresse.
+  // Relay connection: connected, reconnecting, new address.
   void events.onJamStatus((status) => {
     if (jam.status) jam.status = status;
   });
@@ -59,11 +59,11 @@ export async function initJam() {
       commands.jamOnlineAvailable(),
     ]);
   } catch {
-    // Jam indisponible : rien à afficher.
+    // Jam unavailable: nothing to show.
   }
 }
 
-/** Invité qui a ajouté ce titre à la file pendant la Jam en cours. */
+/** Guest who added this track to the queue during the current Jam. */
 export function guestOf(trackId: number): string | undefined {
   return jam.status?.guests[trackId];
 }
@@ -77,7 +77,7 @@ export async function startJam(mode: JamMode) {
   }
 }
 
-/** Règles de l'hôte (#222, #288) : enregistrées, puis appliquées à la Jam en cours. */
+/** Host rules (#222, #288): saved, then applied to the current Jam. */
 export async function setJamRules(rules: JamRules) {
   jam.status = await commands.setJamRules(rules);
 }

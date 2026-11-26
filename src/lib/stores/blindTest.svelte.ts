@@ -1,9 +1,9 @@
-// Blind test (#434) : miroir de la partie tenue par le backend (`blind-test`), et liste
-// choisie pour la prochaine partie. Aucune logique de jeu ici.
+// Blind test (#434): mirror of the game held by the backend (`blind-test`), and the list
+// chosen for the next game. No game logic here.
 
 import { commands, events, type BlindTestView, type TrackId } from "../ipc";
 
-/** Liste d'où tirer les manches, choisie depuis l'en-tête d'une page. */
+/** List to draw the rounds from, chosen from a page's header. */
 export interface BlindPool {
   title: string;
   trackIds: TrackId[];
@@ -14,7 +14,7 @@ export const blindTest = $state<{ view: BlindTestView | null; pool: BlindPool | 
   pool: null,
 });
 
-/** Titres nécessaires pour proposer une partie (quatre propositions par manche). */
+/** Tracks needed to offer a game (four choices per round). */
 export const BLIND_MIN_TRACKS = 4;
 
 export async function initBlindTest() {

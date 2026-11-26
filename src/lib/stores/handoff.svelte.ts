@@ -1,6 +1,6 @@
-// Transfert de la lecture avec l'ordinateur lié (#414), côté téléphone, et historique
-// d'écoute synchronisé (#430). Le backend garde le lien (Keystore) et fait les échanges ;
-// ce store ne retient que ce que l'UI affiche.
+// Playback handoff with the linked computer (#414), phone side, and synced listening
+// history (#430). The backend keeps the link (Keystore) and does the exchanges; this store
+// only keeps what the UI shows.
 
 import { commands, events, type LinkedComputer } from "../ipc";
 import { t } from "../i18n.svelte";
@@ -19,7 +19,7 @@ export const handoff = $state<{
   syncing: false,
 });
 
-/** Lit l'ordinateur lié une fois (Android seulement : le bureau n'a pas de bouton). */
+/** Reads the linked computer once (Android only: the desktop has no button). */
 export async function loadLinkedComputer() {
   if (!platform.mobile || handoff.loaded) return;
   try {
@@ -43,13 +43,13 @@ async function run(action: () => Promise<void>, done: string) {
   }
 }
 
-/** « Reprendre ici » : la lecture de l'ordinateur passe sur le téléphone. */
+/** "Resume here": the computer's playback moves to the phone. */
 export const pullHere = () => run(commands.handoffPull, t.handoff.pulled);
 
-/** « Continuer sur l'ordinateur ». */
+/** "Continue on the computer". */
 export const pushToComputer = () => run(commands.handoffPush, t.handoff.pushed);
 
-/** « Synchroniser » de Réglages : historique d'écoute échangé tout de suite (#430). */
+/** "Sync" in Settings: listening history exchanged right away (#430). */
 export async function syncHistoryNow() {
   if (handoff.syncing) return;
   handoff.syncing = true;
@@ -65,10 +65,9 @@ export async function syncHistoryNow() {
 }
 
 /**
- * Vues de l'historique (accueil, statistiques, rétrospective) : `reload` quand des écoutes
- * arrivent de l'autre appareil. `sync` : demande aussi une synchro discrète (téléphone
- * lié seulement ; le backend l'ignore si la dernière est toute récente). Renvoie de quoi
- * se désabonner.
+ * History views (home, statistics, recap): `reload` when plays arrive from the other
+ * device. `sync`: also asks for a quiet sync (linked phone only; the backend skips it if
+ * the last one is very recent). Returns the unsubscribe function.
  */
 export function watchHistory(reload: () => void, sync = true): () => void {
   const unlisten = events.onHistorySynced(() => reload());
@@ -78,7 +77,7 @@ export function watchHistory(reload: () => void, sync = true): () => void {
       .then((at) => {
         if (at !== null && handoff.linked) handoff.linked = { ...handoff.linked, syncedAt: at };
       })
-      .catch((e) => console.info("historique non synchronisé", e));
+      .catch((e) => console.info("history not synced", e));
   }
   return () => void unlisten.then((u) => u());
 }

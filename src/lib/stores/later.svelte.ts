@@ -1,5 +1,5 @@
-// « Plus tard » (Save for later, #196), miroir des identifiants tenus par le backend : sert
-// aux entrées « Enregistrer pour plus tard » / « Retirer de Plus tard » des menus.
+// "Save for later" (#196), mirror of the ids held by the backend: used by the menus'
+// "Save for later" / "Remove from Save for later" entries.
 
 import { commands, events, type LikedIds, type LikeTarget } from "../ipc";
 import { library, loadLibrary } from "./library.svelte";
@@ -11,7 +11,7 @@ export const later = $state<{
   albums: Set<number>;
   artists: Set<number>;
   playlists: Set<string>;
-  /** Écritures en cours, par clé `kind:id`. */
+  /** Writes in progress, by `kind:id` key. */
   pending: Set<string>;
 }>({
   tracks: new Set(),
@@ -32,7 +32,7 @@ function key(target: LikeTarget): string {
   return target.kind === "playlist" ? `playlist:${target.uuid}` : `${target.kind}:${target.id}`;
 }
 
-/** Écriture en cours pour cet élément (bouton estompé, #227). */
+/** Write in progress for this item (dimmed button, #227). */
 export function isLaterPending(target: LikeTarget): boolean {
   return later.pending.has(key(target));
 }
@@ -56,13 +56,13 @@ export async function initLater() {
   await events.onLater(apply);
 }
 
-/** À la connexion. Une erreur n'est pas affichée : seuls les menus en dépendent, et la
- * liste se relit à l'ouverture de son onglet. */
+/** On sign-in. An error is not shown: only the menus depend on it, and the list is read
+ * again when its tab opens. */
 export async function loadLater() {
   try {
     apply(await commands.laterIds());
   } catch (e) {
-    console.warn("« Plus tard » illisible", e);
+    console.warn("Save for later list unreadable", e);
   }
 }
 
@@ -71,8 +71,8 @@ export function clearLater() {
 }
 
 /**
- * Ajoute ou retire ; l'état change quand le backend confirme (événement `later`), puis
- * l'onglet « Plus tard » est rechargé s'il l'était déjà.
+ * Adds or removes; the state changes when the backend confirms (`later` event), then the
+ * "Save for later" tab is reloaded if it was already loaded.
  */
 export async function toggleLater(target: LikeTarget) {
   if (target.kind === "mix") return;

@@ -1,10 +1,10 @@
-// Fenêtre « Ajouter à une playlist » (#4), affichée par components/PlaylistPicker.svelte.
+// "Add to playlist…" dialog (#4), shown by components/PlaylistPicker.svelte.
 
 import type { TrackId } from "../ipc";
 
 export interface PickerRequest {
   trackIds: TrackId[];
-  /** Ce qui est ajouté, pour l'en-tête (« Cornfield Chase », « 30 titres »). */
+  /** What is being added, for the header ("Cornfield Chase", "30 tracks"). */
   label: string;
 }
 
@@ -18,7 +18,7 @@ export function closePlaylistPicker() {
   picker.request = null;
 }
 
-/** Dernière playlist modifiée : sa page ouverte se recharge (lib/stores, vue Playlist). */
+/** Last playlist changed: its page, if open, reloads (lib/stores, Playlist view). */
 export const playlistChanges = $state<{ uuid: string | null; revision: number }>({
   uuid: null,
   revision: 0,

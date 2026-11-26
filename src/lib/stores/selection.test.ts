@@ -15,20 +15,20 @@ afterEach(() => selection.clear());
 describe("rangeIds", () => {
   const ids = [10, 20, 30, 40, 50];
 
-  it("va dans les deux sens, bornes comprises", () => {
+  it("goes both ways, ends included", () => {
     expect(rangeIds(ids, 20, 40)).toEqual([20, 30, 40]);
     expect(rangeIds(ids, 40, 20)).toEqual([20, 30, 40]);
     expect(rangeIds(ids, 30, 30)).toEqual([30]);
   });
 
-  it("sans point de départ affiché, prend seulement le titre cliqué", () => {
+  it("with no starting point shown, takes only the clicked track", () => {
     expect(rangeIds(ids, 99, 30)).toEqual([30]);
     expect(rangeIds(ids, 10, 99)).toEqual([]);
   });
 });
 
 describe("selection", () => {
-  it("coche et décoche, la dernière décoche termine la sélection", () => {
+  it("checks and unchecks, the last uncheck ends the selection", () => {
     const a = list([1, 2, 3]);
     selection.toggle(a, 2);
     expect(selection.count).toBe(1);
@@ -39,14 +39,14 @@ describe("selection", () => {
     expect(selection.owner).toBeNull();
   });
 
-  it("Maj+clic étend depuis le dernier titre cliqué", () => {
+  it("Shift+click extends from the last clicked track", () => {
     const a = list([1, 2, 3, 4, 5]);
     selection.toggle(a, 4);
     selection.extend(a, 2);
     expect(selection.tracks().map((t) => t.id)).toEqual([2, 3, 4]);
   });
 
-  it("une autre liste reprend la sélection à zéro", () => {
+  it("another list starts the selection over", () => {
     const a = list([1, 2]);
     const b = list([1, 3]);
     selection.toggle(a, 1);
@@ -57,7 +57,7 @@ describe("selection", () => {
     expect(selection.count).toBe(1);
   });
 
-  it("Ctrl+A vise la dernière liste inscrite, et la quitter vide la sélection", () => {
+  it("Ctrl+A targets the last registered list, and leaving it clears the selection", () => {
     const a = list([1, 2]);
     const b = list([3, 4, 5]);
     expect(selection.selectAll()).toBe(false);
@@ -70,7 +70,7 @@ describe("selection", () => {
     selection.unregister(a);
   });
 
-  it("garde l'ordre de la liste, sans doublon, et oublie les titres filtrés", () => {
+  it("keeps the list's order, with no duplicates, and drops the filtered tracks", () => {
     const a = list([3, 1, 2, 1]);
     selection.toggle(a, 1);
     selection.toggle(a, 3);

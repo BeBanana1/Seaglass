@@ -1,4 +1,4 @@
-// Bibliothèque chargée à la demande, onglet par onglet, puis gardée en mémoire.
+// Library loaded on demand, tab by tab, then kept in memory.
 
 import {
   commands,
@@ -15,9 +15,9 @@ import { pushToast } from "./toasts.svelte";
 
 interface Slot<T> {
   items: T[] | null;
-  /** Liste coupée au plafond de chargement (#91) : seuls les plus récents sont là. */
+  /** List cut at the loading cap (#91): only the most recent items are there. */
   truncated: boolean;
-  /** Nombre annoncé par TIDAL, s'il est connu. */
+  /** Count announced by TIDAL, if known. */
   total: number | null;
   error: string | null;
   loading: boolean;
@@ -40,7 +40,7 @@ export const library = $state({
   later: empty<LaterItem>(),
 });
 
-// Les mixes arrivent en simple liste (curseur, pas de plafond) ; le reste en `LibraryList`.
+// Mixes come as a plain list (cursor, no cap); the rest as a `LibraryList`.
 const loaders: Record<LibraryTab, () => Promise<unknown[] | LibraryList<unknown>>> = {
   playlists: commands.libraryPlaylists,
   mixes: commands.libraryMixes,
@@ -50,18 +50,18 @@ const loaders: Record<LibraryTab, () => Promise<unknown[] | LibraryList<unknown>
   later: commands.saveForLater,
 };
 
-/** Charge l'onglet s'il ne l'est pas déjà (`force` pour actualiser).
+/** Loads the tab if it is not loaded yet (`force` to refresh).
  *
- * Premier chargement du lancement (#181) : la copie enregistrée au lancement précédent
- * s'affiche aussitôt, puis la liste est relue en entier et la remplace (l'API ne dit pas
- * si elle a changé). Une erreur de relecture laisse la copie affichée, en toast. */
+ * First load after launch (#181): the copy saved during the previous run shows at once,
+ * then the whole list is read again and replaces it (the API does not say whether it
+ * changed). An error on that read leaves the copy shown, with a toast. */
 export async function loadLibrary(tab: LibraryTab, force = false) {
   const slot = library[tab];
   if (slot.loading || (slot.items && !force)) return;
   slot.loading = true;
   slot.error = null;
   try {
-    // Pas de copie sur disque pour les mixes ni pour « Plus tard ».
+    // No copy on disk for mixes or for "Save for later".
     if (!slot.items && tab !== "mixes" && tab !== "later") {
       const cached = await commands.cachedLibrary(tab).catch(() => null);
       if (cached && !slot.items) apply(slot, cached);
