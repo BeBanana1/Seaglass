@@ -5,6 +5,7 @@
 //! répondent depuis leur téléphone (`jam.rs`).
 
 mod answer;
+mod clip;
 mod game;
 mod jam;
 mod players;
@@ -22,6 +23,7 @@ use super::state::PlayerState;
 use crate::engine::Op;
 use crate::i18n::trf;
 use crate::tidal::models::{Track, TrackId};
+use clip::Clip;
 pub use game::{Answer, Choice, Mode, Party, Phase, RoundResult};
 use game::{CLIP_LENGTH, Game, GameError, MIN_POOL, ROUND_POINTS};
 pub use players::{HOST_KEY, PlayerResult, PlayerView, Refusal};
@@ -72,20 +74,6 @@ pub(super) struct BlindTest {
     reveal_at: Option<(Instant, i64)>,
     /// Où en est le chargement de l'extrait (#445).
     clip: Clip,
-}
-
-/// Chargement de l'extrait (#445). `loading` retombe dès que l'URL est résolue, avant que
-/// le moteur joue : l'UI suivrait sinon une position qui n'avance pas encore, puis
-/// sauterait en arrière à la première vraie position.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Clip {
-    /// Extrait demandé, fichier pas encore ouvert par le moteur.
-    Waiting,
-    /// Fichier ouvert (`Event::Loaded`) : la première position au-delà du début de
-    /// l'extrait dira qu'il joue. Une position reçue avant `Loaded` peut venir du titre de
-    /// la manche précédente et ne compte pas.
-    Opened,
-    Playing,
 }
 
 /// État de la partie envoyé à l'UI (`blind-test`). Le titre de la manche en cours n'y est
@@ -290,66 +278,6 @@ impl Player {
         Ok(())
     }
 
-    /// Charge l'extrait de la manche en cours, seul dans la file du moteur.
-    fn play_round(&mut self) {
-        self.blind_dirty = true;
-        let Some(blind) = &mut self.blind else {
-            return;
-        };
-        blind.reveal_at = None;
-        blind.clip = Clip::Waiting;
-        let (Some(track), start) = (blind.game.track(), blind.game.clip_start()) else {
-            return;
-        };
-        let id = track.id;
-        let mut queue = Queue::default();
-        queue.set_context(vec![id], 0, None, &mut self.rng);
-        self.queue = queue;
-        self.mark_queue_dirty();
-        self.load_current(id, start);
-    }
-
-    /// Fichier ouvert par le moteur : l'extrait de la manche va commencer.
-    pub(super) fn blind_on_loaded(&mut self) {
-        if let Some(blind) = &mut self.blind
-            && blind.clip == Clip::Waiting
-        {
-            blind.clip = Clip::Opened;
-        }
-    }
-
-    /// Position reçue : l'extrait est lancé à la première position qui dépasse son début,
-    /// et s'arrête de lui-même au bout de `CLIP_LENGTH`.
-    pub(super) async fn blind_on_position(&mut self) {
-        let Some(blind) = &mut self.blind else {
-            return;
-        };
-        if blind.clip == Clip::Opened
-            && self.loaded
-            && self.state.time_pos > blind.game.clip_start()
-        {
-            blind.clip = Clip::Playing;
-            self.blind_dirty = true;
-        }
-        if blind.game.hides_track()
-            && self.loaded
-            && !self.state.paused
-            && self.state.time_pos >= blind.game.clip_end()
-        {
-            // Fixé tout de suite : les positions suivantes ne redemandent pas la pause.
-            self.state.paused = true;
-            self.engine_op(Op::SetPaused(true)).await;
-            self.start_reveal_countdown();
-        }
-    }
-
-    /// Lecture demandée (bouton, touche média) sur un extrait terminé : il repart du début.
-    pub(super) fn blind_wants_replay(&self) -> bool {
-        self.blind.as_ref().is_some_and(|b| {
-            b.game.hides_track() && self.state.paused && self.state.time_pos >= b.game.clip_end()
-        })
-    }
-
     /// Réponse d'un joueur ; `round` (invités) écarte une réponse arrivée après la manche.
     async fn blind_answer(
         &mut self,
@@ -384,26 +312,6 @@ impl Player {
     async fn blind_reveal(&mut self) {
         if self.blind.as_mut().is_some_and(|b| b.game.reveal()) {
             self.on_blind_revealed().await;
-        }
-    }
-
-    pub(super) async fn blind_replay(&mut self) {
-        let Some(blind) = &self.blind else {
-            return;
-        };
-        let (start, id) = (blind.game.clip_start(), blind.game.track().map(|t| t.id));
-        if self.loaded {
-            self.state.time_pos = start;
-            self.engine_op(Op::Seek(start)).await;
-            self.engine_op(Op::SetPaused(false)).await;
-        } else if let Some(id) = id
-            && !self.state.loading
-        {
-            if let Some(blind) = &mut self.blind {
-                blind.clip = Clip::Waiting;
-                self.blind_dirty = true;
-            }
-            self.load_current(id, start);
         }
     }
 
@@ -442,21 +350,6 @@ impl Player {
         if self.loaded && !self.state.paused {
             self.engine_op(Op::SetPaused(true)).await;
         }
-    }
-
-    /// Titre de la manche illisible : un autre le remplace. Vrai si la partie a pris
-    /// l'échec en charge.
-    pub(super) async fn blind_track_failed(&mut self) -> bool {
-        let Some(blind) = &mut self.blind else {
-            return false;
-        };
-        self.loaded = false;
-        if blind.game.replace_track(&mut self.rng) {
-            self.play_round();
-        } else {
-            self.on_blind_finished().await;
-        }
-        true
     }
 
     /// Fin de la partie : la file d'avant revient, en pause à sa position, sans être
