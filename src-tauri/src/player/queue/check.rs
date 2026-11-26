@@ -1,19 +1,19 @@
-//! File reçue d'un autre appareil (transfert de lecture, #414) : vérifiée avant d'être
-//! confiée à l'acteur, qui indexe `context[order[pos]]` sans revérifier.
+//! Queue received from another device (playback handoff, #414): checked before being given
+//! to the actor, which indexes `context[order[pos]]` without checking again.
 
 use std::collections::HashSet;
 
 use super::{HISTORY_MAX, Queue};
 
-/// Titres du contexte acceptés au plus (une playlist de 10 000 titres passe).
+/// Most context tracks accepted (a 10,000-track playlist goes through).
 const MAX_CONTEXT: usize = 20_000;
-/// Titres de la file manuelle acceptés au plus.
+/// Most manual-queue tracks accepted.
 const MAX_MANUAL: usize = 2_000;
 
 impl Queue {
-    /// La file si elle est cohérente et a un titre courant, sinon `None`. L'historique est
-    /// ramené à sa taille habituelle et la source « Joué depuis » nettoyée (`is_uuid`
-    /// vient des commandes, qui valident l'entrée).
+    /// The queue if it is consistent and has a current track, otherwise `None`. The history
+    /// is cut down to its usual size and the "Played from" source cleaned (`is_uuid` comes
+    /// from the commands, which validate the input).
     pub fn received(mut self, is_uuid: impl Fn(&str) -> bool) -> Option<Self> {
         self.current?;
         if self.context.len() > MAX_CONTEXT || self.manual.len() > MAX_MANUAL {
@@ -30,7 +30,7 @@ impl Queue {
         {
             return None;
         }
-        // Curseur dans `order`, ou 0 pour un contexte vide.
+        // Cursor in `order`, or 0 for an empty context.
         if self.pos >= self.order.len().max(1) {
             return None;
         }

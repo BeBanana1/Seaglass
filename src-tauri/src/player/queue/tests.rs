@@ -87,7 +87,7 @@ fn enqueue_appends_album_in_order_after_manual_queue() {
 
 #[test]
 fn enqueue_changes_the_preloaded_next_track() {
-    // Le titre suivant préchargé dans mpv n'est plus le bon : l'acteur doit le retirer.
+    // The next track preloaded in mpv is no longer the right one: the actor must remove it.
     let mut q = Queue::default();
     q.set_context(ids(0..3), 0, None, &mut rng());
     assert_eq!(q.peek_next(), Some(TrackId(1)));
@@ -113,7 +113,7 @@ fn remove_manual_entries_by_id() {
     let mut q = Queue::default();
     q.set_context(ids(0..3), 0, None, &mut rng());
     q.enqueue(&[TrackId(7), TrackId(8), TrackId(7), TrackId(9)], false);
-    // Une entrée par identifiant demandé ; le contexte n'est pas touché.
+    // One entry per requested id; the context is untouched.
     assert_eq!(
         q.remove_manual_ids(&[TrackId(7), TrackId(1), TrackId(9)]),
         2
@@ -142,18 +142,18 @@ fn move_manual_down_and_up() {
     let mut q = Queue::default();
     q.set_context(ids(0..2), 0, None, &mut rng());
     q.enqueue(&ids(10..14), false);
-    // Vers le bas : l'entrée finit à l'index `to`.
+    // Downwards: the entry ends up at index `to`.
     assert!(q.move_manual(0, 2));
     assert_eq!(manual_ids(&q), vec![11, 12, 10, 13]);
-    // Vers le haut, jusqu'en tête.
+    // Upwards, to the front.
     assert!(q.move_manual(3, 0));
     assert_eq!(manual_ids(&q), vec![13, 11, 12, 10]);
-    // Monter / Descendre d'un cran.
+    // Move up / down one notch.
     assert!(q.move_manual(2, 1));
     assert_eq!(manual_ids(&q), vec![13, 12, 11, 10]);
     assert!(q.move_manual(2, 3));
     assert_eq!(manual_ids(&q), vec![13, 12, 10, 11]);
-    // Le contexte n'est pas touché.
+    // The context is untouched.
     assert_eq!(drain(&mut q), vec![13, 12, 10, 11, 1]);
 }
 
@@ -173,7 +173,7 @@ fn move_manual_rejects_no_op_and_out_of_range() {
 
 #[test]
 fn move_manual_changes_next_only_through_the_head() {
-    // L'acteur ne retire le préchargé que si `peek_next` change.
+    // The actor only removes the preloaded track if `peek_next` changes.
     let mut q = Queue::default();
     q.set_context(ids(0..2), 0, None, &mut rng());
     q.enqueue(&ids(10..14), false);
@@ -227,7 +227,7 @@ fn previous_then_next_returns_to_left_track() {
     let mut q = Queue::default();
     q.set_context(ids(0..5), 0, None, &mut rng());
     q.advance();
-    q.advance(); // courant : 2
+    q.advance(); // current: 2
     assert_eq!(q.previous(), Some(TrackId(1)));
     assert_eq!(q.previous(), Some(TrackId(0)));
     assert_eq!(q.previous(), None);
@@ -262,13 +262,13 @@ fn previous_into_replaced_context_keeps_cursor() {
     q.set_context(ids(0..3), 2, None, &mut rng());
     q.set_context(ids(10..13), 0, None, &mut rng());
     assert_eq!(q.previous(), Some(TrackId(2)));
-    // « Suivant » ramène au titre quitté (le curseur est resté dessus), puis continue.
+    // "Next" returns to the track that was left (the cursor stayed on it), then continues.
     assert_eq!(q.advance(), Some(TrackId(10)));
     assert_eq!(q.advance(), Some(TrackId(11)));
 }
 
-/// #166 : remonter l'historique d'un contexte remplacé remettait chaque titre quitté dans
-/// la file manuelle, pour de bon : ils passaient ensuite avant toute nouvelle liste.
+/// #166: going back through the history of a replaced context put every track left behind
+/// into the manual queue for good: they then came before any new list.
 #[test]
 fn titles_recalled_by_previous_return_with_next_then_drop_with_new_context() {
     let mut q = Queue::default();
@@ -279,7 +279,7 @@ fn titles_recalled_by_previous_return_with_next_then_drop_with_new_context() {
     assert_eq!(q.previous(), Some(TrackId(2)));
     assert_eq!(q.previous(), Some(TrackId(1)));
     assert_eq!(q.previous(), Some(TrackId(0)));
-    // « Suivant » ramène au point de départ, sans sauter le titre 10, puis suit le contexte.
+    // "Next" returns to the starting point, without skipping track 10, then follows the context.
     assert_eq!(drain(&mut q), vec![1, 2, 10, 11, 12]);
 
     q.set_context(ids(0..3), 0, None, &mut rng());
@@ -287,7 +287,7 @@ fn titles_recalled_by_previous_return_with_next_then_drop_with_new_context() {
     q.set_context(ids(10..13), 0, None, &mut rng());
     assert_eq!(q.previous(), Some(TrackId(0)));
     assert_eq!(q.manual().map(|t| t.0).collect::<Vec<_>>(), vec![10, 50]);
-    // Une nouvelle liste écarte les titres rappelés, pas ceux ajoutés par l'utilisateur.
+    // A new list discards the recalled tracks, not those added by the user.
     q.set_context(ids(20..23), 0, None, &mut rng());
     assert_eq!(q.manual().map(|t| t.0).collect::<Vec<_>>(), vec![50]);
     assert_eq!(drain(&mut q), vec![50, 21, 22]);
@@ -297,7 +297,7 @@ fn titles_recalled_by_previous_return_with_next_then_drop_with_new_context() {
 fn previous_after_clear_then_new_list_plays_the_list() {
     let mut q = Queue::default();
     q.set_context(ids(0..3), 0, None, &mut rng());
-    q.advance(); // courant : 1
+    q.advance(); // current: 1
     assert!(q.clear_upcoming());
     assert_eq!(q.previous(), Some(TrackId(0)));
     q.set_context(ids(10..13), 1, None, &mut rng());
@@ -311,8 +311,8 @@ fn reads_queue_saved_before_origin() {
         "repeat":"off","shuffle":false}"#;
     let mut q: Queue = serde_json::from_str(json).unwrap();
     assert_eq!(q.current(), Some(TrackId(50)));
-    // Ancien format : faux = file manuelle, remis en tête par « Précédent » ; un identifiant
-    // seul dans la file manuelle = ajouté par l'utilisateur, gardé par une nouvelle liste.
+    // Old format: false = manual queue, put back at the front by "Previous"; a plain id in
+    // the manual queue = added by the user, kept by a new list.
     assert_eq!(q.previous(), Some(TrackId(0)));
     assert_eq!(q.manual().map(|t| t.0).collect::<Vec<_>>(), vec![50, 60]);
     q.set_context(ids(10..12), 0, None, &mut rng());
@@ -344,7 +344,7 @@ fn clear_upcoming_keeps_current_and_history() {
     assert_eq!(q.peek_next(), None);
     assert_eq!(q.advance(), None);
     assert_eq!(q.current(), Some(TrackId(1)));
-    // L'historique reste : « Précédent » revient au titre 0, « Suivant » ramène au titre quitté.
+    // The history stays: "Previous" goes back to track 0, "Next" returns to the track that was left.
     assert_eq!(q.previous(), Some(TrackId(0)));
     assert_eq!(q.advance(), Some(TrackId(1)));
     assert!(!q.clear_upcoming());
@@ -366,9 +366,9 @@ fn clear_upcoming_then_new_items_play_normally() {
     assert_eq!(drain(&mut q), vec![11]);
 }
 
-// --- Radio automatique (#78) ---------------------------------------------------------
+// --- Automatic radio (#78) ---------------------------------------------------------
 
-/// Album de 3 titres joué jusqu'au dernier.
+/// 3-track album played to the last track.
 fn finished_album() -> Queue {
     let mut q = Queue::default();
     q.set_context(ids(0..3), 0, None, &mut rng());
@@ -380,7 +380,7 @@ fn finished_album() -> Queue {
 fn radio_extends_an_exhausted_queue_without_recent_tracks() {
     let mut q = finished_album();
     assert!(q.wants_radio());
-    // Titre courant, historique et doublons écartés.
+    // Current track, history and duplicates dropped.
     let radio = [2, 20, 0, 21, 20, 1, 22].map(TrackId);
     assert!(q.extend_with_radio(TrackId(2), &radio));
     assert_eq!(q.radio(), Some(TrackId(2)));
@@ -389,7 +389,7 @@ fn radio_extends_an_exhausted_queue_without_recent_tracks() {
     assert_eq!(q.upcoming_context(10), ids(20..23));
     assert!(!q.wants_radio());
     assert_eq!(drain(&mut q), vec![20, 21, 22]);
-    // Fin de la radio : elle peut à son tour être prolongée.
+    // End of the radio: it can be extended in turn.
     assert!(q.wants_radio());
 }
 
@@ -398,7 +398,7 @@ fn radio_keeps_previous_coherent() {
     let mut q = finished_album();
     assert!(q.extend_with_radio(TrackId(2), &ids(20..22)));
     assert_eq!(q.advance(), Some(TrackId(20)));
-    // Retour au titre de départ, puis « Suivant » repart sur la radio.
+    // Back to the starting track, then "Next" goes on to the radio again.
     assert_eq!(q.previous(), Some(TrackId(2)));
     assert_eq!(q.advance(), Some(TrackId(20)));
     assert_eq!(q.previous(), Some(TrackId(2)));
@@ -407,14 +407,14 @@ fn radio_keeps_previous_coherent() {
 
 #[test]
 fn radio_is_refused_when_the_queue_moved_on() {
-    // Titre courant changé pendant la requête.
+    // Current track changed during the request.
     let mut q = finished_album();
     assert!(!q.extend_with_radio(TrackId(1), &ids(20..22)));
-    // Un titre ajouté à la file entre-temps.
+    // A track added to the queue in the meantime.
     q.add_to_queue(TrackId(9));
     assert!(!q.wants_radio());
     assert!(!q.extend_with_radio(TrackId(2), &ids(20..22)));
-    // Rien de neuf dans la radio.
+    // Nothing new in the radio.
     let mut q = finished_album();
     assert!(!q.extend_with_radio(TrackId(2), &ids(0..3)));
     assert_eq!(q.radio(), None);
@@ -429,7 +429,7 @@ fn repeat_takes_priority_over_radio() {
     assert!(!q.extend_with_radio(TrackId(2), &ids(20..22)));
     q.set_repeat(Repeat::One);
     assert!(!q.wants_radio());
-    // Repeat All après un « Vider la file » : rien ne suit, mais pas de radio.
+    // Repeat All after a "Clear queue": nothing follows, but no radio.
     q.set_repeat(Repeat::All);
     q.clear_upcoming();
     assert_eq!(q.peek_next(), None);
@@ -468,18 +468,18 @@ fn source_follows_the_current_track() {
     q.set_context(ids(0..3), 0, Some(album.clone()), &mut rng());
     assert_eq!(q.source(), Some(&album));
 
-    // Un titre de la file manuelle ne vient pas de l'album.
+    // A manual-queue track does not come from the album.
     q.play_next(TrackId(9));
     q.advance();
     assert_eq!(q.source(), None);
     q.advance();
     assert_eq!(q.source(), Some(&album));
 
-    // « Vider la file » détache le titre courant du contexte.
+    // "Clear queue" detaches the current track from the context.
     q.clear_upcoming();
     assert_eq!(q.source(), None);
 
-    // Un nouveau contexte sans source n'hérite pas de l'ancienne.
+    // A new context without a source does not inherit the old one.
     q.set_context(ids(0..3), 0, Some(album), &mut rng());
     q.set_context(ids(5..7), 0, None, &mut rng());
     assert_eq!(q.source(), None);
@@ -496,7 +496,7 @@ fn source_is_dropped_by_radio_and_restored_from_disk() {
 
     assert!(q.extend_with_radio(TrackId(0), &ids(10..12)));
     assert_eq!(q.source(), None);
-    // Le titre de départ vient encore de l'ancien contexte ; la suite vient de la radio.
+    // The starting track still comes from the old context; what follows comes from the radio.
     assert_eq!(q.radio_playing(), None);
     q.advance();
     assert_eq!(q.radio_playing(), Some(TrackId(0)));
@@ -515,7 +515,7 @@ fn jump_to_manual_entry_drops_the_ones_before_it() {
         Some(TrackId(52))
     );
     assert_eq!(drain(&mut q), vec![53, 1, 2]);
-    // Les titres sautés ne sont pas dans l'historique.
+    // Skipped tracks are not in the history.
     let mut back = Vec::new();
     while let Some(t) = q.previous() {
         back.push(t.0);
@@ -528,7 +528,7 @@ fn jump_to_upcoming_keeps_manual_queue_and_skips_history() {
     let mut q = Queue::default();
     q.set_context(ids(0..6), 1, None, &mut rng());
     q.add_to_queue(TrackId(50));
-    // Suite du contexte : 2, 3, 4, 5.
+    // Rest of the context: 2, 3, 4, 5.
     assert_eq!(
         q.jump_to(QueuePart::Upcoming, 2, TrackId(4)),
         Some(TrackId(4))
@@ -556,7 +556,7 @@ fn jump_to_upcoming_follows_shuffle_and_repeat_all() {
     let mut q = Queue::default();
     q.set_context(ids(0..4), 2, None, &mut rng());
     q.set_repeat(Repeat::All);
-    // Suite : 3, puis 0, 1, 2 après le retour au début.
+    // Next: 3, then 0, 1, 2 after wrapping around to the start.
     assert_eq!(
         q.jump_to(QueuePart::Upcoming, 2, TrackId(1)),
         Some(TrackId(1))
@@ -599,10 +599,10 @@ fn at_end_ignores_repeat_all_and_waits_for_the_manual_queue() {
     q.advance();
     assert!(
         q.at_end(),
-        "dernier titre : le retour au début ne compte pas"
+        "last track: wrapping around to the start does not count"
     );
     q.add_to_queue(TrackId(9));
-    assert!(!q.at_end(), "la file manuelle reste à lire");
+    assert!(!q.at_end(), "the manual queue is still to be played");
     assert_eq!(q.advance(), Some(TrackId(9)));
     assert!(q.at_end());
 }

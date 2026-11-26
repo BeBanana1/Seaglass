@@ -1,16 +1,16 @@
-//! Blind test à plusieurs (#441) : délai de révélation. Les réponses des invités arrivent
-//! par `BlindCmd::GuestAnswer` (API de la Jam) et passent par `Player::blind_answer`.
+//! Multiplayer blind test (#441): reveal delay. The guests' answers arrive through
+//! `BlindCmd::GuestAnswer` (the Jam's API) and go through `Player::blind_answer`.
 
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use super::Player;
 
-/// Après la fin de l'extrait, temps laissé aux joueurs avant la révélation automatique.
+/// After the clip ends, time left to the players before the automatic reveal.
 pub const REVEAL_AFTER: Duration = Duration::from_secs(20);
 
 impl Player {
-    /// Fin de l'extrait, à plusieurs : la révélation automatique est programmée, une fois
-    /// par manche (une réécoute ne la repousse pas).
+    /// End of the clip, with several players: the automatic reveal is scheduled, once per
+    /// round (listening again does not push it back).
     pub(super) fn start_reveal_countdown(&mut self) {
         let Some(blind) = &mut self.blind else {
             return;
@@ -26,7 +26,7 @@ impl Player {
         self.blind_dirty = true;
     }
 
-    /// Tick d'une seconde de l'acteur : révèle la manche dont le délai est écoulé.
+    /// The actor's one-second tick: reveals the round whose delay has elapsed.
     pub(in crate::player) async fn check_blind_deadline(&mut self) {
         let due = self
             .blind

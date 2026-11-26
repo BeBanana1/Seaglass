@@ -1,5 +1,5 @@
-//! Import d'un profil AutoEQ (#428) : fichier « ParametricEQ.txt », le format d'Equalizer
-//! APO que publie AutoEQ pour chaque casque.
+//! Import of an AutoEQ profile (#428): the "ParametricEQ.txt" file, the Equalizer APO format
+//! that AutoEQ publishes for each headphone.
 //!
 //! ```text
 //! Preamp: -6.2 dB
@@ -8,19 +8,19 @@
 //! Filter 10: ON HSC Fc 10000 Hz Gain -1.4 dB Q 0.70
 //! ```
 //!
-//! Types acceptés : `PK` / `PEQ` (pic), `LSC` / `LS` (plateau grave), `HSC` / `HS`
-//! (plateau aigu). Filtres `OFF` ignorés ; plateau sans `Q` : 0,71 (Butterworth). Toute
-//! autre ligne (commentaire `#`, `Channel:`…) est ignorée. Le profil rendu a l'identifiant
-//! 0 et un nom vide : l'UI les fixe avant de l'enregistrer.
+//! Accepted types: `PK` / `PEQ` (peak), `LSC` / `LS` (low shelf), `HSC` / `HS` (high
+//! shelf). `OFF` filters are ignored; a shelf without `Q` gets 0.71 (Butterworth). Any other
+//! line (`#` comment, `Channel:`…) is ignored. The returned profile has id 0 and an empty
+//! name: the UI sets them before saving it.
 
 use super::eq::{EqProfile, Filter, FilterKind, Invalid, MAX_FILTERS};
 use crate::i18n::{tr, trf};
 
-/// Taille maximale du texte collé : un vrai fichier fait moins d'un kilo-octet.
+/// Maximum size of the pasted text: a real file is under a kilobyte.
 pub const MAX_LEN: usize = 16 * 1024;
 const DEFAULT_SHELF_Q: f64 = 0.71;
 
-/// Analyse le texte d'un fichier AutoEQ ; le profil rendu respecte les bornes de `eq`.
+/// Parses the text of an AutoEQ file; the returned profile respects the bounds of `eq`.
 pub fn parse(text: &str) -> Result<EqProfile, Invalid> {
     if text.len() > MAX_LEN {
         return Err(not_autoeq());
@@ -62,7 +62,7 @@ pub fn parse(text: &str) -> Result<EqProfile, Invalid> {
         preamp,
         filters,
     };
-    // Le nom, vide ici, est fixé par l'UI : seules les valeurs sont vérifiées.
+    // The name, empty here, is set by the UI: only the values are checked.
     profile.check_values()?;
     Ok(profile)
 }
@@ -77,7 +77,7 @@ fn not_autoeq() -> Invalid {
     )
 }
 
-/// Un filtre : `ON PK Fc 105 Hz Gain 3.4 dB Q 0.70`. `None` pour un filtre `OFF`.
+/// One filter: `ON PK Fc 105 Hz Gain 3.4 dB Q 0.70`. `None` for an `OFF` filter.
 fn parse_filter(rest: &str, n: usize) -> Result<Option<Filter>, Invalid> {
     let unreadable = || Invalid(trf!("filtre {} illisible", "filter {}: unreadable", n));
     let tokens: Vec<&str> = rest.split_whitespace().collect();
@@ -122,7 +122,7 @@ fn parse_filter(rest: &str, n: usize) -> Result<Option<Filter>, Invalid> {
     }))
 }
 
-/// Nombre décimal, virgule acceptée (export d'Equalizer APO en français).
+/// Decimal number, comma accepted (Equalizer APO export in French).
 fn number(token: &str) -> Option<f64> {
     token
         .replace(',', ".")
@@ -135,7 +135,7 @@ fn number(token: &str) -> Option<f64> {
 mod tests {
     use super::*;
 
-    /// Extrait d'un vrai fichier AutoEQ (Sennheiser HD 600, oratory1990).
+    /// Excerpt of a real AutoEQ file (Sennheiser HD 600, oratory1990).
     const HD600: &str = "Preamp: -6.2 dB
 Filter 1: ON LSC Fc 105 Hz Gain 5.5 dB Q 0.70
 Filter 2: ON PK Fc 2386 Hz Gain -2.1 dB Q 1.26
@@ -166,7 +166,7 @@ Filter 10: ON HSC Fc 10000 Hz Gain -1.4 dB Q 0.70
         assert_eq!(p.filters[1].kind, FilterKind::Peaking);
         assert_eq!(p.filters[9].kind, FilterKind::HighShelf);
         assert_eq!(p.filters[9].freq, 10_000.0);
-        // Fins de ligne Windows et espaces en trop.
+        // Windows line endings and extra spaces.
         let crlf = HD600.replace('\n', "\r\n  ");
         assert_eq!(parse(&crlf).unwrap(), p);
     }
@@ -178,8 +178,8 @@ Filter 10: ON HSC Fc 10000 Hz Gain -1.4 dB Q 0.70
              Filter: OFF PK Fc 200 Hz Gain 9 dB Q 1\nFilter: ON LS Fc 80 Hz Gain 3 dB\n",
         )
         .unwrap();
-        assert_eq!(p.preamp, None, "préampli automatique");
-        assert_eq!(p.filters.len(), 2, "filtre OFF ignoré");
+        assert_eq!(p.preamp, None, "automatic preamp");
+        assert_eq!(p.filters.len(), 2, "OFF filter ignored");
         assert_eq!(p.filters[0].gain, 2.5);
         assert_eq!(p.filters[1].q, DEFAULT_SHELF_Q);
     }
@@ -188,17 +188,17 @@ Filter 10: ON HSC Fc 10000 Hz Gain -1.4 dB Q 0.70
     fn rejects_what_it_cannot_apply() {
         assert!(parse("").is_err());
         assert!(parse("bonjour").is_err());
-        assert!(parse("Preamp: -3 dB\n").is_err(), "aucun filtre");
+        assert!(parse("Preamp: -3 dB\n").is_err(), "no filter");
         assert!(parse("Preamp: abc dB\nFilter 1: ON PK Fc 100 Hz Gain 1 dB Q 1").is_err());
         let notch = parse("Filter 1: ON NO Fc 100 Hz").unwrap_err();
         assert!(notch.0.contains("NO"), "{notch}");
         assert!(
             parse("Filter 1: ON PK Fc 100 Hz Gain 1 dB").is_err(),
-            "pic sans Q"
+            "peak without Q"
         );
         assert!(
             parse("Filter 1: ON PK Fc 5 Hz Gain 1 dB Q 1").is_err(),
-            "hors bornes"
+            "out of bounds"
         );
         assert!(parse("Filter 1: ON PK Fc 100 Hz Gain 30 dB Q 1").is_err());
         let many: String = (1..=MAX_FILTERS + 1)

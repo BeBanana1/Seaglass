@@ -1,25 +1,24 @@
-//! Titre de la file avec son origine : titre courant, historique et file manuelle.
+//! Queue track with its origin: current track, history and manual queue.
 
 use serde::{Deserialize, Serialize};
 
 use crate::tidal::models::TrackId;
 
-/// D'où vient un titre.
+/// Where a track comes from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(super) enum Origin {
-    /// Du contexte en cours : le curseur `pos` le désigne.
+    /// From the current context: the `pos` cursor points to it.
     Context,
-    /// Ajouté par l'utilisateur à la file manuelle (« Lire ensuite », « Ajouter à la file »).
+    /// Added by the user to the manual queue ("Play next", "Add to queue").
     Manual,
-    /// Ni l'un ni l'autre : titre d'un contexte remplacé depuis, ou titre courant après
-    /// « Vider la file ».
+    /// Neither: track of a context replaced since, or current track after "Clear queue".
     Detached,
 }
 
-/// Dans la file manuelle, une origine autre que `Manual` marque un titre quitté par
-/// « Précédent », remis en tête pour que « Suivant » y ramène : un nouveau contexte l'écarte
-/// (#166 : ces titres s'accumulaient et passaient avant toute nouvelle liste).
+/// In the manual queue, an origin other than `Manual` marks a track left through
+/// "Previous", put back at the front so that "Next" returns to it: a new context discards it
+/// (#166: these tracks piled up and came before any new list).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "StoredEntry")]
 pub(super) struct Entry {
@@ -36,14 +35,15 @@ impl Entry {
         self.origin == Origin::Context
     }
 
-    /// Ajouté par l'utilisateur, par opposition à un titre rappelé par « Précédent ».
+    /// Added by the user, as opposed to a track recalled by "Previous".
     pub fn queued_by_user(self) -> bool {
         self.origin == Origin::Manual
     }
 }
 
-/// `Entry` tel qu'enregistré. Avant 0.4.64 : un simple identifiant dans la file manuelle,
-/// et `{id, from_context}` ailleurs (faux = file manuelle, sans distinguer un titre détaché).
+/// `Entry` as saved. Before 0.4.64: a plain id in the manual queue, and
+/// `{id, from_context}` elsewhere (false = manual queue, without distinguishing a detached
+/// track).
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum StoredEntry {

@@ -1,13 +1,13 @@
-//! Choix du flux d'un titre : le sien, ou celui d'une autre édition hi-res du même
-//! enregistrement (#18). Tourne hors de l'acteur, dans la résolution réseau.
+//! Choice of a track's stream: its own, or that of another hi-res edition of the same
+//! recording (#18). Runs outside the actor, in the network resolution.
 //!
-//! - Titre suivant (préchargement à 30 s de la fin) : recherche puis flux, l'un après
-//!   l'autre ; le temps passé est invisible.
-//! - Titre courant : la recherche part en parallèle du flux d'origine et ne peut retarder
-//!   le démarrage de plus de `CURRENT_LOOKUP_LIMIT`. Une réponse déjà en cache évite la
-//!   demande du flux d'origine.
-//! - Mode « Demander » (#59) : le titre d'origine démarre sans attendre, `find_offer`
-//!   cherche ensuite l'édition à proposer.
+//! - Next track (preload 30 s before the end): lookup then stream, one after the other; the
+//!   time spent is invisible.
+//! - Current track: the lookup runs in parallel with the original stream and cannot delay
+//!   the start by more than `CURRENT_LOOKUP_LIMIT`. An answer already in the cache avoids
+//!   requesting the original stream.
+//! - "Ask" mode (#59): the original track starts without waiting, `find_offer` then looks
+//!   for the edition to offer.
 
 use std::time::Duration;
 
@@ -16,10 +16,10 @@ use super::settings::HiresUpgrade;
 use crate::tidal::TidalClient;
 use crate::tidal::models::{AudioQuality, Stream, StreamFormat, StreamUse, Track};
 
-/// Temps maximal accordé à la recherche d'une édition hi-res pour le titre courant.
+/// Maximum time given to the search for a hi-res edition for the current track.
 const CURRENT_LOOKUP_LIMIT: Duration = Duration::from_millis(1500);
 
-/// Flux à lire pour `track`. `current` : le titre est attendu tout de suite (entrée 0).
+/// Stream to play for `track`. `current`: the track is wanted right away (entry 0).
 pub(super) async fn resolve_stream(
     tidal: &TidalClient,
     track: &Track,
@@ -43,7 +43,7 @@ pub(super) async fn resolve_stream(
             let edition = match edition {
                 Ok(found) => found,
                 Err(_) => {
-                    tracing::warn!("recherche hi-res de {} trop lente, ignorée", track.id);
+                    tracing::warn!("hi-res lookup for {} too slow, ignored", track.id);
                     Ok(None)
                 }
             };
@@ -56,7 +56,7 @@ pub(super) async fn resolve_stream(
         match tidal.stream(edition.id, quality, use_).await {
             Ok(mut stream) if is_better(&stream.format, base.map(|s| &s.format)) => {
                 tracing::info!(
-                    "{} : édition hi-res {} ({})",
+                    "{}: hi-res edition {} ({})",
                     track.id,
                     edition.id,
                     edition.album.title
@@ -65,13 +65,13 @@ pub(super) async fn resolve_stream(
                 return Ok(stream);
             }
             Ok(stream) => tracing::info!(
-                "{} : édition {} pas meilleure ({:?}/{:?}), version d'origine",
+                "{}: edition {} not better ({:?}/{:?}), original version",
                 track.id,
                 edition.id,
                 stream.format.bit_depth,
                 stream.format.sample_rate
             ),
-            Err(e) => tracing::warn!("{} : flux de l'édition {} : {e}", track.id, edition.id),
+            Err(e) => tracing::warn!("{}: stream of edition {}: {e}", track.id, edition.id),
         }
     }
     match original {
@@ -80,9 +80,9 @@ pub(super) async fn resolve_stream(
     }
 }
 
-/// Édition hi-res à proposer pour `track`, joué au format `original` : son format (avec
-/// l'album dans `hires_edition`) si elle est réellement meilleure. Rien n'est lu : le flux
-/// sera demandé si l'offre est acceptée.
+/// Hi-res edition to offer for `track`, played in the `original` format: its format (with
+/// the album in `hires_edition`) if it is really better. Nothing is played: the stream will
+/// be requested if the offer is accepted.
 pub(super) async fn find_offer(
     tidal: &TidalClient,
     track: &Track,
@@ -100,20 +100,20 @@ pub(super) async fn find_offer(
         }
         Ok(_) => None,
         Err(e) => {
-            tracing::warn!("{} : format de l'édition {} : {e}", track.id, edition.id);
+            tracing::warn!("{}: format of edition {}: {e}", track.id, edition.id);
             None
         }
     }
 }
 
 impl Player {
-    /// Mode « Demander » (#59) : cherche en arrière-plan l'édition hi-res à proposer pour
-    /// le titre courant, sauf si son album a déjà eu une réponse. Retire toute offre
-    /// précédente (autre titre, autre réglage).
+    /// "Ask" mode (#59): looks up in the background the hi-res edition to offer for the
+    /// current track, unless its album already got an answer. Removes any previous offer
+    /// (other track, other setting).
     pub(super) fn maybe_offer_hires(&mut self) {
         self.offer_req += 1;
         self.state.hires_offer = None;
-        // Pas pendant un blind test (#434) : le bandeau nommerait l'album.
+        // Not during a blind test (#434): the banner would name the album.
         if self.hires_upgrade != HiresUpgrade::Ask || !self.loaded || self.blind.is_some() {
             return;
         }
@@ -136,9 +136,9 @@ impl Player {
         });
     }
 
-    /// Réponse au bandeau, valable pour tout l'album pendant la session. Oui : le titre est
-    /// rechargé à la même position depuis l'édition hi-res (micro-coupure) et la lecture
-    /// reprend ; le suivant préchargé, résolu sans elle, est retiré.
+    /// Answer to the banner, valid for the whole album during the session. Yes: the track is
+    /// reloaded at the same position from the hi-res edition (tiny gap) and playback
+    /// resumes; the preloaded next one, resolved without it, is removed.
     pub(super) async fn answer_hires_offer(&mut self, accept: bool) {
         let Some(album) = self.state.track.as_ref().map(|t| t.album.id) else {
             return;
@@ -155,7 +155,7 @@ impl Player {
     }
 }
 
-/// Une recherche en échec revient à « pas d'édition hi-res » : on lit l'original.
+/// A failed lookup falls back to "no hi-res edition": the original is played.
 fn lookup_result(track: &Track, result: crate::tidal::Result<Option<Track>>) -> Option<Track> {
     result.unwrap_or_else(|e| {
         tracing::warn!("recherche hi-res de {} impossible : {e}", track.id);
@@ -163,9 +163,9 @@ fn lookup_result(track: &Track, result: crate::tidal::Result<Option<Track>>) -> 
     })
 }
 
-/// Le flux de l'autre édition n'est retenu que s'il est réellement hi-res et, si le flux
-/// d'origine est connu, meilleur sur un axe sans être moins bon sur l'autre.
-/// Aussi utilisé par les infos du titre (#3) pour dire si l'édition serait lue.
+/// The other edition's stream is only kept if it is really hi-res and, if the original
+/// stream is known, better on one axis without being worse on the other.
+/// Also used by the track info (#3) to say whether the edition would be played.
 pub fn is_better(candidate: &StreamFormat, original: Option<&StreamFormat>) -> bool {
     if candidate.quality != AudioQuality::HiResLossless {
         return false;
@@ -210,23 +210,23 @@ mod tests {
     #[test]
     fn rejects_non_hires_or_worse_streams() {
         let cd = format(AudioQuality::Lossless, 16, 44_100);
-        assert!(!is_better(&cd, None), "pas hi-res");
+        assert!(!is_better(&cd, None), "not hi-res");
         assert!(!is_better(&cd, Some(&cd)));
         let same = format(AudioQuality::HiResLossless, 16, 44_100);
-        assert!(!is_better(&same, Some(&cd)), "pas meilleur");
+        assert!(!is_better(&same, Some(&cd)), "not better");
         let lower_rate = format(AudioQuality::HiResLossless, 24, 44_100);
         let original = format(AudioQuality::Lossless, 16, 48_000);
         assert!(
             !is_better(&lower_rate, Some(&original)),
-            "fréquence plus basse"
+            "lower sample rate"
         );
     }
 
     /// `cargo test live_hires_playback -- --ignored --nocapture` : *Billie Jean* de
-    /// « Thriller 25 Super Deluxe Edition » (16/44,1 seulement), résolu comme titre courant
-    /// puis décodé par un vrai mpv (sortie `null`).
+    /// "Thriller 25 Super Deluxe Edition" (16/44.1 only), resolved as the current track then
+    /// decoded by a real mpv (`null` output).
     #[tokio::test]
-    #[ignore = "réseau, session TIDAL et mpv requis"]
+    #[ignore = "network, TIDAL session and mpv required"]
     async fn live_hires_playback() {
         use serde_json::json;
 
@@ -237,28 +237,28 @@ mod tests {
         let tidal = TidalClient::new().unwrap();
         assert!(
             tidal.current_session().await.unwrap().is_some(),
-            "pas de session"
+            "no session"
         );
         let track = tidal.track(TrackId(1_632_061)).await.unwrap();
-        for round in ["premier essai", "en cache"] {
+        for round in ["first try", "cached"] {
             let start = std::time::Instant::now();
             let stream = resolve_stream(&tidal, &track, AudioQuality::HiResLossless, true, true)
                 .await
                 .unwrap();
-            println!("{round} : {:?} en {:?}", stream.format, start.elapsed());
+            println!("{round}: {:?} in {:?}", stream.format, start.elapsed());
             assert_eq!(stream.format.bit_depth, Some(24));
             assert!(stream.format.hires_edition.is_some());
         }
         let off = resolve_stream(&tidal, &track, AudioQuality::HiResLossless, false, true)
             .await
             .unwrap();
-        assert_eq!(off.format.bit_depth, Some(16), "réglage désactivé");
+        assert_eq!(off.format.bit_depth, Some(16), "setting off");
 
         let stream = resolve_stream(&tidal, &track, AudioQuality::HiResLossless, true, false)
             .await
             .unwrap();
         let StreamSource::Dash(mpd) = stream.source else {
-            panic!("manifeste DASH attendu");
+            panic!("DASH manifest expected");
         };
         let server = ManifestServer::start().await.unwrap();
         let url = server.publish(&track.id.to_string(), mpd);

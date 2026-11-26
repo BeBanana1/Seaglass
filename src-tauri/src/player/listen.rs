@@ -1,19 +1,19 @@
-//! Quand une écoute compte pour l'historique local (#202) : règle de Last.fm, le titre a
-//! réellement joué la moitié de sa durée ou 4 minutes, et dure plus de 30 s. Le temps est
-//! cumulé à partir des positions reçues du moteur : un saut en avant ne compte pas, une
-//! pause non plus. Logique pure, sans horloge. Dit aussi quand annoncer le début d'un titre
-//! à ListenBrainz (#431) : une fois par écoute, dès qu'il joue.
+//! When a listen counts for the local history (#202): Last.fm's rule, the track actually
+//! played half its length or 4 minutes, and lasts more than 30 s. Time is accumulated from
+//! the positions received from the engine: a jump forward does not count, neither does a
+//! pause. Pure logic, no clock. Also says when to announce the start of a track to
+//! ListenBrainz (#431): once per listen, as soon as it plays.
 
 use crate::tidal::models::TrackId;
 
-/// Titres plus courts : jamais comptés.
+/// Shorter tracks: never counted.
 const MIN_DURATION: f64 = 30.0;
-/// Seuil absolu, pour les longs titres.
+/// Absolute threshold, for long tracks.
 const MAX_THRESHOLD: f64 = 240.0;
-/// Écart maximal entre deux positions pour une lecture continue : au-delà, c'est un saut.
-/// Android n'envoie la position que toutes les 5 s sans activité visible (#147).
+/// Maximum gap between two positions for continuous playback: beyond it, it is a jump.
+/// Android only sends the position every 5 s with no visible activity (#147).
 const MAX_STEP: f64 = 6.0;
-/// Retour au début (repeat One, « Précédent » après 3 s) : nouvelle écoute.
+/// Back to the start (repeat One, "Previous" after 3 s): new listen.
 const RESTART_BELOW: f64 = 5.0;
 
 #[derive(Debug, Default)]
@@ -26,8 +26,8 @@ pub struct ListenTracker {
 }
 
 impl ListenTracker {
-    /// Nouvelle position du titre courant (`duration` en secondes, 0 si inconnue). Renvoie le
-    /// titre une seule fois par écoute, quand le seuil est franchi.
+    /// New position of the current track (`duration` in seconds, 0 if unknown). Returns the
+    /// track once per listen, when the threshold is crossed.
     pub fn on_position(&mut self, track: TrackId, duration: f64, pos: f64) -> Option<TrackId> {
         if self.track != Some(track) {
             *self = Self {
@@ -56,8 +56,8 @@ impl ListenTracker {
         None
     }
 
-    /// Vrai une seule fois par écoute du titre courant (après `on_position`) : il joue,
-    /// on peut annoncer son début.
+    /// True once per listen of the current track (after `on_position`): it is playing, its
+    /// start can be announced.
     pub fn announce(&mut self, track: TrackId) -> bool {
         if self.track != Some(track) || self.announced {
             return false;
@@ -66,7 +66,7 @@ impl ListenTracker {
         true
     }
 
-    /// Temps réellement écouté du titre courant, en secondes.
+    /// Time actually listened of the current track, in seconds.
     pub fn listened(&self) -> f64 {
         self.listened
     }
@@ -78,7 +78,7 @@ mod tests {
 
     const T: TrackId = TrackId(1);
 
-    /// Positions de 0 à `to` par pas de `step`, renvoie le nombre d'écoutes comptées.
+    /// Positions from 0 to `to` in steps of `step`, returns the number of listens counted.
     fn play(tracker: &mut ListenTracker, duration: f64, from: f64, to: f64, step: f64) -> usize {
         let mut counted = 0;
         let mut pos = from;
@@ -109,13 +109,13 @@ mod tests {
         assert_eq!(play(&mut tracker, 30.0, 0.0, 30.0, 0.25), 0);
         let mut tracker = ListenTracker::default();
         tracker.on_position(T, 200.0, 0.0);
-        // Saut à la fin : pas d'écoute.
+        // Jump to the end: no listen.
         assert_eq!(play(&mut tracker, 200.0, 150.0, 199.0, 1.0), 0);
     }
 
     #[test]
     fn slow_position_updates_still_count() {
-        // Android en arrière-plan : une position toutes les 5 s.
+        // Android in the background: one position every 5 s.
         let mut tracker = ListenTracker::default();
         assert_eq!(play(&mut tracker, 200.0, 0.0, 200.0, 5.0), 1);
     }
@@ -136,7 +136,7 @@ mod tests {
         assert!(!tracker.announce(T));
         play(&mut tracker, 100.0, 1.0, 100.0, 1.0);
         assert!(!tracker.announce(T));
-        // Repeat One : nouvelle écoute, nouvelle annonce.
+        // Repeat One: new listen, new announcement.
         tracker.on_position(T, 100.0, 0.0);
         assert!(tracker.announce(T));
         assert!(!tracker.announce(TrackId(2)));
@@ -147,7 +147,7 @@ mod tests {
         let mut tracker = ListenTracker::default();
         play(&mut tracker, 200.0, 0.0, 90.0, 1.0);
         assert_eq!(tracker.on_position(TrackId(2), 200.0, 0.0), None);
-        // L'écoute du premier titre ne se reporte pas sur le second.
+        // The first track's listen does not carry over to the second.
         assert_eq!(tracker.on_position(TrackId(2), 200.0, 15.0), None);
     }
 }
