@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.126
+
+- chore: the shell's logic (session, open panels, Android Back, outside requests, keyboard shortcuts) moves out of `App.svelte` to `src/app/`, with no change in behavior (#45).
+
 ## 0.5.125
 
 - chore: the comments and logs of the local database (`store/`) are now in English, with no change in behavior (#8).
