@@ -1,11 +1,11 @@
-//! Serveur HTTP minimal sur 127.0.0.1 qui sert les manifestes DASH depuis la mémoire.
+//! Minimal HTTP server on 127.0.0.1 that serves the DASH manifests from memory.
 //!
-//! ffmpeg (côté mpv) ne lit un MPD que par une URL : on évite ainsi tout fichier sur
-//! disque. Seuls les derniers manifestes publiés sont conservés (fenêtre mpv de 2 entrées).
+//! ffmpeg (on mpv's side) only reads an MPD through a URL: this avoids any file on disk.
+//! Only the latest published manifests are kept (mpv window of 2 entries).
 //!
-//! Un MPD contient les URLs de flux signées du compte, et `127.0.0.1` est joignable par
-//! tout processus (et tout compte Windows) de la machine : chaque chemin commence par un
-//! jeton aléatoire de 128 bits tiré au démarrage, connu seulement de l'app et de mpv.
+//! An MPD contains the account's signed stream URLs, and `127.0.0.1` can be reached by any
+//! process (and any Windows account) on the machine: every path starts with a random
+//! 128-bit token drawn at startup, known only to the app and to mpv.
 
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Write as _;
@@ -21,9 +21,9 @@ use super::{MpvError, Result};
 
 const MAX_ENTRIES: usize = 4;
 const MAX_REQUEST_BYTES: usize = 8 * 1024;
-/// mpv ouvre une connexion par manifeste : au-delà, une connexion est refermée aussitôt.
+/// mpv opens one connection per manifest: past this, a connection is closed at once.
 const MAX_CONNECTIONS: usize = 16;
-/// Une connexion qui n'envoie rien (ou ne lit pas la réponse) est refermée après ce délai.
+/// A connection that sends nothing (or does not read the reply) is closed after this delay.
 const IO_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Default)]
@@ -53,7 +53,7 @@ impl ManifestServer {
             loop {
                 match listener.accept().await {
                     Ok((stream, _)) => {
-                        // Sans place libre, `stream` est lâché ici : connexion refermée.
+                        // With no free slot, `stream` is dropped here: the connection is closed.
                         let Ok(permit) = Arc::clone(&slots).try_acquire_owned() else {
                             tracing::warn!("serveur de manifestes : trop de connexions");
                             continue;
@@ -74,7 +74,7 @@ impl ManifestServer {
         })
     }
 
-    /// Publie un manifeste et renvoie l'URL locale à donner à mpv.
+    /// Publishes a manifest and returns the local URL to give to mpv.
     pub fn publish(&self, label: &str, manifest: String) -> String {
         let Ok(mut e) = self.entries.write() else {
             return format!("{}/unavailable", self.base);
@@ -95,7 +95,7 @@ impl ManifestServer {
     }
 }
 
-/// 128 bits aléatoires en hexadécimal.
+/// 128 random bits in hexadecimal.
 pub(super) fn random_token() -> String {
     let mut bytes = [0u8; 16];
     rand::rng().fill_bytes(&mut bytes);
@@ -105,7 +105,7 @@ pub(super) fn random_token() -> String {
     })
 }
 
-/// Chemin d'une URL `http://hôte:port/chemin` (il commence par `/`).
+/// Path of a `http://host:port/path` URL (it starts with `/`).
 fn url_path(url: &str) -> Option<&str> {
     let rest = url.strip_prefix("http://")?;
     rest.find('/').map(|i| &rest[i..])
@@ -140,7 +140,7 @@ async fn handle(mut stream: TcpStream, entries: Arc<RwLock<Entries>>) {
     let _ = stream.shutdown().await;
 }
 
-/// Chemin d'une requête `GET <chemin> HTTP/1.x`, sans la query string.
+/// Path of a `GET <path> HTTP/1.x` request, without the query string.
 fn request_path(request: &[u8]) -> Option<&str> {
     let line = std::str::from_utf8(request).ok()?.lines().next()?;
     let mut parts = line.split(' ');
@@ -194,12 +194,12 @@ mod tests {
         let (token, file) = path[1..].split_once('/').unwrap();
         assert_eq!(token.len(), 32);
         let origin = url.strip_suffix(path).unwrap();
-        // Sans jeton : l'ancien format de chemin.
+        // Without a token: the former path format.
         assert_eq!(status(&format!("{origin}/{file}")).await, Some(404));
         // Mauvais jeton.
         let zeros = "0".repeat(32);
         assert_eq!(status(&format!("{origin}/{zeros}/{file}")).await, Some(404));
-        // Jeton d'un autre serveur (autre lancement).
+        // Token of another server (another launch).
         let other = ManifestServer::start().await.unwrap();
         let other_url = other.publish("42", "<MPD/>".into());
         let other_token = url_path(&other_url).unwrap()[1..]
@@ -217,10 +217,7 @@ mod tests {
         let mut s = TcpStream::connect(origin_addr(&url)).await.unwrap();
         let mut out = Vec::new();
         let read = tokio::time::timeout(IO_TIMEOUT * 2, s.read_to_end(&mut out)).await;
-        assert!(
-            matches!(read, Ok(Ok(0))),
-            "connexion non refermée : {read:?}"
-        );
+        assert!(matches!(read, Ok(Ok(0))), "connection not closed: {read:?}");
     }
 
     #[tokio::test]
@@ -232,7 +229,7 @@ mod tests {
         for _ in 0..MAX_CONNECTIONS {
             idle.push(TcpStream::connect(addr).await.unwrap());
         }
-        // Laisse le serveur accepter les connexions muettes.
+        // Lets the server accept the silent connections.
         tokio::time::sleep(Duration::from_millis(200)).await;
         assert_eq!(fetch(&url).await, None);
         drop(idle);
@@ -245,7 +242,7 @@ mod tests {
         &rest[..rest.find('/').unwrap()]
     }
 
-    /// Réponse brute, `None` si la connexion est refermée sans réponse.
+    /// Raw reply, `None` if the connection is closed without a reply.
     async fn request(url: &str) -> Option<String> {
         let path = url_path(url)?;
         let mut s = TcpStream::connect(origin_addr(url)).await.ok()?;

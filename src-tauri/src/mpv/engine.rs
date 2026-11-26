@@ -1,5 +1,5 @@
-//! Moteur mpv : traduit les opérations de `engine::Op` en commandes JSON IPC et les
-//! événements de mpv en `engine::Event`. Logique pure testée, sauf `MpvEngine::start`.
+//! mpv engine: translates `engine::Op` operations into JSON IPC commands and mpv's events
+//! into `engine::Event`. Pure tested logic, except `MpvEngine::start`.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -15,8 +15,8 @@ use super::{CacheSize, MpvHandle};
 use crate::engine::{End, Engine, Event, Op};
 use crate::i18n::tr;
 
-/// Délai de réponse de mpv à une commande. Même `set_property audio-device`, qui rouvre le
-/// périphérique, répond bien avant ; au-delà, mpv est considéré comme figé (#255).
+/// Time mpv has to answer a command. Even `set_property audio-device`, which reopens the
+/// device, answers well before; past it, mpv is considered frozen (#255).
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub struct MpvEngine {
@@ -24,8 +24,8 @@ pub struct MpvEngine {
     process: Arc<ProcessGuard>,
 }
 
-/// Ce qu'il faut pour lancer mpv : sa config dédiée et la garde du processus (arrêté à la
-/// sortie de l'app et avant une mise à jour).
+/// What it takes to start mpv: its dedicated config and the process guard (stopped when
+/// the app exits and before an update).
 pub struct Launch {
     pub conf: std::path::PathBuf,
     pub process: Arc<ProcessGuard>,
@@ -46,14 +46,14 @@ impl Launch {
         MpvEngine::start(&self.conf, cache, output, &self.process, events).await
     }
 
-    /// Faux pendant la fermeture de l'app ou une mise à jour : mpv a été arrêté exprès.
+    /// False while the app closes or updates: mpv was stopped on purpose.
     pub fn may_restart(&self) -> bool {
         !self.process.closing()
     }
 }
 
-/// Sortie demandée au lancement : périphérique (`None` = défaut du système) et mode
-/// exclusif (#245).
+/// Output asked for at launch: device (`None` = system default) and
+/// exclusive mode (#245).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Output<'a> {
     pub device: Option<&'a str>,
@@ -61,8 +61,8 @@ pub struct Output<'a> {
 }
 
 impl MpvEngine {
-    /// Lance mpv (processus gardé par `process`), s'y connecte et transmet ses événements
-    /// traduits à `events`.
+    /// Starts mpv (process kept by `process`), connects to it and forwards its translated
+    /// events to `events`.
     pub async fn start(
         conf: &std::path::Path,
         cache: CacheSize,
@@ -92,16 +92,16 @@ impl MpvEngine {
         })
     }
 
-    /// Envoie les commandes de l'opération dans l'ordre, jusqu'à la première refusée. Sans
-    /// réponse dans `limit`, mpv est figé : il est arrêté, et la fermeture du pipe donne
-    /// `Event::Stopped`, d'où la relance par l'acteur (#255). Sans ce délai, l'acteur
-    /// resterait bloqué sur la commande et plus rien ne répondrait.
+    /// Sends the operation's commands in order, up to the first refused one. With no reply
+    /// within `limit`, mpv is frozen: it is stopped, and the pipe closing gives
+    /// `Event::Stopped`, so the actor restarts it (#255). Without this timeout, the actor
+    /// would stay stuck on the command and nothing would answer anymore.
     async fn apply_within(&self, op: Op, limit: Duration) -> Result<(), String> {
         for command in commands(&op) {
             match tokio::time::timeout(limit, self.handle.command(command)).await {
                 Ok(reply) => reply.map_err(|e| e.to_string())?,
                 Err(_) => {
-                    tracing::error!("mpv ne répond plus depuis {limit:?}, arrêt du processus");
+                    tracing::error!("mpv has not answered for {limit:?}, stopping the process");
                     self.process.terminate();
                     return Err(tr("mpv ne répond plus", "mpv is not responding").into());
                 }
@@ -117,11 +117,11 @@ impl Engine for MpvEngine {
     }
 }
 
-/// Commandes mpv d'une opération.
+/// mpv commands of an operation.
 pub fn commands(op: &Op) -> Vec<Value> {
     let set = |name: &str, value: Value| json!(["set_property", name, value]);
-    // Arguments nommés : en positionnel, mpv 0.38 a inséré `index` avant `options`, et le
-    // mpv 0.37 d'Ubuntu 24.04 refuse `… replace -1 start=…` (#316). Compris par les deux.
+    // Named arguments: positionally, mpv 0.38 inserted `index` before `options`, and
+    // Ubuntu 24.04's mpv 0.37 refuses `… replace -1 start=…` (#316). Both understand them.
     let load = |url: &str, mode: &str, options: Option<String>| {
         let mut cmd = json!({ "name": "loadfile", "url": url, "flags": mode });
         if let Some(options) = options {
@@ -154,7 +154,7 @@ pub fn commands(op: &Op) -> Vec<Value> {
             .into_iter()
             .map(Value::from)
             .collect(),
-        // Option locale du fichier : remise à la fin du titre, le préchargé garde la sienne.
+        // File-local option: reset at the end of the track, the preloaded one keeps its own.
         Op::CurrentFilters(filters) => {
             vec![set("file-local-options/af", json!(af_value(filters)))]
         }
@@ -163,11 +163,11 @@ pub fn commands(op: &Op) -> Vec<Value> {
     }
 }
 
-/// Événement de mpv vu par l'acteur ; `None` s'il ne l'intéresse pas.
+/// mpv event as the actor sees it; `None` if the actor does not care about it.
 pub fn translate(ev: MpvEvent) -> Option<Event> {
     Some(match ev {
         MpvEvent::Property(p) => match p {
-            // Fenêtre de 2 entrées : passer à l'entrée 1, c'est enchaîner sur le préchargé.
+            // Window of 2 entries: moving to entry 1 means moving on to the preloaded track.
             Property::PlaylistPos(Some(1)) => Event::Advanced,
             Property::PlaylistPos(_) => return None,
             Property::TimePos(t) => Event::Position(t),
@@ -335,7 +335,7 @@ mod tests {
         assert_eq!(end(EndReason::Redirect, None), None);
     }
 
-    /// mpv figé : l'opération échoue après le délai au lieu de bloquer l'acteur (#255).
+    /// Frozen mpv: the operation fails after the timeout instead of blocking the actor (#255).
     #[tokio::test]
     async fn unresponsive_mpv_times_out() {
         let engine = MpvEngine {
@@ -350,11 +350,11 @@ mod tests {
         assert!(start.elapsed() < Duration::from_secs(2));
     }
 
-    /// Vrai mpv arrêté par `terminate` (délai dépassé) : l'acteur reçoit `Event::Stopped`,
-    /// qui déclenche la relance, et la garde ne se croit pas en fermeture (#255).
+    /// Real mpv stopped by `terminate` (timed out): the actor receives `Event::Stopped`,
+    /// which triggers the restart, and the guard does not think the app is closing (#255).
     /// `cargo test live_engine_terminate -- --ignored --nocapture`
     #[tokio::test]
-    #[ignore = "lance un vrai mpv"]
+    #[ignore = "starts a real mpv"]
     async fn live_engine_terminate() {
         let conf = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("mpv/seaglass.conf");
         let guard = Arc::new(ProcessGuard::default());
@@ -381,12 +381,12 @@ mod tests {
         assert!(guard.closing());
     }
 
-    /// Vrai mpv, deux fichiers courts à volume bas : `Play`, `Preload`, enchaînement
-    /// (`Advanced`), `DropPrevious`, puis fin naturelle (`Ended(Eof)`), le tout vu à travers
-    /// la traduction des événements.
+    /// Real mpv, two short files at low volume: `Play`, `Preload`, moving on (`Advanced`),
+    /// `DropPrevious`, then the natural end (`Ended(Eof)`), all seen through the event
+    /// translation.
     /// `cargo test live_engine_window -- --ignored --nocapture`
     #[tokio::test]
-    #[ignore = "lance un vrai mpv sur la sortie audio"]
+    #[ignore = "starts a real mpv on the audio output"]
     async fn live_engine_window() {
         use std::time::Duration;
 
@@ -409,10 +409,10 @@ mod tests {
                         return ev;
                     }
                 }
-                panic!("canal fermé avant : {what}");
+                panic!("channel closed before: {what}");
             })
             .await
-            .unwrap_or_else(|_| panic!("délai dépassé : {what}"))
+            .unwrap_or_else(|_| panic!("timed out: {what}"))
         }
         let a = quiet_wav("engine-a", 2, 440.0);
         let b = quiet_wav("engine-b", 2, 660.0);
@@ -436,7 +436,7 @@ mod tests {
             })
             .await
             .unwrap();
-        wait_for(&mut events, |e| *e == Event::Loaded, "titre A chargé").await;
+        wait_for(&mut events, |e| *e == Event::Loaded, "track A loaded").await;
         engine
             .apply(Op::Preload {
                 url: url(&b),
@@ -444,7 +444,7 @@ mod tests {
             })
             .await
             .unwrap();
-        wait_for(&mut events, |e| *e == Event::Advanced, "passage sur B").await;
+        wait_for(&mut events, |e| *e == Event::Advanced, "moved on to B").await;
         engine.apply(Op::DropPrevious).await.unwrap();
         let format = wait_for(
             &mut events,
@@ -454,7 +454,7 @@ mod tests {
         .await;
         println!("B : {format:?}");
         wait_for(&mut events, |e| *e == Event::Ended(End::Eof), "fin de B").await;
-        println!("fenêtre : Play → Preload → Advanced → DropPrevious → Ended(Eof)");
+        println!("window: Play → Preload → Advanced → DropPrevious → Ended(Eof)");
 
         guard.kill();
         for p in [a, b] {

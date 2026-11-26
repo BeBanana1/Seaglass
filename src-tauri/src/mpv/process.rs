@@ -1,4 +1,4 @@
-//! Lancement de mpv avec une configuration isolée de celle de l'utilisateur.
+//! Starting mpv with a config kept apart from the user's own.
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -10,31 +10,31 @@ use tokio::process::{Child, Command};
 use super::device::{AO, AUTO};
 use super::{CacheSize, MpvError, Result};
 
-/// `CREATE_NO_WINDOW` : pas de console qui s'ouvre à côté de l'app.
+/// `CREATE_NO_WINDOW`: no console opening next to the app.
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
-/// Nom de l'exécutable mpv livré par l'installeur, à côté de celui de l'app.
+/// Name of the mpv executable shipped by the installer, next to the app's.
 #[cfg(windows)]
 const BUNDLED_MPV: &str = "mpv.exe";
 #[cfg(not(windows))]
 const BUNDLED_MPV: &str = "mpv";
 
-/// `<pid>-<128 bits aléatoires>`, tiré une fois par lancement : le pid écarte un mpv
-/// orphelin d'un lancement précédent, la partie aléatoire empêche un autre processus de
-/// créer le pipe avant mpv pour recevoir la connexion de l'app.
+/// `<pid>-<128 random bits>`, drawn once per launch: the pid rules out an orphan mpv from
+/// a previous launch, the random part prevents another process from creating the pipe
+/// before mpv to receive the app's connection.
 fn pipe_id() -> &'static str {
     static ID: OnceLock<String> = OnceLock::new();
     ID.get_or_init(|| format!("{}-{}", std::process::id(), super::serve::random_token()))
 }
 
-/// Pipe IPC propre à ce lancement, partagé par `spawn` et `ipc::connect`.
+/// IPC pipe of this launch, shared by `spawn` and `ipc::connect`.
 #[cfg(windows)]
 pub fn pipe_name() -> String {
     format!(r"\\.\pipe\seaglass-mpv-{}", pipe_id())
 }
 
-/// Hors Windows, mpv attend le chemin d'un socket Unix.
+/// Outside Windows, mpv expects the path of a Unix socket.
 #[cfg(not(windows))]
 pub fn pipe_name() -> String {
     std::env::temp_dir()
@@ -43,11 +43,11 @@ pub fn pipe_name() -> String {
         .into_owned()
 }
 
-/// `SEAGLASS_MPV_PATH`, sinon le mpv installé avec l'app. Sous Windows, le repli sur le
-/// `mpv` du `PATH` n'existe qu'en debug (#261) : dans un build installé, Windows chercherait
-/// aussi dans le dossier courant, et un `mpv.exe` posé là serait lancé à la place de celui de
-/// l'installeur. Sous Linux (#17), mpv vient du système et `execvp` ne cherche que dans le
-/// `PATH` : le repli vaut aussi en release.
+/// `SEAGLASS_MPV_PATH`, otherwise the mpv installed with the app. On Windows, the fallback
+/// to the `mpv` in `PATH` only exists in debug (#261): in an installed build, Windows would
+/// also search the current folder, and an `mpv.exe` placed there would start instead of
+/// the installer's. On Linux (#17), mpv comes from the system and `execvp` only searches
+/// `PATH`: the fallback also applies in release.
 fn executable() -> Result<PathBuf> {
     if let Some(path) = std::env::var_os("SEAGLASS_MPV_PATH") {
         return Ok(PathBuf::from(path));
@@ -59,7 +59,7 @@ fn executable() -> Result<PathBuf> {
     }
 }
 
-/// Le mpv installé avec l'app, s'il existe.
+/// The mpv installed with the app, if there is one.
 fn bundled() -> Option<PathBuf> {
     std::env::current_exe()
         .ok()
@@ -67,21 +67,20 @@ fn bundled() -> Option<PathBuf> {
         .filter(|bundled| bundled.is_file())
 }
 
-/// Vrai si `spawn` lance le mpv de l'installeur (build x86-64-v3, voir `cpu.rs`).
+/// True if `spawn` starts the installer's mpv (x86-64-v3 build, see `cpu.rs`).
 pub fn is_bundled() -> bool {
     std::env::var_os("SEAGLASS_MPV_PATH").is_none() && bundled().is_some()
 }
 
-/// Vrai si `spawn` échoue faute de mpv : build de release sans mpv embarqué ni
+/// True if `spawn` fails for lack of mpv: a release build with no bundled mpv nor
 /// `SEAGLASS_MPV_PATH` (#261).
 pub fn is_missing() -> bool {
     matches!(executable(), Err(MpvError::Missing))
 }
 
-/// Lance mpv en mode idle, avec la taille de cache, le périphérique de sortie (`None` =
-/// périphérique par défaut du système) et le mode exclusif (#245) choisis dans les
-/// réglages. Un périphérique absent est corrigé par le lecteur dès la première liste
-/// reçue, avant toute lecture.
+/// Starts mpv in idle mode, with the cache size, the output device (`None` = the system's
+/// default device) and the exclusive mode (#245) chosen in the settings. The player fixes a
+/// missing device as soon as the first list arrives, before any playback.
 pub fn spawn(
     conf: &Path,
     cache: CacheSize,
@@ -124,22 +123,19 @@ pub fn spawn(
     Ok(child)
 }
 
-/// Lancée depuis l'AppImage (`APPDIR` défini), l'app transmettrait à mpv, binaire du
-/// système, les chemins de bibliothèques et de plugins de l'AppImage (#320).
+/// Started from the AppImage (`APPDIR` set), the app would pass the AppImage's library
+/// and plugin paths on to mpv, a system binary (#320).
 #[cfg(target_os = "linux")]
 fn clean_appimage_env(cmd: &mut Command) {
     let Some(appdir) = std::env::var_os("APPDIR") else {
         return;
     };
-    // Variables non UTF-8 laissées telles quelles : l'AppRun n'en pose pas.
+    // Non-UTF-8 variables left as they are: the AppRun sets none.
     let vars = std::env::vars_os()
         .filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?)));
     let fixes = super::appimage_env::fixes(vars, &appdir.to_string_lossy());
     if !fixes.is_empty() {
-        tracing::info!(
-            "mpv : {} variable(s) de l'AppImage corrigée(s)",
-            fixes.len()
-        );
+        tracing::info!("mpv: {} AppImage variable(s) fixed", fixes.len());
     }
     for fix in fixes {
         match fix {
@@ -153,10 +149,10 @@ fn clean_appimage_env(cmd: &mut Command) {
     }
 }
 
-/// Équivalent Linux du Job Object (#17) : le noyau envoie `SIGKILL` à mpv quand l'app
-/// meurt, plantage compris. Le signal suit la mort du *thread* qui a lancé mpv : `spawn`
-/// est appelé depuis une tâche async, donc un thread worker de tokio qui vit autant que
-/// l'app (jamais depuis `spawn_blocking`, dont les threads s'arrêtent après 10 s d'inactivité).
+/// Linux equivalent of the Job Object (#17): the kernel sends `SIGKILL` to mpv when the
+/// app dies, crashes included. The signal follows the death of the *thread* that started
+/// mpv: `spawn` is called from an async task, so a tokio worker thread that lives as long as
+/// the app (never from `spawn_blocking`, whose threads stop after 10 s of inactivity).
 #[cfg(target_os = "linux")]
 fn die_with_parent(cmd: &mut Command) {
     use std::ffi::{c_int, c_ulong};
@@ -169,9 +165,9 @@ fn die_with_parent(cmd: &mut Command) {
     const ESRCH: i32 = 3;
 
     let parent = std::process::id();
-    // SAFETY : la fermeture s'exécute entre `fork` et `exec` ; elle n'appelle que `prctl` et
-    // `getppid` (sûrs après `fork`) et n'alloue pas. Si l'app est morte avant `prctl`, mpv
-    // a déjà été rattaché à un autre parent : on abandonne le lancement.
+    // SAFETY: the closure runs between `fork` and `exec`; it only calls `prctl` and
+    // `getppid` (safe after `fork`) and does not allocate. If the app died before `prctl`,
+    // mpv was already reparented: the launch is abandoned.
     unsafe {
         cmd.pre_exec(move || {
             if prctl(PR_SET_PDEATHSIG, SIGKILL) != 0 {
@@ -185,42 +181,42 @@ fn die_with_parent(cmd: &mut Command) {
     }
 }
 
-/// Détient le processus mpv pour pouvoir l'arrêter à la fermeture de l'app.
+/// Holds the mpv process so it can be stopped when the app closes.
 ///
-/// Tauri quitte le processus sans exécuter les destructeurs : `kill_on_drop` ne suffit
-/// pas, d'où l'appel explicite à `kill` sur `RunEvent::Exit` (et avant l'installation
-/// d'une mise à jour). Sur un plantage, c'est le Job Object (`job.rs`) qui arrête mpv, ou
-/// `PR_SET_PDEATHSIG` sous Linux.
+/// Tauri exits the process without running destructors: `kill_on_drop` is not enough,
+/// hence the explicit call to `kill` on `RunEvent::Exit` (and before an update is
+/// installed). On a crash, the Job Object (`job.rs`) stops mpv, or
+/// `PR_SET_PDEATHSIG` on Linux.
 #[derive(Default)]
 pub struct ProcessGuard {
     child: Mutex<Option<Child>>,
-    /// Arrêt voulu (fermeture de l'app, mise à jour) : mpv ne doit pas être relancé (#255).
+    /// Stop on purpose (app closing, update): mpv must not be restarted (#255).
     closing: AtomicBool,
 }
 
 impl ProcessGuard {
     pub fn set(&self, child: Child) {
         if let Ok(mut slot) = self.child.lock() {
-            // Ancien processus d'avant une relance, déjà arrêté en principe : son code de
-            // sortie va au journal (#192), un plantage de mpv s'y distingue d'un arrêt voulu.
+            // Former process from before a restart, normally already stopped: its exit code
+            // goes to the log (#192), where an mpv crash stands out from a stop on purpose.
             if let Some(mut old) = slot.replace(child) {
                 match old.try_wait() {
-                    Ok(Some(status)) => tracing::warn!("mpv s'était arrêté ({status})"),
-                    Ok(None) => tracing::warn!("ancien mpv encore actif, arrêté"),
-                    Err(e) => tracing::warn!("état de l'ancien mpv illisible : {e}"),
+                    Ok(Some(status)) => tracing::warn!("mpv had stopped ({status})"),
+                    Ok(None) => tracing::warn!("former mpv still running, stopped"),
+                    Err(e) => tracing::warn!("cannot read the former mpv's state: {e}"),
                 }
                 let _ = old.start_kill();
             }
         }
     }
 
-    /// Arrêt définitif : fermeture de l'app ou installation d'une mise à jour.
+    /// Final stop: the app closing or an update being installed.
     pub fn kill(&self) {
         self.closing.store(true, Ordering::SeqCst);
         self.terminate();
     }
 
-    /// Arrête mpv sans fermer l'app : il ne répond plus, l'acteur va le relancer (#255).
+    /// Stops mpv without closing the app: it no longer answers, the actor will restart it (#255).
     pub fn terminate(&self) {
         let Ok(mut slot) = self.child.lock() else {
             return;
@@ -228,7 +224,7 @@ impl ProcessGuard {
         if let Some(mut child) = slot.take()
             && let Err(e) = child.start_kill()
         {
-            tracing::warn!("arrêt de mpv impossible : {e}");
+            tracing::warn!("cannot stop mpv: {e}");
         }
     }
 

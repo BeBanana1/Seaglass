@@ -1,7 +1,7 @@
-//! Mode exclusif WASAPI (#245) : mpv ouvre le périphérique pour lui seul, sans passer par
-//! le mixeur de Windows. Logique pure ici ; l'acteur décide quand l'activer.
+//! WASAPI exclusive mode (#245): mpv opens the device for itself alone, bypassing Windows'
+//! mixer. Pure logic here; the actor decides when to turn it on.
 
-/// Valeur de `--audio-exclusive` / `audio-exclusive`.
+/// Value of `--audio-exclusive` / `audio-exclusive`.
 pub fn arg(exclusive: bool) -> String {
     format!("--audio-exclusive={}", if exclusive { "yes" } else { "no" })
 }
@@ -16,17 +16,17 @@ mod tests {
         assert_eq!(arg(false), "--audio-exclusive=no");
     }
 
-    /// Vrai mpv sur la vraie sortie WASAPI, sinus à −40 dBFS et volume 30 :
-    /// - en partagé, `audio-out-params` est le format de mixage de Windows ;
-    /// - `audio-exclusive` se change à chaud, sans interrompre le titre ;
-    /// - en exclusif, `audio-out-params` donne le format réellement ouvert ;
-    /// - un autre lecteur en exclusif sur le même périphérique échoue ;
-    /// - périphérique tenu par un autre lecteur : passer en exclusif, puis charger un titre,
-    ///   finissent tous deux en `end-file` `error` [`INIT_FAILED`].
+    /// Real mpv on the real WASAPI output, sine at −40 dBFS and volume 30:
+    /// - in shared mode, `audio-out-params` is Windows' mix format;
+    /// - `audio-exclusive` changes live, without interrupting the track;
+    /// - in exclusive mode, `audio-out-params` gives the format actually opened;
+    /// - another player in exclusive mode on the same device fails;
+    /// - device held by another player: switching to exclusive, then loading a track, both
+    ///   end in `end-file` `error` [`INIT_FAILED`].
     ///
     /// `cargo test live_exclusive -- --ignored --nocapture`
     #[tokio::test]
-    #[ignore = "lance un vrai mpv sur la sortie audio, en exclusif"]
+    #[ignore = "starts a real mpv on the audio output, in exclusive mode"]
     async fn live_exclusive() {
         use std::time::Duration;
 
@@ -54,7 +54,7 @@ mod tests {
                         return p;
                     }
                 }
-                panic!("mpv fermé");
+                panic!("mpv closed");
             })
             .await
             .expect("audio-out-params attendu")
@@ -69,7 +69,7 @@ mod tests {
             .await
             .unwrap();
         let shared = out_params(&mut events).await;
-        println!("partagé : {shared:?}");
+        println!("shared: {shared:?}");
 
         tokio::time::sleep(Duration::from_millis(1000)).await;
         let before = pos(cmd(vec![json!("get_property"), json!("time-pos")])
@@ -88,10 +88,10 @@ mod tests {
         let after = pos(cmd(vec![json!("get_property"), json!("time-pos")])
             .await
             .unwrap());
-        println!("position avant bascule {before:.2} s, après {after:.2} s");
+        println!("position before the switch {before:.2} s, after {after:.2} s");
         assert!(after > before + 0.5, "{before} → {after}");
 
-        // Un autre lecteur réclame le même périphérique en exclusif.
+        // Another player claims the same device in exclusive mode.
         let other = std::process::Command::new(
             std::env::var_os("SEAGLASS_MPV_PATH").unwrap_or_else(|| "mpv".into()),
         )
@@ -109,7 +109,7 @@ mod tests {
         println!("autre lecteur : {}", other.status);
         assert!(
             !other.status.success(),
-            "le périphérique était pris en exclusif"
+            "the device was taken in exclusive mode"
         );
 
         cmd(vec![
@@ -119,10 +119,10 @@ mod tests {
         ])
         .await
         .unwrap();
-        println!("retour en partagé : {:?}", out_params(&mut events).await);
+        println!("back to shared: {:?}", out_params(&mut events).await);
 
-        // L'autre lecteur tient le périphérique en exclusif : en exclusif à son tour, notre
-        // mpv voit le titre en cours échouer, puis un nouveau titre aussi.
+        // The other player holds the device in exclusive mode: switching to exclusive in turn,
+        // our mpv sees the current track fail, then a new track too.
         let mut holder = std::process::Command::new(
             std::env::var_os("SEAGLASS_MPV_PATH").unwrap_or_else(|| "mpv".into()),
         )
@@ -167,13 +167,13 @@ mod tests {
             error: Some(INIT_FAILED.into()),
         };
         let seen = end_file(&mut events).await;
-        println!("bascule, périphérique pris : {seen:?}");
+        println!("switch, device taken: {seen:?}");
         assert_eq!(seen.last(), Some(&failed));
         cmd(vec![json!("loadfile"), json!(wav.to_string_lossy())])
             .await
             .unwrap();
         let seen = end_file(&mut events).await;
-        println!("nouveau titre, périphérique pris : {seen:?}");
+        println!("new track, device taken: {seen:?}");
         assert_eq!(seen.last(), Some(&failed));
         let _ = holder.kill();
         let _ = holder.wait();

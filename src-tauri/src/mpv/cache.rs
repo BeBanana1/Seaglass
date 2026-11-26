@@ -1,22 +1,22 @@
-//! Taille du cache de mpv (#16), choisie dans les réglages de lecture.
+//! Size of mpv's cache (#16), chosen in the playback settings.
 //!
-//! Le cache reste **en mémoire** (principe 1) : `cache=yes` et `cache-on-disk=no` sont
-//! fixés dans `seaglass.conf` et rien ici ne les modifie. Seules les limites en octets
-//! du démuxeur changent : c'est elles qui bornent la lecture en avance, `cache-secs`
-//! valant par défaut une durée bien plus longue que ce qu'elles permettent.
+//! The cache stays **in memory** (principle 1): `cache=yes` and `cache-on-disk=no` are set
+//! in `seaglass.conf` and nothing here changes them. Only the demuxer's byte limits change:
+//! they are what bounds the read-ahead, since `cache-secs` defaults to a much longer time
+//! than they allow.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 const MIB: u64 = 1024 * 1024;
 
-/// Tampon de lecture en avance, en Mio. Seules quelques valeurs sont proposées : toute
-/// autre est refusée à la désérialisation (bornes validées côté Rust).
+/// Read-ahead buffer, in MiB. Only a few values are offered: any other is refused on
+/// deserialization (bounds checked on the Rust side).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "u32", into = "u32")]
 pub enum CacheSize {
     Mib32,
-    /// Valeur historique de `seaglass.conf`.
+    /// Former value of `seaglass.conf`.
     #[default]
     Mib64,
     Mib128,
@@ -33,18 +33,18 @@ impl CacheSize {
         }
     }
 
-    /// `demuxer-max-bytes` : données lues en avance de la position de lecture.
+    /// `demuxer-max-bytes`: data read ahead of the playback position.
     pub fn max_bytes(self) -> u64 {
         u64::from(self.mib()) * MIB
     }
 
-    /// `demuxer-max-back-bytes` : données gardées derrière la position, pour revenir en
-    /// arrière sans retélécharger. Un quart du tampon avant (64 / 16 Mio à l'origine).
+    /// `demuxer-max-back-bytes`: data kept behind the position, to seek back without
+    /// downloading again. A quarter of the forward buffer (64 / 16 MiB originally).
     pub fn back_bytes(self) -> u64 {
         self.max_bytes() / 4
     }
 
-    /// Options de ligne de commande, passées au lancement de mpv.
+    /// Command-line options, passed when mpv starts.
     pub fn args(self) -> [String; 2] {
         [
             format!("--demuxer-max-bytes={}", self.max_bytes()),
@@ -52,8 +52,8 @@ impl CacheSize {
         ]
     }
 
-    /// Commandes `set_property` qui appliquent la taille à chaud, y compris au démuxeur
-    /// du titre déjà ouvert (effective dès que la lecture consomme des paquets).
+    /// `set_property` commands that apply the size live, including to the demuxer of the
+    /// track already open (effective as soon as playback consumes packets).
     pub fn set_property_commands(self) -> [Vec<Value>; 2] {
         [
             vec![
@@ -80,7 +80,7 @@ impl TryFrom<u32> for CacheSize {
             128 => Ok(Self::Mib128),
             256 => Ok(Self::Mib256),
             _ => Err(format!(
-                "taille de cache non prise en charge : {mib} Mio (32, 64, 128 ou 256)"
+                "unsupported cache size: {mib} MiB (32, 64, 128 or 256)"
             )),
         }
     }
@@ -121,7 +121,7 @@ mod tests {
         );
     }
 
-    /// Octets lus en avance par le démuxeur (`demuxer-cache-state.fw-bytes`).
+    /// Bytes read ahead by the demuxer (`demuxer-cache-state.fw-bytes`).
     async fn fw_bytes(handle: &crate::mpv::MpvHandle) -> u64 {
         let state = handle
             .command(vec![json!("get_property"), json!("demuxer-cache-state")])
@@ -130,7 +130,7 @@ mod tests {
         state["fw-bytes"].as_u64().unwrap_or(0)
     }
 
-    /// Lecture en avance stabilisée (fichier local : le cache se remplit en un instant).
+    /// Settled read-ahead (local file: the cache fills in an instant).
     async fn settled_fw_bytes(handle: &crate::mpv::MpvHandle) -> u64 {
         let mut last = 0;
         for _ in 0..40 {
@@ -144,15 +144,15 @@ mod tests {
         last
     }
 
-    /// Vrai mpv (PATH ou `SEAGLASS_MPV_PATH`) : la taille passée au lancement est prise
-    /// en compte, et une nouvelle taille posée par `set_property` s'applique au démuxeur
-    /// du fichier déjà ouvert. Écrit un WAV de silence de ~100 Mo dans le dossier
-    /// temporaire (fichier de test, pas un flux).
+    /// Real mpv (PATH or `SEAGLASS_MPV_PATH`): the size passed at launch is taken into
+    /// account, and a new size set through `set_property` applies to the demuxer of the file
+    /// already open. Writes a ~100 MB WAV of silence to the temporary folder (a test file,
+    /// not a stream).
     /// `cargo test live_cache_resize -- --ignored --nocapture`
     #[tokio::test]
-    #[ignore = "lance un vrai mpv"]
+    #[ignore = "starts a real mpv"]
     async fn live_cache_resize() {
-        // WAV PCM 16 bits stéréo 44,1 kHz, 10 min de silence.
+        // 16-bit stereo 44.1 kHz PCM WAV, 10 min of silence.
         let data_len: u32 = 44_100 * 4 * 600;
         let mut wav = Vec::with_capacity(44 + data_len as usize);
         wav.extend_from_slice(b"RIFF");
@@ -190,7 +190,7 @@ mod tests {
         assert_eq!(get("demuxer-max-back-bytes").await, json!(8 * MIB));
         assert_eq!(get("cache-on-disk").await, json!(false));
 
-        // Ni sortie audio réelle ni lecture : seul le remplissage du cache compte.
+        // No real audio output and no playback: only the cache filling counts.
         for (name, value) in [("ao", json!("null")), ("pause", json!(true))] {
             handle
                 .command(vec![json!("set_property"), json!(name), value])
@@ -202,21 +202,21 @@ mod tests {
             .await
             .unwrap();
         let before = settled_fw_bytes(&handle).await;
-        println!("32 Mio : {before} octets en avance");
+        println!("32 MiB: {before} bytes ahead");
         assert!(before > 16 * MIB && before <= 33 * MIB, "{before}");
 
         for command in CacheSize::Mib128.set_property_commands() {
             handle.command(command).await.unwrap();
         }
         assert_eq!(get("demuxer-max-bytes").await, json!(128 * MIB));
-        // En pause, le démuxeur plein reste endormi : la nouvelle limite est prise en
-        // compte dès que la lecture consomme des paquets, sans rechargement.
+        // Paused, the full demuxer stays asleep: the new limit applies as soon as playback
+        // consumes packets, without a reload.
         handle
             .command(vec![json!("set_property"), json!("pause"), json!(false)])
             .await
             .unwrap();
         let after = settled_fw_bytes(&handle).await;
-        println!("128 Mio, à chaud : {after} octets en avance");
+        println!("128 MiB, live: {after} bytes ahead");
         assert!(after > 64 * MIB, "{after}");
 
         let _ = child.start_kill();
