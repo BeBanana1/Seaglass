@@ -1,13 +1,13 @@
-//! Échange de l'historique d'écoute avec un autre appareil (#430).
+//! Exchange of the listening history with another device (#430).
 //!
-//! Une écoute est identifiée par son titre et son horodatage (ms) : la fusion ne garde
-//! qu'une ligne par paire, quel que soit l'appareil qui l'envoie, et on peut renvoyer un lot
-//! sans risque. `plays.device` garde l'appareil d'origine d'une écoute reçue (`NULL` =
-//! écoutée ici) : on ne renvoie pas à un appareil ses propres écoutes.
+//! A play is identified by its track and its timestamp (ms): the merge keeps one row per
+//! pair, whatever device sends it, and a batch can be sent again safely. `plays.device`
+//! keeps the source device of a received play (`NULL` = played here): a device is never
+//! sent its own plays back.
 //!
-//! Les curseurs sont des `plays.id` (AUTOINCREMENT : jamais réutilisés, même après un
-//! effacement, qui reste donc local). C'est toujours le téléphone qui les tient
-//! ([`SyncState`]) ; le PC répond sans rien retenir, ce qui permet plusieurs téléphones.
+//! The cursors are `plays.id` values (AUTOINCREMENT: never reused, even after a deletion,
+//! which therefore stays local). The phone always holds them ([`SyncState`]); the PC
+//! answers without keeping anything, which allows several phones.
 
 use std::collections::BTreeSet;
 
@@ -20,20 +20,20 @@ use super::{Result, Store, StoreError};
 use crate::player::source::PlaySource;
 use crate::tidal::models::{AlbumSummary, Track};
 
-/// Écoutes par lot (un appel HTTP) : environ 1 Mo avec les fiches des titres et albums.
+/// Plays per batch (one HTTP call): about 1 MB with the track and album records.
 pub const BATCH: usize = 1_000;
-/// Un nom d'artiste reçu est coupé au-delà.
+/// A received artist name is cut beyond this.
 const MAX_ARTIST_CHARS: usize = 300;
-/// Une écoute datée de plus d'un jour dans le futur est refusée (horloge folle).
+/// A play dated more than a day in the future is refused (a broken clock).
 const FUTURE_MS: i64 = 24 * 3600 * 1000;
 const KEY_DEVICE: &str = "device.id";
 const KEY_STATE: &str = "history.sync";
 
-/// Une écoute telle qu'elle voyage.
+/// A play as it travels.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncPlay {
-    /// Appareil où elle a été écoutée.
+    /// Device it was played on.
     pub device: String,
     pub track_id: u64,
     #[serde(default)]
@@ -54,7 +54,7 @@ pub struct SyncPlay {
     pub format: Option<PlayFormat>,
 }
 
-/// Lot d'écoutes avec les fiches de leurs titres et albums (dernière copie connue).
+/// A batch of plays with the records of their tracks and albums (last known copy).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayBatch {
@@ -66,8 +66,8 @@ pub struct PlayBatch {
 }
 
 impl PlayBatch {
-    /// Lot reçu d'un autre appareil, vérifié : `None` s'il est trop gros ; les écoutes
-    /// invalides (appareil, date, durée) sont écartées, les noms coupés, la source nettoyée.
+    /// A batch received from another device, checked: `None` if it is too large; invalid
+    /// plays (device, date, duration) are dropped, names cut, the source cleaned.
     pub fn received(self, now_ms: i64, is_uuid: impl Fn(&str) -> bool) -> Option<Self> {
         let max = self.plays.len();
         if max > BATCH || self.tracks.len() > max || self.albums.len() > max {
@@ -99,41 +99,41 @@ impl PlayBatch {
     }
 }
 
-/// Écoutes à envoyer.
+/// Plays to send.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Outgoing<'a> {
-    /// Celles écoutées ici seulement (le téléphone vers le PC).
+    /// Only those played here (the phone to the PC).
     Own,
-    /// Toutes, sauf celles venues de cet appareil (le PC vers un téléphone).
+    /// All, except those that came from this device (the PC to a phone).
     Except(&'a str),
 }
 
-/// Lot à envoyer et curseur à retenir.
+/// Batch to send and cursor to keep.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Outbox {
     pub batch: PlayBatch,
     /// Dernier `plays.id` parcouru : prochain `after`.
     pub cursor: i64,
-    /// Il en reste après ce lot.
+    /// More are left after this batch.
     pub more: bool,
 }
 
-/// Où en est la synchro du téléphone avec son ordinateur lié.
+/// How far the phone's sync with its linked computer has got.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncState {
-    /// Identifiant de l'ordinateur : s'il change (réinstallé), tout est repris de zéro.
+    /// The computer's id: if it changes (reinstalled), everything starts again from zero.
     pub peer: Option<String>,
-    /// Dernier id de l'ordinateur reçu.
+    /// Last id received from the computer.
     pub pulled: i64,
-    /// Dernier id d'ici envoyé.
+    /// Last id from here that was sent.
     pub pushed: i64,
-    /// Dernière synchro réussie (ms).
+    /// Last successful sync (ms).
     #[serde(default)]
     pub synced_at: Option<i64>,
 }
 
-/// Identifiant aléatoire au format UUID (version 4).
+/// A random id in UUID format (version 4).
 fn new_device_id() -> String {
     let bytes: [u8; 16] = rand::random();
     let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
@@ -148,7 +148,7 @@ fn new_device_id() -> String {
 }
 
 impl Store {
-    /// Identifiant de cet appareil, tiré une fois.
+    /// This device's id, drawn once.
     pub fn device_id(&self) -> Result<String> {
         if let Some(id) = self.get_setting::<String>(KEY_DEVICE)? {
             return Ok(id);
@@ -166,7 +166,7 @@ impl Store {
         self.set_setting(KEY_STATE, state)
     }
 
-    /// Les `limit` écoutes suivant `after` (par id), avec leurs fiches.
+    /// The `limit` plays after `after` (by id), with their records.
     pub fn outgoing_plays(&self, after: i64, filter: Outgoing, limit: usize) -> Result<Outbox> {
         let own = self.device_id()?;
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
@@ -211,7 +211,7 @@ impl Store {
                 .collect::<rusqlite::Result<_>>()?,
         };
         let more = rows.len() == limit;
-        // Rien à envoyer : on saute aussi les lignes écartées par le filtre.
+        // Nothing to send: the rows dropped by the filter are skipped too.
         let cursor = match rows.last() {
             Some((id, _)) => *id,
             None => conn
@@ -239,8 +239,8 @@ impl Store {
         })
     }
 
-    /// Ajoute les écoutes reçues qui manquent ici ; renvoie leur nombre. Les fiches ne
-    /// remplacent pas celles d'ici. Les écoutes venues de `own` (cet appareil) sont ignorées.
+    /// Adds the received plays missing here; returns how many. The records do not replace
+    /// those from here. Plays that came from `own` (this device) are ignored.
     pub fn merge_plays(&self, batch: &PlayBatch, own: &str) -> Result<usize> {
         let mut db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let tx = db.conn.transaction()?;
@@ -281,7 +281,7 @@ impl Store {
             )?;
         }
         if added > 0 {
-            // Une fiche d'ici est au moins aussi récente : gardée.
+            // A record from here is at least as recent: kept.
             for track in &batch.tracks {
                 tx.execute(
                     "INSERT OR IGNORE INTO played_tracks (id, json) VALUES (?1, ?2)",
@@ -301,7 +301,7 @@ impl Store {
     }
 }
 
-/// Copies lisibles de `table` (`played_tracks` ou `played_albums`) pour ces ids.
+/// Readable copies from `table` (`played_tracks` or `played_albums`) for these ids.
 fn copies<T: serde::de::DeserializeOwned>(
     conn: &Connection,
     table: &str,
@@ -363,21 +363,17 @@ mod tests {
         let pc_id = pc.device_id().unwrap();
         let phone_id = phone.device_id().unwrap();
 
-        // Le téléphone envoie les siennes, le PC répond avec les autres.
+        // The phone sends its own, the PC answers with the others.
         let push = sent(&phone, 0, Outgoing::Own);
         assert_eq!(push.batch.plays.len(), 1);
         assert_eq!(push.batch.plays[0].device, phone_id);
         assert_eq!(push.batch.tracks.len(), 1);
         assert_eq!(pc.merge_plays(&push.batch, &pc_id).unwrap(), 1);
         let pull = sent(&pc, 0, Outgoing::Except(&phone_id));
-        assert_eq!(
-            pull.batch.plays.len(),
-            2,
-            "pas d'écho de ses propres écoutes"
-        );
+        assert_eq!(pull.batch.plays.len(), 2, "no echo of its own plays");
         assert_eq!(phone.merge_plays(&pull.batch, &phone_id).unwrap(), 2);
 
-        // Renvoyer les mêmes lots n'ajoute rien.
+        // Sending the same batches again adds nothing.
         assert_eq!(pc.merge_plays(&push.batch, &pc_id).unwrap(), 0);
         assert_eq!(phone.merge_plays(&pull.batch, &phone_id).unwrap(), 0);
         assert_eq!(played(&pc).len(), 3);
@@ -385,10 +381,10 @@ mod tests {
             played(&pc).iter().map(|p| p.0).collect::<Vec<_>>(),
             played(&phone).iter().map(|p| p.0).collect::<Vec<_>>()
         );
-        // L'origine est gardée ; les écoutes d'ici restent à `NULL`.
+        // The source is kept; plays from here stay at `NULL`.
         assert_eq!(played(&phone)[0].2.as_deref(), Some(pc_id.as_str()));
         assert_eq!(played(&phone)[1].2, None);
-        // Les albums reçus servent aux classements, dans l'ordre des dates.
+        // The received albums count in the rankings, in date order.
         let recent: Vec<u64> = phone
             .recent_albums(10)
             .unwrap()
@@ -412,7 +408,7 @@ mod tests {
             .unwrap();
         assert_eq!(rest.batch.plays.len(), 3);
         assert!(!rest.more);
-        // Écoutes venues du téléphone seulement : rien à renvoyer, curseur au bout.
+        // Plays that came from the phone only: nothing to send back, cursor at the end.
         let echo = PlayBatch {
             plays: vec![SyncPlay {
                 device: PHONE.into(),
@@ -433,7 +429,7 @@ mod tests {
             .unwrap();
         assert!(after.batch.plays.is_empty());
         assert!(after.cursor > rest.cursor);
-        // Et le PC n'envoie jamais au téléphone ce qu'il a reçu de lui comme « à lui ».
+        // And the PC never sends the phone what it received from it as "its own".
         assert!(
             sent(&pc, 0, Outgoing::Own)
                 .batch
@@ -450,7 +446,7 @@ mod tests {
         let before = sent(&pc, 0, Outgoing::Except(PHONE));
         pc.clear_plays().unwrap();
         play(&pc, 2, 1, 2);
-        // Les ids ne reviennent pas en arrière : le curseur reste valable.
+        // Ids never go backwards: the cursor stays valid.
         let after = sent(&pc, before.cursor, Outgoing::Except(PHONE));
         assert_eq!(after.batch.plays.len(), 1);
         assert_eq!(after.batch.plays[0].track_id, 2);
@@ -475,7 +471,7 @@ mod tests {
             plays: vec![
                 good.clone(),
                 SyncPlay {
-                    device: "pas un uuid".into(),
+                    device: "not a uuid".into(),
                     ..good.clone()
                 },
                 SyncPlay {

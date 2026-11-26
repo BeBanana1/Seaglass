@@ -33,7 +33,7 @@ fn queue_of(ids: impl IntoIterator<Item = u64>) -> Queue {
     q
 }
 
-/// Ids présents dans la table, triés.
+/// Ids in the table, sorted.
 fn stored_ids(store: &Store) -> Vec<u64> {
     let db = store.db.lock().unwrap();
     let mut stmt = db
@@ -46,7 +46,7 @@ fn stored_ids(store: &Store) -> Vec<u64> {
         .collect()
 }
 
-/// Sauvegarde la file en notant les ids demandés à `lookup`.
+/// Saves the queue, noting the ids asked of `lookup`.
 fn save(store: &Store, queue: &Queue, asked: &RefCell<Vec<u64>>) {
     store
         .save_player(Some(queue), 0.0, |ids| {
@@ -68,7 +68,7 @@ fn settings_roundtrip() {
     );
 }
 
-/// Un réglage lu une fois est servi depuis la mémoire, et une écriture le remplace.
+/// A setting read once is served from memory, and a write replaces it.
 #[test]
 fn settings_are_cached_and_kept_in_sync() {
     let store = Store::in_memory().unwrap();
@@ -77,7 +77,7 @@ fn settings_are_cached_and_kept_in_sync() {
         store.get_setting::<String>("ui").unwrap().as_deref(),
         Some("studio")
     );
-    // Modification directe en base : la valeur en mémoire fait foi.
+    // Direct change in the database: the value in memory wins.
     store
         .db
         .lock()
@@ -89,7 +89,7 @@ fn settings_are_cached_and_kept_in_sync() {
         store.get_setting::<String>("ui").unwrap().as_deref(),
         Some("studio")
     );
-    // Une absence est aussi gardée, puis remplacée par l'écriture.
+    // A missing value is kept too, then replaced by the write.
     assert_eq!(store.get_setting::<String>("other").unwrap(), None);
     store.set_setting("other", &"x").unwrap();
     assert_eq!(
@@ -115,7 +115,7 @@ fn volume_roundtrip_and_clamp() {
     store.save_volume(v).unwrap();
     assert_eq!(store.load_volume().unwrap(), Some(v));
 
-    // Valeur hors limites écrite à la main dans la base : ramenée à 100.
+    // Out-of-range value written by hand into the database: brought back to 100.
     store
         .set_setting(
             KEY_VOLUME,
@@ -139,8 +139,8 @@ fn roundtrip_queue_position_and_tracks() {
     assert_eq!(saved.tracks, vec![track(1), track(2)]);
 }
 
-/// Seuls les titres absents de la table sont demandés et écrits ; ceux qui ne sont plus
-/// référencés sont supprimés.
+/// Only the tracks missing from the table are asked for and written; those no longer
+/// referenced are deleted.
 #[test]
 fn queue_tracks_are_written_once_and_purged() {
     let store = Store::in_memory().unwrap();
@@ -153,7 +153,7 @@ fn queue_tracks_are_written_once_and_purged() {
     assert_eq!(*asked.borrow(), [3]);
     assert_eq!(stored_ids(&store), [1, 2, 3]);
 
-    // Nouveau contexte : les anciens titres sortent (l'historique garde le précédent courant).
+    // New context: the old tracks go (the history keeps the previous current one).
     asked.borrow_mut().clear();
     let mut q = queue_of([1, 2, 3]);
     let mut rng = rand::rngs::StdRng::seed_from_u64(1);
@@ -165,13 +165,13 @@ fn queue_tracks_are_written_once_and_purged() {
     assert_eq!(stored_ids(&store), expected);
     assert!(!stored_ids(&store).contains(&2));
 
-    // Même file : rien à demander.
+    // Same queue: nothing to ask for.
     asked.borrow_mut().clear();
     save(&store, &q, &asked);
     assert!(asked.borrow().is_empty());
 }
 
-/// Un titre inconnu du cache n'est pas compté comme enregistré : redemandé ensuite.
+/// A track unknown to the cache is not counted as recorded: asked for again later.
 #[test]
 fn unknown_track_is_retried() {
     let store = Store::in_memory().unwrap();
@@ -186,8 +186,7 @@ fn unknown_track_is_retried() {
     assert_eq!(stored_ids(&store), [1, 2]);
 }
 
-/// Les lignes laissées par les versions précédentes (jamais purgées) partent à la première
-/// sauvegarde de la file.
+/// Rows left by earlier versions (never purged) go at the first save of the queue.
 #[test]
 fn legacy_rows_are_purged_on_first_save() {
     let conn = Connection::open_in_memory().unwrap();

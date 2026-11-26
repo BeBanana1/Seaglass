@@ -88,15 +88,15 @@ pub struct SavedPlayer {
 
 struct Db {
     conn: Connection,
-    /// Ids présents dans la table `tracks`.
+    /// Ids in the `tracks` table.
     saved: HashSet<u64>,
 }
 
 pub struct Store {
     db: Mutex<Db>,
-    /// Valeurs JSON de `kv` déjà lues (`None` : absente de la base). Verrou distinct de la
-    /// connexion : relire un réglage n'attend jamais une sauvegarde de la file. N'est
-    /// modifié que sous le verrou de `db`, pour rester dans l'ordre des écritures.
+    /// JSON values of `kv` already read (`None`: not in the database). A lock apart from
+    /// the connection's: reading a setting again never waits for a queue save. Only
+    /// changed under the `db` lock, to keep to the order of the writes.
     settings: Mutex<HashMap<String, Option<String>>>,
 }
 
@@ -128,10 +128,10 @@ impl Store {
         })
     }
 
-    /// Sauvegarde la position, et la file si elle est fournie. `lookup` donne les
-    /// métadonnées des titres à ajouter à la table : il n'est appelé que pour les titres
-    /// référencés qui n'y sont pas encore (un titre inconnu sera retenté à la sauvegarde
-    /// suivante). Les titres qui ne sont plus référencés sont supprimés.
+    /// Saves the position, and the queue if given. `lookup` gives the metadata of the
+    /// tracks to add to the table: it is only called for referenced tracks that are not
+    /// there yet (an unknown track is tried again at the next save). Tracks that are no
+    /// longer referenced are deleted.
     pub fn save_player(
         &self,
         queue: Option<&Queue>,
@@ -186,8 +186,8 @@ impl Store {
         Ok(())
     }
 
-    /// Valeur JSON d'un réglage (`None` s'il n'a jamais été enregistré). Lue une fois en
-    /// base, puis en mémoire.
+    /// JSON value of a setting (`None` if it was never saved). Read once from the
+    /// database, then from memory.
     pub fn get_setting<T: serde::de::DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
         let cached = self
             .settings
@@ -228,7 +228,7 @@ impl Store {
         Ok(())
     }
 
-    /// Volume sauvegardé, ramené dans les limites (`None` s'il n'a jamais été réglé).
+    /// Saved volume, brought back within the limits (`None` if it was never set).
     pub fn load_volume(&self) -> Result<Option<Volume>> {
         Ok(self
             .get_setting::<Volume>(KEY_VOLUME)?

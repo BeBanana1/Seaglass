@@ -1,10 +1,9 @@
-//! Dernières copies des listes affichées (#181) : pages de playlist et onglets de la
-//! bibliothèque, gardées d'un lancement à l'autre pour être affichées aussitôt, puis
-//! revalidées ou relues par l'appelant.
+//! Last copies of the lists shown (#181): playlist pages and library tabs, kept from one
+//! launch to the next to be shown at once, then revalidated or read again by the caller.
 //!
-//! Une ligne par clé (`playlist:<uuid>`, `library:<onglet>`), en JSON. `used_at` est une
-//! horloge logique (le plus grand + 1), mise à jour à l'écriture comme à la lecture : elle
-//! ordonne les copies pour l'élagage, sans dépendre de l'heure du système.
+//! One row per key (`playlist:<uuid>`, `library:<tab>`), as JSON. `used_at` is a logical
+//! clock (the largest + 1), updated on write as on read: it orders the copies for pruning,
+//! without depending on the system's time.
 
 use rusqlite::{OptionalExtension, params};
 use serde::Serialize;
@@ -12,22 +11,22 @@ use serde::de::DeserializeOwned;
 
 use super::{Result, Store, StoreError};
 
-/// Limites d'un groupe de copies de même préfixe.
+/// Limits of a group of copies with the same prefix.
 #[derive(Debug, Clone, Copy)]
 pub struct SnapshotLimit {
     pub prefix: &'static str,
-    /// Copies gardées au plus.
+    /// Most copies kept.
     pub count: usize,
-    /// Somme des tailles (`size`, en titres) gardée au plus ; la plus récente est toujours
-    /// gardée, même si elle dépasse seule la limite.
+    /// Largest sum of sizes (`size`, in tracks) kept; the most recent is always kept, even
+    /// if it alone goes over the limit.
     pub size: usize,
 }
 
 const NEXT_CLOCK: &str = "(SELECT COALESCE(MAX(used_at), 0) + 1 FROM snapshots)";
 
 impl Store {
-    /// Copie gardée sous `key`. Une copie illisible (format d'une autre version) est
-    /// effacée et vaut `None`.
+    /// Copy kept under `key`. An unreadable copy (another version's format) is erased and
+    /// gives `None`.
     pub fn get_snapshot<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
         let json: Option<String> = {
             let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
@@ -51,15 +50,15 @@ impl Store {
         match serde_json::from_str(&json) {
             Ok(value) => Ok(Some(value)),
             Err(e) => {
-                tracing::warn!("copie {key} illisible, effacée : {e}");
+                tracing::warn!("copy {key} unreadable, erased: {e}");
                 self.remove_snapshot(key)?;
                 Ok(None)
             }
         }
     }
 
-    /// Enregistre la copie (`size` : nombre de titres, pour `limit`), puis élague le groupe
-    /// de `limit` s'il est donné.
+    /// Saves the copy (`size`: number of tracks, for `limit`), then prunes the group of
+    /// `limit` if given.
     pub fn put_snapshot<T: Serialize>(
         &self,
         key: &str,
@@ -67,7 +66,7 @@ impl Store {
         size: usize,
         limit: Option<SnapshotLimit>,
     ) -> Result<()> {
-        // Sérialisée avant de prendre le verrou : une longue liste fait quelques Mo.
+        // Serialized before taking the lock: a long list is a few MB.
         let json = serde_json::to_string(value)?;
         let mut db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let tx = db.conn.transaction()?;
@@ -107,7 +106,7 @@ impl Store {
         Ok(())
     }
 
-    /// Changement de compte : les copies décrivent la bibliothèque de l'ancien.
+    /// Account change: the copies describe the former account's library.
     pub fn clear_snapshots(&self) -> Result<()> {
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         db.conn.execute("DELETE FROM snapshots", [])?;
@@ -115,7 +114,7 @@ impl Store {
     }
 }
 
-/// Nombre de copies gardées, en partant des plus récentes (`sizes` dans cet ordre).
+/// Number of copies kept, starting from the most recent (`sizes` in that order).
 fn kept(sizes: &[usize], limit: SnapshotLimit) -> usize {
     let mut total = 0;
     sizes
@@ -175,7 +174,7 @@ mod tests {
         for k in ["p:1", "p:2", "p:3"] {
             store.put_snapshot(k, &0, 1, Some(LIMIT)).unwrap();
         }
-        // Lue, la plus ancienne repasse devant.
+        // Once read, the oldest moves back to the front.
         store.get_snapshot::<i32>("p:1").unwrap();
         store.put_snapshot("other", &0, 100, None).unwrap();
         store.put_snapshot("p:4", &0, 1, Some(LIMIT)).unwrap();

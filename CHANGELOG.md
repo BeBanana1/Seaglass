@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.125
+
+- chore: the comments and logs of the local database (`store/`) are now in English, with no change in behavior (#8).
+
 ## 0.5.124
 
 - chore: the Jam's guest search, Pushkin's connection lifecycle and the blind test's clip handling move to their own files, with no change in behavior (#45).
