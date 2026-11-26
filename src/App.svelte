@@ -68,7 +68,7 @@
   const shell = new Shell();
   let main = $state<HTMLElement>();
 
-  // Registre des actions (#412) : ce qu'il ne peut faire sans `App` (panneaux, session).
+  // Action registry (#412): what it cannot do without `App` (panels, session).
   setActionContext({
     loggedIn: () => !!shell.session,
     openNowPlaying: () => (shell.nowPlayingOpen = true),
@@ -100,7 +100,7 @@
     await shell.restoreSession();
     shell.ready = true;
     void noticeCrash();
-    // Raccourci global « Aimer » (#413) : exécuté ici, par le registre des actions.
+    // Global "Like" shortcut (#413): run here, through the action registry.
     if (!platform.mobile) {
       void events.onGlobalShortcut((action) => {
         if (action === "like") runAction("play.like");
@@ -128,7 +128,7 @@
     }
   });
 
-  // Cœurs : chargés à chaque connexion (une requête pour toute la bibliothèque).
+  // Hearts: loaded at every sign-in (one request for the whole library).
   $effect(() => {
     if (shell.session) {
       loadLikes();
@@ -136,26 +136,26 @@
     }
   });
 
-  // Couleur de la pochette en cours, reprise par les thèmes (`--album`).
+  // Color of the current cover, used by the themes (`--album`).
   const albumColor = $derived(player.currentTrack?.album.color);
   $effect(() => {
     const color = albumColor;
     if (color) document.documentElement.style.setProperty("--album", color);
   });
 
-  // Les fonds animés (Acidwave) ne bougent que pendant la lecture.
+  // Animated backgrounds (Acidwave) only move during playback.
   $effect(() => {
     document.documentElement.dataset.playing = String(player.playing);
   });
 
-  // Chaque changement de page repart du haut.
+  // Every page change starts from the top.
   $effect(() => {
     void nav.stack.length;
     void current();
     main?.scrollTo({ top: 0 });
   });
 
-  // Fermé autrement (Échap, raccourci, lien partagé) : la marque ne doit pas survivre.
+  // Closed another way (Esc, shortcut, shared link): the mark must not outlive it.
   $effect(() => {
     if (!shell.nowPlayingOpen) shell.nowPlayingFromOutside = false;
   });
@@ -177,7 +177,7 @@
 
 <div class="shell" class:mobile={platform.mobile}>
   <header>
-    <!-- #399 : recherche « seaglass », une vague traverse l'en-tête une fois. -->
+    <!-- #399: searching "seaglass" sends a wave across the header once. -->
     {#if eggs.search === "seaglass"}<span class="egg-wave" aria-hidden="true">
         <span></span>
       </span>{/if}
@@ -193,10 +193,10 @@
           <Icon name="previous" size={13} />
         </button>
       {/if}
-      <!-- Nom et version sur une même ligne de base, centrés ensemble sur les boutons (#183). -->
+      <!-- Name and version on the same baseline, centered together on the buttons (#183). -->
       <span class="wordmark">
         <span class="brand display">Seaglass<EggMark /></span>
-        <!-- #399 : le 1er avril, la version s'écrit en chiffres romains. -->
+        <!-- #399: on April 1st, the version is written in Roman numerals. -->
         <span class="version mono">
           v{eggs.date === "aprilFools" ? romanVersion(__APP_VERSION__) : __APP_VERSION__}
         </span>
@@ -206,7 +206,7 @@
       </span>
     </div>
     {#if platform.mobile}
-      <!-- Android : navigation en bas, réglages en haut à droite (#143), déconnexion dans Réglages › Application. -->
+      <!-- Android: navigation at the bottom, settings at the top right (#143), sign-out in Settings › Application. -->
       {#if route.name !== "settings"}
         <div class="actions">
           {#if shell.session}
@@ -253,7 +253,7 @@
     {#if shell.session && !platform.mobile}<div class="panel nav"><Sidebar /></div>{/if}
     <main class="panel" bind:this={main}>
       {#if !shell.ready}
-        <!-- `.boot` : écran de démarrage, que certains thèmes décorent (Ordinateur de bord, #339). -->
+        <!-- `.boot`: startup screen, which some themes decorate (Ship Computer, #339). -->
         <p class="muted boot">{t.common.loading}</p>
       {:else if route.name === "settings"}
         <Settings section={route.section} onLogout={shell.session ? shell.logout : undefined} />
@@ -350,7 +350,7 @@
 {#if shell.session && !platform.mobile}<CommandPalette />{/if}
 
 <style>
-  /* Fond propre au thème (vide pour Studio et Atelier). */
+  /* The theme's own background (empty for Studio and Atelier). */
   .backdrop-layer {
     position: fixed;
     inset: 0;
@@ -365,8 +365,8 @@
     padding: var(--shell-gap);
   }
 
-  /* Android : la page passe sous les barres système, l'en-tête et la navigation les évitent.
-     Lignes : en-tête, page, mini-lecteur (absent sans titre), navigation. */
+  /* Android: the page goes under the system bars, the header and the navigation avoid them.
+     Rows: header, page, mini player (missing without a track), navigation. */
   .shell.mobile {
     --mobile-gap: min(var(--shell-gap), 6px);
     display: flex;
@@ -385,8 +385,9 @@
     padding: 0 8px;
   }
 
-  /* Android (#183) : nom centré dans la barre, version dessous. Centré sur l'en-tête et non
-     entre ses voisins : Retour et Réglages font 36 px, et Réglages manque sur sa propre page. */
+  /* Android (#183): name centered in the bar, version below it. Centered on the header and
+     not between its neighbors: Back and Settings are 36 px wide, and Settings is missing on
+     its own page. */
   .shell.mobile .wordmark {
     position: absolute;
     top: 50%;
@@ -408,7 +409,7 @@
     height: 36px;
   }
 
-  /* Marges des pages (24 px sur le bureau) ramenées à une largeur de téléphone. */
+  /* Page margins (24 px on desktop) brought down to a phone's width. */
   .shell.mobile main > :global(*) {
     padding: 16px 12px;
   }
@@ -421,7 +422,7 @@
     border-radius: var(--panel-radius) var(--panel-radius) 0 0;
   }
 
-  /* Rond comme le bouton Retour, en face de lui. */
+  /* Round like the Back button, opposite it. */
   .icon-action {
     display: grid;
     place-items: center;
@@ -477,7 +478,7 @@
     color: var(--accent);
   }
 
-  /* Clins d'œil (#399) : couleur du nom certains jours, plus forte que celle des thèmes. */
+  /* Easter eggs (#399): color of the name on some days, stronger than the themes'. */
   :global(:root[data-date-egg="halloween"]) .brand {
     color: #ff7a1a;
     -webkit-text-fill-color: #ff7a1a;
@@ -488,7 +489,7 @@
     -webkit-text-fill-color: #3f6fd8;
   }
 
-  /* Recherche « sorceleur » : le nom vibre brièvement, comme un médaillon. */
+  /* Searching "sorceleur": the name shakes briefly, like a medallion. */
   :global(:root[data-egg="witcher"]) .brand {
     animation: egg-shake 0.5s linear 2;
   }
@@ -508,7 +509,7 @@
     }
   }
 
-  /* 21 décembre : du givre sur les bords de l'en-tête. */
+  /* December 21st: frost on the edges of the header. */
   :global(:root[data-date-egg="winter"]) header {
     box-shadow:
       inset 0 3px 6px -3px rgb(220 240 255 / 0.7),
@@ -637,7 +638,7 @@
     color: var(--text-muted);
   }
 
-  /* Studio et Atelier : zones à plat séparées par des filets. */
+  /* Studio and Atelier: flat areas separated by rules. */
   :global([data-theme="studio"]) header,
   :global([data-theme="atelier"]) header {
     padding: 10px 18px;

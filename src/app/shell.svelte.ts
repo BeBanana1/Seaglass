@@ -1,5 +1,5 @@
-// État partagé par la coquille de l'app. `App.svelte` en crée un par montage et le passe aux
-// modules de `app/` : session, panneaux ouverts, saisie sur Android, reprise de session.
+// State shared by the app's shell. `App.svelte` creates one per mount and passes it to the
+// modules of `app/`: session, open panels, typing on Android, session restore.
 
 import { commands, type SessionInfo } from "../lib/ipc";
 import { queue } from "../lib/stores/queue.svelte";
@@ -15,16 +15,16 @@ export class Shell {
   ready = $state(false);
   queueOpen = $state(false);
   nowPlayingOpen = $state(false);
-  /** Mode conduite (#193, Android) : plein écran au-dessus de tout le reste. */
+  /** Driving mode (#193, Android): full screen above everything else. */
   driveOpen = $state(false);
-  /** « En lecture » ouvert par la notification d'Android (#240) : la page dessous est quelconque. */
+  /** "Now playing" opened from the Android notification (#240): the page below is any page. */
   nowPlayingFromOutside = false;
-  // Android : un champ de texte a le focus, donc le clavier est ouvert (#151).
+  // Android: a text field has the focus, so the keyboard is open (#151).
   typing = $state(false);
 
-  // Session enregistrée non reprise à cause d'une erreur passagère (réseau absent au
-  // lancement avec Windows, panne de TIDAL) : le refresh token est gardé, on réessaie au
-  // lieu de demander une reconnexion (#252).
+  // Saved session not restored because of a passing error (no network yet when launched
+  // with Windows, TIDAL outage): the refresh token is kept, so it retries instead of asking
+  // to sign in again (#252).
   restoreError = $state<string | null>(null);
   #restoreTimer: ReturnType<typeof setTimeout> | undefined;
   #restoreDelay = 5_000;
@@ -58,8 +58,8 @@ export class Shell {
     clearFolders();
   };
 
-  // Ouvert depuis la notification, « En lecture » se referme sur la page d'où joue le titre
-  // (#240), par-dessus la page qui était là : Retour y revient ensuite.
+  // Opened from the notification, "Now playing" closes onto the page the track plays from
+  // (#240), on top of the page that was there: Back returns to it afterwards.
   closeNowPlaying = () => {
     this.nowPlayingOpen = false;
     if (!this.nowPlayingFromOutside) return;

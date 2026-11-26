@@ -1,5 +1,5 @@
-// Demandes venues de l'extérieur de l'app : notification, liens `seaglass://`, épingles,
-// liens partagés. Chacune est gardée par Rust et prise une seule fois.
+// Requests from outside the app: notification, `seaglass://` links, pins, shared links.
+// Rust keeps each one until the UI takes it, once.
 
 import type { Shell } from "./shell.svelte";
 import { commands, events } from "../lib/ipc";
@@ -9,8 +9,8 @@ import { pushToast } from "../lib/stores/toasts.svelte";
 import { platform } from "../lib/platform.svelte";
 import { openSharedLink } from "../lib/links";
 
-// Appui sur la notification d'Android (#163) : demande gardée par Rust, prise une seule
-// fois (aussi au démarrage, si l'app a été rouverte par la notification).
+// Tap on the Android notification (#163): request kept by Rust, taken once (also at
+// startup, if the notification reopened the app).
 async function openFromNotification(shell: Shell) {
   if (!(await commands.takeNowPlayingRequest().catch(() => false))) return;
   if (shell.session && player.state.track) {
@@ -19,8 +19,8 @@ async function openFromNotification(shell: Shell) {
   }
 }
 
-// Lien `seaglass://drive` ou raccourci de l'app (#193) : demande gardée par Rust, prise une
-// seule fois (aussi au démarrage). Déconnecté, elle est oubliée : rien à y lire.
+// `seaglass://drive` link or app shortcut (#193): request kept by Rust, taken once (also
+// at startup). Signed out, it is dropped: there is nothing to play there.
 async function openDriveFromOutside(shell: Shell) {
   if (!(await commands.takeDriveRequest().catch(() => false))) return;
   if (!shell.session) return;
@@ -28,9 +28,8 @@ async function openDriveFromOutside(shell: Shell) {
   shell.driveOpen = true;
 }
 
-// Raccourci d'une épingle (appui long sur l'icône) ou lien `seaglass://pin/…` (#335) :
-// l'épingle est lue comme une tuile du mode conduite, puis « En lecture » s'ouvre.
-// Déconnecté, la demande est oubliée.
+// Pin shortcut (long press on the icon) or `seaglass://pin/…` link (#335): the pin plays
+// like a driving mode tile, then "Now playing" opens. Signed out, the request is dropped.
 async function playPinFromOutside(shell: Shell) {
   const pin = await commands.takePinRequest().catch(() => null);
   if (!pin || !shell.session) return;
@@ -44,16 +43,16 @@ async function playPinFromOutside(shell: Shell) {
   }
 }
 
-// Lien partagé depuis une autre app (#203) : seulement connecté, sinon il attend.
+// Link shared from another app (#203): only when signed in, otherwise it waits.
 export async function openShared(shell: Shell) {
   if (!shell.session) return;
   shell.nowPlayingOpen = false;
   await openSharedLink();
 }
 
-/** Écoute les demandes et prend celles déjà en attente au démarrage. */
+/** Listens for the requests and takes those already waiting at startup. */
 export function listenOutside(shell: Shell) {
-  // Lien partagé (Android, #203) ou notification des nouvelles sorties touchée (#435).
+  // Shared link (Android, #203) or a tapped new releases notification (#435).
   void events.onSharedLink(() => openShared(shell));
   void openShared(shell);
   if (platform.mobile) {

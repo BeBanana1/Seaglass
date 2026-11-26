@@ -1,6 +1,6 @@
-// Retour d'Android : ferme ce qui est au-dessus (menu, dialogue, « En lecture »), quitte
-// la recherche dans une liste, revient à la page précédente, puis à l'accueil (#240) :
-// seul Retour sur l'accueil quitte l'app.
+// Android Back: closes what is on top (menu, dialog, "Now playing"), leaves the search in a
+// list, goes back to the previous page, then to the home page (#240): only Back on the home
+// page leaves the app.
 
 import type { Shell } from "./shell.svelte";
 import { closeJamDialog, jam } from "../lib/stores/jam.svelte";
@@ -36,10 +36,10 @@ export function closeTop(shell: Shell) {
   else if (trackInfo.track) closeTrackInfo();
   else if (jam.dialogOpen) closeJamDialog();
   else if (shell.driveOpen) shell.driveOpen = false;
-  // Paroles ou file en plein écran (#173) : Retour revient d'abord à « En lecture ».
+  // Lyrics or queue in full screen (#173): Back first returns to "Now playing".
   else if (shell.nowPlayingOpen && ui.nowPlayingPanel) ui.nowPlayingPanel = null;
   else if (shell.nowPlayingOpen) shell.closeNowPlaying();
-  // Sélection multiple (#332) : Retour la vide avant de quitter la page.
+  // Multiple selection (#332): Back clears it before leaving the page.
   else if (selection.count > 0) selection.clear();
   else if (listSearch.active) exitListSearch();
   else if (canGoBack()) back();
