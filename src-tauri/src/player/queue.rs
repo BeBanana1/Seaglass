@@ -38,6 +38,11 @@ pub enum Repeat {
 /// Part of the queue shown by the UI (`QueueView`), for "Play from the queue" (#167).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub enum QueuePart {
     /// `QueueView::manual`: the manual queue.
     Manual,

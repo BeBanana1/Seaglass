@@ -7,8 +7,13 @@ import { invoke, listen, type UnlistenFn } from "./transport";
 import type { AlbumRef } from "./bindings/AlbumRef";
 import type { ArtistRef } from "./bindings/ArtistRef";
 import type { AudioParams } from "./bindings/AudioParams";
+import type { PlaySource } from "./bindings/PlaySource";
 import type { PlayerState } from "./bindings/PlayerState";
+import type { QueuePart } from "./bindings/QueuePart";
+import type { QueueView } from "./bindings/QueueView";
+import type { RadioSeed } from "./bindings/RadioSeed";
 import type { Repeat } from "./bindings/Repeat";
+import type { SmartList } from "./bindings/SmartList";
 import type { StreamFormat } from "./bindings/StreamFormat";
 import type { Track } from "./bindings/Track";
 import type { TrackId } from "./bindings/TrackId";
@@ -21,9 +26,14 @@ export type { AudioQuality } from "./bindings/AudioQuality";
 export type { EditionAlbum } from "./bindings/EditionAlbum";
 export type { MpvIssue } from "./bindings/MpvIssue";
 export type { OutputDevice } from "./bindings/OutputDevice";
+export type { PlaySource } from "./bindings/PlaySource";
 export type { PlayerState } from "./bindings/PlayerState";
+export type { QueuePart } from "./bindings/QueuePart";
+export type { QueueView } from "./bindings/QueueView";
+export type { RadioSeed } from "./bindings/RadioSeed";
 export type { Repeat } from "./bindings/Repeat";
 export type { SleepState } from "./bindings/SleepState";
+export type { SmartList } from "./bindings/SmartList";
 export type { StreamFormat } from "./bindings/StreamFormat";
 export type { Track } from "./bindings/Track";
 export type { TrackId } from "./bindings/TrackId";
@@ -279,32 +289,6 @@ export interface BlindTestView {
 export type SleepRequest =
   { kind: "minutes"; minutes: number } | { kind: "endOfTrack" } | { kind: "endOfContext" };
 
-/** Partie de `QueueView` d'où lire un titre (#167). */
-export type QueuePart = "manual" | "upcoming";
-
-export interface QueueView {
-  manual: Track[];
-  upcoming: Track[];
-  /** Titre de départ quand la suite est une radio qui prolonge la file (#78). */
-  radio: Track | null;
-  /** D'où vient le titre en cours (« Joué depuis », #124), s'il vient du contexte. */
-  source: PlaySource | null;
-}
-
-/** Origine d'un contexte de lecture (#124), passée à `playTracks`. */
-export type PlaySource =
-  | { kind: "album"; id: number; title: string }
-  | { kind: "playlist"; uuid: string; title: string }
-  | { kind: "mix"; id: string; title: string }
-  | { kind: "radio"; seed: RadioSeed; id: number; title: string }
-  | { kind: "artist"; id: number; name: string }
-  | { kind: "contributor"; id: number; name: string }
-  | { kind: "likedTracks" }
-  | { kind: "later" }
-  | { kind: "search"; query: string }
-  | { kind: "smart"; list: SmartList }
-  | { kind: "import"; link: string; title: string };
-
 export interface AlbumSummary {
   id: number;
   title: string;
@@ -543,12 +527,6 @@ export interface PlayedFormat {
   plays: number;
 }
 
-/**
- * Playlist intelligente locale (#383), calculée par le backend sur l'historique de cet
- * appareil (et les titres likés pour `neverPlayed`).
- */
-export type SmartList = "topMonth" | "onRepeat" | "forgotten" | "neverPlayed";
-
 export const SMART_LISTS: SmartList[] = ["topMonth", "onRepeat", "forgotten", "neverPlayed"];
 
 /** Clé de la section d'accueil « Écoutés dans Seaglass ». */
@@ -642,8 +620,6 @@ export interface MixPage {
   imageLargeUrl: string | null;
   tracks: Track[];
 }
-
-export type RadioSeed = "track" | "artist";
 
 /** Radio d'un titre ou d'un artiste. */
 export interface RadioPage {

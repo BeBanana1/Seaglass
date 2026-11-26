@@ -1,22 +1,29 @@
-//! Source du contexte de lecture (#124) : d'où viennent les titres du contexte, pour le
-//! lien « Joué depuis » de l'UI. Gardée avec la file, sans effet sur la lecture.
+//! Source of the playback context (#124): where the context's tracks come from, for the
+//! UI's "Playing from" link. Kept with the queue, with no effect on playback.
 
 use serde::{Deserialize, Serialize};
 
 use crate::store::SmartList;
 use crate::tidal::models::RadioSeed;
 
-/// Longueur maximale d'un titre ou d'une requête gardés (ils viennent de l'UI).
+/// Maximum length of a kept title or query (they come from the UI).
 pub const MAX_LABEL_CHARS: usize = 200;
 
+/// Origin of a playback context (#124), passed to `playTracks`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
     tag = "kind",
     rename_all = "camelCase",
     rename_all_fields = "camelCase"
 )]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub enum PlaySource {
     Album {
+        #[cfg_attr(test, ts(type = "number"))]
         id: u64,
         title: String,
     },
@@ -30,21 +37,24 @@ pub enum PlaySource {
     },
     Radio {
         seed: RadioSeed,
+        #[cfg_attr(test, ts(type = "number"))]
         id: u64,
         title: String,
     },
-    /// Titres populaires d'un artiste.
+    /// An artist's top tracks.
     Artist {
+        #[cfg_attr(test, ts(type = "number"))]
         id: u64,
         name: String,
     },
-    /// Titres où une personne est créditée (#429).
+    /// Tracks where a person is credited (#429).
     Contributor {
+        #[cfg_attr(test, ts(type = "number"))]
         id: u64,
         name: String,
     },
     LikedTracks,
-    /// Liste « Plus tard » (#196).
+    /// The "Save for later" list (#196).
     Later,
     Search {
         query: String,
@@ -53,8 +63,8 @@ pub enum PlaySource {
     Smart {
         list: SmartList,
     },
-    /// Playlist d'un autre service, lue sans être enregistrée (#328) : `link` = adresse
-    /// propre de la playlist, pour rouvrir l'import.
+    /// Playlist from another service, played without being saved (#328): `link` = the
+    /// playlist's clean address, to reopen the import.
     Import {
         link: String,
         title: String,
@@ -62,8 +72,8 @@ pub enum PlaySource {
 }
 
 impl PlaySource {
-    /// Libellé nettoyé (espaces retirés, tronqué) ; `None` si un champ est invalide.
-    /// `is_uuid` vient des commandes, qui valident l'entrée.
+    /// Cleaned label (spaces trimmed, truncated); `None` if a field is invalid.
+    /// `is_uuid` comes from the commands, which validate the input.
     pub fn sanitize(self, is_uuid: impl Fn(&str) -> bool) -> Option<Self> {
         fn label(s: String) -> Option<String> {
             let s = s.trim();
@@ -108,7 +118,7 @@ impl PlaySource {
             Self::Later => Self::Later,
             Self::Smart { list } => Self::Smart { list },
             Self::Import { link, title } => {
-                // Relue comme un lien collé : seule une adresse de playlist reconnue passe.
+                // Read again like a pasted link: only a recognized playlist address gets through.
                 let link = crate::foreign::playlist_ref_offline(&link)?.url();
                 Self::Import {
                     link,
@@ -160,7 +170,7 @@ mod tests {
             title: format!("  {}  ", "a".repeat(300)),
         };
         let Some(PlaySource::Album { title, .. }) = s.sanitize(any_uuid) else {
-            panic!("album refusé");
+            panic!("album refused");
         };
         assert_eq!(title.chars().count(), MAX_LABEL_CHARS);
     }
@@ -185,7 +195,7 @@ mod tests {
         );
     }
 
-    /// #328 : seule une adresse de playlist reconnue passe, rendue propre.
+    /// #328: only a recognized playlist address gets through, cleaned.
     #[test]
     fn sanitize_import_links() {
         let import = |link: &str| PlaySource::Import {
