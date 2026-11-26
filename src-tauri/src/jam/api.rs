@@ -7,6 +7,7 @@
 mod adds;
 mod blind;
 mod lyrics;
+mod search;
 mod skip;
 mod volume;
 
@@ -28,7 +29,7 @@ use super::guests::{Guests, sanitize_token};
 use super::http::Response;
 use super::members::{GuestInfo, owner_key};
 use super::rules::JamRules;
-use super::view::{GuestAlbum, GuestState, GuestTrack};
+use super::view::GuestState;
 use crate::player::blind::{Answer, BlindTestView, Refusal};
 use crate::player::volume::Volume;
 use crate::tidal::models::{AlbumSummary, Lyrics, Track, TrackId};
@@ -37,8 +38,6 @@ use crate::tidal::models::{AlbumSummary, Lyrics, Track, TrackId};
 pub const BACKEND_TIMEOUT: Duration = Duration::from_secs(15);
 /// Un lien collé (Apple Music, Spotify avec ses paramètres) dépasse souvent 100 caractères.
 pub const MAX_QUERY_CHARS: usize = 300;
-const MAX_RESULTS: usize = 30;
-const MAX_ALBUM_RESULTS: usize = 20;
 /// Titres d'un album ajoutés au plus : un coffret ne remplit pas la file (#223).
 pub const MAX_ALBUM_TRACKS: usize = 30;
 /// Titres de la suite montrés aux invités.
@@ -353,69 +352,6 @@ impl Core {
         }
     }
 
-    /// Titres seuls (tableau) pour une page d'avant #223, titres et albums sinon.
-    async fn search<B: Backend>(
-        &self,
-        body: &[u8],
-        ip: IpAddr,
-        key: &str,
-        backend: &B,
-    ) -> Response {
-        let Ok(body) = serde_json::from_slice::<SearchBody>(body) else {
-            return Response::error(400, "body");
-        };
-        let query = body.query.trim();
-        if query.is_empty() {
-            return if body.albums {
-                Response::json(200, &serde_json::json!({ "tracks": [], "albums": [] }))
-            } else {
-                Response::json(200, &serde_json::json!([]))
-            };
-        }
-        if query.chars().count() > MAX_QUERY_CHARS {
-            return Response::error(400, "query");
-        }
-        if !self.allow(ip, key, Action::Search) {
-            return Response::error(429, "slow");
-        }
-        // Un lien d'un autre service (#229) : ses titres ou son album, pas une recherche.
-        let link = crate::foreign::find(query).is_some();
-        let hits = if link {
-            backend.link(query.to_owned()).await
-        } else {
-            backend.search(query.to_owned()).await
-        };
-        let hits = match hits {
-            Ok(hits) => hits,
-            Err(e) => return backend_error(&e),
-        };
-        let tracks: Vec<GuestTrack> = hits
-            .tracks
-            .iter()
-            .take(MAX_RESULTS)
-            .map(GuestTrack::from)
-            .collect();
-        let albums: Vec<GuestAlbum> = if body.albums {
-            hits.albums
-                .iter()
-                .take(MAX_ALBUM_RESULTS)
-                .map(GuestAlbum::from)
-                .collect()
-        } else {
-            Vec::new()
-        };
-        if let Ok(mut s) = self.session.lock() {
-            s.offered.note(tracks.iter().map(|t| t.id));
-            s.offered_albums.note(albums.iter().map(|a| a.id));
-        }
-        if body.albums {
-            let hits = serde_json::json!({ "tracks": tracks, "albums": albums, "link": link });
-            Response::json(200, &hits)
-        } else {
-            Response::json(200, &serde_json::json!(tracks))
-        }
-    }
-
     /// Lecture ou pause explicite (pas une bascule : deux invités qui appuient en même
     /// temps obtiennent le même résultat).
     async fn pause<B: Backend>(&self, body: &[u8], ip: IpAddr, key: &str, backend: &B) -> Response {
@@ -439,14 +375,6 @@ impl Core {
 #[derive(Deserialize)]
 struct PauseBody {
     paused: bool,
-}
-
-#[derive(Deserialize)]
-struct SearchBody {
-    query: String,
-    /// Page qui sait afficher les albums (#223).
-    #[serde(default)]
-    albums: bool,
 }
 
 /// Jeton du navigateur, lu dans toute requête (#288).
