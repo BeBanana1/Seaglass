@@ -9,20 +9,18 @@ pub mod favorites;
 pub mod global_shortcuts;
 pub mod home_layout;
 pub mod pins;
+pub mod playback;
 pub mod sorts;
+pub mod system;
 pub mod toggles;
 pub mod zoom;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
-#[cfg(desktop)]
-use tauri_plugin_autostart::ManagerExt;
 
 use super::{AppState, CmdResult, err};
 use crate::content::ContentFilter;
 use crate::i18n::{self, Lang, LanguagePref, tr};
-use crate::player::output::AudioDevices;
-use crate::player::{Cmd, PlaybackSettings};
 use crate::store::Store;
 use accent::Accents;
 use eggs::EasterEggs;
@@ -345,132 +343,6 @@ pub async fn set_list_sort(
     sorts::update(&mut settings.sorts, &list, sort).map_err(err)?;
     save(&state, &settings)?;
     Ok(settings.sorts)
-}
-
-#[tauri::command]
-pub async fn playback_settings(state: State<'_, AppState>) -> CmdResult<PlaybackSettings> {
-    Ok(PlaybackSettings::load(state.store.as_deref()))
-}
-
-/// Qualité baissée par la batterie en ce moment (#492), pour Réglages › Lecture ; `None`
-/// si la batterie ne change rien.
-#[cfg(target_os = "android")]
-#[tauri::command]
-pub async fn quality_cap(
-    state: State<'_, AppState>,
-) -> CmdResult<Option<crate::player::QualityCap>> {
-    let settings = PlaybackSettings::load(state.store.as_deref());
-    Ok(crate::player::current_cap(&settings).await)
-}
-
-/// Enregistre puis applique à chaud. La désérialisation de `settings` valide la taille
-/// du cache : seules les valeurs proposées sont acceptées.
-#[tauri::command]
-pub async fn set_playback_settings(
-    state: State<'_, AppState>,
-    settings: PlaybackSettings,
-) -> CmdResult<()> {
-    let Some(store) = &state.store else {
-        return Err(tr(
-            "base SQLite indisponible, réglage non enregistré",
-            "SQLite database unavailable, setting not saved",
-        )
-        .into());
-    };
-    settings.save(store).map_err(err)?;
-    state
-        .player
-        .send(Cmd::SetPlaybackSettings(settings))
-        .await
-        .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
-}
-
-/// Périphériques de sortie connus de mpv (#79) ; la liste suit ensuite l'événement
-/// `audio-devices` (branchement, changement du périphérique par défaut).
-#[tauri::command]
-pub async fn audio_devices(state: State<'_, AppState>) -> CmdResult<AudioDevices> {
-    let stopped = || tr("lecteur arrêté", "player stopped").to_owned();
-    let (tx, rx) = tokio::sync::oneshot::channel();
-    state
-        .player
-        .send(Cmd::GetAudioDevices(tx))
-        .await
-        .map_err(|_| stopped())?;
-    rx.await.map_err(|_| stopped())
-}
-
-/// Plateforme de l'app, pour que l'UI choisisse sa mise en page (tactile sur Android) et
-/// masque les réglages sans objet. Décidée à la compilation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Platform {
-    #[cfg(desktop)]
-    Desktop,
-    #[cfg(mobile)]
-    Android,
-}
-
-#[tauri::command]
-pub async fn platform() -> CmdResult<Platform> {
-    #[cfg(desktop)]
-    return Ok(Platform::Desktop);
-    #[cfg(mobile)]
-    Ok(Platform::Android)
-}
-
-/// État réel du lancement au démarrage, lu dans le système à chaque appel : il peut avoir
-/// été changé ailleurs (Gestionnaire des tâches), donc rien n'est gardé en base.
-/// Toujours faux sur Android, qui n'a pas de lancement au démarrage.
-#[tauri::command]
-pub async fn autostart_enabled(app: AppHandle) -> CmdResult<bool> {
-    #[cfg(desktop)]
-    return app.autolaunch().is_enabled().map_err(err);
-    #[cfg(mobile)]
-    {
-        let _ = app;
-        Ok(false)
-    }
-}
-
-/// Vrai si la présence Discord peut être proposée (#215) : bureau, identifiant de
-/// l'application Discord compilé ou donné au lancement.
-#[tauri::command]
-pub async fn discord_available() -> CmdResult<bool> {
-    #[cfg(desktop)]
-    return Ok(crate::integrations::discord::client_id().is_some());
-    #[cfg(mobile)]
-    Ok(false)
-}
-
-/// Vrai si le mode exclusif peut être proposé (#245) : mpv sous Windows seulement (#17).
-#[tauri::command]
-pub async fn exclusive_available() -> CmdResult<bool> {
-    Ok(crate::player::exclusive_supported())
-}
-
-/// Active ou désactive le lancement au démarrage, puis renvoie l'état relu.
-#[cfg(desktop)]
-#[tauri::command]
-pub async fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<bool> {
-    let manager = app.autolaunch();
-    if enabled {
-        manager.enable().map_err(err)?;
-    } else {
-        manager.disable().map_err(err)?;
-    }
-    manager.is_enabled().map_err(err)
-}
-
-/// Une entrée `Run` créée par une version antérieure à #83 n'a pas `--minimized` : réécrite au lancement si
-/// elle est active (désactivée dans le Gestionnaire des tâches, elle n'est pas touchée).
-#[cfg(desktop)]
-pub(crate) fn refresh_autostart(app: &AppHandle) {
-    let manager = app.autolaunch();
-    if manager.is_enabled().unwrap_or(false)
-        && let Err(e) = manager.enable()
-    {
-        tracing::warn!("lancement au démarrage non mis à jour : {e}");
-    }
 }
 
 #[cfg(test)]

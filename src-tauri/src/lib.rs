@@ -85,7 +85,7 @@ pub fn run() {
             #[cfg(desktop)]
             commands::settings::zoom::apply(app.handle(), ui_settings.zoom);
             #[cfg(desktop)]
-            commands::settings::refresh_autostart(app.handle());
+            commands::settings::system::refresh_autostart(app.handle());
             #[cfg(desktop)]
             let mpv_process = Arc::new(ProcessGuard::default());
             #[cfg(desktop)]
@@ -276,21 +276,21 @@ pub fn run() {
             commands::settings::reset_home_layout,
             commands::settings::set_pins,
             commands::settings::set_list_sort,
-            commands::settings::playback_settings,
-            commands::settings::set_playback_settings,
+            commands::settings::playback::playback_settings,
+            commands::settings::playback::set_playback_settings,
             #[cfg(target_os = "android")]
-            commands::settings::quality_cap,
+            commands::settings::playback::quality_cap,
             commands::settings::equalizer::parse_autoeq,
-            commands::settings::audio_devices,
-            commands::settings::platform,
-            commands::settings::autostart_enabled,
-            commands::settings::discord_available,
+            commands::settings::playback::audio_devices,
+            commands::settings::system::platform,
+            commands::settings::system::autostart_enabled,
+            commands::settings::system::discord_available,
             commands::listenbrainz::listenbrainz_status,
             commands::listenbrainz::listenbrainz_connect,
             commands::listenbrainz::listenbrainz_disconnect,
-            commands::settings::exclusive_available,
+            commands::settings::system::exclusive_available,
             #[cfg(desktop)]
-            commands::settings::set_autostart,
+            commands::settings::system::set_autostart,
             commands::jam::jam_status,
             commands::jam::jam_online_available,
             commands::jam::start_jam,
