@@ -5,7 +5,7 @@
 </script>
 
 <aside>
-  <!-- Grand hôtel (#339) : la file s'intitule « Programme ». -->
+  <!-- Grand hotel (#339): the queue is titled "Programme". -->
   <h2>{ui.settings.theme === "hotel" ? t.player.queueHotel : t.player.queue}</h2>
   <QueueList />
 </aside>

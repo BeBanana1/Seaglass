@@ -1,10 +1,10 @@
 <script lang="ts" module>
   import type { SearchResults } from "../lib/ipc";
 
-  // Conservé au niveau du module : revenir sur la recherche retrouve la dernière requête.
+  // Kept at module level: coming back to search finds the last query.
   const saved = $state<{
     query: string;
-    /** Requête des résultats affichés (le champ a pu changer depuis). */
+    /** Query of the displayed results (the field may have changed since). */
     searched: string;
     results: SearchResults | null;
     allTracks: boolean;
@@ -31,13 +31,13 @@
 
   let searching = $state(false);
   let error = $state<string | null>(null);
-  /** Dernières recherches (#211), tenues par le backend. */
+  /** Latest searches (#211), kept by the backend. */
   let history = $state<string[]>([]);
   let input = $state<HTMLInputElement>();
   let typingTimer: ReturnType<typeof setTimeout> | undefined;
-  /** Numéro de la dernière recherche lancée : une réponse plus ancienne est ignorée. */
+  /** Number of the latest search started: an older response is ignored. */
   let seq = 0;
-  /** Requête déjà gardée dans l'historique, pour ne pas la renvoyer à chaque clic. */
+  /** Query already kept in the history, so it is not sent again on every click. */
   let noted = "";
 
   function refreshHistory() {
@@ -48,7 +48,7 @@
   }
   refreshHistory();
 
-  /** Garde `query` dans l'historique : seulement une requête retenue, pas chaque préfixe tapé. */
+  /** Keeps `query` in the history: only a query that was settled on, not every prefix typed. */
   function remember(query: string) {
     const q = query.trim();
     if (!q || q === noted) return;
@@ -62,9 +62,9 @@
   async function submit(e: SubmitEvent) {
     e.preventDefault();
     clearTimeout(typingTimer);
-    // Un lien TIDAL ouvre sa page au lieu d'être cherché (#203).
+    // A TIDAL link opens its page instead of being searched (#203).
     if (await openTidalLink(saved.query)) return;
-    // Résultats déjà là pour cette requête : Entrée ne fait que la retenir.
+    // Results already there for this query: Enter only keeps it.
     if (saved.results && saved.searched === saved.query.trim() && !error) {
       remember(saved.query);
       return;
@@ -72,18 +72,18 @@
     await run(saved.query, true);
   }
 
-  /** Recherche pendant la frappe (#248), après une courte pause. */
+  /** Search while typing (#248), after a short pause. */
   function typed() {
     clearTimeout(typingTimer);
     const query = saved.query;
     if (!query.trim()) {
-      // Champ vidé : l'historique revient, une réponse en route est oubliée.
+      // Field cleared: the history comes back, a response on its way is forgotten.
       seq++;
       searching = false;
       error = null;
       return;
     }
-    // Un lien collé est traité par `onpaste`, pas cherché comme du texte.
+    // A pasted link is handled by `onpaste`, not searched as text.
     if (/^\s*https?:\/\//i.test(query)) return;
     typingTimer = setTimeout(() => void run(query, false), TYPING_DELAY);
   }
@@ -94,7 +94,7 @@
     saved.query = query;
     searching = true;
     error = null;
-    // #399 : un mot précis joue un clin d'œil bref, la recherche part quand même.
+    // #399: a specific word plays a brief easter egg, the search still goes ahead.
     searched(query);
     try {
       const results = await commands.search(query);
@@ -114,7 +114,7 @@
     try {
       history = await commands.removeSearchHistory(query);
     } catch {
-      // Rien à signaler : l'entrée reste affichée.
+      // Nothing to report: the entry stays shown.
     }
     input?.focus();
   }
@@ -128,7 +128,7 @@
     input?.focus();
   }
 
-  // Champ vide : les recherches récentes à la place des résultats.
+  // Empty field: recent searches instead of results.
   const showHistory = $derived(!saved.query.trim() && !searching);
 
   const r = $derived(showHistory ? null : saved.results);
@@ -162,7 +162,7 @@
       spellcheck="false"
       autofocus
     />
-    <!-- #399 : effets brefs de certaines recherches, par-dessus et autour du champ. -->
+    <!-- #399: brief effects for some searches, over and around the field. -->
     {#if eggs.search === "rosebud"}
       <span class="egg flakes" aria-hidden="true">
         {#each [8, 21, 34, 47, 60, 73, 86] as left, i (left)}
@@ -185,7 +185,7 @@
     <p class="egg-line">{t.eggs.answer}</p>
   {/if}
   {#if eggs.search === "origami"}
-    <!-- Une petite licorne pliée, posée dans un coin. -->
+    <!-- A small folded unicorn, placed in a corner. -->
     <svg class="egg origami" viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
       <path d="M8 34 14 20l8 2z" fill="#d9d4c7" />
       <path d="M14 20 22 22l6-10z" fill="#bdb6a6" />
@@ -239,7 +239,7 @@
     </p>
   {/if}
 
-  <!-- Un clic dans les résultats retient la requête (#248) : c'est celle qu'on cherchait. -->
+  <!-- A click in the results keeps the query (#248): it is the one that was looked for. -->
   <div
     class="results"
     class:stale={searching}
@@ -248,7 +248,7 @@
     {#if r && r.tracks.length > 0}
       <div class="tracks">
         <h2>{t.views.search.tracks}</h2>
-        <!-- Le contexte de lecture est la liste affichée. -->
+        <!-- The playback context is the displayed list. -->
         <TrackList {tracks} source={{ kind: "search", query: saved.searched }} />
         {#if r.tracks.length > COLLAPSED_TRACKS}
           <button class="more" onclick={() => (saved.allTracks = !saved.allTracks)}>
@@ -274,7 +274,7 @@
     margin: 0 10px 20px;
   }
 
-  /* Clins d'œil (#399). Aucun ne bloque le champ ni ne se rejoue. */
+  /* Easter eggs (#399). None blocks the field or replays. */
   .egg {
     position: absolute;
     pointer-events: none;
@@ -328,7 +328,7 @@
     }
   }
 
-  /* Recherche « épice » : l'accent vire au cannelle le temps de l'effet. */
+  /* "Spice" search: the accent turns cinnamon for the length of the effect. */
   :global(:root[data-egg="spice"]) {
     --accent: #c8743a !important;
   }
@@ -383,7 +383,7 @@
     }
   }
 
-  /* Animations réduites : la variante fixe, qui s'en va avec l'effet. */
+  /* Reduced motion: the static variant, which goes away with the effect. */
   :global(:root[data-motion="reduced"]) .egg,
   :global(:root[data-motion="reduced"]) .egg :is(i, path) {
     animation: none;
@@ -424,7 +424,7 @@
     margin-bottom: 28px;
   }
 
-  /* Résultats de la requête précédente pendant que la suivante arrive : pas de saut. */
+  /* Results of the previous query while the next one arrives: no jump. */
   .results {
     transition: opacity 0.15s;
   }

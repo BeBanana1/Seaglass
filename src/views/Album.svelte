@@ -14,14 +14,14 @@
   import AlbumCredits from "../components/AlbumCredits.svelte";
   import CardGrid from "../components/CardGrid.svelte";
 
-  /** `track` : titre à mettre en évidence (lien collé, #203). */
+  /** `track`: title to highlight (pasted link, #203). */
   let { id, track }: { id: number; track?: number } = $props();
 
   let page = $state<AlbumPage | null>(null);
   let error = $state<string | null>(null);
-  /** Même album en hi-res chez l'artiste (#59), cherché après l'affichage de la page. */
+  /** Same album in hi-res from the artist (#59), looked up after the page is shown. */
   let twin = $state<AlbumSummary | null>(null);
-  /** Autres versions et autres albums de l'artiste (#350), demandés après l'affichage. */
+  /** Other versions and other albums by the artist (#350), requested after the page is shown. */
   let related = $state<AlbumRelated | null>(null);
 
   $effect(() => {
@@ -38,13 +38,13 @@
         commands
           .albumRelated(target)
           .then((r) => target === id && (related = r))
-          // Rangées facultatives : absentes en cas d'erreur (journalisée côté Rust).
+          // Optional rows: absent on error (logged on the Rust side).
           .catch((e) => console.warn("autres versions :", e));
         if (!p.album.hires) {
           commands
             .hiresTwinAlbum(target)
             .then((found) => target === id && (twin = found))
-            // Simple suggestion : une erreur n'empêche rien, elle reste dans les journaux.
+            // Just a suggestion: an error blocks nothing, it stays in the logs.
             .catch((e) => console.warn("album hi-res :", e));
         }
       })
@@ -53,7 +53,7 @@
 
   const asItems = (albums: AlbumSummary[]): MediaItem[] =>
     albums.map((a) => ({ kind: "album", ...a }));
-  // Le jumeau hi-res a déjà son bandeau (#59) : pas deux fois.
+  // The hi-res twin already has its banner (#59): not twice.
   const versions = $derived(
     related ? asItems(related.versions.filter((a) => a.id !== twin?.id)) : [],
   );

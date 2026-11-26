@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Playlist intelligente locale (#383) : la liste est calculée par le backend (`smart_list`),
-  // la page l'affiche comme un mix. « Ajouter à une playlist » l'enregistre chez TIDAL.
+  // Local smart playlist (#383): the list is computed by the backend (`smart_list`),
+  // the page shows it like a mix. "Add to a playlist" saves it on TIDAL.
   import { commands, type PlaySource, type SmartList, type Track } from "../lib/ipc";
   import { formatLongDuration } from "../lib/format";
   import { t } from "../lib/i18n.svelte";

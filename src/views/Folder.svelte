@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Dossier de playlists (#331) : ses playlists en cartes, Renommer et Supprimer.
-  // Les playlists viennent de la bibliothèque (onglet Playlists), filtrées par le dossier.
+  // Playlist folder (#331): its playlists as cards, Rename and Delete.
+  // The playlists come from the library (Playlists tab), filtered by the folder.
   import type { MediaItem } from "../lib/ipc";
   import { library, loadLibrary } from "../lib/stores/library.svelte";
   import {

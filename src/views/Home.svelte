@@ -1,10 +1,10 @@
 <script lang="ts" module>
   let cached: HomeSection[] | null = null;
   let cachedLang: string | null = null;
-  // Gardé entre deux visites de l'accueil : le même album tant que l'app reste ouverte.
-  // Hors de toute ligne (`$state` de module) pour que « Passer » rafraîchisse la vue.
+  // Kept between two visits to the home page: the same album as long as the app stays open.
+  // Outside any row (module-level `$state`) so that "Skip" refreshes the view.
   let featuredIndex = $state(Math.floor(Math.random() * 1000));
-  /** Album affiché, gardé quand la liste des candidats change. */
+  /** Album shown, kept when the list of candidates changes. */
   let featuredId = $state<number | null>(null);
 </script>
 
@@ -19,8 +19,8 @@
   import HomeEditor from "../components/HomeEditor.svelte";
   import { i18n, t } from "../lib/i18n.svelte";
 
-  // Gardé entre deux visites de l'accueil pour éviter de recharger à chaque retour, tant
-  // que la langue ne change pas (les titres des sections viennent du service).
+  // Kept between two visits to the home page to avoid reloading on every return, as long
+  // as the language does not change (section titles come from the service).
   if (cachedLang !== i18n.lang) cached = null;
   let rows = $state<HomeSection[] | null>(cached);
   let error = $state<string | null>(null);
@@ -33,11 +33,11 @@
       ui.settings.home.featuredHidden,
   );
 
-  /** Albums les plus écoutés dans l'app (#202), relus à chaque visite. */
+  /** Most played albums in the app (#202), reread on every visit. */
   let topPlayed = $state<AlbumSummary[]>([]);
 
-  /** Albums les plus écoutés, puis ceux des sections affichées, sans doublon, avec le titre
-   *  de leur ligne (#185, #202). */
+  /** Most played albums, then those of the sections shown, without duplicates, with the title
+   *  of their row (#185, #202). */
   const candidates = $derived.by(() => {
     const seen = new Set<number>();
     const list: { album: AlbumSummary; context: string }[] = [];
@@ -56,8 +56,8 @@
     return list;
   });
 
-  /** Album mis en avant : tiré au hasard une fois par lancement, puis « Passer » avance.
-   * Une fois montré, il reste le même quand la suite de l'accueil arrive (`featuredId`). */
+  /** Featured album: picked at random once per launch, then "Skip" advances.
+   * Once shown, it stays the same when the rest of the home page arrives (`featuredId`). */
   const featured = $derived(
     ui.settings.home.featuredHidden || candidates.length === 0
       ? null
@@ -70,7 +70,7 @@
     featuredId = candidates[(current + 1) % candidates.length].album.id;
   }
 
-  /** Première page, puis tout l'accueil s'il y a d'autres pages (#207). */
+  /** First page, then the whole home page if there are more pages (#207). */
   async function load() {
     const feed = await commands.home();
     rows = cached = feed.sections;
@@ -81,15 +81,15 @@
       featuredId = featured?.album.id ?? featuredId;
       rows = cached = all;
     } catch (e) {
-      // La première page reste affichée.
+      // The first page stays shown.
       console.warn("suite de l'accueil", e);
     }
   }
 
   /**
-   * Historique d'écoute local (#202), relu à chaque visite : l'accueil de TIDAL reste gardé
-   * en mémoire, mais « Écoutés dans Seaglass » suit les écoutes faites depuis. La section
-   * n'apparaît qu'au chargement complet suivant si l'historique était vide.
+   * Local listening history (#202), reread on every visit: TIDAL's home page stays kept
+   * in memory, but "Listened to in Seaglass" follows the plays made since. The section
+   * only appears at the next full load if the history was empty.
    */
   async function refreshPlayHistory() {
     try {
@@ -101,11 +101,11 @@
         .map((r) => (r.key === PLAY_HISTORY_KEY ? { ...r, items } : r))
         .filter((r) => r.key !== PLAY_HISTORY_KEY || r.items.length > 0);
     } catch (e) {
-      console.warn("historique d'écoute", e);
+      console.warn("listening history", e);
     }
   }
 
-  // Écoutes reçues de l'appareil lié (#430) : la synchro du lancement suffit ici.
+  // Plays received from the linked device (#430): the sync at launch is enough here.
   onMount(() => watchHistory(refreshPlayHistory, false));
 
   onMount(async () => {
@@ -126,7 +126,7 @@
     }
   });
 
-  /** Affiche tout de suite la nouvelle disposition, puis l'enregistre (retour arrière si échec). */
+  /** Shows the new layout right away, then saves it (rolls back on failure). */
   async function change(next: HomeSection[]) {
     const previous = rows;
     rows = cached = next;
@@ -149,7 +149,7 @@
   async function reset() {
     try {
       await resetHomeLayout();
-      // L'ordre du flux n'est connu que du backend : on recharge l'accueil.
+      // Only the backend knows the order of the feed: reload the home page.
       await load();
     } catch (e) {
       pushToast({ level: "error", message: String(e) });

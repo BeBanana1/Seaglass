@@ -43,7 +43,7 @@
       copied = false;
     });
 
-  // Repli quand aucun navigateur ne s'ouvre : l'adresse se copie dans n'importe lequel.
+  // Fallback when no browser opens: the address can be copied into any of them.
   async function copyLoginUrl(input: HTMLInputElement) {
     input.select();
     try {

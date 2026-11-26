@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Mini-lecteur du bureau (#384) : seule vue de la fenêtre `mini`, à la place de l'app.
-  // Elle affiche l'état du lecteur et envoie ses commandes, rien d'autre ; Rust ouvre et
-  // ferme la fenêtre, et réaffiche la fenêtre principale quand elle se ferme.
+  // Desktop mini player (#384): the only view of the `mini` window, in place of the app.
+  // It shows the player state and sends its commands, nothing else; Rust opens and
+  // closes the window, and shows the main window again when it closes.
   import { onMount } from "svelte";
   import { commands } from "../lib/ipc";
   import { followPosition, initPlayer, player } from "../lib/stores/player.svelte";
@@ -25,7 +25,7 @@
     onTop = await commands.miniPlayerOnTop().catch(() => true);
   });
 
-  // Couleur de la pochette en cours, reprise par les thèmes (`--album`), comme dans l'app.
+  // Color of the current cover, picked up by the themes (`--album`), as in the app.
   $effect(() => {
     const color = player.currentTrack?.album.color;
     if (color) document.documentElement.style.setProperty("--album", color);
@@ -58,7 +58,7 @@
 
 <svelte:window onkeydown={onKeydown} oncontextmenu={(e) => e.preventDefault()} />
 
-<!-- Fenêtre sans bordure : on la déplace en glissant le fond ou le texte. -->
+<!-- Borderless window: it is moved by dragging the background or the text. -->
 <div class="mini" data-tauri-drag-region>
   <button class="cover" ondblclick={back} title={t.player.miniBack}>
     {#if track?.album.coverUrl}<img src={coverSmall(track.album)} alt="" />{/if}
