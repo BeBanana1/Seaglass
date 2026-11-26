@@ -1,3 +1,6 @@
+// Settings in the mock backend: UI settings, language, updates, logs, and the app and system
+// commands.
+
 import { emit, fx, params, type Handlers } from "./core";
 import type { Lang, LanguagePref, Theme, TrackSort, UiSettings } from "../ipc";
 
@@ -6,33 +9,33 @@ let pinShortcutParam = params.has("pinshortcut");
 export let ui: UiSettings = {
   theme: (params.get("theme") as Theme) ?? "seaglass",
   home: { order: [], hidden: [], featuredHidden: false },
-  // La playlist des fixtures et les titres likés, pour voir la section « Épinglés ».
+  // The fixtures' playlist and the liked tracks, to show the "Pinned" section.
   pins: [
     { kind: "playlist", uuid: fx.playlist.playlist.uuid, title: fx.playlist.playlist.title },
     { kind: "likedTracks" },
   ],
-  // `?accent=ff5c8a` : couleur d'accent personnalisée du thème affiché.
+  // `?accent=ff5c8a`: custom accent color of the theme shown.
   accents: params.get("accent")
     ? { [(params.get("theme") as Theme) ?? "seaglass"]: `#${params.get("accent")}` }
     : {},
-  // `?favorites=alloy,terminal` : thèmes favoris (#390).
+  // `?favorites=alloy,terminal`: favorite themes (#390).
   favoriteThemes: (params.get("favorites")?.split(",") ?? []) as Theme[],
-  // `?lang=en` : interface en anglais.
+  // `?lang=en`: interface in English.
   language: (params.get("lang") as LanguagePref) ?? "system",
-  // `?tray=1` : fermer la fenêtre la réduit dans la zone de notification (#83).
+  // `?tray=1`: closing the window hides it in the notification area (#83).
   closeAction: params.has("tray") ? "tray" : "quit",
-  // `?discord=1` : présence Discord activée (#215).
+  // `?discord=1`: Discord presence on (#215).
   discord: params.has("discord"),
   sorts: [],
   zoom: 100,
-  // `?motion=reduced|full` : animations réduites ou forcées (#351).
+  // `?motion=reduced|full`: animations reduced or forced (#351).
   motion: (params.get("motion") as UiSettings["motion"]) ?? "system",
-  // `?eggs=off` : clins d'œil désactivés (#399) ; `?date=` et `?egg=` dans `lib/eggs/`.
+  // `?eggs=off`: easter eggs off (#399); `?date=` and `?egg=` in `lib/eggs/`.
   easterEggs: params.get("eggs") !== "off",
-  // `?explicit=hide` : contenu explicite masqué (#368) ; `?ai=show` : musique générée par
-  // IA affichée (#369). Le backend factice ne filtre pas.
+  // `?explicit=hide`: explicit content hidden (#368); `?ai=show`: AI-generated music shown
+  // (#369). The mock backend does not filter.
   content: { hideExplicit: params.get("explicit") === "hide", hideAi: params.get("ai") !== "show" },
-  // `?hotkeys=1` : raccourcis globaux activés (#413) ; `?hotkeys=taken` : le premier est pris.
+  // `?hotkeys=1`: global shortcuts on (#413); `?hotkeys=taken`: the first one is taken.
   globalShortcuts: {
     enabled: params.has("hotkeys"),
     bindings: {
@@ -45,7 +48,7 @@ export let ui: UiSettings = {
       showWindow: "Ctrl+Alt+KeyS",
     },
   },
-  // `?autoupdates=off` : vérification périodique coupée ; `?jam=off` : Jam masquée (#452).
+  // `?autoupdates=off`: periodic check off; `?jam=off`: Jam hidden (#452).
   autoUpdates: params.get("autoupdates") !== "off",
   jam: params.get("jam") !== "off",
   releaseNotifications: false,
@@ -80,7 +83,7 @@ export function saveDemoUi() {
   }
 }
 
-/** « Système » du backend factice : la langue du navigateur. */
+/** "System" in the mock backend: the browser's language. */
 export function effectiveLanguage(pref: LanguagePref): Lang {
   if (pref !== "system") return pref;
   return navigator.language.startsWith("fr") ? "fr" : "en";
@@ -98,7 +101,7 @@ function mockUpdate() {
         version: "0.5.0",
         currentVersion: "0.4.4",
         notes: ["- Installeur Windows", "- Mises à jour automatiques"].join("\n"),
-        // Android : proposée avant d'être téléchargée, avec la taille de l'APK.
+        // Android: offered before it is downloaded, with the APK's size.
         ...(params.get("platform") === "android" ? { size: 41_200_000 } : {}),
       }
     : null;
@@ -107,17 +110,17 @@ function mockUpdate() {
 let notificationTaken = false;
 
 export const settingsHandlers: Handlers = {
-  // `?updates=none` : app compilée sans serveur de mises à jour (#452).
+  // `?updates=none`: app built without an update server (#452).
   update_server: () =>
     params.get("updates") === "none" ? null : "https://updates.example.org/seaglass",
   ui_settings: () => ui,
-  // `?update=1` : simule une mise à jour prête.
+  // `?update=1`: simulates an update ready to install.
   update_status: () => (mockDownloaded ? mockUpdate() : null),
   install_update: () => null,
-  // `?updates=manual` : Linux hors d'une AppImage, pas de mise à jour automatique (#314).
+  // `?updates=manual`: Linux outside an AppImage, no automatic update (#314).
   updates_available: () => params.get("updates") !== "manual",
-  // Sans `?update=1`, l'app est « à jour ». `?update=download` : comme le bureau (#187),
-  // la réponse arrive avant l'installeur, `update-ready` 2 s plus tard.
+  // Without `?update=1`, the app is "up to date". `?update=download`: as on desktop (#187),
+  // the answer comes before the installer, `update-ready` 2 s later.
   check_for_updates: () => {
     const u = mockUpdate();
     if (u && !mockDownloaded) {
@@ -131,7 +134,7 @@ export const settingsHandlers: Handlers = {
     return u;
   },
   set_ui_settings: ({ settings }) => {
-    // Proxy Svelte : copie en JSON (voir les épingles dans docs/interface.md).
+    // Svelte proxy: copied through JSON (see the pins in docs/interface.md).
     ui = JSON.parse(JSON.stringify(settings)) as UiSettings;
   },
   language: () => effectiveLanguage(ui.language),
@@ -162,7 +165,7 @@ export const settingsHandlers: Handlers = {
     } else console.info("open_project_page", page);
     return null;
   },
-  // #192 : `?crash=1` simule un plantage au lancement précédent (toast et rapport).
+  // #192: `?crash=1` simulates a crash on the previous launch (toast and report).
   take_crash_notice: () => params.get("crash") === "1",
   last_crash_report: () =>
     params.get("crash") === "1"
@@ -182,7 +185,7 @@ export const settingsHandlers: Handlers = {
   ],
   current_log: () => "2026-11-11T10:00:00Z  INFO seaglass_lib: Seaglass (aperçu)\n",
   open_log_dir: () => null,
-  // #330 : progression simulée sur trois playlists.
+  // #330: simulated progress over three playlists.
   export_library: async () => {
     for (let done = 0; done <= 3; done++) {
       emit("library-export", { done, total: 3 });
@@ -202,9 +205,9 @@ export const settingsHandlers: Handlers = {
   export_settings: () => JSON.stringify({ format: "seaglass-settings", version: 1, ui }, null, 2),
   import_settings: () => ({ applied: ["ui.theme"], ignored: ["playback.wifiQuality"] }),
   reset_home_layout: () => (ui.home = { order: [], hidden: [], featuredHidden: false }),
-  // Copie JSON : l'UI envoie des proxys Svelte, que `structuredClone` refuse.
+  // JSON copy: the UI sends Svelte proxies, which `structuredClone` refuses.
   set_pins: ({ pins }) => (ui.pins = JSON.parse(JSON.stringify(pins))),
-  // Comme le backend : le plus récent en tête, le tri par défaut de la liste est oublié.
+  // Like the backend: newest first, and the list's default sort is not stored.
   set_list_sort: ({ list, sort }) => {
     const id = list as string;
     const next = sort as TrackSort | null;
@@ -215,7 +218,7 @@ export const settingsHandlers: Handlers = {
     }
     return ui.sorts;
   },
-  // `?platform=android` : mise en page tactile.
+  // `?platform=android`: touch layout.
   // Website demo (#28): a phone gets the touch layout, as the Android app would show it.
   platform: () =>
     params.get("platform") === "android" ||
@@ -229,16 +232,16 @@ export const settingsHandlers: Handlers = {
     available: true,
     failed: ui.globalShortcuts.enabled && params.get("hotkeys") === "taken" ? ["playPause"] : [],
   }),
-  // `?notification=1` : appui sur la notification d'Android au lancement (#163, #240), une fois.
+  // `?notification=1`: tap on the Android notification at launch (#163, #240), once.
   take_now_playing_request: () => {
     const asked = params.get("notification") === "1" && !notificationTaken;
     notificationTaken = true;
     return asked;
   },
   take_shared_link: () => null,
-  // Mode conduite (#193) : `?platform=android&drive=1` l'ouvre au lancement (`initialView`).
+  // Driving mode (#193): `?platform=android&drive=1` opens it at launch (`initialView`).
   take_drive_request: () => false,
-  // Raccourci d'une épingle (#335) : `?platform=android&pinshortcut=1` lit la première épingle.
+  // Pin shortcut (#335): `?platform=android&pinshortcut=1` plays the first pin.
   take_pin_request: () => {
     const pin = pinShortcutParam ? (ui.pins[0] ?? null) : null;
     pinShortcutParam = false;
@@ -246,18 +249,18 @@ export const settingsHandlers: Handlers = {
   },
   keep_screen_on: () => null,
 
-  // `?platform=android&links=1` : liens TIDAL déjà donnés à l'app.
+  // `?platform=android&links=1`: TIDAL links already handed to the app.
   link_handling: () =>
     params.get("platform") === "android" ? { enabled: params.get("links") === "1" } : null,
   open_link_settings: () => undefined,
-  // Le navigateur garde sa taille : seul l'état change (le bouton suit).
+  // The browser keeps its size: only the state changes (the button follows).
   fullscreen: () => fullscreen,
   set_fullscreen: ({ fullscreen: on }) => {
     fullscreen = Boolean(on);
     emit("fullscreen", fullscreen);
     return fullscreen;
   },
-  // Hors Tauri, une seule page : le mini-lecteur se prévisualise avec `?mini`.
+  // Outside Tauri there is a single page: the mini player is previewed with `?mini`.
   open_mini_player: () => undefined,
   close_mini_player: () => undefined,
   mini_player_on_top: () => miniOnTop,

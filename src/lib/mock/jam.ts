@@ -1,11 +1,12 @@
+// Jam, relay, remote control and handoff in the mock backend.
+
 import { params, type Handlers } from "./core";
 import { manual } from "./player";
 import type { RelayView } from "../ipc";
 
-// Jam (#25) : `?jam=1` l'affiche démarrée en ligne, `?jam=local` sur le réseau local,
-// `?jam=reconnecting` en reconnexion ; avec `manual=1`, le premier titre de la file manuelle
-// est marqué comme ajouté par une invitée. Deux invités (dont un exclu) dans les contrôles de
-// l'hôte (#288).
+// Jam (#25): `?jam=1` shows it started online, `?jam=local` on the local network,
+// `?jam=reconnecting` reconnecting; with `manual=1`, the first track of the manual queue is
+// marked as added by a guest. Two guests (one of them banned) in the host's controls (#288).
 const fakeQr = (() => {
   let cells = "";
   for (let y = 0; y < 21; y++)
@@ -43,7 +44,7 @@ function mockJam(mode: "online" | "local", reconnecting = false) {
     ],
   };
 }
-// `?relay=off` : relais coupé ; `?relay=none` : app compilée sans relais (#452).
+// `?relay=off`: relay turned off; `?relay=none`: app built without a relay (#452).
 const relayParam = params.get("relay");
 let relay: RelayView = {
   enabled: relayParam !== "off",
@@ -59,8 +60,8 @@ let jam: ReturnType<typeof mockJam> | null =
     : jamParam === "local"
       ? mockJam("local")
       : null;
-/** Télécommande (#336) : `?remote=1` l'affiche allumée ; `?handoff=1` accepte les
- *  transferts (#414). Téléphone : `?platform=android&linked=1` a un ordinateur lié. */
+/** Remote control (#336): `?remote=1` shows it on; `?handoff=1` accepts handoffs (#414).
+ *  Phone: `?platform=android&linked=1` has a linked computer. */
 let remoteCode = "H4KX9QMT2WZP";
 let remoteOn = params.get("remote") === "1";
 let handoffOn = params.get("handoff") === "1";
@@ -86,7 +87,7 @@ export const jamHandlers: Handlers = {
   jam_status: () => jam,
   jam_online_available: () => relay.usable,
   relay_settings: () => relay,
-  // Une adresse contenant « down » imite un relais injoignable.
+  // An address containing "down" imitates an unreachable relay.
   set_relay_settings: ({ change }) => {
     const c = change as { enabled: boolean; url: string | null; key?: string | null };
     const url = c.url?.trim().replace(/\/+$/, "") || null;

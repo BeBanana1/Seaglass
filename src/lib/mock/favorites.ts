@@ -1,3 +1,5 @@
+// Library in the mock backend: likes, "Save for later", blocks and the library lists.
+
 import {
   emit,
   fx,
@@ -19,9 +21,9 @@ import type {
   LikeTarget,
 } from "../ipc";
 
-// Écritures (#4, #81) : favoris et playlists de l'utilisateur, gardés en mémoire.
-// `?truncated=1` : chaque catégorie se présente comme coupée au plafond (#91), avec un
-// total annoncé de 12 345 (`?truncated=nototal` : total inconnu).
+// Writes (#4, #81): the user's favorites, kept in memory.
+// `?truncated=1`: every category shows as cut at the cap (#91), with an announced total of
+// 12,345 (`?truncated=nototal`: unknown total).
 function libraryList<T>(items: T[]): LibraryList<T> {
   const mode = params.get("truncated");
   if (!mode) return { items, truncated: false, total: items.length };
@@ -43,7 +45,7 @@ function likedIds(): LikedIds {
   };
 }
 
-/** Ajoute en tête (comme le tri par date du service) ou retire un favori de la liste. */
+/** Adds a favorite at the top (like the service's sort by date) or removes it from the list. */
 function toggleIn<T>(list: T[], known: T[], match: (x: T) => boolean, on: boolean) {
   const i = list.findIndex(match);
   if (i >= 0 && !on) list.splice(i, 1);
@@ -84,7 +86,7 @@ function setLiked(target: LikeTarget, on: boolean) {
       );
       break;
     case "mix": {
-      // Ajouté en fin de liste, comme le service (#204).
+      // Added at the end of the list, like the service (#204).
       const i = libraryMixes.findIndex((m) => m.id === target.id);
       if (i >= 0 && !on) libraryMixes.splice(i, 1);
       if (i < 0 && on)
@@ -96,7 +98,7 @@ function setLiked(target: LikeTarget, on: boolean) {
   }
   emit("likes", likedIds());
 }
-// « Plus tard » (#196) : deux titres et un album de démonstration, plus récent en tête.
+// "Save for later" (#196): two tracks and a demo album, newest first.
 const laterItems: LaterItem[] = [
   ...fx.library.tracks.slice(0, 2).map((t) => ({ kind: "track" as const, ...t })),
   { kind: "album" as const, ...fx.album.album },
@@ -136,7 +138,7 @@ function setSavedForLater(target: LikeTarget, on: boolean) {
   emit("later", laterIds());
 }
 
-// Blocages (#334) : un titre et un artiste de démonstration, plus récent en tête.
+// Blocks (#334): a demo track and artist, newest first.
 const blocked: Blocked = {
   tracks: fx.search.tracks.slice(-1).map((t) => ({ ...t })),
   artists: fx.search.artists.slice(-1).map((a) => ({ ...a })),
@@ -155,7 +157,7 @@ function setBlocked(target: BlockTarget, on: boolean) {
 
 export const favoritesHandlers: Handlers = {
   likes: () => likedIds(),
-  // Les arguments sont des proxys Svelte : copiés en JSON avant d'être gardés.
+  // The arguments are Svelte proxies: copied through JSON before they are kept.
   set_liked: ({ target, liked: on }) => setLiked(JSON.parse(JSON.stringify(target)), Boolean(on)),
   set_tracks_liked: ({ trackIds, liked: on }) => {
     for (const id of trackIds as number[]) setLiked({ kind: "track", id }, Boolean(on));
@@ -172,7 +174,7 @@ export const favoritesHandlers: Handlers = {
   library_albums: () => libraryList([...favAlbums]),
   library_artists: () => libraryList([...favArtists]),
   library_playlists: () => libraryList([...libPlaylists]),
-  // Copie « du lancement précédent » (#181) : la liste actuelle, comme si rien n'avait changé.
+  // Copy "from the previous launch" (#181): the current list, as if nothing had changed.
   cached_library: ({ tab }) =>
     (<Record<string, () => unknown>>{
       tracks: () => libraryList(longCount ? longTracks : fx.library.tracks),

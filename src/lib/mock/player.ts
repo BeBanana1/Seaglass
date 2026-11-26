@@ -1,3 +1,5 @@
+// Player in the mock backend: playback state, queue, playback settings and output device.
+
 import { blindTestMock } from "./blindTest";
 import { allTracks, emit, fx, params, radioPage, type Handlers } from "./core";
 import type {
@@ -18,20 +20,20 @@ import type {
 
 let context: Track[] = fx.album.tracks;
 let index = Math.min(1, context.length - 1);
-/** `?autoradio=1` : la suite de la file est la radio du titre en cours (#78). */
+/** `?autoradio=1`: the rest of the queue is the current track's radio (#78). */
 let radioSeed: Track | null = null;
 if (params.has("autoradio") && context[index]) {
   radioSeed = context[index];
   context = [radioSeed, ...radioPage.tracks.filter((t) => t.id !== radioSeed?.id)];
   index = 0;
 }
-/** « Joué depuis » (#124) : l'album de démonstration, sauf sur le titre de départ d'une radio. */
+/** "Playing from" (#124): the demo album, except on the seed track of a radio. */
 let playSource: PlaySource | null = radioSeed
   ? null
   : { kind: "album", id: fx.album.album.id, title: fx.album.album.title };
-/** `?manual=1` : quelques titres dans la file manuelle, pour la réorganiser (#80). */
+/** `?manual=1`: a few tracks in the manual queue, to reorder them (#80). */
 export const manual: Track[] = params.has("manual") ? fx.playlist.tracks.slice(0, 4) : [];
-/** File d'avant le dernier vidage ou retrait (#349), comme `Player::undo_queue`. */
+/** The queue before the last clear or removal (#349), like `Player::undo_queue`. */
 let queueUndo: {
   manual: Track[];
   context: Track[];
@@ -39,24 +41,24 @@ let queueUndo: {
   radioSeed: Track | null;
   playSource: PlaySource | null;
 } | null = null;
-/** `?volume=60` ou `?volume=muted` : chaîne audio hors bit-perfect. */
+/** `?volume=60` or `?volume=muted`: audio chain no longer bit-perfect. */
 const volumeParam = params.get("volume");
-/** `?hiresedition=Thriller` : flux venu d'une autre édition hi-res (#18), album ouvrable (#111). */
+/** `?hiresedition=Thriller`: stream from another hi-res edition (#18), whose album can be opened (#111). */
 const hiresEditionParam = params.get("hiresedition");
 export const hiresEdition =
   hiresEditionParam === null ? null : { id: fx.album.album.id, title: hiresEditionParam };
-/** `?hiresoffer=Thriller` : réglage « Demander », bandeau qui propose une édition hi-res (#59). */
+/** `?hiresoffer=Thriller`: "Ask" setting, banner offering a hi-res edition (#59). */
 const hiresOfferParam = params.get("hiresoffer");
 
-/** Cache en mémoire (#453) : `?cached=whole` (titre entier), `?cached=40` (40 s d'avance), 90 s
- *  d'avance par défaut. */
+/** In-memory cache (#453): `?cached=whole` (whole track), `?cached=40` (40 s ahead), 90 s
+ *  ahead by default. */
 function mockCached(position: number, duration: number): number {
   const param = params.get("cached");
   const ahead = param === "whole" ? Infinity : Number(param ?? 90) || 0;
   return Math.min(position + ahead, duration);
 }
 
-/** `?sleep=30` (minuteur de 30 min), `?sleep=track` (fin du titre, #85) ou `?sleep=context` (fin de la file, #436). */
+/** `?sleep=30` (30 min timer), `?sleep=track` (end of the track, #85) or `?sleep=context` (end of the queue, #436). */
 function mockSleep(param: string | null): SleepState | null {
   if (param === "track") return { kind: "endOfTrack" };
   if (param === "context") return { kind: "endOfContext" };
@@ -77,7 +79,7 @@ function offerFormat(album: string): StreamFormat {
 }
 
 export const state: PlayerState = {
-  // `?idle=1` : rien en lecture (vue « En lecture » vide, #399).
+  // `?idle=1`: nothing playing (empty "Now playing" view, #399).
   track: params.has("idle") ? null : (context[index] ?? null),
   stream: {
     quality: "HI_RES_LOSSLESS",
@@ -88,11 +90,11 @@ export const state: PlayerState = {
     hiresEdition,
   },
   output: { format: "s32", samplerate: 44100, channelCount: 2 },
-  // Calculé plus bas, selon le mode exclusif factice.
+  // Computed below, from the mock exclusive mode.
   deviceFormat: null,
   outputDriver: "wasapi",
   exclusive: false,
-  // Calculé plus bas, après les réglages de lecture factices.
+  // Computed below, after the mock playback settings.
   outputDevice: null,
   loading: false,
   paused: params.has("paused"),
@@ -114,23 +116,23 @@ export const state: PlayerState = {
     muted: volumeParam === "muted",
   },
   hiresOffer: hiresOfferParam ? offerFormat(hiresOfferParam) : null,
-  // Calculé plus bas, après les réglages de lecture factices.
+  // Computed below, after the mock playback settings.
   normalization: null,
   equalizer: null,
   sleep: mockSleep(params.get("sleep")),
-  /** `?mpv=cpu`, `?mpv=stopped` ou `?mpv=missing` : bandeau « mpv ne tourne pas » (#92, #261). */
-  // `?ended=1` : file terminée (carton « Fin » du thème Séance, #399). Bande originale :
-  // vraie pour l'album d'Interstellar des fixtures, comme la liste du backend.
+  // `?ended=1`: queue ended ("The End" card of the Séance theme, #399). Soundtrack: true for
+  // the Interstellar album of the fixtures, like the backend's list.
   soundtrack: context[index]?.album.id === 156749593,
   ended: params.has("ended"),
   blindTest: false,
+  /** `?mpv=cpu`, `?mpv=stopped` or `?mpv=missing`: "mpv is not running" banner (#92, #261). */
   mpvIssue:
     ({ cpu: "cpuUnsupported", stopped: "stopped", missing: "missing" } as const)[
       params.get("mpv") ?? ""
     ] ?? null,
 };
 
-// `?normalization=track|album` : normalisation active (gain factice de −6,5 dB).
+// `?normalization=track|album`: normalization on (mock gain of −6.5 dB).
 const normalizationParam = params.get("normalization") as PlaybackSettings["normalization"] | null;
 // `?device=missing`: the chosen device is unplugged; `?device=dac`: it is plugged in.
 // Windows names its outputs in the system language: English with `?lang=en` (screenshots).
@@ -144,7 +146,7 @@ const SPEAKERS = {
   name: `${speakersLabel} (Realtek(R) Audio)`,
 };
 const deviceParam = params.get("device");
-/** Profil de démonstration (extrait d'AutoEQ, Sennheiser HD 600). */
+/** Demo profile (taken from AutoEQ, Sennheiser HD 600). */
 const DEMO_EQ: EqProfile = {
   id: 1,
   name: "Sennheiser HD 600",
@@ -177,7 +179,7 @@ const audioDevices: AudioDevices = {
   systemDefault: SPEAKERS.id,
 };
 
-/** Même logique que `player/output.rs` : choix s'il est branché, sinon défaut du système. */
+/** Same logic as `player/output.rs`: the chosen device if it is plugged in, otherwise the system default. */
 function outputDevice(): OutputDevice {
   const chosen = playback.audioDevice;
   const present = chosen && audioDevices.devices.some((d) => d.id === chosen.id);
@@ -185,19 +187,19 @@ function outputDevice(): OutputDevice {
   return { name: SPEAKERS.name, systemDefault: true, missing: chosen ? chosen.name : null };
 }
 state.outputDevice = outputDevice();
-/** Gain factice : −6,5 dB par titre, −4 dB par album. */
+/** Mock gain: −6.5 dB per track, −4 dB per album. */
 function mockGain(): number | null {
   return playback.normalization === "off" ? null : playback.normalization === "track" ? -6.5 : -4;
 }
 state.normalization = mockGain();
-/** Comme `EqSettings::applied` : nom du profil appliqué. */
+/** Like `EqSettings::applied`: name of the applied profile. */
 function mockEqualizer(): string | null {
   const eq = playback.equalizer;
   return (eq.enabled && eq.profiles.find((p) => p.id === eq.active)?.name) || null;
 }
 state.equalizer = mockEqualizer();
-/** Comme `player/exclusive.rs` et mpv : en exclusif, le format du flux part tel quel et la
- *  normalisation est suspendue ; en partagé, Windows impose son format de mixage. */
+/** Like `player/exclusive.rs` and mpv: in exclusive mode the stream's format goes out as is and
+ *  normalization is suspended; in shared mode, Windows imposes its mix format. */
 function applyExclusive() {
   state.exclusive = playback.exclusive;
   if (playback.exclusive) state.normalization = null;
@@ -236,8 +238,8 @@ function setCurrent(track: Track | undefined) {
       !track.hires && hiresOfferParam !== null && playback.hiresUpgrade === "ask"
         ? offerFormat(hiresOfferParam)
         : null,
-    // Avec `?hiresedition=…` et le réglage actif, un titre non hi-res est « remplacé » par
-    // une autre édition, comme le ferait le backend.
+    // With `?hiresedition=…` and the setting on, a track that is not hi-res is "replaced" by
+    // another edition, as the backend would do.
     ...(() => {
       const upgraded = !track.hires && hiresEdition !== null && playback.hiresUpgrade === "auto";
       const hires = track.hires || upgraded;
@@ -273,8 +275,8 @@ function setCurrent(track: Track | undefined) {
   emit("queue-state", queueView());
 }
 
-/** 250 ms de lecture : `?ticks=1`, ou appelée directement par une mesure (les minuteries d'une
- *  page masquée sont ralenties). */
+/** 250 ms of playback: `?ticks=1`, or called directly by a measurement (the timers of a hidden
+ *  page are slowed down). */
 export function playbackTick() {
   if (state.paused || state.idle || state.loading || !(state.track || state.blindTest)) return;
   state.timePos = Math.min(state.timePos + 0.25, state.duration);
@@ -309,12 +311,12 @@ export const playerHandlers: Handlers = {
     return [...v.manual, ...v.upcoming].map((t) => t.id);
   },
   playback_settings: () => playback,
-  // Aperçu (#492) : économiseur de batterie actif, comme sur le S21.
+  // Preview (#492): battery saver on, as on the S21.
   quality_cap: () =>
     playback.lowBatteryQuality && playback.wifiQuality !== "low"
       ? { quality: "low", chosen: playback.wifiQuality, reason: "powerSave", battery: 61 }
       : null,
-  // Même validation que le backend : seules les tailles proposées sont acceptées.
+  // Same validation as the backend: only the offered sizes are accepted.
   set_playback_settings: ({ settings }) => {
     const next = settings as PlaybackSettings;
     if (![32, 64, 128, 256].includes(next.cacheSize)) {
@@ -327,7 +329,7 @@ export const playerHandlers: Handlers = {
     applyExclusive();
     emit("player-state", state);
   },
-  // Version simplifiée de `player/autoeq.rs` : assez pour essayer l'import.
+  // Simplified version of `player/autoeq.rs`: enough to try the import.
   parse_autoeq: ({ text }) => {
     const kinds: Record<string, EqFilterKind> = {
       PK: "peaking",
@@ -473,7 +475,7 @@ export const playerHandlers: Handlers = {
     state.repeat = mode as PlayerState["repeat"];
     emit("player-state", state);
   },
-  // Mêmes règles que `player::volume::Volume` côté Rust.
+  // Same rules as `player::volume::Volume` on the Rust side.
   set_volume: ({ volume }) => {
     const level = Number(volume);
     if (!Number.isInteger(level) || level < 0 || level > 100) throw new Error("volume invalide");

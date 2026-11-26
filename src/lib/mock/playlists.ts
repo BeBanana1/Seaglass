@@ -1,3 +1,6 @@
+// The user's playlists in the mock backend: pages, edits, folders, cleanup and the playlist
+// cache.
+
 import { allTracks, fx, longPlaylist, params, type Handlers } from "./core";
 import { libPlaylists } from "./favorites";
 import type {
@@ -10,8 +13,8 @@ import type {
   Track,
 } from "../ipc";
 
-// Dossiers de playlists (#331) : aucun par défaut (rien ne doit s'afficher), un dossier de
-// démonstration avec `?folders=1`.
+// Playlist folders (#331): none by default (nothing must show), a demo folder with
+// `?folders=1`.
 let mockFolders: PlaylistFolder[] =
   params.get("folders") === "1"
     ? [
@@ -36,8 +39,8 @@ if (params.has("mine") && !own.some((p) => p.uuid === fx.playlist.playlist.uuid)
 }
 const ownPages = new Map<string, PlaylistPage>();
 
-/** Rapport factice de « Nettoyer » (#382) : un indisponible remplacé, un doublon d'édition,
- *  un indisponible sans remplaçant (non coché), après un court délai (`invoke`). */
+/** Mock "Clean up" report (#382): an unavailable track replaced, a duplicate edition, an
+ *  unavailable track with no replacement (unchecked), after a short delay (`invoke`). */
 function cleanupReport(tracks: Track[]): CleanupReport {
   const [a, b, c, d, e] = tracks;
   return a && b && c && d && e
@@ -75,7 +78,7 @@ function cleanupReport(tracks: Track[]): CleanupReport {
     : { scanned: tracks.length, items: [] };
 }
 
-/** Rien n'est modifié : tout est annoncé appliqué, et annulable (un titre « ne revient pas »). */
+/** Nothing changes: everything is reported applied, and undoable (one track "does not come back"). */
 function cleanupResult(ops: ListOp[], undoing: boolean): ListOpsResult {
   return {
     applied: ops.length,
@@ -85,7 +88,7 @@ function cleanupResult(ops: ListOp[], undoing: boolean): ListOpsResult {
   };
 }
 
-/** Page d'une de vos playlists, créée au premier accès avec les titres de démonstration. */
+/** Page of one of your playlists, created on first access with the demo tracks. */
 function ownPage(uuid: string): PlaylistPage | undefined {
   let page = ownPages.get(uuid);
   if (!page) {
@@ -114,14 +117,14 @@ function addToOwn(uuid: string, trackIds: number[]): number {
 }
 
 const cachedPlaylists = new Map<string, PlaylistPage>();
-/** Dernier titre retiré d'une playlist, pour l'annulation (#349). */
+/** Last track removed from a playlist, for the undo (#349). */
 let removedFromPlaylist: PlaylistPage["tracks"][number] | null = null;
 let removedMany: PlaylistPage["tracks"][number][] = [];
 
-/** `?slow=<ms>` : latence de la commande `playlist`, pour voir « Chargement… » (#152). */
+/** `?slow=<ms>`: latency of the `playlist` command, to see "Loading…" (#152). */
 export const slowPlaylist = Math.max(0, Number(params.get("slow")) || 0);
 
-/** Page actuelle, avec une révision tirée de ses titres (l'ETag du vrai backend). */
+/** Current page, with a revision derived from its tracks (the real backend's ETag). */
 function currentPlaylist(uuid: string): PlaylistPage {
   const page =
     ownPage(uuid) ??
@@ -134,8 +137,8 @@ function currentPlaylist(uuid: string): PlaylistPage {
 }
 
 export const playlistsHandlers: Handlers = {
-  // Comme le vrai backend (#152) : `null` si rien n'a changé depuis `revision`, et une copie
-  // gardée pour `cached_playlist` (effacée par les modifications faites dans l'app).
+  // Like the real backend (#152): `null` if nothing changed since `revision`, and a copy kept
+  // for `cached_playlist` (cleared by the edits made in the app).
   playlist: ({ uuid, revision }) => {
     const page = currentPlaylist(String(uuid));
     cachedPlaylists.set(String(uuid), structuredClone(page));
@@ -192,7 +195,7 @@ export const playlistsHandlers: Handlers = {
     removedFromPlaylist = null;
     return true;
   },
-  // Sélection multiple (#332) : positions retirées gardées pour l'annulation.
+  // Multiple selection (#332): the removed positions are kept for the undo.
   remove_many_from_playlist: ({ uuid, items }) => {
     cachedPlaylists.delete(String(uuid));
     const page = ownPage(String(uuid));

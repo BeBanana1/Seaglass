@@ -1,10 +1,13 @@
+// Listening history in the mock backend: play history, stats, recap, smart lists and
+// ListenBrainz.
+
 import { fx, params, type Handlers } from "./core";
 import type { AlbumSummary, ListenBrainzStatus } from "../ipc";
 
-/** Historique d'écoute factice (#202) : quelques albums des fixtures. */
+/** Mock listening history (#202): a few albums from the fixtures. */
 export let playedAlbums: AlbumSummary[] = fx.search.albums.slice(0, 5);
 
-// `?listenbrainz=1` : compte connecté ; `=refused` : jeton refusé depuis (#431).
+// `?listenbrainz=1`: account connected; `=refused`: token refused since (#431).
 const lbParam = params.get("listenbrainz");
 let listenbrainz: ListenBrainzStatus = {
   user: lbParam ? "seaglass-fan" : null,
@@ -35,7 +38,7 @@ export const historyHandlers: Handlers = {
       artists,
     };
   },
-  // Rétrospective (#417) : les deux derniers mois et leur année, chiffres tirés des fixtures.
+  // Recap (#417): the last two months and their year, with figures from the fixtures.
   recap_periods: () => {
     if (playedAlbums.length === 0) return [];
     const now = new Date();
@@ -104,7 +107,7 @@ export const historyHandlers: Handlers = {
       },
     };
   },
-  // Playlists intelligentes (#383) : vides tant que l'historique l'est, comme le vrai backend.
+  // Smart lists (#383): empty while the history is, like the real backend.
   smart_list: ({ list }) => {
     if (playedAlbums.length === 0) return [];
     const offset =
@@ -113,7 +116,7 @@ export const historyHandlers: Handlers = {
       ] ?? 0;
     return fx.search.tracks.slice(offset, offset + 8);
   },
-  // Un jeton contenant « bad » est refusé, comme par `validate-token`.
+  // A token containing "bad" is refused, as by `validate-token`.
   listenbrainz_status: () => listenbrainz,
   listenbrainz_connect: ({ token }) => {
     const value = String(token).trim();

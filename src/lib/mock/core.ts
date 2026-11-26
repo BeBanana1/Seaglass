@@ -1,3 +1,6 @@
+// Shared state of the mock backend: URL parameters, fixtures, catalog pages, every known
+// track, and the events sent to the UI.
+
 import { demoFixtures } from "./demo";
 import type {
   AlbumPage,
@@ -19,11 +22,11 @@ export interface Fixtures {
   album: AlbumPage;
   artist: ArtistPage;
   playlist: PlaylistPage;
-  /** Absents des fixtures générées avant les mixes : remplacés par un jeu synthétique. */
+  /** Missing from fixtures generated before mixes: replaced by a synthetic set. */
   mix?: MixPage | null;
   radio?: RadioPage;
   home: HomeRow[];
-  /** Absent des fixtures générées avant le fil d'actualité. */
+  /** Missing from fixtures generated before the feed. */
   feed?: FeedItem[];
   library: {
     tracks: TrackEntry[];
@@ -88,7 +91,7 @@ for (const t of [
   allTracks.set(t.id, t);
 }
 
-/** `?long=<n>` : n titres synthétiques (les titres connus répétés, identifiants uniques). */
+/** `?long=<n>`: n synthetic tracks (the known tracks repeated, with unique identifiers). */
 export const longCount = Math.min(10_000, Math.max(0, Number(params.get("long")) || 0));
 export const longTracks: TrackEntry[] = (() => {
   const base = [...allTracks.values()];
@@ -96,7 +99,7 @@ export const longTracks: TrackEntry[] = (() => {
   const now = Date.now();
   return Array.from({ length: longCount }, (_, i) => {
     const t = base[i % base.length];
-    // Le premier passage garde les vrais identifiants : le titre en cours y figure.
+    // The first pass keeps the real identifiers, so the current track is in the list.
     const entry = {
       ...t,
       id: i < base.length ? t.id : t.id * 100_000 + i,

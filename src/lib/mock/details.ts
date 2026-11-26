@@ -1,8 +1,10 @@
+// Track details in the mock backend: lyrics, track info, album credits, contributor.
+
 import { allTracks, fx, params, type Handlers } from "./core";
 import { hiresEdition, playback } from "./player";
 import type { AlbumCreditGroup, ContributorPage, Lyrics, StreamFormat, TrackInfo } from "../ipc";
 
-/** Couplets inventés, répartis sur toute la durée du titre (aucune vraie parole). */
+/** Invented verses, spread over the whole track (no real lyrics). */
 const LYRIC_VERSES = [
   [
     "Le verre poli par la marée",
@@ -46,7 +48,7 @@ function mockLyrics(trackId: number): Lyrics | null {
   };
 }
 
-/** Infos factices (#3) : titre hi-res en 24/48, sinon 16/44,1 avec l'édition `?hiresedition=`. */
+/** Mock track info (#3): a hi-res track in 24/48, otherwise 16/44.1 with the `?hiresedition=` edition. */
 function mockTrackInfo(trackId: number): TrackInfo {
   const track = allTracks.get(trackId);
   if (!track) throw new Error(`titre ${trackId} introuvable`);
@@ -136,7 +138,7 @@ function mockAlbumCredits(): AlbumCreditGroup[] {
   ];
 }
 
-/** Titres d'un contributeur (#429) : lots de 8 sur les titres des fixtures, pour voir « Plus de titres ». */
+/** A contributor's tracks (#429): batches of 8 from the fixtures' tracks, to show "More tracks". */
 function mockContributor(offset: number): ContributorPage {
   const pool = [...fx.album.tracks, ...fx.search.tracks];
   const roles = [["Producer", "Composer"], ["Mixing Engineer"], ["Bass"], ["RecordingArranger"]];
