@@ -1,13 +1,13 @@
-//! File d'envoi des écoutes à ListenBrainz (#431) : chaque écoute comptée ici, prête à
-//! partir (JSON de l'API, `listened_at` compris), en attendant le réseau ou un service
-//! disponible. Seules les écoutes faites sur cet appareil y entrent : celles reçues d'un
-//! autre appareil (#430) passent par `plays` sans jamais être mises en file.
+//! Queue of plays to send to ListenBrainz (#431): each play counted here, ready to go
+//! (the API's JSON, `listened_at` included), waiting for the network or for the service to
+//! be available. Only plays made on this device go in: those received from another device
+//! (#430) go through `plays` without ever being queued.
 
 use rusqlite::params;
 
 use super::{Result, Store, StoreError};
 
-/// Écoutes en attente au plus : au-delà, les plus anciennes sont abandonnées.
+/// Most waiting plays: beyond that, the oldest are dropped.
 pub const MAX_SCROBBLES: i64 = 10_000;
 
 pub(super) const SCHEMA: &str = "
@@ -17,7 +17,7 @@ pub(super) const SCHEMA: &str = "
     );
 ";
 
-/// Écoute en attente : son identifiant dans la file et son JSON.
+/// A waiting play: its id in the queue and its JSON.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Scrobble {
     pub id: i64,
@@ -25,7 +25,7 @@ pub struct Scrobble {
 }
 
 impl Store {
-    /// Met une écoute en file, en abandonnant les plus anciennes au-delà de `MAX_SCROBBLES`.
+    /// Queues a play, dropping the oldest beyond `MAX_SCROBBLES`.
     pub fn queue_scrobble(&self, listen: &str) -> Result<()> {
         let mut db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let tx = db.conn.transaction()?;
@@ -38,7 +38,7 @@ impl Store {
         Ok(())
     }
 
-    /// Les `limit` écoutes les plus anciennes.
+    /// The `limit` oldest plays.
     pub fn pending_scrobbles(&self, limit: usize) -> Result<Vec<Scrobble>> {
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let mut stmt = db
@@ -53,7 +53,7 @@ impl Store {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
-    /// Retire des écoutes envoyées (ou refusées pour de bon).
+    /// Removes plays that were sent (or refused for good).
     pub fn drop_scrobbles(&self, ids: &[i64]) -> Result<()> {
         let mut db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let tx = db.conn.transaction()?;
@@ -67,7 +67,7 @@ impl Store {
         Ok(())
     }
 
-    /// Vide la file (compte retiré).
+    /// Empties the queue (account removed).
     pub fn clear_scrobbles(&self) -> Result<()> {
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         db.conn.execute("DELETE FROM scrobbles", [])?;

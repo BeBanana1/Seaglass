@@ -1,12 +1,12 @@
-//! Statistiques d'écoute (#326), calculées en SQL sur l'historique local (`plays.rs`).
-//! Les requêtes portent sur un intervalle `Span` (ms depuis l'epoch).
+//! Listening statistics (#326), computed in SQL over the local history (`plays.rs`). The
+//! queries cover a `Span` interval (ms since the epoch).
 
 use rusqlite::params;
 
 use super::{Result, Store, StoreError};
 use crate::tidal::models::{ArtistSummary, Track, TrackId};
 
-/// Intervalle d'écoutes `[since, until[`, en ms depuis l'epoch.
+/// Interval of plays `[since, until[`, in ms since the epoch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Span {
     pub since: i64,
@@ -14,7 +14,7 @@ pub struct Span {
 }
 
 impl Span {
-    /// Depuis `since` jusqu'à maintenant (0 : tout l'historique).
+    /// From `since` until now (0: the whole history).
     pub fn since(since: i64) -> Self {
         Self {
             since,
@@ -23,25 +23,25 @@ impl Span {
     }
 }
 
-/// Totaux d'une période.
+/// Totals of a period.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Totals {
     pub plays: i64,
-    /// Somme des durées des titres écoutés, en secondes.
+    /// Sum of the durations of the played tracks, in seconds.
     pub seconds: i64,
-    /// Écoutes de durée inconnue (enregistrées avant la 0.5.33, titre pas encore complété).
+    /// Plays of unknown duration (recorded before 0.5.33, track not completed yet).
     pub unknown: i64,
 }
 
-/// Titre de l'historique, ses métadonnées si elles sont enregistrées, son nombre d'écoutes.
+/// A track of the history, its metadata if recorded, its number of plays.
 pub type CountedTrack = (TrackId, Option<Track>, i64);
 
-/// Artiste du classement.
+/// An artist in the ranking.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TopArtist {
     pub artist: ArtistSummary,
     pub plays: i64,
-    /// Photo déjà demandée à TIDAL (`artist.picture_url` vaut alors ce qu'il a répondu).
+    /// Photo already asked of TIDAL (`artist.picture_url` then holds what it answered).
     pub picture_known: bool,
 }
 
@@ -56,9 +56,9 @@ pub(super) fn parse_track(json: Option<String>) -> Option<Track> {
 }
 
 impl Store {
-    /// Titres les plus écoutés sur `span`, avec au moins `min_plays` écoutes, et leurs
-    /// métadonnées si elles sont enregistrées (`None` : écoute d'avant la 0.5.33, à
-    /// compléter par `save_played_tracks`). À égalité, le plus récemment écouté d'abord.
+    /// Most played tracks over `span`, with at least `min_plays` plays, and their metadata
+    /// if recorded (`None`: a play from before 0.5.33, to be completed by
+    /// `save_played_tracks`). On a tie, the most recently played first.
     pub fn top_tracks(
         &self,
         span: Span,
@@ -75,8 +75,8 @@ impl Store {
         )
     }
 
-    /// Requête dont les colonnes 0 à 2 sont l'id du titre, sa copie JSON (ou `NULL`) et un
-    /// nombre d'écoutes. Une copie illisible (autre version) compte comme absente.
+    /// A query whose columns 0 to 2 are the track id, its JSON copy (or `NULL`) and a
+    /// number of plays. An unreadable copy (another version) counts as missing.
     pub(super) fn counted_tracks(
         &self,
         sql: &str,
@@ -99,14 +99,14 @@ impl Store {
         Ok(out)
     }
 
-    /// Artistes principaux les plus écoutés, avec le nom de leur écoute la plus récente et
-    /// leur photo si elle a déjà été demandée.
+    /// Most played main artists, with the name from their most recent play and their photo
+    /// if it was already asked for.
     pub fn top_artists(&self, span: Span, limit: usize) -> Result<Vec<TopArtist>> {
         self.ranked_artists(span, limit, false)
     }
 
-    /// Classement des artistes de `span` ; `only_new` : seulement ceux qui n'ont aucune
-    /// écoute avant la période (découvertes de la rétrospective, #417).
+    /// Ranking of the artists of `span`; `only_new`: only those with no play before the
+    /// period (the recap's discoveries, #417).
     pub(super) fn ranked_artists(
         &self,
         span: Span,
@@ -114,8 +114,8 @@ impl Store {
         only_new: bool,
     ) -> Result<Vec<TopArtist>> {
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
-        // `p.artist` : colonne « nue » de SQLite, celle de la ligne de `MAX(p.played_at)`
-        // (la date, pas l'id : une écoute reçue d'un autre appareil, #430, a un id récent).
+        // `p.artist`: a "bare" column in SQLite, the one from the row of `MAX(p.played_at)`
+        // (the date, not the id: a play received from another device, #430, has a recent id).
         let mut stmt = db.conn.prepare(
             "SELECT p.artist_id, p.artist, MAX(p.played_at) AS last, COUNT(*) AS n,
                     a.id IS NOT NULL, a.picture
@@ -143,7 +143,7 @@ impl Store {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
-    /// Photos demandées à TIDAL (`None` : artiste sans photo, à ne pas redemander).
+    /// Photos asked of TIDAL (`None`: artist without a photo, not to be asked again).
     pub fn save_artist_pictures(&self, pictures: &[(u64, Option<String>)]) -> Result<()> {
         let mut db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let tx = db.conn.transaction()?;
@@ -158,7 +158,7 @@ impl Store {
         Ok(())
     }
 
-    /// Titres écoutés dont les métadonnées manquent (écoutes d'avant la 0.5.33).
+    /// Played tracks whose metadata is missing (plays from before 0.5.33).
     pub fn unknown_tracks(&self, limit: usize) -> Result<Vec<TrackId>> {
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let mut stmt = db.conn.prepare(
@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn top_tracks_and_artists() {
         let store = Store::in_memory().unwrap();
-        // (titre, album, date) ; l'artiste est l'album + 100.
+        // (track, album, date); the artist is the album + 100.
         for (t, a, at) in [(1, 10, 1), (1, 10, 2), (2, 20, 3), (3, 20, 4), (2, 20, 50)] {
             play(&store, t, a, at);
         }
@@ -208,7 +208,7 @@ mod tests {
                 .map(|(id, t, n)| (id.0, t.map(|t| t.title), n))
                 .collect::<Vec<_>>()
         };
-        // Égalité 1 / 2 : le titre 2, écouté en dernier, passe devant.
+        // Tie between 1 and 2: track 2, played last, comes first.
         assert_eq!(
             tracks(0),
             [
@@ -252,7 +252,7 @@ mod tests {
     fn old_plays_are_completed() {
         let store = Store::in_memory().unwrap();
         {
-            // Écoute d'avant la 0.5.33 : ni titre enregistré ni durée.
+            // A play from before 0.5.33: no recorded track and no duration.
             let db = store.db.lock().unwrap();
             db.conn
                 .execute(

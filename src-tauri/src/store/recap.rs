@@ -1,41 +1,41 @@
-//! Rétrospective du mois et de l'année (#417) : périodes civiles en heure locale et
-//! habitudes d'écoute, calculées en SQL sur l'historique (`plays.rs`). Les classements
-//! viennent de `stats.rs`, sur l'intervalle de la période.
+//! Recap of the month and the year (#417): calendar periods in local time and listening
+//! habits, computed in SQL over the history (`plays.rs`). The rankings come from
+//! `stats.rs`, over the period's interval.
 //!
-//! L'heure locale est celle de SQLite (modificateurs `localtime` / `utc`, fuseau du
-//! système, changements d'heure compris) : rien à recalculer côté Rust.
+//! Local time is SQLite's (`localtime` / `utc` modifiers, the system's time zone, clock
+//! changes included): nothing to compute again on the Rust side.
 
 use rusqlite::params;
 
 use super::stats::{Span, TopArtist};
 use super::{Result, Store, StoreError};
 
-/// Mois civil (`month` de 1 à 12) ou année entière (`month` absent).
+/// Calendar month (`month` from 1 to 12) or a whole year (no `month`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CivilPeriod {
     pub year: i32,
     pub month: Option<u32>,
 }
 
-/// Habitudes d'écoute d'une période, en nombre d'écoutes.
+/// Listening habits of a period, in number of plays.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Habits {
-    /// Jours (locaux) avec au moins une écoute.
+    /// (Local) days with at least one play.
     pub days: i64,
     /// Par jour de la semaine, dimanche en premier (`%w` de SQLite).
     pub weekdays: [i64; 7],
-    /// Par heure locale, de 0 à 23.
+    /// Per local hour, from 0 to 23.
     pub hours: [i64; 24],
     /// By weekday (Sunday first) then local hour: the heatmap (#521).
     pub grid: [[i64; 24]; 7],
 }
 
-/// Arguments SQL de l'heure locale d'une écoute (`played_at` en ms).
+/// SQL arguments for the local time of a play (`played_at` in ms).
 pub(super) const LOCAL: &str = "played_at / 1000, 'unixepoch', 'localtime'";
 
 impl Store {
-    /// Intervalle de la période en heure locale : de minuit le premier jour à minuit le
-    /// premier jour de la période suivante.
+    /// The period's interval in local time: from midnight on the first day to midnight on
+    /// the first day of the next period.
     pub fn civil_span(&self, period: CivilPeriod) -> Result<Span> {
         let (start, step) = match period.month {
             Some(month) => (format!("{:04}-{month:02}-01", period.year), "+1 month"),
@@ -55,7 +55,7 @@ impl Store {
         )?)
     }
 
-    /// Mois (locaux) qui ont des écoutes, du plus récent au plus ancien.
+    /// (Local) months that have plays, most recent first.
     pub fn recap_months(&self) -> Result<Vec<CivilPeriod>> {
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let mut stmt = db.conn.prepare(&format!(
@@ -112,12 +112,12 @@ impl Store {
         Ok(habits)
     }
 
-    /// Artistes découverts sur `span` (aucune écoute avant), les plus écoutés d'abord.
+    /// Artists discovered over `span` (no play before), most played first.
     pub fn new_artists(&self, span: Span, limit: usize) -> Result<Vec<TopArtist>> {
         self.ranked_artists(span, limit, true)
     }
 
-    /// Nombres d'artistes et de titres découverts sur `span` (aucune écoute avant).
+    /// Numbers of artists and tracks discovered over `span` (no play before).
     pub fn discovery_counts(&self, span: Span) -> Result<(i64, i64)> {
         let db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let count = |column: &str| -> Result<i64> {
@@ -150,7 +150,7 @@ mod tests {
         let march = span(2026, Some(3));
         let april = span(2026, Some(4));
         assert_eq!(march.until, april.since);
-        // 31 jours, à une heure près (changement d'heure en mars selon le fuseau).
+        // 31 days, give or take an hour (clock change in March, depending on the time zone).
         assert!((march.until - march.since - 31 * 24 * HOUR).abs() <= HOUR);
         let year = span(2026, None);
         assert_eq!(year.since, span(2026, Some(1)).since);
@@ -171,8 +171,8 @@ mod tests {
         };
         let feb = span(2);
         let march = span(3);
-        // Février : titre 1 (artiste 110). Mars (le 1er est un dimanche) : titre 1 à
-        // minuit, titres 2 et 3 (artiste 120) à 1 h, titre 3 le lendemain à 1 h.
+        // February: track 1 (artist 110). March (the 1st is a Sunday): track 1 at
+        // midnight, tracks 2 and 3 (artist 120) at 1 am, track 3 the next day at 1 am.
         play(&store, 1, 10, feb.since + HOUR);
         play(&store, 1, 10, march.since);
         play(&store, 2, 20, march.since + HOUR);
@@ -197,7 +197,7 @@ mod tests {
         assert_eq!(habits.grid[1][1], 1);
         assert_eq!(habits.grid[0][0], 1);
 
-        // Découvertes de mars : l'artiste 120 et les titres 2 et 3, pas le titre 1.
+        // March's discoveries: artist 120 and tracks 2 and 3, not track 1.
         assert_eq!(store.discovery_counts(march).unwrap(), (1, 2));
         let new: Vec<_> = store
             .new_artists(march, 10)

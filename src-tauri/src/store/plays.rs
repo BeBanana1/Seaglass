@@ -1,13 +1,13 @@
-//! Historique d'écoute local (#202) : rien n'est envoyé à TIDAL ni ailleurs (l'envoi
-//! facultatif à ListenBrainz a sa propre file, `scrobbles.rs`, #431).
+//! Local listening history (#202): nothing is sent to TIDAL or anywhere else (the optional
+//! sending to ListenBrainz has its own queue, `scrobbles.rs`, #431).
 //!
-//! Une ligne par écoute comptée (règle de `player::listen`), les `MAX_PLAYS` plus récentes
-//! seulement. Les lignes ne gardent que des identifiants, l'artiste principal, la durée et
-//! la source (`PlaySource`, #124) ; les métadonnées vivent une fois par titre et par album
-//! dans `played_tracks` et `played_albums` (dernière copie vue, de quoi afficher une carte
-//! sans requête), élaguées avec les lignes (#326). `played_artists` garde la photo des
-//! artistes des statistiques, demandée une fois à TIDAL (`NULL` : artiste sans photo). Les
-//! statistiques sont dans `stats.rs`, l'échange avec un autre appareil dans `sync.rs` (#430).
+//! One row per counted play (rule of `player::listen`), only the `MAX_PLAYS` most recent.
+//! The rows only keep ids, the main artist, the duration and the source (`PlaySource`,
+//! #124); the metadata lives once per track and per album in `played_tracks` and
+//! `played_albums` (last copy seen, enough to show a card without a request), pruned with
+//! the rows (#326). `played_artists` keeps the photo of the artists in the statistics,
+//! asked of TIDAL once (`NULL`: artist without a photo). The statistics are in `stats.rs`,
+//! the exchange with another device in `sync.rs` (#430).
 
 use rusqlite::{Connection, params};
 
@@ -17,13 +17,13 @@ use super::{Result, Store, StoreError};
 use crate::player::source::PlaySource;
 use crate::tidal::models::{AlbumSummary, Track};
 
-/// Écoutes gardées au plus.
+/// Most plays kept.
 pub const MAX_PLAYS: i64 = 50_000;
-/// Élagage par lots : les métadonnées orphelines ne sont cherchées qu'une fois par lot.
+/// Pruning in batches: orphaned metadata is only looked for once per batch.
 const PRUNE_BATCH: i64 = 1_000;
 
-/// Forme d'origine (#202), complétée par `migrate`. La colonne `album` (copie JSON par
-/// ligne) n'est plus remplie depuis la 0.5.33.
+/// Original shape (#202), completed by `migrate`. The `album` column (a JSON copy per
+/// row) is no longer filled since 0.5.33.
 pub(super) const SCHEMA: &str = "
     CREATE TABLE IF NOT EXISTS plays (
         id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,10 +54,10 @@ const INDEXES: &str = "
     CREATE INDEX IF NOT EXISTS plays_at ON plays (played_at);
 ";
 
-/// Ajoute l'artiste principal et la durée (#326), et sort les copies d'album des lignes :
-/// la dernière copie de chaque album part dans `played_albums`, l'artiste est repris de
-/// cette copie (les artistes du titre, `player::persist::album_of`). La durée des anciennes
-/// écoutes reste inconnue jusqu'à ce que leur titre soit complété (`save_played_tracks`).
+/// Adds the main artist and the duration (#326), and takes the album copies out of the
+/// rows: the last copy of each album goes to `played_albums`, the artist is taken from that
+/// copy (the track's artists, `player::persist::album_of`). The duration of old plays stays
+/// unknown until their track is completed (`save_played_tracks`).
 pub(super) fn migrate(conn: &Connection) -> Result<()> {
     let migrated: bool = conn.query_row(
         "SELECT COUNT(*) > 0 FROM pragma_table_info('plays') WHERE name = 'duration'",
@@ -82,7 +82,7 @@ pub(super) fn migrate(conn: &Connection) -> Result<()> {
              COMMIT;",
         )?;
     }
-    // Appareil d'origine d'une écoute reçue (#430) ; `NULL` = écoutée ici.
+    // Source device of a received play (#430); `NULL` = played here.
     let has_device: bool = conn.query_row(
         "SELECT COUNT(*) > 0 FROM pragma_table_info('plays') WHERE name = 'device'",
         [],
@@ -95,7 +95,7 @@ pub(super) fn migrate(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-/// Une écoute à enregistrer.
+/// A play to record.
 pub struct Play<'a> {
     pub track: &'a Track,
     pub album: &'a AlbumSummary,
@@ -112,7 +112,7 @@ const UPSERT_ALBUM: &str = "INSERT INTO played_albums (id, json) VALUES (?1, ?2)
                             ON CONFLICT(id) DO UPDATE SET json = excluded.json";
 
 impl Store {
-    /// Ajoute une écoute et élague au-delà de `MAX_PLAYS`.
+    /// Adds a play and prunes beyond `MAX_PLAYS`.
     pub fn add_play(&self, play: &Play) -> Result<()> {
         let track = serde_json::to_string(play.track)?;
         let album = serde_json::to_string(play.album)?;
@@ -151,8 +151,8 @@ impl Store {
         Ok(())
     }
 
-    /// Complète les titres d'anciennes écoutes (enregistrées sans leurs métadonnées), et
-    /// leur durée.
+    /// Completes the tracks of old plays (recorded without their metadata), and their
+    /// duration.
     pub fn save_played_tracks(&self, tracks: &[Track]) -> Result<()> {
         let mut db = self.db.lock().map_err(|_| StoreError::Poisoned)?;
         let tx = db.conn.transaction()?;
@@ -168,7 +168,7 @@ impl Store {
         Ok(())
     }
 
-    /// Albums écoutés, du plus récent au plus ancien, sans doublon.
+    /// Played albums, most recent first, without duplicates.
     pub fn recent_albums(&self, limit: usize) -> Result<Vec<AlbumSummary>> {
         Ok(self
             .counted_albums(
@@ -182,8 +182,8 @@ impl Store {
             .collect())
     }
 
-    /// Albums les plus écoutés sur `span`, avec au moins `min_plays` écoutes, et
-    /// leur nombre d'écoutes.
+    /// Most played albums over `span`, with at least `min_plays` plays, and their number
+    /// of plays.
     pub fn top_albums(
         &self,
         span: Span,
@@ -209,8 +209,8 @@ impl Store {
         Ok(())
     }
 
-    /// Requête dont les colonnes 0 et 2 sont la copie de l'album et un nombre d'écoutes.
-    /// Une copie illisible (autre version) est ignorée.
+    /// A query whose columns 0 and 2 are the album copy and a number of plays. An
+    /// unreadable copy (another version) is skipped.
     fn counted_albums(
         &self,
         sql: &str,
@@ -231,9 +231,9 @@ impl Store {
     }
 }
 
-/// Garde les `MAX_PLAYS` écoutes les plus récentes **par date**, par lots de `PRUNE_BATCH`,
-/// puis retire les métadonnées que plus aucune écoute ne référence. La date plutôt que
-/// l'id : une écoute reçue d'un autre appareil (#430) arrive avec un id récent.
+/// Keeps the `MAX_PLAYS` most recent plays **by date**, in batches of `PRUNE_BATCH`, then
+/// removes the metadata that no play refers to anymore. The date rather than the id: a play
+/// received from another device (#430) comes with a recent id.
 pub(super) fn prune(conn: &Connection) -> Result<()> {
     let count: i64 = conn.query_row("SELECT COUNT(*) FROM plays", [], |r| r.get(0))?;
     if count <= MAX_PLAYS + PRUNE_BATCH {
@@ -301,7 +301,7 @@ pub(super) mod tests {
         }
     }
 
-    /// Écoute du titre `track` sur l'album `album_id`, par l'artiste `album_id + 100`.
+    /// Play of track `track` on album `album_id`, by artist `album_id + 100`.
     pub fn play(store: &Store, track_id: u64, album_id: u64, at: i64) {
         store
             .add_play(&Play {
@@ -353,7 +353,7 @@ pub(super) mod tests {
                 .map(|(a, n)| (a.id, n))
                 .collect::<Vec<_>>()
         };
-        // Album 20 : une seule écoute depuis 50, sous le minimum de 2.
+        // Album 20: a single play since 50, under the minimum of 2.
         assert_eq!(top(50), [(10, 3), (30, 2)]);
         assert_eq!(top(0), [(10, 3), (30, 2), (20, 2)]);
     }
@@ -363,7 +363,7 @@ pub(super) mod tests {
         let store = Store::in_memory().unwrap();
         let total = MAX_PLAYS + PRUNE_BATCH + 1;
         {
-            // Insertion directe : `add_play` un par un serait lent pour 50 000 lignes.
+            // Direct insert: `add_play` one by one would be slow for 50,000 rows.
             let mut db = store.db.lock().unwrap();
             let tx = db.conn.transaction().unwrap();
             for i in 0..total - 1 {
@@ -378,7 +378,7 @@ pub(super) mod tests {
         }
         play(&store, 999_999, 1, total);
         assert_eq!(count(&store, "plays"), MAX_PLAYS);
-        // Titres des écoutes élaguées retirés, les autres gardés.
+        // Tracks of the pruned plays removed, the others kept.
         assert_eq!(count(&store, "played_tracks"), MAX_PLAYS);
         store.clear_plays().unwrap();
         assert!(store.recent_albums(10).unwrap().is_empty());
@@ -391,7 +391,7 @@ pub(super) mod tests {
     fn migrates_old_rows() {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(SCHEMA).unwrap();
-        // Forme d'avant la 0.5.33 : pas de colonnes d'artiste ni de durée.
+        // Shape from before 0.5.33: no artist or duration columns.
         conn.execute_batch(
             "DROP TABLE plays;
              CREATE TABLE plays (
@@ -405,7 +405,7 @@ pub(super) mod tests {
             name: "Ancien".into(),
         }];
         let mut newer = old.clone();
-        newer.title = "Album 10 (copie récente)".into();
+        newer.title = "Album 10 (newer copy)".into();
         for (track, copy) in [(1, &old), (2, &newer)] {
             conn.execute(
                 "INSERT INTO plays (track_id, album_id, album, played_at) VALUES (?1, 10, ?2, 1)",
@@ -419,12 +419,12 @@ pub(super) mod tests {
         )
         .unwrap();
         migrate(&conn).unwrap();
-        // Une seconde ouverture ne refait rien.
+        // A second opening does nothing again.
         migrate(&conn).unwrap();
         let store = Store::init(conn).unwrap();
         let recent = store.recent_albums(10).unwrap();
         assert_eq!(recent.len(), 1);
-        assert_eq!(recent[0].title, "Album 10 (copie récente)");
+        assert_eq!(recent[0].title, "Album 10 (newer copy)");
         let db = store.db.lock().unwrap();
         let artists: Vec<(Option<i64>, Option<String>, Option<String>)> = db
             .conn
