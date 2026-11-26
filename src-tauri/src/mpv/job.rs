@@ -1,6 +1,6 @@
-//! Job Object Windows « tuer à la fermeture » : mpv y est rattaché, et Windows le termine
-//! dès que le dernier handle du job se ferme, c'est-à-dire quand le processus de l'app
-//! disparaît, même sur un plantage (là où `RunEvent::Exit` n'est jamais appelé).
+//! Windows "kill on close" Job Object: mpv is assigned to it, and Windows terminates it as
+//! soon as the job's last handle closes, that is when the app's process goes away, even on
+//! a crash (where `RunEvent::Exit` is never called).
 
 use std::sync::OnceLock;
 
@@ -11,15 +11,15 @@ use windows::Win32::System::JobObjects::{
     SetInformationJobObject,
 };
 
-/// Handle du job, gardé ouvert jusqu'à la fin du processus (jamais fermé volontairement).
-/// Stocké en entier : `HANDLE` contient un pointeur brut, qui n'est pas `Send`.
+/// Handle of the job, kept open until the process ends (never closed on purpose).
+/// Stored as an integer: `HANDLE` holds a raw pointer, which is not `Send`.
 static JOB: OnceLock<Option<isize>> = OnceLock::new();
 
 fn job() -> Option<HANDLE> {
     let raw = JOB.get_or_init(|| match create() {
         Ok(handle) => Some(handle.0 as isize),
         Err(e) => {
-            tracing::warn!("Job Object indisponible, mpv pourrait survivre à un plantage : {e}");
+            tracing::warn!("Job Object unavailable, mpv could outlive a crash: {e}");
             None
         }
     });
@@ -27,8 +27,8 @@ fn job() -> Option<HANDLE> {
 }
 
 fn create() -> windows::core::Result<HANDLE> {
-    // SAFETY : appels Win32 documentés ; la structure est entièrement initialisée et sa
-    // taille passée exactement.
+    // SAFETY: documented Win32 calls; the structure is fully initialized and its exact size
+    // is passed.
     unsafe {
         let handle = CreateJobObjectW(None, None)?;
         let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
@@ -43,12 +43,12 @@ fn create() -> windows::core::Result<HANDLE> {
     }
 }
 
-/// Rattache le processus `raw_handle` (handle du processus mpv) au job.
+/// Assigns the process `raw_handle` (handle of the mpv process) to the job.
 pub fn adopt(raw_handle: std::os::windows::io::RawHandle) {
     let Some(job) = job() else {
         return;
     };
-    // SAFETY : `raw_handle` est le handle valide d'un processus que l'on vient de lancer.
+    // SAFETY: `raw_handle` is the valid handle of a process that was just started.
     if let Err(e) = unsafe { AssignProcessToJobObject(job, HANDLE(raw_handle)) } {
         tracing::warn!("rattachement de mpv au Job Object impossible : {e}");
     }

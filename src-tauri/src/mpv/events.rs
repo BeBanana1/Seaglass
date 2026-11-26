@@ -1,11 +1,11 @@
-//! Traduction des messages JSON de mpv en événements typés.
+//! Translation of mpv's JSON messages into typed events.
 
 use serde_json::Value;
 
 use super::device::{self, AudioDevice};
 use crate::engine::AudioParams;
 
-/// Propriétés observées (`observe_property`), dans l'ordre des identifiants 1..=N.
+/// Observed properties (`observe_property`), in the order of the identifiers 1..=N.
 pub const OBSERVED: [&str; 11] = [
     "playlist-pos",
     "time-pos",
@@ -30,13 +30,13 @@ pub enum Property {
     AudioParams(Option<AudioParams>),
     CurrentAo(Option<String>),
     IdleActive(bool),
-    /// Périphériques WASAPI connus de mpv, renotifiés au branchement (#79).
+    /// WASAPI devices known to mpv, notified again when one is plugged in (#79).
     AudioDeviceList(Vec<AudioDevice>),
-    /// Format réellement écrit sur la sortie (#245) : le format de mixage de Windows en
-    /// partagé, celui ouvert sur le périphérique en exclusif.
+    /// Format actually written to the output (#245): Windows' mix format in shared mode,
+    /// the one opened on the device in exclusive mode.
     AudioOutParams(Option<AudioParams>),
-    /// Position jusqu'où le démultiplexeur a déjà lu le fichier courant (#453), en
-    /// secondes ; un simple nombre, plutôt que l'objet complet `demuxer-cache-state`.
+    /// Position up to which the demuxer has already read the current file (#453), in
+    /// seconds; a plain number, rather than the whole `demuxer-cache-state` object.
     DemuxerCacheTime(Option<f64>),
 }
 
@@ -59,7 +59,7 @@ pub enum MpvEvent {
         reason: EndReason,
         error: Option<String>,
     },
-    /// Le pipe IPC s'est fermé (mpv arrêté ou planté).
+    /// The IPC pipe closed (mpv stopped or crashed).
     Disconnected,
 }
 
@@ -147,7 +147,7 @@ mod tests {
             Some(MpvEvent::Property(Property::AudioParams(Some(expected))))
         );
 
-        // Fin de fichier : mpv envoie la propriété sans `data`.
+        // End of file: mpv sends the property without `data`.
         let ev = parse(&json!({"event":"property-change","id":6,"name":"audio-params"}));
         assert_eq!(ev, Some(MpvEvent::Property(Property::AudioParams(None))));
     }

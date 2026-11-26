@@ -1,16 +1,16 @@
-//! Chaîne `af` d'un fichier : gain de normalisation (#82) et préampli de l'égaliseur dans
-//! un seul filtre `volume`, puis les filtres de l'égaliseur (#428). Logique pure testée.
+//! A file's `af` chain: normalization gain (#82) and equalizer preamp in a single `volume`
+//! filter, then the equalizer's filters (#428). Pure tested logic.
 //!
-//! La chaîne est toujours posée **par fichier** (option `af` du `loadfile`, puis
-//! `file-local-options/af`) : une valeur locale au fichier remplace toute la liste `af`,
-//! un égaliseur global serait donc perdu sur chaque titre normalisé.
+//! The chain is always set **per file** (`af` option of `loadfile`, then
+//! `file-local-options/af`): a file-local value replaces the whole `af` list, so a global
+//! equalizer would be lost on every normalized track.
 
 use crate::engine::Filters;
 use crate::player::eq::{EqProfile, FilterKind};
 
-/// Valeur de `af` (`volume=volume=-6.53dB,equalizer=f=105:t=q:w=0.70:g=3.40`), vide sans
-/// filtre. Filtres de libavfilter : `equalizer` (pic), `bass` / `treble` (plateaux), en
-/// largeur exprimée par Q (`t=q`), comme les biquads RBJ d'AutoEQ.
+/// Value of `af` (`volume=volume=-6.53dB,equalizer=f=105:t=q:w=0.70:g=3.40`), empty
+/// without a filter. libavfilter filters: `equalizer` (peak), `bass` / `treble` (shelves),
+/// with the width given as Q (`t=q`), like AutoEQ's RBJ biquads.
 pub fn af_value(filters: &Filters) -> String {
     let eq = filters.eq.as_deref();
     let volume = filters.gain.unwrap_or(0.0) + eq.map_or(0.0, EqProfile::effective_preamp);
@@ -36,10 +36,9 @@ pub fn af_value(filters: &Filters) -> String {
     parts.join(",")
 }
 
-/// Options de fichier du `loadfile` (argument `options`, séparées par des virgules) :
-/// position de départ et chaîne `af`. `None` s'il n'y en a aucune. Une chaîne à plusieurs
-/// filtres contient des virgules : elle est passée en `%longueur%valeur`, la forme sans
-/// ambiguïté des listes d'options de mpv.
+/// File options of `loadfile` (the `options` argument, comma-separated): start position
+/// and `af` chain. `None` if there are none. A chain of several filters contains commas: it
+/// is passed as `%length%value`, the unambiguous form of mpv's option lists.
 pub fn file_options(start: f64, filters: &Filters) -> Option<String> {
     let mut options = Vec::new();
     if start > 0.0 {
@@ -122,12 +121,12 @@ pub(crate) mod tests {
             gain: Some(-6.5),
             eq: Some(hd600()),
         };
-        assert_eq!(af_value(&filters), chain, "gain et préampli réunis");
+        assert_eq!(af_value(&filters), chain, "gain and preamp merged");
         assert_eq!(
             file_options(42.0, &filters),
             Some(format!("start=42,af=%{}%{chain}", chain.len()))
         );
-        // Sans normalisation (désactivée, ou mode exclusif) : préampli seul.
+        // Without normalization (turned off, or exclusive mode): preamp alone.
         let eq_only = Filters {
             gain: None,
             eq: Some(hd600()),
@@ -137,7 +136,7 @@ pub(crate) mod tests {
 
     #[test]
     fn neutral_parts_are_left_out() {
-        // Le gain compense exactement le préampli, et un filtre à 0 dB ne fait rien.
+        // The gain exactly offsets the preamp, and a 0 dB filter does nothing.
         let mut p = (*hd600()).clone();
         p.filters[1].gain = 0.0;
         let filters = Filters {

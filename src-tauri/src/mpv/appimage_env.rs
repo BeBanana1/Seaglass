@@ -1,24 +1,24 @@
-//! Environnement de mpv lancé depuis l'AppImage (#320).
+//! Environment of mpv started from the AppImage (#320).
 //!
-//! L'`AppRun` de l'AppImage pose des variables qui pointent dans son point de montage
-//! (`LD_LIBRARY_PATH`, `GST_PLUGIN_*`, `GTK_*`, `XDG_DATA_DIRS`, `PATH`…). mpv est le
-//! binaire du système : avec ces variables, il chargeait les bibliothèques de l'AppImage
-//! (95 avec `LD_LIBRARY_PATH` seul), construites pour une autre distribution. Après une
-//! relance (mise à jour, #314), l'environnement garde aussi les chemins de l'ancien point
-//! de montage. On retire ces entrées pour mpv seulement : l'app, elle, en a besoin.
+//! The AppImage's `AppRun` sets variables that point into its mount point
+//! (`LD_LIBRARY_PATH`, `GST_PLUGIN_*`, `GTK_*`, `XDG_DATA_DIRS`, `PATH`…). mpv is the
+//! system's binary: with these variables, it loaded the AppImage's libraries (95 with
+//! `LD_LIBRARY_PATH` alone), built for another distribution. After a relaunch (update,
+//! #314), the environment also keeps the paths of the former mount point. These entries
+//! are removed for mpv only: the app itself needs them.
 
 use std::path::Path;
 
-/// Correction à appliquer à une variable de l'environnement de mpv.
+/// Fix to apply to a variable of mpv's environment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Fix {
     Remove(String),
     Set(String, String),
 }
 
-/// Corrections pour un environnement hérité de l'AppImage montée en `appdir`. Les listes
-/// de chemins (séparées par `:`) perdent leurs entrées venues d'une AppImage ; une variable
-/// qui n'en contenait pas d'autres est retirée. Les autres variables ne changent pas.
+/// Fixes for an environment inherited from the AppImage mounted at `appdir`. Path lists
+/// (separated by `:`) lose their entries that come from an AppImage; a variable that held
+/// no other entry is removed. The other variables do not change.
 pub fn fixes<I>(vars: I, appdir: &str) -> Vec<Fix>
 where
     I: IntoIterator<Item = (String, String)>,
@@ -34,8 +34,8 @@ where
             if !entries.iter().any(|e| from_appimage(e, appdir)) {
                 return None;
             }
-            // Les entrées vides (`a::b`, `:` final) valent « dossier courant » pour
-            // `LD_LIBRARY_PATH` et `PATH` : jamais gardées.
+            // Empty entries (`a::b`, trailing `:`) mean "current folder" for
+            // `LD_LIBRARY_PATH` and `PATH`: never kept.
             let kept: Vec<&str> = entries
                 .into_iter()
                 .filter(|e| !e.is_empty() && !from_appimage(e, appdir))
@@ -57,8 +57,8 @@ fn key(fix: &Fix) -> &str {
     }
 }
 
-/// Chemin situé dans l'AppImage courante, ou dans un point de montage d'AppImage
-/// (`…/.mount_<nom><aléa>`, celui d'avant une relance).
+/// Path inside the current AppImage, or inside an AppImage mount point
+/// (`…/.mount_<name><random>`, the one from before a relaunch).
 fn from_appimage(entry: &str, appdir: &str) -> bool {
     let entry = entry.trim();
     if entry == appdir || entry.starts_with(&format!("{appdir}/")) {
@@ -145,7 +145,7 @@ mod tests {
             ("GTK_THEME", "Adwaita:light"),
             ("PULSE_SERVER", "unix:/mnt/wslg/PulseServer"),
             ("APPIMAGE", "/home/u/Apps/Seaglass.AppImage"),
-            // Des noms proches, sans être un point de montage d'AppImage.
+            // Similar names, without being an AppImage mount point.
             ("A", "/tmp/.mountain/x"),
             ("B", "/tmp/mount_Seaglass/lib"),
         ]);

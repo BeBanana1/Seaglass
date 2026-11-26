@@ -1,5 +1,5 @@
-//! Client JSON IPC de mpv. Une seule tâche possède le pipe : elle écrit les commandes,
-//! associe les réponses par `request_id` et transmet les événements.
+//! mpv's JSON IPC client. A single task owns the pipe: it writes the commands, matches
+//! the replies by `request_id` and forwards the events.
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -20,7 +20,7 @@ const CONNECT_ATTEMPTS: u32 = 50;
 const CONNECT_DELAY: Duration = Duration::from_millis(100);
 
 struct Request {
-    /// Tableau d'arguments, ou objet à arguments nommés (`{"name": "loadfile", …}`).
+    /// Array of arguments, or object with named arguments (`{"name": "loadfile", …}`).
     command: Value,
     reply: oneshot::Sender<Result<Value>>,
 }
@@ -31,8 +31,8 @@ pub struct MpvHandle {
 }
 
 impl MpvHandle {
-    /// Envoie une commande (`["set_property", "pause", true]`…, ou un objet à arguments
-    /// nommés) et attend la réponse de mpv.
+    /// Sends a command (`["set_property", "pause", true]`…, or an object with named
+    /// arguments) and waits for mpv's reply.
     pub async fn command(&self, command: impl Into<Value>) -> Result<Value> {
         let (reply, rx) = oneshot::channel();
         self.tx
@@ -45,7 +45,7 @@ impl MpvHandle {
         rx.await.map_err(|_| MpvError::Closed)?
     }
 
-    /// mpv figé : reçoit les commandes sans jamais répondre (tests du délai, #255).
+    /// Frozen mpv: receives the commands without ever replying (timeout tests, #255).
     #[cfg(test)]
     pub fn unresponsive() -> Self {
         let (tx, mut rx) = mpsc::channel::<Request>(32);
@@ -59,7 +59,7 @@ impl MpvHandle {
     }
 }
 
-/// Se connecte au pipe de mpv (qui met un moment à le créer), puis observe les propriétés.
+/// Connects to mpv's pipe (which mpv takes a moment to create), then observes the properties.
 pub async fn connect(events_tx: mpsc::Sender<MpvEvent>) -> Result<MpvHandle> {
     let pipe = open_pipe().await?;
     let (tx, rx) = mpsc::channel(32);
@@ -73,7 +73,7 @@ pub async fn connect(events_tx: mpsc::Sender<MpvEvent>) -> Result<MpvHandle> {
     Ok(handle)
 }
 
-/// Named pipe sous Windows ; socket Unix ailleurs (CI Linux).
+/// Named pipe on Windows; Unix socket elsewhere (Linux CI).
 #[cfg(windows)]
 async fn open(name: &str) -> std::io::Result<Pipe> {
     ClientOptions::new().open(name)
@@ -95,7 +95,7 @@ async fn open_pipe() -> Result<Pipe> {
         tokio::time::sleep(CONNECT_DELAY).await;
     }
     Err(MpvError::Connect(last_err.unwrap_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::TimedOut, "délai dépassé")
+        std::io::Error::new(std::io::ErrorKind::TimedOut, "timed out")
     })))
 }
 
@@ -151,6 +151,6 @@ fn reply_result(mut msg: Value) -> Result<Value> {
     match msg.get("error").and_then(Value::as_str) {
         Some("success") => Ok(msg.get_mut("data").map(Value::take).unwrap_or(Value::Null)),
         Some(err) => Err(MpvError::Command(err.to_owned())),
-        None => Err(MpvError::Command("réponse sans statut".into())),
+        None => Err(MpvError::Command("reply without a status".into())),
     }
 }

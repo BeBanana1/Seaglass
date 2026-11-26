@@ -1,39 +1,39 @@
-//! Périphériques de sortie audio (#79) : liste `audio-device-list` de mpv, choix enregistré
-//! dans les réglages de lecture et périphérique effectivement demandé à mpv.
+//! Audio output devices (#79): mpv's `audio-device-list`, the choice saved in the playback
+//! settings and the device actually asked of mpv.
 //!
-//! Vérifié avec mpv 0.41 : la propriété est observable (valeur initiale envoyée dès
-//! `observe_property`) et renotifiée sur les événements de branchement de WASAPI
-//! (`ao_hotplug_event` dans `ao_wasapi_changenotify.c`). Un `audio-device` posé pendant la
-//! lecture rouvre la sortie sans interrompre le titre. Un périphérique absent au chargement
-//! fait échouer le fichier (`end-file` en erreur, [`INIT_FAILED`]) : mpv ne se replie pas
-//! seul sur le périphérique par défaut, c'est le lecteur qui le fait.
+//! Checked with mpv 0.41: the property can be observed (initial value sent right at
+//! `observe_property`) and is notified again on WASAPI's hotplug events
+//! (`ao_hotplug_event` in `ao_wasapi_changenotify.c`). An `audio-device` set during playback
+//! reopens the output without interrupting the track. A device missing when a file loads
+//! makes the file fail (`end-file` with an error, [`INIT_FAILED`]): mpv does not fall back
+//! to the default device on its own, the player does.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-/// Valeur de `audio-device` pour le périphérique par défaut du système.
+/// Value of `audio-device` for the system's default device.
 pub const AUTO: &str = "auto";
-/// Pilotes de sortie passés à `--ao`, par ordre de préférence. Sous Linux (#17), mpv prend
-/// le premier qui s'ouvre : PipeWire, puis PulseAudio (WSLg, anciens bureaux), puis ALSA.
+/// Output drivers passed to `--ao`, in order of preference. On Linux (#17), mpv takes the
+/// first one that opens: PipeWire, then PulseAudio (WSLg, older desktops), then ALSA.
 #[cfg(windows)]
 pub const AO: &str = "wasapi";
 #[cfg(not(windows))]
 pub const AO: &str = "pipewire,pulse,alsa";
-/// Préfixes d'identifiant (`<pilote>/…`) des pilotes de [`AO`], dans le même ordre.
+/// Identifier prefixes (`<driver>/…`) of the drivers in [`AO`], in the same order.
 #[cfg(windows)]
 const PREFIXES: &[&str] = &["wasapi/"];
 #[cfg(not(windows))]
 const PREFIXES: &[&str] = &["pipewire/", "pulse/", "alsa/"];
-/// Préfixes acceptés pour un choix enregistré, toutes plateformes confondues : un choix
-/// d'une autre plateforme reste valide, il est seulement absent de la liste (repli).
+/// Prefixes accepted for a saved choice, on every platform: a choice from another
+/// platform stays valid, it is only missing from the list (fallback).
 const KNOWN_PREFIXES: &[&str] = &["wasapi/", "pipewire/", "pulse/", "alsa/"];
-/// Bornes d'un choix reçu de l'UI : un identifiant WASAPI fait une quarantaine de caractères.
+/// Bounds of a choice received from the UI: a WASAPI identifier is about forty characters.
 const MAX_ID: usize = 200;
 const MAX_NAME: usize = 200;
-/// `file_error` de mpv quand la sortie audio ne s'ouvre pas (périphérique absent…).
+/// mpv's `file_error` when the audio output does not open (missing device…).
 pub const INIT_FAILED: &str = "audio output initialization failed";
 
-/// Périphérique de sortie : identifiant mpv (`wasapi/{guid}`) et nom affiché par Windows.
+/// Output device: mpv identifier (`wasapi/{guid}`) and the name Windows shows.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "RawDevice")]
 pub struct AudioDevice {
@@ -47,8 +47,8 @@ struct RawDevice {
     name: String,
 }
 
-/// Choix reçu de l'UI ou relu en base : identifiant `<pilote>/…` d'un pilote connu, nom
-/// non vide, longueurs bornées.
+/// Choice received from the UI or read back from the database: `<driver>/…` identifier
+/// of a known driver, non-empty name, bounded lengths.
 impl TryFrom<RawDevice> for AudioDevice {
     type Error = String;
 
@@ -60,24 +60,24 @@ impl TryFrom<RawDevice> for AudioDevice {
             && raw.id.len() <= MAX_ID
             && !raw.id.chars().any(char::is_control);
         if !valid_id {
-            return Err(format!("périphérique audio invalide : {:?}", raw.id));
+            return Err(format!("invalid audio device: {:?}", raw.id));
         }
         if name.is_empty() || name.len() > MAX_NAME || name.chars().any(char::is_control) {
-            return Err("nom de périphérique audio invalide".into());
+            return Err("invalid audio device name".into());
         }
         Ok(Self { id: raw.id, name })
     }
 }
 
-/// Entrées de `audio-device-list` (`[{name, description}]`) du pilote utilisé, dans l'ordre
-/// de mpv. `auto` et les autres sorties (`openal`…) sont écartés.
+/// Entries of `audio-device-list` (`[{name, description}]`) for the driver in use, in
+/// mpv's order. `auto` and the other outputs (`openal`…) are left out.
 pub fn parse_list(data: &Value) -> Vec<AudioDevice> {
     pick(data, PREFIXES)
 }
 
-/// Garde les entrées du premier pilote de `prefixes` présent dans la liste. Sous Linux, mpv
-/// liste les périphériques de tous ses pilotes : PipeWire les présente aussi par sa
-/// couche PulseAudio et ALSA, d'où des doublons si l'on gardait tout.
+/// Keeps the entries of the first driver of `prefixes` present in the list. On Linux, mpv
+/// lists the devices of all its drivers: PipeWire also shows them through its PulseAudio
+/// and ALSA layers, so keeping everything would give duplicates.
 fn pick(data: &Value, prefixes: &[&str]) -> Vec<AudioDevice> {
     let entries: Vec<&Value> = data.as_array().into_iter().flatten().collect();
     let id_of = |entry: &Value| entry.get("name").and_then(Value::as_str).map(str::to_owned);
@@ -109,9 +109,9 @@ fn pick(data: &Value, prefixes: &[&str]) -> Vec<AudioDevice> {
         .collect()
 }
 
-/// Identifiant mpv d'un point de terminaison Windows : `IMMDevice::GetId` renvoie
-/// `{0.0.0.00000000}.{guid}`, mpv n'en garde que le guid. Utilisé seulement sous Windows
-/// (code mort en CI Linux).
+/// mpv identifier of a Windows endpoint: `IMMDevice::GetId` returns
+/// `{0.0.0.00000000}.{guid}`, mpv only keeps the guid. Used on Windows only (dead code in
+/// the Linux CI).
 #[cfg_attr(not(windows), allow(dead_code))]
 pub fn mpv_id_from_endpoint(endpoint: &str) -> Option<String> {
     let guid = endpoint.rsplit('.').next()?;
@@ -119,23 +119,23 @@ pub fn mpv_id_from_endpoint(endpoint: &str) -> Option<String> {
         .then(|| format!("wasapi/{}", guid.to_ascii_lowercase()))
 }
 
-/// Retrouve un identifiant dans la liste, sans tenir compte de la casse du guid.
+/// Finds an identifier in the list, ignoring the case of the guid.
 pub fn find<'a>(list: &'a [AudioDevice], id: &str) -> Option<&'a AudioDevice> {
     list.iter().find(|d| d.id.eq_ignore_ascii_case(id))
 }
 
-/// Périphérique à demander à mpv.
+/// Device to ask of mpv.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Resolved {
-    /// Valeur de `audio-device` : l'identifiant choisi ou [`AUTO`].
+    /// Value of `audio-device`: the chosen identifier or [`AUTO`].
     pub device: String,
-    /// Le choix enregistré n'est pas utilisable : sortie sur le périphérique par défaut.
+    /// The saved choice cannot be used: output on the default device.
     pub fallback: bool,
 }
 
-/// Choix enregistré s'il figure dans la liste de mpv, sinon périphérique par défaut (repli
-/// signalé). Liste encore inconnue (avant la première notification) : le choix est gardé.
-/// `unusable` : périphérique qui a refusé de s'ouvrir alors qu'il était listé.
+/// The saved choice if it is in mpv's list, otherwise the default device (fallback
+/// reported). List not known yet (before the first notification): the choice is kept.
+/// `unusable`: a device that refused to open although it was listed.
 pub fn resolve(
     chosen: Option<&AudioDevice>,
     list: Option<&[AudioDevice]>,
@@ -162,9 +162,9 @@ pub fn resolve(
     }
 }
 
-/// Identifiant mpv du périphérique de sortie par défaut de Windows, pour afficher son nom
-/// quand `audio-device` vaut `auto`. Rôle `eMultimedia`, le même que mpv
-/// (`OnDefaultDeviceChanged` n'écoute que lui). Appel COM bloquant mais bref.
+/// mpv identifier of Windows' default output device, to show its name when
+/// `audio-device` is `auto`. Role `eMultimedia`, the same as mpv's
+/// (`OnDefaultDeviceChanged` only listens to it). A blocking but short COM call.
 #[cfg(windows)]
 pub fn system_default_id() -> Option<String> {
     use windows::Win32::Media::Audio::{
@@ -174,9 +174,9 @@ pub fn system_default_id() -> Option<String> {
         CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, CoTaskMemFree,
     };
 
-    // SAFETY : appels COM documentés ; la chaîne renvoyée par `GetId` est libérée avec
-    // `CoTaskMemFree` après copie. Un thread déjà initialisé (S_FALSE, autre mode) reste
-    // utilisable : le résultat de `CoInitializeEx` est ignoré.
+    // SAFETY: documented COM calls; the string returned by `GetId` is freed with
+    // `CoTaskMemFree` after it is copied. An already initialized thread (S_FALSE, another
+    // mode) stays usable: the result of `CoInitializeEx` is ignored.
     unsafe {
         let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
         let enumerator: IMMDeviceEnumerator =
@@ -212,13 +212,13 @@ mod tests {
 
     #[test]
     fn list_keeps_wasapi_entries() {
-        // Valeur relevée sur mpv 0.41.
+        // Value read from mpv 0.41.
         let data = json!([
             {"name": "auto", "description": "Autoselect device"},
             {"name": DAC, "description": "Haut-parleurs (3- Focusrite USB Audio)"},
             {"name": "wasapi/{aaaa}", "description": "  "},
             {"name": "openal", "description": "Default (openal)"},
-            {"description": "sans nom"}
+            {"description": "no name"}
         ]);
         assert_eq!(
             pick(&data, &["wasapi/"]),
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn list_keeps_the_first_linux_driver_present() {
-        // PipeWire liste aussi ses sorties par sa couche PulseAudio et par ALSA.
+        // PipeWire also lists its outputs through its PulseAudio layer and through ALSA.
         let data = json!([
             {"name": "auto", "description": "Autoselect device"},
             {"name": "pipewire", "description": "Default (pipewire)"},
@@ -317,16 +317,16 @@ mod tests {
 
         assert_eq!(resolve(None, Some(&list), None), auto);
         assert_eq!(resolve(None, None, None), auto);
-        // Liste pas encore reçue : on suit le choix (passé aussi en ligne de commande).
+        // List not received yet: the choice is followed (also passed on the command line).
         assert_eq!(resolve(Some(&dac), None, None), on_dac);
         assert_eq!(resolve(Some(&dac), Some(&list), None), on_dac);
-        // Guid en majuscules dans la liste : même périphérique.
+        // Upper-case guid in the list: same device.
         let upper = vec![device(&DAC.to_uppercase().replace("WASAPI", "wasapi"), "F")];
         assert_eq!(resolve(Some(&dac), Some(&upper), None), on_dac);
-        // Débranché : défaut du système ; rebranché : de retour sur le choix.
+        // Unplugged: system default; plugged back in: back to the choice.
         assert_eq!(resolve(Some(&dac), Some(&[]), None), fallback);
         assert_eq!(resolve(Some(&dac), Some(&list), None), on_dac);
-        // Listé mais refusé par mpv : repli aussi.
+        // Listed but refused by mpv: fallback too.
         assert_eq!(resolve(Some(&dac), Some(&list), Some(DAC)), fallback);
         assert_eq!(
             resolve(Some(&dac), Some(&list), Some("wasapi/{other}")),
@@ -334,7 +334,7 @@ mod tests {
         );
     }
 
-    /// WAV PCM 16 bits stéréo 44,1 kHz de silence (fichier de test, pas un flux).
+    /// 16-bit stereo 44.1 kHz PCM WAV of silence (a test file, not a stream).
     fn silent_wav(secs: u32) -> std::path::PathBuf {
         let data_len: u32 = 44_100 * 4 * secs;
         let mut wav = Vec::with_capacity(44 + data_len as usize);
@@ -360,13 +360,13 @@ mod tests {
         path
     }
 
-    /// Vrai mpv sur la vraie sortie WASAPI (silence) : `audio-device-list` est notifiée dès
-    /// l'observation et contient le périphérique par défaut de Windows ; un périphérique
-    /// absent fait échouer le fichier avec [`INIT_FAILED`] ; changer `audio-device` pendant
-    /// la lecture ne l'interrompt pas.
+    /// Real mpv on the real WASAPI output (silence): `audio-device-list` is notified as
+    /// soon as it is observed and contains Windows' default device; a missing device makes
+    /// the file fail with [`INIT_FAILED`]; changing `audio-device` during playback does not
+    /// interrupt it.
     /// `cargo test live_audio_devices -- --ignored --nocapture`
     #[tokio::test]
-    #[ignore = "lance un vrai mpv sur la sortie audio"]
+    #[ignore = "starts a real mpv on the audio output"]
     async fn live_audio_devices() {
         use crate::mpv::CacheSize;
         use crate::mpv::events::{EndReason, MpvEvent, Property};
@@ -392,10 +392,10 @@ mod tests {
                         return ev;
                     }
                 }
-                panic!("mpv fermé");
+                panic!("mpv closed");
             })
             .await
-            .expect("événement attendu")
+            .expect("expected an event")
         }
 
         let MpvEvent::Property(Property::AudioDeviceList(list)) = wait_for(&mut events, &|ev| {
@@ -405,13 +405,13 @@ mod tests {
         else {
             unreachable!()
         };
-        println!("périphériques : {list:#?}");
-        assert!(!list.is_empty(), "aucun périphérique WASAPI");
-        let default = system_default_id().expect("périphérique par défaut de Windows");
-        println!("défaut de Windows : {default}");
-        let default_dev = find(&list, &default).expect("défaut absent de la liste de mpv");
+        println!("devices: {list:#?}");
+        assert!(!list.is_empty(), "no WASAPI device");
+        let default = system_default_id().expect("Windows default device");
+        println!("Windows default: {default}");
+        let default_dev = find(&list, &default).expect("default missing from mpv's list");
 
-        // Périphérique passé en ligne de commande mais absent : le fichier échoue.
+        // Device passed on the command line but missing: the file fails.
         let wav = silent_wav(6);
         cmd(vec![json!("loadfile"), json!(wav.to_string_lossy())])
             .await
@@ -426,7 +426,7 @@ mod tests {
             }
         );
 
-        // Périphérique réel : lecture, puis bascule à chaud vers `auto`.
+        // Real device: playback, then a live switch to `auto`.
         cmd(vec![
             json!("set_property"),
             json!("audio-device"),
@@ -457,7 +457,7 @@ mod tests {
         let after = pos(cmd(vec![json!("get_property"), json!("time-pos")])
             .await
             .unwrap());
-        println!("position avant bascule {before:.2} s, après {after:.2} s");
+        println!("position before the switch {before:.2} s, after {after:.2} s");
         assert!(before > 0.5 && after > before + 0.5, "{before} → {after}");
         let ao = cmd(vec![json!("get_property"), json!("current-ao")])
             .await
