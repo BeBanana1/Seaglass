@@ -1,5 +1,5 @@
-//! Réglages : interface et lecture dans SQLite (table `kv`, clés séparées), lancement au
-//! démarrage lu et écrit directement dans le système (clé `Run` du registre).
+//! Settings: interface and playback in SQLite (table `kv`, separate keys). The playback
+//! commands are in `playback.rs`, platform and launch at startup in `system.rs`.
 
 pub mod accent;
 pub mod backup;
@@ -9,20 +9,18 @@ pub mod favorites;
 pub mod global_shortcuts;
 pub mod home_layout;
 pub mod pins;
+pub mod playback;
 pub mod sorts;
+pub mod system;
 pub mod toggles;
 pub mod zoom;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
-#[cfg(desktop)]
-use tauri_plugin_autostart::ManagerExt;
 
 use super::{AppState, CmdResult, err};
 use crate::content::ContentFilter;
 use crate::i18n::{self, Lang, LanguagePref, tr};
-use crate::player::output::AudioDevices;
-use crate::player::{Cmd, PlaybackSettings};
 use crate::store::Store;
 use accent::Accents;
 use eggs::EasterEggs;
@@ -37,58 +35,59 @@ const KEY_UI: &str = "ui.settings";
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {
-    /// Verre dépoli sur fond de pochette, couleurs accordées à l'album.
+    /// Frosted glass over the cover, colors tuned to the album.
     #[default]
     Seaglass,
-    /// Console sombre et dense, chaîne audio au premier plan.
+    /// Dark and dense console, signal path up front.
     Studio,
-    /// Clair, éditorial, grande typographie.
+    /// Light, editorial, large typography.
     Atelier,
-    /// Néons acides, chrome liquide et hologrammes sur fond noir.
+    /// Acid neons, liquid chrome and holograms on black.
     Acidwave,
-    /// Paysage vectoriel onirique, aplats pastel et objets qui flottent.
+    /// Dreamy vector landscape, flat pastels and floating objects.
     Surreal,
-    /// Futur optimiste et végétal : clair, verts profonds, or solaire (#65).
+    /// Hopeful, green future: light, deep greens, solar gold (#65).
     Solarpunk,
-    /// Ville néon et interface de visée : jaune, cyan, magenta, angles coupés (#66).
+    /// Neon city and targeting interface: yellow, cyan, magenta, cut corners (#66).
     Cyberpunk,
-    /// Reliefs doux ton sur ton, clair : commandes en relief, listes à plat (#67).
+    /// Soft tone-on-tone reliefs, light: raised controls, flat lists (#67).
     Neumorph,
     /// Neumorphism en version sombre, graphite (#67).
     #[serde(rename = "neumorph-dark")]
     NeumorphDark,
-    /// Écran cathodique monochrome, tout en mono ; l'accent est la couleur du phosphore (#68).
+    /// Monochrome CRT screen, all monospace; the accent is the phosphor color (#68).
     Terminal,
-    /// Fanzine imprimé en risographie : papier, deux encres, trame, décalage de repérage (#69).
+    /// Risograph-printed zine: paper, two inks, halftone, misregistration (#69).
     Riso,
-    /// Affiche Bauhaus : grille, primaires, formes géométriques (#70).
+    /// Bauhaus poster: grid, primaries, geometric shapes (#70).
     Bauhaus,
-    /// Fiche technique de livrée d'avion : bleu glacier, ardoise, jaune signal (#101).
+    /// Aircraft livery spec sheet: glacier blue, slate, signal yellow (#101).
     Aero,
-    /// Carrosserie néo-rétro en aluminium satiné, feux en pixels ambre, clair (#175).
+    /// Neo-retro bodywork in satin aluminum, amber pixel lights, light (#175).
     Alloy,
     /// Alliage en version sombre, gunmetal (#175).
     #[serde(rename = "alloy-dark")]
     AlloyDark,
-    /// Noir OLED : fond noir pur, filets fins, ni flou ni décor ; la pochette seule en couleur (#338).
+    /// OLED black: pure black background, thin rules, no blur or decor; only the cover in
+    /// color (#338).
     Midnight,
     /// Estampe japonaise : papier washi, encre indigo, cachet vermillon, vagues en aplats (#338).
     Estampe,
-    /// Art déco : bleu nuit, filets dorés, éventails aux angles, cartouches à pans coupés (#338).
+    /// Art deco: midnight blue, gold rules, corner fans, cartouches with cut corners (#338).
     Artdeco,
-    /// Hi-fi des années 70-80 : noyer, orange brûlé, façades d'ampli, bobines et vumètres (#338).
+    /// 70s-80s hi-fi: walnut, burnt orange, amplifier faces, reels and VU meters (#338).
     Cassette,
-    /// La salle de cinéma : noir de salle, velours rouge, cartons-titres ivoire (#339).
+    /// The movie theater: theater black, red velvet, ivory title cards (#339).
     Seance,
-    /// Écrans de vaisseau de la SF des années 70-80 : ambre, blocs numérotés, voyants (#339).
+    /// Spaceship screens of 70s-80s sci-fi: amber, numbered blocks, indicator lights (#339).
     Onboard,
-    /// Film noir : noir et blanc strict, stores vénitiens, machine à écrire (#339).
+    /// Film noir: strict black and white, venetian blinds, typewriter (#339).
     Noir,
-    /// Grand hôtel : comédie pastel et symétrique, rose poudré et bordeaux, cartouches (#339).
+    /// Grand hotel: pastel, symmetrical comedy, dusty pink and burgundy, cartouches (#339).
     Hotel,
-    /// Désert : sable, ocres, horizon bas, accent bleu profond rare (#339).
+    /// Desert: sand, ochres, low horizon, a rare deep blue accent (#339).
     Desert,
-    /// Générique en papier découpé des années 50-60 : papier noir, découpes orange et rouges (#339).
+    /// Cut-paper title sequence of the 50s-60s: black paper, orange and red cutouts (#339).
     Generique,
 }
 
@@ -96,49 +95,49 @@ pub enum Theme {
 #[serde(rename_all = "camelCase", default)]
 pub struct UiSettings {
     pub theme: Theme,
-    /// Ordre et sections masquées de l'accueil (#21, #22).
+    /// Order and hidden sections of the home page (#21, #22).
     pub home: HomeLayout,
-    /// Raccourcis de la barre latérale, dans l'ordre d'affichage (#10).
+    /// Sidebar shortcuts, in display order (#10).
     pub pins: Vec<Pin>,
-    /// Couleur d'accent choisie pour chaque thème (`#rrggbb`, #23, #250) ; thème absent :
-    /// l'accent de son CSS.
+    /// Accent color chosen for each theme (`#rrggbb`, #23, #250); a theme not there: the accent
+    /// of its CSS.
     #[serde(deserialize_with = "accent::accents")]
     pub accents: Accents,
-    /// Ancienne couleur unique (avant 0.4.104) : lue seulement, rangée dans `accents` sous
-    /// `theme` par `migrate_accent`.
+    /// Former single color (before 0.4.104): only read, stored in `accents` under `theme` by
+    /// `migrate_accent`.
     #[serde(skip_serializing, deserialize_with = "accent::legacy")]
     accent: Option<String>,
-    /// Thèmes favoris (#390), identifiants de famille, en tête de la galerie des réglages.
+    /// Favorite themes (#390), family ids, at the top of the settings gallery.
     #[serde(deserialize_with = "favorites::favorites")]
     pub favorite_themes: Vec<Theme>,
-    /// Langue de l'app (#7) ; `system` suit la langue d'affichage de Windows.
+    /// App language (#7); `system` follows Windows' display language.
     pub language: LanguagePref,
-    /// Tri mémorisé par playlist et pour les titres likés, le plus récent en tête (#93).
+    /// Sort remembered per playlist and for the liked tracks, newest first (#93).
     pub sorts: Vec<ListSort>,
-    /// Fermer la fenêtre principale : quitter, ou réduire dans la zone de notification (#83).
+    /// Closing the main window: quit, or minimize to the notification area (#83).
     pub close_action: CloseAction,
-    /// Présence Discord (#215) : montrer le titre en cours à ses contacts. Désactivée par défaut.
+    /// Discord presence (#215): show the current track to one's contacts. Off by default.
     pub discord: bool,
-    /// Taille de l'interface en pourcentage (#337), propre à chaque appareil.
+    /// Interface size in percent (#337), specific to each device.
     pub zoom: Zoom,
-    /// Animations de l'interface (#351) : suivre le système, les réduire ou les garder.
+    /// Interface animations (#351): follow the system, reduce them or keep them.
     pub motion: Motion,
-    /// Clins d'œil de l'interface (#399), activés par défaut.
+    /// Interface easter eggs (#399), on by default.
     pub easter_eggs: EasterEggs,
-    /// Contenu masqué dans ce que le service propose (#368).
+    /// Content hidden from what the service offers (#368).
     pub content: ContentFilter,
-    /// Raccourcis clavier globaux (#413, bureau), désactivés par défaut.
+    /// Global keyboard shortcuts (#413, desktop), off by default.
     pub global_shortcuts: global_shortcuts::GlobalShortcuts,
-    /// Vérification périodique des mises à jour (#452), activée par défaut. Sans adresse
-    /// de mises à jour compilée, l'interrupteur n'est pas proposé.
+    /// Periodic update check (#452), on by default. Without a built-in update address, the
+    /// switch is not offered.
     pub auto_updates: DefaultOn,
-    /// Jam (#452) : désactivée, elle disparaît de l'UI (Réglages, « En lecture »).
+    /// Jam (#452): off, it disappears from the UI (Settings, "Now playing").
     pub jam: DefaultOn,
-    /// Notification des nouvelles sorties des artistes suivis (#435). Désactivée par défaut.
+    /// Notification of the followed artists' new releases (#435). Off by default.
     pub release_notifications: bool,
 }
 
-/// `System` suit « réduire les animations » du système (`prefers-reduced-motion`).
+/// `System` follows the system's "reduce animations" (`prefers-reduced-motion`).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Motion {
@@ -157,15 +156,15 @@ pub enum CloseAction {
 }
 
 impl UiSettings {
-    /// Range l'ancienne couleur unique sous le thème enregistré avec elle, sans écraser une
-    /// couleur déjà choisie pour ce thème.
+    /// Stores the former single color under the theme saved with it, without overwriting a
+    /// color already chosen for that theme.
     pub(crate) fn migrate_accent(&mut self) {
         if let Some(color) = self.accent.take() {
             self.accents.entry(self.theme).or_insert(color);
         }
     }
 
-    /// Reporte les réglages lus par le backend hors des commandes (fermeture de la fenêtre).
+    /// Passes on the settings the backend reads outside the commands (closing the window).
     pub(crate) fn apply_to_backend(&self) {
         self.content.apply();
         crate::servers::set_auto_updates(self.auto_updates.0);
@@ -178,7 +177,7 @@ impl UiSettings {
     }
 }
 
-/// Réglages enregistrés ; illisibles (ancienne version, valeur inconnue) : valeurs par défaut.
+/// Saved settings; unreadable (older version, unknown value): defaults.
 pub(crate) fn load(state: &AppState) -> UiSettings {
     load_from(state.store.as_deref())
 }
@@ -211,7 +210,7 @@ pub async fn ui_settings(state: State<'_, AppState>) -> CmdResult<UiSettings> {
     Ok(load(&state))
 }
 
-/// La désérialisation de `settings` valide le thème : une valeur inconnue est refusée.
+/// Deserializing `settings` validates the theme: an unknown value is refused.
 #[tauri::command]
 pub async fn set_ui_settings(
     app: AppHandle,
@@ -221,17 +220,17 @@ pub async fn set_ui_settings(
     store_and_apply(&app, &state, &settings)
 }
 
-/// Enregistre les réglages d'interface et reporte ceux qui agissent hors de l'UI (langue des
-/// messages, fermeture de la fenêtre, Discord, zoom). Aussi utilisé par l'import (#352).
+/// Saves the interface settings and passes on those that act outside the UI (language of
+/// the messages, closing the window, Discord, zoom). Also used by the import (#352).
 fn store_and_apply(app: &AppHandle, state: &AppState, settings: &UiSettings) -> CmdResult<()> {
     save(state, settings)?;
     i18n::set(settings.language.resolve());
-    // Notifications des nouvelles sorties activées : Android 13+ demande la permission.
+    // New release notifications turned on: Android 13+ asks for the permission.
     if settings.release_notifications && !crate::commands::feed_alerts::enabled() {
         crate::integrations::notify::request_permission(app);
     }
     settings.apply_to_backend();
-    // Jam désactivée : celle en cours s'arrête.
+    // Jam turned off: the running one stops.
     if !settings.jam.0 {
         app.state::<crate::jam::JamState>().stop();
     }
@@ -244,8 +243,8 @@ fn store_and_apply(app: &AppHandle, state: &AppState, settings: &UiSettings) -> 
     Ok(())
 }
 
-/// Raccourcis globaux (#413) : possibles ici, et actions dont la combinaison n'a pas pu être
-/// enregistrée (prise par une autre app).
+/// Global shortcuts (#413): whether they are possible here, and the actions whose
+/// combination could not be registered (taken by another app).
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GlobalShortcutsStatus {
@@ -270,14 +269,14 @@ pub async fn global_shortcuts_status(app: AppHandle) -> CmdResult<GlobalShortcut
     }
 }
 
-/// Langue effective : celle du réglage, ou celle du système pour `system`.
+/// Effective language: the setting's, or the system's for `system`.
 #[tauri::command]
 pub async fn language() -> CmdResult<Lang> {
     Ok(i18n::current())
 }
 
-/// Enregistre le réglage de langue, l'applique aux messages du backend et à la `locale`
-/// des requêtes TIDAL, et renvoie la langue effective.
+/// Saves the language setting, applies it to the backend's messages and to the `locale` of
+/// TIDAL requests, and returns the effective language.
 #[tauri::command]
 pub async fn set_language(state: State<'_, AppState>, language: LanguagePref) -> CmdResult<Lang> {
     let mut settings = load(&state);
@@ -285,14 +284,14 @@ pub async fn set_language(state: State<'_, AppState>, language: LanguagePref) ->
     save(&state, &settings)?;
     let lang = language.resolve();
     i18n::set(lang);
-    // Libellés traduits des raccourcis de l'icône (#335).
+    // Translated labels of the icon's shortcuts (#335).
     super::shortcuts::sync(&settings.pins);
     Ok(lang)
 }
 
-/// Enregistre l'ordre et le masquage des sections affichées sur l'accueil (dans l'ordre de
-/// l'écran) ; les sections absentes du flux gardent leur réglage. Renvoie la disposition
-/// enregistrée, que l'UI reporte dans sa copie des réglages.
+/// Saves the order and hiding of the sections shown on the home page (in screen order);
+/// sections missing from the feed keep their setting. Returns the saved layout, which the UI
+/// copies into its settings.
 #[tauri::command]
 pub async fn set_home_layout(
     state: State<'_, AppState>,
@@ -304,7 +303,7 @@ pub async fn set_home_layout(
     Ok(settings.home)
 }
 
-/// Affiche ou masque le bandeau « À la une » de l'accueil (#185).
+/// Shows or hides the home page's "Featured" banner (#185).
 #[tauri::command]
 pub async fn set_home_featured(state: State<'_, AppState>, shown: bool) -> CmdResult<HomeLayout> {
     let mut settings = load(&state);
@@ -313,7 +312,7 @@ pub async fn set_home_featured(state: State<'_, AppState>, shown: bool) -> CmdRe
     Ok(settings.home)
 }
 
-/// Revient à l'ordre du flux, sans section masquée, bandeau « À la une » compris.
+/// Back to the feed's order, with no hidden section, "Featured" banner included.
 #[tauri::command]
 pub async fn reset_home_layout(state: State<'_, AppState>) -> CmdResult<HomeLayout> {
     let mut settings = load(&state);
@@ -322,8 +321,8 @@ pub async fn reset_home_layout(state: State<'_, AppState>) -> CmdResult<HomeLayo
     Ok(settings.home)
 }
 
-/// Remplace les épingles de la barre latérale ; renvoie la liste enregistrée (validée,
-/// sans doublons), que l'UI reporte dans sa copie des réglages.
+/// Replaces the sidebar pins; returns the saved list (validated, without duplicates), which
+/// the UI copies into its settings.
 #[tauri::command]
 pub async fn set_pins(state: State<'_, AppState>, pins: Vec<Pin>) -> CmdResult<Vec<Pin>> {
     let mut settings = load(&state);
@@ -333,8 +332,8 @@ pub async fn set_pins(state: State<'_, AppState>, pins: Vec<Pin>) -> CmdResult<V
     Ok(settings.pins)
 }
 
-/// Mémorise le tri d'une liste (uuid de playlist ou `likedTracks`), ou l'oublie avec
-/// `null` ; renvoie les tris enregistrés, que l'UI reporte dans sa copie des réglages.
+/// Remembers a list's sort (playlist uuid or `likedTracks`), or forgets it with `null`;
+/// returns the saved sorts, which the UI copies into its settings.
 #[tauri::command]
 pub async fn set_list_sort(
     state: State<'_, AppState>,
@@ -345,132 +344,6 @@ pub async fn set_list_sort(
     sorts::update(&mut settings.sorts, &list, sort).map_err(err)?;
     save(&state, &settings)?;
     Ok(settings.sorts)
-}
-
-#[tauri::command]
-pub async fn playback_settings(state: State<'_, AppState>) -> CmdResult<PlaybackSettings> {
-    Ok(PlaybackSettings::load(state.store.as_deref()))
-}
-
-/// Qualité baissée par la batterie en ce moment (#492), pour Réglages › Lecture ; `None`
-/// si la batterie ne change rien.
-#[cfg(target_os = "android")]
-#[tauri::command]
-pub async fn quality_cap(
-    state: State<'_, AppState>,
-) -> CmdResult<Option<crate::player::QualityCap>> {
-    let settings = PlaybackSettings::load(state.store.as_deref());
-    Ok(crate::player::current_cap(&settings).await)
-}
-
-/// Enregistre puis applique à chaud. La désérialisation de `settings` valide la taille
-/// du cache : seules les valeurs proposées sont acceptées.
-#[tauri::command]
-pub async fn set_playback_settings(
-    state: State<'_, AppState>,
-    settings: PlaybackSettings,
-) -> CmdResult<()> {
-    let Some(store) = &state.store else {
-        return Err(tr(
-            "base SQLite indisponible, réglage non enregistré",
-            "SQLite database unavailable, setting not saved",
-        )
-        .into());
-    };
-    settings.save(store).map_err(err)?;
-    state
-        .player
-        .send(Cmd::SetPlaybackSettings(settings))
-        .await
-        .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
-}
-
-/// Périphériques de sortie connus de mpv (#79) ; la liste suit ensuite l'événement
-/// `audio-devices` (branchement, changement du périphérique par défaut).
-#[tauri::command]
-pub async fn audio_devices(state: State<'_, AppState>) -> CmdResult<AudioDevices> {
-    let stopped = || tr("lecteur arrêté", "player stopped").to_owned();
-    let (tx, rx) = tokio::sync::oneshot::channel();
-    state
-        .player
-        .send(Cmd::GetAudioDevices(tx))
-        .await
-        .map_err(|_| stopped())?;
-    rx.await.map_err(|_| stopped())
-}
-
-/// Plateforme de l'app, pour que l'UI choisisse sa mise en page (tactile sur Android) et
-/// masque les réglages sans objet. Décidée à la compilation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Platform {
-    #[cfg(desktop)]
-    Desktop,
-    #[cfg(mobile)]
-    Android,
-}
-
-#[tauri::command]
-pub async fn platform() -> CmdResult<Platform> {
-    #[cfg(desktop)]
-    return Ok(Platform::Desktop);
-    #[cfg(mobile)]
-    Ok(Platform::Android)
-}
-
-/// État réel du lancement au démarrage, lu dans le système à chaque appel : il peut avoir
-/// été changé ailleurs (Gestionnaire des tâches), donc rien n'est gardé en base.
-/// Toujours faux sur Android, qui n'a pas de lancement au démarrage.
-#[tauri::command]
-pub async fn autostart_enabled(app: AppHandle) -> CmdResult<bool> {
-    #[cfg(desktop)]
-    return app.autolaunch().is_enabled().map_err(err);
-    #[cfg(mobile)]
-    {
-        let _ = app;
-        Ok(false)
-    }
-}
-
-/// Vrai si la présence Discord peut être proposée (#215) : bureau, identifiant de
-/// l'application Discord compilé ou donné au lancement.
-#[tauri::command]
-pub async fn discord_available() -> CmdResult<bool> {
-    #[cfg(desktop)]
-    return Ok(crate::integrations::discord::client_id().is_some());
-    #[cfg(mobile)]
-    Ok(false)
-}
-
-/// Vrai si le mode exclusif peut être proposé (#245) : mpv sous Windows seulement (#17).
-#[tauri::command]
-pub async fn exclusive_available() -> CmdResult<bool> {
-    Ok(crate::player::exclusive_supported())
-}
-
-/// Active ou désactive le lancement au démarrage, puis renvoie l'état relu.
-#[cfg(desktop)]
-#[tauri::command]
-pub async fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<bool> {
-    let manager = app.autolaunch();
-    if enabled {
-        manager.enable().map_err(err)?;
-    } else {
-        manager.disable().map_err(err)?;
-    }
-    manager.is_enabled().map_err(err)
-}
-
-/// Une entrée `Run` créée par une version antérieure à #83 n'a pas `--minimized` : réécrite au lancement si
-/// elle est active (désactivée dans le Gestionnaire des tâches, elle n'est pas touchée).
-#[cfg(desktop)]
-pub(crate) fn refresh_autostart(app: &AppHandle) {
-    let manager = app.autolaunch();
-    if manager.is_enabled().unwrap_or(false)
-        && let Err(e) = manager.enable()
-    {
-        tracing::warn!("lancement au démarrage non mis à jour : {e}");
-    }
 }
 
 #[cfg(test)]
@@ -547,7 +420,7 @@ mod tests {
         assert!(serde_json::from_str::<UiSettings>(r#"{"motion":"none"}"#).is_err());
     }
 
-    /// Les réglages enregistrés avant l'accueil personnalisable restent lisibles.
+    /// Settings saved before the customizable home page stay readable.
     #[test]
     fn home_layout_defaults_and_round_trips() {
         let s: UiSettings = serde_json::from_str(r#"{"theme":"atelier"}"#).unwrap();

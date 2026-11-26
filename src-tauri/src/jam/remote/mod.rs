@@ -1,13 +1,14 @@
-//! Télécommande (#336) : piloter le lecteur du PC depuis le navigateur d'un téléphone, sur
-//! le réseau local.
+//! Remote control (#336): drive the PC's player from a phone's browser, on the local
+//! network.
 //!
-//! Réutilise le serveur de la Jam (`server.rs`, HTTP, flux d'état, garde-fous) sur un port
-//! à part (47801, sinon un port libre) : elle tourne sans Jam, et le serveur de la Jam ne
-//! connaît aucune de ses commandes. Le code de propriétaire (12 caractères) est gardé
-//! d'un lancement à l'autre (`commands::remote`) : le QR code ne se scanne qu'une fois.
-//! Bureau seulement, jamais par le relais en ligne.
+//! Reuses the Jam's server (`server.rs`, HTTP, state stream, safeguards) on a port of its
+//! own (47801, otherwise a free one): it runs without a Jam, and the Jam's server knows none
+//! of its commands. The owner code (12 characters) is kept from one launch to the next
+//! (`commands::remote`): the QR code is only scanned once. The app's side of the API is in
+//! `backend.rs`. Desktop only, never through the online relay.
 
 mod api;
+mod backend;
 mod tunnel;
 mod view;
 
@@ -16,24 +17,22 @@ use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 use tokio::net::TcpListener;
-use tokio::sync::{Notify, mpsc, oneshot};
+use tokio::sync::{Notify, mpsc};
 use tokio::task::JoinHandle;
 
 use super::http::Response;
 use super::server::{STYLE, Site, serve_site};
 use super::{lan_ip, qr_svg};
-use crate::content::filtered;
-use crate::handoff::history::{SyncRequest, SyncResponse};
 use crate::i18n::{tr, trf};
-use crate::player::{Cmd, Handoff, PlayerState, QueueView};
+use crate::player::Cmd;
 use crate::store::Store;
 use crate::tidal::TidalClient;
-use crate::tidal::models::{PlaylistSummary, SearchResults, Track};
-use api::{Command, Owner, Remote};
 pub use api::{OWNER_CODE_LEN, PAIRING_WINDOW};
+use api::{Owner, Remote};
+use backend::AppRemote;
 pub use tunnel::{RelayRoute, TunnelSettings};
 
-/// Port préféré : l'adresse reste la même d'un lancement à l'autre (marque-page).
+/// Preferred port: the address stays the same from one launch to the next (bookmark).
 const PORT: u16 = 47801;
 const SEARCH_LIMIT: u32 = 30;
 
@@ -41,29 +40,29 @@ const PAGE: &str = include_str!("page/index.html");
 const SCRIPT: &str = include_str!("page/remote.js");
 const REMOTE_STYLE: &str = include_str!("page/remote.css");
 
-/// Nouveau code de propriétaire.
+/// New owner code.
 pub fn new_code() -> String {
     super::guard::code_of_len(OWNER_CODE_LEN)
 }
 
-/// Vrai si `code` est un code de propriétaire valable (relu dans les réglages).
+/// True if `code` is a valid owner code (read back from the settings).
 pub fn is_code(code: &str) -> bool {
     super::guard::is_code(code, OWNER_CODE_LEN)
 }
 
-/// Télécommande en cours, pour Réglages › Application.
+/// Running remote control, for Settings › Application.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoteStatus {
-    /// Page et commandes de la télécommande servies.
+    /// Remote control page and commands served.
     pub remote: bool,
-    /// Transferts de lecture acceptés (#414) ; le serveur tourne si l'un des deux l'est.
+    /// Playback handoffs accepted (#414); the server runs if either is on.
     pub handoff: bool,
     pub url: String,
     pub code: String,
-    /// Faux si aucune adresse du réseau local n'a été trouvée (`127.0.0.1`).
+    /// False if no local network address was found (`127.0.0.1`).
     pub lan: bool,
-    /// QR code de `url#code` en SVG (noir sur blanc).
+    /// QR code of `url#code` as SVG (black on white).
     pub qr_svg: Option<String>,
     /// End of the last pairing window, ms since the Unix epoch (#62): a phone can learn
     /// the relay route until then. `None` before the first "Link a phone".
@@ -73,10 +72,10 @@ pub struct RemoteStatus {
     pub relay: bool,
 }
 
-/// Historique d'écoute servi au téléphone lié (#430).
+/// Listening history served to the linked phone (#430).
 pub struct History {
     pub store: Arc<Store>,
-    /// Appelé avec le nombre d'écoutes reçues et ajoutées ici.
+    /// Called with the number of listens received and added here.
     pub on_added: Box<dyn Fn(usize) + Send + Sync>,
 }
 
@@ -85,14 +84,14 @@ struct Running {
     owner: Arc<Owner>,
     task: JoinHandle<()>,
     site: Arc<RemoteSite<AppRemote>>,
-    /// Identité sur le relais (#430) ; `None` sans clé de relais compilée.
+    /// Identity on the relay (#430); `None` without a built-in relay key.
     tunnel: Option<TunnelSettings>,
-    /// Tunnel ouvert tant que les transferts sont acceptés.
+    /// Tunnel open while handoffs are accepted.
     tunnel_task: Option<JoinHandle<()>>,
 }
 
 impl Running {
-    /// Ouvre ou ferme le tunnel du relais selon « Accepter les transferts ».
+    /// Opens or closes the relay tunnel according to "Accept handoffs".
     fn sync_tunnel(&mut self, handoff: bool) {
         match (handoff, self.tunnel_task.is_some()) {
             (true, false) => {
@@ -151,8 +150,8 @@ impl RemoteState {
         slot.as_ref().map(Running::view)
     }
 
-    /// Sert la télécommande et / ou les transferts avec `code` : démarre le serveur, ou
-    /// change ce que sert celui qui tourne déjà. Les deux à faux l'arrêtent (`None`).
+    /// Serves the remote control and / or handoffs with `code`: starts the server, or changes
+    /// what the running one serves. Both false stop it (`None`).
     pub async fn start(
         &self,
         code: String,
@@ -202,12 +201,12 @@ impl RemoteState {
             .0
             .lock()
             .map_err(|_| tr("télécommande indisponible", "remote unavailable").to_owned())?;
-        // Deux démarrages simultanés : le premier arrivé reste.
+        // Two starts at the same time: the first one stays.
         if let Some(running) = slot.as_ref() {
             task.abort();
             return Ok(Some(running.view()));
         }
-        tracing::info!("Télécommande démarrée");
+        tracing::info!("Remote control started");
         let mut running = Running {
             status,
             owner,
@@ -222,7 +221,7 @@ impl RemoteState {
         Ok(Some(view))
     }
 
-    /// Change ce que sert le serveur en cours ; `None` s'il ne tourne pas.
+    /// Changes what the running server serves; `None` if it is not running.
     fn set_features(&self, features: Features) -> Option<RemoteStatus> {
         let mut slot = self.0.lock().ok()?;
         let running = slot.as_mut()?;
@@ -236,8 +235,8 @@ impl RemoteState {
         Some(running.view())
     }
 
-    /// Remplace le code de la télécommande en cours : les téléphones déjà appairés devront
-    /// scanner le nouveau QR code.
+    /// Replaces the running remote control's code: phones already paired will have to scan
+    /// the new QR code.
     pub fn set_code(&self, code: String, tunnel: Option<TunnelSettings>) -> Option<RemoteStatus> {
         let mut slot = self.0.lock().ok()?;
         let running = slot.as_mut()?;
@@ -261,21 +260,21 @@ impl RemoteState {
         Some(running.view())
     }
 
-    /// Arrête la télécommande : port fermé, pages coupées.
+    /// Stops the remote control: port closed, pages cut off.
     pub fn stop(&self) {
         if let Some(running) = self.0.lock().ok().and_then(|mut s| s.take()) {
             running.stop();
-            tracing::info!("Télécommande arrêtée");
+            tracing::info!("Remote control stopped");
         }
     }
 }
 
-/// Ce que sert le serveur de la télécommande.
+/// What the remote control's server serves.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Features {
-    /// Page et commandes de la télécommande (#336).
+    /// Remote control page and commands (#336).
     pub remote: bool,
-    /// Transferts de lecture vers et depuis l'app Android (#414).
+    /// Playback handoffs to and from the Android app (#414).
     pub handoff: bool,
 }
 
@@ -285,7 +284,7 @@ impl Features {
     }
 }
 
-/// Ouvre le port de la télécommande : écouteur, adresse à ouvrir, adresse locale trouvée.
+/// Opens the remote control's port: listener, address to open, local address found.
 async fn listen() -> Result<(TcpListener, String, bool), String> {
     let failed = |e: std::io::Error| {
         trf!(
@@ -309,7 +308,7 @@ async fn listen() -> Result<(TcpListener, String, bool), String> {
     Ok((listener, url, ip.is_some()))
 }
 
-/// Page et API de la télécommande, branchées sur le serveur commun.
+/// Remote control page and API, plugged into the shared server.
 struct RemoteSite<R> {
     owner: Arc<Owner>,
     remote: R,
@@ -323,7 +322,7 @@ impl<R: Remote> Site for RemoteSite<R> {
         match path {
             "/" => Some(Response::new(200, "text/html; charset=utf-8", PAGE)),
             "/remote.js" => Some(Response::new(200, "text/javascript; charset=utf-8", SCRIPT)),
-            // Styles de la page de la Jam, puis ceux propres à la télécommande.
+            // The Jam page's styles, then the remote control's own.
             "/jam.css" => Some(Response::new(200, "text/css; charset=utf-8", STYLE)),
             "/remote.css" => Some(Response::new(200, "text/css; charset=utf-8", REMOTE_STYLE)),
             _ => None,
@@ -351,128 +350,6 @@ impl<R: Remote> Site for RemoteSite<R> {
     }
 }
 
-struct AppRemote {
-    tidal: Arc<TidalClient>,
-    player: mpsc::Sender<Cmd>,
-    history: Option<Arc<History>>,
-}
-
-fn stopped() -> String {
-    tr("lecteur arrêté", "player stopped").to_owned()
-}
-
-impl AppRemote {
-    async fn send(&self, cmd: Cmd) -> Result<(), String> {
-        self.player.send(cmd).await.map_err(|_| stopped())
-    }
-}
-
-/// Traduit une commande de la télécommande pour l'acteur du lecteur.
-fn to_cmd(command: Command) -> Cmd {
-    match command {
-        Command::SetPaused(paused) => Cmd::SetPaused(paused),
-        Command::Next => Cmd::Next,
-        Command::Previous => Cmd::Previous,
-        Command::Seek(seconds) => Cmd::Seek(seconds),
-        Command::Volume(level) => Cmd::SetVolume(level),
-        Command::Muted(muted) => Cmd::SetMuted(muted),
-        Command::Shuffle(enabled) => Cmd::SetShuffle(enabled),
-        Command::Repeat(mode) => Cmd::SetRepeat(mode),
-        Command::Jump { part, index, id } => Cmd::PlayFromQueue { part, index, id },
-        Command::Remove(id) => Cmd::RemoveFromQueueIds(vec![id]),
-        Command::Play {
-            ids,
-            shuffle,
-            source,
-        } => Cmd::PlayTracks {
-            ids,
-            start: 0,
-            shuffle,
-            source: source.and_then(|s| s.sanitize(crate::commands::settings::pins::is_uuid)),
-        },
-        Command::Enqueue { ids, next } => Cmd::Enqueue { ids, next },
-    }
-}
-
-impl Remote for AppRemote {
-    async fn state(&self) -> Result<(PlayerState, QueueView), String> {
-        let (tx, rx) = oneshot::channel();
-        self.send(Cmd::GetState(tx)).await?;
-        let player = rx.await.map_err(|_| stopped())?;
-        let (tx, rx) = oneshot::channel();
-        self.send(Cmd::GetQueue(tx)).await?;
-        let queue = rx.await.map_err(|_| stopped())?;
-        Ok((player, queue))
-    }
-
-    async fn run(&self, command: Command) -> Result<(), String> {
-        self.send(to_cmd(command)).await
-    }
-
-    async fn search(&self, query: String) -> Result<SearchResults, String> {
-        self.tidal
-            .search(&query, SEARCH_LIMIT)
-            .await
-            .map(filtered)
-            .map_err(|e| e.to_string())
-    }
-
-    async fn album(&self, id: u64) -> Result<(String, Vec<Track>), String> {
-        let page = self.tidal.album(id).await.map_err(|e| e.to_string())?;
-        let page = filtered(page);
-        Ok((page.album.title, page.tracks))
-    }
-
-    async fn playlist(&self, uuid: String) -> Result<(String, Vec<Track>), String> {
-        let page = self
-            .tidal
-            .playlist(&uuid)
-            .await
-            .map_err(|e| e.to_string())?;
-        let page = filtered(page);
-        let tracks = page.tracks.into_iter().map(|e| e.track).collect();
-        Ok((page.playlist.title, tracks))
-    }
-
-    async fn playlists(&self) -> Result<Vec<PlaylistSummary>, String> {
-        self.tidal
-            .library_playlists()
-            .await
-            .map(|list| list.items)
-            .map_err(|e| e.to_string())
-    }
-
-    async fn take_handoff(&self) -> Result<Option<Handoff>, String> {
-        let (tx, rx) = oneshot::channel();
-        self.send(Cmd::TakeHandoff(tx)).await?;
-        rx.await.map_err(|_| stopped())
-    }
-
-    async fn give_handoff(&self, handoff: Handoff) -> Result<bool, String> {
-        let (tx, rx) = oneshot::channel();
-        self.send(Cmd::ApplyHandoff(Box::new(handoff), tx)).await?;
-        rx.await.map_err(|_| stopped())
-    }
-
-    async fn sync_plays(&self, request: SyncRequest) -> Result<SyncResponse, String> {
-        let history = self
-            .history
-            .clone()
-            .ok_or_else(|| "historique indisponible".to_owned())?;
-        tokio::task::spawn_blocking(move || {
-            let (response, added) = crate::handoff::history::answer(&history.store, &request)
-                .map_err(|e| e.to_string())?;
-            if added > 0 {
-                tracing::info!("Historique : {added} écoutes reçues du téléphone");
-                (history.on_added)(added);
-            }
-            Ok(response)
-        })
-        .await
-        .map_err(|e| e.to_string())?
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -485,6 +362,6 @@ mod tests {
         assert!(!is_code("AB23CD"));
         assert!(!is_code("AB23CD0O1IAB"));
     }
-    // Pas de test de `to_cmd` : détruire un `Cmd` dans un test tire le code de la zone de
-    // notification, et le binaire de test Windows ne démarre plus (`docs/android.md`).
+    // No test of `to_cmd`: dropping a `Cmd` in a test pulls in the notification area code,
+    // and the Windows test binary no longer starts (`docs/android.md`).
 }

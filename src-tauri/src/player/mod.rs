@@ -4,6 +4,7 @@ pub mod actor;
 pub mod autoeq;
 pub mod blind;
 mod command;
+mod controls;
 mod dispatch;
 pub mod eq;
 mod exclusive;

@@ -49,35 +49,35 @@ const DB_FILE: &str = "seaglass.db";
 pub fn run() {
     logs::init();
 
-    // L'instance unique du bureau doit être le premier plugin : celui-ci vient après.
-    // Ouverture de liens dans le navigateur du système (#188), appelée seulement depuis
-    // Rust (`commands::project`) : aucune permission du plugin côté UI.
+    // The desktop single instance must be the first plugin: this one comes after.
+    // Opening links in the system browser (#188), called only from Rust
+    // (`commands::project`): no permission of the plugin on the UI side.
     platform_builder(tauri::Builder::default())
         .plugin(tauri_plugin_opener::init())
-        // Jam (#25) : arrêtée tant que l'hôte ne la démarre pas.
+        // Jam (#25): stopped until the host starts it.
         .manage(jam::JamState::default())
-        // Télécommande (#336) : rallumée plus bas si elle l'était.
+        // Remote control (#336): turned back on below if it was on.
         .manage(jam::remote::RemoteState::default())
-        // Fil d'actualité (#415) : clés du dernier fil lu.
+        // Feed (#415): keys of the last feed read.
         .manage(commands::feed::FeedState::default())
         .setup(|app| {
             #[cfg(target_os = "android")]
             if let Err(e) = android::init_tls() {
-                tracing::error!("vérification HTTPS d'Android indisponible : {e}");
+                tracing::error!("Android HTTPS verification unavailable: {e}");
             }
             #[cfg(target_os = "android")]
             android::install_keystore();
-            // Avant le reste : un plantage plus loin a déjà son journal sur disque (#192).
+            // Before the rest: a crash further on already has its log on disk (#192).
             logs::setup(app);
             let tidal = Arc::new(TidalClient::new()?);
             let store = open_store(app);
-            // Avant le lecteur : ses toasts et les requêtes TIDAL suivent la langue.
+            // Before the player: its toasts and the TIDAL requests follow the language.
             let ui_settings = commands::settings::load_from(store.as_deref());
             i18n::set(ui_settings.language.resolve());
             ui_settings.apply_to_backend();
-            // Avant la télécommande, dont le tunnel passe par le relais (#452).
+            // Before the remote control, whose tunnel goes through the relay (#452).
             jam::relay_settings::load(store.as_deref());
-            // Envoi des écoutes à ListenBrainz (#431), si un compte est connecté.
+            // Sending listens to ListenBrainz (#431), if an account is connected.
             integrations::listenbrainz::start(app.handle().clone(), store.clone());
             // TIDAL play log (#34): listens reported so that they are counted.
             player::start_play_log(Arc::clone(&tidal), store.clone());
@@ -85,7 +85,7 @@ pub fn run() {
             #[cfg(desktop)]
             commands::settings::zoom::apply(app.handle(), ui_settings.zoom);
             #[cfg(desktop)]
-            commands::settings::refresh_autostart(app.handle());
+            commands::settings::system::refresh_autostart(app.handle());
             #[cfg(desktop)]
             let mpv_process = Arc::new(ProcessGuard::default());
             #[cfg(desktop)]
@@ -99,8 +99,8 @@ pub fn run() {
             let launch = engine::Launch {
                 app: app.handle().clone(),
             };
-            // Reprise de la lecture au lancement (#353) : jamais au démarrage de session
-            // (`--minimized`) ni après un plantage ; bureau seulement.
+            // Resuming playback at launch (#353): never at session startup (`--minimized`) or after
+            // a crash; desktop only.
             #[cfg(desktop)]
             let may_resume = !std::env::args().any(|a| a == tray::MINIMIZED_ARG)
                 && !logs::previous_launch_crashed();
@@ -114,8 +114,8 @@ pub fn run() {
                 may_resume,
             );
             attach_integrations(app, &player);
-            // La fenêtre est créée cachée (`visible: false`) : affichée ici, sauf au
-            // lancement au démarrage si l'icône de la zone de notification existe.
+            // The window is created hidden (`visible: false`): shown here, except at launch at
+            // startup if the notification area icon exists.
             #[cfg(desktop)]
             if !tray::start_hidden(std::env::args()) {
                 tray::show_main(app.handle());
@@ -126,11 +126,11 @@ pub fn run() {
                 player,
                 store,
             });
-            // Après `AppState`, qu'elle lit : pastille des nouveautés (#415).
+            // After `AppState`, which it reads: new releases badge (#415).
             commands::feed::spawn_watch(app.handle().clone());
             #[cfg(desktop)]
             {
-                // Après `AppState` : le gestionnaire des raccourcis globaux (#413) y prend le lecteur.
+                // After `AppState`: the global shortcuts handler (#413) takes the player from it.
                 integrations::hotkeys::init(app.handle());
                 integrations::hotkeys::apply(app.handle(), &ui_settings.global_shortcuts);
                 commands::remote::restore(app.handle());
@@ -139,7 +139,7 @@ pub fn run() {
             }
             #[cfg(target_os = "android")]
             apk_update::spawn(app.handle().clone());
-            // Historique d'écoute avec l'ordinateur lié (#430), s'il y en a un.
+            // Listening history with the linked computer (#430), if there is one.
             handoff::history::spawn_at_launch(app.handle());
             Ok(())
         })
@@ -276,21 +276,21 @@ pub fn run() {
             commands::settings::reset_home_layout,
             commands::settings::set_pins,
             commands::settings::set_list_sort,
-            commands::settings::playback_settings,
-            commands::settings::set_playback_settings,
+            commands::settings::playback::playback_settings,
+            commands::settings::playback::set_playback_settings,
             #[cfg(target_os = "android")]
-            commands::settings::quality_cap,
+            commands::settings::playback::quality_cap,
             commands::settings::equalizer::parse_autoeq,
-            commands::settings::audio_devices,
-            commands::settings::platform,
-            commands::settings::autostart_enabled,
-            commands::settings::discord_available,
+            commands::settings::playback::audio_devices,
+            commands::settings::system::platform,
+            commands::settings::system::autostart_enabled,
+            commands::settings::system::discord_available,
             commands::listenbrainz::listenbrainz_status,
             commands::listenbrainz::listenbrainz_connect,
             commands::listenbrainz::listenbrainz_disconnect,
-            commands::settings::exclusive_available,
+            commands::settings::system::exclusive_available,
             #[cfg(desktop)]
-            commands::settings::set_autostart,
+            commands::settings::system::set_autostart,
             commands::jam::jam_status,
             commands::jam::jam_online_available,
             commands::jam::start_jam,
@@ -341,13 +341,12 @@ pub fn run() {
             apk_update::check_for_updates,
         ])
         .build(tauri::generate_context!())
-        .expect("échec du lancement de l'application")
+        .expect("the application failed to launch")
         .run(|_app, _event| {
-            // Tauri quitte sans exécuter les destructeurs : dernière sauvegarde de la file
-            // (#260), puis arrêt de mpv. Une mise à jour reportée (« Plus tard »)
-            // s'installe à ce moment-là.
-            // Quitter avec le mini-lecteur ouvert (#384) : sa position est gardée tant que la
-            // fenêtre existe encore.
+            // Tauri quits without running destructors: last save of the queue (#260), then mpv is
+            // stopped. A postponed update ("Later") is installed at this point.
+            // Quitting with the mini player open (#384): its position is kept while the window
+            // still exists.
             #[cfg(desktop)]
             if let RunEvent::ExitRequested { .. } = _event {
                 commands::mini_player::on_exit(_app);
@@ -363,7 +362,7 @@ pub fn run() {
         });
 }
 
-/// Sauvegarde immédiate de la file et de la position avant que l'app quitte (#260).
+/// Saves the queue and the position at once before the app quits (#260).
 #[cfg(desktop)]
 pub(crate) fn flush_player(app: &tauri::AppHandle) {
     if let Some(state) = app.try_state::<AppState>() {
@@ -371,20 +370,20 @@ pub(crate) fn flush_player(app: &tauri::AppHandle) {
     }
 }
 
-/// Plugins et comportement de fenêtre du bureau.
+/// Desktop plugins and window behavior.
 #[cfg(desktop)]
 fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     builder
-        // Une seule instance (#83) : relancer Seaglass, par exemple pendant qu'il est réduit
-        // dans la zone de notification, réaffiche la fenêtre existante au lieu d'ouvrir un
-        // second lecteur. Enregistré en premier, comme le demande le plugin.
+        // A single instance (#83): launching Seaglass again, for example while it is minimized to
+        // the notification area, shows the existing window again instead of opening a second
+        // player. Registered first, as the plugin asks.
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             if tray::show_on_second_launch(args) {
                 tray::show_main(app);
             }
         }))
-        // Clé publique compilée (#489) : `tauri.conf.json` n'en a pas. Sans elle, `updater`
-        // ne vérifie rien.
+        // Built-in public key (#489): `tauri.conf.json` has none. Without it, `updater` checks
+        // nothing.
         .plugin({
             let builder = tauri_plugin_updater::Builder::new();
             match servers::updater_pubkey() {
@@ -393,16 +392,16 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
             }
             .build()
         })
-        // Lancement au démarrage (clé `Run` de l'utilisateur, exe courant). Piloté
-        // seulement par les commandes `settings` : aucune permission côté UI. L'app lancée
-        // ainsi démarre cachée dans la zone de notification (#83).
+        // Launch at startup (the user's `Run` key, current exe). Driven only by the `settings`
+        // commands: no permission on the UI side. The app launched this way starts hidden in the
+        // notification area (#83).
         .plugin(
             tauri_plugin_autostart::Builder::new()
                 .arg(tray::MINIMIZED_ARG)
                 .build(),
         )
         .manage(UpdateState::default())
-        // Réglage « Fermer la fenêtre » sur « Réduire » : la fenêtre principale est cachée.
+        // "Close the window" setting on "Minimize": the main window is hidden.
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. }
                 if window.label() == "main" && tray::hide_on_close() =>
@@ -410,22 +409,22 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
                 api.prevent_close();
                 let _ = window.hide();
             }
-            // Mini-lecteur (#384) : sa fermeture ramène la fenêtre principale.
+            // Mini player (#384): closing it brings the main window back.
             WindowEvent::CloseRequested { .. }
                 if window.label() == commands::mini_player::LABEL =>
             {
                 commands::mini_player::on_close_requested(window)
             }
-            // Clic sur l'icône de la zone de notification : cacher si au premier plan (#226).
+            // Click on the notification area icon: hide if in the foreground (#226).
             WindowEvent::Focused(focused) if window.label() == "main" => tray::note_focus(*focused),
-            // Le plein écran (#131) change la taille : l'UI suit l'état réel de la fenêtre.
+            // Fullscreen (#131) changes the size: the UI follows the window's actual state.
             WindowEvent::Resized(_) => commands::window::on_resized(window),
             _ => {}
         })
 }
 
-/// Android : ni zone de notification, ni démarrage auto, ni updater de Tauri (mises à
-/// jour par `apk_update`) ; le pont natif Kotlin à la place.
+/// Android: no notification area, no autostart, no Tauri updater (updates through
+/// `apk_update`); the native Kotlin bridge instead.
 #[cfg(mobile)]
 fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     #[cfg(target_os = "android")]
@@ -435,8 +434,9 @@ fn platform_builder(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
     builder
 }
 
-/// SMTC (touches média, panneau Windows) et boutons de la miniature, branchés sur la fenêtre principale, MPRIS sous Linux, et icône de
-/// la zone de notification ; session média sur Android. Un échec est journalisé sans empêcher l'app de démarrer.
+/// SMTC (media keys, Windows panel) and thumbnail buttons, wired to the main window, MPRIS
+/// on Linux, and the notification area icon; media session on Android. A failure is logged
+/// without stopping the app from starting.
 fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<player::Cmd>) {
     let mut observers = integrations::Observers::default();
     #[cfg(desktop)]
@@ -452,7 +452,7 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
     {
         let hwnd = app
             .get_webview_window("main")
-            .ok_or_else(|| "fenêtre principale introuvable".to_owned())
+            .ok_or_else(|| "main window not found".to_owned())
             .and_then(|w| w.hwnd().map_err(|e| e.to_string()));
         match hwnd
             .clone()
@@ -461,12 +461,12 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
             Ok(smtc) => observers.smtc = Some(smtc),
             Err(e) => tracing::warn!("SMTC indisponible : {e}"),
         }
-        // Boutons sous la miniature (#333) : `setup` tourne sur le thread de la fenêtre.
+        // Buttons under the thumbnail (#333): `setup` runs on the window's thread.
         match hwnd
             .and_then(|h| integrations::thumbbar::start(app.handle(), h.0 as isize, player.clone()))
         {
             Ok(bar) => observers.thumbbar = Some(bar),
-            Err(e) => tracing::warn!("boutons de la miniature indisponibles : {e}"),
+            Err(e) => tracing::warn!("thumbnail buttons unavailable: {e}"),
         }
     }
     #[cfg(target_os = "linux")]
@@ -489,11 +489,11 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
         .try_send(player::Cmd::AttachObservers(Box::new(observers)))
         .is_err()
     {
-        tracing::warn!("intégrations non branchées : lecteur indisponible");
+        tracing::warn!("integrations not attached: player unavailable");
     }
 }
 
-/// Base SQLite dans le dossier de données de l'app ; l'app fonctionne sans, sans persistance.
+/// SQLite database in the app's data folder; the app works without it, with no persistence.
 fn open_store(app: &tauri::App) -> Option<Arc<Store>> {
     let open = || -> anyhow::Result<Store> {
         let dir = app.path().app_data_dir()?;
@@ -503,14 +503,14 @@ fn open_store(app: &tauri::App) -> Option<Arc<Store>> {
     match open() {
         Ok(store) => Some(Arc::new(store)),
         Err(e) => {
-            tracing::error!("base SQLite indisponible, pas de persistance : {e}");
+            tracing::error!("SQLite database unavailable, no persistence: {e}");
             None
         }
     }
 }
 
-/// Événement émis quand TIDAL refuse le rafraîchissement en cours de route (#259) : l'UI
-/// revient à l'écran de connexion.
+/// Event sent when TIDAL refuses the refresh along the way (#259): the UI goes back to the
+/// sign-in screen.
 const SESSION_LOST_EVENT: &str = "session-lost";
 
 fn spawn_session_watch(app: tauri::AppHandle, tidal: Arc<TidalClient>) {
@@ -519,7 +519,7 @@ fn spawn_session_watch(app: tauri::AppHandle, tidal: Arc<TidalClient>) {
         loop {
             tidal.session_lost().await;
             if let Err(e) = app.emit(SESSION_LOST_EVENT, ()) {
-                tracing::warn!("émission de {SESSION_LOST_EVENT} impossible : {e}");
+                tracing::warn!("cannot emit {SESSION_LOST_EVENT}: {e}");
             }
         }
     });

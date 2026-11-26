@@ -1,43 +1,42 @@
-//! Écritures dans la bibliothèque de l'utilisateur : favoris (#4, #81) et playlists.
-//! Vérifiées sur un vrai compte par `cargo test live_collection -- --ignored --nocapture`.
+//! Writes to the user's library: playlists here, favorites (#4, #81) in `favorites.rs`.
+//! Checked on a real account by `cargo test live_collection -- --ignored --nocapture`.
 //!
-//! - Favoris (#4, #81) : GET v1 `users/{id}/favorites/ids` (tous les identifiants, en
-//!   chaînes), POST `users/{id}/favorites/{tracks,albums,artists,playlists}` (`trackIds`,
-//!   `albumIds`, `artistIds`, `uuids`), DELETE `…/<type>/{id}`. Mixes (#204) : GET v2
-//!   `favorites/mixes/ids`, PUT v2 `favorites/mixes/add` / `remove` (`mixIds` en query).
-//! - Playlist : création PUT v2 `my-collection/playlists/folders/create-playlist`,
-//!   suppression PUT v2 `my-collection/playlists/folders/remove` (`trns=trn:playlist:<uuid>`).
-//! - Titres d'une playlist : POST v1 `playlists/{uuid}/items` (réponse `addedItemIds`),
-//!   DELETE `…/items/{index}`, POST `…/items/{index}` (`toIndex`, déplacement, #201), avec
-//!   l'ETag de `playlists/{uuid}` en `If-None-Match`. Titre et description : POST v1
+//! - Favorites (#4, #81): GET v1 `users/{id}/favorites/ids` (every id, as strings), POST
+//!   `users/{id}/favorites/{tracks,albums,artists,playlists}` (`trackIds`, `albumIds`,
+//!   `artistIds`, `uuids`), DELETE `…/<type>/{id}`. Mixes (#204): GET v2
+//!   `favorites/mixes/ids`, PUT v2 `favorites/mixes/add` / `remove` (`mixIds` in the query).
+//! - Playlist: created with PUT v2 `my-collection/playlists/folders/create-playlist`,
+//!   deleted with PUT v2 `my-collection/playlists/folders/remove` (`trns=trn:playlist:<uuid>`).
+//! - A playlist's tracks: POST v1 `playlists/{uuid}/items` (answer `addedItemIds`), DELETE
+//!   `…/items/{index}`, POST `…/items/{index}` (`toIndex`, move, #201), with the ETag of
+//!   `playlists/{uuid}` as `If-None-Match`. Title and description: POST v1
 //!   `playlists/{uuid}` (#201).
-//! - Écritures par lots de la sélection multiple (#332) : `batch.rs`.
+//! - Batch writes of the multiple selection (#332): `batch.rs`.
 
 use reqwest::Method;
 use serde::Deserialize;
 
 use super::api::{API_V1, API_V2, Call};
-use super::models::{LikeTarget, LikedIds, PlaylistSummary, TrackId};
+use super::models::{PlaylistSummary, TrackId};
 use super::raw::RawPage;
 use super::versions;
 use super::{Result, TidalClient, TidalError};
 
-/// Tentatives d'une modification de playlist refusée pour ETag périmé.
+/// Attempts of a playlist change refused for a stale ETag.
 const STALE_ATTEMPTS: usize = 3;
 const STALE_DELAY: std::time::Duration = std::time::Duration::from_millis(400);
 
-/// Relance une modification (lecture de l'ETag comprise) refusée par un 412. Juste après
-/// une écriture, `playlists/{uuid}` renvoie parfois encore l'ancien ETag (vu le 2026-11-05,
-/// #201 : deux écritures de suite échouaient) ; quelques centaines de ms suffisent. Macro
-/// plutôt que fonction prenant une fermeture asynchrone : celle-ci faisait échouer
-/// l'inférence de `Send` des commandes Tauri.
+/// Retries a change (ETag read included) refused with a 412. Right after a write,
+/// `playlists/{uuid}` sometimes still returns the old ETag (seen on 2026-11-05, #201: two
+/// writes in a row failed); a few hundred ms are enough. A macro rather than a function
+/// taking an async closure: that one broke the `Send` inference of the Tauri commands.
 macro_rules! retry_stale {
     ($op:expr) => {{
         let mut attempt = 1;
         loop {
             match $op {
                 Err(TidalError::Api { status: 412, .. }) if attempt < STALE_ATTEMPTS => {
-                    tracing::debug!("ETag périmé, nouvelle tentative ({attempt})");
+                    tracing::debug!("stale ETag, new attempt ({attempt})");
                     tokio::time::sleep(STALE_DELAY).await;
                     attempt += 1;
                 }
@@ -47,88 +46,26 @@ macro_rules! retry_stale {
     }};
 }
 
-// Après la macro : `batch` s'en sert.
+// After the macro: `batch` uses it.
 mod batch;
+mod favorites;
 
-/// Lectures de l'ETag en attendant une réplique à jour (`fresh_etag`, `settle`).
+/// ETag reads while waiting for an up-to-date replica (`fresh_etag`, `settle`).
 const VERSION_ATTEMPTS: usize = 6;
 const VERSION_DELAY: std::time::Duration = std::time::Duration::from_millis(250);
 
-/// Titres envoyés par requête d'ajout (`limit` de l'API).
+/// Tracks sent per add request (the API's `limit`).
 const ADD_CHUNK: usize = 100;
 
 impl TidalClient {
-    /// Identifiants de tous les favoris, chargés au premier appel puis tenus à jour.
-    pub async fn liked_ids(&self) -> Result<LikedIds> {
-        if let Some(ids) = self.likes.get() {
-            return Ok(ids);
-        }
-        let user = self.user_id().await?;
-        let path = format!("users/{user}/favorites/ids");
-        let (raw, mixes) = tokio::try_join!(
-            self.get::<RawFavoriteIds>(&path, &[]),
-            self.favorite_mix_ids(),
-        )?;
-        let mut ids = raw.into_ids();
-        ids.mixes = mixes;
-        self.likes.load(ids);
-        Ok(self.likes.get().unwrap_or_default())
-    }
-
-    /// Ajoute aux favoris ou retire : POST `users/{id}/favorites/<type>` (formulaire
-    /// `trackIds`, `albumIds`, `artistIds` ou `uuids`), DELETE `…/<type>/<id>`.
-    pub async fn set_liked(&self, target: &LikeTarget, liked: bool) -> Result<()> {
-        let user = self.user_id().await?;
-        let (kind, field, id) = match target {
-            LikeTarget::Track { id } => ("tracks", "trackIds", id.to_string()),
-            LikeTarget::Album { id } => ("albums", "albumIds", id.to_string()),
-            LikeTarget::Artist { id } => ("artists", "artistIds", id.to_string()),
-            LikeTarget::Playlist { uuid } => ("playlists", "uuids", uuid.clone()),
-            LikeTarget::Mix { id } => return self.set_mix_liked(id, liked).await,
-        };
-        if liked {
-            let form = [(field, id), ("onArtifactNotFound", "FAIL".to_owned())];
-            let path = format!("users/{user}/favorites/{kind}");
-            self.write(Method::POST, API_V1, &path, &[], Some(&form), None)
-                .await?;
-        } else {
-            let path = format!("users/{user}/favorites/{kind}/{id}");
-            self.write(Method::DELETE, API_V1, &path, &[], None, None)
-                .await?;
-        }
-        self.likes.set(target, liked);
-        Ok(())
-    }
-
-    /// Mixes (#204) : PUT v2 `favorites/mixes/add?mixIds=…` ou `…/remove?mixIds=…`, paramètres
-    /// en query, sans corps. Le retrait d'un mix absent répond aussi 200.
-    async fn set_mix_liked(&self, id: &str, liked: bool) -> Result<()> {
-        let (path, query) = if liked {
-            (
-                "favorites/mixes/add",
-                vec![
-                    ("mixIds", id.to_owned()),
-                    ("onArtifactNotFound", "FAIL".to_owned()),
-                ],
-            )
-        } else {
-            ("favorites/mixes/remove", vec![("mixIds", id.to_owned())])
-        };
-        self.write(Method::PUT, API_V2, path, &query, None, None)
-            .await?;
-        self.likes
-            .set(&LikeTarget::Mix { id: id.to_owned() }, liked);
-        Ok(())
-    }
-
-    /// Playlists de l'utilisateur, les seules qu'il peut modifier.
+    /// The user's playlists, the only ones they can change.
     pub async fn own_playlists(&self) -> Result<Vec<PlaylistSummary>> {
         let mut playlists = self.library_playlists().await?.items;
         playlists.retain(|p| p.mine);
         Ok(playlists)
     }
 
-    /// Crée une playlist à la racine de la bibliothèque et renvoie son uuid.
+    /// Creates a playlist at the root of the library and returns its uuid.
     pub async fn create_playlist(&self, title: &str, description: &str) -> Result<String> {
         let query = [
             ("name", title.to_owned()),
@@ -145,7 +82,7 @@ impl TidalClient {
         Ok(created.data.uuid)
     }
 
-    /// Supprime une playlist de l'utilisateur (#201).
+    /// Deletes a playlist of the user (#201).
     pub async fn delete_playlist(&self, uuid: &str) -> Result<()> {
         self.playlists.remove(uuid);
         let query = [("trns", format!("trn:playlist:{uuid}"))];
@@ -155,10 +92,10 @@ impl TidalClient {
             .map(drop)
     }
 
-    /// Ajoute des titres à la fin d'une playlist, dans l'ordre, sans doublon.
-    /// Renvoie le nombre de titres réellement ajoutés (0 s'ils y étaient tous).
+    /// Adds tracks at the end of a playlist, in order, without duplicates.
+    /// Returns the number of tracks actually added (0 if they were all there).
     pub async fn add_to_playlist(&self, uuid: &str, ids: &[TrackId]) -> Result<usize> {
-        // Copie gardée effacée avant d'écrire : même un échec partiel la rend fausse.
+        // Kept copy cleared before writing: even a partial failure makes it wrong.
         self.playlists.remove(uuid);
         let path = format!("playlists/{uuid}/items");
         let mut added = 0;
@@ -169,7 +106,7 @@ impl TidalClient {
                 ("onArtifactNotFound", "FAIL".to_owned()),
                 ("onDupes", "SKIP".to_owned()),
             ];
-            // Chaque ajout change l'ETag : il est relu avant chaque requête.
+            // Each addition changes the ETag: it is read again before each request.
             let (resp, etag) = retry_stale!(
                 async {
                     let etag = self.fresh_etag(uuid).await?;
@@ -189,9 +126,9 @@ impl TidalClient {
         Ok(added)
     }
 
-    /// Remet un titre à la position `index` (0 = premier) : annulation d'un retrait (#349).
-    /// `onDupes=ADD` : le titre revient même s'il figure ailleurs dans la playlist.
-    /// Renvoie `false` si rien n'a été ajouté.
+    /// Puts a track back at position `index` (0 = first): undoing a removal (#349).
+    /// `onDupes=ADD`: the track comes back even if it is elsewhere in the playlist.
+    /// Returns `false` if nothing was added.
     pub async fn insert_in_playlist(&self, uuid: &str, index: usize, id: TrackId) -> Result<bool> {
         self.playlists.remove(uuid);
         let path = format!("playlists/{uuid}/items");
@@ -218,8 +155,8 @@ impl TidalClient {
         Ok(!resp.added_item_ids.is_empty())
     }
 
-    /// Retire le titre à cette position (0 = premier), après avoir vérifié que c'est bien
-    /// `expected` : la playlist a pu changer ailleurs depuis son affichage.
+    /// Removes the track at this position (0 = first), after checking that it is indeed
+    /// `expected`: the playlist may have changed elsewhere since it was shown.
     pub async fn remove_from_playlist(
         &self,
         uuid: &str,
@@ -240,9 +177,9 @@ impl TidalClient {
         Ok(())
     }
 
-    /// Déplace le titre `from` pour qu'il finisse à la position `to` (#201) : POST v1
-    /// `playlists/{uuid}/items/{from}` avec `toIndex` **en formulaire** (en query, il est
-    /// ignoré sans erreur). Au-delà de la fin, le titre va à la fin.
+    /// Moves track `from` so that it ends up at position `to` (#201): POST v1
+    /// `playlists/{uuid}/items/{from}` with `toIndex` **in the form** (in the query, it is
+    /// ignored without an error). Past the end, the track goes to the end.
     pub async fn move_in_playlist(
         &self,
         uuid: &str,
@@ -265,8 +202,8 @@ impl TidalClient {
         Ok(())
     }
 
-    /// Renomme et change la description (#201) : POST v1 `playlists/{uuid}` (formulaire
-    /// `title`, `description`), visible aussitôt.
+    /// Renames and changes the description (#201): POST v1 `playlists/{uuid}` (form `title`,
+    /// `description`), visible at once.
     pub async fn edit_playlist(&self, uuid: &str, title: &str, description: &str) -> Result<()> {
         self.playlists.remove(uuid);
         let path = format!("playlists/{uuid}");
@@ -287,9 +224,9 @@ impl TidalClient {
         Ok(())
     }
 
-    /// Copie gardée effacée, puis ETag de la playlist, après avoir vérifié que le titre à
-    /// `index` est bien `expected`. ETag lu avant la vérification : une modification entre
-    /// les deux donne un 412.
+    /// Kept copy cleared, then the playlist's ETag, after checking that the track at `index`
+    /// is indeed `expected`. ETag read before the check: a change between the two gives a
+    /// 412.
     async fn checked_etag(&self, uuid: &str, index: usize, expected: TrackId) -> Result<String> {
         self.playlists.remove(uuid);
         let etag = self.fresh_etag(uuid).await?;
@@ -307,15 +244,15 @@ impl TidalClient {
         Ok(etag)
     }
 
-    /// ETag à envoyer avec une modification : jamais plus ancien que la dernière version vue
-    /// après une écriture de l'app (`versions.rs`) ; une réplique en retard est relue.
+    /// ETag to send with a change: never older than the last version seen after one of the
+    /// app's writes (`versions.rs`); a replica lagging behind is read again.
     async fn fresh_etag(&self, uuid: &str) -> Result<String> {
         for _ in 0..VERSION_ATTEMPTS {
             let etag = self.playlist_etag(uuid).await?;
             if !self.versions.is_stale(uuid, &etag) {
                 return Ok(etag);
             }
-            tracing::debug!("ETag en retard sur la dernière écriture, relu");
+            tracing::debug!("ETag behind the last write, read again");
             tokio::time::sleep(VERSION_DELAY).await;
         }
         Err(stale_to_conflict(TidalError::Api {
@@ -324,8 +261,8 @@ impl TidalClient {
         }))
     }
 
-    /// Après une écriture envoyée avec `before` : attend de voir la nouvelle version et la
-    /// retient, pour que la modification suivante ne parte pas d'un état plus ancien.
+    /// After a write sent with `before`: waits to see the new version and keeps it, so the
+    /// next change does not start from an older state.
     async fn settle(&self, uuid: &str, before: &str) {
         for _ in 0..VERSION_ATTEMPTS {
             match self.playlist_etag(uuid).await {
@@ -335,15 +272,15 @@ impl TidalClient {
                 }
                 Ok(_) => tokio::time::sleep(VERSION_DELAY).await,
                 Err(e) => {
-                    tracing::debug!("version après écriture illisible : {e}");
+                    tracing::debug!("unreadable version after the write: {e}");
                     return;
                 }
             }
         }
-        tracing::debug!("nouvelle version de la playlist pas encore visible");
+        tracing::debug!("new playlist version not visible yet");
     }
 
-    /// Version courante de la playlist, exigée par chaque modification.
+    /// Current version of the playlist, required by every change.
     pub(super) async fn playlist_etag(&self, uuid: &str) -> Result<String> {
         let path = format!("playlists/{uuid}");
         let resp = self.call(&Call::get(API_V1, &path, &[])).await?;
@@ -351,10 +288,10 @@ impl TidalClient {
             .get(reqwest::header::ETAG)
             .and_then(|v| v.to_str().ok())
             .map(str::to_owned)
-            .ok_or_else(|| TidalError::Decode(format!("{path} : pas d'ETag")))
+            .ok_or_else(|| TidalError::Decode(format!("{path}: no ETag")))
     }
 
-    /// Écriture ; un ETag refusé (412) devient `TidalError::Conflict`.
+    /// Write; a refused ETag (412) becomes `TidalError::Conflict`.
     pub(super) async fn write(
         &self,
         method: Method,
@@ -369,7 +306,7 @@ impl TidalClient {
             .map_err(stale_to_conflict)
     }
 
-    /// Écriture qui laisse passer le 412, pour `retry_stale`.
+    /// Write that lets the 412 through, for `retry_stale`.
     async fn write_raw(
         &self,
         method: Method,
@@ -407,35 +344,6 @@ fn stale_to_conflict(e: TidalError) -> TidalError {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-struct RawFavoriteIds {
-    #[serde(default)]
-    track: Vec<String>,
-    #[serde(default)]
-    album: Vec<String>,
-    #[serde(default)]
-    artist: Vec<String>,
-    #[serde(default)]
-    playlist: Vec<String>,
-}
-
-impl RawFavoriteIds {
-    /// Identifiants en chaînes ; un identifiant numérique illisible est ignoré.
-    fn into_ids(self) -> LikedIds {
-        let numbers = |ids: Vec<String>| -> Vec<u64> {
-            ids.iter().filter_map(|id| id.parse().ok()).collect()
-        };
-        LikedIds {
-            tracks: numbers(self.track).into_iter().map(TrackId).collect(),
-            albums: numbers(self.album),
-            artists: numbers(self.artist),
-            playlists: self.playlist,
-            mixes: Vec::new(),
-        }
-    }
-}
-
-#[derive(Deserialize)]
 struct RawCreated {
     data: RawCreatedPlaylist,
 }
@@ -465,19 +373,6 @@ struct RawItemId {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn favorite_ids_are_strings() {
-        let raw: RawFavoriteIds = serde_json::from_str(
-            r#"{"ARTIST":["1134"],"TRACK":["156749594","x"],"PLAYLIST":["4ba30155-d807-446f-9e53-b67520ccfe83"],"VIDEO":[]}"#,
-        )
-        .unwrap();
-        let ids = raw.into_ids();
-        assert_eq!(ids.tracks, [TrackId(156_749_594)]);
-        assert_eq!(ids.artists, [1134]);
-        assert!(ids.albums.is_empty());
-        assert_eq!(ids.playlists, ["4ba30155-d807-446f-9e53-b67520ccfe83"]);
-    }
 
     #[test]
     fn added_ids_empty_on_duplicate() {
