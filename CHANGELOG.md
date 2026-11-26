@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.129
+
+- chore: the icons of the taskbar thumbnail buttons (`integrations/thumbbar/`) move to a file of their own, and the module's comments and logs are now in English, with no change in behavior (#45).
+
 ## 0.5.128
 
 - chore: the queue's IPC types (`QueueView`, `QueuePart`, `PlaySource`, `RadioSeed`, `SmartList`) are now generated from Rust, with no change in behavior (#44).
