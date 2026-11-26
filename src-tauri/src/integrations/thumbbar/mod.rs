@@ -1,10 +1,10 @@
-//! Boutons Précédent / Lecture-Pause / Suivant sous la miniature de la fenêtre dans la
-//! barre des tâches de Windows (#333), par `ITaskbarList3::ThumbBarAddButtons`.
+//! Previous / Play-Pause / Next buttons under the window's thumbnail in the Windows
+//! taskbar (#333), through `ITaskbarList3::ThumbBarAddButtons`.
 //!
-//! Les clics arrivent en `WM_COMMAND` sur la fenêtre principale : elle est sous-classée
-//! (`SetWindowSubclass`, qui cohabite avec le sous-classement de tao) depuis le thread
-//! principal, qui la possède. Tout l'état Win32 vit dans un `thread_local` de ce thread ;
-//! l'observateur de l'acteur ne lui passe une vue (`run_on_main_thread`) que si elle change.
+//! Clicks arrive as `WM_COMMAND` on the main window: it is subclassed (`SetWindowSubclass`,
+//! which coexists with tao's subclassing) from the main thread, which owns it. All the Win32
+//! state lives in a `thread_local` of that thread; the actor's observer only hands it a view
+//! (`run_on_main_thread`) when the view changes.
 
 mod glyphs;
 mod icons;
@@ -34,10 +34,10 @@ use super::{NowPlaying, PlaybackStatus};
 use crate::i18n::{self, Lang, tr};
 use crate::player::{Cmd, PlayerState};
 
-/// Identifiant du sous-classement, propre à ce module.
+/// Subclass identifier, specific to this module.
 const SUBCLASS_ID: usize = 0x5EA_333;
 
-/// Boutons, dans l'ordre d'affichage ; leur identifiant est leur rang.
+/// Buttons, in display order; their identifier is their index.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Button {
     Previous,
@@ -57,7 +57,7 @@ impl Button {
     }
 }
 
-/// Ce que montrent les boutons (logique pure, testée).
+/// What the buttons show (pure logic, tested).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ThumbView {
     playing: bool,
@@ -99,7 +99,7 @@ impl ThumbView {
         }
     }
 
-    /// Info-bulle, dans la langue de la vue (`tr` lit la langue courante, la même).
+    /// Tooltip, in the view's language (`tr` reads the current language, the same one).
     fn tooltip(&self, button: Button) -> &'static str {
         match button {
             Button::Previous => tr("Précédent", "Previous"),
@@ -110,8 +110,8 @@ impl ThumbView {
     }
 }
 
-/// Observateur de l'acteur : ne réveille le thread principal que si la vue change (l'état
-/// arrive à ~4 Hz pendant la lecture).
+/// The actor's observer: only wakes the main thread up when the view changes (the state
+/// arrives at ~4 Hz during playback).
 pub struct ThumbBarHandle {
     app: AppHandle<Wry>,
     last: Mutex<Option<ThumbView>>,
@@ -137,16 +137,16 @@ impl ThumbBarHandle {
 }
 
 static PLAYER: OnceLock<mpsc::Sender<Cmd>> = OnceLock::new();
-/// Message `TaskbarButtonCreated` : bouton de la fenêtre créé (affichage, redémarrage de
-/// l'explorateur). Les boutons de la miniature doivent alors être posés à nouveau.
+/// `TaskbarButtonCreated` message: the window's taskbar button was created (first display,
+/// Explorer restart). The thumbnail buttons must then be added again.
 static BUTTON_CREATED: OnceLock<u32> = OnceLock::new();
 
 thread_local! {
     static BAR: RefCell<Option<Bar>> = const { RefCell::new(None) };
 }
 
-/// Accès à l'état du thread principal ; ignoré s'il est déjà emprunté (message reçu
-/// pendant un appel à la barre des tâches) ou absent (fenêtre détruite).
+/// Access to the main thread's state; skipped if it is already borrowed (message received
+/// during a call to the taskbar) or missing (window destroyed).
 fn with_bar(f: impl FnOnce(&mut Bar)) {
     BAR.with(|bar| {
         if let Ok(mut bar) = bar.try_borrow_mut()
@@ -157,8 +157,8 @@ fn with_bar(f: impl FnOnce(&mut Bar)) {
     });
 }
 
-/// Branche les boutons sur la fenêtre `hwnd` (valeur brute du handle). À appeler sur le
-/// thread principal, avant le premier affichage de la fenêtre.
+/// Attaches the buttons to the window `hwnd` (raw handle value). To call on the main
+/// thread, before the window is first shown.
 pub fn start(
     app: &AppHandle<Wry>,
     hwnd: isize,
@@ -168,12 +168,12 @@ pub fn start(
     let _ = PLAYER.set(player);
     let created = *BUTTON_CREATED
         .get_or_init(|| unsafe { RegisterWindowMessageW(w!("TaskbarButtonCreated")) });
-    // Déjà initialisé par tao (STA) : sans conséquence.
+    // Already initialized by tao (STA): harmless.
     let _ = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
     let list: ITaskbarList3 = unsafe { CoCreateInstance(&TaskbarList, None, CLSCTX_INPROC_SERVER) }
         .map_err(|e| e.to_string())?;
     unsafe { list.HrInit() }.map_err(|e| e.to_string())?;
-    // Lancée en administrateur, la fenêtre filtrerait les messages de l'explorateur.
+    // Run as administrator, the window would filter out Explorer's messages.
     unsafe {
         let _ = ChangeWindowMessageFilterEx(hwnd, created, MSGFLT_ALLOW, None);
         let _ = ChangeWindowMessageFilterEx(hwnd, WM_COMMAND, MSGFLT_ALLOW, None);
@@ -190,7 +190,7 @@ pub fn start(
     });
     if !unsafe { SetWindowSubclass(hwnd, Some(subclass_proc), SUBCLASS_ID, 0) }.as_bool() {
         BAR.with(|bar| bar.borrow_mut().take());
-        return Err("sous-classement de la fenêtre impossible".to_owned());
+        return Err("could not subclass the window".to_owned());
     }
     Ok(ThumbBarHandle {
         app: app.clone(),
@@ -217,8 +217,8 @@ unsafe extern "system" fn subclass_proc(
             bar.refresh();
         });
     } else if msg == WM_SETTINGCHANGE {
-        // Thème clair ou sombre changé (`ImmersiveColorSet`) : `refresh` ne redessine les
-        // icônes que si le thème de la barre des tâches a vraiment changé.
+        // Light or dark theme changed (`ImmersiveColorSet`): `refresh` only redraws the
+        // icons if the taskbar theme really changed.
         with_bar(Bar::refresh);
     } else if msg == WM_NCDESTROY {
         BAR.with(|bar| {
@@ -237,21 +237,21 @@ fn clicked(button: Button) {
         Button::PlayPause => Cmd::TogglePause,
         Button::Next => Cmd::Next,
     };
-    // Thread de l'interface : pas d'attente possible, la file de l'acteur suffit.
+    // UI thread: no waiting allowed, the actor's queue is enough.
     if PLAYER.get().is_none_or(|p| p.try_send(cmd).is_err()) {
-        tracing::warn!("miniature : lecteur indisponible");
+        tracing::warn!("thumbbar: player unavailable");
     }
 }
 
-/// État Win32, sur le thread principal seulement.
+/// Win32 state, on the main thread only.
 struct Bar {
     hwnd: HWND,
     list: ITaskbarList3,
-    /// Boutons posés sur le bouton actuel de la barre des tâches.
+    /// Buttons added to the current taskbar button.
     added: bool,
     view: ThumbView,
     icons: Option<Icons>,
-    /// Jeu précédent, gardé un tour : la barre des tâches peut encore l'afficher.
+    /// Previous set, kept for one round: the taskbar may still show it.
     retired: Option<Icons>,
 }
 
@@ -262,7 +262,7 @@ impl Bar {
             match Icons::new(light) {
                 Ok(icons) => self.retired = self.icons.replace(icons),
                 Err(e) => {
-                    tracing::warn!("miniature : icônes : {e}");
+                    tracing::warn!("thumbbar: icons: {e}");
                     return;
                 }
             }
@@ -278,9 +278,9 @@ impl Bar {
         };
         match result {
             Ok(()) => self.added = true,
-            // Avant le premier affichage, le bouton de la barre des tâches n'existe pas :
-            // `TaskbarButtonCreated` reposera les boutons.
-            Err(e) => tracing::debug!("miniature : {e}"),
+            // Before the first display, the taskbar button does not exist:
+            // `TaskbarButtonCreated` will add the buttons again.
+            Err(e) => tracing::debug!("thumbbar: {e}"),
         }
     }
 }
@@ -354,7 +354,7 @@ mod tests {
         let v = ThumbView::from_player(&s, Lang::Fr);
         assert_eq!(v.glyph(Button::PlayPause), Glyph::Pause);
         assert!(v.enabled(Button::PlayPause));
-        // Un titre chargé permet toujours « Précédent » (retour au début).
+        // A loaded track always allows "Previous" (back to the start).
         assert!(v.enabled(Button::Previous));
         assert!(!v.enabled(Button::Next));
 
@@ -364,7 +364,7 @@ mod tests {
         assert_eq!(paused.glyph(Button::PlayPause), Glyph::Play);
         assert!(paused.enabled(Button::Next));
         assert_ne!(paused, v);
-        // Seule la position change : même vue, rien n'est envoyé au thread principal.
+        // Only the position changes: same view, nothing is sent to the main thread.
         s.time_pos = 42.0;
         assert_eq!(ThumbView::from_player(&s, Lang::Fr), paused);
     }

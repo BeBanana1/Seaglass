@@ -1,7 +1,7 @@
-//! Icônes des boutons de la miniature, dessinées en code (#333) : pas de fichier `.ico`,
-//! taille au DPI du système et couleur au thème de la barre des tâches. Logique pure, testée.
+//! Icons of the thumbnail buttons, drawn in code (#333): no `.ico` file, size from the
+//! system DPI and color from the taskbar theme. Pure logic, tested.
 
-/// Les quatre symboles de la barre d'outils de la miniature.
+/// The four symbols of the thumbnail toolbar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Glyph {
     Previous,
@@ -10,7 +10,7 @@ pub enum Glyph {
     Next,
 }
 
-/// Formes dans un carré unité (x vers la droite, y vers le bas).
+/// Shapes in a unit square (x to the right, y downwards).
 enum Shape {
     Triangle([(f32, f32); 3]),
     Rect { x0: f32, y0: f32, x1: f32, y1: f32 },
@@ -71,11 +71,11 @@ fn shapes(glyph: Glyph) -> Vec<Shape> {
     }
 }
 
-/// Sous-échantillons par côté de pixel, pour l'anticrénelage.
+/// Subsamples per pixel side, for antialiasing.
 const SAMPLES: u32 = 4;
 
-/// Pixels BGRA de `size` × `size`, de haut en bas, alpha non prémultiplié (format des
-/// icônes 32 bits) : `rgb` partout, opacité selon la couverture du symbole.
+/// BGRA pixels of `size` × `size`, top to bottom, alpha not premultiplied (the format of
+/// 32-bit icons): `rgb` everywhere, opacity from the symbol's coverage.
 pub fn render(glyph: Glyph, size: u32, rgb: [u8; 3]) -> Vec<u8> {
     let shapes = shapes(glyph);
     let total = SAMPLES * SAMPLES;
@@ -112,12 +112,12 @@ mod tests {
         let size = 16;
         let play = render(Glyph::Play, size, [255, 255, 255]);
         assert_eq!(play.len(), (size * size * 4) as usize);
-        // Coins vides, centre plein.
+        // Empty corners, filled center.
         assert_eq!(alpha(&play, size, 0, 0), 0);
         assert_eq!(alpha(&play, size, 15, 15), 0);
         assert_eq!(alpha(&play, size, 7, 8), 255);
 
-        // Pause : deux barres séparées par un vide au centre.
+        // Pause: two bars with a gap in the middle.
         let pause = render(Glyph::Pause, size, [255, 255, 255]);
         assert_eq!(alpha(&pause, size, 5, 8), 255);
         assert_eq!(alpha(&pause, size, 10, 8), 255);
@@ -137,8 +137,8 @@ mod tests {
                 diff = diff.max((a - b).abs());
             }
         }
-        // Formes symétriques à l'arrondi près.
-        assert!(diff <= 64, "écart {diff}");
+        // Symmetric shapes, up to rounding.
+        assert!(diff <= 64, "difference {diff}");
     }
 
     #[test]

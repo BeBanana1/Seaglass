@@ -1,3 +1,6 @@
+//! Icons of the thumbnail buttons as Win32 resources: one set per taskbar theme, made
+//! from the pixels of `glyphs::render`.
+
 use windows::Win32::Graphics::Gdi::{
     BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateBitmap, CreateDIBSection, DIB_RGB_COLORS,
     DeleteObject,
@@ -10,7 +13,7 @@ use windows::core::w;
 
 use super::glyphs::{self, Glyph};
 
-/// Barre des tâches en thème clair (`SystemUsesLightTheme`) ; sombre par défaut.
+/// Taskbar in the light theme (`SystemUsesLightTheme`); dark by default.
 pub(super) fn taskbar_is_light() -> bool {
     let mut value = 0u32;
     let mut size = std::mem::size_of::<u32>() as u32;
@@ -28,7 +31,7 @@ pub(super) fn taskbar_is_light() -> bool {
     status.is_ok() && value == 1
 }
 
-/// Les quatre icônes pour un thème.
+/// The four icons for one theme.
 pub(super) struct Icons {
     pub(super) light: bool,
     previous: HICON,
@@ -39,7 +42,7 @@ pub(super) struct Icons {
 
 impl Icons {
     pub(super) fn new(light: bool) -> windows::core::Result<Self> {
-        // Sombre sur une barre claire, blanc sur une barre sombre.
+        // Dark on a light taskbar, white on a dark one.
         let rgb = if light { [0x1F; 3] } else { [0xFF; 3] };
         let size = unsafe { GetSystemMetrics(SM_CXSMICON) }.max(16);
         let mut icons = Self {
@@ -49,7 +52,7 @@ impl Icons {
             pause: HICON::default(),
             next: HICON::default(),
         };
-        // Remplies une à une : en cas d'échec, `Drop` libère celles déjà créées.
+        // Filled one by one: on failure, `Drop` frees those already created.
         icons.previous = create_icon(Glyph::Previous, size, rgb)?;
         icons.play = create_icon(Glyph::Play, size, rgb)?;
         icons.pause = create_icon(Glyph::Pause, size, rgb)?;
@@ -77,14 +80,14 @@ impl Drop for Icons {
     }
 }
 
-/// Icône 32 bits (alpha) depuis les pixels de `glyphs::render`.
+/// 32-bit icon (with alpha) from the pixels of `glyphs::render`.
 fn create_icon(glyph: Glyph, size: i32, rgb: [u8; 3]) -> windows::core::Result<HICON> {
     let pixels = glyphs::render(glyph, size as u32, rgb);
     let info = BITMAPINFO {
         bmiHeader: BITMAPINFOHEADER {
             biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
             biWidth: size,
-            // Négatif : lignes de haut en bas, comme `render`.
+            // Negative: rows top to bottom, like `render`.
             biHeight: -size,
             biPlanes: 1,
             biBitCount: 32,
@@ -99,9 +102,9 @@ fn create_icon(glyph: Glyph, size: i32, rgb: [u8; 3]) -> windows::core::Result<H
         let _ = unsafe { DeleteObject(color.into()) };
         return Err(windows::core::Error::from_thread());
     }
-    // SAFETY : la section fait `size * size * 4` octets, la taille exacte de `pixels`.
+    // SAFETY: the section is `size * size * 4` bytes, the exact size of `pixels`.
     unsafe { std::ptr::copy_nonoverlapping(pixels.as_ptr(), bits.cast::<u8>(), pixels.len()) };
-    // Masque monochrome vide (lignes alignées sur 16 bits) : l'alpha fait foi.
+    // Empty monochrome mask (rows aligned on 16 bits): the alpha channel is what counts.
     let mask_bits = vec![0u8; (size as usize).div_ceil(16) * 2 * size as usize];
     let mask = unsafe { CreateBitmap(size, size, 1, 1, Some(mask_bits.as_ptr().cast())) };
     let icon = unsafe {
@@ -113,7 +116,7 @@ fn create_icon(glyph: Glyph, size: i32, rgb: [u8; 3]) -> windows::core::Result<H
             hbmColor: color,
         })
     };
-    // L'icône garde ses propres copies des bitmaps.
+    // The icon keeps its own copies of the bitmaps.
     unsafe {
         let _ = DeleteObject(color.into());
         let _ = DeleteObject(mask.into());
