@@ -173,7 +173,7 @@ pnpm release:all -Publish                         # Windows + Android + Linux (W
 - Provide **complete files** when modified, not partial patches.
 - Shell commands in PowerShell.
 - Before implementing anything that depends on a TIDAL endpoint, check its real behavior (spike or test request) rather than assuming it.
-- Keep modules small: if a file goes past about 400 lines, propose a split.
+- Keep modules small: past about 400 lines of code (not counting tests, generated types, i18n dictionaries and fixtures), look for a natural seam (a separate responsibility, a group of commands, a transport) and propose a split along it. No seam, no split: line count alone is not a reason.
 - **Documentation**: this file stays short. What is learned while handling an issue (verified endpoint, measurement, pitfall, decision and its reason) goes into the area's file in `docs/`, in the same PR. Fix or remove what is outdated rather than appending.
 - **Changelog**: every `VERSION` change adds its entry at the top of `CHANGELOG.md` (one line, with the issue number; platform prefixes `Android:`, `Windows:`, `Linux:`, `Desktop:`). After a release, the title of the tagged version gets "(published <YYYY-MM-DD>)": the app's parser reads these exact markers.
 - Update the "Status" line and the roadmap of this file at the end of each phase.

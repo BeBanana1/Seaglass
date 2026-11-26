@@ -39,7 +39,7 @@ Tests marked `#[ignore]` (`cargo test live_… -- --ignored`) call the real TIDA
 - **Shared types** are defined in Rust. Those deriving `ts_rs::TS` are generated into `src/lib/bindings/` by `cargo test` (commit them; CI fails if they differ) and re-exported by `src/lib/ipc.ts`; the others are still duplicated there by hand.
 - **Tests**: required for pure logic (the queue in `player/queue.rs` in particular). Frontend tests sit next to their module (`src/lib/<module>.test.ts`).
 - **Themes** override components by class name: before renaming a CSS class, check [`docs/themes.md`](docs/themes.md) and `src/themes/`.
-- **Small modules**: past about 400 lines, split the file.
+- **Small modules**: past about 400 lines of code (tests, generated types, i18n dictionaries and fixtures not counted), look for a natural seam (a separate responsibility, a group of commands, a transport) and split along it. Without one, leave the file whole: line count alone is not a reason.
 
 ## Commits and pull requests
 
