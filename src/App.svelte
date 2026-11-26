@@ -1,13 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { commands, events, type SessionInfo } from "./lib/ipc";
+  import { events } from "./lib/ipc";
   import { initPlayer, player } from "./lib/stores/player.svelte";
-  import { initQueue, queue } from "./lib/stores/queue.svelte";
-  import { playedFrom } from "./lib/playSource";
-  import { playPin } from "./lib/pins";
+  import { initQueue } from "./lib/stores/queue.svelte";
   import { initToasts, noticeCrash, pushToast } from "./lib/stores/toasts.svelte";
   import { clearLikes, initLikes, loadLikes } from "./lib/stores/likes.svelte";
-  import { closeJamDialog, initJam, jam } from "./lib/stores/jam.svelte";
+  import { initJam } from "./lib/stores/jam.svelte";
   import JamDialog from "./components/JamDialog.svelte";
   import { clearLater, initLater, loadLater } from "./lib/stores/later.svelte";
   import { clearFeed, initFeed } from "./lib/stores/feed.svelte";
@@ -16,24 +14,15 @@
   import { togglePalette } from "./lib/stores/palette.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
   import { initLanguage, t } from "./lib/i18n.svelte";
-  import { closeTrackInfo, openTrackInfo, trackInfo } from "./lib/stores/trackInfo.svelte";
-  import { closeMenu, menu } from "./lib/stores/menu.svelte";
-  import { closePlaylistPicker, picker } from "./lib/stores/playlistPicker.svelte";
-  import { clearFolders, closeFolderPicker, folderPicker } from "./lib/stores/folders.svelte";
+  import { openTrackInfo } from "./lib/stores/trackInfo.svelte";
   import { platform } from "./lib/platform.svelte";
-  import { appWindow, initWindow, setFullscreen } from "./lib/stores/window.svelte";
+  import { initWindow } from "./lib/stores/window.svelte";
   import { initBackButton } from "./lib/backButton";
-  import { exitListSearch, listSearch } from "./lib/stores/listSearch.svelte";
-  import { openSharedLink, openTidalLink } from "./lib/links";
-  import {
-    back,
-    canGoBack,
-    current,
-    go,
-    nav,
-    openSettings,
-    replace,
-  } from "./lib/stores/nav.svelte";
+  import { back, canGoBack, current, go, nav, openSettings } from "./lib/stores/nav.svelte";
+  import { Shell } from "./app/shell.svelte";
+  import { canClose, closeTop } from "./app/back";
+  import { listenOutside, openShared } from "./app/outside";
+  import { onContextmenu, onFocusChange, onKeydown, onPaste } from "./app/windowEvents";
   import Login from "./views/Login.svelte";
   import Home from "./views/Home.svelte";
   import Feed from "./views/Feed.svelte";
@@ -76,28 +65,23 @@
   import { eggs, initEggs } from "./lib/eggs/eggs.svelte";
   import { romanVersion } from "./lib/eggs/registry";
 
-  let session = $state<SessionInfo | null>(null);
-  let ready = $state(false);
-  let queueOpen = $state(false);
-  let nowPlayingOpen = $state(false);
-  /** Mode conduite (#193, Android) : plein écran au-dessus de tout le reste. */
-  let driveOpen = $state(false);
-  /** « En lecture » ouvert par la notification d'Android (#240) : la page dessous est quelconque. */
-  let nowPlayingFromOutside = false;
+  const shell = new Shell();
   let main = $state<HTMLElement>();
-  // Android : un champ de texte a le focus, donc le clavier est ouvert (#151).
-  let typing = $state(false);
 
   // Registre des actions (#412) : ce qu'il ne peut faire sans `App` (panneaux, session).
   setActionContext({
-    loggedIn: () => !!session,
-    openNowPlaying: () => (nowPlayingOpen = true),
-    closeNowPlaying: () => (nowPlayingOpen = false),
-    toggleQueue: () => (queueOpen = !queueOpen),
+    loggedIn: () => !!shell.session,
+    openNowPlaying: () => (shell.nowPlayingOpen = true),
+    closeNowPlaying: () => (shell.nowPlayingOpen = false),
+    toggleQueue: () => (shell.queueOpen = !shell.queueOpen),
   });
 
   onMount(async () => {
-    if (platform.mobile) initBackButton(canClose, closeTop);
+    if (platform.mobile)
+      initBackButton(
+        () => canClose(shell),
+        () => closeTop(shell),
+      );
     void initActions();
     await Promise.all([
       initLanguage(),
@@ -113,8 +97,8 @@
       initBlindTest(),
     ]);
     initEggs();
-    await restoreSession();
-    ready = true;
+    await shell.restoreSession();
+    shell.ready = true;
     void noticeCrash();
     // Raccourci global « Aimer » (#413) : exécuté ici, par le registre des actions.
     if (!platform.mobile) {
@@ -123,40 +107,30 @@
       });
     }
     void events.onSessionLost(() => {
-      if (!session) return;
-      session = null;
+      if (!shell.session) return;
+      shell.session = null;
       clearLikes();
       clearLater();
       clearFeed();
       pushToast({ level: "error", message: t.views.login.sessionLost });
     });
-    // Lien partagé (Android, #203) ou notification des nouvelles sorties touchée (#435).
-    void events.onSharedLink(openShared);
-    void openShared();
-    if (platform.mobile) {
-      void events.onOpenNowPlaying(openFromNotification);
-      void openFromNotification();
-      void events.onOpenDrive(openDriveFromOutside);
-      void openDriveFromOutside();
-      void events.onOpenPin(playPinFromOutside);
-      void playPinFromOutside();
-    }
+    listenOutside(shell);
     if ((import.meta.env.DEV || __DEMO__) && !("__TAURI_INTERNALS__" in window)) {
       const view = (await import("./lib/mock")).initialView();
       if (view.route) go(view.route);
-      nowPlayingOpen = view.nowPlaying;
-      queueOpen = view.queue;
+      shell.nowPlayingOpen = view.nowPlaying;
+      shell.queueOpen = view.queue;
       ui.nowPlayingPanel =
         view.lyrics && view.queue ? "both" : view.lyrics ? "lyrics" : view.queue ? "queue" : null;
       if (view.trackInfo && player.state.track) openTrackInfo(player.state.track);
-      driveOpen = view.drive;
+      shell.driveOpen = view.drive;
       if (view.palette) togglePalette();
     }
   });
 
   // Cœurs : chargés à chaque connexion (une requête pour toute la bibliothèque).
   $effect(() => {
-    if (session) {
+    if (shell.session) {
       loadLikes();
       loadLater();
     }
@@ -181,248 +155,20 @@
     main?.scrollTo({ top: 0 });
   });
 
-  // Retour d'Android : ferme ce qui est au-dessus (menu, dialogue, « En lecture »), quitte
-  // la recherche dans une liste, revient à la page précédente, puis à l'accueil (#240) :
-  // seul Retour sur l'accueil quitte l'app.
-  function canClose(): boolean {
-    return (
-      !!menu.open ||
-      !!picker.request ||
-      !!folderPicker.request ||
-      !!trackInfo.track ||
-      jam.dialogOpen ||
-      driveOpen ||
-      nowPlayingOpen ||
-      selection.count > 0 ||
-      listSearch.active ||
-      canGoBack() ||
-      (!!session && current().name !== "home")
-    );
-  }
-
-  function closeTop() {
-    if (menu.open) closeMenu();
-    else if (picker.request) closePlaylistPicker();
-    else if (folderPicker.request) closeFolderPicker();
-    else if (trackInfo.track) closeTrackInfo();
-    else if (jam.dialogOpen) closeJamDialog();
-    else if (driveOpen) driveOpen = false;
-    // Paroles ou file en plein écran (#173) : Retour revient d'abord à « En lecture ».
-    else if (nowPlayingOpen && ui.nowPlayingPanel) ui.nowPlayingPanel = null;
-    else if (nowPlayingOpen) closeNowPlaying();
-    // Sélection multiple (#332) : Retour la vide avant de quitter la page.
-    else if (selection.count > 0) selection.clear();
-    else if (listSearch.active) exitListSearch();
-    else if (canGoBack()) back();
-    else replace({ name: "home" });
-  }
-
   // Fermé autrement (Échap, raccourci, lien partagé) : la marque ne doit pas survivre.
   $effect(() => {
-    if (!nowPlayingOpen) nowPlayingFromOutside = false;
+    if (!shell.nowPlayingOpen) shell.nowPlayingFromOutside = false;
   });
 
-  // Ouvert depuis la notification, « En lecture » se referme sur la page d'où joue le titre
-  // (#240), par-dessus la page qui était là : Retour y revient ensuite.
-  function closeNowPlaying() {
-    nowPlayingOpen = false;
-    if (!nowPlayingFromOutside) return;
-    nowPlayingFromOutside = false;
-    const route = playedFrom(queue.view.source)?.route;
-    if (route && JSON.stringify(route) !== JSON.stringify(current())) go(route);
-  }
-
-  // Android : mini-lecteur et navigation masqués pendant la saisie, comme dans les apps
-  // natives ; ils prendraient sinon la place des résultats au-dessus du clavier (#151).
-  const NOT_TEXT = new Set([
-    "button",
-    "checkbox",
-    "color",
-    "file",
-    "radio",
-    "range",
-    "reset",
-    "submit",
-  ]);
-
-  // Appui sur la notification d'Android (#163) : demande gardée par Rust, prise une seule
-  // fois (aussi au démarrage, si l'app a été rouverte par la notification).
-  async function openFromNotification() {
-    if (!(await commands.takeNowPlayingRequest().catch(() => false))) return;
-    if (session && player.state.track) {
-      nowPlayingOpen = true;
-      nowPlayingFromOutside = true;
-    }
-  }
-
-  // Lien `seaglass://drive` ou raccourci de l'app (#193) : demande gardée par Rust, prise une
-  // seule fois (aussi au démarrage). Déconnecté, elle est oubliée : rien à y lire.
-  async function openDriveFromOutside() {
-    if (!(await commands.takeDriveRequest().catch(() => false))) return;
-    if (!session) return;
-    nowPlayingOpen = false;
-    driveOpen = true;
-  }
-
-  // Raccourci d'une épingle (appui long sur l'icône) ou lien `seaglass://pin/…` (#335) :
-  // l'épingle est lue comme une tuile du mode conduite, puis « En lecture » s'ouvre.
-  // Déconnecté, la demande est oubliée.
-  async function playPinFromOutside() {
-    const pin = await commands.takePinRequest().catch(() => null);
-    if (!pin || !session) return;
-    try {
-      await playPin(pin, player.state.shuffle);
-      driveOpen = false;
-      nowPlayingOpen = true;
-      nowPlayingFromOutside = true;
-    } catch (e) {
-      pushToast({ level: "error", message: String(e) });
-    }
-  }
-
-  // Lien partagé depuis une autre app (#203) : seulement connecté, sinon il attend.
-  async function openShared() {
-    if (!session) return;
-    nowPlayingOpen = false;
-    await openSharedLink();
-  }
-
-  function isTextField(el: EventTarget | null): boolean {
-    if (el instanceof HTMLTextAreaElement) return true;
-    return el instanceof HTMLInputElement && !NOT_TEXT.has(el.type);
-  }
-
-  function onFocusChange(e: FocusEvent) {
-    if (!platform.mobile) return;
-    typing = isTextField(e.type === "focusin" ? e.target : e.relatedTarget);
-  }
-
-  function onKeydown(e: KeyboardEvent) {
-    const target = e.target as HTMLElement;
-    const typing = target.closest("input, textarea, [contenteditable]") !== null;
-    // Plein écran de la fenêtre (#131), indépendant de « En lecture » ; Échap en sort
-    // d'abord, comme une vidéo, puis ferme la vue au second appui.
-    if (e.key === "F11" && !platform.mobile) {
-      e.preventDefault();
-      runAction("window.fullscreen");
-      return;
-    }
-    if (e.key === "Escape") {
-      if (appWindow.fullscreen) setFullscreen(false);
-      else if (nowPlayingOpen) nowPlayingOpen = false;
-      // Les dialogues, la palette et le menu gèrent leur propre Échap.
-      else if (!menu.open && !picker.request && !trackInfo.track) selection.clear();
-      return;
-    }
-    // Taille de l'interface (#337), comme dans un navigateur ; Android a son propre réglage.
-    if (e.ctrlKey && !platform.mobile && ["+", "=", "-", "0"].includes(e.key)) {
-      e.preventDefault();
-      runAction(
-        e.key === "0" ? "window.zoomReset" : e.key === "-" ? "window.zoomOut" : "window.zoomIn",
-      );
-      return;
-    }
-    // Les réglages restent accessibles déconnecté (thème, cache).
-    if (e.ctrlKey && e.key === ",") {
-      e.preventDefault();
-      runAction("go.settings");
-      return;
-    }
-    if (!session) return;
-    // Mini-lecteur du bureau (#384).
-    if (e.ctrlKey && e.key.toLowerCase() === "m" && !platform.mobile) {
-      e.preventDefault();
-      runAction("window.mini");
-      return;
-    }
-    // Palette de commandes (#412) sur le bureau ; Android garde la page Recherche.
-    if (e.ctrlKey && e.key.toLowerCase() === "k") {
-      e.preventDefault();
-      if (platform.mobile) runAction("go.search");
-      else togglePalette();
-    } else if (e.key === "/" && !typing) {
-      e.preventDefault();
-      runAction("go.search");
-    } else if (
-      e.ctrlKey &&
-      e.key.toLowerCase() === "a" &&
-      !typing &&
-      !nowPlayingOpen &&
-      !menu.open
-    ) {
-      // Sélection multiple (#332) : toute la liste affichée (filtrée) ; sans liste de titres
-      // sur la page, Ctrl+A garde son sens habituel.
-      if (selection.selectAll()) e.preventDefault();
-    } else if (e.key === " " && !typing && !target.closest("button")) {
-      e.preventDefault();
-      // Pas par `runAction` : sans titre chargé, Espace part quand même au backend.
-      commands.togglePause();
-    } else if (e.altKey && e.key === "ArrowLeft") {
-      runAction("go.back");
-    } else if (e.ctrlKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && !typing) {
-      e.preventDefault();
-      runAction(e.key === "ArrowUp" ? "play.volumeUp" : "play.volumeDown");
-    }
-  }
-
-  // Pas de menu WebView2 (Précédent, Actualiser, Imprimer…) hors des champs de texte et des
-  // sélections, où il sert à copier-coller. Les menus de l'app appellent `preventDefault` avant.
-  function onContextmenu(e: MouseEvent) {
-    if (e.defaultPrevented) return;
-    const target = e.target as HTMLElement;
-    const editable = target.closest("input, textarea, [contenteditable]") !== null;
-    const selected = (window.getSelection()?.toString() ?? "") !== "";
-    if (!editable && !selected) e.preventDefault();
-  }
-
-  // Session enregistrée non reprise à cause d'une erreur passagère (réseau absent au
-  // lancement avec Windows, panne de TIDAL) : le refresh token est gardé, on réessaie au
-  // lieu de demander une reconnexion (#252).
-  let restoreError = $state<string | null>(null);
-  let restoreTimer: ReturnType<typeof setTimeout> | undefined;
-  let restoreDelay = 5_000;
-
-  async function restoreSession() {
-    clearTimeout(restoreTimer);
-    try {
-      const restored = await commands.authStatus();
-      if (!session) session = restored;
-      restoreError = null;
-      restoreDelay = 5_000;
-    } catch (e) {
-      restoreError = String(e);
-      restoreTimer = setTimeout(() => void restoreSession(), restoreDelay);
-      restoreDelay = Math.min(restoreDelay * 2, 60_000);
-    }
-  }
-
-  async function logout() {
-    await commands.logout();
-    session = null;
-    clearLikes();
-    clearLater();
-    clearFeed();
-    clearFolders();
-  }
-
   const route = $derived(current());
-
-  // Lien TIDAL collé hors d'un champ de texte (#203) : ouvre sa page.
-  function onPaste(e: ClipboardEvent) {
-    if (!session) return;
-    const target = e.target as HTMLElement | null;
-    if (target?.closest?.("input, textarea, [contenteditable]")) return;
-    const text = e.clipboardData?.getData("text/plain");
-    if (text) void openTidalLink(text);
-  }
 </script>
 
 <svelte:window
-  onkeydown={onKeydown}
-  onpaste={onPaste}
+  onkeydown={(e) => onKeydown(shell, e)}
+  onpaste={(e) => onPaste(shell, e)}
   oncontextmenu={onContextmenu}
-  onfocusin={onFocusChange}
-  onfocusout={onFocusChange}
+  onfocusin={(e) => onFocusChange(shell, e)}
+  onfocusout={(e) => onFocusChange(shell, e)}
 />
 
 <div class="backdrop-layer"><Backdrop /></div>
@@ -436,7 +182,7 @@
         <span></span>
       </span>{/if}
     <div class="left">
-      {#if session || route.name === "settings"}
+      {#if shell.session || route.name === "settings"}
         <button
           class="back"
           onclick={back}
@@ -463,10 +209,10 @@
       <!-- Android : navigation en bas, réglages en haut à droite (#143), déconnexion dans Réglages › Application. -->
       {#if route.name !== "settings"}
         <div class="actions">
-          {#if session}
+          {#if shell.session}
             <button
               class="icon-action"
-              onclick={() => (driveOpen = true)}
+              onclick={() => (shell.driveOpen = true)}
               aria-label={t.drive.open}
             >
               <Icon name="car" size={22} />
@@ -483,7 +229,7 @@
       {/if}
     {:else}
       <div class="actions">
-        {#if session}
+        {#if shell.session}
           <button
             class="search-hint"
             onclick={() => (platform.mobile ? runAction("go.search") : togglePalette())}
@@ -501,24 +247,22 @@
 
   <div
     class="body"
-    class:with-nav={session && !platform.mobile}
-    class:with-queue={queueOpen && session && !platform.mobile}
+    class:with-nav={shell.session && !platform.mobile}
+    class:with-queue={shell.queueOpen && shell.session && !platform.mobile}
   >
-    {#if session && !platform.mobile}<div class="panel nav"><Sidebar /></div>{/if}
+    {#if shell.session && !platform.mobile}<div class="panel nav"><Sidebar /></div>{/if}
     <main class="panel" bind:this={main}>
-      {#if !ready}
+      {#if !shell.ready}
         <!-- `.boot` : écran de démarrage, que certains thèmes décorent (Ordinateur de bord, #339). -->
         <p class="muted boot">{t.common.loading}</p>
       {:else if route.name === "settings"}
-        <Settings section={route.section} onLogout={session ? logout : undefined} />
-      {:else if !session}
+        <Settings section={route.section} onLogout={shell.session ? shell.logout : undefined} />
+      {:else if !shell.session}
         <Login
-          {restoreError}
+          restoreError={shell.restoreError}
           onLogin={(s) => {
-            clearTimeout(restoreTimer);
-            restoreError = null;
-            session = s;
-            if (platform.mobile) void openShared();
+            shell.signIn(s);
+            if (platform.mobile) void openShared(shell);
           }}
         />
       {:else if route.name === "home"}
@@ -555,44 +299,44 @@
         <Mix source={{ seed: route.seed, id: route.id }} />
       {/if}
     </main>
-    {#if queueOpen && session && !platform.mobile}
+    {#if shell.queueOpen && shell.session && !platform.mobile}
       <div class="panel queue"><Queue /></div>
     {/if}
   </div>
 
   {#if platform.mobile}
-    {#if session && !typing}
+    {#if shell.session && !shell.typing}
       {#if selection.count > 0}
         <SelectionBar />
       {:else}
-        <MiniPlayer onOpenNowPlaying={() => (nowPlayingOpen = true)} />
+        <MiniPlayer onOpenNowPlaying={() => (shell.nowPlayingOpen = true)} />
       {/if}
       <div class="panel bottom"><BottomNav /></div>
     {/if}
   {:else}
     <div class="player">
       <PlayerBar
-        {queueOpen}
-        onToggleQueue={() => (queueOpen = !queueOpen)}
-        onOpenNowPlaying={() => (nowPlayingOpen = true)}
+        queueOpen={shell.queueOpen}
+        onToggleQueue={() => (shell.queueOpen = !shell.queueOpen)}
+        onOpenNowPlaying={() => (shell.nowPlayingOpen = true)}
       />
     </div>
   {/if}
 </div>
 
-{#if nowPlayingOpen}
-  <NowPlaying onClose={closeNowPlaying} />
+{#if shell.nowPlayingOpen}
+  <NowPlaying onClose={shell.closeNowPlaying} />
 {/if}
-{#if driveOpen && session && platform.mobile}
+{#if shell.driveOpen && shell.session && platform.mobile}
   <Drive
-    onClose={() => (driveOpen = false)}
+    onClose={() => (shell.driveOpen = false)}
     onOpen={(target) => {
-      driveOpen = false;
+      shell.driveOpen = false;
       if (JSON.stringify(target) !== JSON.stringify(current())) go(target);
     }}
   />
 {/if}
-{#if session && !platform.mobile && selection.count > 0 && !nowPlayingOpen}
+{#if shell.session && !platform.mobile && selection.count > 0 && !shell.nowPlayingOpen}
   <SelectionBar />
 {/if}
 <Toasts />
@@ -603,7 +347,7 @@
 <FolderPicker />
 <TrackInfo />
 <JamDialog />
-{#if session && !platform.mobile}<CommandPalette />{/if}
+{#if shell.session && !platform.mobile}<CommandPalette />{/if}
 
 <style>
   /* Fond propre au thème (vide pour Studio et Atelier). */
