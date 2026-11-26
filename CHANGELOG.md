@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.130
+
+- chore: the comments, logs and technical error details of the system integrations (`integrations/`: SMTC, MPRIS, notification area, Discord, ListenBrainz, notifications, Android media session) are now in English, with no change in behavior (#8).
+
 ## 0.5.129
 
 - chore: the icons of the taskbar thumbnail buttons (`integrations/thumbbar/`) move to a file of their own, and the module's comments and logs are now in English, with no change in behavior (#45).
