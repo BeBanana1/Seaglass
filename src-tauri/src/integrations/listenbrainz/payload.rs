@@ -1,7 +1,7 @@
-//! Écoutes au format de l'API de ListenBrainz (`submit-listens`), logique pure.
+//! Listens in the format of the ListenBrainz API (`submit-listens`), pure logic.
 //!
-//! `additional_info` suit les clés recommandées par ListenBrainz : l'ISRC et la durée aident
-//! la correspondance avec MusicBrainz, `music_service` est le domaine canonique du service.
+//! `additional_info` follows the keys ListenBrainz recommends: the ISRC and the duration help the
+//! match with MusicBrainz, `music_service` is the service's canonical domain.
 
 use serde_json::{Value, json};
 
@@ -9,11 +9,11 @@ use crate::tidal::models::Track;
 
 const PLAYER: &str = "Seaglass";
 const SERVICE: &str = "tidal.com";
-/// ListenBrainz refuse une écoute de plus de 10 240 octets : les champs libres sont coupés
-/// bien avant (500 caractères, 2 000 octets au pire).
+/// ListenBrainz refuses a listen of more than 10,240 bytes: the free fields are cut well before
+/// that (500 characters, 2,000 bytes at worst).
 const MAX_FIELD_CHARS: usize = 500;
 
-/// Type d'envoi : début d'un titre, une écoute, ou plusieurs écoutes gardées.
+/// Submission type: start of a track, one listen, or several stored listens.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListenType {
     PlayingNow,
@@ -31,8 +31,7 @@ impl ListenType {
     }
 }
 
-/// Une écoute : `listened_at` (secondes Unix, début de l'écoute) est absent pour
-/// `playing_now`.
+/// One listen: `listened_at` (Unix seconds, start of the listen) is absent for `playing_now`.
 pub fn listen(track: &Track, listened_at: Option<i64>) -> Value {
     let title = match &track.version {
         Some(v) if !v.trim().is_empty() => format!("{} ({})", track.title, v.trim()),
@@ -73,7 +72,7 @@ pub fn listen(track: &Track, listened_at: Option<i64>) -> Value {
     listen
 }
 
-/// Corps d'une requête `submit-listens`.
+/// Body of a `submit-listens` request.
 pub fn submission(kind: ListenType, listens: Vec<Value>) -> Value {
     json!({ "listen_type": kind.as_str(), "payload": listens })
 }

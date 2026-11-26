@@ -1,5 +1,5 @@
-//! IPC local de Discord : named pipe `\\.\pipe\discord-ipc-<n>` sous Windows, socket Unix
-//! ailleurs. Trames `opcode (u32 LE) + longueur (u32 LE) + JSON`.
+//! Discord's local IPC: named pipe `\\.\pipe\discord-ipc-<n>` on Windows, Unix socket elsewhere.
+//! Frames are `opcode (u32 LE) + length (u32 LE) + JSON`.
 
 use std::time::Duration;
 
@@ -14,19 +14,19 @@ const OP_CLOSE: u32 = 2;
 const OP_PING: u32 = 3;
 const OP_PONG: u32 = 4;
 
-/// Discord n'envoie que de petites réponses ; au-delà, la connexion est jugée invalide.
+/// Discord only sends small replies; beyond this, the connection is considered invalid.
 const MAX_FRAME: usize = 64 * 1024;
 const READY_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Debug, thiserror::Error)]
 pub enum IpcError {
-    #[error("Discord injoignable : {0}")]
+    #[error("Discord unreachable: {0}")]
     Io(#[from] std::io::Error),
-    #[error("Discord a refusé la connexion : {0}")]
+    #[error("Discord refused the connection: {0}")]
     Refused(String),
-    #[error("Discord n'a pas répondu")]
+    #[error("Discord did not answer")]
     Timeout,
-    #[error("connexion à Discord fermée")]
+    #[error("connection to Discord closed")]
     Closed,
 }
 
@@ -35,9 +35,9 @@ pub struct Frame {
     pub payload: Value,
 }
 
-/// Connexion établie (READY reçu). La lecture tourne dans une tâche à part, arrêtée avec la
-/// connexion : le pipe n'est fermé qu'une fois les deux moitiés libérées, et Discord efface
-/// alors la présence.
+/// Connection established (READY received). Reading runs in a separate task, stopped with the
+/// connection: the pipe is only closed once both halves are released, and Discord then clears the
+/// presence.
 pub struct Connection<S> {
     writer: WriteHalf<S>,
     frames: mpsc::Receiver<Frame>,
@@ -56,7 +56,7 @@ pub type Pipe = tokio::net::windows::named_pipe::NamedPipeClient;
 #[cfg(unix)]
 pub type Pipe = tokio::net::UnixStream;
 
-/// Premier pipe de Discord qui répond (0 à 9 : plusieurs clients peuvent tourner).
+/// First Discord pipe that answers (0 to 9: several clients may be running).
 pub async fn open(client_id: &str) -> Result<Connection<Pipe>, IpcError> {
     let mut last = IpcError::Closed;
     for i in 0..10 {
@@ -111,7 +111,7 @@ impl<S: AsyncRead + AsyncWrite + Send + 'static> Connection<S> {
         }
     }
 
-    /// Remplace l'activité (`None` l'efface).
+    /// Replaces the activity (`None` clears it).
     pub async fn set_activity(&mut self, activity: Option<Value>) -> Result<(), IpcError> {
         self.nonce += 1;
         let payload = json!({
@@ -122,13 +122,12 @@ impl<S: AsyncRead + AsyncWrite + Send + 'static> Connection<S> {
         self.write(OP_FRAME, &payload).await
     }
 
-    /// Trame suivante de Discord (sûr dans un `select!`) ; `None` : connexion perdue.
+    /// Next frame from Discord (safe in a `select!`); `None`: connection lost.
     pub async fn recv(&mut self) -> Option<Frame> {
         self.frames.recv().await
     }
 
-    /// `PING` reçoit son `PONG`, une erreur est journalisée. `Err` : connexion fermée par
-    /// Discord ou perdue.
+    /// `PING` gets its `PONG`, an error is logged. `Err`: connection closed by Discord or lost.
     pub async fn handle(&mut self, frame: Frame) -> Result<(), IpcError> {
         match frame.op {
             OP_PING => self.write(OP_PONG, &frame.payload).await,
@@ -153,7 +152,7 @@ fn message(payload: &Value) -> String {
     payload["data"]["message"]
         .as_str()
         .or_else(|| payload["message"].as_str())
-        .unwrap_or("réponse inattendue")
+        .unwrap_or("unexpected reply")
         .to_owned()
 }
 
@@ -185,7 +184,7 @@ mod tests {
     use super::*;
     use tokio::io::DuplexStream;
 
-    /// Faux Discord : lit une trame et la renvoie, répond par `reply`.
+    /// Fake Discord: reads a frame and sends it back, answers with `reply`.
     async fn serve(server: &mut DuplexStream, reply: Option<(u32, Value)>) -> Frame {
         let frame = read_frame(server).await.unwrap();
         if let Some((op, payload)) = reply {

@@ -1,7 +1,7 @@
-//! Requêtes à l'API de ListenBrainz : vérification du jeton et envoi des écoutes.
+//! Requests to the ListenBrainz API: token validation and listen submission.
 //!
-//! Le jeton ne sort de ce module que dans l'en-tête `Authorization` : jamais dans un
-//! journal ni dans un message d'erreur.
+//! The token only leaves this module in the `Authorization` header: never in a log or an error
+//! message.
 
 use std::time::Duration;
 
@@ -14,13 +14,13 @@ use crate::i18n::{tr, trf};
 const API: &str = "https://api.listenbrainz.org/1";
 const TIMEOUT: Duration = Duration::from_secs(20);
 
-/// Jeton utilisateur, sans `Debug` pour qu'il ne finisse pas dans un journal.
+/// User token, without `Debug` so that it never ends up in a log.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Token(String);
 
 impl Token {
-    /// Jeton collé par l'utilisateur, espaces retirés ; `None` s'il est vide ou contient
-    /// des caractères qu'un en-tête HTTP refuserait.
+    /// Token pasted by the user, whitespace removed; `None` if it is empty or contains characters
+    /// an HTTP header would refuse.
     pub fn parse(raw: &str) -> Option<Self> {
         let token = raw.trim();
         let valid =
@@ -37,15 +37,15 @@ impl Token {
     }
 }
 
-/// Échec d'un envoi, et ce qu'il faut en faire.
+/// A failed submission, and what to do about it.
 #[derive(Debug, PartialEq, Eq)]
 pub enum SendError {
-    /// Réseau, service indisponible, trop de requêtes : réessayer (après le délai donné
-    /// par le service, s'il en donne un).
+    /// Network, service unavailable, too many requests: retry (after the delay the service gives,
+    /// if any).
     Retry(Option<Duration>),
-    /// Jeton refusé : ne plus rien envoyer avant un nouveau jeton.
+    /// Token refused: send nothing more until a new token.
     Unauthorized,
-    /// Écoute refusée (400) : la renvoyer telle quelle échouerait encore.
+    /// Listen refused (400): sending it again as is would fail again.
     Rejected,
 }
 
@@ -66,8 +66,7 @@ struct Validation {
     user_name: Option<String>,
 }
 
-/// Nom du compte du jeton. ListenBrainz répond 200 même à un jeton invalide
-/// (`"valid": false`).
+/// Account name of the token. ListenBrainz answers 200 even to an invalid token (`"valid": false`).
 pub async fn validate(client: &reqwest::Client, token: &Token) -> Result<String, String> {
     let response = client
         .get(format!("{API}/validate-token"))
@@ -107,7 +106,7 @@ pub async fn submit(
         .send()
         .await
         .map_err(|e| {
-            tracing::info!("ListenBrainz injoignable : {}", e.without_url());
+            tracing::info!("ListenBrainz unreachable: {}", e.without_url());
             SendError::Retry(None)
         })?;
     let status = response.status().as_u16();
@@ -122,7 +121,7 @@ pub async fn submit(
         Err(e) => {
             let body = response.text().await.unwrap_or_default();
             tracing::info!(
-                "ListenBrainz : envoi refusé ({status}) : {}",
+                "ListenBrainz: submission refused ({status}): {}",
                 body.chars().take(300).collect::<String>()
             );
             Err(e)
@@ -130,7 +129,7 @@ pub async fn submit(
     }
 }
 
-/// Que faire d'une réponse, selon son statut.
+/// What to do with a response, depending on its status.
 fn classify(status: u16, reset_in: Option<Duration>) -> Result<(), SendError> {
     match status {
         200..=299 => Ok(()),

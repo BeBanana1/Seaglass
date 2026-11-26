@@ -1,13 +1,12 @@
-//! Envoi des écoutes à ListenBrainz (#431), facultatif, bureau et Android.
+//! Listen submission to ListenBrainz (#431), optional, desktop and Android.
 //!
-//! Le jeton de l'utilisateur, vérifié par `validate-token`, est gardé dans le keyring avec
-//! le nom de son compte : sa présence est le seul interrupteur. Le lecteur annonce le début
-//! d'un titre (`now_playing`, sans file : il ne vaut que sur le moment) et chaque écoute
-//! comptée (`listened`, règle de `player::listen`), mise en file dans SQLite
-//! (`store::scrobbles`). Une tâche vide la file : une écoute seule part en `single`,
-//! plusieurs en `import`. Sans réseau ou service indisponible, elle réessaie avec une
-//! attente croissante ; un jeton refusé suspend l'envoi jusqu'au prochain jeton, sans perdre
-//! la file.
+//! The user's token, checked by `validate-token`, is kept in the keyring with its account name: its
+//! presence is the only switch. The player announces the start of a track (`now_playing`, not
+//! queued: it only matters at the time) and every counted listen (`listened`, rule of
+//! `player::listen`), queued in SQLite (`store::scrobbles`). A task empties the queue: a single
+//! listen goes as `single`, several as `import`. Without a network or with the service unavailable,
+//! it retries with a growing wait; a refused token suspends the submission until the next token,
+//! without losing the queue.
 
 mod api;
 mod payload;
@@ -27,21 +26,21 @@ use payload::ListenType;
 
 const KEYRING_SERVICE: &str = "seaglass";
 const KEYRING_USER: &str = "listenbrainz";
-/// Écoutes par requête `import` (ListenBrainz en accepte 1 000).
+/// Listens per `import` request (ListenBrainz accepts 1,000).
 const BATCH: usize = 100;
 const MIN_BACKOFF: Duration = Duration::from_secs(30);
 const MAX_BACKOFF: Duration = Duration::from_secs(30 * 60);
 
-/// Compte connecté. Pas de `Debug` : le jeton n'apparaît dans aucun journal.
+/// Connected account. No `Debug`: the token appears in no log.
 #[derive(Clone)]
 struct Account {
     token: Token,
     user: String,
-    /// ListenBrainz a refusé le jeton à un envoi (révoqué depuis).
+    /// ListenBrainz refused the token on a submission (revoked since).
     refused: bool,
 }
 
-/// Forme gardée dans le keyring.
+/// Form kept in the keyring.
 #[derive(Serialize, Deserialize)]
 struct Saved {
     token: String,
@@ -50,24 +49,24 @@ struct Saved {
 
 static ACCOUNT: LazyLock<watch::Sender<Option<Account>>> =
     LazyLock::new(|| watch::Sender::new(None));
-/// Une écoute vient d'entrer dans la file.
+/// A listen just entered the queue.
 static WAKE: LazyLock<Notify> = LazyLock::new(Notify::new);
 static STORE: OnceLock<Arc<Store>> = OnceLock::new();
 static APP: OnceLock<AppHandle> = OnceLock::new();
 
-/// État affiché dans les réglages.
+/// State shown in Settings.
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
-    /// Compte connecté, `None` si l'envoi est désactivé.
+    /// Connected account, `None` if submission is off.
     pub user: Option<String>,
     pub refused: bool,
-    /// Écoutes pas encore envoyées.
+    /// Listens not sent yet.
     pub pending: u32,
 }
 
-/// Charge le compte gardé et lance la tâche d'envoi. Après l'installation du keystore
-/// d'Android.
+/// Loads the stored account and starts the submission task. After the Android keystore is
+/// installed.
 pub fn start(app: AppHandle, store: Option<Arc<Store>>) {
     let _ = APP.set(app);
     let Some(store) = store else { return };
@@ -77,13 +76,13 @@ pub fn start(app: AppHandle, store: Option<Arc<Store>>) {
             Ok(account) => {
                 ACCOUNT.send_replace(account);
             }
-            Err(e) => tracing::warn!("ListenBrainz : compte illisible dans le keyring : {e}"),
+            Err(e) => tracing::warn!("ListenBrainz: unreadable account in the keyring: {e}"),
         }
         run(store).await;
     });
 }
 
-/// Le lecteur commence un titre : annoncé sans être gardé, sans attendre la réponse.
+/// The player starts a track: announced without being kept, without waiting for the reply.
 pub fn now_playing(track: &Track) {
     let Some(token) = active_token() else { return };
     let listen = payload::listen(track, None);
@@ -96,8 +95,8 @@ pub fn now_playing(track: &Track) {
     });
 }
 
-/// Écoute comptée, commencée à `started_at` (secondes Unix). Bloquant (SQLite) : appelé
-/// depuis `spawn_blocking`. Rien n'est gardé sans compte.
+/// Counted listen, started at `started_at` (Unix seconds). Blocking (SQLite): called from
+/// `spawn_blocking`. Nothing is kept without an account.
 pub fn listened(store: &Store, track: &Track, started_at: i64) {
     if ACCOUNT.borrow().is_none() {
         return;
@@ -105,7 +104,7 @@ pub fn listened(store: &Store, track: &Track, started_at: i64) {
     let listen = payload::listen(track, Some(started_at)).to_string();
     match store.queue_scrobble(&listen) {
         Ok(()) => WAKE.notify_one(),
-        Err(e) => tracing::warn!("ListenBrainz : écoute non mise en file : {e}"),
+        Err(e) => tracing::warn!("ListenBrainz: listen not queued: {e}"),
     }
 }
 
@@ -127,7 +126,7 @@ pub async fn status() -> Status {
     }
 }
 
-/// Vérifie le jeton collé, le garde et (re)lance l'envoi.
+/// Checks the pasted token, keeps it and (re)starts the submission.
 pub async fn connect(raw: String) -> Result<Status, String> {
     let token = Token::parse(&raw).ok_or_else(|| {
         tr(
@@ -153,7 +152,7 @@ pub async fn connect(raw: String) -> Result<Status, String> {
         entry()?.set_password(&json).map_err(err)
     })
     .await?;
-    tracing::info!("ListenBrainz connecté");
+    tracing::info!("ListenBrainz connected");
     ACCOUNT.send_replace(Some(Account {
         token,
         user,
@@ -163,8 +162,8 @@ pub async fn connect(raw: String) -> Result<Status, String> {
     Ok(status().await)
 }
 
-/// Oublie le jeton et vide la file : les écoutes en attente ne partiront pas sur un autre
-/// compte connecté ensuite.
+/// Forgets the token and empties the queue: pending listens will not go to another account
+/// connected afterwards.
 pub async fn disconnect() -> Result<Status, String> {
     blocking(|| match entry()?.delete_credential() {
         Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
@@ -175,7 +174,7 @@ pub async fn disconnect() -> Result<Status, String> {
     if let Some(store) = STORE.get().cloned() {
         blocking(move || store.clear_scrobbles().map_err(err)).await?;
     }
-    tracing::info!("ListenBrainz déconnecté");
+    tracing::info!("ListenBrainz disconnected");
     Ok(status().await)
 }
 
@@ -187,7 +186,7 @@ fn active_token() -> Option<Token> {
         .map(|a| a.token.clone())
 }
 
-/// Le jeton `token` a été refusé ; sans effet si l'utilisateur en a collé un autre depuis.
+/// The token `token` was refused; no effect if the user pasted another one since.
 fn refuse(token: &Token) {
     let changed = ACCOUNT.send_if_modified(|account| match account {
         Some(a) if a.token == *token && !a.refused => {
@@ -199,7 +198,7 @@ fn refuse(token: &Token) {
     if !changed {
         return;
     }
-    tracing::warn!("ListenBrainz : jeton refusé, envoi suspendu");
+    tracing::warn!("ListenBrainz: token refused, submission suspended");
     if let Some(app) = APP.get() {
         #[derive(Clone, Serialize)]
         struct Toast {
@@ -223,7 +222,7 @@ async fn run(store: Arc<Store>) {
     let client = match api::client() {
         Ok(c) => c,
         Err(e) => {
-            tracing::warn!("ListenBrainz : client HTTP indisponible : {e}");
+            tracing::warn!("ListenBrainz: HTTP client unavailable: {e}");
             return;
         }
     };
@@ -246,7 +245,7 @@ async fn run(store: Arc<Store>) {
         let pending = match blocking(move || read.pending_scrobbles(batch).map_err(err)).await {
             Ok(p) => p,
             Err(e) => {
-                tracing::warn!("ListenBrainz : file illisible : {e}");
+                tracing::warn!("ListenBrainz: unreadable queue: {e}");
                 tokio::time::sleep(MAX_BACKOFF).await;
                 continue;
             }
@@ -288,10 +287,10 @@ async fn run(store: Arc<Store>) {
                 }
             }
             Err(SendError::Unauthorized) => refuse(&token),
-            // Lot refusé : on reprend une écoute à la fois pour isoler la fautive.
+            // Batch refused: send one listen at a time to isolate the faulty one.
             Err(SendError::Rejected) if ids.len() > 1 => batch = 1,
             Err(SendError::Rejected) => {
-                tracing::warn!("ListenBrainz : écoute refusée, retirée de la file");
+                tracing::warn!("ListenBrainz: listen refused, removed from the queue");
                 drop_sent(&store, ids).await;
             }
         }
@@ -301,7 +300,7 @@ async fn run(store: Arc<Store>) {
 async fn drop_sent(store: &Arc<Store>, ids: Vec<i64>) {
     let store = Arc::clone(store);
     if let Err(e) = blocking(move || store.drop_scrobbles(&ids).map_err(err)).await {
-        tracing::warn!("ListenBrainz : écoutes envoyées non retirées : {e}");
+        tracing::warn!("ListenBrainz: sent listens not removed: {e}");
     }
 }
 

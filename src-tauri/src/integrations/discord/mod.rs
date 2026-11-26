@@ -1,8 +1,8 @@
-//! Présence Discord (#215, bureau seulement) : « Écoute Seaglass » avec le titre en cours.
+//! Discord presence (#215, desktop only): "Listening to Seaglass" with the current track.
 //!
-//! Désactivée par défaut (réglage `UiSettings::discord`). Une tâche se connecte à
-//! l'application Discord du poste quand le réglage est actif, réessaie toutes les 15 s si
-//! Discord est fermé, et n'envoie l'activité que si elle change (titre, lecture, saut).
+//! Off by default (`UiSettings::discord` setting). A task connects to the Discord app on the
+//! computer when the setting is on, retries every 15 s if Discord is closed, and only sends the
+//! activity when it changes (track, playback, jump).
 
 mod activity;
 mod ipc;
@@ -16,14 +16,14 @@ use tokio::time::Instant;
 use super::NowPlaying;
 use activity::Activity;
 
-/// Délai avant de réessayer quand Discord est fermé ou a coupé la connexion.
+/// Delay before retrying when Discord is closed or dropped the connection.
 const RETRY: Duration = Duration::from_secs(15);
-/// Discord accepte 5 mises à jour par 20 s ; au-delà, la dernière attend son tour.
+/// Discord accepts 5 updates per 20 s; beyond that, the last one waits its turn.
 const MIN_INTERVAL: Duration = Duration::from_secs(4);
 
 static ENABLED: LazyLock<watch::Sender<bool>> = LazyLock::new(|| watch::Sender::new(false));
 
-/// Réglage de l'utilisateur, appliqué au démarrage et à chaque `set_ui_settings`.
+/// The user's setting, applied at startup and on every `set_ui_settings`.
 pub fn set_enabled(on: bool) {
     ENABLED.send_if_modified(|v| {
         let changed = *v != on;
@@ -32,8 +32,8 @@ pub fn set_enabled(on: bool) {
     });
 }
 
-/// Identifiant de l'application Discord : variable `DISCORD_CLIENT_ID` au lancement, sinon
-/// celle du `.env` compilée par `build.rs`. Absent : le réglage n'est pas proposé.
+/// Discord application identifier: the `DISCORD_CLIENT_ID` variable at launch, otherwise the one
+/// from `.env` compiled in by `build.rs`. Missing: the setting is not offered.
 pub fn client_id() -> Option<String> {
     std::env::var("DISCORD_CLIENT_ID")
         .ok()
@@ -71,7 +71,7 @@ async fn run(
         }
         match ipc::open(&client_id).await {
             Ok(mut conn) => {
-                tracing::info!("Discord connecté");
+                tracing::info!("Discord connected");
                 match session(&mut conn, &mut playing, &mut enabled).await {
                     End::Disabled => continue,
                     End::Stopped => return,
@@ -172,20 +172,20 @@ mod tests {
     use crate::integrations::{MediaInfo, PlaybackStatus};
     use crate::player::Repeat;
 
-    /// Contre le vrai Discord (lancé sur le poste, `DISCORD_CLIENT_ID` dans `.env`) :
-    /// `cargo test live_discord -- --ignored --nocapture`, puis regarder son profil.
+    /// Against the real Discord (running on the computer, `DISCORD_CLIENT_ID` in `.env`): `cargo
+    /// test live_discord -- --ignored --nocapture`, then look at the profile.
     #[tokio::test]
     #[ignore]
     async fn live_discord() {
-        let id = client_id().expect("DISCORD_CLIENT_ID absent du .env");
-        let mut conn = ipc::open(&id).await.expect("Discord injoignable");
+        let id = client_id().expect("DISCORD_CLIENT_ID missing from .env");
+        let mut conn = ipc::open(&id).await.expect("Discord unreachable");
         let np = NowPlaying {
             media: Some(MediaInfo {
                 track_id: 1_632_061,
                 title: "Billie Jean".into(),
                 artist: "Michael Jackson".into(),
                 album: "Thriller 25 Super Deluxe Edition".into(),
-                // Pochette vérifiée dans l'app (URL de la file) : ici seulement le protocole.
+                // Cover checked in the app (URL from the queue): here only the protocol.
                 cover_url: None,
                 duration: 294.0,
             }),
@@ -201,12 +201,12 @@ mod tests {
         conn.set_activity(Some(activity.to_json())).await.unwrap();
         let reply = tokio::time::timeout(Duration::from_secs(5), conn.recv())
             .await
-            .expect("pas de réponse")
-            .expect("connexion fermée");
-        println!("réponse : {}", reply.payload);
+            .expect("no reply")
+            .expect("connection closed");
+        println!("reply: {}", reply.payload);
         assert_eq!(reply.payload["cmd"], "SET_ACTIVITY");
         assert_ne!(reply.payload["evt"], "ERROR");
-        println!("présence affichée pendant 20 s");
+        println!("presence shown for 20 s");
         tokio::time::sleep(Duration::from_secs(20)).await;
     }
 }

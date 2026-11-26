@@ -1,6 +1,6 @@
-//! Notification de Linux (#435) : `org.freedesktop.Notifications` sur le bus de session,
-//! comme `notify-send`. L'action `default` (clic sur la notification) arrive par le signal
-//! `ActionInvoked` ; on l'attend jusqu'à la fermeture de la notification, au plus 24 h.
+//! Linux notification (#435): `org.freedesktop.Notifications` on the session bus, like
+//! `notify-send`. The `default` action (click on the notification) arrives through the
+//! `ActionInvoked` signal; it is awaited until the notification closes, at most 24 h.
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -20,7 +20,7 @@ const WAIT: Duration = Duration::from_secs(24 * 3600);
 pub async fn show(app: &AppHandle, notice: Notice) -> zbus::Result<()> {
     let conn = Connection::session().await?;
     let proxy = Proxy::new(&conn, NAME, PATH, NAME).await?;
-    // Abonnement avant l'envoi : un clic immédiat ne se perd pas.
+    // Subscribe before sending: an immediate click is not lost.
     let mut invoked = proxy.receive_signal("ActionInvoked").await?;
     let mut closed = proxy.receive_signal("NotificationClosed").await?;
     let hints: HashMap<&str, Value<'_>> = HashMap::new();
@@ -32,8 +32,8 @@ pub async fn show(app: &AppHandle, notice: Notice) -> zbus::Result<()> {
                 "Seaglass",
                 0u32,
                 "",
-                // Le résumé est du texte brut selon la spécification ; seul le corps peut
-                // être lu comme balisage (`body-markup`).
+                // The summary is plain text according to the specification; only the body may be
+                // read as markup (`body-markup`).
                 notice.title.as_str(),
                 escape(&notice.body),
                 actions,
@@ -70,7 +70,7 @@ pub async fn show(app: &AppHandle, notice: Notice) -> zbus::Result<()> {
             }
         };
         let _ = tokio::time::timeout(WAIT, wait).await;
-        // La connexion (tenue par le proxy) se ferme ici.
+        // The connection (held by the proxy) closes here.
         drop(proxy);
     });
     Ok(())

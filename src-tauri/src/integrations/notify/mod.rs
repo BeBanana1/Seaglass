@@ -1,12 +1,12 @@
-//! Notifications du système (#435) : nouvelles sorties des artistes suivis.
+//! System notifications (#435): new releases from followed artists.
 //!
-//! Code natif sur chaque plateforme, sans plugin : `tauri-plugin-notification` ne remonte pas
-//! le clic sur le bureau, or la notification doit ouvrir l'album ou le fil.
-//! - Windows : toast WinRT (`toast.rs`), sous l'AUMID de l'app, que l'installeur NSIS pose
-//!   sur le raccourci du menu Démarrer. Le clic arrive tant que l'app tourne (`Activated`).
-//! - Linux : `org.freedesktop.Notifications` par D-Bus (`dbus.rs`), action `default`.
-//! - Android : canal « Nouvelles sorties » (`ReleaseNotifications.kt`) ; le clic passe par
-//!   `ShareActivity`, comme un lien partagé.
+//! Native code on each platform, no plugin: `tauri-plugin-notification` does not report the click
+//! on the desktop, and the notification must open the album or the feed.
+//! - Windows: WinRT toast (`toast.rs`), under the app's AUMID, which the NSIS installer sets on the
+//!   Start menu shortcut. The click arrives as long as the app runs (`Activated`).
+//! - Linux: `org.freedesktop.Notifications` over D-Bus (`dbus.rs`), `default` action.
+//! - Android: "New releases" channel (`ReleaseNotifications.kt`); the click goes through
+//!   `ShareActivity`, like a shared link.
 
 #[cfg(target_os = "linux")]
 mod dbus;
@@ -17,16 +17,16 @@ use tauri::AppHandle;
 
 use crate::commands::link::LinkTarget;
 
-/// Notification prête à montrer, dans la langue de l'app.
+/// Notification ready to show, in the app's language.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Notice {
     pub title: String,
     pub body: String,
-    /// Page ouverte par un clic.
+    /// Page opened by a click.
     pub target: LinkTarget,
 }
 
-/// Montre `notice` ; un échec ne fait que passer au journal.
+/// Shows `notice`; a failure only goes to the log.
 pub async fn show(app: &AppHandle, notice: Notice) {
     #[cfg(windows)]
     let result = {
@@ -49,11 +49,11 @@ pub async fn show(app: &AppHandle, notice: Notice) {
         Ok(())
     };
     if let Err(e) = result {
-        tracing::warn!("notification non affichée : {e}");
+        tracing::warn!("notification not shown: {e}");
     }
 }
 
-/// Clic sur une notification du bureau : fenêtre au premier plan, page ouverte par l'UI.
+/// Click on a desktop notification: window in the foreground, page opened by the UI.
 #[cfg(any(windows, target_os = "linux"))]
 fn clicked(app: &AppHandle, target: LinkTarget) {
     super::tray::show_main(app);
@@ -77,8 +77,8 @@ async fn android(notice: Notice) -> Result<(), String> {
         .map(|_| ())
 }
 
-/// Demande la permission d'afficher des notifications (Android 13+), à l'activation du
-/// réglage ; ailleurs, rien à demander.
+/// Asks for the permission to show notifications (Android 13+), when the setting is turned on;
+/// elsewhere, nothing to ask.
 pub fn request_permission(app: &AppHandle) {
     #[cfg(target_os = "android")]
     {
@@ -89,7 +89,7 @@ pub fn request_permission(app: &AppHandle) {
                 .call("requestNotifications", serde_json::json!({}))
                 .await
             {
-                tracing::warn!("permission des notifications non demandée : {e}");
+                tracing::warn!("notification permission not requested: {e}");
             }
         });
     }
@@ -97,8 +97,8 @@ pub fn request_permission(app: &AppHandle) {
     let _ = app;
 }
 
-/// Texte sûr dans le contenu d'un élément XML (toast de Windows) ou dans le balisage simple
-/// des serveurs de notifications de Linux (`body-markup`, qui n'a pas `&apos;`).
+/// Text safe in the content of an XML element (Windows toast) or in the simple markup of Linux
+/// notification servers (`body-markup`, which has no `&apos;`).
 #[cfg_attr(not(any(windows, target_os = "linux", test)), allow(dead_code))]
 fn escape(text: &str) -> String {
     let mut out = String::with_capacity(text.len());

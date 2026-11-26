@@ -1,8 +1,8 @@
-//! System Media Transport Controls : touches média du clavier, panneau multimédia de
-//! Windows et écran de verrouillage.
+//! System Media Transport Controls: keyboard media keys, the Windows media flyout and the lock
+//! screen.
 //!
-//! Les objets WinRT vivent sur un thread dédié (MTA) ; l'acteur lui envoie des
-//! `NowPlaying` et le thread ne touche SMTC que si quelque chose a changé.
+//! The WinRT objects live on a dedicated thread (MTA); the actor sends it `NowPlaying`s and the
+//! thread only touches SMTC when something changed.
 
 use std::sync::mpsc as std_mpsc;
 use std::time::{Duration, Instant};
@@ -24,9 +24,9 @@ use windows::core::{HSTRING, Ref, factory};
 use super::{MediaInfo, NowPlaying, PlaybackStatus};
 use crate::player::Cmd;
 
-/// Mise à jour périodique de la position affichée par Windows pendant la lecture.
+/// Periodic update of the position Windows shows during playback.
 const TIMELINE_INTERVAL: Duration = Duration::from_secs(5);
-/// Écart toléré avant de considérer qu'il y a eu un saut (seek).
+/// Tolerated gap before treating a change as a jump (seek).
 const SEEK_TOLERANCE: f64 = 1.5;
 
 pub struct SmtcHandle {
@@ -39,7 +39,7 @@ impl SmtcHandle {
     }
 }
 
-/// Branche SMTC sur la fenêtre `hwnd` (valeur brute du handle).
+/// Attaches SMTC to the window `hwnd` (raw handle value).
 pub fn start(hwnd: isize, player: mpsc::Sender<Cmd>) -> Result<SmtcHandle, String> {
     let (tx, rx) = std_mpsc::channel::<NowPlaying>();
     let (ready_tx, ready_rx) = std_mpsc::channel();
@@ -61,7 +61,7 @@ pub fn start(hwnd: isize, player: mpsc::Sender<Cmd>) -> Result<SmtcHandle, Strin
         .map_err(|e| e.to_string())?;
     ready_rx
         .recv()
-        .map_err(|_| "thread SMTC arrêté".to_owned())??;
+        .map_err(|_| "SMTC thread stopped".to_owned())??;
     Ok(SmtcHandle { tx })
 }
 
@@ -73,7 +73,7 @@ struct Session {
 
 impl Session {
     fn new(hwnd: isize, player: mpsc::Sender<Cmd>) -> windows::core::Result<Self> {
-        // Déjà initialisé ou mode différent : sans conséquence pour nos appels.
+        // Already initialized or a different mode: no consequence for our calls.
         let _ = unsafe { RoInitialize(RO_INIT_MULTITHREADED) };
         let interop =
             factory::<SystemMediaTransportControls, ISystemMediaTransportControlsInterop>()?;
@@ -95,7 +95,7 @@ impl Session {
                     _ => None,
                 };
                 if let Some(cmd) = cmd {
-                    // Thread WinRT : pas d'attente possible, la file de l'acteur suffit.
+                    // WinRT thread: no waiting allowed, the actor's queue is enough.
                     let _ = player.try_send(cmd);
                 }
                 Ok(())
@@ -155,7 +155,7 @@ impl Session {
         updater.Update()
     }
 
-    /// Position à rafraîchir : toutes les 5 s en lecture, ou après un saut.
+    /// Position to refresh: every 5 s during playback, or after a jump.
     fn timeline_due(&self, s: &NowPlaying) -> bool {
         let Some((at, pos)) = self.timeline_at else {
             return true;
@@ -184,7 +184,7 @@ impl Session {
     }
 }
 
-/// `TimeSpan` WinRT : unités de 100 ns.
+/// WinRT `TimeSpan`: units of 100 ns.
 fn span(seconds: f64) -> TimeSpan {
     TimeSpan {
         Duration: (seconds.max(0.0) * 10_000_000.0) as i64,
