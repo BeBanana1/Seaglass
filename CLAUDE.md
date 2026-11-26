@@ -45,6 +45,7 @@ seaglass/
 ├─ relay/                    # Jam relay (#25): separate crate, Docker behind Caddy
 ├─ site/                     # project website (#517): Astro + Starlight (GitHub #18), own package, scripts/publish-site.ps1
 ├─ src/                      # Svelte frontend
+│  ├─ app/                   # App.svelte's logic: shell state, Android Back, outside requests, window events
 │  ├─ lib/ipc.ts             # typed wrappers for Tauri commands and events
 │  ├─ lib/transport.ts       # real invoke/listen, or a mock backend outside Tauri (dev)
 │  ├─ lib/mock/              # mock backend + fixtures.json (gitignored) to preview the UI
