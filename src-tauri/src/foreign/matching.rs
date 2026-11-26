@@ -1,12 +1,12 @@
-//! Choix des titres et albums TIDAL qui correspondent à un lien d'un autre service (#229).
-//! Logique pure, testée : un tri stable garde l'ordre de TIDAL à score égal.
+//! Picks the TIDAL tracks and albums that match a link from another service (#229). Pure logic,
+//! tested: a stable sort keeps TIDAL's order on equal scores.
 
 use super::meta::{Wanted, first_artist, strip_decorations};
 use crate::tidal::models::{AlbumSummary, ArtistRef, Track};
 
-/// Résultats montrés au plus pour un lien.
+/// Results shown at most for a link.
 pub const MAX_MATCHES: usize = 10;
-/// Écart de durée toléré entre deux services, en secondes.
+/// Tolerated duration gap between two services, in seconds.
 const DURATION_SLACK: u32 = 3;
 
 fn normalize(text: &str) -> String {
@@ -55,8 +55,8 @@ fn artist_score(found: &[ArtistRef], wanted: Option<&str>) -> u32 {
     if hit { 2 } else { 0 }
 }
 
-/// Titres d'une recherche classés par ressemblance avec le titre voulu ; seuls ceux dont
-/// le nom ressemble sont gardés s'il y en a.
+/// Tracks of a search ranked by likeness to the wanted track; only those whose name is alike are
+/// kept, if there are any.
 pub fn rank_tracks(mut tracks: Vec<Track>, wanted: &Wanted) -> Vec<Track> {
     let score = |t: &Track| {
         let duration = wanted
@@ -82,9 +82,9 @@ pub fn rank_tracks(mut tracks: Vec<Track>, wanted: &Wanted) -> Vec<Track> {
     tracks
 }
 
-/// Ce que vaut le meilleur candidat d'une recherche pour un import (#328) : `None` si son nom
-/// ne ressemble pas au titre voulu (rien de trouvé), `Some(true)` si titre, artiste et durée
-/// (quand elle est connue) concordent, `Some(false)` s'il est douteux.
+/// What the best candidate of a search is worth for an import (#328): `None` if its name is not
+/// like the wanted track's (nothing found), `Some(true)` if title, artist and duration (when known)
+/// agree, `Some(false)` if it is doubtful.
 pub fn verdict(track: &Track, wanted: &Wanted) -> Option<bool> {
     let title = title_score(&track.title, &wanted.title);
     if title == 0 {
@@ -98,7 +98,7 @@ pub fn verdict(track: &Track, wanted: &Wanted) -> Option<bool> {
     Some(title == 4 && artist && duration)
 }
 
-/// Éditions d'un même ISRC : celle de l'album du lien d'abord, compilations ensuite.
+/// Editions of the same ISRC: the one from the link's album first, compilations last.
 pub fn rank_editions(mut tracks: Vec<Track>, album: Option<&str>) -> Vec<Track> {
     let album = album.map(normalize);
     tracks.sort_by_key(|t| {
@@ -186,7 +186,7 @@ mod tests {
                 369,
             ),
         ];
-        // Le titre sans rapport disparaît ; la version de l'album du lien passe devant.
+        // The unrelated track disappears; the version from the link's album moves ahead.
         assert_eq!(ids(&rank_tracks(found, &wanted)), vec![4, 3, 2]);
     }
 

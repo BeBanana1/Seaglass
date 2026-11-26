@@ -1,14 +1,14 @@
-//! Titres d'une playlist d'un autre service, pour l'importer (#328). Vérifié le 2026-11-12 :
+//! Tracks of another service's playlist, to import it (#328). Checked on 2026-11-12:
 //!
-//! - **Deezer** : API publique `api.deezer.com/playlist/<id>` (nom, `nb_tracks`) puis
-//!   `…/tracks?limit=` (1000 par page au plus), avec l'ISRC de chaque titre.
-//! - **Apple Music** : page publique, JSON `serialized-server-data` : titre, artiste, album et
-//!   durée de chaque titre (jusqu'à 250 vus, toute la liste) ; pas d'ISRC.
-//! - **Spotify** : page `embed/playlist/<id>` (`__NEXT_DATA__`) : 100 titres au plus, titre,
-//!   artistes et durée ; la page publique ne donne que le total (`music:song_count`).
-//! - **YouTube Music** : rien sans passer le mur de consentement, refusé.
+//! - **Deezer**: public API `api.deezer.com/playlist/<id>` (name, `nb_tracks`) then
+//!   `…/tracks?limit=` (1000 per page at most), with each track's ISRC.
+//! - **Apple Music**: public page, `serialized-server-data` JSON: title, artist, album and duration
+//!   of each track (up to 250 seen, the whole list); no ISRC.
+//! - **Spotify**: `embed/playlist/<id>` page (`__NEXT_DATA__`): 100 tracks at most, title, artists
+//!   and duration; the public page only gives the total (`music:song_count`).
+//! - **YouTube Music**: nothing without getting past the consent wall, refused.
 //!
-//! Lecture des pages en logique pure, testée : seuls ces champs en sortent.
+//! Reading the pages is pure logic, tested: only these fields come out of it.
 
 use serde::Deserialize;
 use serde_json::Value;
@@ -18,10 +18,10 @@ use super::meta::{Wanted, meta};
 use super::{DeezerTrack, json, text};
 use crate::i18n::tr;
 
-/// Titres lus au plus dans une playlist : au-delà, l'aperçu le signale.
+/// Tracks read at most in a playlist: beyond that, the preview says so.
 pub const MAX_IMPORT: usize = 500;
 
-/// Playlist désignée par un lien d'un autre service.
+/// Playlist named by a link from another service.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlaylistRef {
     Deezer(u64),
@@ -31,7 +31,7 @@ pub enum PlaylistRef {
         slug: String,
         country: String,
     },
-    /// Reconnue pour répondre qu'elle ne peut pas être importée.
+    /// Recognized to answer that it cannot be imported.
     YouTube,
 }
 
@@ -50,7 +50,7 @@ impl PlaylistRef {
         })
     }
 
-    /// Adresse propre (sans paramètre de suivi), relue par `import_playlist`.
+    /// Clean address (no tracking parameter), read again by `import_playlist`.
     pub fn url(&self) -> String {
         match self {
             Self::Deezer(id) => format!("https://www.deezer.com/playlist/{id}"),
@@ -72,15 +72,15 @@ impl PlaylistRef {
     }
 }
 
-/// Un titre de la playlist d'origine.
+/// A track of the original playlist.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Entry {
     pub wanted: Wanted,
     pub isrc: Option<String>,
 }
 
-/// Contenu lu d'une playlist : `total` = nombre de titres chez le service, parfois plus que
-/// `entries` (Spotify, plafond).
+/// Content read from a playlist: `total` = number of tracks at the service, sometimes more than
+/// `entries` (Spotify, cap).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Listing {
     pub name: String,
@@ -133,7 +133,7 @@ struct DeezerTracks {
 }
 
 async fn deezer(id: u64) -> Result<Listing, String> {
-    // Une playlist privée ou absente répond 200 avec `{"error": …}` : pas de titre.
+    // A private or missing playlist answers 200 with `{"error": …}`: no title.
     let head: DeezerPlaylist = json(&format!("https://api.deezer.com/playlist/{id}")).await?;
     let name = head.title.ok_or_else(unreadable)?;
     let tracks: DeezerTracks = json(&format!(
@@ -158,7 +158,7 @@ async fn deezer(id: u64) -> Result<Listing, String> {
 async fn spotify(id: &str) -> Result<Listing, String> {
     let embed = text(&format!("https://open.spotify.com/embed/playlist/{id}")).await?;
     let mut listing = spotify_embed(&embed).ok_or_else(unreadable)?;
-    // La page d'intégration s'arrête à 100 : le vrai total est sur la page publique.
+    // The embed page stops at 100: the real total is on the public page.
     if listing.entries.len() >= SPOTIFY_EMBED_MAX
         && let Ok(page) = text(&format!("https://open.spotify.com/playlist/{id}")).await
     {
@@ -169,10 +169,10 @@ async fn spotify(id: &str) -> Result<Listing, String> {
     Ok(listing)
 }
 
-/// Titres montrés au plus par la page d'intégration de Spotify.
+/// Tracks shown at most by Spotify's embed page.
 pub const SPOTIFY_EMBED_MAX: usize = 100;
 
-/// Contenu JSON d'un `<script id="…">`.
+/// JSON content of a `<script id="…">`.
 fn script<'a>(html: &'a str, id: &str) -> Option<&'a str> {
     let at = html.find(&format!("id=\"{id}\""))?;
     let start = at + html[at..].find('>')? + 1;
@@ -187,13 +187,13 @@ fn str_of<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
         .filter(|s| !s.is_empty())
 }
 
-/// Millisecondes → secondes arrondies.
+/// Milliseconds → rounded seconds.
 fn seconds(ms: Option<u64>) -> Option<u32> {
     ms.filter(|&ms| ms > 0)
         .and_then(|ms| u32::try_from((ms + 500) / 1000).ok())
 }
 
-/// Page `embed/playlist/<id>` de Spotify : `props.pageProps.state.data.entity`.
+/// Spotify's `embed/playlist/<id>` page: `props.pageProps.state.data.entity`.
 pub fn spotify_embed(html: &str) -> Option<Listing> {
     let data: Value = serde_json::from_str(script(html, "__NEXT_DATA__")?).ok()?;
     let entity = data.pointer("/props/pageProps/state/data/entity")?;
@@ -221,7 +221,7 @@ pub fn spotify_embed(html: &str) -> Option<Listing> {
     })
 }
 
-/// Éléments des sections Apple d'un type donné.
+/// Items of the Apple sections of a given type.
 fn items_of<'a>(sections: &'a [Value], kind: &'a str) -> impl Iterator<Item = &'a Value> {
     sections
         .iter()
@@ -230,8 +230,8 @@ fn items_of<'a>(sections: &'a [Value], kind: &'a str) -> impl Iterator<Item = &'
         .flatten()
 }
 
-/// Page publique d'une playlist Apple Music : sections `containerDetailHeaderLockup` (nom,
-/// `trackCount`) et `trackLockup` (titres).
+/// Public page of an Apple Music playlist: `containerDetailHeaderLockup` sections (name,
+/// `trackCount`) and `trackLockup` (tracks).
 pub fn apple_page(html: &str) -> Option<Listing> {
     let data: Value = serde_json::from_str(script(html, "serialized-server-data")?).ok()?;
     let sections = data.pointer("/data/0/data/sections")?.as_array()?;
@@ -283,7 +283,7 @@ mod tests {
             apple.url(),
             "https://music.apple.com/us/playlist/todays-hits/pl.f4d1"
         );
-        // L'adresse propre se relit en la même playlist.
+        // The clean address reads back as the same playlist.
         assert_eq!(PlaylistRef::of(&find(&apple.url()).unwrap()), Some(apple));
         assert_eq!(
             PlaylistRef::of(&find("https://www.deezer.com/track/1").unwrap()),

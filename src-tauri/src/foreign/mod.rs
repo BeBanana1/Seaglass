@@ -1,19 +1,19 @@
-//! Liens d'autres services collés dans la recherche de la Jam (#229) : Deezer, Spotify,
-//! Apple Music, YouTube Music, et TIDAL. Comportements vérifiés le 2026-11-06 (issue #229) :
+//! Links from other services pasted in the Jam's search (#229): Deezer, Spotify, Apple Music,
+//! YouTube Music, and TIDAL. Behavior checked on 2026-11-06 (issue #229):
 //!
-//! - **Deezer** : API publique `api.deezer.com/track/<id>` (ISRC) et `album/<id>` (UPC),
-//!   puis `tracks?isrc=` / `albums?upc=` de TIDAL : correspondance exacte.
-//! - **Spotify** : page publique (balises `og:` / `music:`) et oEmbed, sans ISRC : recherche
-//!   par titre et artiste, vérifiée par la durée.
-//! - **Apple Music** : API publique `itunes.apple.com/lookup`, sans ISRC : même méthode.
-//! - **YouTube Music** : oEmbed, titre de la vidéo seulement : le plus fragile.
+//! - **Deezer**: public API `api.deezer.com/track/<id>` (ISRC) and `album/<id>` (UPC), then TIDAL's
+//!   `tracks?isrc=` / `albums?upc=`: exact match.
+//! - **Spotify**: public page (`og:` / `music:` tags) and oEmbed, no ISRC: search by title and
+//!   artist, checked against the duration.
+//! - **Apple Music**: public API `itunes.apple.com/lookup`, no ISRC: same method.
+//! - **YouTube Music**: oEmbed, the video title only: the most fragile.
 //!
-//! Seuls ces hôtes sont contactés, avec le seul identifiant tiré du lien ; un lien court
-//! n'est suivi que vers un lien reconnu. L'invité confirme toujours le résultat : rien
-//! n'est ajouté d'office.
+//! Only these hosts are contacted, with only the identifier taken from the link; a short link is
+//! only followed to a recognized link. The guest always confirms the result: nothing is added on
+//! its own.
 //!
-//! Les liens de **playlist** (#328) ne servent pas à la Jam : ils ouvrent l'import
-//! (`playlists.rs` lit les titres, `import.rs` cherche leurs correspondances).
+//! **Playlist** links (#328) are not for the Jam: they open the import (`playlists.rs` reads the
+//! tracks, `import.rs` looks for their matches).
 
 pub mod import;
 mod links;
@@ -38,11 +38,11 @@ use crate::tidal::TidalClient;
 use crate::tidal::models::{AlbumSummary, Track, TrackId};
 
 const TIMEOUT: Duration = Duration::from_secs(8);
-/// Redirections suivies au plus pour un lien court.
+/// Redirects followed at most for a short link.
 const MAX_HOPS: usize = 3;
 const SEARCH_LIMIT: u32 = 30;
 
-/// Titres ou albums TIDAL trouvés pour un lien.
+/// TIDAL tracks or albums found for a link.
 #[derive(Debug, Default)]
 pub struct Found {
     pub tracks: Vec<Track>,
@@ -69,8 +69,8 @@ fn net(e: reqwest::Error) -> String {
     e.without_url().to_string()
 }
 
-/// Playlist d'un autre service désignée par le texte collé (lien court suivi) ; `None` si le
-/// texte n'en contient pas.
+/// Playlist of another service named by the pasted text (short link followed); `None` if the text
+/// contains none.
 pub async fn playlist_ref(text: &str) -> Option<Result<PlaylistRef, String>> {
     let mut source = find(text)?;
     for _ in 0..MAX_HOPS {
@@ -83,12 +83,12 @@ pub async fn playlist_ref(text: &str) -> Option<Result<PlaylistRef, String>> {
     PlaylistRef::of(&source).map(Ok)
 }
 
-/// Comme `playlist_ref`, sans réseau : un lien court n'est pas suivi.
+/// Like `playlist_ref`, without the network: a short link is not followed.
 pub fn playlist_ref_offline(text: &str) -> Option<PlaylistRef> {
     PlaylistRef::of(&find(text)?)
 }
 
-/// Titres ou albums TIDAL d'un lien collé ; `None` si le texte n'en contient pas.
+/// TIDAL tracks or albums of a pasted link; `None` if the text contains none.
 pub async fn resolve(tidal: &TidalClient, text: &str) -> Option<Result<Found, String>> {
     let source = find(text)?;
     Some(resolve_source(tidal, source).await)
@@ -109,7 +109,7 @@ async fn resolve_source(tidal: &TidalClient, mut source: Source) -> Result<Found
             albums: vec![tidal.album_summary(id).await.map_err(terr)?],
             ..Found::default()
         }),
-        // Une playlist s'importe depuis l'app (#328), pas dans la Jam.
+        // A playlist is imported from the app (#328), not in the Jam.
         Source::TidalOther
         | Source::Short(_)
         | Source::Tidal(Kind::Playlist, _)
@@ -236,7 +236,7 @@ async fn search_album(tidal: &TidalClient, wanted: &Wanted) -> Result<Found, Str
     })
 }
 
-/// Un lien court : seule une redirection vers un lien reconnu est acceptée.
+/// A short link: only a redirect to a recognized link is accepted.
 async fn follow(url: &reqwest::Url) -> Result<Source, String> {
     let response = client()?.get(url.clone()).send().await.map_err(net)?;
     if !response.status().is_redirection() {

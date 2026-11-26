@@ -1,6 +1,6 @@
-//! Correspondances TIDAL des titres d'une playlist importée (#328). Mesuré le 2026-11-12 :
-//! `tracks?isrc=` ~0,09 s par titre à 4 en vol, `search` ~0,75 s en série, aucun 429 sur
-//! ~670 requêtes en 5 min. Un 429 donne quand même une pause puis un nouvel essai.
+//! TIDAL matches for the tracks of an imported playlist (#328). Measured on 2026-11-12:
+//! `tracks?isrc=` ~0.09 s per track with 4 in flight, `search` ~0.75 s in series, no 429 over ~670
+//! requests in 5 min. A 429 still gives a pause and a new attempt.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
@@ -11,25 +11,25 @@ use crate::i18n::tr;
 use crate::tidal::models::Track;
 use crate::tidal::{TidalClient, TidalError, try_join_bounded};
 
-/// Requêtes TIDAL en vol au plus (même borne que la pagination).
+/// TIDAL requests in flight at most (same bound as the paging).
 const IN_FLIGHT: usize = 4;
 const SEARCH_LIMIT: u32 = 30;
-/// Pause avant de réessayer après un 429.
+/// Pause before retrying after a 429.
 const BACKOFF: Duration = Duration::from_secs(2);
 const RETRIES: u32 = 2;
 
-/// Un titre de la playlist d'origine et ce qui lui correspond sur TIDAL.
+/// A track of the original playlist and what matches it on TIDAL.
 #[derive(Debug, Clone)]
 pub struct Matched {
     pub entry: Entry,
-    /// `None` : rien de ressemblant.
+    /// `None`: nothing similar.
     pub track: Option<Track>,
-    /// Titre, artiste et durée concordent (ou même ISRC).
+    /// Title, artist and duration agree (or same ISRC).
     pub sure: bool,
 }
 
-/// Cherche chaque titre, `IN_FLIGHT` à la fois, dans l'ordre de la playlist. `progress`
-/// reçoit le nombre de titres traités ; `cancelled` arrête tout (nouvel import).
+/// Looks for each track, `IN_FLIGHT` at a time, in the playlist's order. `progress` receives the
+/// number of tracks processed; `cancelled` stops everything (new import).
 pub async fn match_all(
     tidal: &TidalClient,
     entries: Vec<Entry>,
@@ -37,7 +37,7 @@ pub async fn match_all(
     cancelled: &(dyn Fn() -> bool + Sync),
 ) -> Result<Vec<Matched>, String> {
     let done = AtomicUsize::new(0);
-    // Futures construites dans une boucle (voir `paging.rs` : inférence de `Send`).
+    // Futures built in a loop (see `paging.rs`: inference of `Send`).
     let mut futures = Vec::with_capacity(entries.len());
     for entry in entries {
         let done = &done;
@@ -99,7 +99,7 @@ async fn match_one(tidal: &TidalClient, entry: Entry) -> Result<Matched, String>
     })
 }
 
-/// Réessaie après une pause sur 429 (limite de débit), `RETRIES` fois au plus.
+/// Retries after a pause on a 429 (rate limit), `RETRIES` times at most.
 async fn retry<T, F, Fut>(call: F) -> Result<T, String>
 where
     F: Fn() -> Fut,
