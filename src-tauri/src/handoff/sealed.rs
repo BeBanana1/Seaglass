@@ -1,14 +1,13 @@
-//! Paquets chiffrés de bout en bout entre le téléphone et son ordinateur lié, quand ils
-//! passent par le relais (#430). Le relais ne voit qu'une suite d'octets.
+//! End-to-end encrypted packets between the phone and its linked computer, when they go through the
+//! relay (#430). The relay only sees a sequence of bytes.
 //!
-//! ChaCha20-Poly1305 (`aws-lc-rs`), clé de 256 bits tirée par le PC et donnée au téléphone
-//! sur le réseau local seulement, nonce aléatoire de 96 bits par paquet. Les données
-//! associées lient chaque paquet au tunnel et à son sens, et chaque réponse au nonce de sa
-//! requête : le relais ne peut ni lire, ni modifier, ni rejouer une réponse sur une autre
-//! requête. Contre le rejeu d'une requête, elle porte sa date et le PC retient les nonces
-//! récents ([`Replay`]).
+//! ChaCha20-Poly1305 (`aws-lc-rs`), a 256-bit key drawn by the PC and given to the phone on the
+//! local network only, a random 96-bit nonce per packet. The associated data binds each packet to
+//! the tunnel and its direction, and each response to the nonce of its request: the relay can
+//! neither read, modify, nor replay a response on another request. Against the replay of a request,
+//! it carries its date and the PC remembers recent nonces ([`Replay`]).
 //!
-//! Paquet : base64 (nonce ‖ chiffré ‖ étiquette).
+//! Packet: base64 (nonce ‖ ciphertext ‖ tag).
 
 use std::collections::{HashMap, VecDeque};
 
@@ -17,14 +16,14 @@ use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD;
 use serde::{Deserialize, Serialize};
 
-/// Une requête plus vieille (ou plus en avance, horloges décalées) est refusée.
+/// An older request (or one further ahead, with clocks out of step) is refused.
 pub const MAX_SKEW_MS: i64 = 5 * 60 * 1000;
-/// Nonces de requêtes retenus au plus (bien au-delà de 120 appels par minute sur 10 min).
+/// Request nonces remembered at most (well beyond 120 calls per minute over 10 min).
 const MAX_SEEN: usize = 4_096;
 
 pub type NonceBytes = [u8; NONCE_LEN];
 
-/// Clé partagée du tunnel.
+/// Shared key of the tunnel.
 #[derive(Clone)]
 pub struct TunnelKey(std::sync::Arc<LessSafeKey>);
 
@@ -34,12 +33,12 @@ impl std::fmt::Debug for TunnelKey {
     }
 }
 
-/// Nouvelle clé en hexadécimal (64 caractères).
+/// New key in hexadecimal (64 characters).
 pub fn new_key() -> String {
     hex(&rand::random::<[u8; 32]>())
 }
 
-/// Nouvel identifiant ou secret de tunnel (128 bits en hexadécimal).
+/// New tunnel identifier or secret (128 bits in hexadecimal).
 pub fn new_token() -> String {
     hex(&rand::random::<[u8; 16]>())
 }
@@ -49,7 +48,7 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 impl TunnelKey {
-    /// Clé de 64 caractères hexadécimaux ; `None` sinon.
+    /// Key of 64 hexadecimal characters; `None` otherwise.
     pub fn parse(hex: &str) -> Option<Self> {
         if hex.len() != 64 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
             return None;
@@ -65,7 +64,7 @@ impl TunnelKey {
     fn seal(&self, aad: &[u8], plain: &[u8]) -> (String, NonceBytes) {
         let nonce: NonceBytes = rand::random();
         let mut data = plain.to_vec();
-        // Ne peut échouer qu'au-delà de 256 Gio par paquet.
+        // Can only fail beyond 256 GiB per packet.
         let sealed = self.0.seal_in_place_append_tag(
             Nonce::assume_unique_for_key(nonce),
             Aad::from(aad),
@@ -108,19 +107,19 @@ fn response_aad(tunnel: &str, request: &NonceBytes) -> Vec<u8> {
     aad
 }
 
-/// Requête du téléphone, en clair à l'intérieur du paquet.
+/// Request from the phone, in clear inside the packet.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Request {
-    /// Millisecondes depuis l'epoch Unix.
+    /// Milliseconds since the Unix epoch.
     pub at: i64,
     /// `/api/…`.
     pub path: String,
-    /// Code de propriétaire : le PC le vérifie comme sur le réseau local.
+    /// Owner code: the PC checks it as on the local network.
     pub code: String,
     pub body: String,
 }
 
-/// Réponse du PC, en clair à l'intérieur du paquet.
+/// Response from the PC, in clear inside the packet.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Response {
     pub status: u16,
@@ -132,7 +131,7 @@ pub fn seal_request(key: &TunnelKey, tunnel: &str, request: &Request) -> (String
     key.seal(&request_aad(tunnel), &plain)
 }
 
-/// `None` si le paquet n'est pas lisible avec cette clé (ou a été modifié).
+/// `None` if the packet cannot be read with this key (or was modified).
 pub fn open_request(key: &TunnelKey, tunnel: &str, packet: &str) -> Option<(Request, NonceBytes)> {
     let (plain, nonce) = key.open(&request_aad(tunnel), packet)?;
     Some((serde_json::from_slice(&plain).ok()?, nonce))
@@ -158,7 +157,7 @@ pub fn open_response(
     serde_json::from_slice(&plain).ok()
 }
 
-/// Côté PC : refuse une requête trop vieille ou déjà vue.
+/// PC side: refuses a request that is too old or already seen.
 #[derive(Default)]
 pub struct Replay {
     seen: HashMap<NonceBytes, i64>,
@@ -166,13 +165,13 @@ pub struct Replay {
 }
 
 impl Replay {
-    /// Vrai si la requête datée `at`, de nonce `nonce`, est acceptée (elle est retenue).
+    /// True if the request dated `at`, with nonce `nonce`, is accepted (it is remembered).
     pub fn accept(&mut self, nonce: NonceBytes, at: i64, now: i64) -> bool {
         if (at - now).abs() > MAX_SKEW_MS {
             return false;
         }
-        // Les nonces sortis de la fenêtre ne servent plus : une requête aussi vieille
-        // serait refusée par sa date.
+        // Nonces that left the window are no longer needed: a request that old would be refused by
+        // its date.
         while let Some(old) = self.order.front() {
             let stale = self.seen.get(old).is_none_or(|t| now - t > 2 * MAX_SKEW_MS);
             if !stale && self.order.len() < MAX_SEEN {
@@ -245,8 +244,8 @@ mod tests {
         let last = bytes.len() - 1;
         bytes[last] ^= 1;
         assert!(open_request(&key, TUNNEL, &STANDARD.encode(bytes)).is_none());
-        assert!(open_request(&key, TUNNEL, "pas du base64 !").is_none());
-        // Une réponse ne s'ouvre que pour sa requête, et pas comme une requête.
+        assert!(open_request(&key, TUNNEL, "not base64!").is_none());
+        // A response only opens for its request, and not as a request.
         let response = Response {
             status: 200,
             body: "ok".into(),
@@ -264,7 +263,7 @@ mod tests {
         assert!(!replay.accept([1; NONCE_LEN], now, now + 1));
         assert!(replay.accept([2; NONCE_LEN], now - MAX_SKEW_MS, now));
         assert!(!replay.accept([3; NONCE_LEN], now - MAX_SKEW_MS - 1, now));
-        // La mémoire reste bornée.
+        // Memory stays bounded.
         for i in 0..(MAX_SEEN as u32 + 10) {
             let mut nonce = [0; NONCE_LEN];
             nonce[..4].copy_from_slice(&i.to_le_bytes());

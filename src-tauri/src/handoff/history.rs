@@ -1,9 +1,9 @@
-//! Historique d'écoute synchronisé avec l'ordinateur lié (#430).
+//! Listening history synced with the linked computer (#430).
 //!
-//! Même lien et même serveur que le transfert : le téléphone agit toujours. Chaque appel
-//! (`POST api/plays/sync`) envoie un lot d'écoutes d'ici (depuis le dernier envoi) et
-//! demande celles du PC depuis le dernier curseur reçu ; le PC fusionne et répond sans rien
-//! retenir. Les règles de fusion et les curseurs sont dans `store/sync.rs`.
+//! Same link and same server as the handoff: the phone always acts. Each call (`POST
+//! api/plays/sync`) sends a batch of listens from here (since the last send) and asks for the PC's
+//! since the last cursor received; the PC merges and answers without keeping anything. The merge
+//! rules and the cursors are in `store/sync.rs`.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -16,35 +16,35 @@ use crate::commands::AppState;
 use crate::commands::settings::pins::is_uuid;
 use crate::store::{Outgoing, PlayBatch, SYNC_BATCH, Store, SyncState};
 
-/// Événement émis quand des écoutes reçues ont été ajoutées (nombre en charge utile).
+/// Event emitted when received listens were added (their number as the payload).
 pub const EVENT: &str = "history-synced";
-/// Appels au plus par synchro : 100 000 écoutes dans chaque sens.
+/// Calls at most per sync: 100,000 listens each way.
 const MAX_ROUNDS: usize = 100;
-/// Synchros automatiques (lancement, statistiques, transfert) espacées d'au moins.
+/// Automatic syncs (launch, statistics, handoff) are at least this far apart.
 const MIN_INTERVAL_MS: i64 = 30_000;
-/// Au lancement, laisser l'app démarrer d'abord.
+/// At launch, let the app start first.
 const LAUNCH_DELAY: Duration = Duration::from_secs(5);
 
-/// Appel du téléphone.
+/// Call from the phone.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncRequest {
-    /// Identifiant du téléphone : le PC ne lui renvoie pas ses propres écoutes.
+    /// Phone identifier: the PC does not send it back its own listens.
     pub device: String,
-    /// Dernier id du PC déjà reçu.
+    /// Last PC id already received.
     pub since: i64,
     pub plays: PlayBatch,
 }
 
-/// Réponse du PC.
+/// Answer from the PC.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncResponse {
-    /// Identifiant du PC : s'il change, le téléphone reprend tout de zéro.
+    /// PC identifier: if it changes, the phone starts over from scratch.
     pub device: String,
-    /// Prochain `since`.
+    /// Next `since`.
     pub cursor: i64,
-    /// Le PC a encore des écoutes après ce lot.
+    /// The PC has more listens after this batch.
     pub more: bool,
     pub plays: PlayBatch,
 }
@@ -56,7 +56,7 @@ pub(super) fn now_ms() -> i64 {
 }
 
 impl SyncRequest {
-    /// Appel reçu par le PC, vérifié : `None` s'il est incohérent.
+    /// Call received by the PC, checked: `None` if it is inconsistent.
     pub fn received(self) -> Option<Self> {
         if !is_uuid(&self.device) || self.since < 0 {
             return None;
@@ -68,8 +68,8 @@ impl SyncRequest {
     }
 }
 
-/// Côté PC : fusionne le lot du téléphone et répond avec les écoutes suivantes. Renvoie
-/// aussi le nombre d'écoutes ajoutées ici.
+/// PC side: merges the phone's batch and answers with the next listens. Also returns the number of
+/// listens added here.
 pub fn answer(store: &Store, request: &SyncRequest) -> crate::store::Result<(SyncResponse, usize)> {
     let own = store.device_id()?;
     let added = store.merge_plays(&request.plays, &own)?;
@@ -86,7 +86,7 @@ pub fn answer(store: &Store, request: &SyncRequest) -> crate::store::Result<(Syn
     ))
 }
 
-/// `Store` sur un thread bloquant.
+/// `Store` on a blocking thread.
 async fn blocking<T: Send + 'static>(
     store: &Arc<Store>,
     f: impl FnOnce(&Store) -> crate::store::Result<T> + Send + 'static,
@@ -98,8 +98,8 @@ async fn blocking<T: Send + 'static>(
         .map_err(|e| e.to_string())
 }
 
-/// Côté téléphone : échange jusqu'à ce que les deux côtés soient à jour. Renvoie le nombre
-/// d'écoutes reçues et ajoutées ici.
+/// Phone side: exchanges until both sides are up to date. Returns the number of listens received
+/// and added here.
 pub async fn sync(link: &Link, store: &Arc<Store>) -> Result<usize, String> {
     let own = blocking(store, Store::device_id).await?;
     let mut state = blocking(store, Store::sync_state).await?;
@@ -117,10 +117,10 @@ pub async fn sync(link: &Link, store: &Arc<Store>) -> Result<usize, String> {
         };
         let response = link.sync_plays(&request).await?;
         if state.peer.as_deref() != Some(response.device.as_str()) {
-            // Premier échange, ou PC réinstallé : tout reprendre (le lot envoyé est
-            // dédoublonné par le PC).
+            // First exchange, or PC reinstalled: start over (the PC removes duplicates from the
+            // batch sent).
             if state.peer.is_some() {
-                tracing::info!("Historique : ordinateur lié changé, synchro reprise de zéro");
+                tracing::info!("History: linked computer changed, sync restarted from scratch");
             }
             state = SyncState {
                 peer: Some(response.device),
@@ -145,16 +145,16 @@ pub async fn sync(link: &Link, store: &Arc<Store>) -> Result<usize, String> {
             return Ok(received);
         }
     }
-    tracing::warn!("Historique : synchro interrompue après {MAX_ROUNDS} échanges");
+    tracing::warn!("History: sync stopped after {MAX_ROUNDS} exchanges");
     Ok(received)
 }
 
-/// Une synchro à la fois.
+/// One sync at a time.
 static RUNNING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
-/// Synchronise avec l'ordinateur lié s'il y en a un, et prévient l'UI si des écoutes sont
-/// arrivées. `force` : même si la dernière synchro est toute récente (bouton de Réglages).
-/// Renvoie la date de la dernière synchro réussie, `None` sans ordinateur lié.
+/// Syncs with the linked computer if there is one, and tells the UI if listens arrived. `force`:
+/// even if the last sync is very recent (button in Settings). Returns the date of the last
+/// successful sync, `None` without a linked computer.
 pub async fn sync_now(app: &AppHandle, force: bool) -> Result<Option<i64>, String> {
     let Some(store) = app.state::<AppState>().store.clone() else {
         return Ok(None);
@@ -162,8 +162,8 @@ pub async fn sync_now(app: &AppHandle, force: bool) -> Result<Option<i64>, Strin
     let Some(mut link) = super::load().await? else {
         return Ok(None);
     };
-    // Lien d'avant #430 ou PC sans tunnel jusque-là : demander le chemin par le relais
-    // (réseau local seulement ; sans réponse, on réessaiera à la prochaine synchro).
+    // Link from before #430 or PC without a tunnel until now: ask for the relay route (local
+    // network only; without an answer, the next sync will try again).
     if link.relay().is_none()
         && let Ok(Some(route)) = link.fetch_relay().await
     {
@@ -171,7 +171,7 @@ pub async fn sync_now(app: &AppHandle, force: bool) -> Result<Option<i64>, Strin
         link = link.with_relay(Some(route));
     }
     let Ok(_guard) = RUNNING.try_lock() else {
-        // Une synchro tourne déjà : elle suffit.
+        // A sync is already running: it is enough.
         return Ok(blocking(&store, Store::sync_state).await?.synced_at);
     };
     let last = blocking(&store, Store::sync_state).await?.synced_at;
@@ -180,14 +180,14 @@ pub async fn sync_now(app: &AppHandle, force: bool) -> Result<Option<i64>, Strin
     }
     let received = sync(&link, &store).await?;
     if received > 0 {
-        tracing::info!("Historique : {received} écoutes reçues de l'ordinateur");
+        tracing::info!("History: {received} listens received from the computer");
         let _ = app.emit(EVENT, received);
     }
     Ok(blocking(&store, Store::sync_state).await?.synced_at)
 }
 
-/// Synchro silencieuse en tâche de fond (lancement, après un transfert) : un échec (PC
-/// éteint, ailleurs) n'est que journalisé.
+/// Silent sync in the background (launch, after a handoff): a failure (PC off, elsewhere) is only
+/// logged.
 pub fn spawn(app: &AppHandle, delay: Option<Duration>) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -195,12 +195,12 @@ pub fn spawn(app: &AppHandle, delay: Option<Duration>) {
             tokio::time::sleep(delay).await;
         }
         if let Err(e) = sync_now(&app, false).await {
-            tracing::info!("Historique : synchro impossible ({e})");
+            tracing::info!("History: sync failed ({e})");
         }
     });
 }
 
-/// Au lancement, si un ordinateur est lié.
+/// At launch, if a computer is linked.
 pub fn spawn_at_launch(app: &AppHandle) {
     spawn(app, Some(LAUNCH_DELAY));
 }

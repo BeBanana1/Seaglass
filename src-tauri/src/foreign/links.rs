@@ -1,50 +1,50 @@
-//! Lecture des liens d'autres services (#229) : logique pure, testée. Seuls le service, le
-//! type et un identifiant validé en sortent ; le reste du texte n'est jamais réutilisé.
+//! Reading links from other services (#229): pure logic, tested. Only the service, the type and a
+//! validated identifier come out of it; the rest of the text is never reused.
 
 use reqwest::Url;
 
 use crate::commands::link::{self, Link};
 
-/// Un texte plus long n'est pas un lien collé.
+/// A longer text is not a pasted link.
 const MAX_TEXT_LEN: usize = 2_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
     Track,
     Album,
-    /// Playlist à importer (#328) ; la Jam ne les prend pas.
+    /// Playlist to import (#328); the Jam does not take them.
     Playlist,
 }
 
-/// Ce que désigne un lien collé.
+/// What a pasted link points to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Source {
     Tidal(Kind, u64),
-    /// Lien TIDAL vers autre chose qu'un titre ou un album (artiste, playlist…).
+    /// TIDAL link to something other than a track or an album (artist, playlist…).
     TidalOther,
     Deezer(Kind, u64),
     Spotify(Kind, String),
-    /// `country` : code de la boutique (`fr`, `us`), pour l'API publique d'Apple.
+    /// `country`: store code (`fr`, `us`), for Apple's public API.
     Apple {
         kind: Kind,
         id: u64,
         country: String,
     },
     YouTube(String),
-    /// Playlist Apple Music (#328) : `pl.<hex>` (éditoriale) ou `pl.u-<…>` (d'un utilisateur) ;
-    /// `slug` = nom dans l'adresse, sans lequel Apple redirige.
+    /// Apple Music playlist (#328): `pl.<hex>` (editorial) or `pl.u-<…>` (a user's); `slug` = name
+    /// in the address, without which Apple redirects.
     ApplePlaylist {
         id: String,
         slug: String,
         country: String,
     },
-    /// Playlist YouTube Music : reconnue pour répondre qu'elle ne peut pas être importée.
+    /// YouTube Music playlist: recognized to answer that it cannot be imported.
     YouTubePlaylist,
-    /// Lien court à suivre (une redirection vers l'un des liens ci-dessus).
+    /// Short link to follow (a redirect to one of the links above).
     Short(Url),
 }
 
-/// Hôtes des liens courts : leur redirection n'est suivie que vers un lien reconnu.
+/// Short link hosts: their redirect is only followed to a recognized link.
 const SHORT_HOSTS: [&str; 4] = [
     "link.deezer.com",
     "deezer.page.link",
@@ -52,7 +52,7 @@ const SHORT_HOSTS: [&str; 4] = [
     "spotify.app.link",
 ];
 
-/// Premier lien reconnu d'un texte collé (texte de partage compris).
+/// First recognized link of a pasted text (share text included).
 pub fn find(text: &str) -> Option<Source> {
     if text.len() > MAX_TEXT_LEN {
         return None;
@@ -67,7 +67,7 @@ pub fn find(text: &str) -> Option<Source> {
     text.split_whitespace().find_map(parse_word)
 }
 
-/// Lien vers lequel redirige un lien court, s'il est reconnu (jamais un autre lien court).
+/// Link a short link redirects to, if it is recognized (never another short link).
 pub fn redirect_target(location: &str) -> Option<Source> {
     match find(location)? {
         Source::Short(_) => None,
@@ -136,8 +136,8 @@ fn deezer(segments: &[&str]) -> Option<Source> {
         .find_map(|p| Some(Source::Deezer(kind(p[0])?, number(p[1])?)))
 }
 
-/// `open.spotify.com[/intl-fr]/track/<id>` (`album`, `playlist`) : identifiant base62 de 22
-/// caractères.
+/// `open.spotify.com[/intl-fr]/track/<id>` (`album`, `playlist`): base62 identifier of 22
+/// characters.
 fn spotify(segments: &[&str]) -> Option<Source> {
     segments.windows(2).find_map(|p| {
         let id = p[1];
@@ -147,8 +147,8 @@ fn spotify(segments: &[&str]) -> Option<Source> {
     })
 }
 
-/// `music.apple.com/<pays>/album/<nom>/<id>[?i=<titre>]`, `…/song/<nom>/<id>`,
-/// `…/playlist/<nom>/pl.<id>`.
+/// `music.apple.com/<country>/album/<name>/<id>[?i=<track>]`, `…/song/<name>/<id>`,
+/// `…/playlist/<name>/pl.<id>`.
 fn apple(url: &Url, segments: &[&str]) -> Option<Source> {
     let country = segments
         .first()
@@ -187,7 +187,7 @@ fn apple(url: &Url, segments: &[&str]) -> Option<Source> {
     })
 }
 
-/// Identifiant de vidéo YouTube : 11 caractères `[A-Za-z0-9_-]`.
+/// YouTube video identifier: 11 characters `[A-Za-z0-9_-]`.
 fn youtube_id(id: &str) -> Option<Source> {
     let valid = id.len() == 11
         && id
@@ -301,7 +301,7 @@ mod tests {
             find("https://music.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI"),
             Some(Source::YouTubePlaylist)
         );
-        // Une vidéo jouée dans une playlist reste la vidéo.
+        // A video played in a playlist stays the video.
         assert_eq!(
             find("https://music.youtube.com/watch?v=5NV6Rdv1a3I&list=PLx"),
             Some(Source::YouTube("5NV6Rdv1a3I".into()))
@@ -330,7 +330,7 @@ mod tests {
         assert_eq!(find("https://exemple.com/track/1"), None);
         assert_eq!(find("https://spotify.link/"), None);
         assert_eq!(find(&"a ".repeat(MAX_TEXT_LEN)), None);
-        // Une redirection ne mène jamais à un autre lien court ni ailleurs.
+        // A redirect never leads to another short link, nor anywhere else.
         assert_eq!(redirect_target("https://spotify.link/x"), None);
         assert_eq!(redirect_target("https://exemple.com/"), None);
         assert_eq!(

@@ -1,18 +1,18 @@
-//! Ce que les pages et API publiques des autres services disent d'un titre ou d'un album
-//! (#229) : lecture des balises `<meta>`, nettoyage des titres YouTube. Logique pure, testée.
+//! What the public pages and APIs of other services say about a track or an album (#229): reading
+//! `<meta>` tags, cleaning up YouTube titles. Pure logic, tested.
 
-/// Titre ou album cherché sur TIDAL par son nom (pas d'ISRC ni de code-barres connu).
+/// Track or album looked up on TIDAL by its name (no known ISRC or barcode).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Wanted {
     pub title: String,
     pub artist: Option<String>,
     pub album: Option<String>,
-    /// Secondes.
+    /// Seconds.
     pub duration: Option<u32>,
 }
 
 impl Wanted {
-    /// Requête de recherche TIDAL : titre sans ses parenthèses, puis premier artiste.
+    /// TIDAL search query: the title without its parentheses, then the first artist.
     pub fn query(&self) -> String {
         let title = strip_decorations(&self.title);
         match self.artist.as_deref().map(first_artist) {
@@ -22,13 +22,13 @@ impl Wanted {
     }
 }
 
-/// Premier artiste d'une liste (« Daft Punk, Pharrell Williams » → « Daft Punk »).
+/// First artist of a list ("Daft Punk, Pharrell Williams" → "Daft Punk").
 pub fn first_artist(artists: &str) -> &str {
     artists.split([',', '&']).next().unwrap_or(artists).trim()
 }
 
-/// Contenu d'une balise `<meta property|name="…" content="…">`, entités HTML courantes
-/// décodées. Lecture par recherche de texte : aucune dépendance de plus.
+/// Content of a `<meta property|name="…" content="…">` tag, with the common HTML entities decoded.
+/// Read by text search: no extra dependency.
 pub fn meta(html: &str, name: &str) -> Option<String> {
     let mut rest = html;
     while let Some(start) = rest.find("<meta ") {
@@ -61,8 +61,8 @@ fn decode_entities(text: &str) -> String {
         .replace("&amp;", "&")
 }
 
-/// Page d'un titre Spotify : `og:title` = titre, `og:description` = « Artistes · Album ·
-/// Song · 2013 », `music:duration` en secondes.
+/// Spotify track page: `og:title` = title, `og:description` = "Artists · Album · Song · 2013",
+/// `music:duration` in seconds.
 pub fn spotify_track(html: &str) -> Option<Wanted> {
     let title = meta(html, "og:title")?;
     let description = meta(html, "og:description").unwrap_or_default();
@@ -78,8 +78,8 @@ pub fn spotify_track(html: &str) -> Option<Wanted> {
     })
 }
 
-/// Album Spotify : titre par oEmbed (le `og:title` de la page dépend de la langue),
-/// artiste en tête de `og:description` (« Daft Punk · album · 2013 · 13 songs »).
+/// Spotify album: title through oEmbed (the page's `og:title` depends on the language), artist at
+/// the start of `og:description` ("Daft Punk · album · 2013 · 13 songs").
 pub fn spotify_album(oembed_title: &str, html: &str) -> Wanted {
     let artist = meta(html, "og:description")
         .and_then(|d| d.split(" · ").next().map(str::to_owned))
@@ -91,8 +91,8 @@ pub fn spotify_album(oembed_title: &str, html: &str) -> Wanted {
     }
 }
 
-/// Vidéo YouTube (oEmbed) : une chaîne « Artiste - Topic » publie le titre seul ; sinon le
-/// titre est souvent « Artiste - Titre (Official Video) ».
+/// YouTube video (oEmbed): an "Artist - Topic" channel publishes the title alone; otherwise the
+/// title is often "Artist - Title (Official Video)".
 pub fn youtube(title: &str, author: &str) -> Wanted {
     if let Some(artist) = author.strip_suffix(" - Topic") {
         return Wanted {
@@ -101,7 +101,7 @@ pub fn youtube(title: &str, author: &str) -> Wanted {
             ..Wanted::default()
         };
     }
-    // Le « - » sépare ici l'artiste du titre : pas de coupe de version avant de le lire.
+    // Here the "-" separates the artist from the title: no version cut before reading it.
     let cleaned = strip_brackets(title);
     match cleaned.split_once(" - ") {
         Some((artist, song)) => Wanted {
@@ -118,8 +118,8 @@ pub fn youtube(title: &str, author: &str) -> Wanted {
     }
 }
 
-/// Mots qui, après « - », désignent une version et non le titre (« Dreams - 2004 Remaster »,
-/// « Danger Zone - From "Top Gun" », écriture de Spotify, #328).
+/// Words that, after "-", name a version and not the title ("Dreams - 2004 Remaster", "Danger Zone
+/// - From "Top Gun"", Spotify's style, #328).
 const VERSION_WORDS: [&str; 26] = [
     "remaster",
     "remastered",
@@ -149,13 +149,13 @@ const VERSION_WORDS: [&str; 26] = [
     "mixed",
 ];
 
-/// Titre sans ce qui est entre parenthèses ou crochets, ni « ft. … » / « feat. … » final, ni
-/// suffixe de version après « - ».
+/// Title without what is between parentheses or brackets, nor a final "ft. …" / "feat. …", nor a
+/// version suffix after "-".
 pub fn strip_decorations(title: &str) -> String {
     strip_version_suffix(&strip_brackets(title))
 }
 
-/// Coupe au premier « - » suivi d'un mot de version ; « Hey - You » reste entier.
+/// Cuts at the first "-" followed by a version word; "Hey - You" stays whole.
 fn strip_version_suffix(title: &str) -> String {
     let mut from = 0;
     while let Some(i) = title[from..].find(" - ").map(|i| i + from) {
@@ -171,7 +171,7 @@ fn strip_version_suffix(title: &str) -> String {
     title.to_owned()
 }
 
-/// Titre sans ce qui est entre parenthèses ou crochets, ni « ft. … » / « feat. … » final.
+/// Title without what is between parentheses or brackets, nor a final "ft. …" / "feat. …".
 fn strip_brackets(title: &str) -> String {
     let mut out = String::new();
     let mut depth = 0u32;
@@ -183,8 +183,8 @@ fn strip_brackets(title: &str) -> String {
             _ => {}
         }
     }
-    // `to_ascii_lowercase` garde la longueur en octets : l'index trouvé vaut pour `out`
-    // (#262), ce que `to_lowercase` ne garantit pas (« İ » s'allonge, par exemple).
+    // `to_ascii_lowercase` keeps the length in bytes: the index found holds for `out` (#262), which
+    // `to_lowercase` does not guarantee ("İ" grows longer, for example).
     let lower = out.to_ascii_lowercase();
     let cut = [" ft. ", " ft ", " feat. ", " feat ", " featuring "]
         .iter()
@@ -242,7 +242,7 @@ mod tests {
         let topic = youtube("Get Lucky (feat. Pharrell Williams)", "Daft Punk - Topic");
         assert_eq!(topic.query(), "Get Lucky Daft Punk");
 
-        // « Live » appartient au titre ici : l'artiste reste lu avant le « - ».
+        // "Live" belongs to the title here: the artist is still read before the "-".
         let live = youtube("Nirvana - Lithium Live", "NirvanaVEVO");
         assert_eq!(live.artist.as_deref(), Some("Nirvana"));
         assert_eq!(live.title, "Lithium Live");
@@ -258,7 +258,7 @@ mod tests {
             "Get Lucky"
         );
         assert_eq!(strip_decorations("Stay feat. Justin Bieber"), "Stay");
-        // Suffixes de version à la Spotify (#328).
+        // Spotify-style version suffixes (#328).
         assert_eq!(strip_decorations("Dreams - 2004 Remaster"), "Dreams");
         assert_eq!(strip_decorations("Paranoid - 2012 - Remaster"), "Paranoid");
         assert_eq!(
@@ -271,7 +271,7 @@ mod tests {
         );
         assert_eq!(strip_decorations("Hey - You"), "Hey - You");
         assert_eq!(strip_decorations("- Live"), "- Live");
-        // « İ » s'allonge en minuscules (2 → 3 octets) : la coupe reste au bon endroit (#262).
+        // "İ" grows longer in lowercase (2 → 3 bytes): the cut stays at the right place (#262).
         assert_eq!(strip_decorations("İstanbul feat. Ayla"), "İstanbul");
         assert_eq!(strip_decorations("İİİ Song feat. X"), "İİİ Song");
         assert_eq!(
