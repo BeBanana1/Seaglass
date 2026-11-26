@@ -1,5 +1,5 @@
-//! Logique pure de MPRIS (#312) : ce que le serveur D-Bus expose et ce qu'il doit signaler,
-//! calculé à partir de `NowPlaying`. Compilée partout pour les tests, utilisée sous Linux.
+//! Pure MPRIS logic (#312): what the D-Bus server exposes and what it must signal, computed from
+//! `NowPlaying`. Compiled everywhere for the tests, used on Linux.
 
 #![cfg_attr(not(target_os = "linux"), allow(dead_code))]
 
@@ -8,18 +8,18 @@ use std::time::Instant;
 use crate::integrations::{MediaInfo, NowPlaying, PlaybackStatus};
 use crate::player::Repeat;
 
-/// Préfixe des `mpris:trackid` : un chemin D-Bus propre à l'app, suivi de l'identifiant.
+/// Prefix of the `mpris:trackid`s: a D-Bus path specific to the app, followed by the identifier.
 const TRACK_PATH_PREFIX: &str = "/dev/seaglass/app/track/";
-/// `mpris:trackid` réservé par la spécification quand rien n'est chargé.
+/// `mpris:trackid` reserved by the specification when nothing is loaded.
 pub const NO_TRACK: &str = "/org/mpris/MediaPlayer2/TrackList/NoTrack";
-/// Écart toléré entre la position reçue et la position estimée avant de signaler un saut.
+/// Tolerated gap between the received position and the estimated one before signaling a jump.
 const SEEK_TOLERANCE: f64 = 1.5;
 
 pub fn track_path(id: u64) -> String {
     format!("{TRACK_PATH_PREFIX}{id}")
 }
 
-/// Microsecondes, l'unité des positions MPRIS.
+/// Microseconds, the unit of MPRIS positions.
 pub fn micros(seconds: f64) -> i64 {
     (seconds.max(0.0) * 1_000_000.0).round() as i64
 }
@@ -28,8 +28,8 @@ pub fn seconds(micros: i64) -> f64 {
     micros as f64 / 1_000_000.0
 }
 
-/// `PlaybackStatus` MPRIS. `Changing` (chargement, mise en mémoire tampon) n'existe pas
-/// côté MPRIS : `None`, le statut précédent est gardé.
+/// MPRIS `PlaybackStatus`. `Changing` (loading, buffering) does not exist on the MPRIS side:
+/// `None`, the previous status is kept.
 fn status_str(status: PlaybackStatus) -> Option<&'static str> {
     match status {
         PlaybackStatus::Stopped => Some("Stopped"),
@@ -56,7 +56,7 @@ pub fn parse_loop_status(value: &str) -> Option<Repeat> {
     }
 }
 
-/// Niveau du lecteur (0–100) pour un `Volume` MPRIS (0.0–1.0, au-delà ramené à 1.0).
+/// Player level (0–100) for an MPRIS `Volume` (0.0–1.0, anything above brought back to 1.0).
 pub fn volume_level(volume: f64) -> u8 {
     if volume.is_nan() {
         return 0;
@@ -64,16 +64,16 @@ pub fn volume_level(volume: f64) -> u8 {
     (volume.clamp(0.0, 1.0) * 100.0).round() as u8
 }
 
-/// Commande issue de `Seek` ou `SetPosition`, traduite en `Cmd` par le serveur. Pas de
-/// `Cmd` ici : en détruire un dans un test tire le code de la zone de notification, et le
-/// binaire de test Windows ne démarre plus (comctl32 v6, voir `docs/android.md`).
+/// Command from `Seek` or `SetPosition`, turned into a `Cmd` by the server. No `Cmd` here: dropping
+/// one in a test pulls in the notification area code, and the Windows test binary no longer starts
+/// (comctl32 v6, see `docs/android.md`).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Jump {
     To(f64),
     Next,
 }
 
-/// Métadonnées d'un titre, avant leur conversion en dictionnaire D-Bus.
+/// A track's metadata, before its conversion to a D-Bus dictionary.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Metadata {
     pub track_id: String,
@@ -90,8 +90,8 @@ impl Metadata {
             track_id: track_path(m.track_id),
             length: micros(m.duration),
             title: m.title.clone(),
-            // `NowPlaying` porte les artistes déjà joints : une seule entrée suffit à
-            // l'affichage, et `xesam:artist` reste une liste comme l'exige la spécification.
+            // `NowPlaying` carries the artists already joined: a single entry is enough for
+            // display, and `xesam:artist` stays a list as the specification requires.
             artists: vec![m.artist.clone()],
             album: m.album.clone(),
             art_url: m.cover_url.clone(),
@@ -99,8 +99,8 @@ impl Metadata {
     }
 }
 
-/// Propriétés à signaler par `PropertiesChanged` après une mise à jour, et saut éventuel
-/// (signal `Seeked`, en secondes).
+/// Properties to signal through `PropertiesChanged` after an update, and a possible jump (`Seeked`
+/// signal, in seconds).
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Changes {
     pub metadata: bool,
@@ -113,7 +113,7 @@ pub struct Changes {
     pub seeked: Option<f64>,
 }
 
-/// Dernier point connu de la position, pour l'estimer entre deux mises à jour.
+/// Last known position point, to estimate it between two updates.
 #[derive(Debug, Clone, Copy)]
 struct Clock {
     at: Instant,
@@ -131,7 +131,7 @@ impl Clock {
     }
 }
 
-/// État exposé sur le bus, tenu par l'interface `Player`.
+/// State exposed on the bus, held by the `Player` interface.
 #[derive(Debug, Clone)]
 pub struct State {
     np: Option<NowPlaying>,
@@ -150,7 +150,7 @@ impl Default for State {
 }
 
 impl State {
-    /// Prend un nouvel état du lecteur et dit ce qui a changé.
+    /// Takes a new player state and tells what changed.
     pub fn update(&mut self, np: NowPlaying, now: Instant) -> Changes {
         let status = status_str(np.status).unwrap_or(self.status);
         let last = self.np.as_ref();
@@ -203,7 +203,7 @@ impl State {
         self.media().map_or(0.0, |m| m.duration)
     }
 
-    /// Position estimée, bornée à la durée du titre.
+    /// Estimated position, bounded by the track's duration.
     pub fn position(&self, now: Instant) -> f64 {
         let Some(clock) = self.clock.filter(|_| self.media().is_some()) else {
             return 0.0;
@@ -233,8 +233,8 @@ impl State {
         self.np.as_ref().is_some_and(|np| np.has_previous)
     }
 
-    /// `Seek(offset)` : position relative. Au-delà de la fin, la spécification demande de
-    /// passer au titre suivant ; avant le début, de revenir à 0.
+    /// `Seek(offset)`: relative position. Past the end, the specification asks to go to the next
+    /// track; before the start, to go back to 0.
     pub fn seek(&self, offset: i64, now: Instant) -> Option<Jump> {
         if !self.can_seek() {
             return None;
@@ -247,8 +247,8 @@ impl State {
         }
     }
 
-    /// `SetPosition(trackid, position)` : ignoré si le titre a changé entre-temps ou si la
-    /// position sort du titre, comme le veut la spécification.
+    /// `SetPosition(trackid, position)`: ignored if the track changed in the meantime or if the
+    /// position falls outside the track, as the specification requires.
     pub fn set_position(&self, track_id: &str, position: i64) -> Option<Jump> {
         let media = self.media()?;
         let target = seconds(position);
@@ -341,7 +341,7 @@ mod tests {
         let mut state = State::default();
         state.update(np(1, PlaybackStatus::Paused, 30.0), t0);
         assert_eq!(state.position(t0 + Duration::from_secs(10)), 30.0);
-        // Rester en pause 10 s n'est pas un saut.
+        // Staying paused for 10 s is not a jump.
         let changes = state.update(
             np(1, PlaybackStatus::Paused, 30.0),
             t0 + Duration::from_secs(10),

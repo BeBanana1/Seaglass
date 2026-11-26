@@ -1,5 +1,5 @@
-//! Contrôles média de Linux (#312) : serveur MPRIS, l'équivalent du SMTC de Windows
-//! (touches média, applet du bureau, `playerctl`, KDE Connect).
+//! Linux media controls (#312): an MPRIS server, the equivalent of the Windows SMTC (media keys,
+//! desktop applet, `playerctl`, KDE Connect).
 
 pub mod logic;
 #[cfg(target_os = "linux")]

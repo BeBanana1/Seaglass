@@ -1,8 +1,8 @@
-//! Intégrations système : elles reçoivent un résumé de l'état du lecteur (`NowPlaying`)
-//! et renvoient leurs actions (touches média…) sous forme de `Cmd` à l'acteur.
+//! System integrations: they receive a summary of the player's state (`NowPlaying`) and send their
+//! actions (media keys…) back to the actor as `Cmd`s.
 
-// Hors Windows, Linux et Android (macOS…), aucune intégration ne consomme `NowPlaying` :
-// sans cela, clippy `-D warnings` échouerait sur du code mort.
+// Outside Windows, Linux and Android (macOS…), no integration consumes `NowPlaying`: without this,
+// clippy `-D warnings` would fail on dead code.
 #![cfg_attr(
     not(any(windows, target_os = "linux", target_os = "android")),
     allow(dead_code)
@@ -29,9 +29,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::player::{PlayerState, Repeat};
 
-/// Un appui sur la notification d'Android demande « En lecture » (#163). Gardée jusqu'à ce
-/// que l'UI la prenne : rouverte après un balayage des récents, la WebView n'existe pas
-/// encore quand la demande arrive.
+/// A tap on the Android notification asks for "Now playing" (#163). Kept until the UI takes it:
+/// reopened after a swipe from the recents, the WebView does not exist yet when the request
+/// arrives.
 static NOW_PLAYING_REQUEST: AtomicBool = AtomicBool::new(false);
 
 #[cfg_attr(not(target_os = "android"), allow(dead_code))]
@@ -39,13 +39,13 @@ pub fn request_now_playing() {
     NOW_PLAYING_REQUEST.store(true, Ordering::Relaxed);
 }
 
-/// Vrai une seule fois par demande.
+/// True only once per request.
 pub fn take_now_playing_request() -> bool {
     NOW_PLAYING_REQUEST.swap(false, Ordering::Relaxed)
 }
 
-/// Mode conduite demandé par le lien `seaglass://drive` ou le raccourci de l'app (#193),
-/// gardé comme « En lecture » jusqu'à ce que l'UI le prenne.
+/// Driving mode requested by the `seaglass://drive` link or the app shortcut (#193), kept like "Now
+/// playing" until the UI takes it.
 static DRIVE_REQUEST: AtomicBool = AtomicBool::new(false);
 
 #[cfg_attr(not(target_os = "android"), allow(dead_code))]
@@ -53,12 +53,12 @@ pub fn request_drive() {
     DRIVE_REQUEST.store(true, Ordering::Relaxed);
 }
 
-/// Vrai une seule fois par demande.
+/// True only once per request.
 pub fn take_drive_request() -> bool {
     DRIVE_REQUEST.swap(false, Ordering::Relaxed)
 }
 
-/// Intégrations branchées sur le lecteur, notifiées à chaque changement d'état émis.
+/// Integrations attached to the player, notified on every state change it emits.
 #[derive(Default)]
 pub struct Observers {
     #[cfg(windows)]
@@ -111,7 +111,7 @@ pub struct MediaInfo {
     pub artist: String,
     pub album: String,
     pub cover_url: Option<String>,
-    /// Secondes.
+    /// Seconds.
     pub duration: f64,
 }
 
@@ -132,7 +132,7 @@ pub struct NowPlaying {
     pub has_previous: bool,
     pub shuffle: bool,
     pub repeat: Repeat,
-    /// 0.0–1.0, 0 quand le son est coupé (MPRIS).
+    /// 0.0–1.0, 0 when muted (MPRIS).
     pub volume: f64,
 }
 
@@ -158,8 +158,8 @@ impl NowPlaying {
                 f64::from(t.duration)
             },
         });
-        // Un titre restauré (en pause, mpv inactif) reste « en pause » : les touches
-        // média peuvent alors relancer la lecture.
+        // A restored track (paused, mpv idle) stays "paused": the media keys can then start
+        // playback again.
         let status = if media.is_none() {
             PlaybackStatus::Stopped
         } else if s.loading || s.buffering {

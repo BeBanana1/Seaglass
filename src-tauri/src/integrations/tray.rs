@@ -1,10 +1,10 @@
-//! Icône de la zone de notification (#83) : clic gauche = afficher la fenêtre, ou la
-//! cacher si elle est déjà au premier plan (#226), menu avec
-//! le titre en cours, Lecture/Pause, Suivant, Précédent, Afficher, Mini-lecteur (#384), Quitter. Les commandes
-//! passent par `Cmd`, comme SMTC ; le menu est tenu à jour en observateur de l'acteur.
+//! Notification area icon (#83): left click = show the window, or hide it if it is already in the
+//! foreground (#226); a menu with the current track, Play/Pause, Next, Previous, Show, Mini player
+//! (#384), Quit. The commands go through `Cmd`, like SMTC; the menu is kept up to date as an
+//! observer of the actor.
 //!
-//! Réglage « Fermer la fenêtre » : avec `tray`, fermer la fenêtre principale la cache au
-//! lieu de quitter, seulement si l'icône existe (sinon l'app deviendrait inaccessible).
+//! "Close the window" setting: with `tray`, closing the main window hides it instead of quitting,
+//! only if the icon exists (otherwise the app would become unreachable).
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -20,31 +20,31 @@ use crate::commands::mini_player;
 use crate::i18n::{self, tr};
 use crate::player::{Cmd, PlayerState};
 
-/// Argument ajouté à la clé `Run` du lancement au démarrage : l'app démarre cachée.
+/// Argument added to the `Run` key of the launch at startup: the app starts hidden.
 pub const MINIMIZED_ARG: &str = "--minimized";
 
 static CLOSE_TO_TRAY: AtomicBool = AtomicBool::new(false);
 static TRAY_READY: AtomicBool = AtomicBool::new(false);
-/// Dernière perte du focus de la fenêtre principale (#226).
+/// Last time the main window lost focus (#226).
 static FOCUS_LOST: Mutex<Option<Instant>> = Mutex::new(None);
-/// Cliquer sur l'icône prend le focus à la fenêtre juste avant le clic : une fenêtre qui
-/// l'a perdu il y a moins que ça était encore au premier plan.
+/// Clicking the icon takes the focus from the window just before the click: a window that lost it
+/// less than this ago was still in the foreground.
 const FOCUS_GRACE: Duration = Duration::from_millis(500);
 
-/// Focus de la fenêtre principale, suivi pour le clic sur l'icône (#226).
+/// Focus of the main window, tracked for the click on the icon (#226).
 pub fn note_focus(focused: bool) {
     if let Ok(mut lost) = FOCUS_LOST.lock() {
         *lost = (!focused).then(Instant::now);
     }
 }
 
-/// Clic sur l'icône : cacher une fenêtre visible au premier plan, sinon l'afficher
-/// (cachée, réduite ou derrière d'autres fenêtres). Logique pure, testée.
+/// Click on the icon: hide a visible window in the foreground, otherwise show it (hidden, minimized
+/// or behind other windows). Pure logic, tested.
 fn click_hides(visible: bool, minimized: bool, focused: bool, lost_ago: Option<Duration>) -> bool {
     visible && !minimized && (focused || lost_ago.is_some_and(|d| d <= FOCUS_GRACE))
 }
 
-/// Clic gauche sur l'icône : afficher ou cacher la fenêtre principale (#226).
+/// Left click on the icon: show or hide the main window (#226).
 fn toggle_main(app: &AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
@@ -66,29 +66,29 @@ fn toggle_main(app: &AppHandle) {
     }
 }
 
-/// Réglage « Fermer la fenêtre » : vrai = réduire dans la zone de notification.
+/// "Close the window" setting: true = minimize to the notification area.
 pub fn set_close_to_tray(enabled: bool) {
     CLOSE_TO_TRAY.store(enabled, Ordering::Relaxed);
 }
 
-/// Fermer la fenêtre principale doit-il la cacher plutôt que quitter ?
+/// Should closing the main window hide it rather than quit?
 pub fn hide_on_close() -> bool {
     CLOSE_TO_TRAY.load(Ordering::Relaxed) && TRAY_READY.load(Ordering::Relaxed)
 }
 
-/// Lancée par la clé `Run` avec `--minimized`, et l'icône existe : la fenêtre reste cachée.
+/// Started by the `Run` key with `--minimized`, and the icon exists: the window stays hidden.
 pub fn start_hidden(args: impl IntoIterator<Item = String>) -> bool {
     TRAY_READY.load(Ordering::Relaxed) && args.into_iter().any(|a| a == MINIMIZED_ARG)
 }
 
-/// Seaglass relancé alors qu'il tourne déjà : la fenêtre existante est réaffichée, sauf
-/// pour un lancement au démarrage de session (`--minimized`), qui ne doit rien montrer.
+/// Seaglass started again while already running: the existing window is shown again, except for a
+/// launch at session start (`--minimized`), which must show nothing.
 pub fn show_on_second_launch(args: impl IntoIterator<Item = String>) -> bool {
     !args.into_iter().any(|a| a == MINIMIZED_ARG)
 }
 
-/// Affiche la fenêtre principale. Le mini-lecteur (#384) la remplace : il se ferme, et sa
-/// fermeture la réaffiche aussi.
+/// Shows the main window. The mini player (#384) replaces it: it closes, and closing it shows the
+/// main window again too.
 pub fn show_main(app: &AppHandle) {
     if let Some(mini) = app.get_webview_window(mini_player::LABEL) {
         let _ = mini.close();
@@ -96,8 +96,7 @@ pub fn show_main(app: &AppHandle) {
     reveal_main(app);
 }
 
-/// Affiche, restaure et met au premier plan la fenêtre principale, sans toucher au
-/// mini-lecteur.
+/// Shows, restores and brings the main window to the foreground, without touching the mini player.
 pub fn reveal_main(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
@@ -106,7 +105,7 @@ pub fn reveal_main(app: &AppHandle) {
     }
 }
 
-/// Textes et états du menu pour un état du lecteur (logique pure, testée).
+/// Menu texts and states for a player state (pure logic, tested).
 #[derive(Debug, Clone, PartialEq)]
 struct TrayView {
     now: String,
@@ -142,7 +141,7 @@ impl TrayView {
         );
         Self {
             now: ellipsize(&now, 60),
-            // Windows tronque l'info-bulle d'une icône à 127 caractères.
+            // Windows truncates an icon's tooltip to 127 characters.
             tooltip: ellipsize(&tooltip, 120),
             play_pause: if playing {
                 tr("Pause", "Pause")
@@ -161,7 +160,7 @@ impl TrayView {
     }
 }
 
-/// Coupe à `max` caractères (pas octets) avec une ellipse.
+/// Cuts to `max` characters (not bytes) with an ellipsis.
 fn ellipsize(text: &str, max: usize) -> String {
     if text.chars().count() <= max {
         return text.to_owned();
@@ -171,7 +170,7 @@ fn ellipsize(text: &str, max: usize) -> String {
     cut
 }
 
-/// Icône créée : notifiée par `Observers` à chaque état émis par l'acteur.
+/// Icon created: notified by `Observers` on every state the actor emits.
 pub struct TrayHandle {
     tray: TrayIcon<Wry>,
     now: MenuItem<Wry>,
@@ -181,8 +180,8 @@ pub struct TrayHandle {
     show: MenuItem<Wry>,
     mini: MenuItem<Wry>,
     quit: MenuItem<Wry>,
-    /// Dernière vue appliquée : le menu n'est touché que si elle change (l'état arrive à
-    /// ~4 Hz pendant la lecture).
+    /// Last view applied: the menu is only touched when it changes (the state arrives at ~4 Hz
+    /// during playback).
     last: Mutex<Option<(TrayView, i18n::Lang)>>,
 }
 
@@ -197,7 +196,7 @@ impl TrayHandle {
             return;
         }
         if let Err(e) = self.apply(&view) {
-            tracing::warn!("zone de notification : {e}");
+            tracing::warn!("notification area: {e}");
         }
         *last = Some(key);
     }
@@ -217,7 +216,7 @@ impl TrayHandle {
     }
 }
 
-/// Crée l'icône et son menu. En cas d'échec, fermer la fenêtre quitte l'app comme avant.
+/// Creates the icon and its menu. On failure, closing the window quits the app as before.
 pub fn create(app: &AppHandle, player: mpsc::Sender<Cmd>) -> tauri::Result<TrayHandle> {
     let v = TrayView::from_player(&PlayerState::default());
     let now = MenuItem::with_id(app, "now", &v.now, false, None::<&str>)?;
@@ -256,7 +255,7 @@ pub fn create(app: &AppHandle, player: mpsc::Sender<Cmd>) -> tauri::Result<TrayH
                 _ => return,
             };
             if player.try_send(cmd).is_err() {
-                tracing::warn!("zone de notification : lecteur indisponible");
+                tracing::warn!("notification area: player unavailable");
             }
         })
         .on_tray_icon_event(|tray, event| {
@@ -334,7 +333,7 @@ mod tests {
         assert_eq!(v.tooltip, "Seaglass\nTime\nHans Zimmer");
         assert_eq!(v.play_pause, "Pause");
         assert!(v.has_track && v.has_next);
-        // Un titre chargé permet toujours « Précédent » (retour au début).
+        // A loaded track always allows "Previous" (back to the start).
         assert!(v.has_previous);
 
         s.paused = true;
@@ -353,10 +352,10 @@ mod tests {
     #[test]
     fn click_hides_only_a_window_in_front() {
         let just = Some(Duration::from_millis(80));
-        // Au premier plan, ou qui vient de perdre le focus à cause du clic : cachée.
+        // In the foreground, or it just lost the focus because of the click: hidden.
         assert!(click_hides(true, false, true, None));
         assert!(click_hides(true, false, false, just));
-        // Derrière d'autres fenêtres depuis longtemps, réduite ou cachée : affichée.
+        // Behind other windows for a long time, minimized or hidden: shown.
         assert!(!click_hides(
             true,
             false,
@@ -379,7 +378,7 @@ mod tests {
 
     #[test]
     fn minimized_start_needs_the_argument_and_the_icon() {
-        // L'icône n'existe pas dans les tests : jamais caché.
+        // The icon does not exist in the tests: never hidden.
         assert!(!start_hidden(["seaglass.exe".into(), MINIMIZED_ARG.into()]));
         assert!(!hide_on_close());
     }

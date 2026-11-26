@@ -1,17 +1,17 @@
-//! Activité affichée par Discord (#215) : logique pure, sans connexion.
+//! Activity shown by Discord (#215): pure logic, no connection.
 //!
-//! « Écoute » (type 2) : titre en `details`, artistes en `state` (repris dans la liste des
-//! membres, `status_display_type` = 1), pochette et album, barre de progression par les
-//! horodatages de début et de fin. Rien en pause ni à l'arrêt.
+//! "Listening" (type 2): title in `details`, artists in `state` (repeated in the member list,
+//! `status_display_type` = 1), cover and album, progress bar through the start and end timestamps.
+//! Nothing when paused or stopped.
 
 use serde_json::{Value, json};
 
 use crate::i18n::tr;
 use crate::integrations::{NowPlaying, PlaybackStatus};
 
-/// Longueur maximale des textes acceptée par Discord (`details`, `state`, `large_text`).
+/// Maximum text length Discord accepts (`details`, `state`, `large_text`).
 const MAX_TEXT: usize = 128;
-/// Écart des horodatages au-delà duquel on considère qu'il y a eu un saut.
+/// Timestamp gap beyond which a jump is assumed.
 const SEEK_TOLERANCE_MS: i64 = 2_000;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -21,14 +21,14 @@ pub struct Activity {
     pub state: String,
     pub cover_url: Option<String>,
     pub album: String,
-    /// Début et fin de la barre de progression, en ms depuis l'epoch ; absents sans durée.
+    /// Start and end of the progress bar, in ms since the epoch; absent without a duration.
     pub start_ms: i64,
     pub end_ms: Option<i64>,
     pub button: String,
 }
 
-/// Activité voulue pour `np`. Pendant un chargement, l'activité précédente reste : la
-/// présence ne clignote pas entre deux titres.
+/// Activity wanted for `np`. While loading, the previous activity stays: the presence does not
+/// flicker between two tracks.
 pub fn desired(
     np: Option<&NowPlaying>,
     previous: Option<&Activity>,
@@ -58,8 +58,8 @@ pub fn desired(
     })
 }
 
-/// Vrai si l'activité envoyée doit être remplacée : autre titre ou autre texte, apparition
-/// ou disparition, ou saut dans le titre (horodatages décalés de plus de 2 s).
+/// True if the activity sent must be replaced: another track or another text, appearing or
+/// disappearing, or a jump within the track (timestamps shifted by more than 2 s).
 pub fn needs_update(sent: Option<&Activity>, next: Option<&Activity>) -> bool {
     match (sent, next) {
         (None, None) => false,
@@ -100,7 +100,7 @@ impl Activity {
     }
 }
 
-/// Coupé à 128 caractères ; Discord refuse aussi un texte de moins de 2 caractères.
+/// Cut to 128 characters; Discord also refuses a text shorter than 2 characters.
 fn text(s: &str) -> String {
     let s = s.trim();
     let mut out: String = if s.chars().count() > MAX_TEXT {
@@ -198,13 +198,13 @@ mod tests {
     #[test]
     fn update_only_on_change_or_seek() {
         let a = desired(Some(&playing(10.0)), None, 100_000);
-        // Lecture qui avance normalement : mêmes horodatages à l'arrondi près.
+        // Playback moving on normally: same timestamps, up to rounding.
         let b = desired(Some(&playing(20.2)), None, 110_000);
         assert!(!needs_update(a.as_ref(), b.as_ref()));
-        // Saut de 30 s.
+        // Jump of 30 s.
         let c = desired(Some(&playing(50.0)), None, 110_000);
         assert!(needs_update(a.as_ref(), c.as_ref()));
-        // Autre titre.
+        // Another track.
         let mut np = playing(10.0);
         np.media.as_mut().unwrap().track_id = 7;
         assert!(needs_update(

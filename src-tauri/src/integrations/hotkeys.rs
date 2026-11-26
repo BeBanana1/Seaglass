@@ -1,10 +1,10 @@
-//! Raccourcis clavier globaux (#413, bureau) : enregistrés auprès du système par
-//! `tauri-plugin-global-shortcut`, pilotés seulement d'ici (aucune permission côté UI).
+//! Global keyboard shortcuts (#413, desktop): registered with the system by
+//! `tauri-plugin-global-shortcut`, driven from here only (no permission on the UI side).
 //!
-//! Le plugin est ajouté pendant `setup` par `init`, et non dans le constructeur de l'app :
-//! sous Linux sans serveur X, sa création échoue, et un plugin du constructeur empêcherait
-//! alors l'app de démarrer. Les actions du lecteur partent directement à l'acteur ; « Aimer »
-//! est annoncé à l'UI (`global-shortcut`), qui l'exécute par son registre d'actions.
+//! The plugin is added during `setup` by `init`, not in the app builder: on Linux without an X
+//! server, creating it fails, and a plugin of the builder would then keep the app from starting.
+//! The player's actions go straight to the actor; "Like" is announced to the UI
+//! (`global-shortcut`), which runs it through its action registry.
 
 use std::sync::Mutex;
 
@@ -16,16 +16,16 @@ use crate::commands::AppState;
 use crate::commands::settings::global_shortcuts::{GlobalAction, GlobalShortcuts};
 use crate::player::Cmd;
 
-/// Cran de volume, le même que Ctrl+↑ / Ctrl+↓ dans l'app.
+/// Volume step, the same as Ctrl+↑ / Ctrl+↓ in the app.
 const VOLUME_STEP: i8 = 5;
 
-/// Combinaisons enregistrées (identifiant de `global-hotkey`) et leur action.
+/// Registered combinations (`global-hotkey` identifier) and their action.
 static BOUND: Mutex<Vec<(u32, GlobalAction)>> = Mutex::new(Vec::new());
-/// Actions dont la combinaison n'a pas pu être enregistrée (prise par une autre app, touche
-/// inconnue), pour les Réglages.
+/// Actions whose combination could not be registered (taken by another app, unknown key), for
+/// Settings.
 static FAILED: Mutex<Vec<GlobalAction>> = Mutex::new(Vec::new());
 
-/// Ajoute le plugin ; `false` si le système n'offre pas de raccourcis globaux.
+/// Adds the plugin; `false` if the system offers no global shortcuts.
 pub fn init(app: &AppHandle) -> bool {
     let plugin = tauri_plugin_global_shortcut::Builder::new()
         .with_handler(on_shortcut)
@@ -33,32 +33,32 @@ pub fn init(app: &AppHandle) -> bool {
     match app.plugin(plugin) {
         Ok(()) => true,
         Err(e) => {
-            tracing::warn!("raccourcis globaux indisponibles : {e}");
+            tracing::warn!("global shortcuts unavailable: {e}");
             false
         }
     }
 }
 
-/// Raccourcis globaux possibles ici (plugin chargé).
+/// Whether global shortcuts are possible here (plugin loaded).
 pub fn available(app: &AppHandle) -> bool {
     app.try_state::<tauri_plugin_global_shortcut::GlobalShortcut<Wry>>()
         .is_some()
 }
 
-/// Actions dont la combinaison n'est pas enregistrée.
+/// Actions whose combination is not registered.
 pub fn failed() -> Vec<GlobalAction> {
     FAILED.lock().map(|f| f.clone()).unwrap_or_default()
 }
 
-/// Remplace les raccourcis enregistrés par ceux du réglage ; renvoie les actions dont la
-/// combinaison n'a pas pu être prise.
+/// Replaces the registered shortcuts with those of the setting; returns the actions whose
+/// combination could not be taken.
 pub fn apply(app: &AppHandle, settings: &GlobalShortcuts) -> Vec<GlobalAction> {
     let mut bound = Vec::new();
     let mut failed = Vec::new();
     if available(app) {
         let manager = app.global_shortcut();
         if let Err(e) = manager.unregister_all() {
-            tracing::warn!("raccourcis globaux : retrait impossible : {e}");
+            tracing::warn!("global shortcuts: could not unregister: {e}");
         }
         if settings.enabled {
             for (&action, keys) in &settings.bindings {
@@ -74,7 +74,7 @@ pub fn apply(app: &AppHandle, settings: &GlobalShortcuts) -> Vec<GlobalAction> {
                 match registered {
                     Ok(shortcut) => bound.push((shortcut.id(), action)),
                     Err(e) => {
-                        tracing::info!("raccourci global {keys} non enregistré : {e}");
+                        tracing::info!("global shortcut {keys} not registered: {e}");
                         failed.push(action);
                     }
                 }
@@ -113,7 +113,7 @@ fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
         GlobalAction::ShowWindow => return tray::show_main(app),
         GlobalAction::Like => {
             if let Err(e) = app.emit("global-shortcut", action) {
-                tracing::warn!("raccourci global : UI injoignable : {e}");
+                tracing::warn!("global shortcut: UI unreachable: {e}");
             }
             return;
         }
@@ -122,7 +122,7 @@ fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
         return;
     };
     if state.player.try_send(cmd).is_err() {
-        tracing::warn!("raccourci global : lecteur indisponible");
+        tracing::warn!("global shortcut: player unavailable");
     }
 }
 
@@ -130,8 +130,8 @@ fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
 mod tests {
     use super::*;
 
-    /// Les combinaisons proposées et celles que construit l'UI (`src/lib/hotkeys.ts`) sont
-    /// lisibles par `global-hotkey`.
+    /// The offered combinations and those the UI builds (`src/lib/hotkeys.ts`) can be parsed by
+    /// `global-hotkey`.
     #[test]
     fn combinations_from_the_ui_parse() {
         let defaults = GlobalShortcuts::default();

@@ -1,9 +1,9 @@
-//! Session média d'Android (#24) : notification, écran verrouillé et touches des écouteurs.
+//! Android media session (#24): notification, lock screen and headphone buttons.
 //!
-//! Le service Kotlin (`PlaybackService.kt`) publie la session ; ses boutons reviennent ici
-//! en `Cmd`, comme les touches média de SMTC sur le bureau. L'acteur lui envoie le titre
-//! courant, seulement quand il change, et l'état de l'aléatoire et de la répétition pour
-//! les boutons de la notification (#163). Traduction des actions testée sur le bureau.
+//! The Kotlin service (`PlaybackService.kt`) publishes the session; its buttons come back here as
+//! `Cmd`s, like the SMTC media keys on the desktop. The actor sends it the current track, only when
+//! it changes, and the shuffle and repeat state for the notification's buttons (#163). The
+//! translation of the actions is tested on the desktop.
 
 use serde::Deserialize;
 
@@ -11,23 +11,23 @@ use super::MediaInfo;
 use crate::i18n::{Lang, tr};
 use crate::player::{Cmd, Repeat};
 
-/// Action de la session, envoyée par `Playback.command`.
+/// Session action, sent by `Playback.command`.
 #[derive(Deserialize)]
 struct Raw {
     command: String,
-    /// Secondes, pour `seek`.
+    /// Seconds, for `seek`.
     position: Option<f64>,
-    /// Texte partagé, pour `openLink` (#203).
+    /// Shared text, for `openLink` (#203).
     text: Option<String>,
-    /// Clé de l'épingle, pour `openPin` (#335).
+    /// Pin key, for `openPin` (#335).
     pin: Option<String>,
-    /// État demandé par un contrôleur, pour `setRepeat` et `setShuffle` (#254).
+    /// State requested by a controller, for `setRepeat` and `setShuffle` (#254).
     repeat: Option<Repeat>,
     shuffle: Option<bool>,
 }
 
-/// Action reconnue. Pas directement un `Cmd` : en détruire un dans un test tirerait le code
-/// de la zone de notification, et le binaire de test Windows ne démarre plus (comctl32 v6).
+/// Recognized action. Not a `Cmd` directly: dropping one in a test would pull in the notification
+/// area code, and the Windows test binary no longer starts (comctl32 v6).
 #[derive(Debug, PartialEq)]
 enum Action {
     Play,
@@ -35,27 +35,27 @@ enum Action {
     Next,
     Previous,
     Seek(f64),
-    /// Boutons de la notification (#163) : l'état suivant est décidé ici, d'après le
-    /// dernier état envoyé à la session.
+    /// Notification buttons (#163): the next state is decided here, from the last state sent to the
+    /// session.
     ToggleShuffle,
     CycleRepeat,
-    /// Commandes standard d'un contrôleur (autoradio, montre…) : l'état demandé (#254).
+    /// Standard commands of a controller (car radio, watch…): the requested state (#254).
     SetShuffle(bool),
     SetRepeat(Repeat),
-    /// Appui sur la notification : l'app s'ouvre sur « En lecture » (#163).
+    /// Tap on the notification: the app opens on "Now playing" (#163).
     OpenNowPlaying,
-    /// Lien `seaglass://drive` ou raccourci de l'app : mode conduite (#193).
+    /// `seaglass://drive` link or app shortcut: driving mode (#193).
     OpenDrive,
-    /// Texte reçu par le menu « Partager » d'Android (#203).
+    /// Text received through Android's "Share" menu (#203).
     OpenLink(String),
-    /// Raccourci d'une épingle ou lien `seaglass://pin/<clé>` (#335).
+    /// Shortcut of a pin or `seaglass://pin/<key>` link (#335).
     OpenPin(String),
 }
 
 impl Action {
     fn parse(json: &str) -> Option<Self> {
         let raw: Raw = serde_json::from_str(json)
-            .inspect_err(|e| tracing::warn!("action de la session illisible : {e}"))
+            .inspect_err(|e| tracing::warn!("unreadable session action: {e}"))
             .ok()?;
         Some(match raw.command.as_str() {
             "play" => Self::Play,
@@ -72,13 +72,13 @@ impl Action {
             "openLink" => Self::OpenLink(raw.text?),
             "openPin" => Self::OpenPin(raw.pin?),
             other => {
-                tracing::warn!("action de la session inconnue : {other}");
+                tracing::warn!("unknown session action: {other}");
                 return None;
             }
         })
     }
 
-    /// `None` : l'action ne concerne pas le lecteur (`OpenNowPlaying`, `OpenDrive`…).
+    /// `None`: the action does not concern the player (`OpenNowPlaying`, `OpenDrive`…).
     #[cfg_attr(not(target_os = "android"), allow(dead_code))]
     fn into_cmd(self, modes: Modes) -> Option<Cmd> {
         Some(match self {
@@ -98,8 +98,8 @@ impl Action {
     }
 }
 
-/// Aléatoire et répétition tels qu'affichés par la notification, avec la langue de leurs
-/// libellés : renvoyés à la session seulement si l'un des trois change.
+/// Shuffle and repeat as the notification shows them, with the language of their labels: sent back
+/// to the session only if one of the three changes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(not(target_os = "android"), allow(dead_code))]
 struct Modes {
@@ -108,7 +108,7 @@ struct Modes {
     lang: Lang,
 }
 
-/// Même cycle que le bouton de la barre de lecture : Off → All → One → Off.
+/// Same cycle as the playback bar's button: Off → All → One → Off.
 fn next_repeat(repeat: Repeat) -> Repeat {
     match repeat {
         Repeat::Off => Repeat::All,
@@ -117,8 +117,8 @@ fn next_repeat(repeat: Repeat) -> Repeat {
     }
 }
 
-/// Arguments de la commande Kotlin `sessionModes` : état des deux boutons et leurs libellés
-/// (lus par TalkBack et affichés par certains écrans).
+/// Arguments of the Kotlin `sessionModes` command: the state of both buttons and their labels (read
+/// by TalkBack and shown by some screens).
 fn modes_args(modes: Modes) -> serde_json::Value {
     let repeat_label = match modes.repeat {
         Repeat::Off => tr("Répétition désactivée", "Repeat off"),
@@ -138,7 +138,7 @@ fn modes_args(modes: Modes) -> serde_json::Value {
     })
 }
 
-/// Arguments de la commande Kotlin `nowPlaying` (rien = notification vide).
+/// Arguments of the Kotlin `nowPlaying` command (nothing = empty notification).
 fn now_playing_args(media: Option<&MediaInfo>) -> serde_json::Value {
     match media {
         Some(m) => serde_json::json!({
@@ -168,10 +168,10 @@ mod android {
     use crate::player::Cmd;
 
     pub struct MediaSessionHandle {
-        /// Dernier titre envoyé : `NowPlaying` change à chaque position.
+        /// Last track sent: `NowPlaying` changes with every position.
         last: Mutex<Option<Option<MediaInfo>>>,
-        /// Derniers états des boutons envoyés, partagés avec les actions de la session :
-        /// un appui sur « aléatoire » inverse l'état affiché.
+        /// Last button states sent, shared with the session's actions: a tap on "shuffle" flips the
+        /// state shown.
         modes: Arc<Mutex<Option<Modes>>>,
         _actions: Channel,
     }
@@ -181,8 +181,8 @@ mod android {
         channel: &'a Channel,
     }
 
-    /// Branche les actions de la session sur `player`. La commande Kotlin part en tâche :
-    /// le branchement se fait pendant `setup`.
+    /// Attaches the session's actions to `player`. The Kotlin command runs as a task: the attaching
+    /// happens during `setup`.
     pub fn start(app: &AppHandle, player: mpsc::Sender<Cmd>) -> MediaSessionHandle {
         let modes: Arc<Mutex<Option<Modes>>> = Arc::default();
         let shared = modes.clone();
@@ -205,14 +205,14 @@ mod android {
             if action == Action::OpenNowPlaying {
                 super::super::request_now_playing();
                 if let Err(e) = ui.emit("open-now-playing", ()) {
-                    tracing::warn!("« En lecture » non demandé à l'UI : {e}");
+                    tracing::warn!("\"Now playing\" not requested from the UI: {e}");
                 }
                 return Ok(());
             }
             if action == Action::OpenDrive {
                 super::super::request_drive();
                 if let Err(e) = ui.emit("open-drive", ()) {
-                    tracing::warn!("mode conduite non demandé à l'UI : {e}");
+                    tracing::warn!("driving mode not requested from the UI: {e}");
                 }
                 return Ok(());
             }
@@ -220,7 +220,7 @@ mod android {
             if let Some(cmd) = action.into_cmd(current)
                 && player.try_send(cmd).is_err()
             {
-                tracing::warn!("action de la session perdue : lecteur occupé");
+                tracing::warn!("session action lost: player busy");
             }
             Ok(())
         });
@@ -231,7 +231,7 @@ mod android {
                 .call("sessionStart", ChannelArgs { channel: &args })
                 .await
             {
-                tracing::warn!("session média indisponible : {e}");
+                tracing::warn!("media session unavailable: {e}");
             }
         });
         MediaSessionHandle {
@@ -266,15 +266,15 @@ mod android {
         }
     }
 
-    /// En JNI direct : la notification se met à jour aussi quand l'app est balayée des
-    /// récents, sans activité pour les commandes du plugin (#169).
+    /// Through JNI directly: the notification is also updated when the app is swiped from the
+    /// recents, with no activity for the plugin's commands (#169).
     fn send(command: &'static str, args: serde_json::Value) {
         tauri::async_runtime::spawn(async move {
             if let Err(e) =
                 tauri_plugin_seaglass_mobile::direct::call::<serde::de::IgnoredAny>(command, args)
                     .await
             {
-                tracing::warn!("session média non mise à jour ({command}) : {e}");
+                tracing::warn!("media session not updated ({command}): {e}");
             }
         });
     }
@@ -342,7 +342,7 @@ mod tests {
         assert_eq!(Action::parse(r#"{"command":"openLink"}"#), None);
         assert_eq!(Action::parse(r#"{"command":"seek"}"#), None);
         assert_eq!(Action::parse(r#"{"command":"rewind"}"#), None);
-        assert_eq!(Action::parse("pas du json"), None);
+        assert_eq!(Action::parse("not json"), None);
     }
 
     #[test]

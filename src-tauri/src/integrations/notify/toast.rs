@@ -1,10 +1,10 @@
-//! Toast WinRT (#435). L'AUMID est l'identifiant de l'app (`dev.seaglass.app`), posé par
-//! l'installeur NSIS de Tauri sur le raccourci du menu Démarrer : sans ce raccourci (app
-//! jamais installée), Windows refuse le toast sans erreur.
+//! WinRT toast (#435). The AUMID is the app's identifier (`dev.seaglass.app`), set by Tauri's NSIS
+//! installer on the Start menu shortcut: without that shortcut (app never installed), Windows
+//! refuses the toast without an error.
 //!
-//! Le clic arrive par `Activated` tant que l'app tourne (dans la zone de notification
-//! compris). Touché plus tard depuis le centre de notifications, app fermée, il ne fait que
-//! relancer l'app : il n'y a pas d'activateur COM enregistré.
+//! The click arrives through `Activated` as long as the app runs (in the notification area
+//! included). Clicked later from the notification center with the app closed, it only starts the
+//! app again: no COM activator is registered.
 
 use tauri::AppHandle;
 use windows::Data::Xml::Dom::XmlDocument;
@@ -15,10 +15,10 @@ use windows::core::{HSTRING, IInspectable, Ref};
 
 use super::{Notice, escape};
 
-/// Bloquant (WinRT) : depuis `spawn_blocking`.
+/// Blocking (WinRT): from `spawn_blocking`.
 pub fn show(app: &AppHandle, notice: Notice) -> windows::core::Result<()> {
-    // Déjà initialisé sur ce thread : erreur sans conséquence.
-    // SAFETY : initialisation de WinRT pour le thread courant, sans pointeur.
+    // Already initialized on this thread: harmless error.
+    // SAFETY: WinRT initialization for the current thread, no pointer.
     let _ = unsafe { RoInitialize(RO_INIT_MULTITHREADED) };
     let xml = XmlDocument::new()?;
     xml.LoadXml(&HSTRING::from(toast_xml(&notice)))?;
@@ -64,16 +64,16 @@ mod tests {
         );
     }
 
-    /// Vrai toast sous l'AUMID de l'app (installée une fois, pour le raccourci) :
-    /// `cargo test live_toast -- --ignored`. `Setting` échoue pour un AUMID inconnu de
-    /// Windows, là où `Show` réussirait sans rien afficher.
+    /// Real toast under the app's AUMID (installed once, for the shortcut): `cargo test live_toast
+    /// -- --ignored`. `Setting` fails for an AUMID Windows does not know, where `Show` would
+    /// succeed without showing anything.
     #[test]
     #[ignore]
     fn live_toast() {
         let _ = unsafe { RoInitialize(RO_INIT_MULTITHREADED) };
         let notice = Notice {
             title: "Nouvelle sortie".into(),
-            body: "Seaglass · essai du toast (#435)".into(),
+            body: "Seaglass · toast test (#435)".into(),
             target: LinkTarget::Feed,
         };
         let xml = XmlDocument::new().unwrap();

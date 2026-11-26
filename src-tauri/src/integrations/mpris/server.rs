@@ -1,6 +1,6 @@
-//! Serveur MPRIS sur le bus de session (`zbus` 5, déjà compilé sous Linux par les plugins
-//! `opener` et `single-instance`). L'acteur notifie `NowPlaying` par un `watch` ; une tâche
-//! met à jour l'interface `Player` et n'émet `PropertiesChanged` que pour ce qui change.
+//! MPRIS server on the session bus (`zbus` 5, already compiled on Linux by the `opener` and
+//! `single-instance` plugins). The actor notifies `NowPlaying` through a `watch`; a task updates
+//! the `Player` interface and only emits `PropertiesChanged` for what changes.
 
 use std::collections::HashMap;
 use std::time::Instant;
@@ -29,12 +29,12 @@ impl MprisHandle {
     }
 }
 
-/// Lance le serveur en tâche de fond ; un bus de session absent est journalisé sans plus.
+/// Starts the server in the background; a missing session bus is only logged.
 pub fn start(app: AppHandle, player: mpsc::Sender<Cmd>) -> MprisHandle {
     let (tx, rx) = watch::channel(None);
     tauri::async_runtime::spawn(async move {
         if let Err(e) = run(app, player, rx).await {
-            tracing::warn!("MPRIS indisponible : {e}");
+            tracing::warn!("MPRIS unavailable: {e}");
         }
     });
     MprisHandle { tx }
@@ -57,7 +57,7 @@ async fn run(
         )?
         .build()
         .await?;
-    tracing::info!("MPRIS : {BUS_NAME} publié");
+    tracing::info!("MPRIS: {BUS_NAME} published");
     let iface = conn
         .object_server()
         .interface::<_, Player>(OBJECT_PATH)
@@ -70,13 +70,13 @@ async fn run(
         let mut player = iface.get_mut().await;
         let changes = player.state.update(np, Instant::now());
         if let Err(e) = player.emit(&changes, emitter).await {
-            tracing::warn!("MPRIS : {e}");
+            tracing::warn!("MPRIS: {e}");
         }
     }
     Ok(())
 }
 
-/// `org.mpris.MediaPlayer2` : identité de l'app et réaffichage de la fenêtre.
+/// `org.mpris.MediaPlayer2`: the app's identity and showing the window again.
 struct Root {
     app: AppHandle,
 }
@@ -87,7 +87,7 @@ impl Root {
         tray::show_main(&self.app);
     }
 
-    /// `CanQuit` est faux : quitter reste un geste fait dans l'app ou la zone de notification.
+    /// `CanQuit` is false: quitting stays a gesture made in the app or the notification area.
     fn quit(&self) {}
 
     #[zbus(property(emits_changed_signal = "const"))]
@@ -121,7 +121,7 @@ impl Root {
     }
 }
 
-/// `org.mpris.MediaPlayer2.Player` : état de la lecture et commandes vers l'acteur.
+/// `org.mpris.MediaPlayer2.Player`: playback state and commands to the actor.
 struct Player {
     player: mpsc::Sender<Cmd>,
     state: State,
@@ -138,7 +138,7 @@ impl Player {
 
     async fn send(&self, cmd: Cmd) {
         if self.player.send(cmd).await.is_err() {
-            tracing::warn!("MPRIS : lecteur indisponible");
+            tracing::warn!("MPRIS: player unavailable");
         }
     }
 
@@ -190,7 +190,7 @@ impl Player {
         self.send(Cmd::TogglePause).await;
     }
 
-    /// Le lecteur n'a pas d'arrêt : la pause en tient lieu.
+    /// The player has no stop: pausing stands in for it.
     async fn stop(&self) {
         self.send(Cmd::SetPaused(true)).await;
     }
@@ -240,7 +240,7 @@ impl Player {
         1.0
     }
 
-    /// Une seule vitesse : la spécification demande d'ignorer toute autre valeur.
+    /// A single rate: the specification asks to ignore any other value.
     #[zbus(property)]
     fn set_rate(&mut self, _rate: f64) {}
 
@@ -286,7 +286,7 @@ impl Player {
         self.send(Cmd::SetVolume(logic::volume_level(value))).await;
     }
 
-    /// Lue à la demande et jamais signalée (spécification) : `Seeked` couvre les sauts.
+    /// Read on demand and never signaled (specification): `Seeked` covers the jumps.
     #[zbus(property(emits_changed_signal = "false"))]
     fn position(&self) -> i64 {
         logic::micros(self.state.position(Instant::now()))
