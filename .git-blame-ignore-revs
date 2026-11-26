@@ -15,3 +15,7 @@ a653ca0784661fe7b93abbeee6e5005969d6fee0
 d4a043238c8c13233fa3ff9213331613b796727f
 # chore: translate the comments and logs of store/ to English (#8, #71)
 1c775357da5fddc33a797cfd072ff175d418a661
+# chore: translate the comments of App.svelte and app/ to English (#8, #73)
+2425878d72ad478c08900a7d3392c5587c283b3d
+# chore: translate the comments and logs of mpv/ to English (#8, #74)
+4415be70fc08293aa18b9e99fd7ff43104f1e909
