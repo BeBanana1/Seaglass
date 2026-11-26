@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.121
+
+- chore: the Settings page is split into one component per group of settings, and its strings into one file per tab, with no visible change (#45).
+
 ## 0.5.120
 
 - Desktop: the remote's code and the handoff key now live in the system's credential store, like the TIDAL session, instead of the settings database; existing ones move there on their own (#61).

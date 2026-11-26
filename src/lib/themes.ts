@@ -1,6 +1,6 @@
-// Catalogue des thèmes pour la page Apparence (#390) : mode clair / sombre, familles
-// (variantes claire et sombre d'un même thème), ordre et filtres de la galerie. Logique
-// pure, sans état : la présentation reste côté UI, le backend ne connaît que les identifiants.
+// Theme catalog for the Appearance page (#390): light / dark mode, families (light and dark
+// variants of the same theme), gallery order and filters. Pure logic, without state: the
+// presentation stays in the UI, the backend only knows the identifiers.
 
 import type { Theme } from "./ipc";
 
@@ -9,11 +9,11 @@ export type Scheme = "light" | "dark";
 export interface ThemeInfo {
   id: Theme;
   scheme: Scheme;
-  /** Identifiant de la famille : le thème lui-même, ou sa variante claire. */
+  /** Identifier of the family: the theme itself, or its light variant. */
   family: Theme;
 }
 
-/** Thèmes dans l'ordre de la galerie ; noms et descriptions dans `i18n/settings.ts`. */
+/** Themes in gallery order; names and descriptions in `i18n/settings/themes.ts`. */
 export const THEME_INFO: ThemeInfo[] = [
   { id: "seaglass", scheme: "dark", family: "seaglass" },
   { id: "studio", scheme: "dark", family: "studio" },
@@ -54,7 +54,7 @@ export function familyOf(id: Theme): Theme {
   return themeInfo(id).family;
 }
 
-/** Variantes d'une famille, la claire d'abord (ordre de `THEME_INFO`). */
+/** Variants of a family, the light one first (order of `THEME_INFO`). */
 export function variants(family: Theme): ThemeInfo[] {
   return THEME_INFO.filter((t) => t.family === family);
 }
@@ -63,8 +63,8 @@ export type GalleryFilter = "all" | "favorites" | "light" | "dark";
 
 export const GALLERY_FILTERS: GalleryFilter[] = ["all", "favorites", "light", "dark"];
 
-/** Familles affichées par la galerie : filtrées, favoris en tête, sinon dans l'ordre du
- *  catalogue. Une famille qui a les deux variantes passe dans les deux filtres de mode. */
+/** Families shown by the gallery: filtered, favorites first, otherwise in catalog order.
+ *  A family that has both variants appears in both mode filters. */
 export function galleryFamilies(filter: GalleryFilter, favorites: Theme[]): Theme[] {
   const families = [...new Set(THEME_INFO.map((t) => t.family))];
   const isFavorite = (f: Theme) => favorites.includes(f);
@@ -74,13 +74,13 @@ export function galleryFamilies(filter: GalleryFilter, favorites: Theme[]): Them
       return variants(f).some((v) => v.scheme === filter);
     return true;
   });
-  // Tri stable : l'ordre du catalogue est gardé à l'intérieur de chaque groupe.
+  // Stable sort: the catalog order is kept within each group.
   return [...shown.filter(isFavorite), ...shown.filter((f) => !isFavorite(f))];
 }
 
-/** Thème appliqué par un clic sur la vignette d'une famille : le thème courant s'il en fait
- *  partie, sinon la variante du filtre de mode, sinon celle du même mode que le thème courant,
- *  sinon la première. */
+/** Theme applied by a click on a family's thumbnail: the current theme if it belongs to it,
+ *  otherwise the variant of the mode filter, otherwise the one with the same mode as the
+ *  current theme, otherwise the first one. */
 export function variantFor(family: Theme, current: Theme, filter: GalleryFilter): Theme {
   const list = variants(family);
   if (list.some((v) => v.id === current)) return current;
@@ -88,7 +88,7 @@ export function variantFor(family: Theme, current: Theme, filter: GalleryFilter)
   return (list.find((v) => v.scheme === scheme) ?? list[0] ?? themeInfo(family)).id;
 }
 
-/** Ajoute ou retire une famille des favoris, sans toucher à l'ordre des autres. */
+/** Adds or removes a family from the favorites, without changing the order of the others. */
 export function toggleFavorite(favorites: Theme[], family: Theme): Theme[] {
   return favorites.includes(family)
     ? favorites.filter((f) => f !== family)
