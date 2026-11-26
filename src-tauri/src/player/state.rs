@@ -164,6 +164,11 @@ impl PlayerState {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub struct QueueView {
     /// Manual queue ("Play next" / "Add to queue").
     pub manual: Vec<Track>,

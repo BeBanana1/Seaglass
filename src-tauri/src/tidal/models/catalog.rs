@@ -196,6 +196,11 @@ pub struct MixPage {
 /// Starting point of a radio.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub enum RadioSeed {
     Track,
     Artist,

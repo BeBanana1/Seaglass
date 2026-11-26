@@ -11,9 +11,15 @@ use super::stats::CountedTrack;
 use super::{Result, Store, StoreError};
 use crate::tidal::models::TrackId;
 
-/// The lists offered: fixed rules, no editor (decided in issue #383).
+/// Local smart playlist (#383), computed by the backend from this device's history (and the
+/// liked tracks for `neverPlayed`). The lists offered: fixed rules, no editor (decided in #383).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(
+    test,
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../src/lib/bindings/")
+)]
 pub enum SmartList {
     /// Most played over 30 days.
     TopMonth,
