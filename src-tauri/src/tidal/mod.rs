@@ -51,6 +51,8 @@ pub mod pushkin;
 mod rank;
 mod raw;
 mod releases;
+mod request;
+mod session;
 pub mod soundtracks;
 mod twin;
 mod versions;
