@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.132
+
+- Errors of links from other services (Deezer, Spotify, Apple Music) and of the history sync with the linked computer are now shown in the app's language instead of always in French (#8).
+
 ## 0.5.131
 
 - chore: the comments and logs of the handoff with the linked computer (`handoff/`) and of the links from other services (`foreign/`) are now in English, with no change in behavior (#8).

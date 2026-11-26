@@ -34,6 +34,7 @@ use meta::Wanted;
 pub(crate) use meta::strip_decorations;
 use playlists::PlaylistRef;
 
+use crate::i18n::{tr, trf};
 use crate::tidal::TidalClient;
 use crate::tidal::models::{AlbumSummary, Track, TrackId};
 
@@ -62,7 +63,7 @@ fn client() -> Result<&'static Client, String> {
                 .ok()
         })
         .as_ref()
-        .ok_or_else(|| "client HTTP indisponible".to_owned())
+        .ok_or_else(|| tr("client HTTP indisponible", "HTTP client unavailable").to_owned())
 }
 
 fn net(e: reqwest::Error) -> String {
@@ -157,7 +158,8 @@ async fn resolve_source(tidal: &TidalClient, mut source: Source) -> Result<Found
         }
         Source::Spotify(Kind::Track, id) => {
             let html = text(&format!("https://open.spotify.com/track/{id}")).await?;
-            let wanted = meta::spotify_track(&html).ok_or("page Spotify illisible")?;
+            let wanted = meta::spotify_track(&html)
+                .ok_or(tr("page Spotify illisible", "unreadable Spotify page"))?;
             search_track(tidal, &wanted).await
         }
         Source::Spotify(Kind::Album, id) => {
@@ -170,11 +172,10 @@ async fn resolve_source(tidal: &TidalClient, mut source: Source) -> Result<Found
         Source::Apple { kind, id, country } => {
             let url = format!("https://itunes.apple.com/lookup?id={id}&country={country}");
             let lookup: AppleLookup = json(&url).await?;
-            let item = lookup
-                .results
-                .into_iter()
-                .next()
-                .ok_or("élément Apple Music introuvable")?;
+            let item = lookup.results.into_iter().next().ok_or(tr(
+                "élément Apple Music introuvable",
+                "Apple Music item not found",
+            ))?;
             match kind {
                 Kind::Track => {
                     let wanted = Wanted {
@@ -240,8 +241,9 @@ async fn search_album(tidal: &TidalClient, wanted: &Wanted) -> Result<Found, Str
 async fn follow(url: &reqwest::Url) -> Result<Source, String> {
     let response = client()?.get(url.clone()).send().await.map_err(net)?;
     if !response.status().is_redirection() {
-        return Err(format!(
+        return Err(trf!(
             "lien court sans redirection ({})",
+            "short link without a redirect ({})",
             response.status()
         ));
     }
@@ -250,7 +252,13 @@ async fn follow(url: &reqwest::Url) -> Result<Source, String> {
         .get(reqwest::header::LOCATION)
         .and_then(|l| l.to_str().ok())
         .and_then(redirect_target)
-        .ok_or_else(|| "lien court vers une adresse inconnue".to_owned())
+        .ok_or_else(|| {
+            tr(
+                "lien court vers une adresse inconnue",
+                "short link to an unknown address",
+            )
+            .to_owned()
+        })
 }
 
 async fn get(url: &str) -> Result<reqwest::Response, String> {
@@ -262,7 +270,7 @@ async fn get(url: &str) -> Result<reqwest::Response, String> {
         .map_err(net)?;
     match response.status() {
         StatusCode::OK => Ok(response),
-        status => Err(format!("réponse {status}")),
+        status => Err(trf!("réponse {}", "response {}", status)),
     }
 }
 
