@@ -14,6 +14,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use super::Link;
 use crate::commands::AppState;
 use crate::commands::settings::pins::is_uuid;
+use crate::i18n::tr;
 use crate::store::{Outgoing, PlayBatch, SYNC_BATCH, Store, SyncState};
 
 /// Event emitted when received listens were added (their number as the payload).
@@ -128,10 +129,13 @@ pub async fn sync(link: &Link, store: &Arc<Store>) -> Result<usize, String> {
             };
             continue;
         }
-        let plays = response
-            .plays
-            .received(now_ms(), is_uuid)
-            .ok_or_else(|| "réponse de l'ordinateur illisible".to_owned())?;
+        let plays = response.plays.received(now_ms(), is_uuid).ok_or_else(|| {
+            tr(
+                "réponse de l'ordinateur illisible",
+                "unreadable answer from the computer",
+            )
+            .to_owned()
+        })?;
         let own_id = own.clone();
         received += blocking(store, move |s| s.merge_plays(&plays, &own_id)).await?;
         state.pushed = outbox.cursor;
