@@ -1,33 +1,33 @@
-//! Mises à jour de l'app Android (#24) : l'updater de Tauri ne gère pas Android.
+//! Updates of the Android app (#24): Tauri's updater does not handle Android.
 //!
-//! Le manifeste `android.json` (écrit par `scripts/release-android.ps1`) est lu 20 s après
-//! le démarrage puis toutes les 6 h, jamais en debug (un APK de debug, signé par une autre
-//! clé, ne peut pas être remplacé par une release). Rien n'est téléchargé d'office
-//! (données mobiles) : l'UI reçoit `update-ready` et propose « Télécharger et installer ».
-//! `install_update` télécharge l'APK dans le cache de l'app, vérifie son SHA-256, puis le
-//! plugin Kotlin le confie à `PackageInstaller` : Android demande confirmation et vérifie
-//! lui-même que l'APK porte la même clé de signature que l'app installée.
+//! The `android.json` manifest (written by `scripts/release-android.ps1`) is read 20 s after
+//! startup then every 6 h, never in debug (a debug APK, signed with another
+//! key, cannot be replaced by a release). Nothing is downloaded on its own
+//! (mobile data): the UI receives `update-ready` and offers "Download and install".
+//! `install_update` downloads the APK into the app's cache, checks its SHA-256, then the
+//! Kotlin plugin hands it to `PackageInstaller`: Android asks for confirmation and checks
+//! itself that the APK carries the same signing key as the installed app.
 //!
-//! Adresse (#452) : `android.json` du dossier compilé (`servers::update_base`) ; sans elle,
-//! rien n'est vérifié. La vérification périodique suit « Mises à jour automatiques ».
+//! Address (#452): `android.json` of the compiled folder (`servers::update_base`); without it,
+//! nothing is checked. The periodic check follows "Automatic updates".
 //!
-//! Logique pure (manifeste, versions) testée aussi sur le bureau.
+//! Pure logic (manifest, versions) also tested on the desktop.
 
-// Hors Android, seuls les tests utilisent ce module.
+// Outside Android, only the tests use this module.
 #![cfg_attr(not(target_os = "android"), allow(dead_code))]
 
 use serde::{Deserialize, Serialize};
 
-/// Manifeste publié à côté de l'installeur Windows, dans le dossier `base`.
+/// Manifest published next to the Windows installer, in the `base` folder.
 pub fn manifest_url(base: &str) -> String {
     format!("{base}/android.json")
 }
 
-/// Seuls les APK servis sous ce préfixe sont acceptés, quel que soit le manifeste.
+/// Only the APKs served under this prefix are accepted, whatever the manifest says.
 fn download_prefix(base: &str) -> String {
     format!("{base}/")
 }
-/// Au-delà, le manifeste est refusé (l'APK release fait quelques dizaines de Mo).
+/// Beyond that, the manifest is refused (the release APK is a few dozen MB).
 const MAX_SIZE: u64 = 300 * 1024 * 1024;
 
 #[derive(Debug, Deserialize)]
@@ -41,26 +41,26 @@ pub struct Manifest {
     pub notes: Option<String>,
 }
 
-/// Version disponible et ce qu'il faut pour l'installer.
+/// Available version and what it takes to install it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Available {
     pub version: String,
     pub url: String,
-    /// En minuscules, 64 caractères hexadécimaux.
+    /// Lowercase, 64 hexadecimal characters.
     pub sha256: String,
     pub size: u64,
     pub notes: Option<String>,
 }
 
-/// Même forme que l'`UpdateInfo` du bureau, avec la taille : sur Android la mise à jour
-/// est proposée avant d'être téléchargée.
+/// Same shape as the desktop's `UpdateInfo`, with the size: on Android the update
+/// is offered before it is downloaded.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateInfo {
     pub version: String,
     pub current_version: String,
     pub notes: Option<String>,
-    /// Taille de l'APK en octets.
+    /// Size of the APK in bytes.
     pub size: u64,
 }
 
@@ -75,7 +75,7 @@ impl Available {
     }
 }
 
-/// `x.y.z` en triplet comparable ; `None` pour toute autre forme.
+/// `x.y.z` as a comparable triplet; `None` for any other form.
 pub fn parse_version(v: &str) -> Option<(u64, u64, u64)> {
     let mut parts = v.trim().split('.').map(|p| {
         (!p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
@@ -86,8 +86,8 @@ pub fn parse_version(v: &str) -> Option<(u64, u64, u64)> {
     parts.next().is_none().then_some(version)
 }
 
-/// Valide le manifeste lu dans le dossier `base` et renvoie la version qu'il propose si
-/// elle est plus récente que `current`.
+/// Validates the manifest read in the `base` folder and returns the version it offers if
+/// it is newer than `current`.
 pub fn evaluate(
     manifest: Manifest,
     current: &str,
@@ -122,7 +122,7 @@ pub fn evaluate(
     }))
 }
 
-/// Empreinte en hexadécimal minuscule.
+/// Fingerprint in lowercase hexadecimal.
 pub fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
@@ -145,13 +145,13 @@ mod android {
     const CHECK_INTERVAL: Duration = Duration::from_secs(6 * 3600);
     const FIRST_CHECK_DELAY: Duration = Duration::from_secs(20);
     const APK_FILE: &str = "update.apk";
-    /// Erreur de `ApkInstaller.kt` : droit « Installer des applis inconnues » absent.
+    /// Error from `ApkInstaller.kt`: the "Install unknown apps" permission is missing.
     const NEEDS_PERMISSION: &str = "install-permission";
 
     #[derive(Default)]
     pub struct UpdateState {
         available: Mutex<Option<Available>>,
-        /// Sérialise la tâche de fond, le bouton « Vérifier » et l'installation.
+        /// Serializes the background task, the "Check" button and the installation.
         busy: tokio::sync::Mutex<()>,
     }
 
@@ -185,20 +185,20 @@ mod android {
             return;
         }
         if crate::servers::update_base().is_none() {
-            tracing::info!("mises à jour absentes : aucune adresse compilée");
+            tracing::info!("updates absent: no compiled address");
             return;
         }
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(FIRST_CHECK_DELAY).await;
             loop {
-                // Réglage relu à chaque tour : il peut changer pendant que l'app tourne.
+                // Setting reread on every round: it can change while the app runs.
                 if crate::servers::auto_updates() {
                     match check(&app).await {
                         Ok(Some(info)) => {
                             let _ = app.emit("update-ready", info);
                         }
                         Ok(None) => {}
-                        Err(e) => tracing::warn!("vérification des mises à jour : {e}"),
+                        Err(e) => tracing::warn!("update check: {e}"),
                     }
                 }
                 tokio::time::sleep(CHECK_INTERVAL).await;
@@ -206,8 +206,8 @@ mod android {
         });
     }
 
-    /// Lit le manifeste. Renvoie la version nouvellement trouvée (`None` si l'app est à
-    /// jour ou si cette version était déjà proposée).
+    /// Reads the manifest. Returns the newly found version (`None` if the app is up to
+    /// date or if this version was already offered).
     async fn check(app: &AppHandle) -> Result<Option<UpdateInfo>, String> {
         let state = app.state::<UpdateState>();
         let _busy = state.busy.lock().await;
@@ -254,9 +254,9 @@ mod android {
         state.get().map(|a| a.info(&current_version(&app)))
     }
 
-    /// Télécharge l'APK, vérifie taille et SHA-256, puis ouvre la boîte d'installation
-    /// d'Android. Se termine quand la boîte est affichée ; l'installation remplace le
-    /// processus.
+    /// Downloads the APK, checks size and SHA-256, then opens Android's install dialog.
+    /// Ends when the dialog is shown; the installation replaces the
+    /// process.
     #[tauri::command]
     pub async fn install_update(app: AppHandle) -> Result<(), String> {
         let state = app.state::<UpdateState>();
@@ -275,7 +275,7 @@ mod android {
             return Err(e);
         }
         tracing::info!(
-            "APK {} téléchargé ({} octets, SHA-256 vérifié)",
+            "APK {} downloaded ({} bytes, SHA-256 verified)",
             update.version,
             update.size
         );
@@ -284,7 +284,7 @@ mod android {
             .call("installApk", serde_json::json!({ "path": apk }))
             .await;
         installed.map_err(|e| {
-            // Le Kotlin efface l'APK après l'avoir copié dans la session ; sinon, ici.
+            // The Kotlin side deletes the APK after copying it into the session; otherwise, here.
             let _ = std::fs::remove_file(&path);
             if e.contains(NEEDS_PERMISSION) {
                 tr(
@@ -364,7 +364,7 @@ mod tests {
         let found = evaluate(manifest("0.4.47"), "0.4.46").unwrap().unwrap();
         assert_eq!(found.version, "0.4.47");
         assert_eq!(found.sha256, "ab".repeat(32));
-        // Comparaison numérique, pas lexicale.
+        // Numeric comparison, not lexical.
         assert!(evaluate(manifest("0.4.100"), "0.4.99").unwrap().is_some());
         assert!(evaluate(manifest("0.5.0"), "0.4.99").unwrap().is_some());
     }
@@ -386,7 +386,7 @@ mod tests {
         let mut m = manifest("0.4.47");
         m.url = format!("{BASE}/../autre/x.apk");
         assert!(evaluate(m, "0.4.46").is_err());
-        // Préfixe sans `/` final : un dossier voisin au nom plus long est refusé.
+        // Prefix without a trailing `/`: a neighboring folder with a longer name is refused.
         let mut m = manifest("0.4.47");
         m.url = format!("{BASE}-autre/x.apk");
         assert!(evaluate(m, "0.4.46").is_err());

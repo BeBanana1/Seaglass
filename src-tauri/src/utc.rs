@@ -1,7 +1,7 @@
-//! Dates UTC sans crate de dates (algorithme de H. Hinnant) : rapports de plantage (#192)
-//! et export de la bibliothèque (#330).
+//! UTC dates without a date crate (H. Hinnant's algorithm): crash reports (#192)
+//! and library export (#330).
 
-/// Date et heure UTC d'un nombre de secondes depuis l'epoch Unix.
+/// UTC date and time for a number of seconds since the Unix epoch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Utc {
     pub year: i64,
@@ -23,7 +23,7 @@ impl Utc {
         let mp = (5 * doy + 2) / 153;
         let day = doy - (153 * mp + 2) / 5 + 1;
         let month = if mp < 10 { mp + 3 } else { mp - 9 };
-        // Bornés par construction : jour 1–31, mois 1–12, reste < 86 400.
+        // Bounded by construction: day 1–31, month 1–12, remainder < 86,400.
         Self {
             year: yoe + era * 400 + i64::from(month <= 2),
             month: month as u32,
@@ -34,7 +34,7 @@ impl Utc {
         }
     }
 
-    /// Maintenant (l'epoch si l'horloge est antérieure). Seul l'export (bureau) s'en sert.
+    /// Now (the epoch if the clock is earlier). Only the export (desktop) uses it.
     #[cfg(desktop)]
     pub fn now() -> Self {
         let secs = std::time::SystemTime::now()
@@ -68,7 +68,7 @@ mod tests {
     fn known_dates() {
         assert_eq!(Utc::from_secs(0).iso(), "1970-01-01T00:00:00Z");
         assert_eq!(Utc::from_secs(1_793_276_645).iso(), "2026-10-29T12:24:05Z");
-        // 29 février 2000.
+        // 29 February 2000.
         assert_eq!(Utc::from_secs(951_782_400).date(), "2000-02-29");
         assert_eq!(Utc::from_secs(-1).iso(), "1969-12-31T23:59:59Z");
     }

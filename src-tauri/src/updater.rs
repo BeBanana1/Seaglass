@@ -1,24 +1,24 @@
-//! Mises à jour de l'app (plugin `tauri-plugin-updater`).
+//! App updates (`tauri-plugin-updater` plugin).
 //!
-//! Vérification au démarrage puis toutes les 6 h. Une version plus récente est téléchargée
-//! en arrière-plan (signature vérifiée par le plugin), puis l'UI reçoit `update-ready`.
-//! L'utilisateur choisit « Installer et redémarrer » (`install_update`) ou « Plus tard » :
-//! l'installation se fait alors à la fermeture de l'app. Rien n'est jamais installé
-//! sans action de sa part, et la lecture n'est jamais coupée d'office.
+//! Check at startup then every 6 h. A newer version is downloaded
+//! in the background (signature checked by the plugin), then the UI receives `update-ready`.
+//! The user chooses "Install and restart" (`install_update`) or "Later":
+//! the installation then happens when the app closes. Nothing is ever installed
+//! without an action from them, and playback is never cut off on its own.
 //!
-//! `check_for_updates` (bouton des Réglages) lance la même vérification à la demande. Elle
-//! répond dès le manifeste lu (#187) : le téléchargement de l'installeur (une quarantaine de
-//! Mo) continue en arrière-plan et se termine par `update-ready`.
+//! `check_for_updates` (Settings button) runs the same check on demand. It
+//! answers as soon as the manifest is read (#187): the installer download (about forty
+//! MB) goes on in the background and ends with `update-ready`.
 //!
-//! Linux (#314) : seulement depuis une AppImage (`APPIMAGE`, validé par Tauri). Le plugin
-//! réécrit ce fichier, puis l'app se relance elle-même. Sans AppImage, il prendrait
-//! l'exécutable courant pour cible et remplacerait le binaire nu par une AppImage : les
-//! mises à jour y sont désactivées (`supported`).
+//! Linux (#314): only from an AppImage (`APPIMAGE`, validated by Tauri). The plugin
+//! rewrites that file, then the app restarts itself. Without an AppImage, it would take
+//! the current executable as its target and replace the bare binary with an AppImage: updates
+//! are disabled there (`supported`).
 //!
-//! Adresse (#452) : `latest.json` du dossier compilé (`servers::update_base`), absent de
-//! `tauri.conf.json`. Clé publique (#489) : compilée elle aussi (`servers::updater_pubkey`,
-//! passée au plugin dans `lib.rs`). Sans adresse ou sans clé, rien n'est vérifié. La vérification
-//! périodique suit l'interrupteur « Mises à jour automatiques » ; le bouton, toujours.
+//! Address (#452): `latest.json` of the compiled folder (`servers::update_base`), absent from
+//! `tauri.conf.json`. Public key (#489): compiled too (`servers::updater_pubkey`,
+//! passed to the plugin in `lib.rs`). Without an address or a key, nothing is checked. The periodic
+//! check follows the "Automatic updates" switch; the button, always.
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -31,14 +31,14 @@ use crate::i18n::tr;
 use crate::mpv::process::ProcessGuard;
 
 const CHECK_INTERVAL: Duration = Duration::from_secs(6 * 3600);
-/// Premier contrôle un peu après le démarrage, pour ne pas ralentir l'ouverture.
+/// First check a little after startup, so as not to slow down the opening.
 const FIRST_CHECK_DELAY: Duration = Duration::from_secs(20);
-/// Surcharge de l'URL du manifeste (tests, autre canal). En debug, sans cette variable,
-/// aucune vérification n'est faite.
+/// Override of the manifest URL (tests, another channel). In debug, without this variable,
+/// no check is made.
 const ENDPOINT_ENV: &str = "SEAGLASS_UPDATE_URL";
 
-/// Manifeste à lire : `SEAGLASS_UPDATE_URL` au lancement, sinon `latest.json` du dossier
-/// compilé (#452). `None` : app compilée sans mises à jour (ni adresse, ni clé publique).
+/// Manifest to read: `SEAGLASS_UPDATE_URL` at launch, otherwise `latest.json` of the
+/// compiled folder (#452). `None`: app compiled without updates (neither address nor public key).
 fn endpoint() -> Option<String> {
     crate::servers::updater_pubkey()?;
     std::env::var(ENDPOINT_ENV)
@@ -52,9 +52,9 @@ fn endpoint() -> Option<String> {
 pub struct UpdateInfo {
     pub version: String,
     pub current_version: String,
-    /// Notes de version (texte libre du manifeste).
+    /// Release notes (free text from the manifest).
     pub notes: Option<String>,
-    /// Vrai tant que l'installeur se télécharge : `update-ready` suivra (#187).
+    /// True while the installer is downloading: `update-ready` will follow (#187).
     pub downloading: bool,
 }
 
@@ -74,13 +74,13 @@ struct Pending {
     bytes: Vec<u8>,
 }
 
-/// Mise à jour téléchargée et vérifiée, en attente d'installation.
+/// Update downloaded and verified, waiting for installation.
 #[derive(Default)]
 pub struct UpdateState {
     pending: Mutex<Option<Pending>>,
-    /// Version en cours de téléchargement : jamais deux téléchargements à la fois.
+    /// Version being downloaded: never two downloads at once.
     downloading: Mutex<Option<UpdateInfo>>,
-    /// Sérialise la lecture du manifeste entre la tâche de fond et le bouton.
+    /// Serializes the reading of the manifest between the background task and the button.
     checking: tokio::sync::Mutex<()>,
 }
 
@@ -104,22 +104,19 @@ impl UpdateState {
         self.pending.lock().ok()?.take()
     }
 
-    /// À la fermeture de l'app : installe la mise à jour reportée, sans relancer l'app.
+    /// When the app closes: installs the deferred update, without restarting the app.
     pub fn install_on_exit(&self) {
         if let Some(p) = self.take() {
-            tracing::info!(
-                "installation de la version {} à la fermeture",
-                p.update.version
-            );
+            tracing::info!("installing version {} on close", p.update.version);
             if let Err(e) = p.update.restart_after_install(false).install(&p.bytes) {
-                tracing::error!("installation de la mise à jour impossible : {e}");
+                tracing::error!("cannot install the update: {e}");
             }
         }
     }
 }
 
-/// Vrai si l'app peut se mettre à jour elle-même : Windows (installeur NSIS), Linux
-/// lancé depuis une AppImage.
+/// True if the app can update itself: Windows (NSIS installer), Linux
+/// launched from an AppImage.
 pub fn supported(app: &AppHandle) -> bool {
     #[cfg(target_os = "linux")]
     return app.env().appimage.is_some();
@@ -132,24 +129,24 @@ pub fn supported(app: &AppHandle) -> bool {
 
 pub fn spawn(app: AppHandle, mpv: Arc<ProcessGuard>) {
     if !supported(&app) {
-        tracing::info!("mises à jour automatiques désactivées : app lancée hors d'une AppImage");
+        tracing::info!("automatic updates disabled: app launched outside an AppImage");
         return;
     }
     if cfg!(debug_assertions) && std::env::var(ENDPOINT_ENV).is_err() {
         return;
     }
     let Some(endpoint) = endpoint() else {
-        tracing::info!("mises à jour absentes : adresse ou clé publique non compilée");
+        tracing::info!("updates absent: address or public key not compiled");
         return;
     };
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(FIRST_CHECK_DELAY).await;
         loop {
-            // Réglage relu à chaque tour : il peut changer pendant que l'app tourne.
+            // Setting reread on every round: it can change while the app runs.
             if crate::servers::auto_updates() {
-                // Le téléchargement lancé par `check` émet lui-même `update-ready`.
+                // The download started by `check` itself emits `update-ready`.
                 if let Err(e) = check(&app, &endpoint, &mpv).await {
-                    tracing::warn!("vérification des mises à jour : {e}");
+                    tracing::warn!("update check: {e}");
                 }
             }
             tokio::time::sleep(CHECK_INTERVAL).await;
@@ -157,9 +154,9 @@ pub fn spawn(app: AppHandle, mpv: Arc<ProcessGuard>) {
     });
 }
 
-/// Lit le manifeste. Une version plus récente, ni prête ni déjà en téléchargement, est
-/// téléchargée en arrière-plan (puis `update-ready`). Renvoie l'état de la mise à jour
-/// (prête, ou en téléchargement), `None` si l'app est à jour.
+/// Reads the manifest. A newer version, neither ready nor already downloading, is
+/// downloaded in the background (then `update-ready`). Returns the state of the update
+/// (ready, or downloading), `None` if the app is up to date.
 async fn check(
     app: &AppHandle,
     endpoint: &str,
@@ -174,8 +171,8 @@ async fn check(
         .updater_builder()
         .endpoints(vec![url])
         .map_err(|e| e.to_string())?;
-    // L'installeur ferme l'app par `std::process::exit` : la file doit être sauvegardée
-    // (#260) et mpv arrêté avant.
+    // The installer closes the app through `std::process::exit`: the queue must be saved
+    // (#260) and mpv stopped before.
     let mpv = Arc::clone(mpv);
     let handle = app.clone();
     let updater = builder
@@ -188,18 +185,16 @@ async fn check(
 
     let update = match updater.check().await {
         Ok(update) => update,
-        // Version publiée sans cette plateforme (release Windows seule, par exemple) :
-        // rien à installer ici, ce n'est pas une erreur à montrer.
+        // Version published without this platform (Windows-only release, for example):
+        // nothing to install here, not an error to show.
         Err(tauri_plugin_updater::Error::TargetNotFound(target)) => {
-            tracing::info!(
-                "manifeste sans entrée {target} : pas de mise à jour pour cette plateforme"
-            );
+            tracing::info!("manifest has no {target} entry: no update for this platform");
             None
         }
         Err(e) => return Err(e.to_string()),
     };
     let Some(update) = update else {
-        // Une version prête mais retirée du manifeste reste installable.
+        // A version that is ready but was removed from the manifest stays installable.
         return Ok(state.info());
     };
     if let Some(info) = state.info().filter(|i| i.version == update.version) {
@@ -210,28 +205,28 @@ async fn check(
     }
     let info = UpdateInfo::of(&update, true);
     state.set_downloading(Some(info.clone()));
-    tracing::info!("version {} disponible, téléchargement", update.version);
+    tracing::info!("version {} available, downloading", update.version);
     tauri::async_runtime::spawn(download(app.clone(), update));
     Ok(Some(info))
 }
 
-/// Télécharge l'installeur, puis le garde et émet `update-ready` (`update-failed` avec le
-/// message en cas d'échec : la page Réglages attend la fin d'un téléchargement demandé).
+/// Downloads the installer, then keeps it and emits `update-ready` (`update-failed` with the
+/// message on failure: the Settings page waits for the end of a requested download).
 async fn download(app: AppHandle, update: Update) {
     let state = app.state::<UpdateState>();
-    // `download` vérifie la signature : des octets non signés par notre clé sont refusés.
+    // `download` checks the signature: bytes not signed by our key are refused.
     let result = update.download(|_, _| {}, || {}).await;
     state.set_downloading(None);
     let bytes = match result {
         Ok(bytes) => bytes,
         Err(e) => {
-            tracing::warn!("téléchargement de la version {} : {e}", update.version);
+            tracing::warn!("download of version {}: {e}", update.version);
             let _ = app.emit("update-failed", e.to_string());
             return;
         }
     };
     tracing::info!(
-        "version {} prête ({} octets, signature vérifiée)",
+        "version {} ready ({} bytes, signature verified)",
         update.version,
         bytes.len()
     );
@@ -243,10 +238,10 @@ async fn download(app: AppHandle, update: Update) {
     }
 }
 
-/// Vérification à la demande, rendue dès le manifeste lu : la mise à jour prête (nouvelle
-/// ou reportée, réémise en `update-ready` pour que la proposition d'installation
-/// réapparaisse), en téléchargement (`downloading`, `update-ready` suivra), ou `None` si
-/// l'app est à jour.
+/// On-demand check, returned as soon as the manifest is read: the ready update (new
+/// or deferred, re-emitted as `update-ready` so that the install offer
+/// reappears), downloading (`downloading`, `update-ready` will follow), or `None` if
+/// the app is up to date.
 #[tauri::command]
 pub async fn check_for_updates(
     app: AppHandle,
@@ -273,7 +268,7 @@ pub async fn check_for_updates(
     Ok(info)
 }
 
-/// Vrai si les Réglages peuvent proposer de vérifier les mises à jour (voir `supported`).
+/// True if Settings can offer to check for updates (see `supported`).
 #[tauri::command]
 pub fn updates_available(app: AppHandle) -> bool {
     supported(&app)
@@ -284,9 +279,9 @@ pub fn update_status(state: State<'_, UpdateState>) -> Option<UpdateInfo> {
     state.info()
 }
 
-/// Installe tout de suite. Windows : l'installeur ferme l'app puis la relance. Linux :
-/// l'AppImage est remplacée, puis l'app se relance (file sauvegardée et mpv arrêté par
-/// `RunEvent::Exit`, comme à la fermeture).
+/// Installs right away. Windows: the installer closes the app then restarts it. Linux:
+/// the AppImage is replaced, then the app restarts (queue saved and mpv stopped by
+/// `RunEvent::Exit`, as on close).
 #[tauri::command]
 pub fn install_update(app: AppHandle, state: State<'_, UpdateState>) -> Result<(), String> {
     let pending = state
@@ -294,7 +289,7 @@ pub fn install_update(app: AppHandle, state: State<'_, UpdateState>) -> Result<(
         .ok_or_else(|| "aucune mise à jour prête".to_owned())?;
     if let Err(e) = pending.update.install(&pending.bytes) {
         let message = install_error(&app, e);
-        // Gardée : après avoir déplacé l'AppImage, un nouvel essai ne retélécharge rien.
+        // Kept: after moving the AppImage, a new attempt downloads nothing again.
         if let Ok(mut slot) = state.pending.lock() {
             *slot = Some(pending);
         }
@@ -305,8 +300,8 @@ pub fn install_update(app: AppHandle, state: State<'_, UpdateState>) -> Result<(
     Ok(())
 }
 
-/// Message d'un échec d'installation. Linux : une AppImage rangée dans un dossier sans
-/// droit d'écriture (`/opt`, clé montée en lecture seule…) ne peut pas être remplacée.
+/// Message of an installation failure. Linux: an AppImage stored in a folder without
+/// write permission (`/opt`, read-only USB stick…) cannot be replaced.
 fn install_error(app: &AppHandle, e: tauri_plugin_updater::Error) -> String {
     #[cfg(target_os = "linux")]
     if let tauri_plugin_updater::Error::Io(io) = &e

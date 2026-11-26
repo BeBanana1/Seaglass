@@ -1,11 +1,11 @@
-//! Moteur Media3 (Android, #24) : traduit `engine::Op` en commandes du plugin Kotlin
-//! (`Playback.kt`) et ses événements JSON en `engine::Event`. Logique pure testée (aussi
-//! sur le bureau) ; seul `Media3Engine` n'existe que sur Android.
+//! Media3 engine (Android, #24): translates `engine::Op` into commands of the Kotlin plugin
+//! (`Playback.kt`) and its JSON events into `engine::Event`. Pure logic tested (also
+//! on the desktop); only `Media3Engine` exists on Android alone.
 //!
-//! Sur Android, le MPD est passé à Media3 en URL `data:` : aucun serveur local, donc rien
-//! de joignable par les autres apps du téléphone.
+//! On Android, the MPD is passed to Media3 as a `data:` URL: no local server, so nothing
+//! reachable by the phone's other apps.
 
-// Hors Android, seuls les tests utilisent ce module.
+// Outside Android, only the tests use this module.
 #![cfg_attr(not(target_os = "android"), allow(dead_code))]
 
 use base64::Engine as _;
@@ -14,7 +14,7 @@ use serde_json::{Value, json};
 
 use crate::engine::{AudioParams, End, Event, Filters, Op};
 
-/// MPD en URL `data:` pour Media3.
+/// MPD as a `data:` URL for Media3.
 pub fn data_url(mpd: &str) -> String {
     format!(
         "data:application/dash+xml;base64,{}",
@@ -22,12 +22,12 @@ pub fn data_url(mpd: &str) -> String {
     )
 }
 
-/// Arguments de la commande Kotlin `engine` ; `None` pour une opération sans objet sur
-/// Android (cache de mpv, périphérique de sortie).
+/// Arguments of the Kotlin `engine` command; `None` for an operation with no meaning on
+/// Android (mpv's cache, output device).
 pub fn op_args(op: &Op) -> Option<Value> {
     Some(match op {
-        // L'égaliseur (#467) vaut pour toute la lecture : il part avec `play` et
-        // `currentGain`, le préchargé n'en porte pas.
+        // The equalizer (#467) applies to the whole playback: it goes out with `play` and
+        // `currentGain`, the preloaded one does not carry it.
         Op::Play {
             url,
             start,
@@ -53,7 +53,7 @@ pub fn op_args(op: &Op) -> Option<Value> {
     })
 }
 
-/// Profil d'égaliseur pour `EqAudioProcessor.kt` : préampli effectif et filtres, ou `null`.
+/// Equalizer profile for `EqAudioProcessor.kt`: effective preamp and filters, or `null`.
 fn eq_args(filters: &Filters) -> Value {
     filters.eq.as_deref().map_or(
         Value::Null,
@@ -61,14 +61,14 @@ fn eq_args(filters: &Filters) -> Value {
     )
 }
 
-/// Événement envoyé par `Playback.kt` (champ `type`).
+/// Event sent by `Playback.kt` (`type` field).
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 enum Native {
     Position {
         value: Option<f64>,
     },
-    /// `bufferedPosition` de Media3, envoyé avec la position (#453).
+    /// Media3's `bufferedPosition`, sent with the position (#453).
     Cached {
         value: Option<f64>,
     },
@@ -101,12 +101,12 @@ enum Native {
     },
 }
 
-/// Événement du moteur ; `None` s'il est illisible (journalisé) ou sans intérêt.
+/// Engine event; `None` if it is unreadable (logged) or of no interest.
 pub fn translate(json: &str) -> Option<Event> {
     let native = match serde_json::from_str::<Native>(json) {
         Ok(native) => native,
         Err(e) => {
-            tracing::warn!("événement Media3 illisible : {e}");
+            tracing::warn!("unreadable Media3 event: {e}");
             return None;
         }
     };
@@ -150,7 +150,7 @@ mod android {
     use crate::mpv::CacheSize;
 
     pub struct Media3Engine {
-        /// Gardé pour la durée du moteur : les événements Kotlin y arrivent.
+        /// Kept for the life of the engine: the Kotlin events arrive there.
         _events: Channel,
     }
 
@@ -164,13 +164,13 @@ mod android {
     }
 
     impl Launch {
-        /// Media3 ne signale pas d'arrêt du moteur : pas de relance à empêcher.
+        /// Media3 does not report an engine stop: no restart to prevent.
         pub fn may_restart(&self) -> bool {
             true
         }
 
-        /// Crée le lecteur Kotlin et branche ses événements sur `events`. Le cache et le
-        /// périphérique de sortie sont des réglages du bureau.
+        /// Creates the Kotlin player and wires its events to `events`. The cache and the
+        /// output device are desktop settings.
         pub async fn start(
             &self,
             _cache: CacheSize,
@@ -178,9 +178,9 @@ mod android {
             _exclusive: bool,
             events: mpsc::Sender<Event>,
         ) -> Result<Media3Engine, String> {
-            // Le canal est rappelé sur le thread principal d'Android, qui ne doit jamais
-            // attendre l'acteur (l'acteur peut attendre ce thread) : file non bornée,
-            // vidée par une tâche.
+            // The channel is called back on Android's main thread, which must never
+            // wait for the actor (the actor may wait for that thread): unbounded queue,
+            // drained by a task.
             let (raw_tx, mut raw_rx) = mpsc::unbounded_channel();
             tauri::async_runtime::spawn(async move {
                 while let Some(ev) = raw_rx.recv().await {
@@ -209,8 +209,8 @@ mod android {
             let Some(args) = super::op_args(&op) else {
                 return Ok(());
             };
-            // En JNI direct : la lecture continue quand l'app est balayée des récents,
-            // sans activité pour les commandes du plugin (#169).
+            // Through direct JNI: playback goes on when the app is swiped away from the recents,
+            // with no activity for the plugin commands (#169).
             tauri_plugin_seaglass_mobile::direct::call::<serde::de::IgnoredAny>("engine", args)
                 .await
                 .map(drop)
@@ -243,7 +243,7 @@ mod tests {
             }),
             Some(json!({"op": "preload", "url": "u", "gain": null}))
         );
-        // Égaliseur (#467) : préampli effectif et filtres, avec le titre en cours.
+        // Equalizer (#467): effective preamp and filters, with the current track.
         let eq = crate::engine::Filters {
             gain: None,
             eq: Some(std::sync::Arc::new(crate::player::eq::EqProfile {
