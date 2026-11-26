@@ -1,8 +1,8 @@
-//! Blind test (#434) : l'acteur joue des extraits d'une liste et masque le titre tant que la
-//! manche n'est pas révélée. La file d'avant la partie est mise de côté (`saved`) : c'est
-//! elle qui est sauvegardée, affichée et modifiée par « Ajouter à la file » pendant la
-//! partie, et elle revient en pause à la fin. À plusieurs (#441), les invités de la Jam
-//! répondent depuis leur téléphone (`jam.rs`).
+//! Blind test (#434): the actor plays clips from a list and hides the track until the
+//! round is revealed. The queue from before the game is set aside (`saved`): it is the one
+//! saved, shown and changed by "Add to queue" during the game, and it comes back paused at
+//! the end. With several players (#441), the Jam's guests answer from their phones
+//! (`jam.rs`). The clip itself, on the engine side, is in `clip.rs`.
 
 mod answer;
 mod clip;
@@ -28,7 +28,7 @@ pub use game::{Answer, Choice, Mode, Party, Phase, RoundResult};
 use game::{CLIP_LENGTH, Game, GameError, MIN_POOL, ROUND_POINTS};
 pub use players::{HOST_KEY, PlayerResult, PlayerView, Refusal};
 
-/// Manches possibles par partie.
+/// Most rounds in a game.
 pub const MAX_ROUNDS: usize = 50;
 
 pub enum BlindCmd {
@@ -36,29 +36,28 @@ pub enum BlindCmd {
         tracks: Vec<TrackId>,
         mode: Mode,
         rounds: usize,
-        /// Nom de la liste d'origine, affiché.
+        /// Name of the source list, shown.
         title: String,
-        /// Seul, ou avec les invités de la Jam (#441).
+        /// Alone, or with the Jam's guests (#441).
         party: Party,
         reply: oneshot::Sender<Result<(), String>>,
     },
-    /// Réponse de l'hôte.
+    /// The host's answer.
     Answer(Answer),
-    /// Réponse d'un invité de la Jam (#441) à la manche `round` ; renvoie son identifiant
-    /// de joueur.
+    /// A Jam guest's answer (#441) to round `round`; returns their player id.
     GuestAnswer {
-        /// Clé de l'invité dans la Jam (jeton du navigateur ou adresse), jamais affichée.
+        /// The guest's key in the Jam (browser token or address), never shown.
         key: String,
         name: Option<String>,
         round: usize,
         answer: Answer,
         reply: oneshot::Sender<Result<u32, Refusal>>,
     },
-    /// Réécoute l'extrait depuis son début.
+    /// Plays the clip again from its start.
     Replay,
-    /// Révèle la manche sans attendre les autres réponses (à plusieurs).
+    /// Reveals the round without waiting for the other answers (several players).
     Reveal,
-    /// Manche suivante (ou passer / révéler, si la manche n'est pas révélée).
+    /// Next round (or skip / reveal, if the round is not revealed).
     Next,
     Quit,
     Get(oneshot::Sender<Option<BlindTestView>>),
@@ -67,17 +66,17 @@ pub enum BlindCmd {
 pub(super) struct BlindTest {
     game: Game,
     title: String,
-    /// File d'avant la partie et position de son titre courant.
+    /// Queue from before the game, and the position in its current track.
     pub(super) saved: Queue,
     saved_position: f64,
-    /// À plusieurs : révélation automatique, `REVEAL_AFTER` après la fin de l'extrait.
+    /// With several players: automatic reveal, `REVEAL_AFTER` after the clip ends.
     reveal_at: Option<(Instant, i64)>,
-    /// Où en est le chargement de l'extrait (#445).
+    /// How far the clip has loaded (#445).
     clip: Clip,
 }
 
-/// État de la partie envoyé à l'UI (`blind-test`). Le titre de la manche en cours n'y est
-/// qu'une fois révélé (`result`).
+/// State of the game sent to the UI (`blind-test`). The current round's track is only in
+/// it once revealed (`result`).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlindTestView {
@@ -93,14 +92,14 @@ pub struct BlindTestView {
     pub clip_start: f64,
     pub clip_length: f64,
     pub choices: Vec<Choice>,
-    /// Manches révélées, la dernière étant la manche en cours une fois révélée.
+    /// Revealed rounds, the last one being the current round once revealed.
     pub results: Vec<RoundResult>,
     pub party: Party,
-    /// Classement (#441) ; l'hôte seul en solo.
+    /// Ranking (#441); only the host in a solo game.
     pub players: Vec<PlayerView>,
-    /// Révélation automatique prévue (ms depuis l'epoch), à plusieurs.
+    /// Planned automatic reveal (ms since the epoch), with several players.
     pub reveal_at: Option<i64>,
-    /// L'extrait joue vraiment (#445) : l'anneau ne part qu'à ce moment.
+    /// The clip really plays (#445): the ring only starts then.
     pub clip_playing: bool,
 }
 
@@ -130,8 +129,8 @@ impl BlindTest {
     }
 }
 
-/// État du lecteur tel qu'il sort de l'acteur : sans le titre tant que la manche n'est pas
-/// révélée.
+/// The player's state as it leaves the actor: without the track until the round is
+/// revealed.
 pub(super) fn public_state(state: &PlayerState, masked: bool) -> Cow<'_, PlayerState> {
     if !masked {
         return Cow::Borrowed(state);
@@ -183,9 +182,9 @@ impl Player {
         }
     }
 
-    /// Pendant une partie, Suivant / Précédent / Lecture pilotent la partie, et lancer autre
-    /// chose (contexte, titre de la file, transfert) la termine d'abord. Renvoie la commande
-    /// qui reste à traiter normalement.
+    /// During a game, Next / Previous / Play drive the game, and starting something else
+    /// (a context, a queue track, a handoff) ends it first. Returns the command left to
+    /// handle as usual.
     pub(super) async fn blind_route(&mut self, cmd: Cmd) -> Option<Cmd> {
         if self.blind.is_none() {
             return Some(cmd);
@@ -208,12 +207,12 @@ impl Player {
         None
     }
 
-    /// Le titre courant doit être masqué à la sortie de l'acteur.
+    /// The current track must be hidden as it leaves the actor.
     pub(super) fn masks_track(&self) -> bool {
         self.blind.as_ref().is_some_and(|b| b.game.hides_track())
     }
 
-    /// File de l'utilisateur : celle mise de côté pendant une partie.
+    /// The user's queue: the one set aside during a game.
     pub(super) fn main_queue(&self) -> &Queue {
         self.blind.as_ref().map_or(&self.queue, |b| &b.saved)
     }
@@ -225,7 +224,7 @@ impl Player {
         }
     }
 
-    /// Position à sauvegarder : celle d'avant la partie pendant une partie.
+    /// Position to save: the one from before the game, during a game.
     pub(super) fn main_position(&self) -> f64 {
         self.blind
             .as_ref()
@@ -235,7 +234,7 @@ impl Player {
     pub(super) fn emit_blind_test(&self) {
         let view = self.blind.as_ref().map(BlindTest::view);
         if let Err(e) = self.app.emit("blind-test", view) {
-            tracing::warn!("émission blind-test : {e}");
+            tracing::warn!("emitting blind-test: {e}");
         }
     }
 
@@ -256,13 +255,13 @@ impl Player {
                 )
             },
         )?;
-        // Une nouvelle partie pendant une partie garde la file d'avant la première.
+        // A new game during a game keeps the queue from before the first one.
         let (saved, saved_position) = match self.blind.take() {
             Some(previous) => (previous.saved, previous.saved_position),
             None => (std::mem::take(&mut self.queue), self.state.time_pos),
         };
         tracing::info!(
-            "blind test : {} manches ({mode:?}, Jam : {})",
+            "blind test: {} rounds ({mode:?}, Jam: {})",
             game.rounds(),
             party.jam
         );
@@ -278,7 +277,7 @@ impl Player {
         Ok(())
     }
 
-    /// Réponse d'un joueur ; `round` (invités) écarte une réponse arrivée après la manche.
+    /// A player's answer; `round` (guests) drops an answer that arrives after the round.
     async fn blind_answer(
         &mut self,
         key: &str,
@@ -298,7 +297,7 @@ impl Player {
         Ok(id)
     }
 
-    /// Manche révélée : le titre continue jusqu'à la suivante.
+    /// Round revealed: the track goes on until the next one.
     async fn on_blind_revealed(&mut self) {
         if let Some(blind) = &mut self.blind {
             blind.reveal_at = None;
@@ -315,8 +314,8 @@ impl Player {
         }
     }
 
-    /// Suivant : passe la manche (seul) ou la révèle (à plusieurs) si elle ne l'est pas,
-    /// sinon lance la suivante (ou termine la partie).
+    /// Next: skips the round (alone) or reveals it (several players) if it is not revealed,
+    /// otherwise starts the next one (or ends the game).
     pub(super) async fn blind_next(&mut self) {
         let Some((phase, jam)) = self
             .blind
@@ -352,8 +351,8 @@ impl Player {
         }
     }
 
-    /// Fin de la partie : la file d'avant revient, en pause à sa position, sans être
-    /// chargée (comme au lancement de l'app).
+    /// End of the game: the queue from before comes back, paused at its position, without
+    /// being loaded (as at the app's launch).
     pub(super) async fn end_blind_test(&mut self) {
         let Some(blind) = self.blind.take() else {
             return;
@@ -362,7 +361,7 @@ impl Player {
         if self.engine.is_ok() && (self.loaded || self.state.loading) {
             self.engine_op(Op::Stop).await;
         }
-        // Les résolutions en route pour la partie sont ignorées à leur arrivée.
+        // Resolutions on their way for the game are ignored when they arrive.
         self.load_req += 1;
         self.preload_req += 1;
         self.preloading = false;
@@ -383,6 +382,6 @@ impl Player {
         self.mark_queue_dirty();
         self.persist_position = true;
         self.apply_loop_file().await;
-        tracing::info!("blind test terminé, file restaurée");
+        tracing::info!("blind test over, queue restored");
     }
 }

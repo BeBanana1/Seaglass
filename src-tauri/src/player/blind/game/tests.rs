@@ -63,7 +63,7 @@ fn needs_four_different_titles() {
 fn rounds_are_drawn_without_replacement() {
     let mut rng = rng();
     let mut game = Game::new(pool(6), Mode::Typing, 10, Party::SOLO, &mut rng).unwrap();
-    assert_eq!(game.rounds(), 6, "pas plus de manches que de titres");
+    assert_eq!(game.rounds(), 6, "no more rounds than tracks");
     let mut seen = Vec::new();
     loop {
         seen.push(game.track().unwrap().id);
@@ -203,7 +203,7 @@ fn with_guests_the_round_waits_for_everyone() {
     // All known players answered: revealed.
     assert!(!game.hides_track());
     let r = game.results().last().unwrap();
-    assert_eq!(r.points, 3, "titre + bonus du plus rapide");
+    assert_eq!(r.points, 3, "title + bonus for the fastest");
     assert_eq!(r.players.len(), 2);
     assert_eq!(
         game.answer("max", None, Answer::Pass),

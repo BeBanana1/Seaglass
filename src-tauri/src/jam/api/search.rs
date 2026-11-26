@@ -14,7 +14,7 @@ const MAX_RESULTS: usize = 30;
 const MAX_ALBUM_RESULTS: usize = 20;
 
 impl Core {
-    /// Titres seuls (tableau) pour une page d'avant #223, titres et albums sinon.
+    /// Tracks only (an array) for a page from before #223, tracks and albums otherwise.
     pub(super) async fn search<B: Backend>(
         &self,
         body: &[u8],
@@ -39,7 +39,7 @@ impl Core {
         if !self.allow(ip, key, Action::Search) {
             return Response::error(429, "slow");
         }
-        // Un lien d'un autre service (#229) : ses titres ou son album, pas une recherche.
+        // A link from another service (#229): its tracks or its album, not a search.
         let link = crate::foreign::find(query).is_some();
         let hits = if link {
             backend.link(query.to_owned()).await
@@ -81,7 +81,7 @@ impl Core {
 #[derive(Deserialize)]
 struct SearchBody {
     query: String,
-    /// Page qui sait afficher les albums (#223).
+    /// A page that can show albums (#223).
     #[serde(default)]
     albums: bool,
 }

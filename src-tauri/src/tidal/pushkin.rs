@@ -436,7 +436,7 @@ mod tests {
     /// stored session and keeps the socket 12 s with the pings, sending no `USER_ACTION`
     /// (nothing else on the account is paused).
     #[tokio::test]
-    #[ignore = "réseau et session TIDAL requis"]
+    #[ignore = "needs the network and a TIDAL session"]
     async fn live_pushkin_stays_open() {
         let tidal = super::super::live_tests::client().await;
         let Ok(socket) = connect(&tidal).await else {

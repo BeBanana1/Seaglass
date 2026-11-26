@@ -1,8 +1,8 @@
-//! Cœur de l'API des invités (#25), commun à la Jam locale (`server.rs`) et au relais
-//! (`relay.rs`) : code d'accès, limites par invité et par adresse (#256), titres et albums
-//! proposés, ajouts des invités, règles et exclusions de l'hôte (#288), plafond de la Jam
-//! dans la file (#256), volume (#449), paroles (#448), vote pour passer (#433), état. Les deux transports ne font que livrer des requêtes ici et
-//! rendre les réponses.
+//! Core of the guest API (#25), shared by the local Jam (`server.rs`) and the relay
+//! (`relay.rs`): access code, limits per guest and per address (#256), offered tracks and
+//! albums, guest additions, the host's rules and bans (#288), the Jam's cap in the queue
+//! (#256), volume (#449), lyrics (#448), vote to skip (#433), state. Both transports only
+//! deliver requests here and send back the responses.
 
 mod adds;
 mod blind;
@@ -34,69 +34,69 @@ use crate::player::blind::{Answer, BlindTestView, Refusal};
 use crate::player::volume::Volume;
 use crate::tidal::models::{AlbumSummary, Lyrics, Track, TrackId};
 
-/// Délai d'une réponse qui attend TIDAL ou le lecteur.
+/// Timeout of a response that waits for TIDAL or the player.
 pub const BACKEND_TIMEOUT: Duration = Duration::from_secs(15);
-/// Un lien collé (Apple Music, Spotify avec ses paramètres) dépasse souvent 100 caractères.
+/// A pasted link (Apple Music, Spotify with its parameters) is often over 100 characters.
 pub const MAX_QUERY_CHARS: usize = 300;
-/// Titres d'un album ajoutés au plus : un coffret ne remplit pas la file (#223).
+/// Most tracks of an album added: a box set does not fill the queue (#223).
 pub const MAX_ALBUM_TRACKS: usize = 30;
-/// Titres de la suite montrés aux invités.
+/// Upcoming tracks shown to guests.
 pub const MAX_QUEUE: usize = 20;
 
-/// État du lecteur vu par la Jam.
+/// The player's state as the Jam sees it.
 #[derive(Debug, Clone, Default)]
 pub struct Snapshot {
     pub now: Option<Track>,
     pub paused: bool,
-    /// Position dans le titre en cours, en secondes (paroles synchronisées, #448).
+    /// Position in the current track, in seconds (synced lyrics, #448).
     pub position: f64,
-    /// File manuelle.
+    /// Manual queue.
     pub manual: Vec<Track>,
-    /// Suite du contexte.
+    /// Rest of the context.
     pub upcoming: Vec<Track>,
-    /// Blind test en cours (#434), titre masqué tant que la manche n'est pas révélée.
+    /// Blind test in progress (#434), track hidden until the round is revealed.
     pub blind: Option<BlindTestView>,
-    /// Volume de l'hôte, montré aux invités seulement s'ils peuvent le régler (#449).
+    /// The host's volume, shown to guests only if they may set it (#449).
     pub volume: Volume,
 }
 
 impl Snapshot {
-    /// Blind test ouvert aux invités de la Jam (#441) ; une partie en solo ne les regarde pas.
+    /// Blind test open to the Jam's guests (#441); a solo game does not concern them.
     pub fn jam_game(&self) -> Option<&BlindTestView> {
         self.blind.as_ref().filter(|b| b.party.jam)
     }
 }
 
-/// Résultats d'une recherche de la Jam.
+/// Results of a Jam search.
 #[derive(Debug, Clone, Default)]
 pub struct Hits {
     pub tracks: Vec<Track>,
     pub albums: Vec<AlbumSummary>,
 }
 
-/// Ce que le serveur demande à l'app ; remplacé par un faux dans les tests.
+/// What the server asks of the app; replaced by a fake in the tests.
 pub trait Backend: Send + Sync + 'static {
     fn search(&self, query: String) -> impl Future<Output = Result<Hits, String>> + Send;
-    /// Titres ou albums d'un lien collé (TIDAL, Deezer, Spotify, Apple Music, YouTube,
-    /// #229) ; appelé seulement si `crate::foreign::find` reconnaît un lien.
+    /// Tracks or albums of a pasted link (TIDAL, Deezer, Spotify, Apple Music, YouTube,
+    /// #229); called only if `crate::foreign::find` recognizes a link.
     fn link(&self, text: String) -> impl Future<Output = Result<Hits, String>> + Send;
-    /// Titres lisibles d'un album, dans l'ordre (#223).
+    /// Playable tracks of an album, in order (#223).
     fn album_tracks(&self, id: u64) -> impl Future<Output = Result<Vec<Track>, String>> + Send;
-    /// Ajoute à la fin de la file manuelle, dans l'ordre donné.
+    /// Appends to the manual queue, in the given order.
     fn enqueue(&self, ids: Vec<TrackId>) -> impl Future<Output = Result<(), String>> + Send;
-    /// Retire de la file manuelle une entrée par identifiant (#223).
+    /// Removes one entry per id from the manual queue (#223).
     fn remove(&self, ids: Vec<TrackId>) -> impl Future<Output = Result<(), String>> + Send;
-    /// Lecture (`false`) ou pause (`true`), demandée par un invité (#222).
+    /// Play (`false`) or pause (`true`), asked by a guest (#222).
     fn set_paused(&self, paused: bool) -> impl Future<Output = Result<(), String>> + Send;
-    /// Volume demandé par un invité (#449), déjà ramené au plafond de l'hôte.
+    /// Volume asked by a guest (#449), already brought down to the host's cap.
     fn set_volume(&self, level: u8) -> impl Future<Output = Result<(), String>> + Send;
-    /// Passe le titre en cours : les invités l'ont voté (#433). L'hôte en est prévenu.
+    /// Skips the current track: the guests voted for it (#433). The host is told.
     fn skip_by_vote(&self) -> impl Future<Output = Result<(), String>> + Send;
     fn state(&self) -> impl Future<Output = Result<Snapshot, String>> + Send;
-    /// Paroles d'un titre (#448), `None` s'il n'en a pas.
+    /// Lyrics of a track (#448), `None` if it has none.
     fn lyrics(&self, id: TrackId) -> impl Future<Output = Result<Option<Lyrics>, String>> + Send;
-    /// Réponse d'un invité au blind test (#441) : son identifiant de joueur, ou le refus
-    /// de la partie.
+    /// A guest's answer to the blind test (#441): their player id, or the game's
+    /// refusal.
     fn blind_answer(
         &self,
         key: String,
@@ -104,7 +104,7 @@ pub trait Backend: Send + Sync + 'static {
         round: usize,
         answer: Answer,
     ) -> impl Future<Output = Result<Result<u32, Refusal>, String>> + Send;
-    /// Les ajouts des invités ont changé : l'UI de l'hôte affiche les noms dans la file.
+    /// The guests' additions changed: the host's UI shows the names in the queue.
     fn guests_changed(&self, guests: &Guests);
 }
 
@@ -115,26 +115,26 @@ struct Session {
     offered_albums: Offered,
 }
 
-/// État d'une Jam côté hôte, quel que soit le transport.
+/// State of a Jam on the host's side, whatever the transport.
 pub struct Core {
     session: Mutex<Session>,
     guests: Arc<Mutex<Guests>>,
-    /// Règles de l'hôte (#222, #288), retenues d'une Jam à l'autre.
+    /// The host's rules (#222, #288), kept from one Jam to the next.
     rules: Mutex<JamRules>,
-    /// L'hôte peut suspendre les ajouts le temps de la Jam (#288).
+    /// The host can suspend additions for the rest of the Jam (#288).
     adds_open: AtomicBool,
-    /// Exclure un invité bloque aussi son adresse (réseau local seulement, #288).
+    /// Banning a guest also blocks their address (local network only, #288).
     ban_ips: bool,
-    /// Un ajout à la fois : la limite par invité et les doublons se vérifient sur la file
-    /// qui suit l'ajout précédent.
+    /// One addition at a time: the per-guest limit and duplicates are checked against the
+    /// queue that follows the previous addition.
     add_turn: tokio::sync::Mutex<()>,
-    /// Paroles du dernier titre demandé par un invité (#448).
+    /// Lyrics of the last track a guest asked for (#448).
     lyrics: tokio::sync::Mutex<Option<lyrics::CachedLyrics>>,
-    /// Point de départ du titre en cours envoyé aux invités (#448, `clock.rs`).
+    /// Start point of the current track sent to guests (#448, `clock.rs`).
     clock: Mutex<Option<Anchor>>,
-    /// Votes pour passer le titre en cours (#433).
+    /// Votes to skip the current track (#433).
     skip_votes: Mutex<skip::SkipVotes>,
-    /// Relire l'état sans attendre (ajout d'un invité, nouvelle page, pause).
+    /// Read the state again without waiting (a guest's addition, a new page, a pause).
     pub refresh: Notify,
 }
 
@@ -173,7 +173,7 @@ impl Core {
         self.rules.lock().map(|r| *r).unwrap_or_default()
     }
 
-    /// Choix de l'hôte, poussé aussitôt aux pages ouvertes (boutons et messages y changent).
+    /// The host's choice, pushed at once to open pages (their buttons and messages change).
     pub fn set_rules(&self, rules: JamRules) {
         if let Ok(mut current) = self.rules.lock() {
             *current = rules.sanitized();
@@ -202,7 +202,7 @@ impl Core {
         self.refresh.notify_one();
     }
 
-    /// Invités qui ont ajouté pendant la Jam, pour l'UI de l'hôte.
+    /// Guests who added during the Jam, for the host's UI.
     pub fn members(&self) -> Vec<GuestInfo> {
         self.guests
             .lock()
@@ -210,8 +210,8 @@ impl Core {
             .unwrap_or_default()
     }
 
-    /// Exclut un invité (ses titres en attente sont retirés) ou le réadmet ; faux si
-    /// l'invité n'existe pas.
+    /// Bans a guest (their waiting tracks are removed) or lets them back in; false if the
+    /// guest does not exist.
     pub async fn set_banned<B: Backend>(&self, id: u32, banned: bool, backend: &B) -> bool {
         let ids = {
             let Ok(mut guests) = self.guests.lock() else {
@@ -231,7 +231,7 @@ impl Core {
         if !ids.is_empty()
             && let Err(e) = backend.remove(ids.into_iter().map(TrackId).collect()).await
         {
-            tracing::warn!("Jam : {e}");
+            tracing::warn!("Jam: {e}");
         }
         self.refresh.notify_one();
         true
@@ -244,12 +244,12 @@ impl Core {
             .unwrap_or(false)
     }
 
-    /// Nom de l'invité de chaque titre ajouté par la Jam, pour l'UI de l'hôte.
+    /// Guest name of each track added by the Jam, for the host's UI.
     pub fn guest_names(&self) -> HashMap<u64, String> {
         self.guests.lock().map(|g| g.snapshot()).unwrap_or_default()
     }
 
-    /// Adresse bloquée ou code faux (compté comme un essai raté) : la réponse d'erreur.
+    /// Blocked address or wrong code (counted as a failed attempt): the error response.
     pub fn check_code(&self, ip: IpAddr, given: &str) -> Result<(), Response> {
         let Ok(mut s) = self.session.lock() else {
             return Err(Response::error(502, "backend"));
@@ -265,7 +265,7 @@ impl Core {
         Ok(())
     }
 
-    /// Action comptée pour l'invité (`key`, `owner_key`) et pour son adresse (#256).
+    /// Action counted for the guest (`key`, `owner_key`) and for their address (#256).
     fn allow(&self, ip: IpAddr, key: &str, action: Action) -> bool {
         self.session
             .lock()
@@ -273,7 +273,7 @@ impl Core {
             .unwrap_or(false)
     }
 
-    /// État des invités en JSON, `None` si le lecteur ne répond pas.
+    /// The guests' state as JSON, `None` if the player does not answer.
     pub async fn state_json<B: Backend>(&self, backend: &B) -> Option<String> {
         let snapshot = tokio::time::timeout(BACKEND_TIMEOUT, backend.state())
             .await
@@ -291,7 +291,7 @@ impl Core {
         Some(serde_json::json!(state).to_string())
     }
 
-    /// Position et paroles connues du titre en cours (#448), sauf pendant un blind test.
+    /// Position and known lyrics of the current track (#448), except during a blind test.
     fn add_clock(&self, state: &mut GuestState, snapshot: &Snapshot) {
         let Some(track) = snapshot.now.as_ref().map(|t| t.id.0) else {
             return;
@@ -311,7 +311,7 @@ impl Core {
         }
     }
 
-    /// Appel `POST /api/<…>` d'un invité, `path` compris (`/api/search`).
+    /// A guest's `POST /api/<…>` call, `path` included (`/api/search`).
     pub async fn api<B: Backend>(
         &self,
         path: &str,
@@ -323,8 +323,8 @@ impl Core {
         if let Err(response) = self.check_code(ip, code.unwrap_or("")) {
             return response;
         }
-        // Jeton du navigateur, envoyé avec toutes les requêtes depuis #288 : un invité exclu
-        // est refusé partout, et la page le lui dit.
+        // Browser token, sent with every request since #288: a banned guest is refused
+        // everywhere, and the page tells them.
         let token = serde_json::from_slice::<GuestOnly>(body)
             .ok()
             .and_then(|b| b.guest)
@@ -352,8 +352,8 @@ impl Core {
         }
     }
 
-    /// Lecture ou pause explicite (pas une bascule : deux invités qui appuient en même
-    /// temps obtiennent le même résultat).
+    /// Explicit play or pause (not a toggle: two guests who press at the same time get the
+    /// same result).
     async fn pause<B: Backend>(&self, body: &[u8], ip: IpAddr, key: &str, backend: &B) -> Response {
         let Ok(body) = serde_json::from_slice::<PauseBody>(body) else {
             return Response::error(400, "body");
@@ -377,16 +377,16 @@ struct PauseBody {
     paused: bool,
 }
 
-/// Jeton du navigateur, lu dans toute requête (#288).
+/// Browser token, read in every request (#288).
 #[derive(Deserialize)]
 struct GuestOnly {
     #[serde(default)]
     guest: Option<String>,
 }
 
-/// Le détail reste dans le journal de l'hôte : la page n'affiche qu'un message générique.
+/// The detail stays in the host's log: the page only shows a generic message.
 fn backend_error(e: &str) -> Response {
-    tracing::warn!("Jam : {e}");
+    tracing::warn!("Jam: {e}");
     Response::error(502, "backend")
 }
 

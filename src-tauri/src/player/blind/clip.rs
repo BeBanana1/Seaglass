@@ -6,22 +6,22 @@ use super::super::actor::Player;
 use super::super::queue::Queue;
 use crate::engine::Op;
 
-/// Chargement de l'extrait (#445). `loading` retombe dès que l'URL est résolue, avant que
-/// le moteur joue : l'UI suivrait sinon une position qui n'avance pas encore, puis
-/// sauterait en arrière à la première vraie position.
+/// Loading of the clip (#445). `loading` drops as soon as the URL is resolved, before the
+/// engine plays: the UI would otherwise follow a position that does not move yet, then
+/// jump back at the first real position.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Clip {
-    /// Extrait demandé, fichier pas encore ouvert par le moteur.
+    /// Clip asked for, file not opened by the engine yet.
     Waiting,
-    /// Fichier ouvert (`Event::Loaded`) : la première position au-delà du début de
-    /// l'extrait dira qu'il joue. Une position reçue avant `Loaded` peut venir du titre de
-    /// la manche précédente et ne compte pas.
+    /// File opened (`Event::Loaded`): the first position past the clip's start will say
+    /// that it plays. A position received before `Loaded` may come from the previous
+    /// round's track and does not count.
     Opened,
     Playing,
 }
 
 impl Player {
-    /// Charge l'extrait de la manche en cours, seul dans la file du moteur.
+    /// Loads the current round's clip, alone in the engine's queue.
     pub(super) fn play_round(&mut self) {
         self.blind_dirty = true;
         let Some(blind) = &mut self.blind else {
@@ -40,7 +40,7 @@ impl Player {
         self.load_current(id, start);
     }
 
-    /// Fichier ouvert par le moteur : l'extrait de la manche va commencer.
+    /// File opened by the engine: the round's clip is about to start.
     pub(in crate::player) fn blind_on_loaded(&mut self) {
         if let Some(blind) = &mut self.blind
             && blind.clip == Clip::Waiting
@@ -49,8 +49,8 @@ impl Player {
         }
     }
 
-    /// Position reçue : l'extrait est lancé à la première position qui dépasse son début,
-    /// et s'arrête de lui-même au bout de `CLIP_LENGTH`.
+    /// Position received: the clip counts as playing from the first position past its start,
+    /// and stops by itself after `CLIP_LENGTH`.
     pub(in crate::player) async fn blind_on_position(&mut self) {
         let Some(blind) = &mut self.blind else {
             return;
@@ -67,14 +67,14 @@ impl Player {
             && !self.state.paused
             && self.state.time_pos >= blind.game.clip_end()
         {
-            // Fixé tout de suite : les positions suivantes ne redemandent pas la pause.
+            // Set at once: the next positions do not ask for the pause again.
             self.state.paused = true;
             self.engine_op(Op::SetPaused(true)).await;
             self.start_reveal_countdown();
         }
     }
 
-    /// Lecture demandée (bouton, touche média) sur un extrait terminé : il repart du début.
+    /// Play asked (button, media key) on a finished clip: it starts again from the beginning.
     pub(super) fn blind_wants_replay(&self) -> bool {
         self.blind.as_ref().is_some_and(|b| {
             b.game.hides_track() && self.state.paused && self.state.time_pos >= b.game.clip_end()
@@ -101,8 +101,8 @@ impl Player {
         }
     }
 
-    /// Titre de la manche illisible : un autre le remplace. Vrai si la partie a pris
-    /// l'échec en charge.
+    /// The round's track cannot be played: another one replaces it. True if the game has
+    /// handled the failure.
     pub(in crate::player) async fn blind_track_failed(&mut self) -> bool {
         let Some(blind) = &mut self.blind else {
             return false;
