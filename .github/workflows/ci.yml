@@ -103,7 +103,7 @@ jobs:
         run: |
           cargo fmt --check
           cargo clippy --all-targets -- -D warnings
-          cargo test
+          cargo test --all-targets
 
       # `cargo test` rewrites the TypeScript types generated from Rust (#44): a Rust type changed
       # without committing its bindings fails here.
@@ -133,22 +133,26 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      # rust-lld links much faster than MSVC's link.exe (#82). CI only: releases keep link.exe.
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER: rust-lld.exe
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
+      # Dev Drive (ReFS, #82): the workspace, the cargo home and `target/` out of Defender's way,
+      # which slows every small file on the runner's NTFS disks (index, cache, build).
+      - uses: samypr100/setup-dev-drive@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
+          drive-size: 12GB
+          workspace-copy: true
+          env-mapping: |
+            CARGO_HOME,{{ DEV_DRIVE }}/.cargo
 
-      # Only to produce `dist/` for `generate_context!`: the frontend checks run on Linux.
-      - name: Frontend build
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
+      # `tauri::generate_context!` only needs `dist/` to exist: no frontend build here, the real
+      # one and the frontend checks run on Linux.
+      - name: Placeholder frontend
+        working-directory: ${{ env.DEV_DRIVE_WORKSPACE }}
+        run: mkdir -p dist && echo '<!doctype html>' > dist/index.html
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -156,14 +160,14 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: ${{ env.DEV_DRIVE_WORKSPACE }}/src-tauri
           cache-on-failure: true
 
       - name: Rust
-        working-directory: src-tauri
+        working-directory: ${{ env.DEV_DRIVE_WORKSPACE }}/src-tauri
         run: |
           cargo clippy --all-targets -- -D warnings
-          cargo test
+          cargo test --all-targets
 
   # Website (#18): its own package, outside the app. The build fails if inline code that
   # the server's CSP would block is left in a page (site/scripts/no-inline.mjs).
