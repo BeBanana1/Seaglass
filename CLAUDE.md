@@ -65,12 +65,12 @@ seaglass/
       ├─ logs/               # on-disk log, crash reports (#192)
       ├─ i18n.rs             # effective language, translated messages (`tr`, `trf!`), TIDAL locale
       ├─ commands/           # auth.rs, player.rs, catalog.rs, settings.rs: validate input then delegate
-      ├─ tidal/              # auth.rs, api.rs, catalog.rs, home.rs (paged home), playlist.rs (cached pages), mix.rs (mixes, radios), hires.rs + twin.rs (hi-res editions), credits.rs, raw.rs (raw JSON), paging.rs (paged lists), models.rs, cache.rs, manifest.rs (DRM), soundtracks.rs (curated soundtracks, #399), folders.rs (playlist folders, #331), playlog.rs (play log reported to TIDAL, #34), pushkin.rs (one stream per account, #35)
-      ├─ player/             # actor.rs, queue.rs, state.rs
+      ├─ tidal/              # auth.rs, api.rs, session.rs (sign-in state, token refresh), request.rs (authenticated calls), catalog.rs, home.rs (paged home), playlist.rs (cached pages), mix.rs (mixes, radios), hires.rs + twin.rs (hi-res editions), credits.rs, raw.rs (raw JSON), paging.rs (paged lists), models/, cache.rs, manifest.rs (DRM), soundtracks.rs (curated soundtracks, #399), folders.rs (playlist folders, #331), playlog.rs (play log reported to TIDAL, #34), pushkin.rs (one stream per account, #35)
+      ├─ player/             # actor.rs, command.rs (`Cmd`), dispatch.rs, queue.rs, state.rs
       ├─ mpv/                # engine.rs (mpv engine), process.rs, ipc.rs, events.rs, serve.rs (MPDs served over local HTTP)
       ├─ store/              # SQLite (including snapshots.rs: copies of lists)
       ├─ tls.rs              # TLS config of the app's WebSockets (Jam relay, tunnel, Pushkin)
-      ├─ handoff.rs          # playback handoff with the linked computer, phone side (#414)
+      ├─ handoff/            # playback handoff with the linked computer, phone side (#414): transport.rs, credentials.rs
       ├─ foreign/            # links from other services: Jam (#229, links.rs, meta.rs, matching.rs), playlist import (#328, playlists.rs, import.rs)
       └─ integrations/       # mod.rs (NowPlaying, Observers), smtc.rs, mpris/ (Linux), tray.rs, discord/ (Discord presence), listenbrainz/ (scrobbling, #431)
 ```
