@@ -22,7 +22,7 @@ pub struct CivilPeriod {
 pub struct Habits {
     /// (Local) days with at least one play.
     pub days: i64,
-    /// Par jour de la semaine, dimanche en premier (`%w` de SQLite).
+    /// Per weekday, Sunday first (SQLite `%w`).
     pub weekdays: [i64; 7],
     /// Per local hour, from 0 to 23.
     pub hours: [i64; 24],

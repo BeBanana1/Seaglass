@@ -133,7 +133,7 @@ impl TidalClient {
     }
 }
 
-// --- Formats JSON bruts --------------------------------------------------------------
+// --- Raw JSON formats --------------------------------------------------------------
 
 /// Mix in its three shapes:
 /// - home v2: `titleTextInfo.text`, `subtitleTextInfo.text`, `mixImages: [{size, url}]`,

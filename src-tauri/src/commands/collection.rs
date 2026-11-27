@@ -65,7 +65,7 @@ pub struct PlaylistItem {
 
 fn playlist_items(uuid: &str, items: &[PlaylistItem]) -> Result<Vec<(usize, TrackId)>, String> {
     if !is_uuid(uuid) {
-        return Err("identifiant de playlist invalide".into());
+        return Err("invalid playlist ID".into());
     }
     if items.is_empty() || items.len() > MAX_ADD {
         return Err(format!("1 to {MAX_ADD} tracks"));
@@ -166,7 +166,7 @@ pub async fn remove_from_playlist(
     track_id: TrackId,
 ) -> CmdResult<()> {
     if !is_uuid(&uuid) {
-        return Err("identifiant de playlist invalide".into());
+        return Err("invalid playlist ID".into());
     }
     super::snapshots::forget_playlist(&state, &uuid);
     state
@@ -186,7 +186,7 @@ pub async fn restore_to_playlist(
     track_id: TrackId,
 ) -> CmdResult<bool> {
     if !is_uuid(&uuid) {
-        return Err("identifiant de playlist invalide".into());
+        return Err("invalid playlist ID".into());
     }
     super::snapshots::forget_playlist(&state, &uuid);
     state
@@ -207,7 +207,7 @@ pub async fn move_in_playlist(
     track_id: TrackId,
 ) -> CmdResult<()> {
     if !is_uuid(&uuid) {
-        return Err("identifiant de playlist invalide".into());
+        return Err("invalid playlist ID".into());
     }
     if from == to {
         return Ok(());
@@ -229,7 +229,7 @@ pub async fn edit_playlist(
     description: String,
 ) -> CmdResult<()> {
     if !is_uuid(&uuid) {
-        return Err("identifiant de playlist invalide".into());
+        return Err("invalid playlist ID".into());
     }
     let title = clean_title(&title)?;
     let description = description.trim();
@@ -251,7 +251,7 @@ pub async fn edit_playlist(
 #[tauri::command]
 pub async fn delete_playlist(state: State<'_, AppState>, uuid: String) -> CmdResult<()> {
     if !is_uuid(&uuid) {
-        return Err("identifiant de playlist invalide".into());
+        return Err("invalid playlist ID".into());
     }
     super::snapshots::forget_playlist(&state, &uuid);
     state.tidal.delete_playlist(&uuid).await.map_err(err)
@@ -287,17 +287,15 @@ pub(super) async fn emit_likes(app: &AppHandle, state: &AppState) {
 /// The uuid ends up in the request path: it is checked.
 fn validate_target(target: &LikeTarget) -> Result<(), String> {
     match target {
-        LikeTarget::Playlist { uuid } if !is_uuid(uuid) => {
-            Err("identifiant de playlist invalide".into())
-        }
-        LikeTarget::Mix { id } if !is_mix_id(id) => Err("identifiant de mix invalide".into()),
+        LikeTarget::Playlist { uuid } if !is_uuid(uuid) => Err("invalid playlist ID".into()),
+        LikeTarget::Mix { id } if !is_mix_id(id) => Err("invalid mix ID".into()),
         _ => Ok(()),
     }
 }
 
 fn validate_tracks(uuid: &str, track_ids: &[TrackId]) -> Result<(), String> {
     if !is_uuid(uuid) {
-        return Err("identifiant de playlist invalide".into());
+        return Err("invalid playlist ID".into());
     }
     if track_ids.is_empty() {
         return Err(tr("aucun titre à ajouter", "no tracks to add").into());

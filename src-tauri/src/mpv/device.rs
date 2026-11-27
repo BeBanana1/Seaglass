@@ -245,7 +245,7 @@ mod tests {
             pick(&data, &linux),
             vec![device("pipewire/alsa_output.usb-dac", "DAC USB")]
         );
-        // WSLg : PulseAudio seulement.
+        // WSLg: PulseAudio only.
         let wslg = json!([
             {"name": "pulse", "description": "Default (pulse)"},
             {"name": "pulse/RDPSink", "description": "RDP Sink"},
@@ -417,7 +417,7 @@ mod tests {
             .await
             .unwrap();
         let ev = wait_for(&mut events, &|ev| matches!(ev, MpvEvent::EndFile { .. })).await;
-        println!("absent : {ev:?}");
+        println!("absent: {ev:?}");
         assert_eq!(
             ev,
             MpvEvent::EndFile {

@@ -25,9 +25,9 @@ import "./themes/desert.css";
 import "./themes/generique.css";
 
 const target = document.getElementById("app");
-if (!target) throw new Error("#app introuvable");
+if (!target) throw new Error("#app not found");
 
-// La plateforme choisit la mise en page (tactile sur Android) : lue avant le premier rendu.
-// La fenêtre du mini-lecteur (#384) monte sa propre vue, sans le reste de l'app.
+// The platform picks the layout (touch on Android): read before the first render.
+// The mini-player window (#384) mounts its own view, without the rest of the app.
 const Root = isMiniWindow() ? MiniWindow : App;
 initPlatform().finally(() => mount(Root, { target }));

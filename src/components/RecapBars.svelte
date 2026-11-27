@@ -10,7 +10,7 @@
     values: number[];
     /** Marker under each bar (empty to keep only a few of them). */
     labels: string[];
-    /** Info-bulle de chaque barre. */
+    /** Tooltip of each bar. */
     titles: string[];
     /** Highlighted bar (the most listened). */
     top: number | null;

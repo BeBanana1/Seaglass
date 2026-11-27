@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Seaglass : un vinyle dont l'étiquette est un soleil au-dessus de la mer (#126).
-       Source des icônes : `pnpm tauri icon src-tauri/icons/icon.json`. -->
+  <!-- Seaglass: a vinyl record whose label is a sun above the sea (#126).
+       Icon source: `pnpm tauri icon src-tauri/icons/icon.json`. -->
   <defs>
     <clipPath id="sky"><path d="M300 300 H724 V488 C 660 568 580 572 512 516 S 380 456 300 540 Z" /></clipPath>
   </defs>
@@ -14,7 +14,7 @@
     <circle cx="512" cy="512" r="336" />
     <circle cx="512" cy="512" r="370" />
   </g>
-  <!-- Étiquette : la mer, puis le soleil au-dessus de la vague. -->
+  <!-- Label: the sea, then the sun above the wave. -->
   <circle cx="512" cy="512" r="168" fill="#13a89e" />
   <circle cx="512" cy="512" r="168" fill="#ffb547" clip-path="url(#sky)" />
   <circle cx="512" cy="512" r="22" fill="#111417" />

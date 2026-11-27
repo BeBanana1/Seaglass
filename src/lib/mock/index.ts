@@ -30,7 +30,7 @@ import type { LibraryTab, Route, SettingsSection } from "../stores/nav.svelte";
 
 export { playbackTick } from "./player";
 
-/** `?hirestwin=1` : la page album propose un album jumeau hi-res (#59). */
+/** `?hirestwin=1`: the album page offers a hi-res twin album (#59). */
 const hiresTwin = params.has("hirestwin");
 
 /** "Played in Seaglass" at the top of the feed, like the real backend. */

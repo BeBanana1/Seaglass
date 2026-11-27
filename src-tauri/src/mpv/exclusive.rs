@@ -57,7 +57,7 @@ mod tests {
                 panic!("mpv closed");
             })
             .await
-            .expect("audio-out-params attendu")
+            .expect("audio-out-params expected")
         }
         let pos = |v: Value| v.as_f64().unwrap_or(0.0);
 
@@ -83,7 +83,7 @@ mod tests {
         .await
         .unwrap();
         let exclusive = out_params(&mut events).await;
-        println!("exclusif : {exclusive:?}");
+        println!("exclusive: {exclusive:?}");
         tokio::time::sleep(Duration::from_millis(1000)).await;
         let after = pos(cmd(vec![json!("get_property"), json!("time-pos")])
             .await
@@ -106,7 +106,7 @@ mod tests {
         .arg(wav.to_string_lossy().as_ref())
         .output()
         .unwrap();
-        println!("autre lecteur : {}", other.status);
+        println!("other player: {}", other.status);
         assert!(
             !other.status.success(),
             "the device was taken in exclusive mode"

@@ -94,9 +94,9 @@ pub fn evaluate(
     base: &str,
 ) -> Result<Option<Available>, String> {
     let offered = parse_version(&manifest.version)
-        .ok_or_else(|| format!("version invalide dans le manifeste : {}", manifest.version))?;
+        .ok_or_else(|| format!("invalid version in the manifest: {}", manifest.version))?;
     let installed =
-        parse_version(current).ok_or_else(|| format!("version de l'app invalide : {current}"))?;
+        parse_version(current).ok_or_else(|| format!("invalid app version: {current}"))?;
     if offered <= installed {
         return Ok(None);
     }
@@ -104,14 +104,14 @@ pub fn evaluate(
         || !manifest.url.starts_with(&download_prefix(base))
         || manifest.url.contains("..")
     {
-        return Err(format!("adresse de l'APK refusée : {}", manifest.url));
+        return Err(format!("APK address refused: {}", manifest.url));
     }
     let sha256 = manifest.sha256.to_ascii_lowercase();
     if sha256.len() != 64 || !sha256.bytes().all(|b| b.is_ascii_hexdigit()) {
-        return Err("empreinte SHA-256 invalide dans le manifeste".to_owned());
+        return Err("invalid SHA-256 digest in the manifest".to_owned());
     }
     if manifest.size == 0 || manifest.size > MAX_SIZE {
-        return Err(format!("taille de l'APK invalide : {}", manifest.size));
+        return Err(format!("invalid APK size: {}", manifest.size));
     }
     Ok(Some(Available {
         version: manifest.version.trim().to_owned(),
@@ -226,7 +226,7 @@ mod android {
             .map_err(|e| e.to_string())?
             .json()
             .await
-            .map_err(|e| format!("manifeste illisible : {e}"))?;
+            .map_err(|e| format!("unreadable manifest: {e}"))?;
         let current = current_version(app);
         let found = evaluate(manifest, &current, base)?;
         let known = state.get();

@@ -186,7 +186,7 @@
     color: var(--danger);
   }
 
-  /* Android (#24) : deux cartes par ligne, comme `CardGrid`. */
+  /* Android (#24): two cards per row, like `CardGrid`. */
   :global(:root[data-platform="android"]) .items {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }

@@ -27,7 +27,7 @@
     onEdit,
   }: {
     image: string | null;
-    /** Type de page (« Album », « Playlist »…). */
+    /** Page type ("Album", "Playlist"...). */
     eyebrow: string;
     title: string;
     round?: boolean;
@@ -45,9 +45,9 @@
     later?: LikeTarget;
     meta?: Snippet;
     description?: string | null;
-    /** Bouton « Radio » (page d'artiste). */
+    /** "Radio" button (artist page). */
     onRadio?: () => void;
-    /** Bouton « Modifier » (votre playlist, #201). */
+    /** "Edit" button (your own playlist, #201). */
     onEdit?: () => void;
   } = $props();
 

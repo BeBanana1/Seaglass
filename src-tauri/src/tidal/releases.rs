@@ -87,7 +87,7 @@ impl TidalClient {
                 match joined {
                     Ok((_, Ok(list))) => albums.extend(list),
                     // An unreadable artist does not prevent showing the others.
-                    Ok((id, Err(e))) => tracing::warn!("sorties de l'artiste {id} : {e}"),
+                    Ok((id, Err(e))) => tracing::warn!("releases of artist {id}: {e}"),
                     Err(e) => tracing::debug!("task interrupted: {e}"),
                 }
             }

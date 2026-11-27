@@ -18,9 +18,9 @@ use super::models::{AlbumRelated, AlbumSummary};
 use super::raw::RawAlbumFull;
 use super::{Result, TidalError};
 
-/// Module « Autres versions ».
+/// "Other versions" module.
 const VERSIONS_MODULE: &str = "7f62f3ef-6499-4dc8-9229-148d5f3b3b2e";
-/// Module « More albums by <artist> ».
+/// "More albums by <artist>" module.
 const BY_ARTIST_MODULE: &str = "3f410242-777b-43b6-9acf-6ed91cb95327";
 
 impl TidalClient {

@@ -15,13 +15,13 @@ src-tauri/target/
 relay/target/
 src-tauri/gen/schemas/
 
-# Données factices de prévisualisation (contiennent la bibliothèque du compte)
+# Fake preview data (contains the account's library)
 src/lib/mock/fixtures.json
 
-# mpv embarqué par le script de release (119 Mo, jamais dans git)
+# mpv bundled by the release script (119 MB, never in git)
 src-tauri/binaries/
 # Artefacts produits par scripts/release.ps1
 release/
 
-# Worktrees des sessions Claude Code (locaux)
+# Claude Code session worktrees (local)
 .claude/worktrees/

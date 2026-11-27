@@ -106,7 +106,7 @@ async fn load(
     store: Option<&Arc<Store>>,
     feed: &FeedState,
 ) -> CmdResult<(Vec<FeedItem>, usize)> {
-    let user = user_id(tidal).await.ok_or_else(|| err("session absente"))?;
+    let user = user_id(tidal).await.ok_or_else(|| err("no session"))?;
     let mut items = filtered(tidal.feed_with_releases(now_ms()).await.map_err(err)?);
     if let Some(store) = store {
         let saved = blocking(store, |s| s.get_setting::<SeenSet>(SEEN_KEY)).await;

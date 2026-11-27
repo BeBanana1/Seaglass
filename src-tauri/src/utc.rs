@@ -43,7 +43,7 @@ impl Utc {
         Self::from_secs(i64::try_from(secs).unwrap_or(0))
     }
 
-    /// `AAAA-MM-JJ`.
+    /// `YYYY-MM-DD`.
     pub fn date(&self) -> String {
         format!("{:04}-{:02}-{:02}", self.year, self.month, self.day)
     }
@@ -53,7 +53,7 @@ impl Utc {
         format!("{:02}:{:02}:{:02}", self.hour, self.minute, self.second)
     }
 
-    /// ISO 8601 : `AAAA-MM-JJThh:mm:ssZ`.
+    /// ISO 8601: `YYYY-MM-DDThh:mm:ssZ`.
     #[cfg(any(desktop, test))]
     pub fn iso(&self) -> String {
         format!("{}T{}Z", self.date(), self.time())

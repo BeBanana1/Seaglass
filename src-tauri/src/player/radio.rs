@@ -93,7 +93,7 @@ impl Player {
             Err(e) => {
                 // The queue was waiting for this radio: it stops there.
                 self.state.ended |= waiting;
-                return tracing::warn!("radio de {seed} indisponible : {e}");
+                return tracing::warn!("radio for {seed} unavailable: {e}");
             }
         };
         if !self.radio.enabled || !self.queue.extend_with_radio(seed, &tracks) {

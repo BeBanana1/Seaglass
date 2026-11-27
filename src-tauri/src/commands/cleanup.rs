@@ -12,7 +12,7 @@ fn check_uuid(uuid: &str) -> CmdResult<()> {
     if is_uuid(uuid) {
         Ok(())
     } else {
-        Err("identifiant de playlist invalide".into())
+        Err("invalid playlist ID".into())
     }
 }
 

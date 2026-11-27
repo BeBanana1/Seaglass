@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Icône thématique d'Android 13+ : silhouette du disque, soleil au-dessus de la vague,
-       à la taille du premier plan adaptatif. -->
+  <!-- Android 13+ themed icon: silhouette of the disc, sun above the wave,
+       at the size of the adaptive foreground. -->
   <defs>
     <mask id="cut">
       <rect width="1024" height="1024" fill="#fff" />

@@ -142,7 +142,7 @@ function onKey(e: KeyboardEvent) {
   }
 }
 
-/** Pochettes en gros pixels quelques secondes (filtre SVG de `EggLayer.svelte`). */
+/** Covers in big pixels for a few seconds (SVG filter of `EggLayer.svelte`). */
 function pixelate() {
   clearTimeout(pixelsTimer);
   state.pixels = true;

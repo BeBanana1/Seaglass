@@ -66,7 +66,7 @@ fn header(now: SystemTime) -> String {
     )
 }
 
-/// `AAAA-MM-JJ hh:mm:ss UTC`.
+/// `YYYY-MM-DD hh:mm:ss UTC`.
 fn utc(time: SystemTime) -> String {
     let secs = time.duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
     let utc = crate::utc::Utc::from_secs(i64::try_from(secs).unwrap_or(0));

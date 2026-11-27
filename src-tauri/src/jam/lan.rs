@@ -211,6 +211,6 @@ mod tests {
     #[ignore]
     fn lan_ip_here() {
         println!("default route: {:?}", routed_ip());
-        println!("adresse retenue : {:?}", lan_ip());
+        println!("chosen address: {:?}", lan_ip());
     }
 }

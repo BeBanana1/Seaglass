@@ -44,9 +44,9 @@ pub struct Decoded {
 pub fn decode(mime: &str, manifest_b64: &str) -> Result<Decoded> {
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(manifest_b64)
-        .map_err(|e| TidalError::Decode(format!("manifeste base64 : {e}")))?;
-    let text = String::from_utf8(bytes)
-        .map_err(|e| TidalError::Decode(format!("manifeste UTF-8 : {e}")))?;
+        .map_err(|e| TidalError::Decode(format!("base64 manifest: {e}")))?;
+    let text =
+        String::from_utf8(bytes).map_err(|e| TidalError::Decode(format!("UTF-8 manifest: {e}")))?;
 
     if mime.starts_with(MPD_MIME) {
         if let Some(marker) = MPD_DRM_MARKERS.iter().find(|m| text.contains(**m)) {

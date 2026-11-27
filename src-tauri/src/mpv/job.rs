@@ -50,6 +50,6 @@ pub fn adopt(raw_handle: std::os::windows::io::RawHandle) {
     };
     // SAFETY: `raw_handle` is the valid handle of a process that was just started.
     if let Err(e) = unsafe { AssignProcessToJobObject(job, HANDLE(raw_handle)) } {
-        tracing::warn!("rattachement de mpv au Job Object impossible : {e}");
+        tracing::warn!("cannot attach mpv to the Job Object: {e}");
     }
 }

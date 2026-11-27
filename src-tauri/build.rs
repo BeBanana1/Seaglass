@@ -1,10 +1,10 @@
 use std::path::Path;
 
-/// Variables lues dans `../.env` (gitignoré) et injectées à la compilation.
-/// Une variable d'environnement du même nom au lancement reste prioritaire (voir `tidal::auth`).
-/// `SEAGLASS_RELAY_KEY` : clé du relais de la Jam en ligne (#25), devient
-/// `SEAGLASS_SEAGLASS_RELAY_KEY` ; sans elle, seule la Jam locale est proposée.
-/// `DISCORD_CLIENT_ID` : application Discord de la présence (#215) ; sans lui, réglage masqué.
+/// Variables read from `../.env` (gitignored) and injected at compile time.
+/// An environment variable of the same name at launch still takes priority (see `tidal::auth`).
+/// `SEAGLASS_RELAY_KEY`: key of the online Jam relay (#25), becomes
+/// `SEAGLASS_SEAGLASS_RELAY_KEY`; without it, only the local Jam is offered.
+/// `DISCORD_CLIENT_ID`: Discord application for the presence (#215); without it, the setting is hidden.
 const EMBEDDED_ENV: [&str; 4] = [
     "TIDAL_CLIENT_ID",
     "TIDAL_CLIENT_SECRET",
@@ -12,10 +12,10 @@ const EMBEDDED_ENV: [&str; 4] = [
     "DISCORD_CLIENT_ID",
 ];
 
-/// Adresses des services (#452, voir `src/servers.rs`) et clé publique de l'updater
-/// (#489), deviennent `SEAGLASS_BUILD_<…>`. L'environnement de la compilation l'emporte
-/// sur `.env` : les scripts de release y mettent l'adresse qui sert aussi à écrire les
-/// manifestes, et la clé lue à côté de la clé privée. Absentes : service absent.
+/// Service addresses (#452, see `src/servers.rs`) and the updater's public key
+/// (#489), become `SEAGLASS_BUILD_<…>`. The build environment wins over `.env`: the
+/// release scripts put there the address that is also used to write the manifests,
+/// and the key read next to the private key. When absent, the service is absent.
 const SERVER_ENV: [(&str, &str); 3] = [
     ("SEAGLASS_UPDATE_BASE_URL", "SEAGLASS_BUILD_UPDATE_BASE_URL"),
     ("SEAGLASS_RELAY_BASE_URL", "SEAGLASS_BUILD_RELAY_BASE_URL"),
@@ -58,14 +58,14 @@ fn main() {
     tauri_build::build()
 }
 
-/// `../VERSION` est la source de vérité : la compilation échoue si Cargo.toml diverge
-/// (tauri.conf.json n'a pas de version et reprend celle de Cargo.toml).
+/// `../VERSION` is the source of truth: the build fails if Cargo.toml differs
+/// (tauri.conf.json has no version and takes Cargo.toml's).
 fn check_version() {
     println!("cargo:rerun-if-changed=../VERSION");
     let version = std::fs::read_to_string("../VERSION").unwrap_or_default();
     let version = version.trim();
     let cargo = std::env::var("CARGO_PKG_VERSION").unwrap_or_default();
     if version != cargo {
-        panic!("VERSION ({version}) et Cargo.toml ({cargo}) diffèrent : mettre à jour les deux");
+        panic!("VERSION ({version}) and Cargo.toml ({cargo}) differ: update both");
     }
 }

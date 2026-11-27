@@ -696,7 +696,7 @@
     background: #ef7d24;
   }
 
-  /* La pochette, seule touche de couleur. */
+  /* The cover, the only touch of color. */
   .midnight .bar {
     background: linear-gradient(90deg, #4f95b0 0 14%, #000 14%);
   }

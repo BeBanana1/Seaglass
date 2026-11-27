@@ -83,7 +83,7 @@ fn validate_id(id: &str) -> Result<(), String> {
     if is_uuid(id) {
         Ok(())
     } else {
-        Err("identifiant de dossier invalide".into())
+        Err("invalid folder ID".into())
     }
 }
 
@@ -94,7 +94,7 @@ fn validate_uuids(uuids: &[String]) -> Result<(), String> {
     if uuids.iter().all(|u| is_uuid(u)) {
         Ok(())
     } else {
-        Err("identifiant de playlist invalide".into())
+        Err("invalid playlist ID".into())
     }
 }
 

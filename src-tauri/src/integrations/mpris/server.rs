@@ -230,7 +230,7 @@ impl Player {
     #[zbus(property)]
     async fn set_loop_status(&mut self, value: String) -> fdo::Result<()> {
         let repeat = logic::parse_loop_status(&value)
-            .ok_or_else(|| fdo::Error::InvalidArgs(format!("LoopStatus inconnu : {value}")))?;
+            .ok_or_else(|| fdo::Error::InvalidArgs(format!("unknown LoopStatus: {value}")))?;
         self.send(Cmd::SetRepeat(repeat)).await;
         Ok(())
     }

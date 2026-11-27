@@ -374,7 +374,7 @@ mod tests {
         })
         .await
         .unwrap_or(false);
-        assert!(stopped, "Event::Stopped attendu");
+        assert!(stopped, "Event::Stopped expected");
         assert!(!guard.closing());
         assert!(engine.apply(Op::SetPaused(false)).await.is_err());
         guard.kill();
@@ -452,8 +452,8 @@ mod tests {
             "format de B",
         )
         .await;
-        println!("B : {format:?}");
-        wait_for(&mut events, |e| *e == Event::Ended(End::Eof), "fin de B").await;
+        println!("B: {format:?}");
+        wait_for(&mut events, |e| *e == Event::Ended(End::Eof), "end of B").await;
         println!("window: Play → Preload → Advanced → DropPrevious → Ended(Eof)");
 
         guard.kill();

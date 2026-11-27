@@ -100,7 +100,7 @@ pub struct Play<'a> {
     pub track: &'a Track,
     pub album: &'a AlbumSummary,
     pub source: Option<&'a PlaySource>,
-    /// Millisecondes depuis l'epoch Unix.
+    /// Milliseconds since the Unix epoch.
     pub played_at: i64,
     /// Format actually played (#524); `None` when unknown.
     pub format: Option<&'a PlayFormat>,
@@ -224,7 +224,7 @@ impl Store {
             let (json, count) = row?;
             match serde_json::from_str(&json) {
                 Ok(album) => out.push((album, count)),
-                Err(e) => tracing::debug!("album de l'historique illisible : {e}"),
+                Err(e) => tracing::debug!("history album unreadable: {e}"),
             }
         }
         Ok(out)

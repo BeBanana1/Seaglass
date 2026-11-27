@@ -126,7 +126,7 @@ async fn io_task(
             line = lines.next_line() => {
                 let Ok(Some(line)) = line else { break };
                 let Ok(msg) = serde_json::from_str::<Value>(&line) else {
-                    tracing::warn!("message mpv illisible");
+                    tracing::warn!("unreadable mpv message");
                     continue;
                 };
                 if let Some(ev) = events::parse(&msg) {
