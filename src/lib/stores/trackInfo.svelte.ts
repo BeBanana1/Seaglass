@@ -1,4 +1,4 @@
-// Panneau « Infos du titre » (#3), affiché par components/TrackInfo.svelte.
+// "Track info" panel (#3), shown by components/TrackInfo.svelte.
 
 import type { Track } from "../ipc";
 

@@ -1,5 +1,5 @@
-// Plein écran de la fenêtre (#131), miroir de l'état tenu par le backend. Bureau seulement :
-// sur Android, l'app est déjà en plein écran et les commandes n'existent pas.
+// Window full screen (#131), mirror of the state held by the backend. Desktop only: on
+// Android, the app is already full screen and the commands do not exist.
 
 import { commands, events } from "../ipc";
 import { platform } from "../platform.svelte";
@@ -13,7 +13,7 @@ export async function initWindow() {
   try {
     appWindow.fullscreen = await commands.fullscreen();
   } catch {
-    // État par défaut : fenêtre normale.
+    // Default state: normal window.
   }
 }
 

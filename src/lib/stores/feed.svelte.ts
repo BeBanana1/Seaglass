@@ -1,6 +1,5 @@
-// Nouveautés du fil d'actualité (#415), miroir du compteur tenu par le backend (événement
-// `feed-unseen`, émis après chaque lecture du fil et toutes les 6 h) : pastille de la
-// navigation.
+// New items in the feed (#415), mirror of the counter held by the backend (`feed-unseen`
+// event, emitted after each read of the feed and every 6 h): the navigation's badge.
 
 import { events } from "../ipc";
 
@@ -12,7 +11,7 @@ export async function initFeed() {
   });
 }
 
-/** À la déconnexion. */
+/** On sign-out. */
 export function clearFeed() {
   feed.unseen = 0;
 }

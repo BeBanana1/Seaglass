@@ -1,11 +1,12 @@
-// Menu contextuel unique de l'app (clic droit, bouton « … »), affiché par components/ContextMenu.svelte.
+// The app's single context menu (right click, "…" button), shown by
+// components/ContextMenu.svelte.
 
 import type { IconName } from "../../components/Icon.svelte";
 
 export interface MenuItem {
   label: string;
   icon?: IconName;
-  /** Choix d'une liste d'options (tri, #182) : coche à la place de l'icône si vrai. */
+  /** Choice in a list of options (sort, #182): a check mark instead of the icon if true. */
   checked?: boolean;
   action: () => unknown;
 }
@@ -13,13 +14,13 @@ export interface MenuItem {
 export type MenuEntry = MenuItem | "separator";
 
 export interface OpenMenu {
-  /** Coordonnées de la fenêtre (pixels CSS) ; le menu se recale s'il déborde. */
+  /** Window coordinates (CSS pixels); the menu moves back in if it overflows. */
   x: number;
   y: number;
   entries: MenuEntry[];
-  /** Élément qui a ouvert le menu : il reprend le focus à la fermeture au clavier. */
+  /** Element that opened the menu: it gets the focus back on a keyboard close. */
   from: HTMLElement | null;
-  /** Élément concerné (ligne de titre), mis en évidence tant que le menu est ouvert. */
+  /** Element the menu is about (track row), highlighted while the menu is open. */
   owner?: HTMLElement;
 }
 
@@ -34,8 +35,8 @@ export function closeMenu() {
 }
 
 /**
- * Position d'un menu ouvert par un événement `contextmenu` : au curseur, ou sous l'élément
- * visé quand il vient du clavier (touche Menu, Maj+F10), qui ne donne pas de coordonnées.
+ * Position of a menu opened by a `contextmenu` event: at the cursor, or under the target
+ * element when it comes from the keyboard (Menu key, Shift+F10), which gives no coordinates.
  */
 export function menuPosition(e: MouseEvent, fallback: HTMLElement): { x: number; y: number } {
   if (e.clientX !== 0 || e.clientY !== 0) return { x: e.clientX, y: e.clientY };

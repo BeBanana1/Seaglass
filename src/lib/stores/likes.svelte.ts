@@ -1,5 +1,5 @@
-// Favoris (#4, #81, #204), miroir des ensembles tenus par le backend : cœurs des titres, des
-// albums, des playlists et des mixes, bouton « Suivre » des artistes.
+// Favorites (#4, #81, #204), mirror of the sets held by the backend: hearts of tracks,
+// albums, playlists and mixes, "Follow" button of artists.
 
 import { commands, events, type LikedIds, type LikeTarget, type Track, type TrackId } from "../ipc";
 import { library, loadLibrary } from "./library.svelte";
@@ -12,7 +12,7 @@ export const likes = $state<{
   artists: Set<number>;
   playlists: Set<string>;
   mixes: Set<string>;
-  /** Écritures en cours, par `targetKey`. */
+  /** Writes in progress, by `targetKey`. */
   pending: Set<string>;
 }>({
   tracks: new Set(),
@@ -62,7 +62,7 @@ export async function initLikes() {
   await events.onLikes(apply);
 }
 
-/** À la connexion : premier chargement (une requête, toute la bibliothèque). */
+/** On sign-in: first load (one request, the whole library). */
 export async function loadLikes() {
   try {
     apply(await commands.likes());
@@ -75,12 +75,12 @@ export function clearLikes() {
   apply({ tracks: [], albums: [], artists: [], playlists: [], mixes: [] });
 }
 
-/** Onglet de la bibliothèque qui liste ce type de favori. */
+/** Library tab that lists this kind of favorite. */
 const TABS = { album: "albums", artist: "artists", playlist: "playlists", mix: "mixes" } as const;
 
 /**
- * Ajout aux favoris ou retrait ; l'état change quand le backend confirme (événement
- * `likes`), puis l'onglet de bibliothèque concerné est rechargé s'il l'était déjà.
+ * Adds to or removes from favorites; the state changes when the backend confirms (`likes`
+ * event), then the matching library tab is reloaded if it was already loaded.
  */
 export async function toggleFavorite(target: LikeTarget) {
   const key = targetKey(target);
@@ -89,7 +89,7 @@ export async function toggleFavorite(target: LikeTarget) {
   likes.pending = new Set(likes.pending).add(key);
   try {
     await commands.setLiked(target, liked);
-    // Retrait (#349) : annulable d'un clic ; le favori remis porte une nouvelle date.
+    // Removal (#349): undoable in one click; the restored favorite gets a new date.
     if (!liked) pushUndoToast(t.common.unliked, () => void toggleFavorite(target));
     if (target.kind !== "track") {
       const tab = TABS[target.kind];

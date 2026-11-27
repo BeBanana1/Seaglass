@@ -1,4 +1,4 @@
-// Palette de commandes (#412) : ouverte ou non. Bureau seulement.
+// Command palette (#412): open or not. Desktop only.
 
 export const palette = $state<{ open: boolean }>({ open: false });
 
@@ -14,6 +14,6 @@ export function togglePalette() {
   palette.open = !palette.open;
 }
 
-/** Réglages de lecture changés hors de la page Réglages (mode exclusif depuis la palette) :
- *  la page, si elle est ouverte, les relit pour ne pas réécrire une copie périmée. */
+/** Playback settings changed outside the Settings page (exclusive mode from the palette):
+ *  the page, if open, reads them again so as not to write back a stale copy. */
 export const playbackSettingsChanged = $state<{ count: number }>({ count: 0 });

@@ -1,5 +1,5 @@
-// Dossiers de playlists (#331) : lus avec l'onglet Playlists, tenus à jour après chaque
-// écriture confirmée par le backend. Sans dossier, `items` est vide et rien ne s'affiche.
+// Playlist folders (#331): read with the Playlists tab, kept up to date after each write
+// the backend confirms. With no folder, `items` is empty and nothing is shown.
 
 import { commands, type PlaylistFolder, type PlaylistSummary } from "../ipc";
 import { t } from "../i18n.svelte";
@@ -10,15 +10,15 @@ export const folders = $state<{ items: PlaylistFolder[] | null; loading: boolean
   loading: false,
 });
 
-/** Charge les dossiers s'ils ne le sont pas déjà (`force` pour relire). Une erreur laisse
- * la liste telle quelle : les playlists restent affichées à plat, sans message. */
+/** Loads the folders if they are not loaded yet (`force` to read them again). An error leaves
+ * the list as it is: the playlists stay shown flat, with no message. */
 export async function loadFolders(force = false) {
   if (folders.loading || (folders.items && !force)) return;
   folders.loading = true;
   try {
     folders.items = await commands.playlistFolders();
   } catch (e) {
-    console.warn("dossiers de playlists illisibles", e);
+    console.warn("playlist folders unreadable", e);
   } finally {
     folders.loading = false;
   }
@@ -28,7 +28,7 @@ export function clearFolders() {
   folders.items = null;
 }
 
-/** Dossier qui contient cette playlist, s'il y en a un. */
+/** Folder that holds this playlist, if any. */
 export function folderOf(uuid: string): PlaylistFolder | undefined {
   return folders.items?.find((f) => f.playlists.includes(uuid));
 }
@@ -37,14 +37,14 @@ export function folderById(id: string): PlaylistFolder | undefined {
   return folders.items?.find((f) => f.id === id);
 }
 
-/** Playlists d'un dossier, dans l'ordre de la bibliothèque ; celles qui n'y sont plus
- * (supprimée, plus suivie) disparaissent d'elles-mêmes. */
+/** Playlists of a folder, in the library's order; those no longer in it (deleted, no
+ * longer followed) drop out on their own. */
 export function folderPlaylists(folder: PlaylistFolder, all: PlaylistSummary[]): PlaylistSummary[] {
   const inside = new Set(folder.playlists);
   return all.filter((p) => inside.has(p.uuid));
 }
 
-/** Playlists hors dossier. */
+/** Playlists outside any folder. */
 export function rootPlaylists(all: PlaylistSummary[]): PlaylistSummary[] {
   const filed = new Set((folders.items ?? []).flatMap((f) => f.playlists));
   return filed.size === 0 ? all : all.filter((p) => !filed.has(p.uuid));
@@ -60,7 +60,7 @@ function error(e: unknown) {
   pushToast({ level: "error", message: String(e) });
 }
 
-/** Range des playlists dans un dossier existant, ou les ressort (`folderId` nul). */
+/** Moves playlists into an existing folder, or out of their folder (`folderId` null). */
 export async function movePlaylists(uuids: string[], folderId: string | null): Promise<boolean> {
   try {
     await commands.moveToFolder(uuids, folderId);
@@ -81,7 +81,7 @@ export async function movePlaylists(uuids: string[], folderId: string | null): P
   return true;
 }
 
-/** Crée un dossier avec ces playlists ; renvoie le dossier, ou `null` en cas d'échec. */
+/** Creates a folder with these playlists; returns the folder, or `null` on failure. */
 export async function createFolder(name: string, uuids: string[]): Promise<PlaylistFolder | null> {
   let created: PlaylistFolder;
   try {
@@ -127,10 +127,10 @@ export async function deleteFolder(id: string): Promise<boolean> {
   return true;
 }
 
-// Fenêtre « Déplacer vers un dossier… » (components/FolderPicker.svelte).
+// "Move to folder…" dialog (components/FolderPicker.svelte).
 export interface FolderPickerRequest {
   uuids: string[];
-  /** Ce qui est rangé, pour l'en-tête (titre de la playlist). */
+  /** What is being moved, for the header (the playlist's title). */
   label: string;
 }
 

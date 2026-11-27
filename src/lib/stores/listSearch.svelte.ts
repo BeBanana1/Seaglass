@@ -1,19 +1,19 @@
-// Mode recherche d'une liste de titres sur Android (#151) : tant que le filtre d'une
-// playlist ou des titres likés a le focus ou un texte, la page masque son en-tête et le
-// tri pour laisser la place aux résultats (le clavier prend la moitié de l'écran).
-// Écrit par `TrackTools`, lu par les vues et par Retour (`App`). Jamais actif sur le bureau.
+// Search mode of a track list on Android (#151): while the filter of a playlist or of the
+// liked tracks has the focus or some text, the page hides its header and the sort to leave
+// room for the results (the keyboard takes half the screen).
+// Written by `TrackTools`, read by the views and by Back (`App`). Never active on desktop.
 
 export const listSearch = $state({ active: false });
 
 let exit: (() => void) | null = null;
 
-/** Appelé par `TrackTools` ; `onExit` vide le champ et lui retire le focus. */
+/** Called by `TrackTools`; `onExit` clears the field and takes the focus away from it. */
 export function setListSearch(active: boolean, onExit: (() => void) | null) {
   listSearch.active = active;
   exit = active ? onExit : null;
 }
 
-/** Quitte le mode recherche (Retour d'Android). */
+/** Leaves search mode (Android's Back). */
 export function exitListSearch() {
   exit?.();
 }

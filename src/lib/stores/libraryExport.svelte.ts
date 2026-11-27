@@ -1,5 +1,5 @@
-// #330 : export de la bibliothèque (bureau). Le backend lit les listes et écrit les
-// fichiers ; ici, seulement l'état du bouton, la progression et les messages.
+// #330: library export (desktop). The backend reads the lists and writes the files; here,
+// only the button's state, the progress and the messages.
 import { commands, events } from "../ipc";
 import { t } from "../i18n.svelte";
 import { pushToast } from "./toasts.svelte";

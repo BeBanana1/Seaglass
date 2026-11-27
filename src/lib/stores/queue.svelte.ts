@@ -1,4 +1,4 @@
-// Miroir de la file d'attente envoyée par le backend (`queue-state`).
+// Mirror of the queue sent by the backend (`queue-state`).
 
 import { commands, events, type QueueView } from "../ipc";
 
@@ -6,7 +6,7 @@ export const queue = $state<{ view: QueueView }>({
   view: { manual: [], upcoming: [], radio: null, source: null },
 });
 
-/** Ce que vise le minuteur « fin de la file » (#436), d'après la source du titre en cours. */
+/** What the "end of queue" sleep timer (#436) targets, from the current track's source. */
 export type SleepScope = "album" | "playlist" | "queue";
 
 export function sleepScope(): SleepScope {
