@@ -1,7 +1,7 @@
-//! Export de la bibliothèque (#330) : métadonnées seulement (listes de titres), jamais
-//! d'audio. Un `library.json` complet, plus un CSV par liste pour les tableurs et les
-//! outils de transfert entre services. Logique pure : la lecture des listes et l'écriture
-//! des fichiers sont dans `commands/export.rs`.
+//! Library export (#330): metadata only (lists of tracks), never
+//! audio. A complete `library.json`, plus one CSV per list for spreadsheets and
+//! transfer tools between services. Pure logic: reading the lists and writing
+//! the files are in `commands/export.rs`.
 
 use serde::Serialize;
 
@@ -10,20 +10,20 @@ use crate::tidal::models::{
 };
 use crate::utc::Utc;
 
-/// Version du format de `library.json`, à monter si sa forme change.
+/// Version of the `library.json` format, to raise if its shape changes.
 const FORMAT: u32 = 1;
-/// Marque d'ordre des octets : sans elle, Excel lit le CSV en ANSI et casse les accents.
+/// Byte order mark: without it, Excel reads the CSV as ANSI and breaks the accents.
 const BOM: &str = "\u{feff}";
-/// Longueur maximale du titre d'une playlist dans le nom de son fichier.
+/// Maximum length of a playlist's title in its file name.
 const NAME_MAX: usize = 60;
 
-/// Une playlist et ses titres dans l'ordre.
+/// A playlist and its tracks in order.
 pub struct PlaylistExport {
     pub summary: PlaylistSummary,
     pub tracks: Vec<TrackEntry>,
 }
 
-/// Tout ce qui est exporté.
+/// Everything that is exported.
 pub struct Library {
     pub tracks: LibraryList<TrackEntry>,
     pub albums: LibraryList<AlbumSummary>,
@@ -31,13 +31,13 @@ pub struct Library {
     pub playlists: Vec<PlaylistExport>,
 }
 
-/// Un fichier à écrire : nom (sans dossier) et contenu.
+/// A file to write: name (without folder) and content.
 pub struct File {
     pub name: String,
     pub content: String,
 }
 
-/// Fichiers de l'export : `library.json`, puis les CSV.
+/// Files of the export: `library.json`, then the CSVs.
 pub fn files(library: &Library, now: Utc) -> Result<Vec<File>, serde_json::Error> {
     let mut files = vec![
         File {
@@ -57,8 +57,8 @@ pub fn files(library: &Library, now: Utc) -> Result<Vec<File>, serde_json::Error
             content: artists_csv(&library.artists.items),
         },
     ];
-    // Numérotées : deux playlists peuvent porter le même titre, et le numéro garde l'ordre
-    // de la bibliothèque.
+    // Numbered: two playlists can have the same title, and the number keeps the order
+    // of the library.
     for (i, playlist) in library.playlists.iter().enumerate() {
         files.push(File {
             name: format!(
@@ -86,7 +86,7 @@ struct JsonLibrary<'a> {
 
 #[derive(Serialize)]
 struct JsonList<T> {
-    /// Coupée au plafond de chargement : les plus anciens manquent.
+    /// Cut at the loading cap: the oldest ones are missing.
     truncated: bool,
     items: Vec<T>,
 }
@@ -101,7 +101,7 @@ struct JsonTrack<'a> {
     artists: Vec<&'a str>,
     album: &'a str,
     album_id: u64,
-    /// Secondes.
+    /// Seconds.
     duration: u32,
     explicit: bool,
     /// ISO 8601 UTC.
@@ -128,7 +128,7 @@ struct JsonPlaylist<'a> {
     uuid: &'a str,
     title: &'a str,
     description: Option<&'a str>,
-    /// Créée par l'utilisateur (sinon suivie).
+    /// Created by the user (otherwise followed).
     mine: bool,
     tracks: Vec<JsonTrack<'a>>,
 }
@@ -199,7 +199,7 @@ fn json_track(entry: &TrackEntry) -> JsonTrack<'_> {
     }
 }
 
-/// Millisecondes depuis l'epoch → ISO 8601 UTC.
+/// Milliseconds since the epoch → ISO 8601 UTC.
 fn iso_ms(ms: i64) -> String {
     Utc::from_secs(ms.div_euclid(1000)).iso()
 }
@@ -257,12 +257,12 @@ fn artists_csv(artists: &[ArtistSummary]) -> String {
     )
 }
 
-/// Artistes séparés par `; ` (la virgule est souvent dans les noms).
+/// Artists separated by `; ` (the comma is often in names).
 fn names<'a>(names: impl Iterator<Item = &'a str>) -> String {
     names.collect::<Vec<_>>().join("; ")
 }
 
-/// CSV RFC 4180 (virgules, fins de ligne CRLF), précédé du BOM.
+/// RFC 4180 CSV (commas, CRLF line endings), preceded by the BOM.
 fn csv(header: &[&str], rows: impl Iterator<Item = Vec<String>>) -> String {
     let mut out = String::from(BOM);
     out.push_str(&header.join(","));
@@ -275,7 +275,7 @@ fn csv(header: &[&str], rows: impl Iterator<Item = Vec<String>>) -> String {
     out
 }
 
-/// Champ entre guillemets s'il contient une virgule, un guillemet ou un saut de ligne.
+/// Field in quotes if it contains a comma, a quote or a line break.
 fn cell(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
         format!("\"{}\"", value.replace('"', "\"\""))
@@ -284,8 +284,8 @@ fn cell(value: &str) -> String {
     }
 }
 
-/// Titre utilisable dans un nom de fichier Windows : caractères interdits et de contrôle
-/// remplacés, longueur bornée, sans point ni espace final.
+/// Title usable in a Windows file name: forbidden and control characters
+/// replaced, length capped, no trailing dot or space.
 fn file_name(title: &str) -> String {
     let cleaned: String = title
         .chars()

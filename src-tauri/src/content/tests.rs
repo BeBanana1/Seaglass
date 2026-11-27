@@ -190,7 +190,7 @@ fn hidden_twin_album_becomes_none() {
 fn settings_without_content_field_read_as_default() {
     let filter: ContentFilter = serde_json::from_str("{}").unwrap();
     assert_eq!(filter, ContentFilter::default());
-    // Réglage enregistré en 0.5.28, avant #369 : l'IA est masquée.
+    // Setting saved in 0.5.28, before #369: AI is hidden.
     let filter: ContentFilter = serde_json::from_str(r#"{"hideExplicit":true}"#).unwrap();
     assert!(filter.hide_explicit && filter.hide_ai);
 }

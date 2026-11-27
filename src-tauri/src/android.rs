@@ -1,4 +1,4 @@
-//! Initialisation propre à Android (#24).
+//! Android-specific initialization (#24).
 
 use std::any::Any;
 use std::sync::Mutex;
@@ -9,29 +9,29 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, RunEvent, WebviewWindowBuilder};
 use tauri_plugin_seaglass_mobile::{direct, set_activity};
 
-/// Donne à `rustls-platform-verifier` la JVM et le contexte de l'activité : sans cela, toute
-/// requête HTTPS de `reqwest` panique. À appeler avant la première requête.
+/// Gives `rustls-platform-verifier` the JVM and the activity context: without it, every
+/// HTTPS request from `reqwest` panics. Call before the first request.
 pub fn init_tls() -> Result<(), String> {
     let ctx = ndk_context::android_context();
-    // SAFETY : pointeurs posés par tao au lancement de l'activité, valides pendant toute la
-    // vie du processus.
+    // SAFETY: pointers set by tao when the activity launches, valid for the whole
+    // life of the process.
     let vm = unsafe { jni::JavaVM::from_raw(ctx.vm().cast()) };
     vm.attach_current_thread(|env| -> Result<(), jni::errors::Error> {
-        // SAFETY : référence globale tenue par ndk-context, jamais libérée par ce wrapper.
+        // SAFETY: global reference held by ndk-context, never released by this wrapper.
         let context = unsafe { jni::objects::JObject::from_raw(env, ctx.context().cast()) };
         rustls_platform_verifier::android::init_with_env(env, context)
     })
     .map_err(|e| e.to_string())
 }
 
-/// Langue du système (#186), code ISO 639 de `Locale.getDefault().getLanguage()` (`fr`, `en`…).
-/// Classe système : trouvée par `FindClass` même depuis un thread natif.
+/// System language (#186), ISO 639 code from `Locale.getDefault().getLanguage()` (`fr`, `en`…).
+/// System class: found by `FindClass` even from a native thread.
 pub fn system_language() -> Result<String, String> {
     use jni::objects::JString;
     use jni::{jni_sig, jni_str};
 
     let ctx = ndk_context::android_context();
-    // SAFETY : pointeur de la JVM posé par tao au lancement, valide toute la vie du processus.
+    // SAFETY: JVM pointer set by tao at launch, valid for the whole life of the process.
     let vm = unsafe { jni::JavaVM::from_raw(ctx.vm().cast()) };
     vm.attach_current_thread(|env| -> jni::errors::Result<String> {
         let locale = env
@@ -55,34 +55,34 @@ pub fn system_language() -> Result<String, String> {
     .map_err(|e| e.to_string())
 }
 
-/// Moment où l'activité a été détruite (app balayée des récents) : la fenêtre est à
-/// recréer.
+/// Moment when the activity was destroyed (app swiped away from the recents): the window
+/// has to be recreated.
 static WINDOW_LOST: Mutex<Option<Instant>> = Mutex::new(None);
-/// tao signale la destruction avant d'oublier l'activité : reconstruire tout de suite
-/// attacherait la fenêtre à l'activité mourante, dont la WebView plante et tue l'app.
+/// tao reports the destruction before forgetting the activity: rebuilding right away
+/// would attach the window to the dying activity, whose WebView crashes and kills the app.
 const REBUILD_DELAY: Duration = Duration::from_secs(1);
 
-/// Garde le processus en vie sans activité, pour que la musique continue (#24).
+/// Keeps the process alive without an activity, so that the music goes on (#24).
 ///
-/// Balayer l'app des récents détruit l'activité ; tao en fait la fermeture de la dernière
-/// fenêtre et Tauri quitterait alors le processus, lecteur compris, malgré le service de
-/// lecture. On annule cette sortie ; quand Android recrée l'activité (app rouverte), tao
-/// la laisse sans fenêtre et on y reconstruit la fenêtre principale de la config.
+/// Swiping the app away from the recents destroys the activity; tao turns that into the close of the last
+/// window and Tauri would then quit the process, player included, despite the playback
+/// service. We cancel that exit; when Android recreates the activity (app reopened), tao
+/// leaves it without a window and we rebuild the main window from the config there.
 pub fn keep_alive(app: &AppHandle, event: &RunEvent) {
     match event {
         RunEvent::ExitRequested {
             code: None, api, ..
         } => {
-            tracing::info!("activité détruite : le lecteur reste actif");
-            // Plus aucune commande du plugin jusqu'à la nouvelle fenêtre : wry paniquerait.
+            tracing::info!("activity destroyed: the player stays active");
+            // No more plugin commands until the new window: wry would panic.
             set_activity(false);
             if let Ok(mut lost) = WINDOW_LOST.lock() {
                 *lost = Some(Instant::now());
             }
             api.prevent_exit();
         }
-        // Émis après chaque lot d'événements, dont ceux de la nouvelle activité (création,
-        // reprise) : rien à faire tant que la fenêtre n'est pas perdue.
+        // Emitted after each batch of events, including those of the new activity (creation,
+        // resume): nothing to do as long as the window is not lost.
         RunEvent::MainEventsCleared => {
             let Ok(mut lost) = WINDOW_LOST.lock() else {
                 return;
@@ -98,12 +98,12 @@ pub fn keep_alive(app: &AppHandle, event: &RunEvent) {
             let Some(config) = app.config().app.windows.first() else {
                 return;
             };
-            // Échoue tant qu'aucune activité nouvelle n'attend de fenêtre : réessayé au
-            // lot suivant, sans journal.
+            // Fails as long as no new activity is waiting for a window: retried on the next
+            // batch, with no log.
             if let Ok(builder) = WebviewWindowBuilder::from_config(app, config)
                 && builder.build().is_ok()
             {
-                tracing::info!("activité recréée : fenêtre principale reconstruite");
+                tracing::info!("activity recreated: main window rebuilt");
                 set_activity(true);
                 *lost = None;
             }
@@ -112,18 +112,18 @@ pub fn keep_alive(app: &AppHandle, event: &RunEvent) {
     }
 }
 
-/// Range les secrets de `keyring` (refresh token) dans l'Android Keystore, par le plugin
-/// Kotlin (`SecretStore.kt`) : sans cela, `keyring` n'a sur Android qu'un magasin en
-/// mémoire et la connexion est perdue à chaque lancement. À appeler avant le premier accès.
-/// En JNI direct (#169) : un rafraîchissement du token peut tomber pendant que l'app est
-/// balayée des récents, sans activité pour les commandes du plugin.
+/// Stores the `keyring` secrets (refresh token) in the Android Keystore, through the
+/// Kotlin plugin (`SecretStore.kt`): without it, `keyring` only has an in-memory store on
+/// Android and the sign-in is lost at every launch. Call before the first access.
+/// Through direct JNI (#169): a token refresh can happen while the app is swiped away
+/// from the recents, with no activity for the plugin commands.
 pub fn install_keystore() {
     keyring::set_default_credential_builder(Box::new(KeystoreBuilder));
 }
 
-/// Plantages côté Kotlin (#192, `CrashLog.kt`) : installe le gestionnaire des exceptions
-/// non rattrapées, qui écrit `crash.txt` dans `dir`, et renvoie la dernière sortie
-/// anormale signalée par Android 11+ (plantage natif, ANR…) pas encore rapportée.
+/// Crashes on the Kotlin side (#192, `CrashLog.kt`): installs the handler for uncaught
+/// exceptions, which writes `crash.txt` in `dir`, and returns the last abnormal exit
+/// reported by Android 11+ (native crash, ANR…) that has not been reported yet.
 pub fn crash_setup(dir: &std::path::Path) -> Option<String> {
     #[derive(Serialize)]
     struct Args<'a> {
@@ -137,7 +137,7 @@ pub fn crash_setup(dir: &std::path::Path) -> Option<String> {
     match direct::call_blocking::<Setup>("crashSetup", Args { dir: &dir }) {
         Ok(setup) => setup.exit,
         Err(e) => {
-            tracing::warn!("journal des plantages Kotlin indisponible : {e}");
+            tracing::warn!("Kotlin crash log unavailable: {e}");
             None
         }
     }
@@ -171,8 +171,8 @@ impl std::fmt::Debug for KeystoreCredential {
     }
 }
 
-/// Un secret du Keystore. Les appels bloquent : `keyring` est synchrone, et ses appelants
-/// (`tidal::auth`) tournent sur tokio, jamais sur le thread principal d'Android.
+/// A Keystore secret. The calls block: `keyring` is synchronous, and its callers
+/// (`tidal::auth`) run on tokio, never on Android's main thread.
 struct KeystoreCredential {
     name: String,
 }

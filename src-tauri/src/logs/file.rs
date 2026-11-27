@@ -1,9 +1,9 @@
-//! Journal sur disque (#192) : `seaglass.log` dans le dossier de logs de l'app, en plus de
-//! la sortie standard (perdue sous Android et dans un build installé).
+//! Log on disk (#192): `seaglass.log` in the app's log folder, in addition to
+//! the standard output (lost on Android and in an installed build).
 //!
-//! Le précédent lancement devient `seaglass.old.log` au démarrage ; au-delà de
-//! `MAX_BYTES`, le journal courant y passe aussi (Android garde le processus des jours).
-//! Les paramètres des URLs sont masqués : une URL de flux est signée.
+//! The previous launch becomes `seaglass.old.log` at startup; beyond
+//! `MAX_BYTES`, the current log goes there too (Android keeps the process for days).
+//! URL parameters are masked: a stream URL is signed.
 
 use std::cell::Cell;
 use std::fs::{self, File, OpenOptions};
@@ -26,12 +26,12 @@ struct Sink {
 static SINK: Mutex<Option<Sink>> = Mutex::new(None);
 
 thread_local! {
-    /// Vrai pendant une écriture : un panic dans `write` (hook compris) ne repasse pas par
-    /// le verrou qu'il tient déjà.
+    /// True during a write: a panic in `write` (hook included) does not go back through
+    /// the lock it already holds.
     static WRITING: Cell<bool> = const { Cell::new(false) };
 }
 
-/// Ouvre le journal de ce lancement ; jusque-là, seule la sortie standard reçoit les lignes.
+/// Opens this launch's log; until then, only the standard output receives the lines.
 pub fn open(dir: &Path) -> io::Result<()> {
     fs::create_dir_all(dir)?;
     let file = rotate(dir)?;
@@ -45,7 +45,7 @@ pub fn open(dir: &Path) -> io::Result<()> {
     Ok(())
 }
 
-/// `seaglass.log` devient `seaglass.old.log` (remplacé), puis un journal vide est ouvert.
+/// `seaglass.log` becomes `seaglass.old.log` (replaced), then an empty log is opened.
 fn rotate(dir: &Path) -> io::Result<File> {
     let current = dir.join(LOG_FILE);
     if current.exists() {
@@ -54,7 +54,7 @@ fn rotate(dir: &Path) -> io::Result<File> {
     OpenOptions::new().create(true).append(true).open(current)
 }
 
-/// Destination des lignes de `tracing` ; une erreur d'écriture n'est jamais remontée.
+/// Destination of the `tracing` lines; a write error is never reported.
 pub struct FileWriter;
 
 impl Write for FileWriter {
@@ -72,7 +72,7 @@ impl Write for FileWriter {
     }
 }
 
-/// `tracing` écrit chaque événement en un seul appel : la ligne entière passe par `redact`.
+/// `tracing` writes each event in a single call: the whole line goes through `redact`.
 fn write_line(buf: &[u8]) {
     let Ok(mut guard) = SINK.lock() else {
         return;
@@ -90,7 +90,7 @@ fn write_line(buf: &[u8]) {
         }
     }
     let line = redact(&String::from_utf8_lossy(buf));
-    // Pas de tampon : avec `panic = "abort"`, rien d'écrit ne doit rester en mémoire.
+    // No buffer: with `panic = "abort"`, nothing written must stay in memory.
     if sink.file.write_all(line.as_bytes()).is_ok() {
         sink.written += line.len() as u64;
     }
@@ -104,8 +104,8 @@ impl<'a> MakeWriter<'a> for FileWriter {
     }
 }
 
-/// Masque les paramètres des URLs (`https://h/p?token=…` → `https://h/p?…`) : les URLs de
-/// flux sont signées, celles de l'API portent le pays et parfois des identifiants.
+/// Masks the URL parameters (`https://h/p?token=…` → `https://h/p?…`): stream URLs
+/// are signed, those of the API carry the country and sometimes identifiers.
 pub fn redact(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
@@ -136,7 +136,7 @@ fn find_url(text: &str) -> Option<usize> {
     }
 }
 
-/// Les `max` dernières lignes d'un journal, s'il existe.
+/// The last `max` lines of a log, if it exists.
 pub fn tail(path: &Path, max: usize) -> Option<String> {
     let bytes = fs::read(path).ok()?;
     let text = String::from_utf8_lossy(&bytes);
@@ -162,7 +162,7 @@ mod tests {
         assert_eq!(redact("rien à masquer"), "rien à masquer");
     }
 
-    /// Seul test qui touche au journal global `SINK`.
+    /// Only test that touches the global log `SINK`.
     #[test]
     fn writer_redacts_and_rotates_at_open() {
         let dir = std::env::temp_dir().join(format!("seaglass-log-{}", std::process::id()));

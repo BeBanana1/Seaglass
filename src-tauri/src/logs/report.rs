@@ -1,9 +1,9 @@
-//! Rapports de plantage (#192).
+//! Crash reports (#192).
 //!
-//! Au moment du plantage, `crash.txt` reçoit la cause : panic Rust (hook ci-dessous) ou
-//! exception Kotlin non rattrapée (`CrashLog.kt`). Au lancement suivant, `collect` en fait
-//! `last-crash.txt` avec la fin du journal du lancement planté et, sous Android, la raison
-//! de sortie donnée par le système (plantage natif, ANR).
+//! At the time of the crash, `crash.txt` receives the cause: Rust panic (hook below) or
+//! uncaught Kotlin exception (`CrashLog.kt`). At the next launch, `collect` turns it into
+//! `last-crash.txt` with the end of the crashed launch's log and, on Android, the exit reason
+//! given by the system (native crash, ANR).
 
 use std::fmt::Write as _;
 use std::fs;
@@ -14,16 +14,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::file::{OLD_LOG_FILE, redact, tail};
 
-/// Écrit au moment du plantage ; ce nom est repris par `CrashLog.kt`.
+/// Written at the time of the crash; this name is reused by `CrashLog.kt`.
 pub const CRASH_FILE: &str = "crash.txt";
-/// Rapport complet du dernier plantage, assemblé au lancement suivant.
+/// Full report of the last crash, assembled at the next launch.
 pub const REPORT_FILE: &str = "last-crash.txt";
-/// Lignes du journal précédent jointes au rapport.
+/// Lines of the previous log attached to the report.
 const TAIL_LINES: usize = 300;
 
 static CRASH_PATH: OnceLock<PathBuf> = OnceLock::new();
 
-/// Installé dès le lancement ; `crash.txt` n'est écrit qu'une fois `set_dir` appelé.
+/// Installed from launch; `crash.txt` is only written once `set_dir` has been called.
 pub fn install_hook() {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
@@ -55,7 +55,7 @@ fn panic_text(info: &PanicHookInfo<'_>) -> String {
     text
 }
 
-/// Version, plateforme et date (UTC) : le rapport peut être lu après une mise à jour.
+/// Version, platform and date (UTC): the report can be read after an update.
 fn header(now: SystemTime) -> String {
     format!(
         "Seaglass {} ({} {}), {}",
@@ -73,8 +73,8 @@ fn utc(time: SystemTime) -> String {
     format!("{} {} UTC", utc.date(), utc.time())
 }
 
-/// Au démarrage, après la rotation du journal : vrai si le lancement précédent a planté,
-/// son rapport étant alors dans `last-crash.txt`.
+/// At startup, after the log rotation: true if the previous launch crashed,
+/// its report then being in `last-crash.txt`.
 pub fn collect(dir: &Path, system_exit: Option<&str>) -> bool {
     let crash_path = dir.join(CRASH_FILE);
     let crash = fs::read_to_string(&crash_path).ok();
@@ -84,13 +84,13 @@ pub fn collect(dir: &Path, system_exit: Option<&str>) -> bool {
     let log = tail(&dir.join(OLD_LOG_FILE), TAIL_LINES);
     let report = build(crash.as_deref(), system_exit, log.as_deref());
     if let Err(e) = fs::write(dir.join(REPORT_FILE), report) {
-        tracing::warn!("rapport de plantage non enregistré : {e}");
+        tracing::warn!("crash report not saved: {e}");
         return false;
     }
     if crash.is_some()
         && let Err(e) = fs::remove_file(&crash_path)
     {
-        tracing::warn!("{CRASH_FILE} non effacé : {e}");
+        tracing::warn!("{CRASH_FILE} not deleted: {e}");
     }
     true
 }
@@ -117,7 +117,7 @@ fn build(crash: Option<&str>, system_exit: Option<&str>, log: Option<&str>) -> S
     report
 }
 
-/// Contenu de `last-crash.txt`, s'il existe.
+/// Content of `last-crash.txt`, if it exists.
 pub fn last(dir: &Path) -> Option<String> {
     fs::read_to_string(dir.join(REPORT_FILE)).ok()
 }

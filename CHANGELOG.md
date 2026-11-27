@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.135
+
+- chore: the comments and logs of the top-level Rust modules and `logs/` are now in English, with no change in behavior (#8).
+
 ## 0.5.134
 
 - chore: the comments of the views (`views/`) are now in English, with no change in behavior (#8).
