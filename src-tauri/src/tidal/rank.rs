@@ -1,20 +1,20 @@
-//! Classement des titres d'une recherche (#232). Logique pure, testée.
+//! Ranking of the tracks of a search (#232). Pure logic, tested.
 //!
-//! Pour un mot courant (« yellow », « stay », « creep »), TIDAL intercale entre les titres
-//! qui portent ce nom ceux d'artistes dont le nom le contient (Yellow Claw, Yellow Days,
-//! Creep-P…) : vu le 2026-11-06. On remonte donc, sans changer l'ordre de TIDAL à
-//! l'intérieur de chaque groupe :
-//! 1. les titres dont le nom est la requête,
-//! 2. ceux dont le nom contient la requête, ou est contenu dans la requête (« get lucky
-//!    daft punk »),
-//! 3. le reste.
+//! For a common word ("yellow", "stay", "creep"), TIDAL interleaves, between the tracks
+//! that bear this name, those by artists whose name contains it (Yellow Claw, Yellow Days,
+//! Creep-P…): seen on 2026-11-06. So we move up, without changing TIDAL's order within
+//! each group:
+//! 1. the tracks whose name is the query,
+//! 2. those whose name contains the query, or is contained in the query ("get lucky
+//!    daft punk"),
+//! 3. the rest.
 //!
-//! Une recherche d'artiste (« daft punk ») ne trouve aucun titre de ce nom : l'ordre de
-//! TIDAL est gardé tel quel.
+//! An artist search ("daft punk") finds no track of that name: TIDAL's order is kept as
+//! is.
 
 use super::models::Track;
 
-/// Minuscules, lettres et chiffres seulement, espaces réduits ; les apostrophes
+/// Lowercase, letters and digits only, spaces collapsed; apostrophes
 /// disparaissent (« don't » = « dont »).
 fn normalize(text: &str) -> String {
     text.chars()
@@ -32,7 +32,7 @@ fn normalize(text: &str) -> String {
         .join(" ")
 }
 
-/// Mots entiers : « stay » est dans « stay with me », pas dans « stayin alive ».
+/// Whole words: "stay" is in "stay with me", not in "stayin alive".
 fn contains_words(haystack: &str, needle: &str) -> bool {
     !needle.is_empty() && format!(" {haystack} ").contains(&format!(" {needle} "))
 }
@@ -48,13 +48,13 @@ fn tier(title: &str, query: &str) -> u8 {
     }
 }
 
-/// Titres dont le nom correspond à la requête en tête ; ordre de TIDAL gardé sinon.
+/// Tracks whose name matches the query first; TIDAL's order kept otherwise.
 pub fn titles_first(tracks: &mut [Track], query: &str) {
     let query = normalize(query);
     if query.is_empty() {
         return;
     }
-    // Tri stable : à rang égal, l'ordre de TIDAL (pertinence, popularité) reste.
+    // Stable sort: at equal rank, TIDAL's order (relevance, popularity) stays.
     tracks.sort_by_key(|t| tier(&t.title, &query));
 }
 
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn titles_named_like_the_query_come_before_artists_named_like_it() {
-        // Ordre réel de TIDAL pour « yellow » et « stay » (2026-11-06).
+        // Real TIDAL order for "yellow" and "stay" (2026-11-06).
         let mut yellow = vec![
             track(1, "Yellow", "Coldplay"),
             track(2, "A Little While", "Yellow Days"),
@@ -135,7 +135,7 @@ mod tests {
         ];
         titles_first(&mut tracks, "get lucky daft punk");
         assert_eq!(ids(&tracks), vec![3, 1, 2]);
-        // Ponctuation, apostrophes et casse ignorées.
+        // Punctuation, apostrophes and case ignored.
         for query in ["dont stop me now", "Don’t stop me now!"] {
             let mut tracks = vec![
                 track(1, "Other", "X"),

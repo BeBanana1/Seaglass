@@ -1,10 +1,10 @@
-//! Cache mémoire des métadonnées de titres, alimenté par la recherche, les listes et
+//! In-memory cache of track metadata, fed by search, lists and
 //! `tracks/{id}`.
 //!
-//! Permet au lecteur d'afficher la file sans requête réseau ; la copie durable des titres
-//! en file vit dans `store` (SQLite). Borné (#90) : au-delà de `CAPACITY` titres, les moins
-//! récemment utilisés sont évincés, sauf les titres épinglés par le lecteur (ceux de la
-//! file), qui restent quelle que soit la taille atteinte.
+//! Lets the player display the queue without a network request; the durable copy of the queued
+//! tracks lives in `store` (SQLite). Bounded (#90): beyond `CAPACITY` tracks, the least
+//! recently used are evicted, except the tracks pinned by the player (those of the
+//! queue), which stay whatever size is reached.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
@@ -12,12 +12,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::models::{Track, TrackId};
 
-/// Titres gardés au plus (hors titres épinglés au-delà de cette limite).
+/// Tracks kept at most (not counting pinned tracks beyond this limit).
 const CAPACITY: usize = 20_000;
 
 struct Entry {
     track: Track,
-    /// Dernier usage (horloge du cache), mis à jour à la lecture comme à l'écriture.
+    /// Last use (cache clock), updated on read as well as on write.
     used: AtomicU64,
 }
 
@@ -71,8 +71,8 @@ impl TrackCache {
         }
     }
 
-    /// Redescend sous la limite, avec une marge d'un vingtième pour ne pas trier le cache à
-    /// chaque insertion. Les titres épinglés ne sont jamais retirés.
+    /// Goes back under the limit, with a margin of one twentieth so as not to sort the cache on
+    /// every insertion. Pinned tracks are never removed.
     fn evict(&self, inner: &mut Inner) {
         let target = self.capacity - self.capacity / 20;
         let excess = inner.map.len().saturating_sub(target);
@@ -94,8 +94,8 @@ impl TrackCache {
         }
     }
 
-    /// Remplace l'ensemble des titres protégés de l'éviction (ceux de la file). Appelé par
-    /// l'acteur à chaque changement de file : un titre qui en sort redevient évinçable.
+    /// Replaces the set of tracks protected from eviction (those of the queue). Called by
+    /// the actor on every queue change: a track that leaves it can be evicted again.
     pub fn set_pinned(&self, ids: impl IntoIterator<Item = TrackId>) {
         if let Ok(mut inner) = self.inner.write() {
             inner.pinned = ids.into_iter().collect();
@@ -109,7 +109,7 @@ impl TrackCache {
         Some(entry.track.clone())
     }
 
-    /// Titres connus parmi `ids`, dans l'ordre demandé (les inconnus sont ignorés).
+    /// Known tracks among `ids`, in the requested order (unknown ones are ignored).
     pub fn get_many(&self, ids: impl IntoIterator<Item = TrackId>) -> Vec<Track> {
         let Ok(inner) = self.inner.read() else {
             return Vec::new();
@@ -166,10 +166,10 @@ mod tests {
         let cache = TrackCache::with_capacity(100);
         insert(&cache, 0..100);
         assert_eq!(cache.len(), 100);
-        // Lu récemment : survit à l'éviction.
+        // Read recently: survives the eviction.
         assert!(cache.get(TrackId(0)).is_some());
         insert(&cache, [100]);
-        // 101 titres > 100 : retour à 95.
+        // 101 tracks > 100: back to 95.
         assert_eq!(cache.len(), 95);
         assert!(cache.get(TrackId(0)).is_some());
         assert!(cache.get(TrackId(100)).is_some());
@@ -187,15 +187,15 @@ mod tests {
         for id in 0..5 {
             assert!(
                 cache.get(TrackId(id)).is_some(),
-                "titre épinglé {id} évincé"
+                "pinned track {id} evicted"
             );
         }
         assert!(cache.len() <= 10);
-        // Plus d'épinglés que la capacité : le cache dépasse la limite plutôt que de les perdre.
+        // More pinned than the capacity: the cache exceeds the limit rather than lose them.
         cache.set_pinned((100..120).map(TrackId));
         insert(&cache, 100..120);
         assert_eq!(cache.get_many((100..120).map(TrackId)).len(), 20);
-        // Une fois désépinglés, ils redeviennent évinçables.
+        // Once unpinned, they can be evicted again.
         cache.set_pinned([]);
         insert(&cache, [200]);
         assert!(cache.len() <= 10);

@@ -1,8 +1,8 @@
-//! Écritures dans la bibliothèque sur l'API réelle (#4, #81, #201, #204), ignorées par défaut.
+//! Library writes on the real API (#4, #81, #201, #204), ignored by default.
 //!
-//! `cargo test live_collection -- --ignored --nocapture` : **modifie le compte**. Seuls des
-//! éléments absents des favoris sont ajoutés puis retirés : aucun favori existant n'est
-//! touché, et le nettoyage a lieu même si une vérification échoue.
+//! `cargo test live_collection -- --ignored --nocapture`: **modifies the account**. Only
+//! items absent from the favorites are added then removed: no existing favorite is
+//! touched, and the cleanup happens even if a check fails.
 
 use super::TidalClient;
 use super::live_tests::{ALBUM_ID, client};
@@ -14,20 +14,20 @@ fn err(e: super::TidalError) -> String {
     e.to_string()
 }
 
-/// Like puis retrait d'un titre, d'un album, d'un artiste, d'une playlist d'un autre
-/// utilisateur et d'un mix, absents des favoris ; puis playlist jetable créée, remplie,
-/// réordonnée, renommée, vidée et supprimée.
+/// Like then removal of a track, an album, an artist, another user's playlist and a mix,
+/// all absent from the favorites; then a throwaway playlist created, filled, reordered,
+/// renamed, emptied and deleted.
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis, modifie la bibliothèque"]
+#[ignore = "network and TIDAL session required, modifies the library"]
 async fn live_collection() {
     let client = client().await;
     let album = client.album(ALBUM_ID).await.unwrap();
-    // `favorites/ids` contient tous les titres likés, indisponibles compris (451 contre 426
-    // affichés le 2026-10-30) : la liste des favoris en est un sous-ensemble.
+    // `favorites/ids` contains all the liked tracks, unavailable ones included (451 against
+    // 426 shown on 2026-10-30): the favorites list is a subset of it.
     let liked = client.liked_ids().await.unwrap();
     let favorites = favorite_track_ids(&client).await;
     println!(
-        "likes : {} titres, {} albums, {} artistes, {} playlists ; {} titres favoris",
+        "likes: {} tracks, {} albums, {} artists, {} playlists; {} favorite tracks",
         liked.tracks.len(),
         liked.albums.len(),
         liked.artists.len(),
@@ -42,28 +42,28 @@ async fn live_collection() {
         .filter(|id| !liked.tracks.contains(id))
         .take(4)
         .collect();
-    assert_eq!(fresh.len(), 4, "pas assez de titres hors favoris");
+    assert_eq!(fresh.len(), 4, "not enough tracks outside the favorites");
 
     let targets = fresh_targets(&client, &liked).await;
     let album_target = targets[0].clone();
     let mut results = Vec::new();
     for target in [vec![LikeTarget::Track { id: fresh[0] }], targets].concat() {
-        // Jamais de retrait d'un favori existant : un élément déjà présent est sauté.
+        // Never remove an existing favorite: an item already present is skipped.
         if contains(&server_ids(&client).await.unwrap(), &target) {
-            results.push((target, Err("déjà dans les favoris".to_owned())));
+            results.push((target, Err("already in the favorites".to_owned())));
             continue;
         }
         let added = check_added(&client, &target).await;
-        // Retrait systématique : l'élément n'était pas dans les favoris avant le test.
+        // Always remove: the item was not in the favorites before the test.
         let removed = client.set_liked(&target, false).await.map_err(err);
         let absent = check_absent(&client, &target).await;
-        println!("{target:?} : ajout {added:?}, retrait {removed:?}, absent {absent:?}");
+        println!("{target:?}: add {added:?}, removal {removed:?}, absent {absent:?}");
         results.push((target, added.and(removed).and(absent)));
     }
-    // Retrait d'un favori déjà retiré (ailleurs, par exemple) : idempotent ou erreur ?
+    // Removing a favorite already removed (elsewhere, for example): idempotent or error?
     if !contains(&server_ids(&client).await.unwrap(), &album_target) {
         let twice = client.set_liked(&album_target, false).await;
-        println!("second retrait de l'album : {twice:?}");
+        println!("second removal of the album: {twice:?}");
     }
 
     let uuid = client
@@ -73,47 +73,47 @@ async fn live_collection() {
         )
         .await
         .unwrap();
-    println!("playlist créée : {uuid}");
+    println!("playlist created: {uuid}");
     let playlist = check_playlist(&client, &uuid, &fresh).await;
     let deleted = client.delete_playlist(&uuid).await;
     let gone = client.playlist(&uuid).await;
     println!(
-        "après suppression : {:?}",
+        "after deletion: {:?}",
         gone.as_ref().map(|p| &p.playlist.title)
     );
 
     for (target, result) in results {
-        assert!(result.is_ok(), "{target:?} : {result:?}");
+        assert!(result.is_ok(), "{target:?}: {result:?}");
     }
     playlist.unwrap();
     deleted.unwrap();
-    assert!(gone.is_err(), "playlist encore lisible après suppression");
+    assert!(gone.is_err(), "playlist still readable after deletion");
 }
 
-/// Un album, un artiste, une playlist d'un autre utilisateur et un mix absents des favoris.
+/// An album, an artist, another user's playlist and a mix, all absent from the favorites.
 async fn fresh_targets(client: &TidalClient, liked: &LikedIds) -> Vec<LikeTarget> {
     let search = client.search("interstellar", 10).await.unwrap();
     let album = search
         .albums
         .iter()
         .find(|a| !liked.albums.contains(&a.id))
-        .expect("aucun album hors favoris");
+        .expect("no album outside the favorites");
     let artist = search
         .artists
         .iter()
         .find(|a| !liked.artists.contains(&a.id))
-        .expect("aucun artiste hors favoris");
+        .expect("no artist outside the favorites");
     let own = client.own_playlists().await.unwrap();
     let playlist = search
         .playlists
         .iter()
         .find(|p| !liked.playlists.contains(&p.uuid) && !own.iter().any(|o| o.uuid == p.uuid))
-        .expect("aucune playlist hors favoris");
+        .expect("no playlist outside the favorites");
     println!(
-        "cibles : album {} « {} », artiste {} « {} », playlist {} « {} »",
+        "targets: album {} \"{}\", artist {} \"{}\", playlist {} \"{}\"",
         album.id, album.title, artist.id, artist.name, playlist.uuid, playlist.title
     );
-    // Un mix de l'accueil absent des favoris (#204).
+    // A home mix absent from the favorites (#204).
     let home = client.home().await.unwrap();
     let mix = home
         .iter()
@@ -122,8 +122,8 @@ async fn fresh_targets(client: &TidalClient, liked: &LikedIds) -> Vec<LikeTarget
             MediaItem::Mix(m) if !liked.mixes.contains(&m.id) => Some(m.clone()),
             _ => None,
         })
-        .expect("aucun mix hors favoris");
-    println!("mix {} « {} »", mix.id, mix.title);
+        .expect("no mix outside the favorites");
+    println!("mix {} \"{}\"", mix.id, mix.title);
     vec![
         LikeTarget::Album { id: album.id },
         LikeTarget::Artist { id: artist.id },
@@ -134,7 +134,7 @@ async fn fresh_targets(client: &TidalClient, liked: &LikedIds) -> Vec<LikeTarget
     ]
 }
 
-/// Relu sur le serveur, sans l'ensemble en mémoire.
+/// Read again from the server, without the in-memory set.
 async fn server_ids(client: &TidalClient) -> Result<LikedIds, String> {
     client.likes.clear();
     client.liked_ids().await.map_err(err)
@@ -150,8 +150,8 @@ fn contains(ids: &LikedIds, target: &LikeTarget) -> bool {
     }
 }
 
-/// Position de l'élément dans la liste de la bibliothèque (favoris du plus récent au plus
-/// ancien), `None` s'il n'y est pas.
+/// Position of the item in the library list (favorites from most recent to oldest),
+/// `None` if it is not there.
 async fn library_position(
     client: &TidalClient,
     target: &LikeTarget,
@@ -183,19 +183,19 @@ async fn library_position(
 async fn check_added(client: &TidalClient, target: &LikeTarget) -> Check {
     client.set_liked(target, true).await.map_err(err)?;
     if !contains(&client.liked_ids().await.map_err(err)?, target) {
-        return Err("absent des favoris en mémoire".into());
+        return Err("absent from the in-memory favorites".into());
     }
     if !contains(&server_ids(client).await?, target) {
-        return Err("absent de favorites/ids".into());
+        return Err("absent from favorites/ids".into());
     }
     let position = library_position(client, target).await?;
-    println!("ajouté : position {position:?} dans la bibliothèque");
-    // Titres, albums et artistes sont triés par date d'ajout ; les playlists et mixes non.
+    println!("added: position {position:?} in the library");
+    // Tracks, albums and artists are sorted by added date; playlists and mixes are not.
     let expected = !matches!(target, LikeTarget::Playlist { .. } | LikeTarget::Mix { .. });
     match position {
         Some(0) => Ok(()),
         Some(_) if !expected => Ok(()),
-        other => Err(format!("position dans la bibliothèque : {other:?}")),
+        other => Err(format!("position in the library: {other:?}")),
     }
 }
 
@@ -203,11 +203,11 @@ async fn check_absent(client: &TidalClient, target: &LikeTarget) -> Check {
     if contains(&client.liked_ids().await.map_err(err)?, target)
         || contains(&server_ids(client).await?, target)
     {
-        return Err("encore dans les favoris".into());
+        return Err("still in the favorites".into());
     }
     match library_position(client, target).await? {
         None => Ok(()),
-        Some(i) => Err(format!("encore dans la bibliothèque (position {i})")),
+        Some(i) => Err(format!("still in the library (position {i})")),
     }
 }
 
@@ -223,25 +223,25 @@ async fn check_playlist(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Ch
     };
     let own = client.own_playlists().await.map_err(err)?;
     if !own.iter().any(|p| p.uuid == uuid) {
-        return Err("playlist créée absente de own_playlists".into());
+        return Err("created playlist absent from own_playlists".into());
     }
 
     let added = client.add_to_playlist(uuid, &ids[..2]).await.map_err(err)?;
     let after_add = tracks(uuid).await?;
-    println!("ajout de {added} titres : {after_add:?}");
+    println!("adding {added} tracks: {after_add:?}");
     if added != 2 || after_add != ids[..2] {
-        return Err(format!("ajout : {added}, {after_add:?}"));
+        return Err(format!("add: {added}, {after_add:?}"));
     }
 
-    // Doublon (onDupes=SKIP) : ignoré sans erreur, `addedItemIds` vide.
+    // Duplicate (onDupes=SKIP): ignored without an error, `addedItemIds` empty.
     let dupe = client.add_to_playlist(uuid, &ids[..1]).await;
     let after_dupe = tracks(uuid).await?;
-    println!("doublon : {dupe:?}, titres {after_dupe:?}");
+    println!("duplicate: {dupe:?}, tracks {after_dupe:?}");
     if !matches!(dupe, Ok(0)) || after_dupe != ids[..2] {
-        return Err(format!("doublon : {dupe:?}"));
+        return Err(format!("duplicate: {dupe:?}"));
     }
 
-    // ETag périmé : une modification faite entre-temps doit être refusée (412).
+    // Stale ETag: a change made in the meantime must be refused (412).
     let stale = client.playlist_etag(uuid).await.map_err(err)?;
     client
         .add_to_playlist(uuid, &ids[2..3])
@@ -262,36 +262,33 @@ async fn check_playlist(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Ch
             Some(&stale),
         )
         .await;
-    println!(
-        "ETag périmé : {:?}",
-        stale_write.as_ref().map(|r| r.status())
-    );
+    println!("stale ETag: {:?}", stale_write.as_ref().map(|r| r.status()));
     if !matches!(stale_write, Err(super::TidalError::Conflict(_))) {
-        return Err("ETag périmé accepté".into());
+        return Err("stale ETag accepted".into());
     }
 
     let before = tracks(uuid).await?;
-    // Mauvais titre attendu à cette position : refusé sans rien retirer.
+    // Wrong track expected at this position: refused without removing anything.
     let wrong = client.remove_from_playlist(uuid, 0, before[1]).await;
     if !matches!(wrong, Err(super::TidalError::Conflict(_))) {
-        return Err(format!("retrait non vérifié : {wrong:?}"));
+        return Err(format!("removal not verified: {wrong:?}"));
     }
     client
         .remove_from_playlist(uuid, 0, before[0])
         .await
         .map_err(err)?;
     let after = tracks(uuid).await?;
-    println!("avant retrait : {before:?}, après retrait de l'index 0 : {after:?}");
+    println!("before removal: {before:?}, after removing index 0: {after:?}");
     if after != before[1..] {
-        return Err(format!("retrait : {after:?}"));
+        return Err(format!("removal: {after:?}"));
     }
 
-    // Déplacement (#201) : le premier titre finit en dernier ; vérification du titre attendu.
+    // Move (#201): the first track ends up last; the expected track is verified.
     client.add_to_playlist(uuid, &ids[..1]).await.map_err(err)?;
     let before = tracks(uuid).await?;
     let wrong = client.move_in_playlist(uuid, 0, 2, before[1]).await;
     if !matches!(wrong, Err(super::TidalError::Conflict(_))) {
-        return Err(format!("déplacement non vérifié : {wrong:?}"));
+        return Err(format!("move not verified: {wrong:?}"));
     }
     let last = before.len() - 1;
     client
@@ -299,14 +296,14 @@ async fn check_playlist(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Ch
         .await
         .map_err(err)?;
     let moved = tracks(uuid).await?;
-    println!("avant déplacement : {before:?}, après 0 → {last} : {moved:?}");
+    println!("before move: {before:?}, after 0 → {last}: {moved:?}");
     let mut expected = before[1..].to_vec();
     expected.push(before[0]);
     if moved != expected {
-        return Err(format!("déplacement : {moved:?}"));
+        return Err(format!("move: {moved:?}"));
     }
-    // Deux déplacements enchaînés (Alt+↓ répété) : l'ETag relu juste après une écriture
-    // est parfois l'ancien, `retry_stale` doit absorber le 412.
+    // Two chained moves (Alt+↓ repeated): the ETag read right after a write is sometimes
+    // the old one, `retry_stale` must absorb the 412.
     client
         .move_in_playlist(uuid, 0, 1, moved[0])
         .await
@@ -316,29 +313,29 @@ async fn check_playlist(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Ch
         .await
         .map_err(err)?;
 
-    // Titre et description (#201).
+    // Title and description (#201).
     client
         .edit_playlist(uuid, "Seaglass test renommée", "Nouvelle description")
         .await
         .map_err(err)?;
     let page = client.playlist(uuid).await.map_err(err)?;
     println!(
-        "renommée : {} / {:?}",
+        "renamed: {} / {:?}",
         page.playlist.title, page.playlist.description
     );
     if page.playlist.title != "Seaglass test renommée"
         || page.playlist.description.as_deref() != Some("Nouvelle description")
     {
-        return Err("renommage non appliqué".into());
+        return Err("rename not applied".into());
     }
     Ok(())
 }
 
-/// Annulation d'un retrait (#349) : `toIndex` à l'ajout remet le titre à sa place, y
-/// compris un doublon (`onDupes=ADD`). Playlist jetable, aucun favori touché.
+/// Undoing a removal (#349): `toIndex` on add puts the track back in place, duplicates
+/// included (`onDupes=ADD`). Throwaway playlist, no favorite touched.
 /// `cargo test live_playlist_insert -- --ignored --nocapture`
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis, crée puis supprime une playlist"]
+#[ignore = "network and TIDAL session required, creates then deletes a playlist"]
 async fn live_playlist_insert() {
     let client = client().await;
     let album = client.album(ALBUM_ID).await.unwrap();
@@ -354,11 +351,11 @@ async fn live_playlist_insert() {
     deleted.unwrap();
 }
 
-/// Sélection multiple (#332) : retrait de plusieurs positions en une requête, annulation,
-/// puis like et retrait de plusieurs titres absents des favoris.
+/// Multiple selection (#332): removal of several positions in one request, undo, then
+/// like and removal of several tracks absent from the favorites.
 /// `cargo test live_batch -- --ignored --nocapture`
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis, crée puis supprime une playlist"]
+#[ignore = "network and TIDAL session required, creates then deletes a playlist"]
 async fn live_batch() {
     let client = client().await;
     let album = client.album(ALBUM_ID).await.unwrap();
@@ -379,7 +376,7 @@ async fn live_batch() {
         .take(3)
         .collect();
     let likes = check_batch_likes(&client, &fresh).await;
-    // Retrait systématique : ces titres n'étaient pas dans les favoris avant le test.
+    // Always remove: these tracks were not in the favorites before the test.
     let cleanup = client.set_tracks_liked(&fresh, false).await;
 
     result.unwrap();
@@ -394,12 +391,12 @@ async fn check_batch_remove(client: &TidalClient, uuid: &str, ids: &[TrackId]) -
         Ok(page.tracks.into_iter().map(|t| t.track.id).collect())
     };
     client.add_to_playlist(uuid, ids).await.map_err(err)?;
-    // Mauvais titre attendu à une des positions : rien n'est retiré.
+    // Wrong track expected at one of the positions: nothing is removed.
     let wrong = client
         .remove_many_from_playlist(uuid, &[(1, ids[1]), (3, ids[2])])
         .await;
     if !matches!(wrong, Err(super::TidalError::Conflict(_))) || tracks().await? != ids {
-        return Err(format!("retrait par lot non vérifié : {wrong:?}"));
+        return Err(format!("batch removal not verified: {wrong:?}"));
     }
     let picked = [(4, ids[4]), (0, ids[0]), (2, ids[2])];
     client
@@ -407,39 +404,39 @@ async fn check_batch_remove(client: &TidalClient, uuid: &str, ids: &[TrackId]) -
         .await
         .map_err(err)?;
     let after = tracks().await?;
-    println!("retrait des positions 0, 2, 4 : {after:?}");
+    println!("removal of positions 0, 2, 4: {after:?}");
     if after != [ids[1], ids[3], ids[5]] {
-        return Err(format!("retrait par lot : {after:?}"));
+        return Err(format!("batch removal: {after:?}"));
     }
     let restored = client
         .restore_many_to_playlist(uuid, &picked)
         .await
         .map_err(err)?;
     let after = tracks().await?;
-    println!("remise : {restored} titres, {after:?}");
+    println!("restore: {restored} tracks, {after:?}");
     if restored != 3 || after != ids {
-        return Err(format!("remise par lot : {after:?}"));
+        return Err(format!("batch restore: {after:?}"));
     }
     Ok(())
 }
 
 async fn check_batch_likes(client: &TidalClient, ids: &[TrackId]) -> Check {
     if ids.len() < 2 {
-        return Err("pas assez de titres hors favoris".into());
+        return Err("not enough tracks outside the favorites".into());
     }
     client.set_tracks_liked(ids, true).await.map_err(err)?;
     let after = server_ids(client).await?;
     println!(
-        "like de {ids:?} : {}",
+        "like of {ids:?}: {}",
         ids.iter().all(|id| after.tracks.contains(id))
     );
     if !ids.iter().all(|id| after.tracks.contains(id)) {
-        return Err("like par lot incomplet".into());
+        return Err("incomplete batch like".into());
     }
     client.set_tracks_liked(ids, false).await.map_err(err)?;
     let after = server_ids(client).await?;
     if ids.iter().any(|id| after.tracks.contains(id)) {
-        return Err("retrait des favoris par lot incomplet".into());
+        return Err("incomplete batch removal from the favorites".into());
     }
     Ok(())
 }
@@ -460,21 +457,21 @@ async fn check_insert(client: &TidalClient, uuid: &str, ids: &[TrackId]) -> Chec
             .await
             .map_err(err)?;
         let after = tracks().await?;
-        println!("retrait puis remise à l'index {index} : ajouté {added}, {after:?}");
+        println!("removal then restore at index {index}: added {added}, {after:?}");
         if !added || after != ids {
-            return Err(format!("remise à l'index {index} : {after:?}"));
+            return Err(format!("restore at index {index}: {after:?}"));
         }
     }
-    // Doublon : le premier titre remis aussi à l'index 2.
+    // Duplicate: the first track put back at index 2 as well.
     let added = client
         .insert_in_playlist(uuid, 2, ids[0])
         .await
         .map_err(err)?;
     let after = tracks().await?;
-    println!("doublon à l'index 2 : ajouté {added}, {after:?}");
+    println!("duplicate at index 2: added {added}, {after:?}");
     let expected = [ids[0], ids[1], ids[0], ids[2], ids[3]];
     if !added || after != expected {
-        return Err(format!("doublon : {after:?}"));
+        return Err(format!("duplicate: {after:?}"));
     }
     Ok(())
 }

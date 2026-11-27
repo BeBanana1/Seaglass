@@ -1,29 +1,29 @@
-//! Rafraîchissement réel du token (#252), ignoré par défaut.
+//! Real token refresh (#252), ignored by default.
 //!
-//! `cargo test live_refresh_rotation -- --ignored --nocapture` : dit si la réponse contient
-//! un nouveau refresh token, sans jamais l'afficher. S'il est différent, il remplace
-//! l'ancien dans le Gestionnaire d'identifiants (comme le fait l'app).
+//! `cargo test live_refresh_rotation -- --ignored --nocapture`: says whether the response
+//! contains a new refresh token, without ever printing it. If it is different, it replaces
+//! the old one in the Credential Manager (as the app does).
 
 use super::auth;
 
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis"]
+#[ignore = "network and TIDAL session required"]
 async fn live_refresh_rotation() {
     let creds = auth::ClientCredentials::load().unwrap();
-    let old = auth::load_refresh_token().unwrap().expect("pas de session");
+    let old = auth::load_refresh_token().unwrap().expect("no session");
     let http = reqwest::Client::new();
     let tokens = auth::refresh(&http, &creds, &old).await.unwrap();
     match tokens.refresh {
-        None => println!("pas de refresh token dans la réponse"),
-        Some(new) if new == old => println!("refresh token renvoyé, identique"),
+        None => println!("no refresh token in the response"),
+        Some(new) if new == old => println!("refresh token returned, identical"),
         Some(new) => {
-            println!("NOUVEAU refresh token renvoyé ({} caractères)", new.len());
+            println!("NEW refresh token returned ({} characters)", new.len());
             auth::store_refresh_token(&new).unwrap();
         }
     }
-    // L'ancien reste-t-il accepté après un rafraîchissement ?
+    // Is the old one still accepted after a refresh?
     match auth::refresh(&http, &creds, &old).await {
-        Ok(_) => println!("ancien refresh token toujours accepté"),
-        Err(e) => println!("ancien refresh token refusé : {e}"),
+        Ok(_) => println!("old refresh token still accepted"),
+        Err(e) => println!("old refresh token refused: {e}"),
     }
 }

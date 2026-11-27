@@ -1,9 +1,9 @@
-//! Autre édition hi-res d'un même enregistrement (#18).
+//! Other hi-res edition of the same recording (#18).
 //!
-//! Un titre sans tag `HIRES_LOSSLESS` existe souvent en 24 bits sur une autre édition
-//! (album d'origine, compilation, réédition) : même ISRC, autre id. `tracks?isrc=` les
-//! renvoie toutes avec leurs tags en ~130 ms (vérifié le 2026-10-30, `live_hires`).
-//! Sans résultat, repli sur un album jumeau de l'artiste aux ISRC différentes (`twin.rs`).
+//! A track without the `HIRES_LOSSLESS` tag often exists in 24 bits on another edition
+//! (original album, compilation, reissue): same ISRC, other id. `tracks?isrc=` returns
+//! them all with their tags in ~130 ms (checked on 2026-10-30, `live_hires`).
+//! With no result, falls back to a twin album by the artist with different ISRCs (`twin.rs`).
 
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -14,11 +14,11 @@ use super::models::{Track, TrackId};
 use super::raw::{RawPage, RawTrack};
 use super::twin::TwinCache;
 
-/// Écart de durée toléré entre deux éditions, en secondes.
+/// Duration gap tolerated between two editions, in seconds.
 const DURATION_TOLERANCE: u32 = 2;
 
-/// Résultat de la recherche par titre d'origine, `None` compris (« aucune édition hi-res ») :
-/// on ne la refait jamais pendant la session.
+/// Result of the search by original track, `None` included (« no hi-res edition »):
+/// it is never redone during the session.
 #[derive(Default)]
 pub struct HiresCache {
     editions: RwLock<HashMap<TrackId, Option<Track>>>,
@@ -38,13 +38,13 @@ impl HiresCache {
 }
 
 impl TidalClient {
-    /// Réponse déjà connue pour `id`, sans réseau : `Some(None)` = aucune édition hi-res.
+    /// Answer already known for `id`, without network: `Some(None)` = no hi-res edition.
     pub fn known_hires_edition(&self, id: TrackId) -> Option<Option<Track>> {
         self.hires.get(id)
     }
 
-    /// Édition hi-res du même enregistrement que `track`, s'il n'est pas lui-même hi-res.
-    /// Les erreurs réseau ne sont pas mises en cache.
+    /// Hi-res edition of the same recording as `track`, if it is not hi-res itself.
+    /// Network errors are not cached.
     pub async fn hires_edition(&self, track: &Track) -> Result<Option<Track>> {
         if track.hires {
             return Ok(None);
@@ -54,7 +54,7 @@ impl TidalClient {
         }
         let isrc = match &track.isrc {
             Some(isrc) => isrc.clone(),
-            // Titre restauré d'une version antérieure (sans ISRC) : on le redemande.
+            // Track restored from an earlier version (no ISRC): it is asked for again.
             None => {
                 let raw: RawTrack = self.get(&format!("tracks/{}", track.id), &[]).await?;
                 match raw.into_track().and_then(|t| t.isrc) {
@@ -66,8 +66,8 @@ impl TidalClient {
                 }
             }
         };
-        // La discographie du repli (#55) se charge en même temps : un titre sans aucune
-        // édition hi-res n'attend pas les deux requêtes l'une après l'autre.
+        // The fallback's discography (#55) loads at the same time: a track with no
+        // hi-res edition at all does not wait for the two requests one after the other.
         let params = [("isrc", isrc.clone()), ("limit", "50".into())];
         let lookup = self.get::<RawPage<RawTrack>>("tracks", &params);
         let (page, ()) = tokio::join!(lookup, self.prefetch_twin_albums(track));
@@ -79,7 +79,7 @@ impl TidalClient {
             .filter_map(RawTrack::into_track);
         let edition = match pick_edition(track, &isrc, candidates) {
             Some(found) => Some(found),
-            // Master hi-res publié à part, sous d'autres ISRC (#55).
+            // Hi-res master published separately, under other ISRCs (#55).
             None => self.twin_edition(track).await?,
         };
         self.hires.insert(track.id, edition.clone());
@@ -87,9 +87,9 @@ impl TidalClient {
     }
 }
 
-/// Meilleure édition hi-res parmi `candidates` : même ISRC, durée proche, de préférence
-/// sur un album de même titre (l'album d'origine plutôt qu'une compilation) et avec le
-/// même marquage explicite. À égalité, l'ordre de l'API.
+/// Best hi-res edition among `candidates`: same ISRC, close duration, preferably
+/// on an album with the same title (the original album rather than a compilation) and with
+/// the same explicit marking. On a tie, the API order.
 fn pick_edition(
     original: &Track,
     isrc: &str,
@@ -187,7 +187,7 @@ mod tests {
         assert_eq!(
             pick(&original, vec![track(5, "e", true, 296)]),
             Some(5),
-            "2 s d'écart restent tolérées"
+            "a 2 s gap is still tolerated"
         );
     }
 

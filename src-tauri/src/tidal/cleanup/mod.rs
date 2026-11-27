@@ -1,12 +1,12 @@
-//! « Nettoyer » une playlist de l'utilisateur ou ses titres likés (#382) : doublons et titres
-//! retirés du catalogue, avec un remplaçant lisible quand on en trouve un.
+//! « Clean up » a user's playlist or liked tracks (#382): duplicates and tracks
+//! removed from the catalog, with a playable replacement when one is found.
 //!
-//! Vérifié le 2026-11-12 (`cargo test live_cleanup_probe -- --ignored --nocapture`) :
-//! `playlists/{uuid}/tracks` renvoie **tous** les titres, indisponibles compris
-//! (`streamReady` et `allowStreaming` à `false`) : les positions restent justes.
-//! `favorites/tracks` en cache certains (433 reçus pour 460 annoncés), et ceux-là répondent
-//! 404 à `tracks/{id}` : rien à proposer pour eux. Remplaçant : `tracks?isrc=`, sinon une
-//! recherche « artiste titre » (règles dans `rules.rs`).
+//! Checked on 2026-11-12 (`cargo test live_cleanup_probe -- --ignored --nocapture`):
+//! `playlists/{uuid}/tracks` returns **all** tracks, unavailable ones included
+//! (`streamReady` and `allowStreaming` at `false`): positions stay right.
+//! `favorites/tracks` hides some (433 received out of 460 announced), and those answer
+//! 404 to `tracks/{id}`: nothing to offer for them. Replacement: `tracks?isrc=`, otherwise a
+//! search « artist title » (rules in `rules.rs`).
 
 pub mod ops;
 pub mod rules;
@@ -23,15 +23,15 @@ use super::raw::{RawFavorite, RawPage, RawTrack};
 use super::{Result, TidalError};
 use rules::Entry;
 
-/// Recherches de remplaçants en vol au plus.
+/// Replacement searches in flight at most.
 const LOOKUPS_IN_FLIGHT: usize = 4;
-/// Résultats lus par recherche de remplaçant.
+/// Results read per replacement search.
 const SEARCH_LIMIT: u32 = 20;
-/// Favoris parcourus au plus (comme la bibliothèque).
+/// Favorites walked at most (like the library).
 const LIKES_MAX: usize = super::catalog::LIBRARY_MAX;
 
 impl TidalClient {
-    /// Changements proposés pour la playlist `uuid`, relue en entier (sans la copie gardée).
+    /// Changes proposed for playlist `uuid`, read again in full (without the kept copy).
     pub async fn playlist_cleanup(&self, uuid: &str) -> Result<CleanupReport> {
         let path = format!("playlists/{uuid}/tracks");
         let raw = self
@@ -40,7 +40,7 @@ impl TidalClient {
         Ok(self.report(entries(raw)).await)
     }
 
-    /// Changements proposés pour les titres likés (du plus récent au plus ancien).
+    /// Changes proposed for liked tracks (most recent to oldest).
     pub async fn liked_cleanup(&self) -> Result<CleanupReport> {
         let user = self.user_id().await?;
         let path = format!("users/{user}/favorites/tracks");
@@ -55,8 +55,8 @@ impl TidalClient {
     async fn report(&self, entries: Vec<Entry>) -> CleanupReport {
         let scanned = entries.len();
         let (mut items, to_replace) = rules::duplicates(&entries);
-        // Première position lisible de chaque titre : un remplaçant déjà dans la liste fait
-        // de l'indisponible un simple doublon.
+        // First playable position of each track: a replacement already in the list turns
+        // the unavailable one into a plain duplicate.
         let mut present: HashMap<TrackId, &Entry> = HashMap::new();
         for e in entries.iter().filter(|e| e.available) {
             present.entry(e.track.id).or_insert(e);
@@ -95,15 +95,15 @@ impl TidalClient {
         }
     }
 
-    /// Remplaçant de `track`, une erreur réseau valant « aucun » (journalisée).
+    /// Replacement for `track`, a network error counting as « none » (logged).
     async fn replacement_ok(&self, track: &Track) -> std::result::Result<Option<Track>, ()> {
         Ok(self.replacement(track).await.unwrap_or_else(|e| {
-            tracing::warn!("remplaçant de {} introuvable : {e}", track.id);
+            tracing::warn!("replacement for {} not found: {e}", track.id);
             None
         }))
     }
 
-    /// Même enregistrement par l'ISRC, sinon même chanson dans une recherche.
+    /// Same recording by ISRC, otherwise the same song in a search.
     async fn replacement(&self, track: &Track) -> Result<Option<Track>> {
         if let Some(isrc) = &track.isrc {
             let params = [("isrc", isrc.clone()), ("limit", "50".into())];
@@ -127,16 +127,16 @@ impl TidalClient {
         ))
     }
 
-    /// Applique les changements choisis dans « Nettoyer » (positions de la liste lue), de la
-    /// dernière position à la première. Refusé si le plan est incohérent.
+    /// Applies the changes chosen in « Clean up » (positions of the list read), from the
+    /// last position to the first. Refused if the plan is inconsistent.
     pub async fn clean_playlist(&self, uuid: &str, chosen: Vec<ListOp>) -> Result<ListOpsResult> {
         let list = ops::forward(chosen).map_err(|e| TidalError::Conflict(e.into()))?;
         Ok(self.apply_playlist_ops(uuid, &list).await)
     }
 
-    /// Applique `list` à la playlist dans l'ordre donné, jusqu'à la première erreur. Un titre
-    /// que le service refuse de rajouter (retiré du catalogue) est sauté, et les positions
-    /// suivantes recalées (`ops::Skips`).
+    /// Applies `list` to the playlist in the given order, until the first error. A track
+    /// that the service refuses to add (removed from the catalog) is skipped, and the following
+    /// positions are adjusted (`ops::Skips`).
     pub async fn apply_playlist_ops(&self, uuid: &str, list: &[ListOp]) -> ListOpsResult {
         let mut applied = Vec::new();
         let mut skips = ops::Skips::default();
@@ -160,7 +160,7 @@ impl TidalClient {
         }
     }
 
-    /// `false` : titre refusé par le service, rien n'a changé.
+    /// `false`: track refused by the service, nothing changed.
     async fn apply_playlist_op(&self, uuid: &str, op: ListOp) -> Result<bool> {
         match op {
             ListOp::Remove { index, track_id } => self
@@ -168,7 +168,7 @@ impl TidalClient {
                 .await
                 .map(|()| true),
             ListOp::Insert { index, track_id } => self.insert_checked(uuid, index, track_id).await,
-            // Le remplaçant d'abord : un échec ne fait jamais perdre le titre d'origine.
+            // The replacement first: a failure never loses the original track.
             ListOp::Replace {
                 index,
                 track_id,
@@ -179,7 +179,7 @@ impl TidalClient {
                 }
                 if let Err(e) = self.remove_from_playlist(uuid, index + 1, track_id).await {
                     if let Err(undo) = self.remove_from_playlist(uuid, index, with).await {
-                        tracing::warn!("remplaçant ajouté puis non retiré : {undo}");
+                        tracing::warn!("replacement added then not removed: {undo}");
                     }
                     return Err(e);
                 }
@@ -188,14 +188,14 @@ impl TidalClient {
         }
     }
 
-    /// `false` si le service refuse le titre : introuvable (retiré du catalogue, 404) ou
-    /// rien d'ajouté.
+    /// `false` if the service refuses the track: not found (removed from the catalog, 404) or
+    /// nothing added.
     async fn insert_checked(&self, uuid: &str, index: usize, id: TrackId) -> Result<bool> {
         refused_as_false(self.insert_in_playlist(uuid, index, id).await)
     }
 
-    /// Applique `list` aux titres likés (positions ignorées), jusqu'à la première erreur. Un
-    /// titre que le service refuse de liker est sauté.
+    /// Applies `list` to the liked tracks (positions ignored), until the first error. A
+    /// track that the service refuses to like is skipped.
     pub async fn apply_liked_ops(&self, list: &[ListOp]) -> ListOpsResult {
         let mut applied = Vec::new();
         let mut skipped = 0;
@@ -237,7 +237,7 @@ impl TidalClient {
     }
 }
 
-/// Un 404 sur un ajout : titre retiré du catalogue (`Track not found`), refusé.
+/// A 404 on an add: track removed from the catalog (`Track not found`), refused.
 fn refused_as_false(result: Result<bool>) -> Result<bool> {
     match result {
         Err(TidalError::Api { status: 404, .. }) => Ok(false),
@@ -245,22 +245,22 @@ fn refused_as_false(result: Result<bool>) -> Result<bool> {
     }
 }
 
-/// `search?types=TRACKS` : seule la liste des titres est lue.
+/// `search?types=TRACKS`: only the list of tracks is read.
 #[derive(serde::Deserialize)]
 struct RawSearchTracks {
     #[serde(default = "RawPage::empty")]
     tracks: RawPage<RawTrack>,
 }
 
-/// Titres lisibles d'une réponse.
+/// Playable tracks of a response.
 fn readable(raw: Vec<RawTrack>) -> impl Iterator<Item = Track> {
     raw.into_iter()
         .filter(RawTrack::streamable)
         .filter_map(RawTrack::into_track)
 }
 
-/// Titres de la liste avec leur position dans la réponse (un titre illisible est sauté
-/// sans décaler les autres) et leur disponibilité.
+/// Tracks of the list with their position in the response (an unreadable track is skipped
+/// without shifting the others) and their availability.
 fn entries(raw: Vec<RawTrack>) -> Vec<Entry> {
     raw.into_iter()
         .enumerate()

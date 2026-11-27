@@ -1,6 +1,6 @@
-//! Listes paginées : la première page donne `totalNumberOfItems`, les suivantes partent
-//! alors en parallèle (au plus `CONCURRENCY` requêtes en vol) et sont remises dans l'ordre
-//! des offsets (#90).
+//! Paged lists: the first page gives `totalNumberOfItems`, the next ones then go out in
+//! parallel (at most `CONCURRENCY` requests in flight) and are put back in offset order
+//! (#90).
 
 use std::future::Future;
 use std::pin::Pin;
@@ -13,14 +13,14 @@ use super::api::TidalClient;
 use super::models::LibraryList;
 use super::raw::RawPage;
 
-/// Requêtes de pages en vol au plus, pour une même liste.
+/// Most page requests in flight for one list.
 const CONCURRENCY: usize = 4;
 
 impl TidalClient {
-    /// Parcourt une liste paginée jusqu'à `max` éléments. On avance selon
-    /// `totalNumberOfItems` : une page peut contenir moins d'éléments que demandé (titres
-    /// indisponibles filtrés par l'API). Sans total, repli séquentiel : on s'arrête à la
-    /// première page incomplète.
+    /// Walks a paged list up to `max` items. It advances by
+    /// `totalNumberOfItems`: a page can hold fewer items than asked (unavailable tracks
+    /// filtered by the API). Without a total, sequential fallback: it stops at the first
+    /// incomplete page.
     pub(super) async fn get_all<T: DeserializeOwned>(
         &self,
         path: &str,
@@ -31,7 +31,7 @@ impl TidalClient {
         Ok(self.get_list(path, params, page_size, max).await?.items)
     }
 
-    /// Comme `get_all`, en disant si la liste a été coupée au plafond (#91).
+    /// Like `get_all`, saying whether the list was cut at the cap (#91).
     pub(super) async fn get_list<T: DeserializeOwned>(
         &self,
         path: &str,
@@ -51,9 +51,9 @@ impl TidalClient {
                     let Some(&last) = offsets.last() else {
                         break;
                     };
-                    // Boucle plutôt que `map` : une fermeture qui renvoie la future fait
-                    // échouer l'inférence de `Send` des commandes (lifetimes d'ordre
-                    // supérieur). Les futures ne partent qu'une fois interrogées.
+                    // A loop rather than `map`: a closure that returns the future breaks the
+                    // `Send` inference of the commands (higher-ranked lifetimes). The
+                    // futures only start once polled.
                     let mut requests = Vec::with_capacity(offsets.len());
                     for &o in &offsets {
                         requests.push(self.page::<T>(path, params, page_size, o));
@@ -95,9 +95,9 @@ impl TidalClient {
     }
 }
 
-/// Offsets de la prochaine vague : de quoi combler `missing` éléments, sans dépasser `total`.
-/// Si des éléments indisponibles laissent la liste sous le plafond, `get_all` relance une
-/// vague pour le reste.
+/// Offsets of the next wave: enough to fill `missing` items, without exceeding `total`.
+/// If unavailable items leave the list under the cap, `get_all` starts another wave for
+/// the rest.
 fn wave(offset: u32, total: u32, page_size: u32, missing: usize) -> Vec<u32> {
     let pages = missing.div_ceil(page_size as usize);
     (0..pages)
@@ -111,9 +111,9 @@ fn wave(offset: u32, total: u32, page_size: u32, missing: usize) -> Vec<u32> {
         .collect()
 }
 
-/// La liste s'est arrêtée au plafond alors que d'autres éléments suivaient : plus de `max`
-/// reçus, ou des pages restantes (`next` = offset de la page suivante). Ce n'est pas
-/// `total > len` : les titres indisponibles sont comptés dans le total mais filtrés des pages.
+/// The list stopped at the cap while more items followed: more than `max` received, or
+/// pages remaining (`next` = offset of the next page). This is not `total > len`:
+/// unavailable tracks are counted in the total but filtered out of the pages.
 fn is_truncated(
     len: usize,
     max: usize,
@@ -129,9 +129,9 @@ fn is_truncated(
         }
 }
 
-/// Attend toutes les futures, au plus `limit` à la fois (démarrées dans l'ordre), et renvoie
-/// leurs résultats dans l'ordre d'entrée ; la première erreur abandonne les autres.
-/// Équivalent de `buffered(limit)` + `try_collect` sans la crate `futures`.
+/// Awaits all the futures, at most `limit` at a time (started in order), and returns
+/// their results in input order; the first error abandons the others.
+/// Equivalent of `buffered(limit)` + `try_collect` without the `futures` crate.
 pub(crate) async fn try_join_bounded<F, T, E>(
     futures: impl IntoIterator<Item = F>,
     limit: usize,
@@ -153,7 +153,7 @@ where
                 running.push((i, Box::pin(f)));
             }
             if running.is_empty() {
-                // Toutes terminées : chaque case est remplie.
+                // All done: every slot is filled.
                 return Poll::Ready(Ok(std::mem::take(&mut results)
                     .into_iter()
                     .flatten()
@@ -172,7 +172,7 @@ where
                     Poll::Pending => k += 1,
                 }
             }
-            // Une place s'est libérée : démarrer la suivante tout de suite.
+            // A slot freed up: start the next one right away.
             if !finished {
                 return Poll::Pending;
             }
@@ -192,9 +192,9 @@ mod tests {
             wave(100, 2_500, 100, 1_900),
             (1..20).map(|i| i * 100).collect::<Vec<_>>()
         );
-        // Total atteint avant le plafond.
+        // Total reached before the cap.
         assert_eq!(wave(100, 350, 100, 9_900), [100, 200, 300]);
-        // Quelques éléments manquants (titres indisponibles) : une page de plus.
+        // A few missing items (unavailable tracks): one more page.
         assert_eq!(wave(2_000, 2_500, 100, 3), [2_000]);
         assert!(wave(400, 350, 100, 10).is_empty());
         assert!(wave(100, 1_000, 100, 0).is_empty());
@@ -202,13 +202,13 @@ mod tests {
 
     #[test]
     fn truncation_is_reported_only_when_items_remain() {
-        // Liste complète, quelques titres indisponibles filtrés : pas coupée.
+        // Full list, a few unavailable tracks filtered: not cut.
         assert!(!is_truncated(424, 10_000, Some(426), 500, 24, 100));
-        // Plafond atteint avec des pages restantes.
+        // Cap reached with pages remaining.
         assert!(is_truncated(10_000, 10_000, Some(12_345), 10_000, 100, 100));
-        // Vague de rattrapage qui dépasse le plafond, même sur la dernière page.
+        // Catch-up wave that exceeds the cap, even on the last page.
         assert!(is_truncated(10_040, 10_000, Some(10_050), 10_100, 50, 100));
-        // Exactement le plafond, rien après.
+        // Exactly the cap, nothing after.
         assert!(!is_truncated(
             10_000,
             10_000,
@@ -217,7 +217,7 @@ mod tests {
             100,
             100
         ));
-        // Sans total : coupée seulement si la dernière page était pleine.
+        // Without a total: cut only if the last page was full.
         assert!(is_truncated(2_000, 2_000, None, 2_000, 100, 100));
         assert!(!is_truncated(1_950, 2_000, None, 2_000, 50, 100));
     }
@@ -231,7 +231,7 @@ mod tests {
             async move {
                 let now = in_flight.fetch_add(1, Ordering::SeqCst) + 1;
                 peak.fetch_max(now, Ordering::SeqCst);
-                // Les dernières finissent en premier : l'ordre doit rester celui d'entrée.
+                // The last ones finish first: the order must stay the input order.
                 for _ in 0..(10 - i) {
                     tokio::task::yield_now().await;
                 }

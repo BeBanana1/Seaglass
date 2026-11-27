@@ -1,12 +1,12 @@
-//! Album jumeau hi-res (#55) : certains labels publient le master hi-res comme un album à
-//! part, au même titre, avec **d'autres ISRC** (Eagles, « Hotel California (2013
-//! Remaster) » : `20767338` en 16/44,1, `68709104` en 24/192). `tracks?isrc=` ne le voit
-//! pas, la recherche non plus (elle déduplique les éditions), mais la discographie de
-//! l'artiste (`artists/{id}/albums`, ~300 ms) liste les deux (vérifié le 2026-10-30).
+//! Hi-res twin album (#55): some labels publish the hi-res master as a separate album,
+//! with the same title and **other ISRCs** (Eagles, "Hotel California (2013
+//! Remaster)": `20767338` in 16/44.1, `68709104` in 24/192). `tracks?isrc=` does not see
+//! it, nor does search (it deduplicates editions), but the artist's discography
+//! (`artists/{id}/albums`, ~300 ms) lists both (checked on 2026-10-30).
 //!
-//! Repli de `hires_edition` quand l'ISRC ne donne rien : albums hi-res de l'artiste
-//! principal au titre identique, puis le titre de même nom et de même durée. Sert aussi au
-//! lien « Cet album existe en Hi-Res » de la page album (#59).
+//! Fallback of `hires_edition` when the ISRC gives nothing: hi-res albums of the main
+//! artist with the identical title, then the track of the same name and duration. Also
+//! serves the "This album exists in Hi-Res" link of the album page (#59).
 
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -16,15 +16,15 @@ use super::api::TidalClient;
 use super::models::{AlbumSummary, Track};
 use super::raw::{RawAlbumFull, RawTrack};
 
-/// Écart de durée toléré entre deux éditions, en secondes (comme pour l'ISRC).
+/// Duration gap tolerated between two editions, in seconds (as for the ISRC).
 const DURATION_TOLERANCE: u32 = 2;
-/// Taille de page et plafond de la discographie parcourue.
+/// Page size and cap of the discography walked.
 const PAGE_SIZE: u32 = 100;
 const MAX_ALBUMS: usize = 1_000;
 const MAX_TRACKS: usize = 1_000;
 
-/// Albums hi-res par artiste, et titres hi-res par album jumeau : un album entier ne coûte
-/// qu'une recherche.
+/// Hi-res albums per artist, and hi-res tracks per twin album: a whole album costs only
+/// one lookup.
 #[derive(Default)]
 pub struct TwinCache {
     artists: RwLock<HashMap<u64, Vec<AlbumSummary>>>,
@@ -54,7 +54,7 @@ impl TwinCache {
 }
 
 impl TidalClient {
-    /// Titre de `track` sur un album jumeau hi-res de son artiste principal, s'il existe.
+    /// Track `track` on a hi-res twin album of its main artist, if there is one.
     pub(super) async fn twin_edition(&self, track: &Track) -> Result<Option<Track>> {
         let Some(artist) = track.artists.first() else {
             return Ok(None);
@@ -69,8 +69,8 @@ impl TidalClient {
         Ok(None)
     }
 
-    /// Album hi-res de l'artiste principal au même titre que l'album `id`, si celui-ci ne
-    /// l'est pas (#59). Une requête d'album, puis la discographie (en cache par artiste).
+    /// Hi-res album of the main artist with the same title as album `id`, if that one is not
+    /// hi-res (#59). One album request, then the discography (cached per artist).
     pub async fn hires_twin_album(&self, id: u64) -> Result<Option<AlbumSummary>> {
         let raw: RawAlbumFull = self.get(&format!("albums/{id}"), &[]).await?;
         let album = AlbumSummary::from(raw);
@@ -82,15 +82,15 @@ impl TidalClient {
         Ok(twins.first().map(|a| (*a).clone()))
     }
 
-    /// Charge la discographie de l'artiste principal en avance. Une erreur est ignorée :
-    /// `twin_edition` refera la requête et la remontera.
+    /// Loads the main artist's discography ahead of time. An error is ignored:
+    /// `twin_edition` will redo the request and surface it.
     pub(super) async fn prefetch_twin_albums(&self, track: &Track) {
         if let Some(artist) = track.artists.first() {
             let _ = self.hires_albums(artist.id).await;
         }
     }
 
-    /// Albums hi-res de l'artiste (albums, puis EP et singles).
+    /// Hi-res albums of the artist (albums, then EPs and singles).
     async fn hires_albums(&self, artist: u64) -> Result<Vec<AlbumSummary>> {
         if let Some(known) = self.hires.twins.artist(artist) {
             return Ok(known);
@@ -111,7 +111,7 @@ impl TidalClient {
         Ok(hires)
     }
 
-    /// Titres hi-res et lisibles d'un album jumeau.
+    /// Hi-res, playable tracks of a twin album.
     async fn hires_album_tracks(&self, album: u64) -> Result<Vec<Track>> {
         if let Some(known) = self.hires.twins.album(album) {
             return Ok(known);
@@ -135,7 +135,7 @@ impl TidalClient {
     }
 }
 
-/// Titre comparable : casse et espaces ignorés.
+/// Comparable title: case and spaces ignored.
 fn normalize(text: &str) -> String {
     text.split_whitespace()
         .collect::<Vec<_>>()
@@ -143,14 +143,14 @@ fn normalize(text: &str) -> String {
         .to_lowercase()
 }
 
-/// Albums hi-res au même titre que l'album de `track`, autres que lui, même marquage
-/// explicite d'abord.
+/// Hi-res albums with the same title as the album of `track`, other than it, same
+/// explicit marking first.
 fn twin_albums<'a>(track: &Track, albums: &'a [AlbumSummary]) -> Vec<&'a AlbumSummary> {
     same_title_albums(track.album.id, &track.album.title, track.explicit, albums)
 }
 
-/// Albums hi-res titrés `title` (casse et espaces ignorés), autres que l'album `id`, ceux
-/// de marquage explicite `explicit` d'abord.
+/// Hi-res albums titled `title` (case and spaces ignored), other than album `id`, those
+/// with explicit marking `explicit` first.
 fn same_title_albums<'a>(
     id: u64,
     title: &str,
@@ -166,7 +166,8 @@ fn same_title_albums<'a>(
     twins
 }
 
-/// Titre de même nom, même version et durée proche ; à égalité, le même marquage explicite.
+/// Track of the same name, same version and close duration; on a tie, the same explicit
+/// marking.
 fn pick_twin_track(original: &Track, candidates: Vec<Track>) -> Option<Track> {
     let title = normalize(&original.title);
     let version = original
@@ -255,7 +256,7 @@ mod tests {
         assert_eq!(
             twins,
             vec![68_709_104],
-            "ni lui-même, ni un autre titre, ni un 16 bits"
+            "neither itself, nor another track, nor a 16-bit one"
         );
     }
 

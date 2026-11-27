@@ -1,10 +1,10 @@
-//! Mixes et radios.
+//! Mixes and radios.
 //!
-//! Endpoints vérifiés (2026-10-30) : `pages/mix?mixId=` (en-tête du mix),
-//! `mixes/{id}/items` (`{ item, type: "track" }` paginé), v2 `favorites/mixes` (paginé par
-//! curseur), `tracks/{id}/radio` et `artists/{id}/radio` (pages de titres). Un même mix
-//! arrive sous trois formes selon l'endpoint : voir `RawMix`.
-//! Titres et artistes bloqués retirés des mixes et des radios (#334, `blocks.rs`).
+//! Endpoints checked (2026-10-30): `pages/mix?mixId=` (mix header),
+//! `mixes/{id}/items` (paged `{ item, type: "track" }`), v2 `favorites/mixes` (cursor-paged),
+//! `tracks/{id}/radio` and `artists/{id}/radio` (pages of tracks). The same mix comes in
+//! three shapes depending on the endpoint: see `RawMix`.
+//! Blocked tracks and artists are removed from mixes and radios (#334, `blocks.rs`).
 
 use std::collections::HashMap;
 
@@ -16,17 +16,17 @@ use super::models::{MixPage, MixSummary, RadioPage, RadioSeed, TrackId};
 use super::raw::{self, RawArtistFull, RawPage, RawTrack, image_url};
 use super::{Result, TidalError};
 
-/// Taille de page de `mixes/{id}/items` (un mix compte rarement plus de 100 titres).
+/// Page size of `mixes/{id}/items` (a mix rarely has more than 100 tracks).
 const MIX_PAGE_SIZE: u32 = 100;
 const MIX_MAX_TRACKS: usize = 500;
-/// `favorites/mixes` (v2) : 50 par page, comme les playlists.
+/// `favorites/mixes` (v2): 50 per page, like playlists.
 const FAVORITE_MIXES_PAGE: u32 = 50;
 const FAVORITE_MIXES_MAX: usize = 500;
-/// L'API renvoie au plus 100 titres de radio (96 vus pour un titre, 100 pour un artiste).
+/// The API returns at most 100 radio tracks (96 seen for a track, 100 for an artist).
 const RADIO_SIZE: u32 = 100;
 
 impl TidalClient {
-    /// En-tête et titres d'un mix (deux requêtes en parallèle).
+    /// Header and tracks of a mix (two requests in parallel).
     pub async fn mix(&self, id: &str) -> Result<MixPage> {
         let page_params = [
             ("mixId", id.to_owned()),
@@ -40,11 +40,11 @@ impl TidalClient {
         )?;
         let raw = page
             .header()
-            .ok_or_else(|| TidalError::Decode(format!("mix {id} sans en-tête")))?;
+            .ok_or_else(|| TidalError::Decode(format!("mix {id} without a header")))?;
         let image_large_url = raw.image("MEDIUM");
         let mix = raw
             .into_summary()
-            .ok_or_else(|| TidalError::Decode(format!("mix {id} sans titre")))?;
+            .ok_or_else(|| TidalError::Decode(format!("mix {id} without tracks")))?;
         Ok(MixPage {
             mix,
             image_large_url,
@@ -54,7 +54,7 @@ impl TidalClient {
         })
     }
 
-    /// Mixes enregistrés par l'utilisateur (My Mix, Daily Discovery…), dans l'ordre de l'API.
+    /// Mixes saved by the user (My Mix, Daily Discovery…), in the API's order.
     pub async fn favorite_mixes(&self) -> Result<Vec<MixSummary>> {
         let mut out = Vec::new();
         let mut cursor: Option<String> = None;
@@ -71,7 +71,7 @@ impl TidalClient {
             }
         }
         if out.len() < FAVORITE_MIXES_MAX {
-            // Liste complète : les cœurs des mixes suivent (enregistrés ailleurs).
+            // Full list: the hearts of the mixes follow (saved elsewhere).
             let ids = out.iter().map(|m| m.id.clone()).collect();
             self.likes.replace(LikedKind::Mixes(ids));
         }
@@ -79,8 +79,8 @@ impl TidalClient {
         Ok(out)
     }
 
-    /// Identifiants des mixes enregistrés (#204) : v2 `favorites/mixes/ids`, par curseur
-    /// (`{content: ["<id>", …], cursor}`), triés par id. `favorites/ids` ne les a pas.
+    /// Ids of the saved mixes (#204): v2 `favorites/mixes/ids`, by cursor
+    /// (`{content: ["<id>", …], cursor}`), sorted by id. `favorites/ids` does not have them.
     pub(super) async fn favorite_mix_ids(&self) -> Result<Vec<String>> {
         let mut out = Vec::new();
         let mut cursor: Option<String> = None;
@@ -99,7 +99,7 @@ impl TidalClient {
         Ok(out)
     }
 
-    /// Radio d'un titre ou d'un artiste, avec de quoi afficher son point de départ.
+    /// Radio of a track or an artist, with what is needed to show its starting point.
     pub async fn radio(&self, seed: RadioSeed, id: u64) -> Result<RadioPage> {
         let params = [("limit", RADIO_SIZE.to_string())];
         let (title, image_url, tracks) = match seed {
@@ -135,10 +135,11 @@ impl TidalClient {
 
 // --- Formats JSON bruts --------------------------------------------------------------
 
-/// Mix sous ses trois formes :
-/// - accueil v2 : `titleTextInfo.text`, `subtitleTextInfo.text`, `mixImages: [{size, url}]`, `type` ;
-/// - `favorites/mixes` : `title`, `subTitle`, `images: {SMALL: {url}}`, `mixType` ;
-/// - `pages/mix` : comme les favoris.
+/// Mix in its three shapes:
+/// - home v2: `titleTextInfo.text`, `subtitleTextInfo.text`, `mixImages: [{size, url}]`,
+///   `type`;
+/// - `favorites/mixes`: `title`, `subTitle`, `images: {SMALL: {url}}`, `mixType`;
+/// - `pages/mix`: like favorites.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct RawMix {
@@ -176,8 +177,8 @@ fn non_empty(s: Option<String>) -> Option<String> {
 }
 
 impl RawMix {
-    /// URL de l'image `SMALL` (320), `MEDIUM` (640) ou `LARGE` (1500). Les URLs sont signées
-    /// par l'API : elles sont gardées telles quelles.
+    /// URL of the `SMALL` (320), `MEDIUM` (640) or `LARGE` (1500) image. The URLs are signed
+    /// by the API: they are kept as they are.
     fn image(&self, size: &str) -> Option<String> {
         let from_map = self
             .images
@@ -193,7 +194,7 @@ impl RawMix {
         })
     }
 
-    /// `None` si le mix n'a pas de titre (rien d'affichable).
+    /// `None` if the mix has no title (nothing to display).
     pub(super) fn into_summary(self) -> Option<MixSummary> {
         let image_url = self.image("SMALL");
         let title = non_empty(self.title).or_else(|| non_empty(self.title_text_info?.text))?;
@@ -209,7 +210,7 @@ impl RawMix {
     }
 }
 
-/// `pages/mix` : `{ rows: [{ modules: [{ type: "MIX_HEADER", mix }, { type: "TRACK_LIST", … }] }] }`.
+/// `pages/mix`: `{ rows: [{ modules: [{ type: "MIX_HEADER", mix }, { type: "TRACK_LIST", … }] }] }`.
 #[derive(Deserialize)]
 struct RawMixPage {
     #[serde(default)]
@@ -224,7 +225,7 @@ struct RawPageRow {
 
 #[derive(Deserialize)]
 struct RawPageModule {
-    /// Lu à part : un autre module pourrait porter un champ `mix` d'une autre forme.
+    /// Read separately: another module could carry a `mix` field of another shape.
     #[serde(default)]
     mix: serde_json::Value,
 }
@@ -238,7 +239,7 @@ impl RawMixPage {
     }
 }
 
-/// Élément de `mixes/{id}/items` : seuls les `track` sont gardés (un mix peut contenir des vidéos).
+/// Item of `mixes/{id}/items`: only `track`s are kept (a mix can contain videos).
 #[derive(Deserialize)]
 struct RawMixItem {
     #[serde(rename = "type")]
@@ -357,7 +358,7 @@ mod tests {
         assert_eq!(tracks[0].id, TrackId(1));
     }
 
-    /// `MixSummary` ne doit pas avoir de champ `kind` (étiquette de `MediaItem`).
+    /// `MixSummary` must not have a `kind` field (tag of `MediaItem`).
     #[test]
     fn mix_item_tag_is_unique() {
         let item = super::super::models::MediaItem::Mix(parse(

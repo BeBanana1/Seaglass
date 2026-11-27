@@ -1,13 +1,13 @@
-//! Nettoyage des listes (#382), sur l'API réelle, ignoré par défaut.
+//! List cleanup (#382), on the real API, ignored by default.
 //!
-//! - `cargo test live_cleanup_probe -- --ignored --nocapture` : lecture seule. Pour chaque
-//!   playlist de l'utilisateur, compare `numberOfTracks`, `playlists/{uuid}/tracks` et
-//!   `playlists/{uuid}/items`, affiche les champs des titres non lisibles, puis les favoris
-//!   cachés par l'API.
-//! - `cargo test live_cleanup_report -- --ignored --nocapture` : lecture seule, rapport de
-//!   chaque playlist de l'utilisateur et des titres likés.
-//! - `cargo test live_cleanup_apply -- --ignored --nocapture` : **crée une playlist
-//!   jetable** (doublon et titre indisponible), la nettoie, annule, puis la supprime.
+//! - `cargo test live_cleanup_probe -- --ignored --nocapture`: read only. For each user
+//!   playlist, compares `numberOfTracks`, `playlists/{uuid}/tracks` and
+//!   `playlists/{uuid}/items`, prints the fields of unreadable tracks, then the favorites
+//!   hidden by the API.
+//! - `cargo test live_cleanup_report -- --ignored --nocapture`: read only, report of each
+//!   user playlist and of the liked tracks.
+//! - `cargo test live_cleanup_apply -- --ignored --nocapture`: **creates a throwaway
+//!   playlist** (duplicate and unavailable track), cleans it, undoes, then deletes it.
 
 use std::time::{Duration, Instant};
 
@@ -16,8 +16,8 @@ use super::api::{API_V1, Call};
 use super::live_tests::{ALBUM_ID, client};
 use super::models::{CleanupItem, ListOp, TrackId};
 
-/// Titre indisponible d'une playlist du compte de test (« Love Tonight (Robin Schulz
-/// Remix) », vu le 2026-11-12), lisible sous un autre id (même ISRC).
+/// Unavailable track of a playlist of the test account ("Love Tonight (Robin Schulz
+/// Remix)", seen on 2026-11-12), playable under another id (same ISRC).
 const UNAVAILABLE: TrackId = TrackId(193_949_615);
 
 async fn raw_all(client: &TidalClient, path: &str) -> (Option<u64>, Vec<serde_json::Value>) {
@@ -45,7 +45,7 @@ fn unavailable(t: &serde_json::Value) -> bool {
 }
 
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis"]
+#[ignore = "network and TIDAL session required"]
 async fn live_cleanup_probe() {
     let client = client().await;
     for p in &client.own_playlists().await.unwrap() {
@@ -54,7 +54,7 @@ async fn live_cleanup_probe() {
         let (items_total, items) = raw_all(&client, &format!("playlists/{}/items", p.uuid)).await;
         let bad: Vec<&serde_json::Value> = tracks.iter().filter(|t| unavailable(t)).collect();
         println!(
-            "{} : number={:?} tracks={}/{:?} (indispo {}) items={}/{:?}",
+            "{}: number={:?} tracks={}/{:?} (unavailable {}) items={}/{:?}",
             p.title,
             p.number_of_tracks,
             tracks.len(),
@@ -65,7 +65,7 @@ async fn live_cleanup_probe() {
         );
         for t in bad.iter().take(3) {
             println!(
-                "   indispo : id={} « {} » streamReady={} allowStreaming={} isrc={}",
+                "   unavailable: id={} \"{}\" streamReady={} allowStreaming={} isrc={}",
                 t["id"], t["title"], t["streamReady"], t["allowStreaming"], t["isrc"]
             );
         }
@@ -76,15 +76,15 @@ async fn live_cleanup_probe() {
         .iter()
         .filter_map(|f| f["item"]["id"].as_u64())
         .collect();
-    println!("favoris : {}/{total:?}", favs.len());
+    println!("favorites: {}/{total:?}", favs.len());
     let ids = client.liked_ids().await.unwrap().tracks;
     for id in ids.iter().filter(|id| !seen.contains(&id.0)).take(3) {
         let resp = client
             .call(&Call::get(API_V1, &format!("tracks/{id}"), &[]))
             .await;
         println!(
-            "   caché {id} : {}",
-            resp.err().map_or("lisible".into(), |e| e.to_string())
+            "   hidden {id}: {}",
+            resp.err().map_or("readable".into(), |e| e.to_string())
         );
     }
 }
@@ -98,8 +98,8 @@ fn describe(item: &CleanupItem) -> String {
             same_track,
             ..
         } => format!(
-            "{index}: doublon{} de {kept_index} « {} »",
-            if *same_track { "" } else { " (édition)" },
+            "{index}: duplicate{} of {kept_index} \"{}\"",
+            if *same_track { "" } else { " (edition)" },
             track.title
         ),
         CleanupItem::Unavailable {
@@ -107,10 +107,10 @@ fn describe(item: &CleanupItem) -> String {
             track,
             replacement,
         } => format!(
-            "{index}: indisponible « {} » → {}",
+            "{index}: unavailable \"{}\" → {}",
             track.title,
-            replacement.as_ref().map_or("aucun".into(), |r| format!(
-                "{} « {} » ({})",
+            replacement.as_ref().map_or("none".into(), |r| format!(
+                "{} \"{}\" ({})",
                 r.id, r.title, r.album.title
             ))
         ),
@@ -118,14 +118,14 @@ fn describe(item: &CleanupItem) -> String {
 }
 
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis"]
+#[ignore = "network and TIDAL session required"]
 async fn live_cleanup_report() {
     let client = client().await;
     for p in &client.own_playlists().await.unwrap() {
         let start = Instant::now();
         let report = client.playlist_cleanup(&p.uuid).await.unwrap();
         println!(
-            "{} : {} titres, {} changements en {:?}",
+            "{}: {} tracks, {} changes in {:?}",
             p.title,
             report.scanned,
             report.items.len(),
@@ -138,7 +138,7 @@ async fn live_cleanup_report() {
     let start = Instant::now();
     let report = client.liked_cleanup().await.unwrap();
     println!(
-        "titres likés : {} titres, {} changements en {:?}",
+        "liked tracks: {} tracks, {} changes in {:?}",
         report.scanned,
         report.items.len(),
         start.elapsed()
@@ -153,8 +153,8 @@ async fn ids(client: &TidalClient, uuid: &str) -> Vec<u64> {
     tracks.iter().filter_map(|t| t["id"].as_u64()).collect()
 }
 
-/// Relit jusqu'à voir `expected` : juste après une écriture, l'API peut renvoyer l'ancien
-/// état (#201).
+/// Reads again until `expected` is seen: right after a write, the API may return the old
+/// state (#201).
 async fn wait_for(client: &TidalClient, uuid: &str, expected: &[u64]) -> Vec<u64> {
     let mut seen = Vec::new();
     for _ in 0..10 {
@@ -172,11 +172,11 @@ async fn check_apply(client: &TidalClient, uuid: &str) {
     let (a, b, c) = (album.tracks[0].id, album.tracks[1].id, album.tracks[2].id);
     client.add_to_playlist(uuid, &[a, b]).await.unwrap();
     assert!(client.insert_in_playlist(uuid, 2, a).await.unwrap());
-    // Vu le 2026-11-12 : un titre indisponible ne peut pas être ajouté (404).
+    // Seen on 2026-11-12: an unavailable track cannot be added (404).
     let refused = client.insert_in_playlist(uuid, 3, UNAVAILABLE).await;
-    println!("ajout d'un titre indisponible : {refused:?}");
+    println!("adding an unavailable track: {refused:?}");
     let original = wait_for(client, uuid, &[a.0, b.0, a.0]).await;
-    println!("playlist jetable : {original:?}");
+    println!("throwaway playlist: {original:?}");
 
     let report = client.playlist_cleanup(uuid).await.unwrap();
     for item in &report.items {
@@ -197,9 +197,9 @@ async fn check_apply(client: &TidalClient, uuid: &str) {
                 ..
             }]
         ),
-        "doublon en position 2"
+        "duplicate at position 2"
     );
-    // Le doublon retiré, et un remplacement entre titres lisibles (b → c).
+    // The duplicate removed, and a replacement between readable tracks (b → c).
     let ops = vec![
         ListOp::Remove {
             index: 2,
@@ -213,14 +213,14 @@ async fn check_apply(client: &TidalClient, uuid: &str) {
     ];
     let start = Instant::now();
     let done = client.clean_playlist(uuid, ops).await.unwrap();
-    println!("nettoyage : {done:?} en {:?}", start.elapsed());
+    println!("cleanup: {done:?} in {:?}", start.elapsed());
     assert_eq!((done.applied, done.skipped, &done.error), (2, 0, &None));
     let cleaned = wait_for(client, uuid, &[a.0, c.0]).await;
-    println!("après nettoyage : {cleaned:?}");
+    println!("after cleanup: {cleaned:?}");
     assert_eq!(cleaned, [a.0, c.0]);
 
-    // Annulation, précédée d'un titre indisponible à remettre en tête : il est sauté et
-    // les positions suivantes recalées.
+    // Undo, preceded by an unavailable track to put back at the top: it is skipped and
+    // the following positions are realigned.
     let mut undo = vec![ListOp::Insert {
         index: 0,
         track_id: UNAVAILABLE,
@@ -246,9 +246,9 @@ async fn check_apply(client: &TidalClient, uuid: &str) {
     }));
     let start = Instant::now();
     let undone = client.apply_playlist_ops(uuid, &undo).await;
-    println!("annulation : {undone:?} en {:?}", start.elapsed());
+    println!("undo: {undone:?} in {:?}", start.elapsed());
     let restored = wait_for(client, uuid, &original).await;
-    println!("après annulation : {restored:?}");
+    println!("after undo: {restored:?}");
     assert_eq!(
         (undone.applied, undone.skipped, &undone.error),
         (2, 1, &None)
@@ -257,14 +257,14 @@ async fn check_apply(client: &TidalClient, uuid: &str) {
 }
 
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis, crée puis supprime une playlist"]
+#[ignore = "network and TIDAL session required, creates then deletes a playlist"]
 async fn live_cleanup_apply() {
     let client = client().await;
     let uuid = client
         .create_playlist("Seaglass test (à supprimer)", "Créée par un test")
         .await
         .unwrap();
-    // Nettoyage même si le test échoue.
+    // Clean up even if the test fails.
     let result = tokio::spawn({
         let uuid = uuid.clone();
         async move {

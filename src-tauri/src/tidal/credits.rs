@@ -1,14 +1,14 @@
-//! Crédits d'un titre (#84) : GET v1 `tracks/{id}/credits?includeContributors=true`.
-//! Vérifié le 2026-10-31 (`cargo test live_track_credits -- --ignored --nocapture`).
+//! Credits of a track (#84): GET v1 `tracks/{id}/credits?includeContributors=true`.
+//! Checked on 2026-10-31 (`cargo test live_track_credits -- --ignored --nocapture`).
 //!
-//! Réponse : `[{type, contributors: [{name, id?}]}]`, `type` en texte libre anglais
-//! (`Composer`, `Lyricist` ou `Lyrics`, `Vocal` ou `Vocals`, `OtherInstrument`…). `id` est
-//! un identifiant d'artiste ; `includeContributors=true` en renseigne davantage (ingénieurs,
-//! producteurs). Un titre sans crédits, ou inexistant, renvoie `[]` (pas de 404).
+//! Response: `[{type, contributors: [{name, id?}]}]`, `type` in free English text
+//! (`Composer`, `Lyricist` or `Lyrics`, `Vocal` or `Vocals`, `OtherInstrument`…). `id` is
+//! an artist id; `includeContributors=true` fills in more of them (engineers,
+//! producers). A track without credits, or a nonexistent one, returns `[]` (no 404).
 //!
-//! Album entier (#206) : GET v1 `albums/{id}/items/credits?includeContributors=true`,
-//! paginé (`totalNumberOfItems`, `limit` respecté), éléments `{credits, item, type}` où
-//! `credits` a la forme ci-dessus et `item` est le titre complet (vérifié le 2026-11-05,
+//! Whole album (#206): GET v1 `albums/{id}/items/credits?includeContributors=true`,
+//! paged (`totalNumberOfItems`, `limit` respected), items `{credits, item, type}` where
+//! `credits` has the shape above and `item` is the full track (checked on 2026-11-05,
 //! `cargo test live_album_credits -- --ignored --nocapture`).
 
 use serde::Deserialize;
@@ -18,7 +18,7 @@ use super::api::TidalClient;
 use super::catalog::PAGE_SIZE;
 use super::models::{AlbumContributor, AlbumCreditGroup, Contributor, CreditGroup, TrackId};
 
-/// Titres d'un album lus au plus pour ses crédits.
+/// Tracks of an album read at most for its credits.
 const ALBUM_MAX_ITEMS: usize = 1_000;
 
 #[derive(Deserialize)]
@@ -74,8 +74,8 @@ impl TidalClient {
     }
 }
 
-/// Crédits de chaque titre (nettoyés par `groups`) réunis par rôle et par personne, avec
-/// les titres concernés ; une personne présente sur tous les titres n'en liste aucun.
+/// Credits of each track (cleaned by `groups`) gathered by role and by person, with
+/// the tracks concerned; a person present on every track lists none.
 fn album_groups(raw: Vec<RawAlbumItem>) -> Vec<AlbumCreditGroup> {
     let items: Vec<(TrackId, Vec<CreditGroup>)> = raw
         .into_iter()
@@ -131,8 +131,8 @@ fn album_groups(raw: Vec<RawAlbumItem>) -> Vec<AlbumCreditGroup> {
     out
 }
 
-/// Noms nettoyés, doublons et groupes vides retirés, rôles identiques fusionnés, puis
-/// groupes rangés : écriture, interprètes, production, technique, édition.
+/// Names cleaned, duplicates and empty groups removed, identical roles merged, then
+/// groups ordered: writing, performers, production, technical, publishing.
 fn groups(raw: Vec<RawCredit>) -> Vec<CreditGroup> {
     let mut out: Vec<CreditGroup> = Vec::new();
     for credit in raw {
@@ -166,7 +166,7 @@ fn groups(raw: Vec<RawCredit>) -> Vec<CreditGroup> {
         }
     }
     out.retain(|g| !g.contributors.is_empty());
-    // Tri stable : l'ordre de l'API est gardé dans chaque catégorie.
+    // Stable sort: the API order is kept within each category.
     out.sort_by_key(|g| rank(&g.role));
     out
 }
@@ -190,7 +190,7 @@ fn rank(role: &str) -> u8 {
     } else if has(&["producer", "arranger", "a&r"]) {
         3
     } else {
-        // Interprètes et instruments.
+        // Performers and instruments.
         2
     }
 }
@@ -277,7 +277,7 @@ mod tests {
         assert_eq!(drums[0].artist_id, Some(7));
         assert_eq!(drums[0].tracks, [TrackId(1), TrackId(3)]);
         assert_eq!(drums[1].tracks, [TrackId(3)]);
-        // Sur tous les titres : aucune liste.
+        // On every track: no list.
         assert!(credits[2].contributors[0].tracks.is_empty());
     }
 

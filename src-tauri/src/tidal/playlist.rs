@@ -1,12 +1,12 @@
-//! Pages de playlist, gardées en mémoire avec leur ETag (#152).
+//! Playlist pages, kept in memory with their ETag (#152).
 //!
-//! Lire une playlist, c'est son en-tête (`playlists/{uuid}`) plus toutes les pages de
-//! `playlists/{uuid}/tracks` : 0,6–0,85 s pour 484 titres. L'ETag de l'en-tête change à
-//! chaque modification (vérifié par `cargo test live_playlist_etag -- --ignored`) : une
-//! page déjà lue est revalidée par l'en-tête seul, et ses titres ne sont relus que si
-//! l'ETag a changé. L'UI affiche d'abord la copie gardée (`cached_playlist`), puis demande
-//! si la playlist a changé depuis (`playlist_since`). Les pages survivent aussi au
-//! redémarrage, dans la base (`commands::snapshots`, #181), et reviennent ici par
+//! Reading a playlist means its header (`playlists/{uuid}`) plus all the pages of
+//! `playlists/{uuid}/tracks`: 0.6-0.85 s for 484 tracks. The header's ETag changes on
+//! every modification (checked by `cargo test live_playlist_etag -- --ignored`): a page
+//! already read is revalidated by the header alone, and its tracks are only read again if
+//! the ETag changed. The UI first shows the kept copy (`cached_playlist`), then asks
+//! whether the playlist changed since (`playlist_since`). Pages also survive a restart,
+//! in the database (`commands::snapshots`, #181), and come back here through
 //! `restore_playlist`.
 
 use std::sync::Mutex;
@@ -19,31 +19,32 @@ use super::models::TrackEntry;
 use super::raw::{self, RawPlaylist, RawTrack};
 use super::{Result, TidalError};
 
-/// Playlists gardées au plus.
+/// Most playlists kept.
 const MAX_PLAYLISTS: usize = 20;
-/// Titres gardés au plus, toutes playlists confondues (la plus récente est toujours gardée).
+/// Most tracks kept, all playlists together (the most recent one is always kept).
 const MAX_CACHED_TRACKS: usize = 20_000;
 
 impl TidalClient {
-    /// Page complète de la playlist, revalidée par son ETag si elle est déjà gardée.
-    /// L'UI passe par `playlist_since` ; sert à la télécommande (#336) et aux tests réels.
+    /// Full page of the playlist, revalidated by its ETag if it is already kept.
+    /// The UI goes through `playlist_since`; used by the remote control (#336) and the
+    /// live tests.
     pub async fn playlist(&self, uuid: &str) -> Result<PlaylistPage> {
         self.playlist_since(uuid, None).await?.ok_or_else(|| {
-            TidalError::Decode(format!("playlists/{uuid} : page absente sans révision"))
+            TidalError::Decode(format!("playlists/{uuid}: page missing without a revision"))
         })
     }
 
-    /// Copie gardée, sans réseau.
+    /// Kept copy, no network.
     pub fn cached_playlist(&self, uuid: &str) -> Option<PlaylistPage> {
         let page = self.playlists.get(uuid)?;
-        // Ses titres repassent dans le cache des métadonnées : la lecture peut partir
-        // avant la revalidation.
+        // Its tracks go back into the metadata cache: playback can start before the
+        // revalidation.
         self.cache.insert_all(page.tracks.iter().map(|e| &e.track));
         Some(page)
     }
 
-    /// Copie relue sur le disque au lancement suivant (#181) : gardée comme une page lue,
-    /// pour que la revalidation par ETag reprenne ses titres s'ils n'ont pas changé.
+    /// Copy read back from disk at the next launch (#181): kept as a page that was read,
+    /// so that ETag revalidation reuses its tracks if they did not change.
     pub fn restore_playlist(&self, uuid: &str, page: PlaylistPage) {
         if page.revision.is_none() {
             return;
@@ -52,8 +53,8 @@ impl TidalClient {
         self.playlists.put(uuid, page);
     }
 
-    /// `None` si la playlist n'a pas changé depuis `known` (sa `revision` déjà affichée),
-    /// sinon la page à jour.
+    /// `None` if the playlist did not change since `known` (its `revision` already shown),
+    /// otherwise the up-to-date page.
     pub async fn playlist_since(
         &self,
         uuid: &str,
@@ -61,7 +62,7 @@ impl TidalClient {
     ) -> Result<Option<PlaylistPage>> {
         let cached = self.playlists.get(uuid);
         if known.is_none() && cached.is_none() {
-            // Rien à revalider : en-tête et titres en parallèle.
+            // Nothing to revalidate: header and tracks in parallel.
             let tracks_path = format!("playlists/{uuid}/tracks");
             let ((head, etag), tracks) = tokio::try_join!(
                 self.playlist_head(uuid),
@@ -75,7 +76,7 @@ impl TidalClient {
         }
         let user = self.user_id().await.ok();
         if let Some(mut page) = cached.filter(|c| c.revision.is_some() && c.revision == etag) {
-            // Mêmes titres ; l'en-tête relu est repris (nombre de titres, image).
+            // Same tracks; the header read again is taken over (track count, image).
             page.playlist = head.into_summary(user);
             self.cache.insert_all(page.tracks.iter().map(|e| &e.track));
             return Ok(Some(page));
@@ -87,9 +88,9 @@ impl TidalClient {
         Ok(Some(self.keep(uuid, head, etag, tracks).await))
     }
 
-    /// Titres d'une playlist dans l'ordre, pour l'export de la bibliothèque (#330) : la copie
-    /// gardée si elle est à jour, sinon une lecture qui ne remplace pas les pages gardées
-    /// (un export de 200 playlists viderait le cache des 20 dernières ouvertes).
+    /// Tracks of a playlist in order, for the library export (#330): the kept copy if it is
+    /// up to date, otherwise a read that does not replace the kept pages (an export of 200
+    /// playlists would flush the cache of the 20 last opened).
     #[cfg(desktop)]
     pub async fn playlist_tracks(&self, uuid: &str) -> Result<Vec<TrackEntry>> {
         if self.playlists.get(uuid).is_some() {
@@ -102,7 +103,7 @@ impl TidalClient {
         Ok(raw::playlist_entries(tracks))
     }
 
-    /// En-tête de la playlist et son ETag.
+    /// Header of the playlist and its ETag.
     async fn playlist_head(&self, uuid: &str) -> Result<(RawPlaylist, Option<String>)> {
         let path = format!("playlists/{uuid}");
         let resp = self.call(&Call::get(API_V1, &path, &[])).await?;
@@ -131,7 +132,7 @@ impl TidalClient {
             tracks: self.remember_entries(raw::playlist_entries(tracks)),
             revision: etag,
         };
-        // Sans ETag, rien ne permettrait de savoir si la copie est encore juste.
+        // Without an ETag, nothing would tell whether the copy is still right.
         if page.revision.is_some() {
             self.playlists.put(uuid, page.clone());
         } else {
@@ -141,7 +142,7 @@ impl TidalClient {
     }
 }
 
-/// Dernières pages lues, la plus récente en tête.
+/// Last pages read, the most recent first.
 #[derive(Default)]
 pub(super) struct PlaylistCache {
     entries: Mutex<Vec<(String, PlaylistPage)>>,
@@ -166,14 +167,14 @@ impl PlaylistCache {
         trim(&mut entries);
     }
 
-    /// Playlist modifiée par l'app : la copie gardée ne vaut plus rien.
+    /// Playlist modified by the app: the kept copy is worth nothing anymore.
     pub(super) fn remove(&self, uuid: &str) {
         if let Ok(mut entries) = self.entries.lock() {
             entries.retain(|(u, _)| u != uuid);
         }
     }
 
-    /// Déconnexion : `mine` dépend du compte.
+    /// Sign-out: `mine` depends on the account.
     pub(super) fn clear(&self) {
         if let Ok(mut entries) = self.entries.lock() {
             entries.clear();
@@ -181,8 +182,8 @@ impl PlaylistCache {
     }
 }
 
-/// Garde au plus `MAX_PLAYLISTS` pages et `MAX_CACHED_TRACKS` titres, en partant des plus
-/// récentes ; la première est gardée même si elle dépasse seule la limite des titres.
+/// Keeps at most `MAX_PLAYLISTS` pages and `MAX_CACHED_TRACKS` tracks, starting from the
+/// most recent; the first is kept even if it alone exceeds the track limit.
 fn trim(entries: &mut Vec<(String, PlaylistPage)>) {
     let mut total = 0;
     let keep = entries
@@ -292,7 +293,7 @@ mod tests {
         assert_eq!(uuids(&cache), ["b", "a"]);
         cache.put("c", page("c", 1));
         assert_eq!(uuids(&cache), ["c", "b"]);
-        // Une playlist plus grande que la limite reste gardée, seule.
+        // A playlist larger than the limit is still kept, alone.
         cache.put("huge", page("huge", MAX_CACHED_TRACKS + 1));
         assert_eq!(uuids(&cache), ["huge"]);
     }

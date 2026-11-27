@@ -1,15 +1,15 @@
-//! Compléments de la page d'artiste (#205) : biographie, artistes similaires, « Apparaît sur ».
+//! Extras of the artist page (#205): biography, similar artists, « Appears on ».
 //!
-//! Endpoints vérifiés le 2026-11-05 (`cargo test live_artist_extra -- --ignored --nocapture`) :
-//! - `artists/{id}/bio` → `{source, lastUpdated, text}`, 404 si l'artiste n'en a pas. Le texte
-//!   mêle `<br/>` et des liens internes `[wimpLink artistId="4082"]Ennio Morricone[/wimpLink]`
-//!   (aussi `albumId`).
+//! Endpoints checked on 2026-11-05 (`cargo test live_artist_extra -- --ignored --nocapture`):
+//! - `artists/{id}/bio` → `{source, lastUpdated, text}`, 404 if the artist has none. The text
+//!   mixes `<br/>` and internal links `[wimpLink artistId="4082"]Ennio Morricone[/wimpLink]`
+//!   (also `albumId`).
 //! - `artists/{id}/similar` → page d'artistes.
-//! - `artists/{id}/albums?filter=COMPILATIONS` → albums où l'artiste apparaît, surtout des
-//!   compilations d'autres artistes (664 pour Hans Zimmer, 642 dans « Apparaît sur » de
-//!   `pages/artist`, qui regroupe tout mais pèse ~196 ko).
+//! - `artists/{id}/albums?filter=COMPILATIONS` → albums where the artist appears, mostly
+//!   compilations of other artists (664 for Hans Zimmer, 642 in the « Appears on » of
+//!   `pages/artist`, which groups everything but weighs ~196 kB).
 //!
-//! Chaque partie est indépendante : une bio absente ou une erreur n'empêche pas les autres.
+//! Each part is independent: a missing bio or an error does not stop the others.
 
 use serde::Deserialize;
 
@@ -48,7 +48,7 @@ impl TidalClient {
     }
 }
 
-/// 404 = rien à montrer ; une autre erreur est journalisée et la partie reste vide.
+/// 404 = nothing to show; any other error is logged and the part stays empty.
 fn optional<T>(result: Result<T>, path: &str) -> Option<T> {
     match result {
         Ok(value) => Some(value),
@@ -77,10 +77,10 @@ impl RawBio {
     }
 }
 
-/// Découpe la biographie en paragraphes (`<br/>`, lignes vides) de segments : texte, ou lien
-/// vers un artiste ou un album pour `[wimpLink artistId|albumId="…"]…[/wimpLink]`. Les
-/// autres liens gardent leur texte, les balises HTML sont retirées, les entités courantes
-/// décodées.
+/// Splits the biography into paragraphs (`<br/>`, blank lines) of segments: text, or a link
+/// to an artist or an album for `[wimpLink artistId|albumId="…"]…[/wimpLink]`. Other
+/// links keep their text, HTML tags are removed, common entities are
+/// decoded.
 pub(super) fn parse_bio(text: &str) -> Vec<Vec<BioPart>> {
     let normalized = text
         .replace("<br/>", "\n")
@@ -121,7 +121,7 @@ fn parse_paragraph(line: &str) -> Vec<BioPart> {
         rest = tail;
     }
     push_text(&mut parts, rest);
-    // Espaces de bord retirés du paragraphe entier, pas de chaque segment.
+    // Edge spaces trimmed from the whole paragraph, not from each segment.
     if let Some(BioPart::Text { text }) = parts.first_mut() {
         *text = text.trim_start().to_owned();
     }
@@ -132,7 +132,7 @@ fn parse_paragraph(line: &str) -> Vec<BioPart> {
     parts
 }
 
-/// `artistId="4082"` → `("artistId", 4082)` ; autre attribut ou valeur illisible → `None`.
+/// `artistId="4082"` → `("artistId", 4082)`; other attribute or unreadable value → `None`.
 fn link_target(attrs: &str) -> Option<(&'static str, u64)> {
     for key in ["artistId", "albumId"] {
         if let Some(i) = attrs.find(&format!("{key}=\"")) {
@@ -160,8 +160,8 @@ fn clean(raw: &str) -> String {
     clean_keep_edges(raw).trim().to_owned()
 }
 
-/// Balises retirées, entités décodées, espaces multiples réduits (bords gardés : un segment
-/// de texte touche souvent un lien).
+/// Tags removed, entities decoded, repeated spaces collapsed (edges kept: a text segment
+/// often touches a link).
 fn clean_keep_edges(raw: &str) -> String {
     let mut out = String::with_capacity(raw.len());
     let mut in_tag = false;
@@ -244,7 +244,7 @@ mod tests {
     fn tags_entities_and_broken_markup() {
         let bio = parse_bio("<i>Rock</i> &amp; roll&nbsp;star");
         assert_eq!(bio, [vec![text("Rock & roll star")]]);
-        // Lien non refermé : le texte reste.
+        // Link not closed: the text stays.
         let bio = parse_bio("A [wimpLink artistId=\"1\"]B");
         assert_eq!(
             bio,

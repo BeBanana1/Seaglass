@@ -1,14 +1,14 @@
-//! Bas de la page d'album (#350) : autres versions du même album et autres albums de l'artiste.
+//! Bottom of the album page (#350): other versions of the album and other albums by the artist.
 //!
-//! Endpoint vérifié le 2026-11-12 (`cargo test live_album_related -- --ignored --nocapture`) :
-//! `pages/album?albumId=&deviceType=BROWSER&locale=` → `{ rows: [{ modules: [...] }] }`, avec
-//! `ALBUM_HEADER`, `ALBUM_ITEMS`, puis des `ALBUM_LIST` (`pagedList.items` = albums v1) et un
-//! `ARTIST_LIST`. Les titres des modules sont traduits ; chaque module se reconnaît à un UUID
-//! stable d'un album à l'autre, présent dans `id` (JSON en base64, champ `m`) et dans
-//! `showMore.apiPath`. Un album absent du pays répond 404.
+//! Endpoint checked on 2026-11-12 (`cargo test live_album_related -- --ignored --nocapture`):
+//! `pages/album?albumId=&deviceType=BROWSER&locale=` → `{ rows: [{ modules: [...] }] }`, with
+//! `ALBUM_HEADER`, `ALBUM_ITEMS`, then `ALBUM_LIST`s (`pagedList.items` = v1 albums) and an
+//! `ARTIST_LIST`. Module titles are translated; each module is recognized by a UUID that is
+//! the same from one album to the next, present in `id` (base64 JSON, field `m`) and in
+//! `showMore.apiPath`. An album missing in the country answers 404.
 //!
-//! « Autres versions » ne donne pas toujours le jumeau hi-res au même titre (`twin.rs`) :
-//! la recherche de #55 / #59 reste nécessaire, l'UI retire seulement ce jumeau de la rangée.
+//! « Other versions » does not always include the hi-res twin under the same title (`twin.rs`):
+//! the search of #55 / #59 is still needed, the UI only removes that twin from the row.
 
 use base64::Engine as _;
 use serde::Deserialize;
@@ -20,12 +20,12 @@ use super::{Result, TidalError};
 
 /// Module « Autres versions ».
 const VERSIONS_MODULE: &str = "7f62f3ef-6499-4dc8-9229-148d5f3b3b2e";
-/// Module « Plus d'albums par <artiste> ».
+/// Module « More albums by <artist> ».
 const BY_ARTIST_MODULE: &str = "3f410242-777b-43b6-9acf-6ed91cb95327";
 
 impl TidalClient {
-    /// Rangées du bas de la page d'album. Jamais d'erreur : une page absente (404) ou illisible
-    /// donne des listes vides (journalisées), la page d'album reste affichée sans elles.
+    /// Rows at the bottom of the album page. Never an error: a missing (404) or unreadable page
+    /// gives empty lists (logged), the album page stays displayed without them.
     pub async fn album_related(&self, id: u64) -> AlbumRelated {
         let params = [
             ("albumId", id.to_string()),
@@ -76,13 +76,13 @@ struct RawShowMore {
 
 #[derive(Deserialize)]
 struct RawPagedList {
-    /// Lus un par un : un album d'une forme inattendue est omis sans perdre la rangée.
+    /// Read one by one: an album of an unexpected shape is skipped without losing the row.
     #[serde(default)]
     items: Vec<serde_json::Value>,
 }
 
 impl RawModule {
-    /// Le module porte cet UUID (dans `showMore.apiPath` ou dans son `id` décodé).
+    /// The module carries this UUID (in `showMore.apiPath` or in its decoded `id`).
     fn is(&self, uuid: &str) -> bool {
         if self
             .show_more
@@ -114,7 +114,7 @@ impl RawModule {
 }
 
 impl RawAlbumPage {
-    /// Garde les deux modules attendus ; l'album affiché en est retiré.
+    /// Keeps the two expected modules; the album being displayed is removed from them.
     fn related(self, album_id: u64) -> AlbumRelated {
         let mut related = AlbumRelated::default();
         for module in self.rows.into_iter().flat_map(|r| r.modules) {
@@ -152,7 +152,7 @@ mod tests {
             "rows": [
                 {"modules": [{"type": "ALBUM_HEADER", "id": "x", "album": {}}]},
                 {"modules": [{"type": "ALBUM_ITEMS", "pagedList": {"items": [{"type": "track"}]}}]},
-                // Reconnu par son `id` seul (pas de `showMore`).
+                // Recognized by its `id` alone (no `showMore`).
                 {"modules": [{
                     "type": "ALBUM_LIST", "title": " Autres Versions", "id": encode(VERSIONS_MODULE),
                     "pagedList": {"items": [album(2, "Deluxe"), album(10, "Courant"), {"id": "illisible"}, album(3, "Remaster"), album(2, "Deluxe")]}
@@ -176,7 +176,7 @@ mod tests {
     fn keeps_versions_and_artist_albums() {
         let related = page().related(10);
         let ids = |albums: &[AlbumSummary]| albums.iter().map(|a| a.id).collect::<Vec<_>>();
-        // Album courant, élément illisible et doublon retirés ; ordre de l'API.
+        // Current album, unreadable item and duplicate removed; API order.
         assert_eq!(ids(&related.versions), [2, 3]);
         assert_eq!(ids(&related.by_artist), [4]);
         assert!(related.versions[0].hires);

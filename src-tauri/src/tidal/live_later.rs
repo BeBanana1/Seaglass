@@ -1,19 +1,19 @@
-//! « Plus tard » sur l'API réelle (#196), ignoré par défaut.
+//! "Save for later" on the real API (#196), ignored by default.
 //!
-//! `cargo test live_later -- --ignored --nocapture` : **modifie le compte**. Un titre et un
-//! album absents de la liste y sont ajoutés, relus puis retirés ; rien de ce qui y était
-//! déjà n'est touché, et le retrait a lieu même si une vérification échoue.
+//! `cargo test live_later -- --ignored --nocapture`: **modifies the account**. A track and
+//! an album absent from the list are added to it, read again then removed; nothing that
+//! was already there is touched, and the removal happens even if a check fails.
 
 use super::live_tests::{ALBUM_ID, client};
 use super::models::{LaterItem, LikeTarget};
 
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis, modifie « Plus tard »"]
+#[ignore = "network and TIDAL session required, modifies \"Save for later\""]
 async fn live_later() {
     let client = client().await;
     let before = client.save_for_later().await.unwrap();
     println!(
-        "« Plus tard » : {} éléments (coupée : {})",
+        "\"Save for later\": {} items (truncated: {})",
         before.items.len(),
         before.truncated
     );
@@ -24,7 +24,7 @@ async fn live_later() {
         .iter()
         .map(|t| t.id)
         .find(|id| !ids.tracks.contains(id))
-        .expect("tous les titres de l'album sont déjà dans « Plus tard »");
+        .expect("all the album's tracks are already in \"Save for later\"");
     let mut targets = vec![LikeTarget::Track { id: track }];
     if !ids.albums.contains(&ALBUM_ID) {
         targets.push(LikeTarget::Album { id: ALBUM_ID });
@@ -33,37 +33,37 @@ async fn live_later() {
     for target in &targets {
         client.set_saved_for_later(target, true).await.unwrap();
     }
-    // Doublon : accepté sans erreur.
+    // Duplicate: accepted without an error.
     let twice = client.set_saved_for_later(&targets[0], true).await;
     let start = std::time::Instant::now();
     let after = client.save_for_later().await;
-    println!("relue en {:?}", start.elapsed());
+    println!("read again in {:?}", start.elapsed());
     for target in &targets {
         let removed = client.set_saved_for_later(target, false).await;
-        println!("retrait de {target:?} : {removed:?}");
+        println!("removal of {target:?}: {removed:?}");
     }
     let removed_twice = client.set_saved_for_later(&targets[0], false).await;
     let end = client.save_for_later().await.unwrap();
 
-    assert!(twice.is_ok(), "doublon refusé : {twice:?}");
+    assert!(twice.is_ok(), "duplicate refused: {twice:?}");
     assert!(
         removed_twice.is_ok(),
-        "second retrait refusé : {removed_twice:?}"
+        "second removal refused: {removed_twice:?}"
     );
     let after = after.unwrap();
-    // Plus récent en tête : les éléments ajoutés passent devant ceux d'avant.
+    // Most recent first: the added items come before the earlier ones.
     let head: Vec<String> = after
         .items
         .iter()
         .take(targets.len())
         .map(|i| match i {
-            LaterItem::Track(t) => format!("titre {}", t.track.id),
+            LaterItem::Track(t) => format!("track {}", t.track.id),
             LaterItem::Album(a) => format!("album {}", a.id),
-            LaterItem::Artist(a) => format!("artiste {}", a.id),
+            LaterItem::Artist(a) => format!("artist {}", a.id),
             LaterItem::Playlist(p) => format!("playlist {}", p.uuid),
         })
         .collect();
-    println!("en tête après ajout : {head:?}");
+    println!("at the head after adding: {head:?}");
     assert!(
         after.items.iter().any(
             |i| matches!(i, LaterItem::Track(t) if t.track.id == track && t.added_at.is_some())

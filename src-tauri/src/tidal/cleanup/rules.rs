@@ -1,20 +1,20 @@
-//! Règles du nettoyage (#382), sans réseau : doublons, choix d'un remplaçant.
+//! Cleanup rules (#382), without network: duplicates, choice of a replacement.
 //!
-//! Deux titres sont la **même chanson** s'ils ont le même id, ou une durée proche (±2 s) et
-//! soit le même ISRC (même enregistrement), soit le même artiste principal, le même titre et
-//! la même version une fois retirées les marques d'édition (« 2011 Remaster », « Single
-//! Version »…). Une version « Live » ou un remix restent des chansons à part.
+//! Two tracks are the **same song** if they have the same id, or a close duration (±2 s) and
+//! either the same ISRC (same recording), or the same main artist, the same title and
+//! the same version once the edition marks are removed (« 2011 Remaster », « Single
+//! Version »…). A « Live » version or a remix remain separate songs.
 
 use std::collections::HashMap;
 
 use crate::tidal::models::{CleanupItem, Track, TrackId};
 
-/// Écart de durée toléré entre deux éditions, en secondes (comme `hires.rs`).
+/// Duration gap tolerated between two editions, in seconds (like `hires.rs`).
 const DURATION_TOLERANCE: u32 = 2;
-/// Marques d'une simple réédition, retirées du titre et de la version avant comparaison.
+/// Marks of a simple reissue, removed from the title and the version before comparing.
 const EDITION_MARKERS: [&str; 3] = ["remaster", "single version", "album version"];
 
-/// Titre d'une liste avec sa position et sa disponibilité.
+/// Track of a list with its position and availability.
 #[derive(Debug, Clone)]
 pub struct Entry {
     pub index: usize,
@@ -22,8 +22,8 @@ pub struct Entry {
     pub available: bool,
 }
 
-/// Titre ou version comparable : minuscules, espaces réduits, marques d'édition retirées
-/// (entre parenthèses, entre crochets ou après « - »).
+/// Comparable title or version: lowercase, spaces collapsed, edition marks removed
+/// (in parentheses, in brackets or after « - »).
 pub(super) fn comparable(text: &str) -> String {
     let lower = text.to_lowercase();
     let mut out = String::with_capacity(lower.len());
@@ -61,7 +61,7 @@ fn has_marker(text: &str) -> bool {
     EDITION_MARKERS.iter().any(|m| text.contains(m))
 }
 
-/// Artiste principal, titre et version comparables.
+/// Comparable main artist, title and version.
 fn song_key(track: &Track) -> (u64, String, String) {
     (
         track.artists.first().map_or(0, |a| a.id),
@@ -82,13 +82,13 @@ pub(super) fn same_song(a: &Track, b: &Track) -> bool {
     a.id == b.id || (close_durations(a, b) && (same_isrc(a, b) || song_key(a) == song_key(b)))
 }
 
-/// Doublons à retirer, et positions des titres indisponibles restants (à remplacer).
+/// Duplicates to remove, and positions of the remaining unavailable tracks (to replace).
 ///
-/// Dans chaque groupe d'une même chanson, on garde la première occurrence lisible (la
-/// première tout court si aucune ne l'est) ; les autres sont des doublons.
+/// In each group of one song, the first playable occurrence is kept (the
+/// first one at all if none is playable); the others are duplicates.
 pub fn duplicates(entries: &[Entry]) -> (Vec<CleanupItem>, Vec<usize>) {
     let mut groups: Vec<Vec<usize>> = Vec::new();
-    // Index vers les groupes candidats : évite de comparer chaque titre à tous les autres.
+    // Index into the candidate groups: avoids comparing each track to all the others.
     let mut by_id: HashMap<TrackId, Vec<usize>> = HashMap::new();
     let mut by_isrc: HashMap<String, Vec<usize>> = HashMap::new();
     let mut by_key: HashMap<(u64, String, String), Vec<usize>> = HashMap::new();
@@ -154,9 +154,9 @@ pub fn duplicates(entries: &[Entry]) -> (Vec<CleanupItem>, Vec<usize>) {
     (items, to_replace)
 }
 
-/// Meilleur remplaçant lisible d'un titre indisponible : même ISRC (`by_isrc`) ou même
-/// chanson (artiste, titre et version), durée proche. Préférés : le même titre d'album, le
-/// même marquage explicite, puis le hi-res. À égalité, l'ordre de l'API.
+/// Best playable replacement of an unavailable track: same ISRC (`by_isrc`) or same
+/// song (artist, title and version), close duration. Preferred: the same album title, the
+/// same explicit marking, then hi-res. On a tie, the API order.
 pub fn pick_replacement(
     original: &Track,
     candidates: impl IntoIterator<Item = Track>,
@@ -258,14 +258,14 @@ pub(crate) mod tests {
     #[test]
     fn same_song_rules() {
         let a = track(1, "Song", Some("X1"), 200);
-        assert!(same_song(&a, &track(1, "Other", None, 10)), "même id");
+        assert!(same_song(&a, &track(1, "Other", None, 10)), "same id");
         assert!(
             same_song(&a, &track(2, "Renamed", Some("x1"), 201)),
-            "même ISRC"
+            "same ISRC"
         );
         assert!(
             !same_song(&a, &track(2, "Song", Some("X1"), 230)),
-            "durée trop loin"
+            "duration too far"
         );
         assert!(
             same_song(&a, &track(3, "Song (2011 Remaster)", Some("X2"), 198)),
@@ -273,10 +273,7 @@ pub(crate) mod tests {
         );
         let mut live = track(4, "Song", Some("X3"), 200);
         live.version = Some("Live".into());
-        assert!(
-            !same_song(&a, &live),
-            "une version live est une autre chanson"
-        );
+        assert!(!same_song(&a, &live), "a live version is a different song");
         let mut other_artist = track(5, "Song", None, 200);
         other_artist.artists[0].id = 8;
         assert!(!same_song(&a, &other_artist), "reprise d'un autre artiste");
@@ -307,7 +304,7 @@ pub(crate) mod tests {
         assert_eq!(
             to_replace,
             vec![2],
-            "seul l'indisponible sans copie lisible"
+            "only the unavailable one without a playable copy"
         );
     }
 
@@ -324,7 +321,7 @@ pub(crate) mod tests {
 
     #[test]
     fn positions_come_from_entries() {
-        // Un titre illisible (sans album) a été sauté : les positions restent celles de l'API.
+        // An unreadable track (no album) was skipped: positions stay those of the API.
         let list = vec![
             Entry {
                 index: 0,
@@ -377,7 +374,7 @@ pub(crate) mod tests {
         let json = serde_json::to_value(CleanupChange::from(lost)).unwrap();
         assert_eq!(
             json["suggested"], false,
-            "retrait définitif : pas coché d'office"
+            "permanent removal: not ticked by default"
         );
         assert_eq!(json["op"]["op"], "remove");
     }

@@ -1,8 +1,8 @@
-//! Disponibilité des titres (#383) : un titre retiré du catalogue (ou plus lisible dans le
-//! pays du compte) a `streamReady` ou `allowStreaming` à `false`, ou `tracks/{id}` répond
-//! 404. `Track` ne garde pas cette information : elle est retenue ici pour la session,
-//! remplie au passage par les titres likés (`favorite_tracks`) et, à la demande, par
-//! `tracks/{id}` (playlists intelligentes, dont les titres viennent de l'historique local).
+//! Track availability (#383): a track removed from the catalog (or no longer playable in the
+//! account's country) has `streamReady` or `allowStreaming` at `false`, or `tracks/{id}` answers
+//! 404. `Track` does not keep this information: it is remembered here for the session,
+//! filled in along the way by liked tracks (`favorite_tracks`) and, on demand, by
+//! `tracks/{id}` (smart playlists, whose tracks come from the local history).
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -11,7 +11,7 @@ use super::raw::RawTrack;
 use super::{TidalClient, TidalError};
 use crate::tidal::models::TrackId;
 
-/// Titres retenus au plus ; au-delà, la table repart de zéro (ce n'est qu'un cache).
+/// Tracks remembered at most; beyond that, the table starts again from zero (only a cache).
 const CAPACITY: usize = 50_000;
 
 #[derive(Default)]
@@ -41,9 +41,9 @@ impl Availability {
 }
 
 impl TidalClient {
-    /// Le titre est-il lisible ? Déjà connu : sans requête. Sinon `tracks/{id}`, dont le
-    /// titre va aussi dans le cache. `None` si on ne sait pas (erreur réseau) : à l'appelant
-    /// de ne rien masquer.
+    /// Is the track playable? Already known: no request. Otherwise `tracks/{id}`, whose
+    /// track also goes into the cache. `None` if unknown (network error): up to the caller
+    /// not to hide anything.
     pub async fn is_available(&self, id: TrackId) -> Option<bool> {
         if let Some(known) = self.availability.get(id) {
             return Some(known);
@@ -58,7 +58,7 @@ impl TidalClient {
             }
             Err(TidalError::Api { status: 404, .. }) => false,
             Err(e) => {
-                tracing::debug!("disponibilité du titre {id} inconnue : {e}");
+                tracing::debug!("availability of track {id} unknown: {e}");
                 return None;
             }
         };

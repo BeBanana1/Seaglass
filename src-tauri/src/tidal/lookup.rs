@@ -1,7 +1,7 @@
-//! Titres par ISRC et albums par code-barres (UPC), pour les liens d'autres services
-//! collés dans la Jam (#229). Vérifié le 2026-11-06 : `tracks?isrc=USQX91300108` rend
-//! *Get Lucky* (compilation en tête : l'ordre est à refaire par l'appelant),
-//! `albums?upc=886443927087` rend *Random Access Memories* (20115556).
+//! Tracks by ISRC and albums by barcode (UPC), for links from other services pasted into
+//! the Jam (#229). Verified on 2026-11-06: `tracks?isrc=USQX91300108` returns *Get Lucky*
+//! (compilation first: the caller must redo the order), `albums?upc=886443927087` returns
+//! *Random Access Memories* (20115556).
 
 use super::Result;
 use super::api::TidalClient;
@@ -9,7 +9,7 @@ use super::models::{AlbumSummary, Track};
 use super::raw::{RawAlbumFull, RawPage, RawTrack};
 
 impl TidalClient {
-    /// Éditions lisibles d'un enregistrement (album d'origine, compilations…).
+    /// Playable editions of a recording (original album, compilations…).
     pub async fn tracks_by_isrc(&self, isrc: &str) -> Result<Vec<Track>> {
         let params = [("isrc", isrc.to_owned()), ("limit", "20".to_owned())];
         let page: RawPage<RawTrack> = self.get("tracks", &params).await?;

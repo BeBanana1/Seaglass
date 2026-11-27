@@ -1,8 +1,8 @@
-//! Blocages sur l'API réelle (#334), ignorés par défaut.
+//! Blocks on the real API (#334), ignored by default.
 //!
-//! `cargo test live_blocks -- --ignored --nocapture` : **modifie le compte**. Bloque puis
-//! débloque un titre et un artiste absents des listes ; rien de ce qui était déjà bloqué
-//! n'est touché, et le déblocage a lieu même si une vérification échoue.
+//! `cargo test live_blocks -- --ignored --nocapture`: **modifies the account**. Blocks then
+//! unblocks a track and an artist that are not in the lists; nothing that was already
+//! blocked is touched, and the unblock happens even if a check fails.
 
 use super::TidalClient;
 use super::live_tests::{ALBUM_ID, client};
@@ -15,7 +15,7 @@ fn contains(blocked: &Blocked, target: &BlockTarget) -> bool {
     }
 }
 
-/// Un titre de l'album de test, présent tel quel dans une liste filtrée par les blocages ?
+/// Is a track of the test album kept as is in a list filtered by the blocks?
 async fn kept(client: &TidalClient, track: &Track) -> bool {
     client
         .without_blocked(vec![track.clone()])
@@ -25,12 +25,12 @@ async fn kept(client: &TidalClient, track: &Track) -> bool {
 }
 
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis, modifie les blocages"]
+#[ignore = "network and TIDAL session required, modifies the blocks"]
 async fn live_blocks() {
     let client = client().await;
     let before = client.blocked().await.unwrap();
     println!(
-        "bloqués : {} titres, {} artistes",
+        "blocked: {} tracks, {} artists",
         before.tracks.len(),
         before.artists.len()
     );
@@ -45,30 +45,30 @@ async fn live_blocks() {
     let mut failures = Vec::new();
     for target in &targets {
         if contains(&before, target) {
-            println!("{target:?} déjà bloqué, sauté");
+            println!("{target:?} already blocked, skipped");
             continue;
         }
         let blocked = client.set_blocked(target, true).await;
         let listed = contains(&client.blocked().await.unwrap(), target);
         let filtered = !kept(&client, &track).await;
-        // Second blocage : idempotent (200 vu le 2026-11-12).
+        // Second block: idempotent (200 seen on 2026-11-12).
         let twice = client.set_blocked(target, true).await;
-        // Déblocage systématique : la cible n'était pas bloquée avant le test.
+        // Always unblock: the target was not blocked before the test.
         let unblocked = client.set_blocked(target, false).await;
         let after = client.blocked().await.unwrap();
         let back = kept(&client, &track).await;
         println!(
-            "{target:?} : blocage {blocked:?}, listé {listed}, filtré {filtered}, second {twice:?}, \
-             déblocage {unblocked:?}, rendu {back}"
+            "{target:?}: block {blocked:?}, listed {listed}, filtered {filtered}, second {twice:?}, \
+             unblock {unblocked:?}, restored {back}"
         );
         if blocked.is_err() || !listed || !filtered || twice.is_err() || unblocked.is_err() {
             failures.push(format!("{target:?}"));
         }
         if contains(&after, target) || !back {
-            failures.push(format!("{target:?} toujours bloqué"));
+            failures.push(format!("{target:?} still blocked"));
         }
     }
-    // Déblocage de ce qui n'est plus bloqué : sans erreur aussi (204).
+    // Unblocking what is no longer blocked: no error either (204).
     if !contains(&client.blocked().await.unwrap(), &targets[0]) {
         assert!(client.set_blocked(&targets[0], false).await.is_ok());
     }

@@ -1,15 +1,15 @@
-//! Dossiers de playlists (#331), vérifiés le 2026-11-12 (`cargo test live_folders -- --ignored
-//! --nocapture`, dossiers et playlists jetables).
+//! Playlist folders (#331), checked on 2026-11-12 (`cargo test live_folders -- --ignored
+//! --nocapture`, throwaway folders and playlists).
 //!
-//! - Lister : GET v2 `my-collection/playlists/folders?folderId=root|<id>` (`includeOnly=FOLDER`
-//!   pour les seuls dossiers), et `…/folders/flattened` : dossiers et toutes les playlists,
-//!   chacune avec son `parent`. Pagination par `cursor`.
-//! - Créer : PUT `…/folders/create-folder?name=&folderId=root&trns=` (playlists rangées
-//!   aussitôt). Un seul niveau : un `folderId` autre que `root` est ignoré.
-//! - Renommer : PUT `…/folders/rename?trn=trn:folder:<id>&name=` (nom vide : 400).
-//! - Déplacer : PUT `…/folders/move?folderId=<id>|root&trns=trn:playlist:a,trn:playlist:b`.
-//! - Supprimer : PUT `…/folders/remove?trns=trn:folder:<id>`. Les playlists du dossier ne sont
-//!   pas supprimées mais restent orphelines (absentes de la racine) : on les y ressort avant.
+//! - List: GET v2 `my-collection/playlists/folders?folderId=root|<id>` (`includeOnly=FOLDER`
+//!   for folders only), and `…/folders/flattened`: folders and all the playlists,
+//!   each with its `parent`. Paging by `cursor`.
+//! - Create: PUT `…/folders/create-folder?name=&folderId=root&trns=` (playlists filed
+//!   right away). One level only: a `folderId` other than `root` is ignored.
+//! - Rename: PUT `…/folders/rename?trn=trn:folder:<id>&name=` (empty name: 400).
+//! - Move: PUT `…/folders/move?folderId=<id>|root&trns=trn:playlist:a,trn:playlist:b`.
+//! - Delete: PUT `…/folders/remove?trns=trn:folder:<id>`. The folder's playlists are not
+//!   deleted but stay orphaned (missing from the root): they are moved back there first.
 
 use reqwest::Method;
 use serde::Deserialize;
@@ -20,14 +20,14 @@ use super::{Result, TidalClient, TidalError};
 
 const FOLDERS: &str = "my-collection/playlists/folders";
 const PAGE_SIZE: usize = 50;
-/// Pages lues au plus (2 500 éléments) : garde-fou contre un curseur qui ne finirait pas.
+/// Pages read at most (2,500 items): safeguard against a cursor that would never end.
 const MAX_PAGES: usize = 50;
-/// Playlists déplacées par requête.
+/// Playlists moved per request.
 const MOVE_CHUNK: usize = 50;
 
 impl TidalClient {
-    /// Dossiers de l'utilisateur, triés par nom, avec les playlists qu'ils contiennent.
-    /// Sans dossier, une seule petite requête (`includeOnly=FOLDER`).
+    /// The user's folders, sorted by name, with the playlists they contain.
+    /// Without folders, a single small request (`includeOnly=FOLDER`).
     pub async fn playlist_folders(&self) -> Result<Vec<PlaylistFolder>> {
         let root = [
             ("folderId", "root".to_owned()),
@@ -42,7 +42,7 @@ impl TidalClient {
         Ok(group(all))
     }
 
-    /// Crée un dossier à la racine, avec ces playlists dedans.
+    /// Creates a folder at the root, with these playlists in it.
     pub async fn create_folder(&self, name: &str, uuids: &[String]) -> Result<PlaylistFolder> {
         let mut query = vec![("name", name.to_owned()), ("folderId", "root".to_owned())];
         if !uuids.is_empty() {
@@ -83,7 +83,7 @@ impl TidalClient {
         .map(drop)
     }
 
-    /// Range des playlists dans un dossier, ou les ressort à la racine (`None`).
+    /// Files playlists into a folder, or moves them back to the root (`None`).
     pub async fn move_to_folder(&self, uuids: &[String], folder: Option<&str>) -> Result<()> {
         let path = format!("{FOLDERS}/move");
         for chunk in uuids.chunks(MOVE_CHUNK) {
@@ -97,7 +97,7 @@ impl TidalClient {
         Ok(())
     }
 
-    /// Supprime un dossier en gardant ses playlists, ressorties d'abord à la racine.
+    /// Deletes a folder while keeping its playlists, moved back to the root first.
     pub async fn delete_folder(&self, id: &str) -> Result<()> {
         let query = [("folderId", id.to_owned())];
         let inside: Vec<String> = self
@@ -120,7 +120,7 @@ impl TidalClient {
         .map(drop)
     }
 
-    /// Tous les éléments d'une liste de dossiers, page après page.
+    /// All the items of a folder list, page after page.
     async fn folder_items(
         &self,
         path: &str,
@@ -142,7 +142,7 @@ impl TidalClient {
                 _ => return Ok(items),
             }
         }
-        tracing::warn!("{path} : plus de {MAX_PAGES} pages, liste tronquée");
+        tracing::warn!("{path}: more than {MAX_PAGES} pages, list truncated");
         Ok(items)
     }
 }
@@ -155,8 +155,8 @@ fn playlist_trns(uuids: &[String]) -> String {
         .join(",")
 }
 
-/// Regroupe les éléments de `flattened` : chaque dossier avec ses playlists, dans l'ordre
-/// de l'API ; dossiers triés par nom.
+/// Groups the items of `flattened`: each folder with its playlists, in the
+/// API order; folders sorted by name.
 fn group(items: Vec<RawFolderItem>) -> Vec<PlaylistFolder> {
     let mut folders: Vec<PlaylistFolder> = items
         .iter()
@@ -184,7 +184,7 @@ fn group(items: Vec<RawFolderItem>) -> Vec<PlaylistFolder> {
     folders
 }
 
-// --- Formats JSON bruts --------------------------------------------------------------
+// --- Raw JSON formats ----------------------------------------------------------------
 
 #[derive(Deserialize)]
 struct RawFolderPage {
@@ -236,7 +236,7 @@ mod tests {
         serde_json::from_str::<RawFolderPage>(json).unwrap().items
     }
 
-    /// Forme de `flattened` vue le 2026-11-12 (champs réduits).
+    /// Shape of `flattened` seen on 2026-11-12 (reduced fields).
     const FLATTENED: &str = r#"{"cursor": null, "items": [
         {"itemType": "FOLDER", "name": "rock", "parent": null, "trn": "trn:folder:f2",
          "data": {"id": "f2", "itemType": "FOLDER", "totalNumberOfItems": 1}},

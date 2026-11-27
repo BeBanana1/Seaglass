@@ -1,7 +1,7 @@
-//! Décodage des manifestes de `playbackinfopostpaywall` et détection de DRM.
+//! Decoding of `playbackinfopostpaywall` manifests and DRM detection.
 //!
-//! Constat du spike : le MPD déclare toujours `xmlns:cenc`, même en clair. Seuls les
-//! éléments et attributs ci-dessous signalent un vrai chiffrement.
+//! Spike finding: the MPD always declares `xmlns:cenc`, even in the clear. Only the
+//! elements and attributes below signal real encryption.
 
 use base64::Engine;
 use serde::Deserialize;
@@ -16,10 +16,10 @@ const MPD_DRM_MARKERS: [&str; 4] = [
     "<ContentProtection",
     "cenc:default_KID",
     "cenc:pssh",
-    "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed", // UUID système Widevine
+    "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed", // Widevine system UUID
 ];
 
-/// Boîtes MP4 présentes dans un segment d'initialisation chiffré (CENC).
+/// MP4 boxes found in an encrypted (CENC) initialization segment.
 const INIT_DRM_BOXES: [&str; 4] = ["pssh", "tenc", "sinf", "enca"];
 
 #[derive(Deserialize)]
@@ -34,9 +34,10 @@ struct BtsManifest {
 pub struct Decoded {
     pub source: StreamSource,
     pub codec: String,
-    /// URL du segment d'initialisation DASH, à inspecter avant lecture.
+    /// URL of the DASH initialization segment, to inspect before playback.
     pub init_url: Option<String>,
-    /// Débit moyen déclaré par le MPD (`bandwidth`), en kbps (#3). Absent des manifestes BTS.
+    /// Average bitrate declared by the MPD (`bandwidth`), in kbps (#3). Absent from BTS
+    /// manifests.
     pub bitrate: Option<u32>,
 }
 
@@ -64,7 +65,7 @@ pub fn decode(mime: &str, manifest_b64: &str) -> Result<Decoded> {
         })
     } else if mime.starts_with(BTS_MIME) {
         let bts: BtsManifest = serde_json::from_str(&text)
-            .map_err(|e| TidalError::Decode(format!("manifeste BTS : {e}")))?;
+            .map_err(|e| TidalError::Decode(format!("BTS manifest: {e}")))?;
         match bts.encryption_type.as_deref() {
             None | Some("NONE") => {}
             Some(other) => return Err(TidalError::Drm(other.to_owned())),
@@ -73,7 +74,7 @@ pub fn decode(mime: &str, manifest_b64: &str) -> Result<Decoded> {
             .urls
             .into_iter()
             .next()
-            .ok_or_else(|| TidalError::Decode("manifeste BTS sans URL".into()))?;
+            .ok_or_else(|| TidalError::Decode("BTS manifest without a URL".into()))?;
         Ok(Decoded {
             source: StreamSource::Direct(url),
             codec: bts.codecs.or(bts.mime_type).unwrap_or_else(|| "?".into()),
@@ -85,14 +86,14 @@ pub fn decode(mime: &str, manifest_b64: &str) -> Result<Decoded> {
     }
 }
 
-/// Renvoie la boîte de chiffrement trouvée dans un segment d'initialisation, le cas échéant.
+/// Returns the encryption box found in an initialization segment, if any.
 pub fn find_init_drm_box(init: &[u8]) -> Option<&'static str> {
     INIT_DRM_BOXES
         .into_iter()
         .find(|b| init.windows(4).any(|w| w == b.as_bytes()))
 }
 
-/// Lecture minimale d'un attribut XML (`name="…"`), entités `&amp;` décodées.
+/// Minimal read of an XML attribute (`name="…"`), `&amp;` entities decoded.
 fn xml_attr(xml: &str, name: &str) -> Option<String> {
     let needle = format!(" {name}=\"");
     let start = xml.find(&needle)? + needle.len();

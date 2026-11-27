@@ -1,10 +1,9 @@
-//! Infos détaillées d'un titre (#3), à la demande : métadonnées de `tracks/{id}` (BPM,
-//! tonalité, copyright, position) et format réel de `playbackinfopostpaywall`
-//! (profondeur, fréquence, débit du MPD, ReplayGain). Vérifié le 2026-10-30. Crédits :
-//! `credits.rs` (#84).
+//! Detailed track info (#3), on demand: metadata from `tracks/{id}` (BPM, key, copyright,
+//! position) and the real format from `playbackinfopostpaywall` (depth, frequency, MPD
+//! bitrate, ReplayGain). Verified on 2026-10-30. Credits: `credits.rs` (#84).
 //!
-//! Le format exige une requête de lecture par titre : on ne le demande qu'à l'ouverture
-//! du panneau, jamais pour une liste. Le segment d'initialisation n'est pas téléchargé.
+//! The format needs one playback request per track: it is only requested when the panel
+//! opens, never for a list. The initialization segment is not downloaded.
 
 use serde::Deserialize;
 
@@ -13,10 +12,10 @@ use super::models::{AudioQuality, HiresEdition, TrackId, TrackInfo};
 use super::raw::RawTrack;
 use super::{Result, TidalError};
 
-/// Qualité demandée, la même que pour une lecture.
+/// Requested quality, the same as for playback.
 const QUALITY: AudioQuality = AudioQuality::HiResLossless;
 
-/// `tracks/{id}` avec les champs que `RawTrack` ignore.
+/// `tracks/{id}` with the fields `RawTrack` ignores.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RawTrackDetails {
@@ -37,7 +36,7 @@ impl TidalClient {
         let track = raw
             .track
             .into_track()
-            .ok_or_else(|| TidalError::Decode(format!("titre {id} sans album")))?;
+            .ok_or_else(|| TidalError::Decode(format!("track {id} without an album")))?;
         self.cache.insert_all([&track]);
 
         let (playback, edition, credits) = tokio::join!(
@@ -45,9 +44,9 @@ impl TidalClient {
             self.hires_edition(&track),
             self.track_credits(id)
         );
-        // Les crédits sont un complément : une erreur ne bloque pas le panneau.
+        // Credits are a complement: an error does not block the panel.
         let credits = credits.unwrap_or_else(|e| {
-            tracing::warn!("crédits de {id} illisibles : {e}");
+            tracing::warn!("credits of {id} unreadable: {e}");
             Vec::new()
         });
         let (stream, stream_error, gains) = match playback {
@@ -68,7 +67,7 @@ impl TidalClient {
                 let stream = match self.playback(edition.id, QUALITY, None).await {
                     Ok((raw, decoded)) => Some(stream_format(&raw, &decoded)),
                     Err(e) => {
-                        tracing::warn!("format de l'édition {} : {e}", edition.id);
+                        tracing::warn!("format of edition {}: {e}", edition.id);
                         None
                     }
                 };
@@ -80,7 +79,7 @@ impl TidalClient {
             }
             Ok(None) => None,
             Err(e) => {
-                tracing::warn!("recherche hi-res de {id} impossible : {e}");
+                tracing::warn!("hi-res lookup of {id} failed: {e}");
                 None
             }
         };
