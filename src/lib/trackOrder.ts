@@ -1,5 +1,5 @@
-// Filtre et tri d'une liste de titres déjà chargée (playlist, titres likés).
-// Présentation uniquement : aucune requête, la liste reçue du backend n'est pas modifiée.
+// Filter and sort of an already loaded list of tracks (playlist, liked tracks).
+// Presentation only: no request, the list received from the backend is not modified.
 
 import { artistNames, fullTitle } from "./format";
 import type { SortKey, TrackEntry, TrackSort } from "./ipc";
@@ -7,18 +7,18 @@ import { locale } from "./i18n.svelte";
 
 export type { SortKey, TrackSort };
 
-/** Titre affiché, avec sa position (à partir de 1) dans la liste d'origine. */
+/** Displayed track, with its position (from 1) in the original list. */
 export interface ListedTrack {
   track: TrackEntry;
   position: number;
 }
 
-/** Minuscules sans accents : « Beyoncé » et « beyonce » se confondent. */
+/** Lowercase without accents: "Beyoncé" and "beyonce" are conflated. */
 export function normalize(text: string): string {
   return text.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("fr");
 }
 
-// Tri alphabétique de la langue courante, recréé seulement quand elle change.
+// Alphabetical sort of the current language, recreated only when it changes.
 let collator: { locale: string; intl: Intl.Collator } | null = null;
 
 function collate(a: string, b: string): number {
@@ -32,7 +32,7 @@ function collate(a: string, b: string): number {
   return collator.intl.compare(a, b);
 }
 
-// Texte de recherche de chaque titre, calculé une fois par objet reçu.
+// Search text of each track, computed once per received object.
 const haystacks = new WeakMap<TrackEntry, string>();
 
 function haystack(track: TrackEntry): string {
@@ -44,16 +44,16 @@ function haystack(track: TrackEntry): string {
   return text;
 }
 
-/** Ordre d'une playlist tant qu'aucun tri n'est mémorisé : celui de la playlist. */
+/** Order of a playlist while no sort is remembered: the playlist's own. */
 export const PLAYLIST_DEFAULT_SORT: TrackSort = { key: "position", descending: false };
-/** Titres likés : les plus récents d'abord. */
+/** Liked tracks: most recent first. */
 export const LIKED_DEFAULT_SORT: TrackSort = { key: "added", descending: true };
 
 export function listTracks(tracks: TrackEntry[]): ListedTrack[] {
   return tracks.map((track, i) => ({ track, position: i + 1 }));
 }
 
-/** Garde les titres dont le titre, les artistes ou l'album contiennent chaque mot. */
+/** Keeps the tracks whose title, artists or album contain every word. */
 export function filterTracks(list: ListedTrack[], query: string): ListedTrack[] {
   const terms = normalize(query).split(/\s+/).filter(Boolean);
   if (terms.length === 0) return list;
@@ -64,9 +64,9 @@ export function filterTracks(list: ListedTrack[], query: string): ListedTrack[] 
 }
 
 /**
- * Contexte de lecture d'un clic sur le titre `index` de la liste affichée (#496) : toute la
- * liste triée, pas seulement les résultats du filtre, qui sert à trouver un titre. `start`
- * est la place du titre cliqué dans `sorted` (par entrée, pour les doublons d'une playlist).
+ * Playback context of a click on track `index` of the displayed list (#496): the whole
+ * sorted list, not only the filter results, which serves to find a track. `start`
+ * is the place of the clicked track in `sorted` (per entry, for duplicates in a playlist).
  */
 export function playContext(
   sorted: ListedTrack[],
@@ -91,7 +91,7 @@ function compare(a: TrackEntry, b: TrackEntry, key: Exclude<SortKey, "position" 
   }
 }
 
-/** Tri stable ; à égalité, l'ordre d'origine. Les titres sans date d'ajout restent en fin. */
+/** Stable sort; on a tie, the original order. Tracks without an added date stay at the end. */
 export function sortTracks(list: ListedTrack[], sort: TrackSort): ListedTrack[] {
   const dir = sort.descending ? -1 : 1;
   return [...list].sort((a, b) => {
@@ -99,7 +99,7 @@ export function sortTracks(list: ListedTrack[], sort: TrackSort): ListedTrack[] 
     if (sort.key === "position") {
       result = a.position - b.position;
     } else if (sort.key === "added") {
-      // `?? null` : des fixtures anciennes n'ont pas le champ.
+      // `?? null`: old fixtures do not have the field.
       const [x, y] = [a.track.addedAt ?? null, b.track.addedAt ?? null];
       if (x === null || y === null) {
         if (x !== y) return x === null ? 1 : -1;

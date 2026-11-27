@@ -1,4 +1,4 @@
-// Mise en forme pour l'affichage uniquement.
+// Formatting for display only.
 
 import type {
   AlbumRef,
@@ -22,15 +22,15 @@ export function formatTime(seconds: number): string {
   return h > 0 ? `${h}:${String(m % 60).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
 
-/** Cache en mémoire (#453) : « titre en mémoire », sinon la position atteinte, « jusqu'à 2:40 »,
- *  qui ne fait que monter pendant le remplissage. Pas l'avance sur la lecture (#498) : le cache
- *  avance par segment et la position en continu, l'écart irait en dents de scie. */
+/** In-memory cache (#453): "track in memory", otherwise the position reached, "up to 2:40",
+ *  which only goes up while filling. Not the lead over playback (#498): the cache
+ *  advances by segment and the position continuously, the gap would be sawtooth-shaped. */
 export function cacheLabel(cached: number, duration: number): string {
   if (!duration || cached <= 0) return "";
   return cached >= duration - 1 ? t.player.cachedWhole : t.player.cachedUntil(formatTime(cached));
 }
 
-/** Durée longue : « 2 h 19 min » ou « 42 min ». */
+/** Long duration: "2 h 19 min" or "42 min". */
 export function formatLongDuration(seconds: number | null): string | null {
   if (!seconds) return null;
   const minutes = Math.round(seconds / 60);
@@ -87,12 +87,12 @@ export function mediaSubtitle(item: MediaItem): string {
   }
 }
 
-/** Pochette des vignettes (160), repli sur la 320 (fixtures générées avant #89). */
+/** Cover of the thumbnails (160), falling back to the 320 (fixtures generated before #89). */
 export function coverSmall(album: AlbumRef): string | null {
   return album.coverSmallUrl ?? album.coverUrl;
 }
 
-/** Grande pochette (640), même repli. */
+/** Large cover (640), same fallback. */
 export function coverLarge(album: AlbumRef | AlbumSummary): string | null {
   return album.coverLargeUrl ?? album.coverUrl;
 }
@@ -125,22 +125,22 @@ export interface SignalVerdict {
   detail: string;
 }
 
-/** Le volume de mpv modifie l'amplitude : vrai sauf à 100 % sans coupure. */
+/** mpv's volume changes the amplitude: true except at 100% without mute. */
 export function softwareGain(volume: Volume): boolean {
   return volume.muted || volume.level !== 100;
 }
 
-/** Niveau lisible pour la chaîne audio (« coupé », « 60 % »). */
+/** Readable level for the audio chain ("muted", "60 %"). */
 export function volumeLabel(volume: Volume): string {
   return volume.muted ? t.format.muted : t.format.percent(volume.level);
 }
 
 /**
- * Ce que devient le flux jusqu'à la sortie : fréquence et profondeur conservées ou non.
- * `output` est le format réellement écrit sur la sortie (`deviceFormat`, #245), sinon celui
- * du décodage. « Bit-perfect » n'est annoncé qu'en mode exclusif ; en partagé, Windows mixe
- * encore. Un volume différent de 100 % n'invalide que ce verdict : les autres conversions
- * restent plus importantes à signaler, le volume est alors dans le détail.
+ * What the stream becomes up to the output: rate and depth kept or not.
+ * `output` is the format actually written to the output (`deviceFormat`, #245), otherwise that
+ * of the decoding. "Bit-perfect" is only announced in exclusive mode; in shared mode, Windows
+ * still mixes. A volume other than 100% only invalidates that verdict: the other conversions
+ * are more important to flag, the volume is then in the detail.
  */
 export function signalVerdict(
   stream: StreamFormat | null,
@@ -151,7 +151,7 @@ export function signalVerdict(
   equalizer: string | null = null,
 ): SignalVerdict {
   const verdict = gainVerdict(stream, output, volume, normalization, exclusive);
-  // Égaliseur (#428) : il modifie le signal comme la normalisation ; la coupure reste prioritaire.
+  // Equalizer (#428): it modifies the signal like normalization; muting keeps priority.
   if (equalizer === null || volume.muted || (verdict.tone !== "ok" && verdict.tone !== "warn"))
     return verdict;
   const v = t.format.verdict;
@@ -164,7 +164,7 @@ export function signalVerdict(
   return { ...verdict, detail: v.withEqualizer(verdict.detail, equalizer) };
 }
 
-/** Verdict du flux, modifié par le volume logiciel et la normalisation. */
+/** Verdict of the stream, modified by the software volume and normalization. */
 function gainVerdict(
   stream: StreamFormat | null,
   output: AudioParams | null,
@@ -174,7 +174,7 @@ function gainVerdict(
 ): SignalVerdict {
   const verdict = streamVerdict(stream, output, exclusive);
   const v = t.format.verdict;
-  // Normalisation (#82) : gain appliqué par mpv, comme le volume ; la coupure reste prioritaire.
+  // Normalization (#82): gain applied by mpv, like the volume; muting keeps priority.
   if (normalization !== null && !volume.muted && verdict.tone === "ok") {
     const detail = v.normalizedDetail(gainLabel(normalization), engineName());
     return {
@@ -203,7 +203,7 @@ function gainVerdict(
   return verdict;
 }
 
-/** Moteur de lecture affiché dans la chaîne audio : mpv sur le bureau, Media3 sur Android. */
+/** Playback engine shown in the audio chain: mpv on desktop, Media3 on Android. */
 export function engineName(): string {
   return platform.mobile ? "Media3" : "mpv";
 }
@@ -239,7 +239,7 @@ function streamVerdict(
   };
 }
 
-/** Gain en dB signé : « −6,5 dB », « +2 dB ». */
+/** Signed gain in dB: "-6.5 dB", "+2 dB". */
 export function gainLabel(db: number): string {
   const abs = num(Math.abs(Math.round(db * 10) / 10));
   return `${db < 0 ? "−" : "+"}${abs} dB`;
@@ -249,18 +249,18 @@ export function khz(rate: number): string {
   return num(rate / 1000);
 }
 
-/** Débit en kbps : « 5 071 kbps ». */
+/** Bitrate in kbps: "5,071 kbps". */
 export function kbps(rate: number): string {
   return `${num(rate)} kbps`;
 }
 
-/** Rôle d'un crédit (#84) dans la langue courante ; un rôle inconnu reste tel quel. */
+/** Role of a credit (#84) in the current language; an unknown role stays as is. */
 export function creditRole(role: string): string {
   return t.info.roles[role.toLowerCase().replace(/[^a-z0-9]/g, "")] ?? role;
 }
 
-/** Tonalité dans la notation de la langue (Do / C). L'API mêle les formes (`FSharp`, `Bb`,
- *  `F`) : une forme inconnue est rendue telle quelle. */
+/** Key in the language's notation (Do / C). The API mixes forms (`FSharp`, `Bb`,
+ *  `F`): an unknown form is rendered as is. */
 export function musicalKey(key: string | null, scale: string | null): string | null {
   if (!key) return null;
   const m = /^([A-G])(Sharp|#|Flat|b)?$/.exec(key);
@@ -276,7 +276,7 @@ export function decibels(gain: number): string {
   return `${gain < 0 ? "−" : gain > 0 ? "+" : ""}${text} dB`;
 }
 
-/** Crête en pleine échelle (1 = 0 dBFS) : « 0,997 (−0,02 dBFS) ». */
+/** Peak at full scale (1 = 0 dBFS): "0.997 (-0.02 dBFS)". */
 export function peak(amplitude: number): string {
   const value = num(amplitude, { maximumFractionDigits: 3 });
   if (amplitude <= 0) return value;
@@ -285,7 +285,7 @@ export function peak(amplitude: number): string {
   return `${value} (${dbfs < -0.005 ? "−" : ""}${text} dBFS)`;
 }
 
-/** Libellé d'un tag de disponibilité ; les tags inconnus sont ignorés. */
+/** Label of an availability tag; unknown tags are ignored. */
 export function tagLabel(tag: string): string | null {
   return (
     {

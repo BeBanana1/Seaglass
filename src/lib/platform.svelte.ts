@@ -1,6 +1,6 @@
-// Plateforme de l'app, lue une fois au démarrage (décidée côté Rust). Sur Android, l'UI
-// passe en mise en page tactile et masque les réglages du bureau ; `data-platform` sur
-// `<html>` sert aux styles.
+// App platform, read once at startup (decided on the Rust side). On Android, the UI
+// switches to a touch layout and hides the desktop settings; `data-platform` on
+// `<html>` is used by the styles.
 
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { commands, type Platform } from "./ipc";
@@ -10,14 +10,14 @@ export const platform = $state<{ name: Platform; mobile: boolean }>({
   mobile: false,
 });
 
-/** Repli sans IPC : la WebView d'Android annonce toujours « Android » dans son user-agent. */
+/** Fallback without IPC: Android's WebView always announces "Android" in its user-agent. */
 export function guessPlatform(userAgent: string): Platform {
   return /\bAndroid\b/.test(userAgent) ? "android" : "desktop";
 }
 
-/** Commande `platform`, réessayée : au démarrage à froid sur Android, le premier appel IPC,
- *  fait avant le montage, échoue parfois (#472). Après les essais, on garde le repli du
- *  user-agent plutôt que de poser la mise en page du bureau sur un téléphone. */
+/** `platform` command, retried: on a cold start on Android, the first IPC call,
+ *  made before mounting, sometimes fails (#472). After the attempts, we keep the
+ *  user-agent fallback rather than putting the desktop layout on a phone. */
 async function askPlatform(fallback: Platform): Promise<Platform> {
   const delays = [0, 50, 200];
   let lastError: unknown;
@@ -29,7 +29,7 @@ async function askPlatform(fallback: Platform): Promise<Platform> {
       lastError = e;
     }
   }
-  console.warn("platform() a échoué, repli sur le user-agent :", lastError);
+  console.warn("platform() failed, falling back to the user-agent:", lastError);
   return fallback;
 }
 
@@ -39,8 +39,8 @@ export async function initPlatform() {
   document.documentElement.dataset.platform = platform.name;
 }
 
-/** Mini-lecteur du bureau (#384) : la fenêtre `mini` charge la même page. L'étiquette est
- *  lue dans les métadonnées de la WebView, sans aller-retour. Hors Tauri : `?mini`. */
+/** Desktop mini-player (#384): the `mini` window loads the same page. The label is
+ *  read from the WebView's metadata, without a round trip. Outside Tauri: `?mini`. */
 export function isMiniWindow(): boolean {
   if ("__TAURI_INTERNALS__" in window) return getCurrentWebviewWindow().label === "mini";
   return import.meta.env.DEV && new URLSearchParams(location.search).has("mini");

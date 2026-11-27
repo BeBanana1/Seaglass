@@ -10,30 +10,30 @@ const items = [
 ];
 
 describe("normalize", () => {
-  it("ignore la casse et les accents", () => {
+  it("ignores case and accents", () => {
     expect(normalize("Réglages ÉTÉ")).toBe("reglages ete");
   });
 });
 
 describe("score", () => {
-  it("une requête vide correspond à tout", () => {
+  it("an empty query matches everything", () => {
     expect(score(items[0], "  ")).toBe(0);
   });
 
-  it("refuse une entrée où un mot manque", () => {
+  it("refuses an entry where a word is missing", () => {
     expect(score(items[3], "studio sombre")).toBeNull();
   });
 
-  it("accepte les mots dans le désordre", () => {
+  it("accepts the words in any order", () => {
     expect(score(items[2], "lecture reglages")).not.toBeNull();
   });
 
-  it("trouve par mot-clé", () => {
+  it("finds by keyword", () => {
     expect(score(items[1], "settings")).not.toBeNull();
     expect(score(items[1], "prefer")).not.toBeNull();
   });
 
-  it("trouve au milieu d'un mot du libellé, moins bien qu'au début", () => {
+  it("finds in the middle of a label word, less well than at the start", () => {
     const middle = score(items[3], "udio");
     const start = score(items[3], "stud");
     expect(middle).not.toBeNull();
@@ -42,16 +42,16 @@ describe("score", () => {
 });
 
 describe("rank", () => {
-  it("garde l'ordre d'origine pour une requête vide", () => {
+  it("keeps the original order for an empty query", () => {
     expect(rank(items, "")).toEqual(items);
   });
 
-  it("met devant un libellé qui commence par la requête", () => {
+  it("puts a label that starts with the query first", () => {
     const ranked = rank(items, "lecture").map((i) => i.label);
     expect(ranked).toEqual(["Lecture aléatoire", "Réglages › Lecture"]);
   });
 
-  it("garde l'ordre d'origine à égalité", () => {
+  it("keeps the original order on a tie", () => {
     const ranked = rank(items, "reglages").map((i) => i.label);
     expect(ranked).toEqual(["Réglages › Lecture", "Ouvrir les réglages"]);
   });

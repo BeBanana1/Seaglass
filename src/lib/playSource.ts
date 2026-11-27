@@ -1,4 +1,4 @@
-// « Joué depuis » (#124) : libellé et page d'une source de lecture renvoyée par le backend.
+// "Played from" (#124): label and page of a playback source returned by the backend.
 
 import type { PlaySource } from "./ipc";
 import type { Route } from "./stores/nav.svelte";
@@ -39,7 +39,7 @@ function fromSource(s: PlaySource): PlayedFrom {
   }
 }
 
-/** Libellé et page de la source du titre en cours (radio automatique comprise, #78). */
+/** Label and page of the source of the current track (automatic radio included, #78). */
 export function playedFrom(source: PlaySource | null): PlayedFrom | null {
   return source ? fromSource(source) : null;
 }

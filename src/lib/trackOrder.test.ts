@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe("normalize", () => {
-  it("retire accents et majuscules", () => {
+  it("removes accents and capitals", () => {
     expect(normalize("Beyoncé")).toBe("beyonce");
     expect(normalize("ÉLÉPHANT Ça")).toBe("elephant ca");
   });
@@ -38,28 +38,28 @@ describe("filterTracks", () => {
   const c = entry({ title: "Hey Ya!", artists: ["OutKast"], album: "Speakerboxxx" });
   const list = listTracks([a, b, c]);
 
-  it("garde tout sans requête", () => {
+  it("keeps everything without a query", () => {
     expect(filterTracks(list, "  ")).toBe(list);
   });
 
-  it("cherche dans le titre, la version, les artistes et l'album, sans accents", () => {
+  it("searches in the title, version, artists and album, without accents", () => {
     expect(ids(filterTracks(list, "BEYONCE"))).toEqual([a.id, b.id]);
     expect(ids(filterTracks(list, "live"))).toEqual([b.id]);
     expect(ids(filterTracks(list, "speakerbox"))).toEqual([c.id]);
   });
 
-  it("exige chaque mot, dans n'importe quel ordre", () => {
+  it("requires every word, in any order", () => {
     expect(ids(filterTracks(list, "love jay"))).toEqual([a.id]);
     expect(ids(filterTracks(list, "halo outkast"))).toEqual([]);
   });
 
-  it("garde la position d'origine", () => {
+  it("keeps the original position", () => {
     expect(filterTracks(list, "hey")[0].position).toBe(3);
   });
 });
 
 describe("sortTracks", () => {
-  it("revient à l'ordre d'origine, dans les deux sens", () => {
+  it("goes back to the original order, in both directions", () => {
     const list = listTracks([entry(), entry(), entry()]);
     const desc = sortTracks(list, { key: "position", descending: true });
     expect(desc.map((t) => t.position)).toEqual([3, 2, 1]);
@@ -68,14 +68,14 @@ describe("sortTracks", () => {
     );
   });
 
-  it("ne modifie pas la liste reçue", () => {
+  it("does not modify the received list", () => {
     const list = listTracks([entry({ duration: 300 }), entry({ duration: 100 })]);
     const before = ids(list);
     sortTracks(list, { key: "duration", descending: false });
     expect(ids(list)).toEqual(before);
   });
 
-  it("trie par titre sans tenir compte des accents ni de la casse, nombres dans l'ordre naturel", () => {
+  it("sorts by title ignoring accents and case, numbers in natural order", () => {
     const [e, a, track10, track2] = [
       entry({ title: "étoile" }),
       entry({ title: "Avion" }),
@@ -89,7 +89,7 @@ describe("sortTracks", () => {
     expect(ids(sorted)).toEqual([a.id, e.id, track2.id, track10.id]);
   });
 
-  it("est stable : à égalité, l'ordre d'origine, même en décroissant", () => {
+  it("is stable: on a tie, the original order, even descending", () => {
     const [x, y, z] = [
       entry({ duration: 200 }),
       entry({ duration: 100 }),
@@ -108,7 +108,7 @@ describe("sortTracks", () => {
     ]);
   });
 
-  it("revient à l'ordre d'origine à égalité, même depuis une liste déjà triée autrement", () => {
+  it("goes back to the original order on a tie, even from a list already sorted otherwise", () => {
     const [x, y, z] = [
       entry({ duration: 200 }),
       entry({ duration: 100 }),
@@ -122,7 +122,7 @@ describe("sortTracks", () => {
     ]);
   });
 
-  it("trie par artistes et par album", () => {
+  it("sorts by artists and by album", () => {
     const [b, a] = [
       entry({ artists: ["Bjork"], album: "Zeta" }),
       entry({ artists: ["Air"], album: "Moon" }),
@@ -132,12 +132,12 @@ describe("sortTracks", () => {
     expect(ids(sortTracks(list, { key: "album", descending: true }))).toEqual([b.id, a.id]);
   });
 
-  it("laisse en fin les titres sans date d'ajout, dans les deux sens", () => {
+  it("leaves tracks without an added date at the end, in both directions", () => {
     const [none, old, recent, missing] = [
       entry({ addedAt: null }),
       entry({ addedAt: 1_000 }),
       entry({ addedAt: 5_000 }),
-      // Fixtures anciennes : champ absent.
+      // Old fixtures: missing field.
       { ...entry(), addedAt: undefined as unknown as null },
     ];
     const list = listTracks([none, old, recent, missing]);
@@ -163,19 +163,19 @@ describe("playContext", () => {
     entry({ title: "Gamma" }),
   ];
 
-  it("met toute la liste triée en contexte et part du titre cliqué dans le filtre", () => {
+  it("puts the whole sorted list in context and starts from the track clicked in the filter", () => {
     const sorted = sortTracks(listTracks([a, b, c]), { key: "position", descending: true });
     const shown = filterTracks(sorted, "beta");
     expect(playContext(sorted, shown, 0)).toEqual({ ids: [c.id, b.id, a.id], start: 1 });
   });
 
-  it("distingue les doublons d'une playlist par leur position", () => {
+  it("tells apart the duplicates of a playlist by their position", () => {
     const sorted = listTracks([b, a, b]);
     const shown = filterTracks(sorted, "beta");
     expect(playContext(sorted, shown, 1)).toEqual({ ids: [b.id, a.id, b.id], start: 2 });
   });
 
-  it("sans filtre, garde l'index cliqué", () => {
+  it("without a filter, keeps the clicked index", () => {
     const sorted = listTracks([a, b, c]);
     expect(playContext(sorted, filterTracks(sorted, ""), 2)).toEqual({
       ids: [a.id, b.id, c.id],

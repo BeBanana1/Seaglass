@@ -1,5 +1,5 @@
-// Actions sur la sélection multiple (#332), partagées par la barre d'actions et le menu
-// contextuel d'un titre sélectionné. Chaque action vide la sélection une fois lancée.
+// Actions on the multiple selection (#332), shared by the action bar and the context
+// menu of a selected track. Each action clears the selection once started.
 
 import { commands, type TrackId } from "./ipc";
 import { isLiked } from "./stores/likes.svelte";
@@ -38,7 +38,7 @@ export function addSelectionToPlaylist() {
   openPlaylistPicker({ trackIds: picked, label: t.menu.selection.label(picked.length) });
 }
 
-/** Tous déjà likés : on les retire (annulable), sinon on like ceux qui ne le sont pas. */
+/** All already liked: they are removed (undoable), otherwise those not yet liked get liked. */
 export function allSelectedLiked(): boolean {
   const picked = ids();
   return picked.length > 0 && picked.every(isLiked);
@@ -75,7 +75,7 @@ export function removeSelection() {
   return remove(picked);
 }
 
-/** Menu d'un titre sélectionné (clic droit, appui long, « … »). */
+/** Menu of a selected track (right click, long press, "..."). */
 export function selectionMenu(): MenuEntry[] {
   const m = t.menu;
   const liked = allSelectedLiked();

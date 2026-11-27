@@ -1,11 +1,11 @@
-// Réorganisation d'une liste par glisser-déposer HTML5 (file manuelle #80, playlist #201).
-// L'appelant pose les gestionnaires sur chaque ligne et lit `marker` pour le repère
-// d'insertion ; `onMove(from, to)` reçoit la position finale de l'entrée déplacée.
+// Reordering a list by HTML5 drag and drop (manual queue #80, playlist #201).
+// The caller puts the handlers on each row and reads `marker` for the insertion
+// indicator; `onMove(from, to)` receives the final position of the moved entry.
 
 export class Reorder {
-  /** Ligne en cours de glisser. */
+  /** Row being dragged. */
   from = $state<number | null>(null);
-  /** Emplacement d'insertion : avant la ligne `slot` (= longueur : à la fin). */
+  /** Insertion slot: before row `slot` (= length: at the end). */
   slot = $state<number | null>(null);
 
   constructor(private readonly onMove: (from: number, to: number) => void) {}
@@ -31,18 +31,18 @@ export class Reorder {
     this.commit();
   }
 
-  /** Applique le déplacement en cours (dépôt HTML5, ou fin d'un glisser au doigt). */
+  /** Applies the current move (HTML5 drop, or the end of a finger drag). */
   commit() {
     const { from, slot } = this;
     if (from !== null && slot !== null) {
-      // L'entrée retirée décale d'un cran les emplacements qui la suivent.
+      // The removed entry shifts the slots that follow it by one.
       const to = slot > from ? slot - 1 : slot;
       if (to !== from) this.onMove(from, to);
     }
     this.end();
   }
 
-  /** À poser sur le conteneur : le repère disparaît quand on en sort. */
+  /** To put on the container: the indicator disappears when leaving it. */
   dragleave(e: DragEvent, container: HTMLElement | undefined) {
     if (!container?.contains(e.relatedTarget as Node | null)) this.slot = null;
   }
@@ -52,14 +52,14 @@ export class Reorder {
     this.slot = null;
   }
 
-  /** Repère d'insertion avant `slot`, sauf là où le dépôt ne changerait rien. */
+  /** Insertion indicator before `slot`, except where the drop would change nothing. */
   marker(slot: number): boolean {
     const from = this.from;
     return from !== null && this.slot === slot && slot !== from && slot !== from + 1;
   }
 }
 
-/** Alt+↑ / Alt+↓ sur une ligne : position visée, ou `null` (autre touche, bord de liste). */
+/** Alt+↑ / Alt+↓ on a row: target position, or `null` (other key, edge of the list). */
 export function keyboardMove(e: KeyboardEvent, i: number, length: number): number | null {
   if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return null;
   e.preventDefault();

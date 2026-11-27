@@ -1,13 +1,13 @@
-// Palette de commandes (#412) : filtre et classement des entrées. Logique pure, testée
-// (`palette.test.ts`) ; les actions elles-mêmes sont dans `actions.ts`.
+// Command palette (#412): filtering and ranking of the entries. Pure logic, tested
+// (`palette.test.ts`); the actions themselves are in `actions.ts`.
 
 export interface PaletteItem {
   label: string;
-  /** Autres mots qui doivent la trouver (synonymes, nom anglais, raccourci). */
+  /** Other words that should find it (synonyms, English name, shortcut). */
   keywords?: string[];
 }
 
-/** Minuscules sans accents : « Réglages » et « reglages » se valent. */
+/** Lowercase without accents: "Réglages" and "reglages" are worth the same. */
 export function normalize(text: string): string {
   return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }
@@ -18,10 +18,10 @@ function words(text: string): string[] {
     .filter((w) => w !== "");
 }
 
-/** Score d'une entrée pour la requête, `null` si elle ne correspond pas. Chaque mot de la
- *  requête doit se retrouver, dans n'importe quel ordre : au début d'un mot du libellé (le
- *  mieux), au début d'un mot-clé, ou au milieu du libellé. Un libellé qui commence par la
- *  requête entière passe devant. */
+/** Score of an entry for the query, `null` if it does not match. Every word of the
+ *  query must be found, in any order: at the start of a word of the label (the
+ *  best), at the start of a keyword, or in the middle of the label. A label that starts with the
+ *  whole query comes first. */
 export function score(item: PaletteItem, query: string): number | null {
   const terms = words(query);
   if (terms.length === 0) return 0;
@@ -39,8 +39,8 @@ export function score(item: PaletteItem, query: string): number | null {
   return total;
 }
 
-/** Entrées qui correspondent, les meilleures d'abord ; à égalité, l'ordre d'origine. Requête
- *  vide : toutes, dans l'ordre d'origine. */
+/** Entries that match, best first; on a tie, the original order. Empty query:
+ *  all of them, in the original order. */
 export function rank<T extends PaletteItem>(items: T[], query: string): T[] {
   return items
     .map((item, index) => ({ item, index, score: score(item, query) }))

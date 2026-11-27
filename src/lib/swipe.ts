@@ -1,22 +1,22 @@
-// Glisser une ligne de titre vers la droite (Android, #174) : ajoute le titre à la file.
-// Volontairement peu sensible, pour qu'un défilement ne déclenche jamais rien :
-// - `touch-action: pan-y` (CSS de la ligne) : le défilement vertical reste au navigateur, qui
-//   annule le geste (`pointercancel`) dès qu'il le prend ;
-// - direction décidée après LOCK px, geste abandonné s'il n'est pas nettement horizontal ;
-// - déclenché seulement au-delà d'une part de la largeur de la ligne, au relâcher.
-// Le déplacement passe par une variable CSS et des classes posées ici, sans état Svelte : rien
-// n'est recalculé à chaque image du doigt.
+// Swiping a track row to the right (Android, #174): adds the track to the queue.
+// Deliberately not very sensitive, so that scrolling never triggers anything:
+// - `touch-action: pan-y` (the row's CSS): vertical scrolling stays with the browser, which
+//   cancels the gesture (`pointercancel`) as soon as it takes over;
+// - direction decided after LOCK px, gesture abandoned if it is not clearly horizontal;
+// - triggered only beyond a share of the row's width, on release.
+// The movement goes through a CSS variable and classes set here, without Svelte state: nothing
+// is recomputed on every frame of the finger.
 
-/** Distance avant de décider de la direction (px). */
+/** Distance before deciding the direction (px). */
 const LOCK = 12;
-/** Le geste doit être au moins DOMINANCE fois plus horizontal que vertical. */
+/** The gesture must be at least DOMINANCE times more horizontal than vertical. */
 const DOMINANCE = 2;
-/** Bord gauche réservé au Retour d'Android en navigation par gestes (px). */
+/** Left edge reserved for Android's Back with gesture navigation (px). */
 const EDGE = 24;
-/** Seuil de déclenchement : part de la largeur de la ligne, avec un minimum en px. */
+/** Trigger threshold: share of the row's width, with a minimum in px. */
 const RATIO = 0.35;
 const MIN_DISTANCE = 96;
-/** Durée du retour de la ligne à sa place (ms), comme la transition CSS. */
+/** Duration of the row's return to its place (ms), like the CSS transition. */
 const RELEASE_MS = 180;
 
 export interface SwipeOptions {
@@ -32,7 +32,7 @@ export function swipeRight(node: HTMLElement, options: SwipeOptions) {
   let y0 = 0;
   let dx = 0;
   let threshold = MIN_DISTANCE;
-  /** Un glissement vient de finir : le clic qui suit n'est pas un appui sur la ligne. */
+  /** A swipe has just ended: the click that follows is not a press on the row. */
   let swallowClick = false;
   let releaseTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -73,11 +73,11 @@ export function swipeRight(node: HTMLElement, options: SwipeOptions) {
       if (Math.hypot(mx, my) < LOCK) return;
       if (mx <= 0 || mx < DOMINANCE * Math.abs(my)) return stop();
       phase = "swiping";
-      // Garde le doigt même s'il sort de la ligne ; échoue si le pointeur n'est plus actif.
+      // Keeps the finger even if it leaves the row; fails if the pointer is no longer active.
       try {
         node.setPointerCapture(e.pointerId);
       } catch {
-        /* sans capture, le geste continue tant que le doigt reste sur la ligne */
+        /* without capture, the gesture continues as long as the finger stays on the row */
       }
       clearTimeout(releaseTimer);
       node.classList.remove("swipe-release");
@@ -96,7 +96,7 @@ export function swipeRight(node: HTMLElement, options: SwipeOptions) {
     stop();
     if (!swiped) return;
     release();
-    // Le clic éventuel arrive juste après `pointerup`, dans la même tâche.
+    // The possible click arrives right after `pointerup`, in the same task.
     swallowClick = true;
     setTimeout(() => (swallowClick = false), 0);
     if (fire) opts.onSwipe();
@@ -109,7 +109,7 @@ export function swipeRight(node: HTMLElement, options: SwipeOptions) {
     if (swiped) release();
   }
 
-  // Phase de capture : avant les gestionnaires de la ligne et de ses boutons.
+  // Capture phase: before the handlers of the row and its buttons.
   function onClick(e: MouseEvent) {
     if (!swallowClick) return;
     swallowClick = false;

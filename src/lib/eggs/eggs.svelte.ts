@@ -1,10 +1,9 @@
-// Clins d'œil (#399) : état courant et déclenchement. Présentation pure, sans backend :
-// le réglage `easterEggs` (Réglages › Apparence) les coupe tous.
+// Easter eggs (#399): current state and triggering. Pure presentation, no backend:
+// the `easterEggs` setting (Settings › Appearance) turns them all off.
 //
-// `<html>` porte `data-eggs` (réglage actif), `data-date-egg` (toute la journée),
-// `data-egg` (effet de recherche, une à deux secondes), `data-egg-pixels` (séquence au
-// clavier) et `data-egg-walk` (thème Désert) : les composants concernés s'en servent dans
-// leur CSS.
+// `<html>` carries `data-eggs` (setting on), `data-date-egg` (all day long),
+// `data-egg` (search effect, one to two seconds), `data-egg-pixels` (keyboard sequence)
+// and `data-egg-walk` (Desert theme): the components concerned use them in their CSS.
 
 import { untrack } from "svelte";
 import { player } from "../stores/player.svelte";
@@ -24,10 +23,10 @@ import {
 
 export type { DateEgg, SearchEgg } from "./registry";
 
-/** Durée des pochettes en gros pixels après la séquence au clavier. */
+/** Duration of the big-pixel covers after the keyboard sequence. */
 const PIXELS_MS = 10_000;
-/** Thème Désert : barres sans rythme régulier au début du premier titre d'un album lu comme
- *  album (premier titre joué de cet album, pas forcément la piste 1). */
+/** Desert theme: bars without a regular rhythm at the start of the first track of an album
+ *  played as an album (first track played from that album, not necessarily track 1). */
 const WALK_SECONDS = 10;
 
 const state = $state<{
@@ -44,7 +43,7 @@ const state = $state<{
   walk: false,
 });
 
-/** Clins d'œil visibles maintenant, réglage compris. */
+/** Easter eggs visible now, setting included. */
 export const eggs = {
   get date(): DateEgg | null {
     return ui.settings.easterEggs ? state.today : null;
@@ -52,25 +51,25 @@ export const eggs = {
   get search(): SearchEgg | null {
     return ui.settings.easterEggs ? state.flash : null;
   },
-  /** Même titre joué 10 fois de suite en Repeat One : ∞ sur l'icône de répétition. */
+  /** Same track played 10 times in a row on Repeat One: ∞ on the repeat icon. */
   get infinite(): boolean {
     return ui.settings.easterEggs && state.infinite;
   },
 };
 
-/** Effets de recherche déjà joués dans la session : jamais deux fois. */
+/** Search effects already played in the session: never twice. */
 const played = new Set<SearchEgg>();
 let flashTimer: ReturnType<typeof setTimeout> | undefined;
 let pixelsTimer: ReturnType<typeof setTimeout> | undefined;
 let loops = NO_LOOPS;
-/** Titre et album précédents, pour repérer l'entrée dans un nouvel album. */
+/** Previous track and album, to spot the entry into a new album. */
 let lastTrack: number | null = null;
 let lastAlbum: number | null = null;
 let albumStart = false;
 let progress = 0;
 
-/** Aperçu hors Tauri (`pnpm dev`) : `?date=AAAA-MM-JJ` fixe le jour, `?egg=<id>` force un
- *  clin d'œil de date, joue un effet de recherche au démarrage, ou `infinity` / `pixels`. */
+/** Preview outside Tauri (`pnpm dev`): `?date=YYYY-MM-DD` fixes the day, `?egg=<id>` forces a
+ *  date egg, plays a search effect at startup, or `infinity` / `pixels`. */
 const preview = import.meta.env.DEV ? new URLSearchParams(location.search) : null;
 const previewDate = parsePreviewDate(preview?.get("date") ?? null);
 const previewEgg = preview?.get("egg") ?? null;
@@ -86,10 +85,10 @@ function flag(name: string, on: boolean) {
   else delete root.dataset[name];
 }
 
-/** Lance le suivi du jour, de la lecture et du clavier, et le reflet sur `<html>`. */
+/** Starts tracking the day, playback and keyboard, and the mirror on `<html>`. */
 export function initEggs() {
   state.today = today();
-  // Le jour change pendant que l'app reste ouverte : vérifié chaque minute.
+  // The day changes while the app stays open: checked every minute.
   setInterval(() => {
     const egg = today();
     if (egg !== state.today) state.today = egg;
@@ -108,7 +107,7 @@ export function initEggs() {
       flag("eggPixels", on && state.pixels);
       flag("eggWalk", on && state.walk);
     });
-    // Une seule lecture de `player.state` (~4 Hz) ; les drapeaux ne changent que rarement.
+    // A single read of `player.state` (~4 Hz); the flags rarely change.
     $effect(() => {
       const s = player.state;
       const id = s.track?.id ?? null;
@@ -158,7 +157,7 @@ function play(egg: SearchEgg, again = false) {
   flashTimer = setTimeout(() => (state.flash = null), searchEggMs(egg));
 }
 
-/** Recherche lancée : joue son clin d'œil s'il y en a un et qu'il n'a pas déjà joué. */
+/** Search started: plays its egg if there is one and it has not already played. */
 export function searched(query: string) {
   const egg = eggForQuery(query);
   if (egg) play(egg);

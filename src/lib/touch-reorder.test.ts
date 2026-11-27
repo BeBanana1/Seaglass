@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Reorder } from "./reorder.svelte";
 import { touchReorder } from "./touch-reorder";
 
-// Liste factice, sans DOM simulé : un conteneur qui défile (haut 0, bas 600) et douze lignes
-// de 50 px posées à partir de 200 px dans le contenu (jusqu'à 800, plus bas que l'écran).
-// La ligne saisie est la deuxième.
+// Fake list, without a simulated DOM: a scrolling container (top 0, bottom 600) and twelve rows
+// of 50 px placed from 200 px in the content (up to 800, lower than the screen).
+// The grabbed row is the second one.
 const ROW = 50;
 const TOP = 200;
 const COUNT = 12;
@@ -44,7 +44,7 @@ class FakeRow extends EventTarget {
     return null;
   }
 
-  /** Position à l'écran : suit le défilement et, pour la ligne saisie, son `--drag-y`. */
+  /** Position on screen: follows the scrolling and, for the grabbed row, its `--drag-y`. */
   getBoundingClientRect() {
     const shift = parseFloat(this.vars.get("--drag-y") ?? "0");
     const top = TOP + this.index * ROW - this.parentElement.scrollTop + shift;
@@ -55,7 +55,7 @@ class FakeRow extends EventTarget {
 let frames: FrameRequestCallback[] = [];
 const vibrate = vi.fn();
 
-/** Joue les images d'animation en attente (défilement automatique). */
+/** Plays the pending animation frames (automatic scrolling). */
 function nextFrame() {
   const pending = frames;
   frames = [];
@@ -80,7 +80,7 @@ let onMove: ReturnType<typeof vi.fn<(from: number, to: number) => void>>;
 let reorder: Reorder;
 let action: ReturnType<typeof touchReorder>;
 
-/** Remplace la liste par `count` lignes (la saisie reste sur la deuxième). */
+/** Replaces the list with `count` rows (the grab stays on the second). */
 function setRows(count: number) {
   action.destroy();
   rows = Array.from({ length: count }, (_, i) => new FakeRow(i, scroller));
@@ -93,7 +93,7 @@ function setRows(count: number) {
   });
 }
 
-/** Appui long sur la ligne saisie (au milieu, y = 275). */
+/** Long press on the grabbed row (in the middle, y = 275). */
 function hold(y = 275) {
   row.dispatchEvent(pointer("pointerdown", y));
   vi.advanceTimersByTime(350);
@@ -153,7 +153,7 @@ afterEach(() => {
 });
 
 describe("touchReorder", () => {
-  it("saisit la ligne après un appui long, avec une vibration", () => {
+  it("grabs the row after a long press, with a vibration", () => {
     row.dispatchEvent(pointer("pointerdown", 275));
     vi.advanceTimersByTime(349);
     expect(reorder.from).toBeNull();
@@ -161,13 +161,13 @@ describe("touchReorder", () => {
     expect(reorder.from).toBe(1);
     expect(row.classes.has("touch-dragging")).toBe(true);
     expect(vibrate).toHaveBeenCalledOnce();
-    // Sans bouger, la ligne reste à sa place : le dépôt ne change rien.
+    // Without moving, the row stays in place: the drop changes nothing.
     expect(reorder.slot).toBe(2);
     row.dispatchEvent(pointer("pointerup", 275));
     expect(onMove).not.toHaveBeenCalled();
   });
 
-  it("déplace vers le bas : la ligne suit le doigt, situé d'après sa place d'origine", () => {
+  it("moves down: the row follows the finger, located from its original place", () => {
     hold();
     row.dispatchEvent(pointer("pointermove", 330));
     expect(row.vars.get("--drag-y")).toBe("55px");
@@ -179,9 +179,9 @@ describe("touchReorder", () => {
     expect([reorder.from, reorder.slot]).toEqual([null, null]);
   });
 
-  it("déplace vers le haut", () => {
+  it("moves up", () => {
     hold();
-    // Au-dessus de son propre milieu d'origine : emplacement juste avant elle (sans effet).
+    // Above its own original middle: slot right before it (no effect).
     row.dispatchEvent(pointer("pointermove", 260));
     expect(reorder.slot).toBe(1);
     row.dispatchEvent(pointer("pointermove", 210));
@@ -190,14 +190,14 @@ describe("touchReorder", () => {
     expect(onMove).toHaveBeenCalledWith(1, 0);
   });
 
-  it("tolère un léger mouvement pendant l'appui", () => {
+  it("tolerates a slight movement during the press", () => {
     row.dispatchEvent(pointer("pointerdown", 275));
     row.dispatchEvent(pointer("pointermove", 282));
     vi.advanceTimersByTime(350);
     expect(reorder.from).toBe(1);
   });
 
-  it("rend la main au défilement si le doigt bouge avant la saisie", () => {
+  it("hands control back to scrolling if the finger moves before the grab", () => {
     row.dispatchEvent(pointer("pointerdown", 275));
     row.dispatchEvent(pointer("pointermove", 290));
     vi.advanceTimersByTime(1000);
@@ -205,7 +205,7 @@ describe("touchReorder", () => {
     expect(dispatch("touchmove")).toBe(false);
   });
 
-  it("ignore la souris, un appui sur un bouton, et une liste désactivée", () => {
+  it("ignores the mouse, a press on a button, and a disabled list", () => {
     row.dispatchEvent(pointer("pointerdown", 275, { pointerType: "mouse" }));
     vi.advanceTimersByTime(350);
     expect(reorder.from).toBeNull();
@@ -226,7 +226,7 @@ describe("touchReorder", () => {
     expect(reorder.from).toBeNull();
   });
 
-  it("annulé par le navigateur : rien ne bouge", () => {
+  it("cancelled by the browser: nothing moves", () => {
     hold();
     row.dispatchEvent(pointer("pointermove", 330));
     row.dispatchEvent(pointer("pointercancel", 330));
@@ -235,7 +235,7 @@ describe("touchReorder", () => {
     expect(row.classes.has("touch-dragging")).toBe(false);
   });
 
-  it("désactivé en pleine saisie : la saisie est abandonnée", () => {
+  it("disabled in the middle of a grab: the grab is abandoned", () => {
     hold();
     row.dispatchEvent(pointer("pointermove", 330));
     action.update({
@@ -249,7 +249,7 @@ describe("touchReorder", () => {
     expect(onMove).not.toHaveBeenCalled();
   });
 
-  it("bloque le défilement et le menu de l'appui long pendant le geste seulement", () => {
+  it("blocks scrolling and the long-press menu during the gesture only", () => {
     expect(dispatch("touchmove")).toBe(false);
     expect(dispatch("contextmenu")).toBe(false);
     row.dispatchEvent(pointer("pointerdown", 275));
@@ -260,25 +260,25 @@ describe("touchReorder", () => {
     expect(dispatch("touchmove")).toBe(false);
   });
 
-  it("avale le clic qui suit une saisie, dans la même tâche seulement", () => {
+  it("swallows the click that follows a grab, in the same task only", () => {
     hold();
     row.dispatchEvent(pointer("pointerup", 275));
     expect(dispatch("click")).toBe(true);
     vi.runAllTimers();
     expect(dispatch("click")).toBe(false);
-    // Simple appui : le clic passe.
+    // Simple press: the click goes through.
     row.dispatchEvent(pointer("pointerdown", 275));
     row.dispatchEvent(pointer("pointerup", 275));
     expect(dispatch("click")).toBe(false);
   });
 
-  it("fait défiler la page près d'un bord, et la ligne suit le contenu", () => {
+  it("scrolls the page near an edge, and the row follows the content", () => {
     hold();
     row.dispatchEvent(pointer("pointermove", 300));
     nextFrame();
     expect(scroller.scrollTop).toBe(0);
 
-    // Au bord bas (600) : vitesse maximale.
+    // At the bottom edge (600): maximum speed.
     row.dispatchEvent(pointer("pointermove", 600));
     nextFrame();
     expect(scroller.scrollTop).toBe(14);
@@ -286,12 +286,12 @@ describe("touchReorder", () => {
     nextFrame();
     expect(scroller.scrollTop).toBe(28);
 
-    // Retour au milieu : le défilement s'arrête.
+    // Back to the middle: scrolling stops.
     row.dispatchEvent(pointer("pointermove", 300));
     nextFrame();
     expect(scroller.scrollTop).toBe(28);
 
-    // Au bord haut : le haut de la liste est visible (172 px), rien à remonter (#302).
+    // At the top edge: the top of the list is visible (172 px), nothing to scroll up (#302).
     row.dispatchEvent(pointer("pointermove", 32));
     nextFrame();
     expect(scroller.scrollTop).toBe(28);
@@ -301,33 +301,33 @@ describe("touchReorder", () => {
     expect(onMove).toHaveBeenCalledWith(1, 0);
   });
 
-  it("remonte tant que le haut de la liste est caché, à demi-vitesse à mi-zone", () => {
+  it("scrolls up while the top of the list is hidden, at half speed mid-zone", () => {
     scroller.scrollTop = 180;
     hold(275 - 180);
     row.dispatchEvent(pointer("pointermove", 32));
     nextFrame();
     expect(scroller.scrollTop).toBe(173);
-    // Le haut de la liste (200 - 173 = 27 px) n'est plus qu'à 37 px de la zone : dernier cran.
+    // The top of the list (200 - 173 = 27 px) is only 37 px from the zone: last notch.
     for (let i = 0; i < 10; i++) nextFrame();
     expect(scroller.scrollTop).toBe(136);
     expect(200 - scroller.scrollTop).toBe(64);
   });
 
-  it("s'arrête au bout de la liste au lieu de descendre sans fin (#302)", () => {
+  it("stops at the end of the list instead of going down endlessly (#302)", () => {
     hold();
     row.dispatchEvent(pointer("pointermove", 600));
     for (let i = 0; i < 100; i++) nextFrame();
-    // Bas de la liste (800) au bord de la zone de défilement (600 - 64).
+    // Bottom of the list (800) at the edge of the scroll zone (600 - 64).
     expect(scroller.scrollTop).toBe(800 - 536);
-    // La ligne ne dépasse pas la dernière : son bas s'arrête à celui de la liste.
+    // The row does not go past the last one: its bottom stops at the list's.
     const { top } = row.getBoundingClientRect();
     expect(top + ROW).toBe(800 - scroller.scrollTop);
     row.dispatchEvent(pointer("pointerup", 600));
     expect(onMove).toHaveBeenCalledWith(1, COUNT - 1);
   });
 
-  describe("avec une poignée (#450)", () => {
-    /** Appui dont la cible est (ou non) dans la poignée `.grip`. */
+  describe("with a handle (#450)", () => {
+    /** Press whose target is (or is not) in the `.grip` handle. */
     function press(onHandle: boolean, y = 275) {
       const e = pointer("pointerdown", y);
       const target = { closest: (sel: string) => (onHandle && sel === ".grip" ? {} : null) };
@@ -345,11 +345,11 @@ describe("touchReorder", () => {
       });
     });
 
-    it("saisit la ligne dès l'appui sur la poignée, sans appui long", () => {
+    it("grabs the row as soon as the handle is pressed, without a long press", () => {
       press(true);
       expect(reorder.from).toBe(1);
       expect(vibrate).toHaveBeenCalledOnce();
-      // La page ne défile pas, et l'appui long ne déclenche ni menu ni sélection.
+      // The page does not scroll, and the long press triggers neither menu nor selection.
       expect(dispatch("touchmove")).toBe(true);
       expect(dispatch("contextmenu")).toBe(true);
       row.dispatchEvent(pointer("pointermove", 330));
@@ -357,14 +357,14 @@ describe("touchReorder", () => {
       expect(onMove).toHaveBeenCalledWith(1, 2);
     });
 
-    it("ailleurs sur la ligne, l'appui long garde son menu", () => {
+    it("elsewhere on the row, the long press keeps its menu", () => {
       press(false);
       vi.advanceTimersByTime(1000);
       expect(reorder.from).toBeNull();
       expect(dispatch("contextmenu")).toBe(false);
     });
 
-    it("un simple appui sur la poignée ne déplace rien", () => {
+    it("a simple press on the handle moves nothing", () => {
       press(true);
       row.dispatchEvent(pointer("pointerup", 275));
       expect(onMove).not.toHaveBeenCalled();
@@ -372,16 +372,16 @@ describe("touchReorder", () => {
     });
   });
 
-  it("garde la ligne dans une liste courte, sans faire défiler la page", () => {
+  it("keeps the row in a short list, without scrolling the page", () => {
     setRows(3);
     hold();
-    // Bas de la liste à 350 : la ligne (origine 250) ne descend que de 50 px.
+    // Bottom of the list at 350: the row (origin 250) only goes down by 50 px.
     row.dispatchEvent(pointer("pointermove", 590));
     nextFrame();
     expect(scroller.scrollTop).toBe(0);
     expect(row.vars.get("--drag-y")).toBe("50px");
     expect(reorder.slot).toBe(3);
-    // Ni au-dessus de la première.
+    // Nor above the first one.
     row.dispatchEvent(pointer("pointermove", 10));
     nextFrame();
     expect(row.vars.get("--drag-y")).toBe("-50px");

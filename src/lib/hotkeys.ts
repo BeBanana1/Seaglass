@@ -1,10 +1,10 @@
-// Raccourcis globaux (#413) : capture d'une combinaison au clavier et affichage. Logique pure,
-// testée (`hotkeys.test.ts`). Le format (`Ctrl+Alt+KeyL`) est celui que lit `global-hotkey`
-// côté Rust ; la touche est `KeyboardEvent.code`, indépendante de la disposition du clavier.
+// Global shortcuts (#413): capturing a key combination from the keyboard and displaying it.
+// Pure logic, tested (`hotkeys.test.ts`). The format (`Ctrl+Alt+KeyL`) is the one read by
+// `global-hotkey` on the Rust side; the key is `KeyboardEvent.code`, independent of the layout.
 
 import type { GlobalAction } from "./ipc";
 
-/** Ordre des actions dans les Réglages. */
+/** Order of the actions in Settings. */
 export const GLOBAL_ACTIONS: GlobalAction[] = [
   "playPause",
   "next",
@@ -15,18 +15,18 @@ export const GLOBAL_ACTIONS: GlobalAction[] = [
   "showWindow",
 ];
 
-/** Touches que `global-hotkey` sait enregistrer (sans les modificateurs). */
+/** Keys that `global-hotkey` can register (without the modifiers). */
 const SUPPORTED =
   /^(Key[A-Z]|Digit[0-9]|Numpad([0-9]|Add|Decimal|Divide|Enter|Equal|Multiply|Subtract)|F([1-9]|1[0-9]|2[0-4])|Arrow(Up|Down|Left|Right)|Space|Enter|Tab|Backspace|Delete|Insert|Home|End|PageUp|PageDown|Pause|PrintScreen|ScrollLock|Backquote|Backslash|BracketLeft|BracketRight|Comma|Equal|Minus|Period|Quote|Semicolon|Slash|AudioVolume(Up|Down|Mute)|Media(PlayPause|Stop|TrackNext|TrackPrevious))$/;
 
 const MODIFIER = /^(Control|Alt|Shift|Meta|OS)(Left|Right)?$/;
 
 export type Capture =
-  /** Combinaison complète. */
+  /** Complete combination. */
   | { kind: "keys"; keys: string }
-  /** Seulement des modificateurs pour l'instant : attendre la touche. */
+  /** Only modifiers so far: wait for the key. */
   | { kind: "pending" }
-  /** Pas de Ctrl, Alt ni Windows : la touche servirait à écrire ailleurs. */
+  /** No Ctrl, Alt or Windows: the key would be used to type elsewhere. */
   | { kind: "needsModifier" }
   | { kind: "unsupported" };
 
@@ -46,7 +46,7 @@ export function capture(e: KeyInfo): Capture {
   return { kind: "keys", keys: parts.filter(Boolean).join("+") };
 }
 
-/** Même combinaison écrite autrement (casse, ordre des modificateurs) ? */
+/** Same combination written differently (case, order of modifiers)? */
 export function sameKeys(a: string, b: string): boolean {
   const norm = (k: string) => {
     const parts = k.toUpperCase().split("+");
@@ -75,8 +75,8 @@ const KEY_LABELS: Record<string, string> = {
   Slash: "/",
 };
 
-/** Texte affiché : `Ctrl+Alt+KeyL` → `Ctrl + Alt + L`, `Ctrl+Alt+ArrowUp` → `Ctrl + Alt + ↑`.
- *  `space` : nom de la barre d'espace dans la langue courante. */
+/** Displayed text: `Ctrl+Alt+KeyL` → `Ctrl + Alt + L`, `Ctrl+Alt+ArrowUp` → `Ctrl + Alt + ↑`.
+ *  `space`: name of the space bar in the current language. */
 export function displayKeys(keys: string, space = "Space"): string {
   return keys
     .split("+")
@@ -88,7 +88,7 @@ export function displayKeys(keys: string, space = "Space"): string {
     .join(" + ");
 }
 
-/** Combinaisons proposées, les mêmes que `GlobalShortcuts::default` côté Rust. */
+/** Proposed combinations, the same as `GlobalShortcuts::default` on the Rust side. */
 export const DEFAULT_BINDINGS: Record<GlobalAction, string> = {
   playPause: "Ctrl+Alt+Space",
   next: "Ctrl+Alt+ArrowRight",

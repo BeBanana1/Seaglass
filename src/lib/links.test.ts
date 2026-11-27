@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { LinkTarget } from "./ipc";
 
-// Backend et navigation simulés : seule la correspondance lien → page est testée ici.
+// Simulated backend and navigation: only the link → page mapping is tested here.
 const mocks = vi.hoisted(() => ({
   openLink: vi.fn<(text: string) => Promise<LinkTarget | null>>(),
   takeSharedLink: vi.fn<() => Promise<LinkTarget | null>>(),
@@ -22,13 +22,13 @@ beforeEach(() => {
 });
 
 describe("openTidalLink", () => {
-  it("ouvre l'album d'un titre, titre mis en évidence", async () => {
+  it("opens a track's album, track highlighted", async () => {
     mocks.openLink.mockResolvedValue({ kind: "album", id: 12, track: 34 });
     expect(await openTidalLink("https://tidal.com/track/34")).toBe(true);
     expect(mocks.go).toHaveBeenCalledWith({ name: "album", id: 12, track: 34 });
   });
 
-  it("ouvre un album sans titre à mettre en évidence", async () => {
+  it("opens an album with no track to highlight", async () => {
     mocks.openLink.mockResolvedValue({ kind: "album", id: 12, track: null });
     await openTidalLink("lien");
     expect(mocks.go).toHaveBeenCalledWith({ name: "album", id: 12, track: undefined });
@@ -48,7 +48,7 @@ describe("openTidalLink", () => {
         { kind: "mix", id: "m-1" },
         { name: "mix", id: "m-1" },
       ],
-      // #328 : playlist d'un autre service → page d'import.
+      // #328: playlist from another service → import page.
       [
         { kind: "import", link: "https://www.deezer.com/playlist/42" },
         { name: "import", link: "https://www.deezer.com/playlist/42" },
@@ -61,13 +61,13 @@ describe("openTidalLink", () => {
     }
   });
 
-  it("rend `false` sans lien reconnu, sans naviguer", async () => {
+  it("returns `false` with no recognized link, without navigating", async () => {
     mocks.openLink.mockResolvedValue(null);
     expect(await openTidalLink("du texte")).toBe(false);
     expect(mocks.go).not.toHaveBeenCalled();
   });
 
-  it("affiche l'erreur du backend et considère le lien comme traité", async () => {
+  it("shows the backend's error and treats the link as handled", async () => {
     mocks.openLink.mockRejectedValue("introuvable");
     expect(await openTidalLink("https://tidal.com/album/1")).toBe(true);
     expect(mocks.pushToast).toHaveBeenCalledWith({ level: "error", message: "introuvable" });
@@ -82,13 +82,13 @@ describe("openSharedLink", () => {
     expect(mocks.go).toHaveBeenCalledWith({ name: "artist", id: 9 });
   });
 
-  it("ouvre le fil d'une notification groupée des nouvelles sorties (#435)", async () => {
+  it("opens the feed of a grouped new-releases notification (#435)", async () => {
     mocks.takeSharedLink.mockResolvedValue({ kind: "feed" });
     await openSharedLink();
     expect(mocks.go).toHaveBeenCalledWith({ name: "feed" });
   });
 
-  it("ignore l'absence de lien et les erreurs", async () => {
+  it("ignores a missing link and errors", async () => {
     mocks.takeSharedLink.mockResolvedValue(null);
     await openSharedLink();
     mocks.takeSharedLink.mockRejectedValue("erreur");

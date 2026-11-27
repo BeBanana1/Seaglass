@@ -1,7 +1,7 @@
-// Registre unique des actions de l'app (#412) : la palette de commandes les affiche avec
-// leur raccourci, et les raccourcis clavier de `App.svelte` les exécutent par `runAction`.
-// Une action ajoutée ici apparaît dans la palette ; son raccourci, s'il y en a un, se
-// déclare dans `shortcut` (texte affiché) et se reconnaît dans `App.svelte`.
+// Single registry of the app's actions (#412): the command palette lists them with
+// their shortcut, and the keyboard shortcuts of `App.svelte` run them through `runAction`.
+// An action added here appears in the palette; its shortcut, if it has one, is declared
+// in `shortcut` (displayed text) and recognized in `App.svelte`.
 
 import { commands, type Repeat, type Theme } from "./ipc";
 import { t } from "./i18n.svelte";
@@ -31,17 +31,17 @@ export type ActionGroup = "go" | "playback" | "window" | "theme";
 export interface Action {
   id: string;
   group: ActionGroup;
-  /** Libellé dans la langue courante (lu à l'ouverture de la palette). */
+  /** Label in the current language (read when the palette opens). */
   label: () => string;
   keywords?: string[];
-  /** Raccourci affiché dans la palette (reconnu par `App.svelte`) ; fonction s'il se traduit. */
+  /** Shortcut shown in the palette (recognized by `App.svelte`); a function if it is translated. */
   shortcut?: string | (() => string);
-  /** Proposée seulement si vrai (connecté, bureau, titre en cours…). */
+  /** Offered only when true (signed in, desktop, track playing...). */
   available?: () => boolean;
   run: () => unknown;
 }
 
-/** Ce que seul `App.svelte` sait faire : ses panneaux et l'état de la session. */
+/** What only `App.svelte` can do: its panels and the session state. */
 export interface ActionContext {
   loggedIn: () => boolean;
   openNowPlaying: () => void;
@@ -60,7 +60,7 @@ export function setActionContext(ctx: ActionContext) {
   context = ctx;
 }
 
-/** Mode exclusif possible sur cette machine (lu une fois, bureau seulement). */
+/** Exclusive mode possible on this machine (read once, desktop only). */
 let exclusiveAvailable = false;
 
 export async function initActions() {
@@ -72,7 +72,7 @@ const desktop = () => !platform.mobile;
 const session = () => context.loggedIn();
 const hasTrack = () => session() && !!player.currentTrack;
 
-/** Ouvre une page en fermant « En lecture » ; la même page n'est pas empilée deux fois. */
+/** Opens a page and closes "Now playing"; the same page is not stacked twice. */
 export function open(route: Route) {
   context.closeNowPlaying();
   if (JSON.stringify(route) === JSON.stringify(current())) return;
@@ -315,7 +315,7 @@ export const ACTIONS: Action[] = [
     run: () => commands.setSleepTimer(null),
   },
 
-  // Fenêtre
+  // Window
   {
     id: "window.mini",
     group: "window",
@@ -362,7 +362,7 @@ export const ACTIONS: Action[] = [
     run: () => stepZoom(0),
   },
 
-  // Thèmes : un par entrée, sauf le thème en cours.
+  // Themes: one per entry, except the current theme.
   ...THEME_INFO.map((info): Action => ({
     id: `theme.${info.id}`,
     group: "theme",
@@ -380,12 +380,12 @@ export function shortcutText(action: Action): string | null {
   return typeof s === "function" ? s() : (s ?? null);
 }
 
-/** Actions proposées maintenant, dans l'ordre du registre. */
+/** Actions offered now, in registry order. */
 export function availableActions(): Action[] {
   return ACTIONS.filter((action) => !action.available || action.available());
 }
 
-/** Exécute une action ; une erreur part dans un toast. Sans effet si elle n'est pas proposée. */
+/** Runs an action; an error goes to a toast. No effect if it is not offered. */
 export function runAction(id: string) {
   const action = byId.get(id);
   if (!action || (action.available && !action.available())) return;

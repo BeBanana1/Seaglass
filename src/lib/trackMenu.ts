@@ -1,4 +1,4 @@
-// Entrées du menu contextuel d'un titre (#52). Chaque action passe par une commande du backend.
+// Entries of a track's context menu (#52). Each action goes through a backend command.
 
 import { commands, type BlockTarget, type Track } from "./ipc";
 import { fullTitle } from "./format";
@@ -12,26 +12,26 @@ import { openTrackInfo } from "./stores/trackInfo.svelte";
 import { t } from "./i18n.svelte";
 
 export interface TrackMenuOptions {
-  /** Lire le titre dans son contexte (liste affichée). */
+  /** Play the track in its context (displayed list). */
   onPlay?: () => void;
-  /** Titre de la file manuelle : « Retirer » remplace les ajouts à la file. */
+  /** Track of the manual queue: "Remove" replaces the additions to the queue. */
   onRemove?: () => void;
-  /** Titre de la file manuelle qui peut monter / descendre d'un cran (#80). */
+  /** Track of the manual queue that can move up / down one notch (#80). */
   onMoveUp?: () => void;
   onMoveDown?: () => void;
-  /** « Lire ensuite » / « Ajouter à la file ». */
+  /** "Play next" / "Add to queue". */
   queueable?: boolean;
-  /** Titre d'une de vos playlists : « Retirer de cette playlist ». */
+  /** Track of one of your playlists: "Remove from this playlist". */
   onRemoveFromPlaylist?: () => void;
-  /** Après un blocage confirmé (#334) : « En lecture » passe au titre suivant. */
+  /** After a confirmed block (#334): "Now playing" moves to the next track. */
   onBlocked?: () => void;
-  /** Liste qui permet la sélection multiple (#332) : « Sélectionner ». */
+  /** List that allows multiple selection (#332): "Select". */
   onSelect?: () => void;
   /** Track being played (#518): "Copy as image" renders the "Now playing" card. */
   onShareImage?: () => void;
 }
 
-/** Lien public du titre, à partager. */
+/** Public link of the track, to share. */
 export function trackLink(track: Track): string {
   return `https://tidal.com/browse/track/${track.id}`;
 }
@@ -44,7 +44,7 @@ async function run(action: () => Promise<unknown>) {
   }
 }
 
-/** Bloque (#334), puis propose d'annuler : le blocage vaut sur tous les appareils. */
+/** Blocks (#334), then offers to undo: the block applies on all devices. */
 async function block(target: BlockTarget, message: string, onBlocked?: () => void) {
   try {
     await commands.setBlocked(target, true);
@@ -124,7 +124,7 @@ export function trackMenu(
     },
     { label: m.goToAlbum, icon: "album", action: () => go({ name: "album", id: track.album.id }) },
   );
-  // Une entrée par artiste : « Aller à l'artiste » seul serait ambigu sur un featuring.
+  // One entry per artist: "Go to artist" alone would be ambiguous on a featuring.
   for (const artist of track.artists) {
     entries.push({
       label: track.artists.length > 1 ? m.goTo(artist.name) : m.goToArtist,
@@ -145,7 +145,7 @@ export function trackMenu(
     action: () =>
       block({ kind: "track", id: track.id }, m.trackBlocked(fullTitle(track)), onBlocked),
   });
-  // Artiste principal seulement : un invité se bloque depuis un de ses propres titres.
+  // Main artist only: a guest is blocked from one of their own tracks.
   const main = track.artists[0];
   if (main) {
     entries.push({

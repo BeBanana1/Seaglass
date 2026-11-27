@@ -1,10 +1,10 @@
-// Touche (ou geste) Retour d'Android (#24). `MainActivity` appelle `window.__seaglassBack()` à
-// chaque Retour : vrai si l'app a fermé quelque chose (menu, vue, page), faux sinon, et
-// Android passe alors l'app en arrière-plan (la lecture continue).
+// Android's Back key (or gesture) (#24). `MainActivity` calls `window.__seaglassBack()` on
+// every Back: true if the app closed something (menu, view, page), false otherwise, and
+// Android then sends the app to the background (playback continues).
 //
-// Plus d'entrée d'historique sentinelle (jusqu'en 0.4.117) : la WebView ignore pour Retour les
-// entrées posées sans geste de l'utilisateur dans la page, donc le mode conduite ouvert par le
-// lien `seaglass://drive` faisait quitter l'app au premier Retour (#193, vu sur le S21).
+// No more sentinel history entry (until 0.4.117): for Back, the WebView ignores entries
+// pushed without a user gesture in the page, so the driving mode opened by the
+// `seaglass://drive` link made the app quit on the first Back (#193, seen on the S21).
 
 declare global {
   interface Window {

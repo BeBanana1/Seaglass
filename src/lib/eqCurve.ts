@@ -1,13 +1,13 @@
-// Courbe de réponse d'un profil d'égaliseur (#428), pour l'affichage seulement : le son
-// est filtré par mpv (`mpv/filters.rs`). Biquads du « Audio EQ Cookbook » de R. Bristow-
-// Johnson, les mêmes que ceux de libavfilter (`equalizer`, `bass`, `treble` en `t=q`) et
-// d'AutoEQ.
+// Response curve of an equalizer profile (#428), for display only: the sound
+// is filtered by mpv (`mpv/filters.rs`). Biquads from R. Bristow-Johnson's "Audio EQ
+// Cookbook", the same as libavfilter's (`equalizer`, `bass`, `treble` with `t=q`) and
+// AutoEQ's.
 
 import type { EqFilter, EqProfile } from "./ipc";
 
 const FS = 48_000;
 
-/** Préampli appliqué : celui du profil, sinon l'automatique (même règle que
+/** Preamp applied: the profile's, otherwise the automatic one (same rule as
  *  `EqProfile::effective_preamp`). */
 export function effectivePreamp(profile: EqProfile): number {
   return profile.preamp ?? -Math.max(0, ...profile.filters.map((f) => f.gain));
@@ -43,7 +43,7 @@ function coefficients(f: EqFilter): number[] {
   ];
 }
 
-/** Gain d'un biquad à la fréquence `hz`, en dB. */
+/** Gain of a biquad at frequency `hz`, in dB. */
 function filterDb(c: number[], hz: number): number {
   const w = (2 * Math.PI * hz) / FS;
   const [c1, s1, c2, s2] = [Math.cos(w), Math.sin(w), Math.cos(2 * w), Math.sin(2 * w)];
@@ -54,8 +54,8 @@ function filterDb(c: number[], hz: number): number {
   return 10 * Math.log10((nr * nr + ni * ni) / (dr * dr + di * di));
 }
 
-/** Réponse du profil (préampli compris) en `points` fréquences réparties en échelle
- *  logarithmique de 20 Hz à 20 kHz : `[hz, dB]`. */
+/** Response of the profile (preamp included) over `points` frequencies spread on a
+ *  logarithmic scale from 20 Hz to 20 kHz: `[hz, dB]`. */
 export function response(profile: EqProfile, points = 160): [number, number][] {
   const coeffs = profile.filters.filter((f) => f.gain !== 0).map(coefficients);
   const preamp = effectivePreamp(profile);
