@@ -1,6 +1,6 @@
-//! Transfert de la lecture (#414) : l'app Android d'un téléphone lié reprend ce qui joue
-//! sur le PC (`take`), ou le lui rend (`give`). Mêmes code et limites que la télécommande,
-//! servi seulement si « Accepter les transferts » est activé.
+//! Playback handoff (#414): the Android app of a linked phone takes over what is playing
+//! on the PC (`take`), or hands it back (`give`). Same code and limits as the remote
+//! control, served only if "Accept handoffs" is on.
 
 use std::net::IpAddr;
 
@@ -10,7 +10,7 @@ use crate::player::Handoff;
 
 use super::{Owner, Remote, backend_error};
 
-/// Routes du transfert ; `None` si `path` n'en est pas une.
+/// Handoff routes; `None` if `path` is not one.
 pub(super) async fn route<R: Remote>(
     owner: &Owner,
     path: &str,
@@ -34,7 +34,7 @@ pub(super) async fn route<R: Remote>(
     })
 }
 
-/// L'état de lecture du PC, qui se met en pause ; 409 `idle` si rien n'est en cours.
+/// The PC's playback state, which pauses; 409 `idle` if nothing is playing.
 async fn take<R: Remote>(remote: &R) -> Response {
     match remote.take_handoff().await {
         Ok(Some(handoff)) => match serde_json::to_string(&handoff) {
@@ -46,7 +46,7 @@ async fn take<R: Remote>(remote: &R) -> Response {
     }
 }
 
-/// Le PC reprend la lecture envoyée par le téléphone.
+/// The PC resumes the playback sent by the phone.
 async fn give<R: Remote>(owner: &Owner, body: &[u8], remote: &R) -> Response {
     let Ok(handoff) = serde_json::from_slice::<Handoff>(body) else {
         return Response::error(400, "body");

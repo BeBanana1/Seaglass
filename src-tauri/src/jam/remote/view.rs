@@ -1,5 +1,5 @@
-//! Ce que la page de la télécommande reçoit (#336) : l'état du lecteur, la file, les
-//! résultats d'une recherche et les playlists, rien d'autre ne sort de l'app.
+//! What the remote control page receives (#336): the player state, the queue, the search
+//! results and the playlists, nothing else leaves the app.
 
 use serde::Serialize;
 
@@ -7,7 +7,7 @@ use crate::jam::view::GuestTrack;
 use crate::player::{PlayerState, QueueView, Repeat};
 use crate::tidal::models::PlaylistSummary;
 
-/// Titres montrés de chaque partie de la file (manuelle, suite du contexte).
+/// Tracks shown for each part of the queue (manual, rest of the context).
 pub const MAX_QUEUE: usize = 50;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -15,10 +15,10 @@ pub const MAX_QUEUE: usize = 50;
 pub struct RemoteView {
     pub now: Option<GuestTrack>,
     pub paused: bool,
-    /// Le titre courant se charge (métadonnées, flux).
+    /// The current track is loading (metadata, stream).
     pub loading: bool,
-    /// Position en secondes entières : l'état ne change qu'une fois par seconde en lecture,
-    /// la page interpole entre deux envois.
+    /// Position in whole seconds: the state only changes once per second during playback,
+    /// the page interpolates between two sends.
     pub position: u32,
     pub duration: u32,
     pub volume: u8,
@@ -27,9 +27,9 @@ pub struct RemoteView {
     pub repeat: Repeat,
     pub has_previous: bool,
     pub has_next: bool,
-    /// File manuelle (« Lire ensuite », « Ajouter à la file »), `MAX_QUEUE` au plus.
+    /// Manual queue ("Play next", "Add to queue"), `MAX_QUEUE` at most.
     pub manual: Vec<GuestTrack>,
-    /// Suite du contexte (album, playlist…), `MAX_QUEUE` au plus.
+    /// Rest of the context (album, playlist…), `MAX_QUEUE` at most.
     pub upcoming: Vec<GuestTrack>,
 }
 
@@ -58,14 +58,14 @@ impl RemoteView {
 
 fn whole_seconds(s: f64) -> u32 {
     if s.is_finite() && s > 0.0 {
-        // Borné à `u32` : une durée absurde ne fait pas déborder la conversion.
+        // Bounded to `u32`: an absurd duration does not overflow the conversion.
         s.min(f64::from(u32::MAX)).floor() as u32
     } else {
         0
     }
 }
 
-/// Playlist d'une recherche ou de « Mes playlists ».
+/// Playlist from a search or from "My playlists".
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemotePlaylist {

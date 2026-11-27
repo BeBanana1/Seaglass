@@ -1,4 +1,4 @@
-//! Faux lecteur des tests de la Jam (serveur local et relais).
+//! Fake player for the Jam tests (local server and relay).
 
 use std::sync::Mutex;
 
@@ -15,29 +15,29 @@ pub struct Fake {
     pub added: Mutex<Vec<u64>>,
     pub named: Mutex<Vec<(u64, String)>>,
     pub paused: Mutex<Option<bool>>,
-    /// Blind test en cours (#441) ; les réponses reçues, dans l'ordre.
+    /// Blind test in progress (#441); the answers received, in order.
     pub blind: Mutex<Option<BlindTestView>>,
     pub answers: Mutex<Vec<GuestAnswer>>,
-    /// Volume de l'hôte (#449).
+    /// The host's volume (#449).
     pub volume: Mutex<Volume>,
-    /// Titre en cours (7 par défaut, `Some(None)` = rien) et paroles demandées (#448).
+    /// Current track (7 by default, `Some(None)` = nothing) and lyrics requested (#448).
     pub now: Mutex<Option<Option<u64>>>,
     pub lyrics_calls: Mutex<Vec<u64>>,
-    /// Titres passés par le vote des invités (#433).
+    /// Tracks skipped by the guests' vote (#433).
     pub skips: Mutex<usize>,
 }
 
-/// Réponse reçue par le faux lecteur : clé, prénom, manche, réponse.
+/// Answer received by the fake player: key, first name, round, answer.
 pub type GuestAnswer = (String, Option<String>, usize, Answer);
 
-/// Maintenant, en ms depuis l'epoch.
+/// Now, in ms since the epoch.
 pub fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as i64)
 }
 
-/// Blind test de la manche 2 sur 5, ouvert aux invités si `jam`.
+/// Blind test at round 2 of 5, open to guests if `jam`.
 pub fn blind_game(jam: bool) -> BlindTestView {
     BlindTestView {
         title: "Playlist".into(),
@@ -129,14 +129,14 @@ impl Backend for Fake {
             albums: vec![album(40)],
         })
     }
-    /// Tout lien collé désigne l'album 41.
+    /// Any pasted link designates album 41.
     async fn link(&self, _text: String) -> Result<Hits, String> {
         Ok(Hits {
             tracks: Vec::new(),
             albums: vec![album(41)],
         })
     }
-    /// L'album 40 a 35 titres (100 à 134) : plus que le plafond d'un ajout.
+    /// Album 40 has 35 tracks (100 to 134): more than the cap on one addition.
     async fn album_tracks(&self, id: u64) -> Result<Vec<Track>, String> {
         Ok(if id == 40 {
             (100..135).map(track).collect()
@@ -182,8 +182,8 @@ impl Backend for Fake {
             volume: *self.volume.lock().unwrap(),
         })
     }
-    /// Le titre 7 a des paroles synchronisées, les autres aucune ; la réponse tarde un peu
-    /// pour que des demandes simultanées se croisent.
+    /// Track 7 has synced lyrics, the others none; the answer takes a little while so that
+    /// simultaneous requests overlap.
     async fn lyrics(&self, id: TrackId) -> Result<Option<Lyrics>, String> {
         self.lyrics_calls.lock().unwrap().push(id.0);
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
@@ -199,8 +199,8 @@ impl Backend for Fake {
             },
         }))
     }
-    /// Comme l'acteur : refusé sans partie ouverte aux invités, pour une autre manche ou en
-    /// double ; l'invité reçoit l'identifiant 1, l'autre 2.
+    /// Like the actor: refused without a game open to guests, for another round or as a
+    /// duplicate; the guest gets id 1, the other 2.
     async fn blind_answer(
         &self,
         key: String,

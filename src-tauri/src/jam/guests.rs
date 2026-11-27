@@ -1,27 +1,27 @@
-//! Ajouts des invités, le temps d'une Jam (#25) : nom affiché, auteur et lot de chaque titre.
+//! Guest adds, for the duration of a Jam (#25): displayed name, author and batch of each track.
 //!
-//! Gardés ici, en mémoire, et pas dans la file du lecteur : la file reste celle de l'hôte
-//! (persistée, sans notion d'invité), et la Jam s'arrête avec l'app. L'UI de l'hôte et la
-//! page des invités affichent le nom à côté des titres de la file manuelle.
+//! Kept here, in memory, and not in the player's queue: the queue stays the host's
+//! (persisted, with no notion of guest), and the Jam stops with the app. The host's UI and the
+//! guests' page show the name next to the tracks of the manual queue.
 //!
-//! Un **lot** est un ajout : un titre, ou les titres d'un album (#223). L'auteur est le
-//! jeton tiré par le navigateur de l'invité : lui seul peut retirer ses lots. Le prénom
-//! n'est pas une identité (n'importe qui peut taper le même).
+//! A **batch** is one add: a track, or the tracks of an album (#223). The author is the
+//! token drawn by the guest's browser: only they can remove their batches. The first name
+//! is not an identity (anyone can type the same one).
 
 use std::collections::{HashMap, VecDeque};
 
 use super::members::Members;
 
-/// Longueur maximale d'un nom, en caractères.
+/// Maximum length of a name, in characters.
 pub const MAX_NAME_CHARS: usize = 24;
-/// Titres retenus : au-delà, les plus anciens sont oubliés.
+/// Tracks kept: beyond that, the oldest are forgotten.
 const MAX_ENTRIES: usize = 500;
-/// Jeton d'invité : hexadécimal, de 16 à 64 caractères.
+/// Guest token: hexadecimal, 16 to 64 characters.
 const TOKEN_MIN: usize = 16;
 const TOKEN_MAX: usize = 64;
 
-/// Nom saisi par un invité : espaces réduits, caractères de contrôle retirés, coupé à
-/// `MAX_NAME_CHARS`. Vide = pas de nom.
+/// Name entered by a guest: spaces collapsed, control characters removed, cut to
+/// `MAX_NAME_CHARS`. Empty = no name.
 pub fn sanitize_name(raw: &str) -> Option<String> {
     let cleaned: String = raw
         .chars()
@@ -37,8 +37,8 @@ pub fn sanitize_name(raw: &str) -> Option<String> {
     (!cleaned.is_empty()).then_some(cleaned)
 }
 
-/// Jeton d'un navigateur d'invité, `None` s'il n'a pas la bonne forme (ancienne page :
-/// l'ajout reste permis, sans retrait possible).
+/// Token of a guest browser, `None` if it has the wrong shape (old page:
+/// the add stays allowed, with no removal possible).
 pub fn sanitize_token(raw: &str) -> Option<String> {
     let ok =
         (TOKEN_MIN..=TOKEN_MAX).contains(&raw.len()) && raw.bytes().all(|b| b.is_ascii_hexdigit());
@@ -57,18 +57,18 @@ pub struct Guests {
     by_track: HashMap<u64, Added>,
     order: VecDeque<u64>,
     next_batch: u32,
-    /// Invités qui ont ajouté, et ceux que l'hôte a exclus (#288).
+    /// Guests who added, and those the host excluded (#288).
     pub members: Members,
 }
 
 impl Guests {
-    /// Nouveau lot ; ses titres sont notés ensuite par `note`.
+    /// New batch; its tracks are noted afterwards by `note`.
     pub fn new_batch(&mut self) -> u32 {
         self.next_batch = self.next_batch.wrapping_add(1);
         self.next_batch
     }
 
-    /// Le dernier invité à ajouter un titre en devient l'auteur.
+    /// The last guest to add a track becomes its author.
     pub fn note(&mut self, track: u64, batch: u32, name: Option<String>, owner: Option<String>) {
         let added = Added { name, owner, batch };
         if self.by_track.insert(track, added).is_none() {
@@ -89,8 +89,8 @@ impl Guests {
         self.by_track.get(&track).map(|a| a.batch)
     }
 
-    /// Retire les titres d'un lot de cet auteur (un seul si `track` est donné) et renvoie
-    /// leurs identifiants. Un titre ajouté de nouveau par quelqu'un d'autre ne l'est plus.
+    /// Removes the tracks of a batch of this author (just one if `track` is given) and returns
+    /// their ids. A track added again by someone else is no longer theirs.
     pub fn take(&mut self, owner: &str, batch: u32, track: Option<u64>) -> Vec<u64> {
         let taken: Vec<u64> = self
             .order
@@ -110,7 +110,7 @@ impl Guests {
         taken
     }
 
-    /// Titres de cet invité encore en attente dans la file manuelle (#288).
+    /// Tracks of this guest still waiting in the manual queue (#288).
     pub fn pending(&self, owner: &str, manual: &[u64]) -> usize {
         manual
             .iter()
@@ -122,8 +122,8 @@ impl Guests {
             .count()
     }
 
-    /// Titres venus de la Jam encore en attente dans la file manuelle, tous invités
-    /// confondus (#256).
+    /// Tracks from the Jam still waiting in the manual queue, all guests
+    /// together (#256).
     pub fn pending_total(&self, manual: &[u64]) -> usize {
         manual
             .iter()
@@ -131,7 +131,7 @@ impl Guests {
             .count()
     }
 
-    /// Retire tous les titres de cet invité, quel que soit le lot (exclusion, #288).
+    /// Removes all tracks of this guest, whatever the batch (exclusion, #288).
     pub fn take_all(&mut self, owner: &str) -> Vec<u64> {
         let taken: Vec<u64> = self
             .order
@@ -150,7 +150,7 @@ impl Guests {
         taken
     }
 
-    /// Nom de l'invité de chaque titre, pour l'UI de l'hôte.
+    /// Name of the guest for each track, for the host's UI.
     pub fn snapshot(&self) -> HashMap<u64, String> {
         self.by_track
             .iter()
@@ -170,7 +170,7 @@ mod tests {
         assert_eq!(sanitize_name(" \u{7}  "), None);
         let long = sanitize_name(&"é".repeat(40)).unwrap();
         assert_eq!(long.chars().count(), MAX_NAME_CHARS);
-        // Coupé juste après un espace : pas d'espace final.
+        // Cut right after a space: no trailing space.
         let cut = sanitize_name(&format!("{} b", "a".repeat(MAX_NAME_CHARS - 1))).unwrap();
         assert_eq!(cut, "a".repeat(MAX_NAME_CHARS - 1));
     }
@@ -210,7 +210,7 @@ mod tests {
         for id in [1, 2, 3] {
             guests.note(id, album, Some("Léa".into()), Some(lea.clone()));
         }
-        // Max ajoute de nouveau le titre 3 : il est à lui.
+        // Max adds track 3 again: it is theirs.
         let single = guests.new_batch();
         guests.note(3, single, Some("Max".into()), Some(max.clone()));
 
@@ -232,7 +232,7 @@ mod tests {
         }
         let batch = guests.new_batch();
         guests.note(4, batch, None, Some(max.clone()));
-        // Le titre 1 a été lu : il n'est plus dans la file manuelle.
+        // Track 1 was played: it is no longer in the manual queue.
         assert_eq!(guests.pending(&lea, &[2, 3, 4]), 2);
         assert_eq!(guests.pending(&max, &[2, 3, 4]), 1);
         assert_eq!(guests.pending_total(&[2, 3, 4, 9]), 3);

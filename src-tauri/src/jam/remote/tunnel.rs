@@ -1,11 +1,11 @@
-//! Tunnel du PC sur le relais (#430) : le téléphone lié l'atteint hors du réseau local pour
-//! le transfert de la lecture et l'historique d'écoute.
+//! The PC's tunnel on the relay (#430): the linked phone reaches it away from the local
+//! network for the playback handoff and the listening history.
 //!
-//! Le PC se connecte en sortie à `/device` avec un identifiant et un secret qu'il a tirés
-//! (gardés avec les réglages de la télécommande) ; chaque appel du téléphone arrive chiffré
-//! (`handoff::sealed`), est déchiffré ici puis servi par la même API que sur le réseau local
-//! (code, limites, droits), et la réponse repart chiffrée. Seules les routes du téléphone
-//! passent : jamais la page ni les commandes de la télécommande.
+//! The PC connects outbound to `/device` with an id and a secret it generated (kept with
+//! the remote control settings); each call from the phone arrives encrypted
+//! (`handoff::sealed`), is decrypted here then served by the same API as on the local
+//! network (code, limits, rights), and the response goes back encrypted. Only the phone's
+//! routes get through: never the page nor the remote control's commands.
 
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::{Arc, Mutex};
@@ -32,18 +32,18 @@ const READY_TIMEOUT: Duration = Duration::from_secs(10);
 const PING_INTERVAL: Duration = Duration::from_secs(20);
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const MAX_BACKOFF: Duration = Duration::from_secs(30);
-/// Laisse au PC le temps de répondre avant celui du relais (30 s).
+/// Leaves the PC time to answer before the relay's own timeout (30 s).
 const ANSWER_TIMEOUT: Duration = Duration::from_secs(25);
-/// Une erreur durable (clé refusée, identifiant pris) : on réessaie, mais rarement.
+/// A lasting error (key refused, id taken): retry, but rarely.
 const FAILED_BACKOFF: Duration = Duration::from_secs(10 * 60);
 
-/// Identité du PC sur le relais et clé partagée avec le téléphone, gardées dans les
-/// réglages de la télécommande.
+/// The PC's identity on the relay and the key shared with the phone, kept in the remote
+/// control settings.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TunnelSettings {
     pub id: String,
     pub secret: String,
-    /// Clé ChaCha20-Poly1305 en hexadécimal ; changée avec le code (« Nouveau code »).
+    /// ChaCha20-Poly1305 key in hexadecimal; changed with the code ("New code").
     pub key: String,
 }
 
@@ -56,7 +56,7 @@ impl TunnelSettings {
         }
     }
 
-    /// Réglages relus : `None` s'ils sont abîmés (on en tire de nouveaux).
+    /// Settings read back: `None` if they are damaged (new ones are generated).
     pub fn checked(self) -> Option<Self> {
         let token = |s: &str| s.len() == 32 && s.bytes().all(|b| b.is_ascii_hexdigit());
         (token(&self.id) && token(&self.secret) && TunnelKey::parse(&self.key).is_some())
@@ -64,7 +64,7 @@ impl TunnelSettings {
     }
 }
 
-/// Ce que le téléphone apprend sur le réseau local pour passer par le relais.
+/// What the phone learns on the local network to go through the relay.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelayRoute {
     /// `https://<relais>/d/<id>`.
@@ -72,7 +72,7 @@ pub struct RelayRoute {
     pub key: String,
 }
 
-/// Routes servies par le tunnel.
+/// Routes served by the tunnel.
 fn allowed(path: &str) -> bool {
     path == "/api/join" || path.starts_with("/api/handoff/") || path.starts_with("/api/plays/")
 }
@@ -83,7 +83,7 @@ fn now_ms() -> i64 {
         .map_or(0, |d| d.as_millis() as i64)
 }
 
-/// Le tunnel déchiffre, vérifie et sert un paquet ; renvoie (statut du relais, corps).
+/// The tunnel decrypts, checks and serves a packet; returns (relay status, body).
 async fn answer<R: Remote>(
     owner: &Owner,
     remote: &R,
@@ -94,7 +94,7 @@ async fn answer<R: Remote>(
     packet: &str,
 ) -> (u16, String) {
     let Some((request, nonce)) = sealed::open_request(key, tunnel, packet) else {
-        // Mauvaise clé (téléphone lié avant un « Nouveau code ») ou paquet abîmé.
+        // Wrong key (phone linked before a "New code") or damaged packet.
         return (403, r#"{"error":"key"}"#.to_owned());
     };
     let fresh = replay
@@ -138,14 +138,14 @@ async fn answer<R: Remote>(
 }
 
 enum Failure {
-    /// Réessayer bientôt (réseau).
+    /// Retry soon (network).
     Retry,
-    /// Refus du relais (clé de build, identifiant pris) : réessayer rarement.
+    /// Refused by the relay (build key, id taken): retry rarely.
     Refused(String),
 }
 
-/// Tient le tunnel ouvert jusqu'à l'annulation de la tâche. L'adresse en ligne est donnée
-/// à `Owner` une fois le relais prêt (`None` pendant les coupures).
+/// Keeps the tunnel open until the task is cancelled. The online address is given to
+/// `Owner` once the relay is ready (`None` during outages).
 pub(super) async fn run<R: Remote>(
     config: RelayConfig,
     settings: TunnelSettings,
@@ -166,7 +166,7 @@ pub(super) async fn run<R: Remote>(
             }
             Err(Failure::Retry) => backoff,
             Err(Failure::Refused(reason)) => {
-                tracing::warn!("Tunnel du relais refusé : {reason}");
+                tracing::warn!("Relay tunnel refused: {reason}");
                 FAILED_BACKOFF
             }
         };
@@ -203,11 +203,11 @@ async fn session<R: Remote>(
     let socket: Socket = match tokio::time::timeout(CONNECT_TIMEOUT, connecting).await {
         Ok(Ok((socket, _))) => socket,
         Ok(Err(WsError::Http(response))) if response.status() == 401 => {
-            return Err(Failure::Refused("clé du relais refusée".into()));
+            return Err(Failure::Refused("relay key refused".into()));
         }
-        // Relais pas encore à jour (pas de `/device`) : rien à faire avant son redéploiement.
+        // Relay not up to date yet (no `/device`): nothing to do before it is redeployed.
         Ok(Err(WsError::Http(response))) if response.status() == 404 => {
-            return Err(Failure::Refused("relais sans tunnels d'appareils".into()));
+            return Err(Failure::Refused("relay without device tunnels".into()));
         }
         Ok(Err(e)) => {
             tracing::debug!("Tunnel : {e}");
@@ -232,7 +232,7 @@ async fn session<R: Remote>(
     };
     match ready {
         ToDevice::Ready { url } => {
-            tracing::info!("Tunnel du relais ouvert");
+            tracing::info!("Relay tunnel open");
             site.owner.set_relay(Some(RelayRoute {
                 url,
                 key: settings.key.clone(),
@@ -253,7 +253,7 @@ async fn session<R: Remote>(
                 match message {
                     Message::Text(text) => match serde_json::from_str::<ToDevice>(&text) {
                         Ok(ToDevice::Request { rid, client, body }) => {
-                            // Adresse vue par le relais : les limites du PC la comptent.
+                            // Address seen by the relay: the PC's limits count it.
                             let ip = client.parse().unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
                             let (site, replay) = (Arc::clone(site), Arc::clone(replay));
                             let (key, tunnel, replies) =

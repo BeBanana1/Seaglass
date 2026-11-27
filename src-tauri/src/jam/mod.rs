@@ -349,7 +349,7 @@ fn relay_notify(app: AppHandle, info: Arc<Mutex<JamInfo>>, core: Arc<Core>) -> r
             && let Some(status) = status_of(&info, &core)
             && let Err(e) = app.emit(STATUS_EVENT, status)
         {
-            tracing::warn!("Jam : {e}");
+            tracing::warn!("Jam: {e}");
         }
     })
 }
@@ -444,7 +444,7 @@ mod tests {
         assert!(!apply(&mut info, RelayEvent::Connecting));
         assert_eq!(info.url.as_deref(), Some(url.as_str()));
 
-        // Reprise impossible : nouvelle adresse, nouveau QR code.
+        // Resume impossible: new address, new QR code.
         let qr = info.qr_svg.clone();
         assert!(apply(
             &mut info,

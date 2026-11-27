@@ -1,21 +1,21 @@
-//! Adresse du PC sur le réseau local, donnée aux téléphones (Jam locale, télécommande).
+//! The PC's address on the local network, given to phones (local Jam, remote control).
 //!
-//! La route par défaut ne suffit pas : avec un VPN, elle passe par le tunnel et donnerait
-//! l'adresse du VPN (#425). Sous Windows, on liste donc les cartes réseau et on garde une
-//! adresse IPv4 privée d'une carte active avec une passerelle, hors tunnels.
+//! The default route is not enough: with a VPN, it goes through the tunnel and would give
+//! the VPN's address (#425). On Windows, we thus list the network adapters and keep a
+//! private IPv4 address of an active adapter with a gateway, excluding tunnels.
 
 use std::net::{IpAddr, Ipv4Addr, UdpSocket};
 
-/// Adresse IPv4 d'une carte réseau candidate.
+/// IPv4 address of a candidate network adapter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(not(windows), allow(dead_code))]
 struct Candidate {
     ip: Ipv4Addr,
-    /// Métrique IPv4 de la carte : la plus petite est la préférée de Windows.
+    /// IPv4 metric of the adapter: the smallest is the one Windows prefers.
     metric: u32,
 }
 
-/// Adresse du PC sur le réseau local, `None` si aucune n'a été trouvée.
+/// The PC's address on the local network, `None` if none was found.
 pub(super) fn lan_ip() -> Option<IpAddr> {
     let routed = routed_ip();
     #[cfg(windows)]
@@ -25,8 +25,8 @@ pub(super) fn lan_ip() -> Option<IpAddr> {
     choose(routed, &candidates)
 }
 
-/// Choix pur : l'adresse de la route par défaut si elle est sur le réseau local, sinon la
-/// carte de plus petite métrique, sinon la route par défaut (aucune carte lue).
+/// Pure choice: the default route's address if it is on the local network, otherwise the
+/// adapter with the smallest metric, otherwise the default route (no adapter read).
 fn choose(routed: Option<IpAddr>, candidates: &[Candidate]) -> Option<IpAddr> {
     if candidates.is_empty() {
         return routed;
@@ -42,7 +42,7 @@ fn choose(routed: Option<IpAddr>, candidates: &[Candidate]) -> Option<IpAddr> {
         .map(|c| IpAddr::V4(c.ip))
 }
 
-/// Adresse source de la route par défaut (`connect` UDP : rien n'est envoyé).
+/// Source address of the default route (UDP `connect`: nothing is sent).
 fn routed_ip() -> Option<IpAddr> {
     let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).ok()?;
     socket.connect((Ipv4Addr::new(192, 0, 2, 1), 9)).ok()?;
@@ -50,13 +50,13 @@ fn routed_ip() -> Option<IpAddr> {
     (!ip.is_loopback() && !ip.is_unspecified()).then_some(ip)
 }
 
-/// Adresse privée (RFC 1918), hors liens locaux 169.254 (carte sans DHCP).
+/// Private address (RFC 1918), excluding 169.254 link-local (adapter without DHCP).
 #[cfg_attr(not(windows), allow(dead_code))]
 fn is_lan(ip: Ipv4Addr) -> bool {
     ip.is_private()
 }
 
-/// Types de cartes écartés : boucle locale, PPP, tunnels (WireGuard se déclare
+/// Adapter types ruled out: loopback, PPP, tunnels (WireGuard declares itself as
 /// `IF_TYPE_PROP_VIRTUAL`, 53).
 #[cfg_attr(not(windows), allow(dead_code))]
 fn is_tunnel(if_type: u32) -> bool {
@@ -79,29 +79,29 @@ mod adapters {
     const ERROR_SUCCESS: u32 = 0;
     const ERROR_BUFFER_OVERFLOW: u32 = 111;
 
-    /// Adresses IPv4 privées des cartes actives avec une passerelle, hors tunnels.
+    /// Private IPv4 addresses of active adapters with a gateway, excluding tunnels.
     pub(super) fn candidates() -> Vec<Candidate> {
         let flags = GAA_FLAG_INCLUDE_GATEWAYS
             | GAA_FLAG_SKIP_ANYCAST
             | GAA_FLAG_SKIP_MULTICAST
             | GAA_FLAG_SKIP_DNS_SERVER;
-        // Tampon en u64 : les structures demandent un alignement de 8.
+        // Buffer in u64: the structures require an alignment of 8.
         let mut size: u32 = 16 * 1024;
         for _ in 0..3 {
             let mut buffer = vec![0u64; (size as usize).div_ceil(8)];
             let first = buffer.as_mut_ptr().cast::<IP_ADAPTER_ADDRESSES_LH>();
-            // SAFETY : `buffer` fait au moins `size` octets, aligné sur 8.
+            // SAFETY: `buffer` is at least `size` bytes, aligned on 8.
             let result = unsafe {
                 GetAdaptersAddresses(u32::from(AF_INET.0), flags, None, Some(first), &mut size)
             };
             match result {
                 ERROR_SUCCESS => {
-                    // SAFETY : liste remplie par l'appel, qui vit dans `buffer`.
+                    // SAFETY: list filled by the call, which lives in `buffer`.
                     return unsafe { read(first) };
                 }
                 ERROR_BUFFER_OVERFLOW => continue,
                 code => {
-                    tracing::debug!("cartes réseau illisibles : erreur {code}");
+                    tracing::debug!("unreadable network adapters: error {code}");
                     return Vec::new();
                 }
             }
@@ -109,10 +109,10 @@ mod adapters {
         Vec::new()
     }
 
-    /// Parcourt la liste chaînée remplie par `GetAdaptersAddresses`.
+    /// Walks the linked list filled by `GetAdaptersAddresses`.
     ///
     /// # Safety
-    /// `first` doit pointer sur une liste valide, vivante pendant l'appel.
+    /// `first` must point to a valid list, alive during the call.
     unsafe fn read(first: *const IP_ADAPTER_ADDRESSES_LH) -> Vec<Candidate> {
         let mut found = Vec::new();
         let mut adapter = first;
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn skips_the_vpn_address_of_the_default_route() {
-        // ProtonVPN : route par défaut sur 10.2.0.2, carte de la maison en 192.168.1.105.
+        // ProtonVPN: default route on 10.2.0.2, home adapter on 192.168.1.105.
         let cards = [candidate([192, 168, 1, 105], 35)];
         assert_eq!(choose(v4([10, 2, 0, 2]), &cards), v4([192, 168, 1, 105]));
     }
@@ -206,11 +206,11 @@ mod tests {
         assert!(is_lan(Ipv4Addr::new(172, 16, 0, 1)));
     }
 
-    /// Adresse retenue sur cette machine : `cargo test lan_ip_here -- --ignored --nocapture`.
+    /// Address chosen on this machine: `cargo test lan_ip_here -- --ignored --nocapture`.
     #[test]
     #[ignore]
     fn lan_ip_here() {
-        println!("route par défaut : {:?}", routed_ip());
+        println!("default route: {:?}", routed_ip());
         println!("adresse retenue : {:?}", lan_ip());
     }
 }

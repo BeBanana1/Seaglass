@@ -1,5 +1,5 @@
-//! Historique d'écoute synchronisé avec le téléphone lié (#430) : même code, mêmes limites
-//! et même interrupteur (« Accepter les transferts ») que le transfert de la lecture.
+//! Listening history synced with the linked phone (#430): same code, same limits and same
+//! switch ("Accept handoffs") as the playback handoff.
 
 use std::net::IpAddr;
 
@@ -11,7 +11,7 @@ use super::{Owner, Remote, backend_error};
 
 pub(in crate::jam::remote) const PATH: &str = "/api/plays/sync";
 
-/// Route de l'historique ; `None` si `path` n'en est pas une.
+/// History route; `None` if `path` is not one.
 pub(super) async fn route<R: Remote>(
     owner: &Owner,
     path: &str,

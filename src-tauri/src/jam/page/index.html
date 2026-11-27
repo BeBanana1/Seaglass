@@ -27,8 +27,8 @@
       </section>
 
       <section id="jam" hidden>
-        <!-- Chercher dans son app, puis revenir coller le lien (#225, #229). Logos de Simple Icons (CC0),
-             chacun ne mène qu'au service qu'il représente. -->
+        <!-- Search in your own app, then come back to paste the link (#225, #229). Logos from Simple
+             Icons (CC0), each one only leads to the service it represents. -->
         <nav class="apps" aria-labelledby="apps-label">
           <span id="apps-label" data-t="appsLabel"></span>
           <a class="app tidal" href="https://listen.tidal.com/" target="_blank" rel="noopener noreferrer" title="TIDAL" aria-label="TIDAL">
@@ -48,21 +48,21 @@
           </a>
         </nav>
         <div id="now" class="now" aria-live="polite"></div>
-        <!-- Volume (#449), si l'hôte le permet : hors de `#now`, reconstruit à chaque état,
-             pour ne pas perdre le curseur en plein geste. -->
+        <!-- Volume (#449), if the host allows it: outside `#now`, rebuilt on every state, so the
+             slider is not lost in the middle of a gesture. -->
         <div id="guest-volume" class="guest-volume" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3.2l4.2-3.5A1 1 0 0 1 13 6.3v11.4a1 1 0 0 1-1.6.8L7.2 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM15.52 9.88a1 1 0 0 1 1.42-1.42 5 5 0 0 1 0 7.08 1 1 0 0 1-1.42-1.42 3 3 0 0 0 0-4.24zM17.64 7.76a1 1 0 0 1 1.42-1.42 8 8 0 0 1 0 11.32 1 1 0 0 1-1.42-1.42 6 6 0 0 0 0-8.48z"/></svg>
           <input id="volume" type="range" min="0" max="100" step="1" value="100" />
           <span id="volume-value" class="volume-value"></span>
         </div>
-        <!-- Vote pour passer le titre (#433), si l'hôte le permet. -->
+        <!-- Vote to skip the track (#433), if the host allows it. -->
         <div id="guest-skip" class="guest-skip" hidden>
           <span id="skip-count" class="skip-count"></span>
           <button id="skip" type="button"></button>
         </div>
         <p id="notice" class="notice" role="status" hidden></p>
 
-        <!-- Blind test à plusieurs (#441), à la place de la recherche pendant la partie. -->
+        <!-- Multiplayer blind test (#441), in place of the search during the game. -->
         <section id="game" class="game" hidden>
           <div class="game-head">
             <span id="game-title" class="game-title"></span>
@@ -96,7 +96,7 @@
         </p>
       </section>
     </main>
-    <!-- Paroles du titre en cours (#448), plein écran. -->
+    <!-- Lyrics of the current track (#448), full screen. -->
     <section id="lyrics" class="lyrics" role="dialog" aria-modal="true" aria-labelledby="lyrics-title" hidden>
       <header class="lyrics-head">
         <div class="meta">
