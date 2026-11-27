@@ -1,4 +1,4 @@
-// Égaliseur paramétrique (#428) : Réglages › Lecture › Égaliseur.
+// Parametric equalizer (#428): Settings › Playback › Equalizer.
 
 import type { EqFilterKind } from "../ipc";
 

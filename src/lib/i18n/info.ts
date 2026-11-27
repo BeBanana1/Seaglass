@@ -1,4 +1,4 @@
-// Fenêtre « Infos du titre » (#3).
+// "Track info" window (#3).
 
 export const fr = {
   title: "Infos du titre",
@@ -28,8 +28,8 @@ export const fr = {
   tempo: "Tempo",
   key: "Tonalité",
   credits: "Crédits",
-  /** Rôles connus, par clé normalisée (minuscules, sans espaces ni ponctuation) ; un rôle
-   *  absent est affiché tel que TIDAL le donne (`creditRole`). */
+  /** Known roles, by normalized key (lowercase, no spaces or punctuation); a role that is
+   *  missing is shown as TIDAL gives it (`creditRole`). */
   roles: {
     composer: "Composition",
     lyricist: "Paroles",

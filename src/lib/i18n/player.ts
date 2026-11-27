@@ -1,11 +1,11 @@
-// Barre de lecture, file d'attente, chaîne audio, paroles, édition hi-res.
+// Player bar, queue, signal path, lyrics, hi-res edition.
 
 export const fr = {
   nothingPlaying: "Rien en lecture",
   openNowPlaying: "Vue « En lecture »",
   signalPath: "Chaîne audio",
   queue: "File d'attente",
-  /** Titre de la file dans le thème Grand hôtel (#339). */
+  /** Title of the queue in the Grand hotel theme (#339). */
   queueHotel: "Programme",
   shuffleOn: "Lecture aléatoire : activée",
   shuffleOff: "Lecture aléatoire : désactivée",

@@ -1,4 +1,4 @@
-// Mode conduite (#193, Android) : écran, tuiles, bouton d'épingle.
+// Drive mode (#193, Android): screen, tiles, pin button.
 
 export const fr = {
   open: "Mode conduite",

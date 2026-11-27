@@ -1,4 +1,4 @@
-// Pages : accueil, fil, recherche, connexion, album, artiste, playlist, mix, « En lecture ».
+// Pages: home, feed, search, sign-in, album, artist, playlist, mix, "Now playing".
 
 import { num } from "./state.svelte";
 
@@ -151,7 +151,7 @@ export const fr = {
         ? `${num(n)} ${n > 1 ? "changements annulés" : "changement annulé"} ; ${num(skipped)} ${skipped > 1 ? "titres indisponibles n'ont" : "titre indisponible n'a"} pas pu revenir`
         : `${num(n)} ${n > 1 ? "changements annulés" : "changement annulé"}`,
   },
-  // Import d'une playlist d'un autre service (#328).
+  // Importing a playlist from another service (#328).
   import: {
     eyebrow: "Playlist à importer",
     services: { deezer: "Deezer", spotify: "Spotify", apple: "Apple Music" },
@@ -179,7 +179,7 @@ export const fr = {
     artistRadio: "Des titres proches de cet artiste.",
     empty: "Aucun titre disponible.",
   },
-  // Playlists intelligentes locales (#383).
+  // Local smart playlists (#383).
   smart: {
     title: "Listes intelligentes",
     eyebrow: "Liste intelligente",

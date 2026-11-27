@@ -1,10 +1,10 @@
-// Blind test (#434) : page de la partie, bouton des en-têtes, barre de lecture.
+// Blind test (#434): the game page, the page headers' button, the player bar.
 
 const points = (n: number) => (n === 0 ? "0 point" : `+${n} point${n > 1 ? "s" : ""}`);
 
 export const fr = {
   title: "Blind test",
-  /** Bouton des en-têtes de page. */
+  /** Button of the page headers. */
   start: "Blind test sur cette liste",
   setup: (count: string, title: string) =>
     `${count} de « ${title} ». Chaque manche joue un extrait de 15 secondes pris au hasard dans un titre, sans rien afficher : trouvez le titre, l'artiste, ou les deux.`,
@@ -43,9 +43,9 @@ export const fr = {
   bestStreak: (n: number) => `Meilleure série : ${n}`,
   again: "Rejouer",
   quit: "Quitter la partie",
-  /** Barre de lecture et palette pendant une partie. */
+  /** Player bar and palette during a game. */
   inProgress: "Blind test en cours",
-  // À plusieurs, par la Jam (#441).
+  // Several players, through the Jam (#441).
   withJam: "Avec les invités de la Jam",
   withJamHint:
     "Ils répondent depuis la page de la Jam sur leur téléphone. Le plus rapide à trouver le titre gagne 1 point de plus ; la manche est révélée quand tout le monde a répondu, ou 20 s après la fin de l'extrait.",
