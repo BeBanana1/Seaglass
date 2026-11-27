@@ -25,3 +25,21 @@ f159d9e816ae847878ce4522414beb056a3aded2
 07e1698c06cf8c43362a4d32109d1d17e5378e48
 # chore: translate the comments and logs of handoff/ and foreign/ to English (#8, #79)
 2c5ed3c0228bfa5d5fde0ad00da5f07811517872
+# chore: translate the comments of lib/mock/ to English (#8, #84)
+3d8eea6351616b0f52a01cf2683f4e0dc0e2fc18
+# chore: translate the comments of lib/stores/ to English (#8, #85)
+a557e291a3f32e27d66ce5161f31d48a451a2319
+# chore: translate the comments of views/ to English (#8, #86)
+4a035e0305721db6ec7bcff0c69e022313e3fe5b
+# chore: translate the comments and logs of the top-level modules to English (#8, #87)
+6dc140ef07e4674995b7a345df27e73419d8179c
+# chore: translate the comments and logs of player/ to English (#8, #88)
+25d3ce32b581c6670f04acf701f30e3501f5f044
+# chore: translate the comments of themes/ and app.css to English (#8, #89)
+e3e3adbceec1c69e0ba31b627955e8b6eb6a708e
+# chore: translate the comments and messages of scripts/ to English (#8, #90)
+09c346987e2aad560b236f8097094145956a6014
+# chore(relay): translate comments and logs to English (#8, #91)
+54fe8b54c17eb9904d7605d88bd3bb845b6adc90
+# chore(spike): translate comments and messages to English (#8, #92)
+41c7e0f910b84431001bf11a738b56a540cf91a9
