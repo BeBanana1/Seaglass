@@ -11,6 +11,11 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.146
+
+- The last messages that stayed in French for everyone are now translated: the "no update ready" error, the crash report (in English, to paste into an issue) and the installer's description (#8).
+- Android: the toast for a refused update follows the system language (#8).
+
 ## 0.5.145
 
 - chore: the last French comments and log messages (build script, capabilities, icons, mpv and installer config, and a final sweep of `src-tauri/src/` and `src/`) are now in English, with no change in behavior (#8).

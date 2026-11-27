@@ -30,8 +30,8 @@
     "targets": ["nsis"],
     "createUpdaterArtifacts": true,
     "publisher": "Seaglass",
-    "copyright": "GPL-3.0. Client non officiel, non affilié à TIDAL.",
-    "shortDescription": "Client de streaming musical lossless",
+    "copyright": "GPL-3.0. Unofficial client, not affiliated with TIDAL.",
+    "shortDescription": "Lossless music streaming client",
     "resources": {
       "mpv/seaglass.conf": "mpv/seaglass.conf",
       "../LICENSE": "licenses/Seaglass-GPL-3.0.txt",

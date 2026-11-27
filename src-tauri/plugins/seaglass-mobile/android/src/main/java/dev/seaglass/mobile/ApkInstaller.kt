@@ -107,7 +107,7 @@ object ApkInstaller {
                             answer("install rejected ($status)")
                         } else if (status != PackageInstaller.STATUS_FAILURE_ABORTED) {
                             // After the confirmation: the UI already has its answer, so warn here.
-                            Toast.makeText(ctx, "Seaglass : installation refusée ($status)", Toast.LENGTH_LONG).show()
+                            Toast.makeText(ctx, ctx.getString(R.string.install_rejected, status), Toast.LENGTH_LONG).show()
                         }
                     }
                 }

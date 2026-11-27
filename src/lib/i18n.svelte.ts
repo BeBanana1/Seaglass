@@ -1,8 +1,8 @@
-// Langue de l'interface (#7). La langue effective est décidée par le backend (réglage, ou
-// langue d'affichage du système) ; l'UI choisit seulement le dictionnaire à afficher.
+// Interface language (#7). The backend decides the effective language (the setting, or the
+// system's display language); the UI only picks the dictionary to show.
 //
-// Les textes sont rangés par domaine dans `i18n/` : chaque fichier exporte `fr` (la source)
-// et `en`, typé sur `fr` : une clé oubliée ou en trop fait échouer `pnpm check`.
+// Strings are grouped by area in `i18n/`: each file exports `fr` (the source) and `en`, typed
+// on `fr`: a missing or extra key fails `pnpm check`.
 
 import { commands, type Lang, type LanguagePref } from "./ipc";
 import * as blindTest from "./i18n/blindTest";
@@ -67,8 +67,8 @@ const en: Dict = {
 
 const dicts: Record<Lang, Dict> = { fr, en };
 
-/** Textes dans la langue courante : `t.player.play`, `t.common.tracks(12)`. Lu dans un
- *  gabarit ou un `$derived`, il suit les changements de langue. */
+/** Strings in the current language: `t.player.play`, `t.common.tracks(12)`. Read in a
+ *  template or a `$derived`, it follows language changes. */
 export const t: Dict = new Proxy({} as Dict, {
   get: (_, key) => dicts[i18n.lang][key as keyof Dict],
 });
@@ -82,11 +82,11 @@ export async function initLanguage() {
   try {
     apply(await commands.language());
   } catch {
-    // Français si le backend ne répond pas.
+    // French if the backend does not answer.
   }
 }
 
-/** Enregistre le réglage ; le backend renvoie la langue effective. */
+/** Saves the setting; the backend returns the effective language. */
 export async function setLanguage(pref: LanguagePref) {
   apply(await commands.setLanguage(pref));
 }
