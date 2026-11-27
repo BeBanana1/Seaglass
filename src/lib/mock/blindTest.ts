@@ -1,7 +1,7 @@
-// Blind test (#434) dans le backend factice : de quoi parcourir les écrans de la partie.
-// La vraie logique (tirage, comparaison des réponses) est en Rust ; ici, une comparaison
-// grossière suffit. Avec la Jam (#441, `?jam=1`), deux invités factices jouent : Léa répond
-// dès le début de la manche et trouve l'artiste, Max ne répond jamais.
+// Blind test (#434) in the mock backend: enough to go through the game's screens.
+// The real logic (draw, answer matching) is in Rust; a rough comparison is enough here.
+// With the Jam (#441, `?jam=1`), two mock guests play: Léa answers as soon as the round
+// starts and finds the artist, Max never answers.
 
 import type {
   BlindAnswer,
@@ -21,14 +21,14 @@ interface Deps {
 }
 
 const CLIP = 15;
-/** Chargement simulé d'un extrait (ms). */
+/** Simulated loading time of a clip (ms). */
 const LOAD_DELAY = 1500;
 
 export function blindTestMock({ state, track, emit }: Deps) {
   let view: BlindTestView | null = null;
   let rounds: Track[] = [];
   let saved: { track: Track | null; timePos: number; duration: number } | null = null;
-  /** Réponse de l'hôte à la manche en cours, jusqu'à la révélation. */
+  /** The host's answer to the current round, until the reveal. */
   let hostPending: BlindRoundResult | null = null;
 
   const simple = (s: string) =>
@@ -63,7 +63,7 @@ export function blindTestMock({ state, track, emit }: Deps) {
     view.revealAt = view.party.jam ? Date.now() + 35_000 : null;
     hostPending = null;
     for (const p of view.players) p.answered = p.name === "Léa";
-    // Chargement simulé (#445) : l'extrait ne part qu'au bout d'un moment.
+    // Simulated loading (#445): the clip only starts after a while.
     view.clipPlaying = false;
     Object.assign(state, {
       track: null,
@@ -154,7 +154,7 @@ export function blindTestMock({ state, track, emit }: Deps) {
   }
 
   return {
-    /** Position avancée par `?ticks=1` : l'extrait s'arrête au bout de 15 s. */
+    /** Position moved on by `?ticks=1`: the clip stops after 15 s. */
     tick() {
       if (view?.phase === "guess" && !state.paused && state.timePos >= view.clipStart + CLIP) {
         state.paused = true;
@@ -215,7 +215,7 @@ export function blindTestMock({ state, track, emit }: Deps) {
         hostPending = judge(t, answer as BlindAnswer);
         const me = view.players.find((p) => p.host);
         if (me) me.answered = true;
-        // Seul : révélé aussitôt ; à plusieurs, Max ne répond jamais, il faut « Révéler ».
+        // Alone: revealed at once; with guests, Max never answers, so "Reveal" is needed.
         if (!view.party.jam) return reveal();
         publish();
       },

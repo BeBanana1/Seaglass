@@ -18,7 +18,7 @@ import type {
   Track,
   TrackEntry,
 } from "../ipc";
-import type { Fixtures } from "./index";
+import type { Fixtures } from "./core";
 
 const files = import.meta.glob<string>("./demo/*.svg", {
   eager: true,
