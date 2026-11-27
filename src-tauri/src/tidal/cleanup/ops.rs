@@ -1,13 +1,13 @@
-//! Ordre et inverse des modifications d'une playlist (#382), sans réseau.
+//! Order and inverse of a playlist's changes (#382), without network.
 //!
-//! Les changements choisis dans « Nettoyer » portent sur les positions de la liste lue. Ils
-//! s'appliquent de la dernière position vers la première : retirer un titre ne décale que
-//! ceux qui le suivent, déjà traités. L'inverse d'une suite appliquée, c'est l'inverse de
-//! chaque opération, de la dernière à la première : les positions y sont exactes.
+//! The changes chosen in « Clean up » refer to the positions of the list read. They are
+//! applied from the last position to the first: removing a track only shifts those that
+//! follow it, already handled. The inverse of an applied sequence is the inverse of each
+//! operation, from the last to the first: the positions are exact there.
 
 use crate::tidal::models::ListOp;
 
-/// Changements choisis au plus, comme `MAX_ADD` pour un ajout.
+/// Changes chosen at most, like `MAX_ADD` for an add.
 pub const MAX_OPS: usize = 10_000;
 
 pub fn index(op: &ListOp) -> usize {
@@ -18,18 +18,18 @@ pub fn index(op: &ListOp) -> usize {
     }
 }
 
-/// Changements du nettoyage, rangés pour s'appliquer : retraits et remplacements seulement,
-/// une position chacun, de la dernière à la première.
+/// Cleanup changes, arranged to be applied: removals and replacements only,
+/// one position each, from the last to the first.
 pub fn forward(mut ops: Vec<ListOp>) -> Result<Vec<ListOp>, &'static str> {
     if ops.len() > MAX_OPS {
-        return Err("trop de changements");
+        return Err("too many changes");
     }
     if ops.iter().any(|op| matches!(op, ListOp::Insert { .. })) {
-        return Err("opération inattendue");
+        return Err("unexpected operation");
     }
     ops.sort_by_key(|op| std::cmp::Reverse(index(op)));
     if ops.windows(2).any(|w| index(&w[0]) == index(&w[1])) {
-        return Err("deux changements à la même position");
+        return Err("two changes at the same position");
     }
     Ok(ops)
 }
@@ -50,7 +50,7 @@ pub fn inverse(op: ListOp) -> ListOp {
     }
 }
 
-/// Ce qui défait `applied` (dans l'ordre où elles l'ont été).
+/// What undoes `applied` (in the order they were applied).
 pub fn undo(applied: &[ListOp]) -> Vec<ListOp> {
     applied.iter().rev().copied().map(inverse).collect()
 }
@@ -67,26 +67,26 @@ fn with_index(op: ListOp, index: usize) -> ListOp {
     }
 }
 
-/// Opérations sautées pendant une annulation : le service refuse de rajouter un titre retiré
-/// du catalogue (404, vérifié le 2026-11-12). Un ajout sauté manque à la liste : les
-/// opérations suivantes placées après lui remontent d'une place. Un remplacement sauté ne
-/// décale rien.
+/// Operations skipped during an undo: the service refuses to add back a track removed
+/// from the catalog (404, checked on 2026-11-12). A skipped add is missing from the list: the
+/// following operations placed after it move up one place. A skipped replacement shifts
+/// nothing.
 #[derive(Debug, Default)]
 pub struct Skips {
-    /// Positions (d'origine) des ajouts sautés.
+    /// Positions (original) of the skipped adds.
     inserts: Vec<usize>,
     pub count: usize,
 }
 
 impl Skips {
-    /// `op` recalée sur la liste réelle.
+    /// `op` adjusted to the real list.
     pub fn adjust(&self, op: ListOp) -> ListOp {
         let i = index(&op);
         let shift = self.inserts.iter().filter(|&&k| k < i).count();
         with_index(op, i - shift)
     }
 
-    /// `op` (position d'origine) a été sautée.
+    /// `op` (original position) was skipped.
     pub fn note(&mut self, op: &ListOp) {
         if let ListOp::Insert { index, .. } = *op {
             self.inserts.push(index);
@@ -100,12 +100,12 @@ mod tests {
     use super::*;
     use crate::tidal::models::TrackId;
 
-    /// Applique les opérations à une liste locale, comme le ferait l'API.
+    /// Applies the operations to a local list, as the API would.
     fn apply(list: &mut Vec<u64>, ops: &[ListOp]) {
         for op in ops {
             match *op {
                 ListOp::Remove { index, track_id } => {
-                    assert_eq!(list[index], track_id.0, "position vérifiée");
+                    assert_eq!(list[index], track_id.0, "position checked");
                     list.remove(index);
                 }
                 ListOp::Insert { index, track_id } => {
@@ -116,7 +116,7 @@ mod tests {
                     track_id,
                     with,
                 } => {
-                    assert_eq!(list[index], track_id.0, "position vérifiée");
+                    assert_eq!(list[index], track_id.0, "position checked");
                     list[index] = with.0;
                 }
             }
@@ -160,13 +160,13 @@ mod tests {
         let original = vec![1, 2, 3, 4];
         let ops = forward(vec![remove(1, 2), remove(2, 3)]).unwrap();
         let mut list = original.clone();
-        // Seule la première opération a réussi.
+        // Only the first operation succeeded.
         apply(&mut list, &ops[..1]);
         apply(&mut list, &undo(&ops[..1]));
         assert_eq!(list, original);
     }
 
-    /// Annulation où les titres de `gone` ne peuvent plus être ajoutés, comme dans
+    /// Undo where the tracks of `gone` can no longer be added, as in
     /// `apply_playlist_ops`.
     fn undo_with_gone(list: &mut Vec<u64>, ops: &[ListOp], gone: &[u64]) -> usize {
         let mut skips = Skips::default();
@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn undo_skips_tracks_that_cannot_come_back() {
-        // 20 et 40 sont indisponibles : 20 retiré, 40 remplacé par 99.
+        // 20 and 40 are unavailable: 20 removed, 40 replaced by 99.
         let original = vec![10, 20, 30, 40, 50, 60];
         let chosen = vec![
             remove(1, 20),
@@ -205,7 +205,7 @@ mod tests {
         assert_eq!(
             list,
             vec![10, 30, 99, 50, 60],
-            "le reste revient à sa place"
+            "the rest goes back to its place"
         );
     }
 

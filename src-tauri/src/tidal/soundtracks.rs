@@ -1,14 +1,14 @@
-//! Bandes originales de films (clin d'œil #399) : `models::Album` n'a ni genre ni type
-//! « bande originale », donc une courte liste d'albums choisis à la main (décision de
-//! l'utilisateur), sans aucune détection d'après le titre. Liste à entretenir : un album absent n'a simplement pas le
-//! format large dans « En lecture ».
+//! Film soundtracks (nod #399): `models::Album` has no genre or "soundtrack" type, so
+//! this is a short list of albums picked by hand (the user's decision), with no detection
+//! from the title. A list to maintain: a missing album simply does not get the wide
+//! format in "Now playing".
 //!
-//! Identifiants relevés dans la bibliothèque réelle (fixtures de l'aperçu, 2026-11-12).
+//! Ids taken from the real library (preview fixtures, 2026-11-12).
 
 const SOUNDTRACKS: &[u64] = &[
     156_749_593, // Interstellar (Expanded Edition)
     346_554_601, // Dune: Part Two
-    346_598_849, // Dune: Part Two (autre édition)
+    346_598_849, // Dune: Part Two (other edition)
     3_175_162,   // The Lord of the Rings: The Fellowship of the Ring
     77_608_387,  // Star Wars: The Force Awakens
     68_183_362,  // Rogue One: A Star Wars Story
@@ -19,7 +19,7 @@ const SOUNDTRACKS: &[u64] = &[
     104_868_178, // Dunkirk
     105_419_824, // Batman Begins
     4_683_997,   // Gladiator
-    5_476_745,   // Gladiator (autre édition)
+    5_476_745,   // Gladiator (other edition)
     104_823_269, // Mad Max: Fury Road
     104_823_612, // Mad Max: Fury Road (Deluxe Version)
     165_842_024, // TRON: Legacy (The Complete Edition)
@@ -34,10 +34,10 @@ const SOUNDTRACKS: &[u64] = &[
     130_227_158, // Alien: Covenant
     36_404_335,  // Star Trek Into Darkness
     445_499_744, // F1 The Movie
-    445_499_760, // F1 The Movie (autre édition)
+    445_499_760, // F1 The Movie (other edition)
 ];
 
-/// L'album fait partie des bandes originales choisies.
+/// The album is one of the chosen soundtracks.
 pub fn is_soundtrack(album: u64) -> bool {
     SOUNDTRACKS.contains(&album)
 }

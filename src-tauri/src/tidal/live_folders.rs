@@ -1,14 +1,14 @@
-//! Dossiers de playlists (#331), sur l'API réelle, ignorés par défaut.
+//! Playlist folders (#331), on the real API, ignored by default.
 //!
-//! `cargo test live_folders -- --ignored --nocapture` : **crée deux playlists et un dossier
-//! jetables**, les range, renomme, supprime le dossier (les playlists doivent revenir à la
-//! racine), puis supprime les playlists. Nettoyage même si une vérification échoue.
+//! `cargo test live_folders -- --ignored --nocapture`: **creates two throwaway playlists
+//! and a folder**, files them, renames, deletes the folder (the playlists must go back to
+//! the root), then deletes the playlists. Cleanup even if a check fails.
 
 use super::TidalClient;
 use super::api::{API_V2, Call};
 use super::live_tests::client;
 
-/// Uuids des playlists à la racine (hors dossier).
+/// Uuids of the playlists at the root (outside any folder).
 async fn root_playlists(client: &TidalClient) -> Vec<String> {
     let query = [
         ("folderId", "root".to_owned()),
@@ -31,13 +31,13 @@ async fn checks(client: &TidalClient, a: &str, b: &str) -> Result<(), String> {
         .create_folder("Seaglass test (à supprimer)", &[a.to_owned()])
         .await
         .map_err(e)?;
-    println!("dossier créé : {folder:?}");
+    println!("folder created: {folder:?}");
     let result = async {
         let found = client.playlist_folders().await.map_err(e)?;
         let mine = found.iter().find(|f| f.id == folder.id);
-        println!("lu : {mine:?}");
+        println!("read: {mine:?}");
         if mine.map(|f| f.playlists.clone()) != Some(vec![a.to_owned()]) {
-            return Err("A absente du dossier lu".to_owned());
+            return Err("A missing from the folder read".to_owned());
         }
         client
             .move_to_folder(&[b.to_owned()], Some(&folder.id))
@@ -49,38 +49,38 @@ async fn checks(client: &TidalClient, a: &str, b: &str) -> Result<(), String> {
             .map_err(e)?;
         let found = client.playlist_folders().await.map_err(e)?;
         let mine = found.iter().find(|f| f.id == folder.id).cloned();
-        println!("après rangement et renommage : {mine:?}");
-        let mine = mine.ok_or("dossier introuvable")?;
+        println!("after filing and renaming: {mine:?}");
+        let mine = mine.ok_or("folder not found")?;
         if mine.name != "Seaglass test renommé" || mine.playlists.len() != 2 {
-            return Err("renommage ou rangement non vu".to_owned());
+            return Err("rename or filing not seen".to_owned());
         }
         let root = root_playlists(client).await;
         if root.iter().any(|u| u == a || u == b) {
-            return Err("playlist rangée encore à la racine".to_owned());
+            return Err("filed playlist still at the root".to_owned());
         }
         Ok(())
     }
     .await;
-    // Toujours : suppression du dossier, qui doit ressortir A et B à la racine.
+    // Always: delete the folder, which must put A and B back at the root.
     client.delete_folder(&folder.id).await.map_err(e)?;
     let left = client.playlist_folders().await.map_err(e)?;
     if left.iter().any(|f| f.id == folder.id) {
-        return Err("dossier encore là".to_owned());
+        return Err("folder still there".to_owned());
     }
     let root = root_playlists(client).await;
     let (has_a, has_b) = (root.iter().any(|u| u == a), root.iter().any(|u| u == b));
-    println!("après suppression du dossier : A à la racine {has_a}, B {has_b}");
+    println!("after deleting the folder: A at the root {has_a}, B {has_b}");
     if !(has_a && has_b) {
-        return Err("playlists non revenues à la racine".to_owned());
+        return Err("playlists not back at the root".to_owned());
     }
     result
 }
 
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis, crée puis supprime un dossier et deux playlists"]
+#[ignore = "network and TIDAL session required, creates then deletes a folder and two playlists"]
 async fn live_folders() {
     let client = client().await;
-    println!("dossiers existants : {:?}", client.playlist_folders().await);
+    println!("existing folders: {:?}", client.playlist_folders().await);
     let a = client
         .create_playlist("Seaglass test A (à supprimer)", "")
         .await
@@ -94,7 +94,7 @@ async fn live_folders() {
         client.delete_playlist(&a).await,
         client.delete_playlist(&b).await,
     );
-    println!("playlists supprimées : {deleted:?}");
+    println!("playlists deleted: {deleted:?}");
     result.unwrap();
     assert!(deleted.0.is_ok() && deleted.1.is_ok());
 }

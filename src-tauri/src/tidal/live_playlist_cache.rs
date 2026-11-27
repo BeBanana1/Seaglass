@@ -1,10 +1,10 @@
-//! ETag des playlists sur l'API réelle (#152), ignoré par défaut.
+//! Playlist ETags on the real API (#152), ignored by default.
 //!
-//! `cargo test live_playlist_etag -- --ignored --nocapture` : crée une playlist jetable,
-//! la modifie puis la supprime (aucune autre playlist n'est touchée). Vérifie ce sur quoi
-//! repose le cache des pages de playlist : un GET simple renvoie l'ETag, stable tant que
-//! rien ne change, différent après chaque modification ; puis `playlist_since` sur la
-//! playlist jetable (inchangée → `None`, après un ajout → nouveaux titres).
+//! `cargo test live_playlist_etag -- --ignored --nocapture`: creates a throwaway playlist,
+//! modifies it then deletes it (no other playlist is touched). Checks what the playlist
+//! page cache relies on: a plain GET returns the ETag, stable as long as nothing changes,
+//! different after each modification; then `playlist_since` on the throwaway playlist
+//! (unchanged → `None`, after an add → new tracks).
 
 use std::time::Instant;
 
@@ -12,7 +12,7 @@ use super::TidalClient;
 use super::api::{API_V1, Call};
 use super::live_tests::{ALBUM_ID, client};
 
-/// ETag et `lastUpdated` du GET `playlists/{uuid}`.
+/// ETag and `lastUpdated` of the GET `playlists/{uuid}`.
 async fn probe(client: &TidalClient, uuid: &str) -> (Option<String>, Option<serde_json::Value>) {
     let path = format!("playlists/{uuid}");
     let resp = client.call(&Call::get(API_V1, &path, &[])).await.unwrap();
@@ -26,27 +26,20 @@ async fn probe(client: &TidalClient, uuid: &str) -> (Option<String>, Option<serd
 }
 
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis, crée puis supprime une playlist"]
+#[ignore = "network and TIDAL session required, creates then deletes a playlist"]
 async fn live_playlist_etag() {
     let client = client().await;
 
-    // Lecture seule : une playlist d'un autre utilisateur, lue deux fois.
+    // Read only: another user's playlist, read twice.
     let search = client.search("interstellar", 10).await.unwrap();
-    let other = &search
-        .playlists
-        .first()
-        .expect("aucune playlist trouvée")
-        .uuid;
+    let other = &search.playlists.first().expect("no playlist found").uuid;
     let (a, a_updated) = probe(&client, other).await;
     let (b, _) = probe(&client, other).await;
-    println!("autre playlist {other} : ETag {a:?} puis {b:?}, lastUpdated {a_updated:?}");
-    assert!(
-        a.is_some(),
-        "pas d'ETag sur la playlist d'un autre utilisateur"
-    );
-    assert_eq!(a, b, "ETag instable sans modification");
+    println!("other playlist {other}: ETag {a:?} then {b:?}, lastUpdated {a_updated:?}");
+    assert!(a.is_some(), "no ETag on another user's playlist");
+    assert_eq!(a, b, "unstable ETag without modification");
 
-    // Durées : lecture complète puis revalidation de la plus grande playlist du compte.
+    // Timings: full read then revalidation of the account's largest playlist.
     let library = client.library_playlists().await.unwrap().items;
     if let Some(big) = library.iter().max_by_key(|p| p.number_of_tracks) {
         let start = Instant::now();
@@ -57,7 +50,7 @@ async fn live_playlist_etag() {
             .playlist_since(&big.uuid, full.revision.as_deref())
             .await;
         println!(
-            "« {} » ({} titres) : lecture complète {full_time:?}, revalidation {:?} ({:?})",
+            "\"{}\" ({} tracks): full read {full_time:?}, revalidation {:?} ({:?})",
             big.title,
             full.tracks.len(),
             start.elapsed(),
@@ -78,16 +71,16 @@ async fn live_playlist_etag() {
     let mut etags = Vec::new();
     let result = async {
         etags.push(probe(&client, &uuid).await);
-        // Cache des pages : rien de changé depuis la révision affichée → `None`.
+        // Page cache: nothing changed since the displayed revision → `None`.
         let first = client.playlist(&uuid).await.map_err(|e| e.to_string())?;
         let known = first.revision.clone();
         let same = client.playlist_since(&uuid, known.as_deref()).await;
         println!(
-            "révision {known:?}, relue sans changement : {:?}",
+            "revision {known:?}, read again without change: {:?}",
             same.as_ref().map(Option::is_none)
         );
         if !matches!(same, Ok(None)) {
-            return Err(format!("playlist inchangée relue : {same:?}"));
+            return Err(format!("unchanged playlist read again: {same:?}"));
         }
         client
             .add_to_playlist(&uuid, &ids)
@@ -98,16 +91,16 @@ async fn live_playlist_etag() {
             .playlist_since(&uuid, known.as_deref())
             .await
             .map_err(|e| e.to_string())?
-            .ok_or("ajout non vu par la révision")?;
+            .ok_or("add not seen by the revision")?;
         let got: Vec<_> = changed.tracks.iter().map(|e| e.track.id).collect();
         if got != ids || changed.revision == known {
             return Err(format!(
-                "après ajout : {got:?}, révision {:?}",
+                "after add: {got:?}, revision {:?}",
                 changed.revision
             ));
         }
         if client.cached_playlist(&uuid).map(|p| p.revision) != Some(changed.revision) {
-            return Err("copie gardée différente de la dernière lecture".into());
+            return Err("kept copy differs from the last read".into());
         }
         client
             .remove_from_playlist(&uuid, 0, ids[0])
@@ -118,13 +111,13 @@ async fn live_playlist_etag() {
     }
     .await;
     let deleted = client.delete_playlist(&uuid).await;
-    println!("playlist jetable : {etags:?}");
+    println!("throwaway playlist: {etags:?}");
     result.unwrap();
     deleted.unwrap();
     let tags: Vec<_> = etags
         .iter()
-        .map(|(e, _)| e.clone().expect("pas d'ETag"))
+        .map(|(e, _)| e.clone().expect("no ETag"))
         .collect();
-    assert_ne!(tags[0], tags[1], "ETag inchangé après un ajout");
-    assert_ne!(tags[1], tags[2], "ETag inchangé après un retrait");
+    assert_ne!(tags[0], tags[1], "ETag unchanged after an add");
+    assert_ne!(tags[1], tags[2], "ETag unchanged after a removal");
 }

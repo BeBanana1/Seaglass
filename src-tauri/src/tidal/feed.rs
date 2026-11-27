@@ -1,12 +1,12 @@
-//! Fil d'actualité : nouveautés des artistes suivis et mixes mensuels.
+//! Activity feed: new releases from followed artists and monthly mixes.
 //!
-//! Endpoint vérifié (2026-10-30) : v2 `feed/activities?userId=…` →
+//! Endpoint checked (2026-10-30): v2 `feed/activities?userId=…` →
 //! `{ activities: [{ followableActivity: { activityType, occurredAt, <objet> }, seen }],
-//! stats: { totalNotSeenActivities } }`. Types vus : `NEW_ALBUM_RELEASE` (avec `album`,
-//! même format que `albums/{id}`) et `NEW_HISTORY_MIX` (avec `historyMix`, mix
-//! `HISTORY_MONTHLY_MIX` au format de `favorites/mixes`, lu par `RawMix`). Pas de
-//! pagination : `offset` est ignoré, `limit` tronque seulement, la fenêtre plafonne vers
-//! 50 activités. L'état `seen` est lu, jamais modifié.
+//! stats: { totalNotSeenActivities } }`. Types seen: `NEW_ALBUM_RELEASE` (with `album`,
+//! same format as `albums/{id}`) and `NEW_HISTORY_MIX` (with `historyMix`, mix
+//! `HISTORY_MONTHLY_MIX` in the format of `favorites/mixes`, read by `RawMix`). No
+//! paging: `offset` is ignored, `limit` only truncates, the window caps around
+//! 50 activities. The `seen` state is read, never modified.
 
 use serde::Deserialize;
 
@@ -36,7 +36,7 @@ struct RawFeedEntry {
 struct RawActivity {
     activity_type: String,
     occurred_at: Option<String>,
-    /// Décodés élément par élément : un objet illisible ne doit pas vider tout le fil.
+    /// Decoded item by item: an unreadable object must not empty the whole feed.
     #[serde(default)]
     album: serde_json::Value,
     #[serde(default)]
@@ -44,7 +44,7 @@ struct RawActivity {
 }
 
 impl RawActivity {
-    /// Albums et mixes ; les types inconnus sont ignorés.
+    /// Albums and mixes; unknown types are ignored.
     fn into_item(self) -> Option<MediaItem> {
         match self.activity_type.as_str() {
             "NEW_ALBUM_RELEASE" => serde_json::from_value::<RawAlbumFull>(self.album)
@@ -60,7 +60,7 @@ impl RawActivity {
 }
 
 impl TidalClient {
-    /// Sorties récentes des artistes suivis et mixes mensuels, du plus récent au plus ancien.
+    /// Recent releases from followed artists and monthly mixes, most recent first.
     pub async fn feed(&self) -> Result<Vec<FeedItem>> {
         let user = self.session().await.ok_or(TidalError::NotLoggedIn)?.user_id;
         let raw: RawFeed = self
@@ -135,7 +135,7 @@ mod tests {
         assert_eq!(items[0].occurred_at, Some(1_793_318_400_000));
         assert!(!items[0].seen);
         let MediaItem::Mix(mix) = &items[1].item else {
-            panic!("mix attendu");
+            panic!("mix expected");
         };
         assert_eq!(mix.title, "September 2026");
         assert_eq!(mix.subtitle.as_deref(), Some("a, b et plus"));

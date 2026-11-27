@@ -1,8 +1,8 @@
-//! Paroles : `tracks/{id}/lyrics` (vérifié le 2026-10-30).
+//! Lyrics: `tracks/{id}/lyrics` (verified on 2026-10-30).
 //!
-//! Réponse `{trackId, lyricsProvider, isRightToLeft, lyrics, subtitles}` : `subtitles` est au
-//! format LRC (`[00:07.30] …`), `lyrics` le même texte sans horodatage. Un titre sans
-//! paroles (instrumental, classique) répond 404, traduit ici en `None`.
+//! Response `{trackId, lyricsProvider, isRightToLeft, lyrics, subtitles}`: `subtitles` is
+//! in LRC format (`[00:07.30] …`), `lyrics` the same text without timestamps. A track
+//! without lyrics (instrumental, classical) answers 404, translated here into `None`.
 
 use super::api::TidalClient;
 use super::models::{LyricLine, Lyrics, LyricsText, TrackId};
@@ -10,7 +10,7 @@ use super::raw::RawLyrics;
 use super::{Result, TidalError};
 
 impl TidalClient {
-    /// Paroles du titre, ou `None` si TIDAL n'en a pas.
+    /// Lyrics of the track, or `None` if TIDAL has none.
     pub async fn lyrics(&self, id: TrackId) -> Result<Option<Lyrics>> {
         match self
             .get::<RawLyrics>(&format!("tracks/{id}/lyrics"), &[])
@@ -23,7 +23,7 @@ impl TidalClient {
     }
 }
 
-/// Paroles horodatées si `subtitles` est lisible, sinon texte simple, sinon `None`.
+/// Timed lyrics if `subtitles` is readable, otherwise plain text, otherwise `None`.
 fn convert(id: TrackId, raw: RawLyrics) -> Option<Lyrics> {
     let synced = raw
         .subtitles
@@ -43,7 +43,7 @@ fn convert(id: TrackId, raw: RawLyrics) -> Option<Lyrics> {
     })
 }
 
-/// Lignes du texte simple, sans les lignes vides du début et de la fin.
+/// Lines of the plain text, without the empty lines at the start and end.
 fn plain_lines(text: &str) -> Vec<String> {
     let lines: Vec<String> = text.lines().map(|l| l.trim().to_owned()).collect();
     let start = lines.iter().position(|l| !l.is_empty());
@@ -54,8 +54,8 @@ fn plain_lines(text: &str) -> Vec<String> {
     }
 }
 
-/// Analyse un texte LRC : une ligne peut porter plusieurs horodatages (refrain répété),
-/// les en-têtes (`[ar:…]`, `[offset:…]`) sont ignorés. Résultat trié par temps.
+/// Parses LRC text: a line may carry several timestamps (repeated chorus), the headers
+/// (`[ar:…]`, `[offset:…]`) are ignored. Result sorted by time.
 fn parse_lrc(text: &str) -> Vec<LyricLine> {
     let mut lines = Vec::new();
     for line in text.lines() {
@@ -74,12 +74,12 @@ fn parse_lrc(text: &str) -> Vec<LyricLine> {
             text: text.to_owned(),
         }));
     }
-    // Tri stable : deux lignes au même instant gardent leur ordre d'origine.
+    // Stable sort: two lines at the same instant keep their original order.
     lines.sort_by_key(|l| l.time_ms);
     lines
 }
 
-/// `mm:ss`, `mm:ss.x`, `mm:ss.xx`, `mm:ss.xxx` (ou `:` avant la fraction) → millisecondes.
+/// `mm:ss`, `mm:ss.x`, `mm:ss.xx`, `mm:ss.xxx` (or `:` before the fraction) → milliseconds.
 fn parse_time(tag: &str) -> Option<u32> {
     let (min, rest) = tag.split_once(':')?;
     let (sec, frac) = match rest.split_once(['.', ':']) {

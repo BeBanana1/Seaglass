@@ -1,10 +1,10 @@
-//! Écritures par lots pour la sélection multiple (#332), vérifiées par
+//! Batch writes for the multiple selection (#332), checked by
 //! `cargo test live_batch -- --ignored --nocapture`.
 //!
-//! - Favoris : POST v1 `users/{id}/favorites/tracks` accepte plusieurs `trackIds` séparés
-//!   par des virgules ; DELETE `…/favorites/tracks/{a,b,c}` retire plusieurs titres d'un coup.
-//! - Playlist : DELETE v1 `playlists/{uuid}/items/{i,j,k}` retire plusieurs positions en une
-//!   requête (une seule version de la playlist, donc un seul ETag).
+//! - Favorites: POST v1 `users/{id}/favorites/tracks` accepts several comma-separated
+//!   `trackIds`; DELETE `…/favorites/tracks/{a,b,c}` removes several tracks at once.
+//! - Playlist: DELETE v1 `playlists/{uuid}/items/{i,j,k}` removes several positions in one
+//!   request (a single version of the playlist, so a single ETag).
 
 use reqwest::Method;
 
@@ -12,18 +12,18 @@ use super::super::api::API_V1;
 use super::super::models::{LikeTarget, TrackId};
 use super::super::raw::RawPage;
 use super::super::{Result, TidalClient, TidalError};
-// `retry_stale!` se sert des trois derniers.
+// `retry_stale!` uses the last three.
 use super::{RawItem, STALE_ATTEMPTS, STALE_DELAY, stale_to_conflict};
 
-/// Titres par requête (favoris, positions retirées) : l'identifiant finit dans le chemin ou
-/// le formulaire, on reste loin des limites d'URL.
+/// Tracks per request (favorites, removed positions): the id ends up in the path or
+/// the form, so we stay far from URL limits.
 const CHUNK: usize = 100;
-/// Titres lus par page pour vérifier les positions avant un retrait.
+/// Tracks read per page to check positions before a removal.
 const PAGE: usize = 100;
 
 impl TidalClient {
-    /// Ajoute ou retire plusieurs titres des favoris. Les titres déjà dans l'état demandé
-    /// sont ignorés par l'appelant ; ici tout est envoyé.
+    /// Adds or removes several tracks from the favorites. Tracks already in the requested
+    /// state are ignored by the caller; here everything is sent.
     pub async fn set_tracks_liked(&self, ids: &[TrackId], liked: bool) -> Result<()> {
         let user = self.user_id().await?;
         for chunk in ids.chunks(CHUNK) {
@@ -48,8 +48,8 @@ impl TidalClient {
         Ok(())
     }
 
-    /// Retire plusieurs titres d'une playlist, désignés par leur position (0 = premier) et
-    /// le titre attendu à cette position : tout est refusé si l'un d'eux a changé.
+    /// Removes several tracks from a playlist, designated by their position (0 = first) and
+    /// the track expected at that position: everything is refused if one of them has changed.
     pub async fn remove_many_from_playlist(
         &self,
         uuid: &str,
@@ -58,8 +58,8 @@ impl TidalClient {
         let mut items = items.to_vec();
         items.sort_unstable_by_key(|(index, _)| *index);
         items.dedup_by_key(|(index, _)| *index);
-        // Du bas vers le haut, par lots : un lot retiré ne décale pas les positions des
-        // lots suivants, plus haut dans la playlist.
+        // From bottom to top, in batches: a removed batch does not shift the positions of the
+        // following batches, higher up in the playlist.
         for chunk in items.rchunks(CHUNK) {
             let indices: Vec<String> = chunk.iter().map(|(i, _)| i.to_string()).collect();
             let path = format!("playlists/{uuid}/items/{}", indices.join(","));
@@ -77,8 +77,8 @@ impl TidalClient {
         Ok(())
     }
 
-    /// Comme `checked_etag`, pour plusieurs positions triées : les titres sont relus par
-    /// pages entre la première et la dernière position.
+    /// Like `checked_etag`, for several sorted positions: the tracks are read again in
+    /// pages between the first and the last position.
     async fn checked_etag_many(&self, uuid: &str, items: &[(usize, TrackId)]) -> Result<String> {
         self.playlists.remove(uuid);
         let etag = self.fresh_etag(uuid).await?;
@@ -110,9 +110,9 @@ impl TidalClient {
         Ok(etag)
     }
 
-    /// Annulation d'un retrait par lot : chaque titre revient à sa position, de la plus
-    /// petite à la plus grande (chaque remise rétablit les positions des suivantes).
-    /// Renvoie le nombre de titres remis.
+    /// Undo of a batch removal: each track goes back to its position, from the
+    /// smallest to the largest (each put-back restores the positions of the following ones).
+    /// Returns the number of tracks put back.
     pub async fn restore_many_to_playlist(
         &self,
         uuid: &str,

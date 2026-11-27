@@ -1,7 +1,7 @@
-//! Connexion PKCE (seul flux qui donne du FLAC, cf. résultats du spike) et stockage du
-//! refresh token dans le Gestionnaire d'identifiants Windows.
+//! PKCE sign-in (the only flow that gives FLAC, see the spike results) and storage of the
+//! refresh token in the Windows Credential Manager.
 //!
-//! Aucun token n'est jamais loggé, même tronqué.
+//! No token is ever logged, even truncated.
 
 use std::time::{Duration, Instant};
 
@@ -22,8 +22,8 @@ const SCOPE: &str = "r_usr w_usr w_sub";
 const KEYRING_SERVICE: &str = "seaglass";
 const KEYRING_USER: &str = "tidal-refresh-token";
 
-/// Identifiant client : variable d'environnement au lancement, sinon valeur de `.env`
-/// injectée à la compilation par `build.rs`. Volontairement sans `Debug`.
+/// Client id: environment variable at launch, otherwise the `.env` value
+/// injected at compile time by `build.rs`. Deliberately without `Debug`.
 pub struct ClientCredentials {
     pub id: String,
     secret: Option<String>,
@@ -83,11 +83,11 @@ impl PkceChallenge {
                 ("restrict_signup", "true"),
             ],
         )
-        .map_err(|e| TidalError::Decode(format!("URL de connexion : {e}")))
+        .map_err(|e| TidalError::Decode(format!("sign-in URL: {e}")))
     }
 }
 
-/// Extrait le code d'autorisation si `url` est la redirection de fin de connexion.
+/// Extracts the authorization code if `url` is the redirect that ends the sign-in.
 pub fn redirect_code(url: &Url) -> Option<String> {
     if !url.as_str().starts_with(REDIRECT_URI) {
         return None;
@@ -100,8 +100,8 @@ pub fn redirect_code(url: &Url) -> Option<String> {
 pub struct Tokens {
     pub access: String,
     pub expires_at: Instant,
-    /// Présent après l'échange du code. Le rafraîchissement n'en renvoie pas (vérifié le
-    /// 2026-11-10, `live_refresh_rotation`) ; s'il en renvoyait un, l'app le garderait.
+    /// Present after the code exchange. A refresh does not return one (checked on
+    /// 2026-11-10, `live_refresh_rotation`); if it did, the app would keep it.
     pub refresh: Option<String>,
 }
 
@@ -170,7 +170,7 @@ async fn token_request(http: &reqwest::Client, form: &[(&str, &str)]) -> Result<
     let token: TokenResponse = resp
         .json()
         .await
-        .map_err(|e| TidalError::Decode(format!("réponse token : {e}")))?;
+        .map_err(|e| TidalError::Decode(format!("token response: {e}")))?;
     Ok(Tokens {
         access: token.access_token,
         expires_at: Instant::now() + Duration::from_secs(token.expires_in),
@@ -178,9 +178,9 @@ async fn token_request(http: &reqwest::Client, form: &[(&str, &str)]) -> Result<
     })
 }
 
-/// Seul un refus explicite (400 `invalid_grant`, 401, 403) invalide la session. Une panne
-/// du serveur ou une limite de débit (5xx, 429) est passagère : traitée comme un refus, elle
-/// effaçait le refresh token et forçait une reconnexion (#252).
+/// Only an explicit refusal (400 `invalid_grant`, 401, 403) invalidates the session. A server
+/// outage or a rate limit (5xx, 429) is temporary: treated as a refusal, it used to
+/// erase the refresh token and force a new sign-in (#252).
 fn token_error(status: StatusCode, message: String) -> TidalError {
     match status.as_u16() {
         400 | 401 | 403 => TidalError::Auth(format!("{status} {message}")),

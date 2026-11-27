@@ -1,20 +1,20 @@
-//! Couverture du fil d'actualité (#415), sur l'API réelle :
+//! Coverage of the activity feed (#415), on the real API:
 //! `cargo test live_feed_coverage -- --ignored --nocapture`.
 //!
-//! Compare les sorties `NEW_ALBUM_RELEASE` du fil aux albums et singles récents de chaque
-//! artiste suivi (`artists/{id}/albums`), pour savoir si le fil suffit, puis lit le fil
-//! complété par `releases.rs`.
+//! Compares the feed's `NEW_ALBUM_RELEASE` entries with the recent albums and singles of
+//! each followed artist (`artists/{id}/albums`), to know whether the feed is enough, then
+//! reads the feed completed by `releases.rs`.
 
 use std::collections::HashSet;
 
 use super::live_tests::client;
 use super::models::MediaItem;
 
-/// Fenêtre comparée, en jours.
+/// Compared window, in days.
 const DAYS: i64 = 60;
 
 #[tokio::test]
-#[ignore = "réseau et session TIDAL requis"]
+#[ignore = "network and TIDAL session required"]
 async fn live_feed_coverage() {
     let client = client().await;
     let feed = client.feed().await.unwrap();
@@ -27,7 +27,7 @@ async fn live_feed_coverage() {
         .collect();
     let oldest = feed.iter().filter_map(|f| f.occurred_at).min();
     println!(
-        "fil : {} activités, {} albums, plus ancienne {:?}",
+        "feed: {} activities, {} albums, oldest {:?}",
         feed.len(),
         feed_albums.len(),
         oldest.map(chrono_day)
@@ -37,7 +37,7 @@ async fn live_feed_coverage() {
     let today = chrono_day(now_ms());
     let since = chrono_day(now_ms() - DAYS * 86_400_000);
     println!(
-        "{} artistes suivis, sorties depuis {since}",
+        "{} followed artists, releases since {since}",
         artists.items.len()
     );
     let start = std::time::Instant::now();
@@ -46,7 +46,7 @@ async fn live_feed_coverage() {
         let page = match client.artist(artist.id).await {
             Ok(page) => page,
             Err(e) => {
-                println!("  {} : erreur {e}", artist.name);
+                println!("  {}: error {e}", artist.name);
                 continue;
             }
         };
@@ -60,7 +60,7 @@ async fn live_feed_coverage() {
             recent += 1;
             let same_title = feed.iter().any(|f| matches!(&f.item, MediaItem::Album(a) if a.id != album.id && a.title == album.title));
             if same_title {
-                println!("    (même titre, autre id, dans le fil)");
+                println!("    (same title, other id, in the feed)");
             }
             let seen = feed_albums.contains(&album.id);
             if !seen {
@@ -75,23 +75,23 @@ async fn live_feed_coverage() {
                 if album.artists.first().map(|a| a.id) == Some(artist.id) {
                     ""
                 } else {
-                    " [invité]"
+                    " [guest]"
                 }
             );
         }
     }
     println!(
-        "{recent} sorties récentes, {missing} absentes du fil, {} artistes lus en {:?}",
+        "{recent} recent releases, {missing} missing from the feed, {} artists read in {:?}",
         artists.items.len(),
         start.elapsed()
     );
 
-    // Fil complété (eleases.rs) : sorties ajoutées, éditions en double écartées.
+    // Completed feed (releases.rs): releases added, duplicate editions dropped.
     let client = std::sync::Arc::new(client);
     let start = std::time::Instant::now();
     let merged = client.feed_with_releases(now_ms()).await.unwrap();
     println!(
-        "fil complété : {} éléments ({} ajoutés) en {:?}",
+        "completed feed: {} items ({} added) in {:?}",
         merged.len(),
         merged.len() - feed.len(),
         start.elapsed()
@@ -111,7 +111,7 @@ fn now_ms() -> i64 {
         .unwrap_or(0)
 }
 
-/// `AAAA-MM-JJ` d'un instant en ms UTC (algorithme des jours civils de H. Hinnant).
+/// `YYYY-MM-DD` of an instant in UTC ms (H. Hinnant's civil days algorithm).
 fn chrono_day(ms: i64) -> String {
     let z = ms.div_euclid(86_400_000) + 719_468;
     let era = z.div_euclid(146_097);

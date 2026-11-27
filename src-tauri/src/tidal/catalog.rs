@@ -1,11 +1,11 @@
-//! Catalogue : recherche, albums, artistes, playlists et favoris (accueil : `home.rs`).
+//! Catalog: search, albums, artists, playlists and favorites (home: `home.rs`).
 //!
-//! Endpoints vérifiés avec le spike : `search` (multi-types), `albums/{id}`,
+//! Endpoints checked with the spike: `search` (multi-types), `albums/{id}`,
 //! `albums/{id}/tracks`, `artists/{id}`, `artists/{id}/toptracks`,
 //! `artists/{id}/albums[?filter=EPSANDSINGLES]`, `playlists/{uuid}`,
 //! `playlists/{uuid}/tracks`, `users/{id}/favorites/{tracks,albums,artists}`,
 //! `users/{id}/playlistsAndFavoritePlaylists`.
-//! Mixes et radios : `mix.rs` ; pages de playlist : `playlist.rs` ; pagination (`get_all`) :
+//! Mixes and radios: `mix.rs`; playlist pages: `playlist.rs`; paging (`get_all`):
 //! `paging.rs`.
 
 use serde::de::DeserializeOwned;
@@ -22,14 +22,14 @@ use super::raw::{
 };
 use super::{Result, TidalError};
 
-/// Taille de page des listes paginées.
+/// Page size of the paged lists.
 pub(super) const PAGE_SIZE: u32 = 100;
-/// `playlistsAndFavoritePlaylists` refuse plus de 50 éléments par page (vérifié).
+/// `playlistsAndFavoritePlaylists` refuses more than 50 items per page (checked).
 const PLAYLISTS_PAGE_SIZE: u32 = 50;
-/// Plafond des titres chargés pour un album ou une playlist.
+/// Cap of the tracks loaded for an album or a playlist.
 pub(super) const MAX_TRACKS: usize = 10_000;
-/// Plafond de chaque catégorie de la bibliothèque (#91 : 2 000 avant la pagination
-/// parallèle). Lire toute la liste doit rester sous `MAX_CONTEXT_LEN` (`commands/player.rs`).
+/// Cap of each library category (#91: 2,000 before the parallel
+/// paging). Reading a whole list must stay under `MAX_CONTEXT_LEN` (`commands/player.rs`).
 pub const LIBRARY_MAX: usize = 10_000;
 const TOP_TRACKS: u32 = 10;
 const ARTIST_ALBUMS: u32 = 50;
@@ -48,7 +48,7 @@ impl TidalClient {
             .await?;
         let user = self.user_id().await.ok();
         let mut tracks = self.remember(raw::tracks(raw.tracks.items));
-        // Titres de ce nom avant ceux des artistes de ce nom (#232).
+        // Tracks with this name before those by artists with this name (#232).
         super::rank::titles_first(&mut tracks, query);
         Ok(SearchResults {
             tracks,
@@ -103,7 +103,7 @@ impl TidalClient {
         })
     }
 
-    /// Titres favoris, du plus récent au plus ancien, avec la date du like.
+    /// Favorite tracks, most recent first, with the date of the like.
     pub async fn favorite_tracks(&self) -> Result<LibraryList<TrackEntry>> {
         let raw: LibraryList<RawFavorite<RawTrack>> = self.favorites("tracks").await?;
         self.availability.record(
@@ -114,7 +114,7 @@ impl TidalClient {
         let list = map_list(raw, |items| {
             self.remember_entries(raw::favorite_entries(items))
         });
-        // Liste complète : elle fait foi pour les cœurs (likes faits sur un autre appareil).
+        // Full list: it is authoritative for the hearts (likes made on another device).
         if !list.truncated {
             let ids = list.items.iter().map(|e| e.track.id).collect();
             self.likes.replace(LikedKind::Tracks(ids));
@@ -146,7 +146,7 @@ impl TidalClient {
         Ok(list)
     }
 
-    /// Playlists créées par l'utilisateur et playlists suivies.
+    /// Playlists created by the user and followed playlists.
     pub async fn library_playlists(&self) -> Result<LibraryList<PlaylistSummary>> {
         let user = self.user_id().await?;
         let raw: LibraryList<RawPlaylistEntry> = self
@@ -163,7 +163,7 @@ impl TidalClient {
                 .map(|e| e.playlist.into_summary(Some(user)))
                 .collect()
         });
-        // Seules les playlists des autres se suivent ; les vôtres n'ont pas de bouton.
+        // Only other people's playlists can be followed; yours have no button.
         if !list.truncated {
             let followed = list.items.iter().filter(|p| !p.mine);
             self.likes.replace(LikedKind::Playlists(
@@ -194,20 +194,20 @@ impl TidalClient {
             .ok_or(TidalError::NotLoggedIn)
     }
 
-    /// Ajoute les titres au cache (affichage de la file) et les renvoie.
+    /// Adds the tracks to the cache (queue display) and returns them.
     pub(super) fn remember(&self, tracks: Vec<Track>) -> Vec<Track> {
         self.cache.insert_all(&tracks);
         tracks
     }
 
-    /// Comme `remember`, pour des titres de liste (seul le `Track` va dans le cache).
+    /// Like `remember`, for list tracks (only the `Track` goes into the cache).
     pub(super) fn remember_entries(&self, entries: Vec<TrackEntry>) -> Vec<TrackEntry> {
         self.cache.insert_all(entries.iter().map(|e| &e.track));
         entries
     }
 }
 
-/// Convertit les éléments d'une liste en gardant ce qu'elle dit de sa troncature.
+/// Converts the items of a list while keeping what it says about its truncation.
 fn map_list<A, B>(list: LibraryList<A>, convert: impl FnOnce(Vec<A>) -> Vec<B>) -> LibraryList<B> {
     LibraryList {
         items: convert(list.items),

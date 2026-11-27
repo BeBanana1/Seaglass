@@ -1,11 +1,11 @@
-//! Dernière version connue de chaque playlist modifiée dans l'app (#201).
+//! Last known version of each playlist modified in the app (#201).
 //!
-//! L'API des playlists est cohérente à terme : juste après une écriture, `playlists/{uuid}`
-//! peut encore renvoyer l'ancien ETag, et une écriture envoyée avec cet ETag à une réplique
-//! en retard y est acceptée et appliquée sur l'ancien état (vu le 2026-11-05 : un
-//! déplacement appliqué avant l'ajout qui le précédait). L'ETag vaut `lastUpdated` en ms
-//! (`"1793747577268"`) : on retient le plus récent vu après chaque écriture, et un ETag plus
-//! ancien est relu au lieu d'être envoyé.
+//! The playlists API is eventually consistent: right after a write, `playlists/{uuid}` may
+//! still return the old ETag, and a write sent with that ETag to a lagging replica is
+//! accepted there and applied on the old state (seen on 2026-11-05: a move applied before
+//! the add that preceded it). The ETag is `lastUpdated` in ms (`"1793747577268"`): the most
+//! recent one seen after each write is kept, and an older ETag is read again instead of
+//! being sent.
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -16,7 +16,7 @@ pub struct PlaylistVersions {
 }
 
 impl PlaylistVersions {
-    /// L'ETag est plus ancien qu'une version déjà vue : une réplique en retard a répondu.
+    /// The ETag is older than a version already seen: a lagging replica answered.
     pub fn is_stale(&self, uuid: &str, etag: &str) -> bool {
         let (Some(version), Ok(known)) = (parse(etag), self.known.lock()) else {
             return false;
@@ -24,7 +24,7 @@ impl PlaylistVersions {
         known.get(uuid).is_some_and(|&k| version < k)
     }
 
-    /// Retient cette version si elle est plus récente que la dernière connue.
+    /// Keeps this version if it is more recent than the last known one.
     pub fn note(&self, uuid: &str, etag: &str) {
         let (Some(version), Ok(mut known)) = (parse(etag), self.known.lock()) else {
             return;
@@ -40,12 +40,12 @@ impl PlaylistVersions {
     }
 }
 
-/// `"1793747577268"` ou `W/"…"` → 1793747577268 ; autre forme → `None` (jamais périmé).
+/// `"1793747577268"` or `W/"…"` → 1793747577268; other form → `None` (never stale).
 pub fn parse(etag: &str) -> Option<u64> {
     etag.trim_start_matches("W/").trim_matches('"').parse().ok()
 }
 
-/// `after` est une version postérieure à `before` (écriture visible).
+/// `after` is a version later than `before` (write visible).
 pub fn is_newer(after: &str, before: &str) -> bool {
     match (parse(after), parse(before)) {
         (Some(a), Some(b)) => a > b,
@@ -67,7 +67,7 @@ mod tests {
         assert!(!versions.is_stale("a", "\"100\""));
         assert!(!versions.is_stale("a", "\"101\""));
         assert!(!versions.is_stale("b", "\"1\""));
-        // Forme inconnue : jamais bloquante.
+        // Unknown form: never blocking.
         assert!(!versions.is_stale("a", "abc"));
         versions.clear();
         assert!(!versions.is_stale("a", "\"1\""));

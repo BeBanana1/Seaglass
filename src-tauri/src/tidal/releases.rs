@@ -1,12 +1,12 @@
-//! Sorties récentes des artistes suivis (#415), ajoutées au fil d'actualité.
+//! Recent releases of followed artists (#415), added to the news feed.
 //!
-//! Le fil de TIDAL (`feed.rs`) en oublie : comparé le 2026-11-13 aux albums des 35 artistes
-//! suivis du compte de test (`cargo test live_feed_coverage -- --ignored --nocapture`), il
-//! lui manquait notamment un album du 2026-11-05 et un single de septembre de l'artiste
-//! principal. On lit donc aussi `artists/{id}/albums` (avec et sans
-//! `filter=EPSANDSINGLES`), triés par date de sortie décroissante : les 10 premiers de
-//! chaque liste suffisent. Deux requêtes par artiste (7 à 8 s en série pour 35 artistes),
-//! d'où le parallélisme et la copie gardée 30 min.
+//! TIDAL's feed (`feed.rs`) misses some: compared on 2026-11-13 with the albums of the 35
+//! followed artists of the test account (`cargo test live_feed_coverage -- --ignored
+//! --nocapture`), it was missing, among others, an album of 2026-11-05 and a September
+//! single by the main artist. So `artists/{id}/albums` is read too (with and without
+//! `filter=EPSANDSINGLES`), sorted by release date descending: the first 10 of each list
+//! are enough. Two requests per artist (7 to 8 s in series for 35 artists), hence the
+//! parallelism and the copy kept for 30 min.
 
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -18,18 +18,18 @@ use super::date::date_ms;
 use super::models::{AlbumSummary, FeedItem, MediaItem};
 use super::raw::{RawAlbumFull, RawPage};
 
-/// Sorties gardées : celles des 90 derniers jours (le fil remonte à environ 3 mois).
+/// Releases kept: those of the last 90 days (the feed goes back about 3 months).
 const WINDOW_DAYS: i64 = 90;
 const DAY_MS: i64 = 86_400_000;
-/// Éléments lus par liste (albums, puis EP et singles), les plus récents d'abord.
+/// Items read per list (albums, then EPs and singles), most recent first.
 const PER_LIST: u32 = 10;
 /// Artists read at the same time: 3 rather than 6 since #37, the background watch reads
 /// them every 6 h and should not burst.
 const PARALLEL: usize = 3;
-/// Durée de vie de la copie : le fil est demandé à chaque visite et toutes les 6 h.
+/// Lifetime of the copy: the feed is requested on every visit and every 6 h.
 const TTL: Duration = Duration::from_secs(30 * 60);
 
-/// Dernières sorties lues, par compte.
+/// Last releases read, per account.
 #[derive(Default)]
 pub(super) struct ReleasesCache(Mutex<Option<Cached>>);
 
@@ -58,12 +58,12 @@ impl ReleasesCache {
 }
 
 impl TidalClient {
-    /// Fil d'actualité complété des sorties récentes des artistes suivis, du plus récent au
-    /// plus ancien. Si la lecture des artistes échoue, le fil seul est rendu.
+    /// News feed completed with the recent releases of followed artists, from the most recent
+    /// to the oldest. If reading the artists fails, the feed alone is returned.
     pub async fn feed_with_releases(self: &Arc<Self>, now_ms: i64) -> Result<Vec<FeedItem>> {
         let (feed, releases) = tokio::join!(self.feed(), self.followed_releases());
         let releases = releases.unwrap_or_else(|e| {
-            tracing::warn!("sorties des artistes suivis illisibles : {e}");
+            tracing::warn!("releases of followed artists unreadable: {e}");
             Vec::new()
         });
         Ok(merge(feed?, releases, now_ms))
@@ -86,9 +86,9 @@ impl TidalClient {
             while let Some(joined) = set.join_next().await {
                 match joined {
                     Ok((_, Ok(list))) => albums.extend(list),
-                    // Un artiste illisible n'empêche pas d'afficher les autres.
+                    // An unreadable artist does not prevent showing the others.
                     Ok((id, Err(e))) => tracing::warn!("sorties de l'artiste {id} : {e}"),
-                    Err(e) => tracing::debug!("tâche interrompue : {e}"),
+                    Err(e) => tracing::debug!("task interrupted: {e}"),
                 }
             }
         }
@@ -96,7 +96,7 @@ impl TidalClient {
         Ok(albums)
     }
 
-    /// Derniers albums, puis derniers EP et singles d'un artiste.
+    /// Latest albums, then latest EPs and singles of an artist.
     async fn artist_releases(&self, id: u64) -> Result<Vec<AlbumSummary>> {
         let path = format!("artists/{id}/albums");
         let albums = [("limit", PER_LIST.to_string())];
@@ -117,10 +117,10 @@ impl TidalClient {
     }
 }
 
-/// Ajoute au fil les sorties des `WINDOW_DAYS` derniers jours qu'il n'a pas déjà, puis trie
-/// du plus récent au plus ancien (sans date en dernier). Une sortie est déjà là si son id y
-/// est, ou si un album du même artiste principal, du même type et au même titre y est
-/// (autre édition : explicite et propre, rééditions du même jour).
+/// Adds to the feed the releases of the last `WINDOW_DAYS` days it does not already have,
+/// then sorts from most recent to oldest (undated last). A release is already there if its
+/// id is, or if an album by the same main artist, of the same type and with the same title
+/// is (another edition: explicit and clean, reissues of the same day).
 fn merge(mut feed: Vec<FeedItem>, releases: Vec<AlbumSummary>, now_ms: i64) -> Vec<FeedItem> {
     let since = now_ms - WINDOW_DAYS * DAY_MS;
     let mut ids = HashSet::new();
@@ -135,7 +135,7 @@ fn merge(mut feed: Vec<FeedItem>, releases: Vec<AlbumSummary>, now_ms: i64) -> V
         let Some(at) = album.release_date.as_deref().and_then(date_ms) else {
             continue;
         };
-        // Les sorties annoncées (date future) attendent leur jour.
+        // Announced releases (future date) wait for their day.
         if at < since || at > now_ms {
             continue;
         }
@@ -148,7 +148,7 @@ fn merge(mut feed: Vec<FeedItem>, releases: Vec<AlbumSummary>, now_ms: i64) -> V
             item: MediaItem::Album(album),
         });
     }
-    // `Reverse(None)` passe après tous les `Reverse(Some(_))` ; tri stable.
+    // `Reverse(None)` comes after all the `Reverse(Some(_))`; stable sort.
     feed.sort_by_key(|entry| std::cmp::Reverse(entry.occurred_at));
     feed
 }
@@ -166,7 +166,7 @@ mod tests {
     use super::*;
     use crate::tidal::models::{ArtistRef, MixSummary};
 
-    /// 2026-11-13 à midi UTC.
+    /// 2026-11-13 at noon UTC.
     fn now() -> i64 {
         date_ms("2026-11-13").unwrap() + 12 * 3_600_000
     }
@@ -231,14 +231,14 @@ mod tests {
             album(1, 10, "Un", "ALBUM", "2026-11-12"),
             album(2, 11, "Deux", "ALBUM", "2026-11-13"),
             album(3, 12, "Trois", "SINGLE", "2026-11-08"),
-            // Hors fenêtre, à venir, sans date.
+            // Outside the window, upcoming, undated.
             album(4, 12, "Vieux", "ALBUM", "2026-08-14"),
             album(5, 12, "Annoncé", "ALBUM", "2026-11-14"),
             AlbumSummary {
                 release_date: None,
                 ..album(6, 12, "Sans date", "ALBUM", "")
             },
-            // Même album lu chez deux artistes suivis.
+            // Same album read for two followed artists.
             album(3, 12, "Trois", "SINGLE", "2026-11-08"),
         ];
         let merged = merge(feed, releases, now());
@@ -255,9 +255,9 @@ mod tests {
             MediaItem::Album(album(1, 10, "Make It Easy", "SINGLE", "2026-11-13")),
         )];
         let releases = vec![
-            // Version propre du même single : déjà là.
+            // Clean version of the same single: already there.
             album(2, 10, " make it easy ", "SINGLE", "2026-11-13"),
-            // Même titre chez un autre artiste, ou album du même nom : à ajouter.
+            // Same title by another artist, or album of the same name: to add.
             album(3, 11, "Make It Easy", "SINGLE", "2026-11-13"),
             album(4, 10, "Make It Easy", "ALBUM", "2026-11-13"),
         ];

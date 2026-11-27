@@ -1,16 +1,16 @@
-//! Page d'un contributeur (#429) : titres auxquels une personne a contribué, avec ses rôles.
+//! Page of a contributor (#429): tracks a person contributed to, with their roles.
 //!
-//! Endpoints vérifiés le 2026-11-18 (`cargo test live_contributor -- --ignored --nocapture`) :
+//! Endpoints checked on 2026-11-18 (`cargo test live_contributor -- --ignored --nocapture`):
 //! - `pages/contributor?artistId=&deviceType=BROWSER&locale=` → `{ rows: [{ modules: [...] }] }`
-//!   avec `CONTRIBUTOR_HEADER` (`artist` : id, nom, photo) puis `ITEM_LIST_WITH_ROLES`, dont le
-//!   `pagedList` porte 50 éléments `{type: "track", item: <titre v1>, roles: [{category,
-//!   categoryId, name}]}`, `totalNumberOfItems` (7 605 pour Hans Zimmer) et `dataApiPath`
-//!   (`pages/data/<uuid>?artistId=`). Identifiant inconnu : 404.
-//! - Suite : `dataApiPath` + `offset` / `limit` → `{items, totalNumberOfItems}` ; `limit` de
-//!   50 au plus (400 au-delà). Lu jusqu'au bout : au-delà du total, liste vide.
-//! - Pas de filtre par rôle côté serveur (`roleCategoryId`, `category`… ignorés).
+//!   with `CONTRIBUTOR_HEADER` (`artist`: id, name, photo) then `ITEM_LIST_WITH_ROLES`, whose
+//!   `pagedList` carries 50 items `{type: "track", item: <v1 track>, roles: [{category,
+//!   categoryId, name}]}`, `totalNumberOfItems` (7,605 for Hans Zimmer) and `dataApiPath`
+//!   (`pages/data/<uuid>?artistId=`). Unknown id: 404.
+//! - Next pages: `dataApiPath` + `offset` / `limit` → `{items, totalNumberOfItems}`; `limit` of
+//!   50 at most (400 beyond). Read to the end: past the total, empty list.
+//! - No server-side role filter (`roleCategoryId`, `category`… ignored).
 //!
-//! L'identifiant est celui de l'artiste : les crédits (`includeContributors=true`) le donnent.
+//! The id is the artist's: the credits (`includeContributors=true`) give it.
 
 use serde::Deserialize;
 
@@ -20,16 +20,16 @@ use super::paging::try_join_bounded;
 use super::raw::{RawArtistFull, RawTrack};
 use super::{Result, TidalError};
 
-/// Éléments par requête : le maximum accepté par l'API.
+/// Items per request: the maximum the API accepts.
 const PAGE_SIZE: u32 = 50;
-/// Éléments lus par appel (la page, puis chaque « Plus de titres »).
+/// Items read per call (the page, then each « More tracks »).
 pub const BATCH: u32 = 200;
-/// Requêtes de pages en vol au plus.
+/// Page requests in flight at most.
 const CONCURRENCY: usize = 4;
 
 impl TidalClient {
-    /// `BATCH` éléments à partir de `offset` (0 : en-tête et premiers titres). La page est
-    /// toujours relue : elle seule donne le chemin des pages suivantes.
+    /// `BATCH` items from `offset` (0: header and first tracks). The page is
+    /// always read again: it alone gives the path of the following pages.
     pub async fn contributor(&self, id: u64, offset: u32) -> Result<ContributorPage> {
         let params = [
             ("artistId", id.to_string()),
@@ -38,9 +38,7 @@ impl TidalClient {
         ];
         let page: RawContributorPage = self.get("pages/contributor", &params).await?;
         let parsed = page.parse().ok_or_else(|| {
-            TidalError::Decode(format!(
-                "pages/contributor {id} : module des crédits absent"
-            ))
+            TidalError::Decode(format!("pages/contributor {id}: credits module missing"))
         })?;
         let total = parsed.total;
         let mut items: Vec<serde_json::Value> = Vec::new();
@@ -50,8 +48,8 @@ impl TidalClient {
             items = parsed.items;
         }
         let offsets = data_offsets(start, offset.saturating_add(BATCH), total);
-        // Suite : fin de la fenêtre lue, en offsets de l'API (pas en titres gardés : le
-        // filtre du contenu et les titres illisibles en retirent).
+        // Next: end of the window read, in API offsets (not in tracks kept: the
+        // content filter and unreadable tracks remove some).
         let mut next = None;
         match (parsed.data, offsets.last()) {
             (_, None) => next = Some(start),
@@ -95,14 +93,14 @@ impl TidalClient {
     }
 }
 
-/// Offsets des pages de données à lire, de `start` jusqu'à `end` (exclu) sans dépasser `total`.
+/// Offsets of the data pages to read, from `start` up to `end` (excluded), within `total`.
 fn data_offsets(start: u32, end: u32, total: u32) -> Vec<u32> {
     (start..end.min(total))
         .step_by(PAGE_SIZE as usize)
         .collect()
 }
 
-/// Titres lisibles avec leurs rôles ; éléments d'une forme inattendue omis un par un.
+/// Playable tracks with their roles; items of an unexpected shape skipped one by one.
 fn contributions(items: Vec<serde_json::Value>) -> Vec<Contribution> {
     let mut out: Vec<Contribution> = Vec::with_capacity(items.len());
     for item in items {
@@ -154,7 +152,7 @@ struct RawModule {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RawPagedList {
-    /// Lus un par un : un élément d'une forme inattendue est omis sans perdre la page.
+    /// Read one by one: an item of an unexpected shape is skipped without losing the page.
     #[serde(default)]
     items: Vec<serde_json::Value>,
     total_number_of_items: Option<u32>,
@@ -190,7 +188,7 @@ struct Parsed {
     data: Option<DataPath>,
 }
 
-/// Chemin des pages suivantes, relu dans la réponse (`pages/data/<uuid>?artistId=…`).
+/// Path of the following pages, read again in the response (`pages/data/<uuid>?artistId=…`).
 #[derive(Debug, PartialEq)]
 struct DataPath {
     path: String,
@@ -198,8 +196,8 @@ struct DataPath {
 }
 
 impl DataPath {
-    /// Seul un chemin `pages/data/…` fait de caractères sûrs est suivi ; seul `artistId` est
-    /// repris de sa requête.
+    /// Only a `pages/data/…` path made of safe characters is followed; only `artistId` is
+    /// kept from its query.
     fn parse(api_path: &str) -> Option<Self> {
         let (path, query) = api_path.split_once('?').unwrap_or((api_path, ""));
         let rest = path.strip_prefix("pages/data/")?;
@@ -315,14 +313,14 @@ mod tests {
         assert!(DataPath::parse("pages/data/../sessions").is_none());
         assert!(DataPath::parse("pages/data/").is_none());
         assert!(DataPath::parse("tracks/1").is_none());
-        // Paramètres autres qu'un `artistId` numérique ignorés.
+        // Parameters other than a numeric `artistId` ignored.
         let p = DataPath::parse("pages/data/x?artistId=1&token=a&artistId=b").unwrap();
         assert_eq!(p.query, vec![("artistId", "1".to_owned())]);
     }
 
     #[test]
     fn offsets_stop_at_batch_and_total() {
-        // Première lecture : 50 éléments déjà dans la page, 3 pages de plus.
+        // First read: 50 items already in the page, 3 more pages.
         assert_eq!(data_offsets(50, BATCH, 7605), [50, 100, 150]);
         assert_eq!(data_offsets(200, 400, 7605), [200, 250, 300, 350]);
         assert_eq!(data_offsets(50, BATCH, 120), [50, 100]);
@@ -336,7 +334,7 @@ mod tests {
             track(1, &["Producer", "Composer", "producer", " "]),
             serde_json::json!({"type": "video", "item": {"id": 5}, "roles": []}),
             serde_json::json!({"type": "track", "item": {"id": "illisible"}}),
-            // Sans album : ignoré comme ailleurs.
+            // Without album: ignored as elsewhere.
             serde_json::json!({"type": "track", "roles": [], "item": {"id": 3, "title": "x", "duration": 1}}),
             track(2, &[]),
             track(1, &["Mixer"]),

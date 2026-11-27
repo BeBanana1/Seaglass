@@ -1,10 +1,9 @@
-//! Favoris gardés en mémoire pour afficher cœurs et boutons « Suivre » sans requête :
-//! titres (#4), albums, artistes et playlists suivies (#81), mixes (#204).
+//! Favorites kept in memory to show hearts and "Follow" buttons without a request:
+//! tracks (#4), albums, followed artists and playlists (#81), mixes (#204).
 //!
-//! Chargés d'un coup par `users/{id}/favorites/ids` (identifiants seuls, toute la
-//! bibliothèque), puis tenus à jour par les écritures faites dans l'app et par chaque
-//! lecture complète d'une catégorie de la bibliothèque. Un favori ajouté sur un autre
-//! appareil n'apparaît qu'à ce moment-là.
+//! Loaded at once by `users/{id}/favorites/ids` (identifiers only, the whole library),
+//! then kept up to date by the writes made in the app and by each full read of a library
+//! category. A favorite added on another device only shows up at that point.
 
 use std::collections::HashSet;
 use std::hash::Hash;
@@ -12,7 +11,7 @@ use std::sync::Mutex;
 
 use super::models::{LikeTarget, LikedIds, TrackId};
 
-/// Catégorie remplacée par une lecture complète de la bibliothèque.
+/// Category replaced by a full read of the library.
 pub enum LikedKind {
     Tracks(Vec<TrackId>),
     Albums(Vec<u64>),
@@ -36,7 +35,7 @@ pub struct Likes {
 }
 
 impl Likes {
-    /// `None` tant que rien n'a été chargé.
+    /// `None` as long as nothing has been loaded.
     pub fn get(&self) -> Option<LikedIds> {
         let guard = self.sets.lock().ok()?;
         guard.as_ref().map(|s| LikedIds {
@@ -48,7 +47,7 @@ impl Likes {
         })
     }
 
-    /// Remplace tout (lecture de `favorites/ids`).
+    /// Replaces everything (read of `favorites/ids`).
     pub fn load(&self, ids: LikedIds) {
         if let Ok(mut guard) = self.sets.lock() {
             *guard = Some(Sets {
@@ -61,7 +60,7 @@ impl Likes {
         }
     }
 
-    /// Remplace une catégorie, si l'ensemble est chargé ; renvoie `true` si elle a changé.
+    /// Replaces a category, if the set is loaded; returns `true` if it changed.
     pub fn replace(&self, kind: LikedKind) -> bool {
         let Ok(mut guard) = self.sets.lock() else {
             return false;
@@ -78,7 +77,7 @@ impl Likes {
         }
     }
 
-    /// Applique un ajout ou un retrait, si l'ensemble est chargé.
+    /// Applies an addition or a removal, if the set is loaded.
     pub fn set(&self, target: &LikeTarget, liked: bool) {
         let Ok(mut guard) = self.sets.lock() else {
             return;
@@ -117,7 +116,7 @@ fn toggle<T: Eq + Hash>(set: &mut HashSet<T>, id: T, liked: bool) {
     }
 }
 
-/// Ordre stable : l'UI reçoit la même liste pour le même ensemble.
+/// Stable order: the UI receives the same list for the same set.
 fn sorted<T: Clone, K: Ord>(set: &HashSet<T>, key: impl Fn(&T) -> K) -> Vec<T> {
     let mut out: Vec<T> = set.iter().cloned().collect();
     out.sort_by_key(key);

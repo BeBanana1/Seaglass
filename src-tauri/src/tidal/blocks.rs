@@ -1,14 +1,14 @@
-//! Titres et artistes bloqués (#334), enregistrés chez TIDAL : ils valent sur tous les
-//! appareils, et les radios du service en tiennent déjà compte.
+//! Blocked tracks and artists (#334), stored at TIDAL: they apply on every
+//! device, and the service's radios already take them into account.
 //!
-//! Endpoints vérifiés le 2026-11-12 avec le client PKCE : `users/{id}/blocks/tracks` et
-//! `…/artists` (paginés, `{ created, item, type }` comme les favoris), ajout par `POST`
-//! (formulaire `trackId` / `artistId`, 200), retrait par `DELETE …/{id}` (204), tous deux
-//! idempotents.
+//! Endpoints checked on 2026-11-12 with the PKCE client: `users/{id}/blocks/tracks` and
+//! `…/artists` (paged, `{ created, item, type }` like favorites), add with `POST`
+//! (form `trackId` / `artistId`, 200), remove with `DELETE …/{id}` (204), both
+//! idempotent.
 //!
-//! Les identifiants sont gardés en mémoire pour filtrer les mixes et les radios (`mix.rs`) :
-//! un blocage fait à l'instant, ou un mix pas encore régénéré, passeraient sinon. Rien
-//! d'autre n'est filtré : un titre bloqué reste lisible depuis un album ou une playlist.
+//! The ids are kept in memory to filter mixes and radios (`mix.rs`): a block made just
+//! now, or a mix not yet regenerated, would get through otherwise. Nothing
+//! else is filtered: a blocked track stays playable from an album or a playlist.
 
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -21,7 +21,7 @@ use super::catalog::PAGE_SIZE;
 use super::models::{ArtistSummary, BlockTarget, Blocked, Track, TrackId};
 use super::raw::{RawArtistFull, RawFavorite, RawTrack};
 
-/// Plafond de chaque liste (une poignée d'éléments en pratique).
+/// Cap of each list (a handful of items in practice).
 const BLOCKS_MAX: usize = 5_000;
 
 #[derive(Default)]
@@ -37,7 +37,7 @@ impl Sets {
     }
 }
 
-/// Identifiants bloqués ; `None` tant que les listes n'ont pas été lues.
+/// Blocked ids; `None` until the lists have been read.
 #[derive(Default)]
 pub struct Blocks {
     sets: Mutex<Option<Sets>>,
@@ -57,7 +57,7 @@ impl Blocks {
         }
     }
 
-    /// Applique un blocage ou un déblocage, si les listes sont chargées.
+    /// Applies a block or an unblock, if the lists are loaded.
     fn set(&self, target: &BlockTarget, blocked: bool) {
         let Ok(mut guard) = self.sets.lock() else {
             return;
@@ -73,7 +73,7 @@ impl Blocks {
         };
     }
 
-    /// Retire les titres bloqués et ceux d'un artiste bloqué (principal ou invité).
+    /// Removes blocked tracks and those of a blocked artist (main or featured).
     fn retain(&self, tracks: &mut Vec<Track>) {
         if let Ok(guard) = self.sets.lock()
             && let Some(sets) = guard.as_ref()
@@ -90,7 +90,7 @@ impl Blocks {
 }
 
 impl TidalClient {
-    /// Les deux listes, du blocage le plus récent au plus ancien ; met à jour les ensembles.
+    /// Both lists, from the most recent block to the oldest; updates the sets.
     pub async fn blocked(&self) -> Result<Blocked> {
         let user = self.user_id().await?;
         let (tracks_path, artists_path) = (
@@ -135,14 +135,14 @@ impl TidalClient {
         Ok(())
     }
 
-    /// `tracks` sans ce qui est bloqué. Les listes sont lues au premier appel ; si elles
-    /// sont indisponibles, rien n'est retiré (les radios du service filtrent déjà) et la
-    /// lecture sera retentée au prochain appel.
+    /// `tracks` without what is blocked. The lists are read on the first call; if they
+    /// are unavailable, nothing is removed (the service's radios already filter) and the
+    /// read will be retried on the next call.
     pub async fn without_blocked(&self, mut tracks: Vec<Track>) -> Vec<Track> {
         if !self.blocks.loaded()
             && let Err(e) = self.blocked().await
         {
-            tracing::warn!("titres et artistes bloqués illisibles : {e}");
+            tracing::warn!("blocked tracks and artists unreadable: {e}");
         }
         self.blocks.retain(&mut tracks);
         tracks
@@ -203,7 +203,7 @@ mod tests {
             artists: vec![],
         });
         blocks.set(&BlockTarget::Artist { id: 20 }, true);
-        // Artiste invité bloqué : le titre part aussi.
+        // Featured artist blocked: the track goes too.
         let mut tracks = vec![track(1, &[10]), track(2, &[10, 20]), track(3, &[30])];
         blocks.retain(&mut tracks);
         assert_eq!(ids(&tracks), [3]);

@@ -1,10 +1,10 @@
-//! Horodatages de l'API, convertis en millisecondes depuis l'epoch Unix (UTC).
+//! API timestamps, converted to milliseconds since the Unix epoch (UTC).
 //!
-//! Format observé (2026-10-30) pour `dateAdded` (titres de playlist) et `created`
-//! (favoris) : `2024-04-12T22:51:56.872+0000`. Le décalage est aussi accepté sous la
-//! forme `+00:00` ou `Z`, et les fractions de seconde sont facultatives.
+//! Format observed (2026-10-30) for `dateAdded` (playlist tracks) and `created`
+//! (favorites): `2024-04-12T22:51:56.872+0000`. The offset is also accepted as
+//! `+00:00` or `Z`, and fractions of a second are optional.
 
-/// Convertit un horodatage ISO 8601 en millisecondes UTC, `None` s'il est illisible.
+/// Converts an ISO 8601 timestamp to UTC milliseconds, `None` if it is unreadable.
 pub(super) fn timestamp_ms(text: &str) -> Option<i64> {
     let text = text.trim();
     let (date, rest) = text.split_once('T')?;
@@ -16,7 +16,7 @@ pub(super) fn timestamp_ms(text: &str) -> Option<i64> {
         return None;
     }
 
-    // Heure, puis décalage (`Z`, `±HHMM` ou `±HH:MM`).
+    // Time, then offset (`Z`, `±HHMM` or `±HH:MM`).
     let offset_at = rest.find(['Z', 'z', '+', '-']).unwrap_or(rest.len());
     let (time, offset) = rest.split_at(offset_at);
     let (hms, fraction) = time.split_once('.').unwrap_or((time, ""));
@@ -48,7 +48,7 @@ pub(super) fn timestamp_ms(text: &str) -> Option<i64> {
     Some(seconds * 1000 + millis)
 }
 
-/// Minuit UTC d'une date `AAAA-MM-JJ` (`releaseDate` des albums), en millisecondes.
+/// Midnight UTC of a `YYYY-MM-DD` date (`releaseDate` of albums), in milliseconds.
 pub(super) fn date_ms(text: &str) -> Option<i64> {
     let mut parts = text.trim().splitn(3, '-');
     let year: i64 = parts.next()?.parse().ok()?;
@@ -60,7 +60,7 @@ pub(super) fn date_ms(text: &str) -> Option<i64> {
     Some(days_from_civil(year, month, day) * 86_400_000)
 }
 
-/// Millisecondes d'une fraction de seconde (`872` → 872, `8` → 800), tronquée au-delà.
+/// Milliseconds of a fraction of a second (`872` → 872, `8` → 800), truncated beyond.
 fn fraction_ms(fraction: &str) -> Option<i64> {
     if fraction.is_empty() {
         return Some(0);
@@ -72,7 +72,7 @@ fn fraction_ms(fraction: &str) -> Option<i64> {
     padded[..3].parse().ok()
 }
 
-/// Nombre de jours depuis le 1970-01-01 (algorithme de Howard Hinnant, calendrier grégorien).
+/// Number of days since 1970-01-01 (Howard Hinnant's algorithm, Gregorian calendar).
 fn days_from_civil(year: i64, month: u32, day: u32) -> i64 {
     let year = if month <= 2 { year - 1 } else { year };
     let era = year.div_euclid(400);

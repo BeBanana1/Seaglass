@@ -1,12 +1,11 @@
-//! Accueil personnalisé : v2 `home/feed/static?deviceType=BROWSER&platform=WEB&locale=…`,
-//! lignes `{moduleId, title, items: [{type, data}]}`.
+//! Personalized home: v2 `home/feed/static?deviceType=BROWSER&platform=WEB&locale=…`,
+//! rows `{moduleId, title, items: [{type, data}]}`.
 //!
-//! Le flux est paginé (#207, vérifié le 2026-11-05) : `page.cursor` de la réponse, repassé
-//! en `cursor=` avec les mêmes paramètres, donne la page suivante ; `null` sur la dernière.
-//! Deux pages vues (11 puis 7 lignes), `moduleId` tous différents, ~0,5 s chacune. La
-//! première page est rendue seule (`home_start`), puis la suite est lue à part
-//! (`home_rest`), qui repart de la première page gardée ici : l'accueil s'affiche aussi
-//! vite qu'avant.
+//! The feed is paged (#207, verified on 2026-11-05): the response's `page.cursor`, passed
+//! back as `cursor=` with the same parameters, gives the next page; `null` on the last one.
+//! Two pages seen (11 then 7 rows), all `moduleId`s different, ~0.5 s each. The first page
+//! is rendered alone (`home_start`), then the rest is read separately (`home_rest`), which
+//! restarts from the first page kept here: home shows as fast as before.
 
 use std::sync::Mutex;
 
@@ -16,18 +15,17 @@ use super::mix::RawMix;
 use super::models::{HomeRow, MediaItem};
 use super::raw::{RawAlbumFull, RawArtistFull, RawHome, RawHomePage, RawHomeRow, RawPlaylist};
 
-/// Nombre maximal de pages lues (deux existent).
+/// Maximum number of pages read (two exist).
 const MAX_PAGES: usize = 5;
 
-/// Première page de l'accueil.
+/// First page of home.
 pub struct HomeStart {
     pub rows: Vec<HomeRow>,
-    /// D'autres pages existent : `home_rest` les lit.
+    /// More pages exist: `home_rest` reads them.
     pub more: bool,
 }
 
-/// Première page lue par `home_start`, avec le curseur de la suivante, gardée pour
-/// `home_rest`.
+/// First page read by `home_start`, with the next page's cursor, kept for `home_rest`.
 #[derive(Default)]
 pub(super) struct HomeCache(Mutex<Option<FirstPage>>);
 
@@ -39,9 +37,9 @@ struct FirstPage {
 }
 
 impl TidalClient {
-    /// Toutes les lignes de l'accueil, pages suivantes comprises. Seuls albums, artistes,
-    /// playlists et mixes sont gardés (`TRACK` sans album et `DEEP_LINK` sont ignorés).
-    /// Tests seulement : l'app passe par `home_start` puis `home_rest`.
+    /// All the home rows, later pages included. Only albums, artists, playlists and mixes
+    /// are kept (`TRACK` without an album and `DEEP_LINK` are ignored). Tests only: the app
+    /// goes through `home_start` then `home_rest`.
     #[cfg(test)]
     pub async fn home(&self) -> Result<Vec<HomeRow>> {
         let start = self.home_start().await?;
@@ -51,7 +49,7 @@ impl TidalClient {
         self.home_rest().await
     }
 
-    /// Première page seule ; `more` dit s'il faut appeler `home_rest`.
+    /// First page alone; `more` says whether `home_rest` must be called.
     pub async fn home_start(&self) -> Result<HomeStart> {
         let user = self.user_id().await.ok();
         let locale = crate::i18n::tidal_locale();
@@ -70,9 +68,9 @@ impl TidalClient {
         Ok(HomeStart { rows, more })
     }
 
-    /// Toutes les lignes : la première page gardée par `home_start` (relue si elle manque
-    /// ou ne correspond plus au compte ou à la langue), puis les suivantes. Une page
-    /// suivante en échec est journalisée : l'accueil garde les précédentes.
+    /// All the rows: the first page kept by `home_start` (read again if it is missing or no
+    /// longer matches the account or language), then the following ones. A later page that
+    /// fails is logged: home keeps the previous ones.
     pub async fn home_rest(&self) -> Result<Vec<HomeRow>> {
         let user = self.user_id().await.ok();
         let locale = crate::i18n::tidal_locale();
@@ -89,7 +87,7 @@ impl TidalClient {
             let raw = match self.home_page(locale, Some(cursor)).await {
                 Ok(raw) => raw,
                 Err(e) => {
-                    tracing::warn!("page {} de l'accueil : {e}", cursors.len() + 1);
+                    tracing::warn!("home page {}: {e}", cursors.len() + 1);
                     break;
                 }
             };
@@ -115,16 +113,15 @@ impl TidalClient {
     }
 }
 
-/// Curseur de la page suivante, sauf s'il est vide, déjà suivi, ou si la limite de pages
-/// est atteinte (`seen` = curseurs déjà suivis ; la première page n'en a pas).
+/// Cursor of the next page, unless it is empty, already followed, or the page limit is
+/// reached (`seen` = cursors already followed; the first page has none).
 fn next_cursor(page: Option<RawHomePage>, seen: &[String]) -> Option<String> {
     let cursor = page?.cursor.filter(|c| !c.trim().is_empty())?;
     (seen.len() + 1 < MAX_PAGES && !seen.contains(&cursor)).then_some(cursor)
 }
 
-/// Lignes gardées d'une page (une ligne sans élément lisible est retirée). Plusieurs
-/// lignes peuvent partager une clé (« Parce que vous avez écouté ») : la disposition les
-/// regroupe (`home_layout.rs`).
+/// Rows kept from a page (a row without a readable item is dropped). Several rows may
+/// share a key ("Because you listened to"): the layout groups them (`home_layout.rs`).
 fn home_rows(raw: Vec<RawHomeRow>, user: Option<u64>) -> Vec<HomeRow> {
     raw.into_iter()
         .filter_map(|row| {
@@ -143,8 +140,8 @@ fn home_rows(raw: Vec<RawHomeRow>, user: Option<u64>) -> Vec<HomeRow> {
         .collect()
 }
 
-/// Clé stable d'une ligne de l'accueil : le `moduleId` de l'API (le titre est traduit et
-/// peut changer), sinon le titre normalisé, préfixé pour ne jamais croiser un `moduleId`.
+/// Stable key of a home row: the API's `moduleId` (the title is translated and may
+/// change), otherwise the normalized title, prefixed so it never collides with a `moduleId`.
 fn row_key(module_id: Option<&str>, title: &str) -> String {
     match module_id.map(str::trim).filter(|m| !m.is_empty()) {
         Some(id) => id.to_owned(),
@@ -188,7 +185,7 @@ mod tests {
         assert_eq!(next_cursor(page(None), &["A".into()]), None);
         assert_eq!(next_cursor(page(Some(" ")), &[]), None);
         assert_eq!(next_cursor(None, &[]), None);
-        // Un curseur déjà suivi ne fait pas boucler.
+        // A cursor already followed does not loop.
         assert_eq!(next_cursor(page(Some("A")), &["A".into()]), None);
     }
 
@@ -255,7 +252,7 @@ mod tests {
         assert_eq!(home_item("ARTIST", broken, None), None);
     }
 
-    /// L'étiquette `kind` de `MediaItem` ne doit entrer en conflit avec aucun champ.
+    /// The `kind` tag of `MediaItem` must not conflict with any field.
     #[test]
     fn media_item_tag_is_unique() {
         let album = json!({"id": 1, "title": "a", "type": "SINGLE"});

@@ -1,18 +1,18 @@
-//! « Plus tard » (Save for later, #196) : liste de TIDAL où l'on met de côté titres, albums,
-//! artistes et playlists. Elle n'existe que dans l'API officielle JSON:API
-//! (`openapi.tidal.com/v2`), qui accepte le token du client PKCE. Vérifié le 2026-11-05
-//! (`cargo test live_later -- --ignored --nocapture`) :
+//! "Save for later" (#196): a TIDAL list where tracks, albums, artists and playlists are
+//! set aside. It only exists in the official JSON:API (`openapi.tidal.com/v2`), which
+//! accepts the PKCE client's token. Verified on 2026-11-05
+//! (`cargo test live_later -- --ignored --nocapture`):
 //!
 //! - GET `userCollectionSaveForLaters/me/relationships/items` → `{data: [{id, type, meta:
-//!   {addedAt}}], links: {next, meta: {nextCursor}}}`, plus récent en tête, 20 par page,
-//!   page suivante par `page[cursor]` ; `type` vaut `tracks`, `albums`, `artists`,
-//!   `playlists` ou `videos` (ignorées : l'app ne lit pas de vidéos).
-//! - POST (ajout) et DELETE (retrait) sur le même chemin, corps `{data: [{id, type}]}` en
-//!   `application/vnd.api+json`, 20 éléments au plus. Un doublon revient dans
-//!   `meta.skipped` (`ALREADY_PRESENT`) sans erreur ; le retrait est idempotent.
+//!   {addedAt}}], links: {next, meta: {nextCursor}}}`, most recent first, 20 per page,
+//!   next page through `page[cursor]`; `type` is `tracks`, `albums`, `artists`,
+//!   `playlists` or `videos` (ignored: the app does not read videos).
+//! - POST (add) and DELETE (remove) on the same path, body `{data: [{id, type}]}` as
+//!   `application/vnd.api+json`, 20 items at most. A duplicate comes back in
+//!   `meta.skipped` (`ALREADY_PRESENT`) without an error; removal is idempotent.
 //!
-//! Seuls les identifiants viennent de cette API : titres, albums, artistes et playlists sont
-//! relus par l'API v1, comme le reste de l'app (le cache des titres sert d'abord).
+//! Only the identifiers come from this API: tracks, albums, artists and playlists are read
+//! again through the v1 API, like the rest of the app (the track cache is used first).
 
 use std::collections::HashMap;
 
@@ -30,14 +30,14 @@ use super::raw::{RawAlbumFull, RawArtistFull, RawPlaylist};
 use super::{Result, TidalClient, TidalError};
 
 const ITEMS_PATH: &str = "userCollectionSaveForLaters/me/relationships/items";
-/// Pages lues au plus (20 éléments chacune) : au-delà, la liste est dite coupée.
+/// Pages read at most (20 items each): beyond that, the list is reported as truncated.
 const MAX_PAGES: usize = 50;
-/// Requêtes de résolution en vol à la fois.
+/// Resolution requests in flight at once.
 const PARALLEL: usize = 6;
-/// Albums par requête `albums?ids=`.
+/// Albums per `albums?ids=` request.
 const ALBUM_CHUNK: usize = 50;
 
-/// Un élément de la liste, tel que l'API le décrit.
+/// An item of the list, as the API describes it.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum LaterRef {
     Track(TrackId),
@@ -53,7 +53,7 @@ pub(super) struct LaterEntry {
 }
 
 impl TidalClient {
-    /// Identifiants de la liste, chargés au premier appel puis tenus à jour.
+    /// Identifiers of the list, loaded on the first call then kept up to date.
     pub async fn later_ids(&self) -> Result<LikedIds> {
         if let Some(ids) = self.later.get() {
             return Ok(ids);
@@ -63,8 +63,8 @@ impl TidalClient {
         Ok(self.later.get().unwrap_or_default())
     }
 
-    /// Toute la liste, du plus récent au plus ancien ; les éléments devenus indisponibles
-    /// sont omis.
+    /// The whole list, from most recent to oldest; items that became unavailable are
+    /// omitted.
     pub async fn save_for_later(&self) -> Result<LibraryList<LaterItem>> {
         let (entries, truncated) = self.later_entries().await?;
         self.later.load(ids_of(&entries));
@@ -76,7 +76,7 @@ impl TidalClient {
         })
     }
 
-    /// Ajoute à la liste ou retire. Les mixes n'y vont pas (refusés par l'API).
+    /// Adds to the list or removes. Mixes do not go in (refused by the API).
     pub async fn set_saved_for_later(&self, target: &LikeTarget, saved: bool) -> Result<()> {
         let (kind, id) = match target {
             LikeTarget::Track { id } => ("tracks", id.to_string()),
@@ -84,7 +84,9 @@ impl TidalClient {
             LikeTarget::Artist { id } => ("artists", id.to_string()),
             LikeTarget::Playlist { uuid } => ("playlists", uuid.clone()),
             LikeTarget::Mix { .. } => {
-                return Err(TidalError::Decode("mix : pas dans « Plus tard »".into()));
+                return Err(TidalError::Decode(
+                    "mix: not allowed in \"Save for later\"".into(),
+                ));
             }
         };
         let body = serde_json::json!({ "data": [{ "id": id, "type": kind }] });
@@ -96,7 +98,7 @@ impl TidalClient {
         Ok(())
     }
 
-    /// Toutes les pages d'identifiants ; `true` si le plafond de pages a coupé la liste.
+    /// All the pages of identifiers; `true` if the page cap truncated the list.
     async fn later_entries(&self) -> Result<(Vec<LaterEntry>, bool)> {
         let mut entries = Vec::new();
         let mut cursor: Option<String> = None;
@@ -119,7 +121,7 @@ impl TidalClient {
         Ok((entries, true))
     }
 
-    /// Relit chaque élément par l'API v1, dans l'ordre de la liste.
+    /// Reads each item again through the v1 API, in the list's order.
     async fn resolve(&self, entries: &[LaterEntry]) -> Result<Vec<LaterItem>> {
         let mut tracks = Vec::new();
         let mut albums = Vec::new();
@@ -185,8 +187,8 @@ impl TidalClient {
             .collect())
     }
 
-    /// Artistes par identifiant (« Plus tard », photos des statistiques d'écoute, #326) ; un
-    /// artiste disparu est absent du résultat.
+    /// Artists by identifier ("Save for later", photos for the listening statistics, #326);
+    /// an artist that disappeared is absent from the result.
     pub async fn artists_by_id(&self, ids: &[u64]) -> Result<HashMap<u64, ArtistSummary>> {
         let mut futures = Vec::new();
         for &id in ids {
@@ -223,8 +225,8 @@ impl TidalClient {
     }
 }
 
-/// Un élément introuvable ou illisible (retiré du catalogue) est omis ; une erreur réseau
-/// ou de session fait échouer toute la liste.
+/// An item that is not found or unreadable (removed from the catalog) is omitted; a
+/// network or session error fails the whole list.
 fn gone_as_none<T>(result: Result<T>) -> Result<Option<T>> {
     match result {
         Ok(value) => Ok(Some(value)),
@@ -232,7 +234,7 @@ fn gone_as_none<T>(result: Result<T>) -> Result<Option<T>> {
             Ok(None)
         }
         Err(TidalError::Decode(e)) => {
-            tracing::debug!("élément de « Plus tard » illisible : {e}");
+            tracing::debug!("\"Save for later\" item unreadable: {e}");
             Ok(None)
         }
         Err(e) => Err(e),
@@ -252,7 +254,7 @@ fn ids_of(entries: &[LaterEntry]) -> LikedIds {
     ids
 }
 
-/// Remet les éléments relus dans l'ordre de la liste ; un titre garde sa date d'ajout.
+/// Puts the re-read items back in the list's order; a track keeps its added date.
 fn assemble(
     entries: &[LaterEntry],
     mut tracks: HashMap<TrackId, TrackEntry>,
@@ -263,7 +265,7 @@ fn assemble(
     let mut items = Vec::with_capacity(entries.len());
     for entry in entries {
         let item = match &entry.target {
-            // `remove` : un doublon éventuel n'apparaît qu'une fois.
+            // `remove`: a possible duplicate only appears once.
             LaterRef::Track(id) => tracks.remove(id).map(|mut t| {
                 t.added_at = entry.added_at;
                 LaterItem::Track(t)
@@ -282,7 +284,7 @@ fn parse_entry(raw: RawRef) -> Option<LaterEntry> {
         "tracks" => LaterRef::Track(TrackId(raw.id.parse().ok()?)),
         "albums" => LaterRef::Album(raw.id.parse().ok()?),
         "artists" => LaterRef::Artist(raw.id.parse().ok()?),
-        // L'uuid finit dans un chemin de requête : il est vérifié.
+        // The uuid ends up in a request path: it is checked.
         "playlists" if is_uuid(&raw.id) => LaterRef::Playlist(raw.id),
         _ => return None,
     };
@@ -296,7 +298,7 @@ fn parse_entry(raw: RawRef) -> Option<LaterEntry> {
     })
 }
 
-/// `8-4-4-4-12` caractères hexadécimaux.
+/// `8-4-4-4-12` hexadecimal characters.
 fn is_uuid(s: &str) -> bool {
     let groups: Vec<&str> = s.split('-').collect();
     groups.len() == 5
@@ -340,7 +342,7 @@ struct RawLinksMeta {
 }
 
 impl RawLinks {
-    /// Curseur de la page suivante, seulement si `next` existe.
+    /// Cursor of the next page, only if `next` exists.
     fn next_cursor(self) -> Option<String> {
         self.next?;
         self.meta?.next_cursor.filter(|c| !c.is_empty())

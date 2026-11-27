@@ -1,5 +1,5 @@
-//! Formats JSON bruts de l'API (v1 et flux d'accueil v2) et leur conversion en `models`.
-//! Rien de ce fichier ne sort du module `tidal`.
+//! Raw JSON formats of the API (v1 and the v2 home feed) and their conversion into
+//! `models`. Nothing in this file leaves the `tidal` module.
 
 use serde::Deserialize;
 
@@ -10,12 +10,12 @@ use super::models::{
 
 const IMAGE_URL: &str = "https://resources.tidal.com/images";
 
-/// URL d'image à partir d'un identifiant de ressource (`a-b-c` → `a/b/c/<taille>.jpg`).
+/// Image URL from a resource id (`a-b-c` → `a/b/c/<size>.jpg`).
 pub(super) fn image_url(id: &str, size: u32) -> String {
     format!("{IMAGE_URL}/{}/{size}x{size}.jpg", id.replace('-', "/"))
 }
 
-/// Même image en une autre taille, pour une URL construite par `image_url` en 320.
+/// Same image in another size, for a URL built by `image_url` at 320.
 pub(super) fn resized(url: &str, size: u32) -> Option<String> {
     let base = url.strip_prefix(IMAGE_URL)?.strip_suffix("/320x320.jpg")?;
     Some(format!("{IMAGE_URL}{base}/{size}x{size}.jpg"))
@@ -28,14 +28,14 @@ pub(super) struct RawPage<T> {
     pub total_number_of_items: Option<u32>,
 }
 
-/// Entrée des favoris : `{ "created": …, "item": … }` (`created` = date du like).
+/// Favorites entry: `{ "created": …, "item": … }` (`created` = date of the like).
 #[derive(Deserialize)]
 pub(super) struct RawFavorite<T> {
     pub created: Option<String>,
     pub item: T,
 }
 
-/// Entrée de `playlistsAndFavoritePlaylists` : `{ "type": …, "playlist": … }`.
+/// Entry of `playlistsAndFavoritePlaylists`: `{ "type": …, "playlist": … }`.
 #[derive(Deserialize)]
 pub(super) struct RawPlaylistEntry {
     pub playlist: RawPlaylist,
@@ -71,14 +71,15 @@ pub(super) struct RawTrack {
     duration: u32,
     #[serde(default)]
     explicit: bool,
-    /// Musique générée par IA selon le service (#369, champ non documenté vu le 2026-11-12).
+    /// AI-generated music according to the service (#369, undocumented field seen on
+    /// 2026-11-12).
     ai: Option<bool>,
     #[serde(default)]
     artists: Vec<RawArtist>,
-    /// Absent dans certains flux (titres de l'accueil) : ces titres sont ignorés.
+    /// Absent in some feeds (home tracks): these tracks are ignored.
     album: Option<RawAlbum>,
     media_metadata: Option<RawMediaMetadata>,
-    /// Date d'ajout, présente seulement dans `playlists/{uuid}/tracks` (vérifié).
+    /// Date added, only present in `playlists/{uuid}/tracks` (checked).
     date_added: Option<String>,
     isrc: Option<String>,
     stream_ready: Option<bool>,
@@ -153,11 +154,11 @@ pub(super) struct RawCreator {
     pub id: Option<u64>,
 }
 
-/// Ligne du flux d'accueil v2 : `{ "type", "moduleId", "title", "items": [{ "type", "data" }] }`.
+/// Row of the v2 home feed: `{ "type", "moduleId", "title", "items": [{ "type", "data" }] }`.
 #[derive(Deserialize)]
 pub(super) struct RawHomeRow {
-    /// Identifiant stable du module (`YOUR_FAVORITE_ARTISTS`, `BECAUSE_YOU_LISTENED_TO_ALBUM`…),
-    /// indépendant de la langue et du contenu de la ligne.
+    /// Stable id of the module (`YOUR_FAVORITE_ARTISTS`, `BECAUSE_YOU_LISTENED_TO_ALBUM`…),
+    /// independent of the language and of the row's content.
     #[serde(rename = "moduleId")]
     pub module_id: Option<String>,
     pub title: Option<String>,
@@ -177,8 +178,8 @@ pub(super) struct RawHomeItem {
 pub(super) struct RawHome {
     #[serde(default)]
     pub items: Vec<RawHomeRow>,
-    /// `{cursor}` : à repasser en `cursor=` pour la page suivante ; `null` sur la dernière
-    /// (#207 : deux pages vues le 2026-11-05).
+    /// `{cursor}`: to pass back as `cursor=` for the next page; `null` on the last one
+    /// (#207: two pages seen on 2026-11-05).
     pub page: Option<RawHomePage>,
 }
 
@@ -187,7 +188,7 @@ pub(super) struct RawHomePage {
     pub cursor: Option<String>,
 }
 
-/// Garde uniquement une couleur `#rrggbb` : la valeur part telle quelle dans le CSS.
+/// Keeps only a `#rrggbb` color: the value goes into the CSS as is.
 fn hex_color(color: Option<String>) -> Option<String> {
     color.filter(|c| {
         c.len() == 7 && c.starts_with('#') && c[1..].chars().all(|ch| ch.is_ascii_hexdigit())
@@ -232,7 +233,7 @@ impl RawTrack {
         })
     }
 
-    /// Tags de disponibilité (`mediaMetadata.tags`).
+    /// Availability tags (`mediaMetadata.tags`).
     pub(super) fn tags(&self) -> Vec<String> {
         self.media_metadata
             .as_ref()
@@ -244,7 +245,7 @@ impl RawTrack {
         TrackId(self.id)
     }
 
-    /// Lisible en streaming (`false` seulement si l'API le dit explicitement).
+    /// Streamable (`false` only if the API says so explicitly).
     pub(super) fn streamable(&self) -> bool {
         self.stream_ready != Some(false) && self.allow_streaming != Some(false)
     }
@@ -254,7 +255,7 @@ pub(super) fn tracks(raw: Vec<RawTrack>) -> Vec<Track> {
     raw.into_iter().filter_map(RawTrack::into_track).collect()
 }
 
-/// Titres de playlist, avec leur `dateAdded`.
+/// Playlist tracks, with their `dateAdded`.
 pub(super) fn playlist_entries(raw: Vec<RawTrack>) -> Vec<TrackEntry> {
     raw.into_iter()
         .filter_map(|t| {
@@ -264,7 +265,7 @@ pub(super) fn playlist_entries(raw: Vec<RawTrack>) -> Vec<TrackEntry> {
         .collect()
 }
 
-/// Titres favoris, avec la date du like (`created`).
+/// Favorite tracks, with the date of the like (`created`).
 pub(super) fn favorite_entries(raw: Vec<RawFavorite<RawTrack>>) -> Vec<TrackEntry> {
     raw.into_iter()
         .filter_map(|f| {
@@ -306,7 +307,7 @@ impl From<RawArtistFull> for ArtistSummary {
 }
 
 impl RawPlaylist {
-    /// `user_id` : utilisateur connecté, pour signaler ses propres playlists.
+    /// `user_id`: signed-in user, to flag their own playlists.
     pub(super) fn into_summary(self, user_id: Option<u64>) -> PlaylistSummary {
         let creator = self.creator.and_then(|c| c.id);
         PlaylistSummary {
@@ -322,7 +323,7 @@ impl RawPlaylist {
     }
 }
 
-/// Réponse de `tracks/{id}/lyrics` (`subtitles` au format LRC, `lyrics` en texte simple).
+/// Response of `tracks/{id}/lyrics` (`subtitles` in LRC format, `lyrics` as plain text).
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct RawLyrics {
@@ -368,7 +369,7 @@ mod tests {
         assert_eq!(t[0].id, TrackId(2));
     }
 
-    /// `ai` vrai, faux, `null` ou absent (#369) : seul `true` marque le titre.
+    /// `ai` true, false, `null` or absent (#369): only `true` marks the track.
     #[test]
     fn ai_flag_is_read() {
         let raw: Vec<RawTrack> = serde_json::from_str(
@@ -404,7 +405,7 @@ mod tests {
 
     #[test]
     fn stored_album_ref_without_sizes_is_read() {
-        // Titre enregistré en SQLite avant #89 : seule la pochette 320 existe.
+        // Track saved in SQLite before #89: only the 320 cover exists.
         let url = |n| format!("https://resources.tidal.com/images/ab/cd/{n}x{n}.jpg");
         let json = format!(
             r#"{{"id":3,"title":"c","coverUrl":"{}","color":null}}"#,
@@ -414,13 +415,13 @@ mod tests {
         assert_eq!(album.cover_small_url, Some(url(160)));
         assert_eq!(album.cover_large_url, Some(url(640)));
 
-        // URL d'un autre format : rien n'est deviné.
+        // URL of another format: nothing is guessed.
         let album: AlbumRef =
             serde_json::from_str(r#"{"id":3,"title":"c","coverUrl":"https://x/y.jpg"}"#).unwrap();
         assert_eq!(album.cover_small_url, None);
         assert_eq!(album.cover_large_url, None);
 
-        // Aller-retour sans perte.
+        // Lossless round trip.
         let back: AlbumRef = serde_json::from_value(serde_json::to_value(&album).unwrap()).unwrap();
         assert_eq!(back, album);
     }
@@ -445,7 +446,7 @@ mod tests {
         assert_eq!(favorite_entries(fav)[0].added_at, Some(2000));
     }
 
-    /// `TrackEntry` est sérialisé à plat : l'UI le lit comme un `Track`.
+    /// `TrackEntry` is serialized flat: the UI reads it as a `Track`.
     #[test]
     fn entry_is_flat() {
         let raw: Vec<RawTrack> = serde_json::from_str(
