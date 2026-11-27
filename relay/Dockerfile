@@ -1,5 +1,5 @@
-# Relais de la Jam (#25). Contexte de build : la racine du dépôt (la page des invités
-# vient de src-tauri/src/jam/page/). Voir relay/README.md.
+# Jam relay (#25). Build context: the repository root (the guest page
+# comes from src-tauri/src/jam/page/). See relay/README.md.
 FROM rust:1-bookworm AS build
 WORKDIR /src
 COPY relay/ relay/

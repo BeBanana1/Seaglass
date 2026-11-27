@@ -1,4 +1,4 @@
-//! Jams ouvertes sur le relais : connexion de l'hôte, requêtes en attente, dernier état.
+//! Jams open on the relay: host connection, pending requests, latest state.
 
 use std::collections::{HashMap, VecDeque};
 use std::net::IpAddr;
@@ -11,18 +11,18 @@ use tokio::sync::{mpsc, oneshot, watch};
 use crate::limits::{code_matches, random_token, same};
 use crate::protocol::ToHost;
 
-/// Essais de code ratés par adresse sur `FAILURE_WINDOW` avant qu'elle soit bloquée pour
-/// cette Jam ; le blocage tombe quand les plus anciens sortent de la fenêtre (#256 : en
-/// données mobiles, plusieurs invités partagent une adresse).
+/// Failed code attempts per address over `FAILURE_WINDOW` before it is blocked for
+/// this Jam; the block lifts once the oldest ones leave the window (#256: on mobile
+/// data, several guests share an address).
 pub const MAX_FAILURES: usize = 10;
 pub const FAILURE_WINDOW: Duration = Duration::from_secs(15 * 60);
-/// Adresses suivies au plus pour les essais ratés d'une Jam.
+/// Most addresses tracked for a Jam's failed attempts.
 const MAX_FAILING_ADDRESSES: usize = 10_000;
-/// Réponse de l'hôte attendue au plus ce délai.
+/// Host answer awaited for this long at most.
 pub const HOST_TIMEOUT: Duration = Duration::from_secs(15);
-/// Messages en attente vers un hôte (requêtes des invités).
+/// Messages waiting for a host (guest requests).
 const HOST_QUEUE: usize = 64;
-/// Requêtes en attente d'une réponse de l'hôte, par Jam.
+/// Requests awaiting a host answer, per Jam.
 const MAX_PENDING: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,18 +33,18 @@ pub struct Reply {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ForwardError {
-    /// Hôte déconnecté (réseau mobile coupé) : il peut revenir.
+    /// Host disconnected (mobile network cut): it may come back.
     Offline,
-    /// Pas de réponse à temps, ou trop de requêtes en attente.
+    /// No answer in time, or too many pending requests.
     Busy,
 }
 
-/// Pourquoi une Jam n'a pas pu être créée.
+/// Why a Jam could not be created.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CreateError {
-    /// Le relais a déjà toutes ses Jams ouvertes.
+    /// The relay already has all its Jams open.
     Full,
-    /// Cette adresse a déjà toutes les siennes (#257).
+    /// This address already has all of its own (#257).
     TooManyForAddress,
 }
 
@@ -56,17 +56,17 @@ pub enum CodeError {
 
 struct Inner {
     code: String,
-    /// Adresse de l'hôte, suivie à chaque reprise (Wi-Fi puis réseau mobile) : compte dans
-    /// le plafond de Jams par adresse (#257).
+    /// Host address, updated on each resume (Wi-Fi then mobile network): counts towards
+    /// the per-address Jam cap (#257).
     host_ip: IpAddr,
     host: Option<mpsc::Sender<ToHost>>,
-    /// Numéro de la connexion de l'hôte attachée : une ancienne connexion qui se ferme
-    /// après la reprise ne détache pas la nouvelle.
+    /// Number of the attached host connection: an old connection closing after the
+    /// resume does not detach the new one.
     host_gen: u64,
     disconnected_at: Option<Instant>,
     pending: HashMap<u64, oneshot::Sender<Reply>>,
     next_rid: u64,
-    /// Dernier état ; `None` une fois la Jam fermée (les flux ouverts se terminent).
+    /// Latest state; `None` once the Jam is closed (open streams end).
     state: Option<watch::Sender<Arc<str>>>,
     failures: HashMap<IpAddr, VecDeque<Instant>>,
 }
@@ -79,7 +79,7 @@ pub struct Jam {
     streams: AtomicUsize,
 }
 
-/// Place d'une page ouverte (flux d'état), rendue à la fermeture du flux.
+/// Slot of an open page (state stream), given back when the stream closes.
 pub struct StreamSlot(Arc<Jam>);
 
 impl Drop for StreamSlot {
@@ -89,7 +89,7 @@ impl Drop for StreamSlot {
 }
 
 impl Jam {
-    /// Réserve la place d'une page ouverte, sauf si `max` le sont déjà.
+    /// Reserves the slot of an open page, unless `max` already are.
     pub fn open_stream(self: &Arc<Self>, max: usize) -> Option<StreamSlot> {
         let mut current = self.streams.load(Ordering::Relaxed);
         loop {
@@ -134,14 +134,14 @@ impl Jam {
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
-        // Aucun code ne panique sous ce verrou : un verrou empoisonné reste utilisable.
+        // No code panics under this lock: a poisoned lock stays usable.
         self.inner.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    /// Branche une connexion d'hôte (nouvelle ou reprise) : renvoie la file de ses messages
-    /// et son numéro. Une connexion encore branchée est remplacée (#253) : son émetteur
-    /// disparaît, ce qui la termine, et ses requêtes en attente échouent tout de suite
-    /// (la page des invités réessaie) au lieu d'attendre une réponse qui ne viendra pas.
+    /// Attaches a host connection (new or resumed): returns the queue of its messages
+    /// and its number. A connection still attached is replaced (#253): its sender
+    /// goes away, which ends it, and its pending requests fail right away
+    /// (the guest page retries) instead of waiting for an answer that will not come.
     pub fn attach(&self, code: String, host_ip: IpAddr) -> (mpsc::Receiver<ToHost>, u64) {
         let (tx, rx) = mpsc::channel(HOST_QUEUE);
         let mut inner = self.lock();
@@ -154,7 +154,7 @@ impl Jam {
         (rx, inner.host_gen)
     }
 
-    /// La connexion `generation` est fermée : les requêtes en attente échouent.
+    /// Connection `generation` is closed: pending requests fail.
     pub fn detach(&self, generation: u64) {
         let mut inner = self.lock();
         if inner.host_gen != generation {
@@ -165,7 +165,7 @@ impl Jam {
         inner.pending.clear();
     }
 
-    /// Transmet l'appel d'un invité à l'hôte et attend sa réponse.
+    /// Forwards a guest's call to the host and waits for its answer.
     pub async fn forward(
         &self,
         client: IpAddr,
@@ -225,12 +225,12 @@ impl Jam {
         }
     }
 
-    /// Flux de l'état pour une page ; `None` si la Jam est fermée.
+    /// State stream for a page; `None` if the Jam is closed.
     pub fn subscribe(&self) -> Option<watch::Receiver<Arc<str>>> {
         self.lock().state.as_ref().map(watch::Sender::subscribe)
     }
 
-    /// Vérifie le code d'un flux d'état (les appels de l'API sont vérifiés par l'hôte).
+    /// Checks the code of a state stream (API calls are checked by the host).
     pub fn check_code(&self, ip: IpAddr, given: &str) -> Result<(), CodeError> {
         self.check_code_at(ip, given, Instant::now())
     }
@@ -266,7 +266,7 @@ impl Jam {
         self.lock().host.is_some()
     }
 
-    /// Ferme la Jam : l'hôte est prévenu, les flux et requêtes en attente se terminent.
+    /// Closes the Jam: the host is notified, open streams and pending requests end.
     fn close(&self, reason: &str) {
         let mut inner = self.lock();
         if let Some(host) = inner.host.take() {
@@ -302,17 +302,17 @@ impl Registry {
         self.lock().get(id).cloned()
     }
 
-    /// Jam à reprendre : avec le bon secret seulement. Une connexion d'hôte encore branchée
-    /// n'empêche pas la reprise (#253) : quand le téléphone change de réseau, il revient
-    /// bien avant que le relais ait vu mourir l'ancienne connexion (jusqu'à 80 s), et le
-    /// secret prouve que c'est le même hôte.
+    /// Jam to resume: with the right secret only. A host connection still attached
+    /// does not prevent the resume (#253): when the phone changes network, it comes
+    /// back well before the relay has seen the old connection die (up to 80 s), and the
+    /// secret proves it is the same host.
     pub fn resume(&self, id: &str, secret: &str) -> Option<Arc<Jam>> {
         let jam = self.get(id)?;
         same(&jam.secret, secret).then_some(jam)
     }
 
-    /// Nouvelle Jam, sauf si `max` sont déjà ouvertes sur le relais ou `max_per_address`
-    /// pour l'adresse `host_ip` (#257 : une seule adresse ne remplit pas le relais).
+    /// New Jam, unless `max` are already open on the relay or `max_per_address`
+    /// for address `host_ip` (#257: a single address does not fill the relay).
     pub fn create(
         &self,
         code: String,
@@ -341,7 +341,7 @@ impl Registry {
         self.lock().is_empty()
     }
 
-    /// Ferme les Jams trop vieilles ou dont l'hôte n'est pas revenu à temps.
+    /// Closes Jams that are too old or whose host did not come back in time.
     pub fn sweep(&self, now: Instant, lifetime: Duration, grace: Duration) {
         let expired: Vec<Arc<Jam>> = {
             let mut jams = self.lock();
@@ -353,7 +353,7 @@ impl Registry {
             ids.iter().filter_map(|id| jams.remove(id)).collect()
         };
         for jam in expired {
-            tracing::info!("Jam fermée ({} encore ouvertes)", self.len());
+            tracing::info!("Jam closed ({} still open)", self.len());
             jam.close("Jam expirée");
         }
     }
@@ -375,7 +375,7 @@ mod tests {
             registry.create("X".into(), IP, 1, 3).err(),
             Some(CreateError::Full)
         );
-        // Reprise avec le bon secret seulement, qu'un hôte soit branché ou non (#253).
+        // Resume with the right secret only, whether or not a host is attached (#253).
         assert!(registry.resume(&jam.id, "faux").is_none());
         assert!(registry.resume(&jam.id, jam.secret()).is_some());
         let (_rx, generation) = jam.attach("AB23CD".into(), IP);
@@ -392,7 +392,7 @@ mod tests {
         let registry = Registry::default();
         let jam = registry.create("AB23CD".into(), IP, 5, 3).unwrap();
         let (mut old, old_gen) = jam.attach("AB23CD".into(), IP);
-        // Une requête attend l'ancienne connexion, qui ne répondra plus.
+        // A request is waiting on the old connection, which will no longer answer.
         let waiting = {
             let jam = Arc::clone(&jam);
             tokio::spawn(async move {
@@ -403,10 +403,10 @@ mod tests {
         assert!(matches!(old.recv().await, Some(ToHost::Request { .. })));
 
         let (mut new, new_gen) = jam.attach("AB23CD".into(), OTHER);
-        // Elle échoue tout de suite, et l'ancienne connexion voit sa file se fermer.
+        // It fails right away, and the old connection sees its queue close.
         assert_eq!(waiting.await.unwrap(), Err(ForwardError::Offline));
         assert!(old.recv().await.is_none());
-        // L'ancienne connexion qui se ferme ne détache pas la nouvelle.
+        // The old connection closing does not detach the new one.
         jam.detach(old_gen);
         assert!(jam.host_online());
         let host = Arc::clone(&jam);
@@ -434,9 +434,9 @@ mod tests {
             registry.create("C".into(), IP, 10, 2).err(),
             Some(CreateError::TooManyForAddress)
         );
-        // Une autre adresse garde ses places.
+        // Another address keeps its slots.
         assert!(registry.create("C".into(), OTHER, 10, 2).is_ok());
-        // L'hôte revenu par une autre adresse (reprise) libère une place de l'ancienne.
+        // The host coming back from another address (resume) frees a slot of the old one.
         let _rx = first.attach("A".into(), OTHER);
         assert!(registry.create("D".into(), IP, 10, 2).is_ok());
         assert_eq!(
@@ -470,7 +470,7 @@ mod tests {
             assert_eq!(jam.check_code_at(IP, "nope", t0), Err(CodeError::Wrong));
         }
         assert_eq!(jam.check_code_at(IP, "AB23CD", t0), Err(CodeError::Blocked));
-        // Le blocage tombe au bout de la fenêtre (#256).
+        // The block lifts at the end of the window (#256).
         assert_eq!(jam.check_code_at(IP, "AB23CD", t0 + FAILURE_WINDOW), Ok(()));
     }
 
