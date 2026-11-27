@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.149
+
+- chore: Android: audio offload and the requests that open the app (share, drive mode, pins) move out of the playback engine's file (#45).
+
 ## 0.5.148
 
 - chore: the remote control page's script is split into one file per area, still served as a single `remote.js` (#45).

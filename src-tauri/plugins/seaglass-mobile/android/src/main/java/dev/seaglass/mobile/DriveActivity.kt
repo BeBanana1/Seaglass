@@ -13,7 +13,7 @@ import android.os.Bundle
 class DriveActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Playback.onMain { Playback.openDrive() }
+        Playback.onMain { LaunchRequests.openDrive() }
         packageManager.getLaunchIntentForPackage(packageName)?.let(::startActivity)
         finish()
     }
