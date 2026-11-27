@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Menu contextuel unique (#52), ouvert par `openMenu` (lib/stores/menu.svelte.ts).
-  // Se ferme sur un clic ailleurs, Échap, Tab, la molette, un redimensionnement ou un changement de page.
+  // Single context menu (#52), opened by `openMenu` (lib/stores/menu.svelte.ts).
+  // Closes on a click elsewhere, Escape, Tab, the wheel, a resize or a page change.
   import { untrack } from "svelte";
   import { closeMenu, menu, type MenuItem } from "../lib/stores/menu.svelte";
   import { nav } from "../lib/stores/nav.svelte";
@@ -11,7 +11,7 @@
   let el = $state<HTMLElement>();
   let pos = $state({ x: 0, y: 0 });
 
-  // Recalage dans la fenêtre une fois la taille connue, puis focus sur la première entrée.
+  // Repositioned within the window once the size is known, then focus on the first entry.
   $effect(() => {
     const open = menu.open;
     if (!open || !el) return;
@@ -64,7 +64,7 @@
     }
   }
 
-  // L'élément qui a ouvert le menu gère lui-même un second clic (bouton « … » = bascule).
+  // The element that opened the menu handles a second click itself ("…" button = toggle).
   function outside(target: EventTarget | null): boolean {
     const node = target as Node | null;
     return !el?.contains(node) && !menu.open?.from?.contains(node);
@@ -101,7 +101,7 @@
     onkeydown={onKeydown}
     oncontextmenu={(e) => e.preventDefault()}
   >
-    <!-- Sans clé : un menu rouvert par-dessus un autre doit remplacer ses entrées. -->
+    <!-- Without a key: a menu reopened over another must replace its entries. -->
     {#each menu.open.entries as entry}
       {#if entry === "separator"}
         <div class="context-menu-sep" role="separator"></div>

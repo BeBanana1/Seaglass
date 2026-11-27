@@ -1,7 +1,7 @@
-<!-- Ordinateur lié (#414), Réglages › Application, Android : lier en tapant l'adresse et le
-     code de la télécommande du PC, puis « Reprendre ici » / « Continuer sur l'ordinateur »
-     (aussi dans « En lecture ») et historique d'écoute synchronisé (#430). Classes
-     `.setting-row` et `.update-check` reprises de Réglages : les thèmes les habillent déjà ;
+<!-- Linked computer (#414), Settings › Application, Android: link by typing the address and the
+     remote-control code of the PC, then "Resume here" / "Continue on the computer"
+     (also in "Now playing") and synced listening history (#430). `.setting-row`
+     and `.update-check` classes reused from Settings: the themes already style them;
      propres : `.handoff-link`, `.handoff-input`, `.handoff-actions`, `.handoff-history`. -->
 <script lang="ts">
   import { onMount } from "svelte";
@@ -153,8 +153,8 @@
     color: var(--text-muted);
   }
 
-  /* Champ sur toute la largeur, « Lier » dessous : côte à côte, le champ débordait sur le
-     bouton en largeur de téléphone. */
+  /* Field over the full width, "Link" below: side by side, the field overflowed onto the
+     button at phone width. */
   form.handoff-link {
     flex-direction: column;
     align-items: stretch;
@@ -199,7 +199,7 @@
     opacity: 0.6;
   }
 
-  /* Studio : angles vifs. Atelier : angles à peine arrondis, pas de fond. */
+  /* Studio: sharp corners. Atelier: barely rounded corners, no background. */
   :global([data-theme="studio"]) .setting-row,
   :global([data-theme="studio"]) .update-check,
   :global([data-theme="studio"]) .handoff-input {

@@ -1,5 +1,5 @@
-<!-- Jam (#25) en accès rapide : fenêtre ouverte depuis « En lecture » (bouton `.jam-open`),
-     même contenu que Réglages › Application (JamPanel). Ouverte par `openJamDialog`. -->
+<!-- Jam (#25) quick access: window opened from "Now playing" (`.jam-open` button),
+     same content as Settings › Application (JamPanel). Opened by `openJamDialog`. -->
 <script lang="ts">
   import { closeJamDialog, jam } from "../lib/stores/jam.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -118,7 +118,7 @@
     min-height: 0;
   }
 
-  /* Téléphone : la fenêtre prend la largeur, au-dessus des barres du système. */
+  /* Phone: the window takes the full width, above the system bars. */
   :global(:root[data-platform="android"]) .jam-backdrop {
     padding: calc(var(--safe-top, 0px) + 12px) 12px calc(var(--safe-bottom, 0px) + 12px);
   }

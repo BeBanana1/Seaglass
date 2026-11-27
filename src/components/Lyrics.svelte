@@ -1,12 +1,12 @@
 <script lang="ts">
-  // Paroles du titre en cours (#5). Horodatées : la ligne courante suit la position
-  // interpolée (comme la barre de progression) et reste centrée ; clic = aller à la ligne.
-  // Sans horodatage : texte simple.
+  // Lyrics of the current track (#5). Timestamped: the current line follows the
+  // interpolated position (like the progress bar) and stays centered; click = go to the line.
+  // Without timestamps: plain text.
   import { commands, type Lyrics, type TrackId } from "../lib/ipc";
   import { followPosition, player } from "../lib/stores/player.svelte";
   import { t } from "../lib/i18n.svelte";
 
-  /** Délai pendant lequel le suivi automatique s'arrête après un défilement manuel. */
+  /** Time during which automatic following pauses after a manual scroll. */
   const MANUAL_SCROLL_PAUSE_MS = 4000;
 
   let lyrics = $state<Lyrics | null>(null);
@@ -18,7 +18,7 @@
   const trackId = $derived(player.currentTrackId);
   const synced = $derived(lyrics?.text.kind === "synced" ? lyrics.text.lines : null);
 
-  // Requête par titre ; une réponse arrivée après un changement de titre est ignorée.
+  // One request per track; a response that arrives after a track change is ignored.
   let requested: TrackId | null = null;
   $effect(() => {
     const id = trackId;
@@ -40,7 +40,7 @@
     );
   });
 
-  /** Dernière ligne commencée à `ms` (recherche dichotomique), -1 avant la première. */
+  /** Last line started at `ms` (binary search), -1 before the first. */
   function lineAt(lines: { timeMs: number }[], ms: number): number {
     let lo = 0;
     let hi = lines.length - 1;
@@ -55,18 +55,18 @@
     return found;
   }
 
-  // Boucle d'images seulement pendant la lecture (#88) ; relancée quand les paroles arrivent.
+  // Frame loop only during playback (#88); restarted when the lyrics arrive.
   $effect(() => {
     const lines = synced;
     if (!lines) return;
-    // 10 Hz sur Android : la ligne change au plus 100 ms après son horodatage.
+    // 10 Hz on Android: the line changes at most 100 ms after its timestamp.
     return followPosition((p) => {
       const next = lineAt(lines, p * 1000);
       if (next !== active) active = next;
     }, 10);
   });
 
-  // Garde la ligne courante au centre, sauf si l'utilisateur fait défiler lui-même.
+  // Keeps the current line centered, unless the user scrolls by themselves.
   $effect(() => {
     const i = active;
     if (!scroller || i < 0 || performance.now() < manualUntil) return;
@@ -82,8 +82,8 @@
     manualUntil = performance.now() + MANUAL_SCROLL_PAUSE_MS;
   }
 
-  // Molette, glissé tactile ou barre de défilement : défilement voulu par l'utilisateur
-  // (un `scroll` seul ne suffit pas, le suivi automatique en émet aussi).
+  // Wheel, touch drag or scrollbar: scrolling wanted by the user
+  // (a `scroll` alone is not enough, automatic following emits them too).
   $effect(() => {
     const el = scroller;
     if (!el) return;
@@ -140,13 +140,13 @@
 </div>
 
 <style>
-  /* Remplit le panneau (colonne flex) sous son titre. */
+  /* Fills the panel (flex column) under its title. */
   .lyrics {
     display: flex;
     flex: 1;
     flex-direction: column;
     min-height: 0;
-    /* Unités `cqh` des marges de défilement : relatives à la hauteur du panneau. */
+    /* `cqh` units of the scroll margins: relative to the panel height. */
     container-type: size;
   }
 
@@ -158,7 +158,7 @@
     scrollbar-width: thin;
   }
 
-  /* Marges pour que la première et la dernière ligne puissent venir au centre. */
+  /* Margins so the first and last lines can reach the center. */
   .lyrics-scroll.synced {
     padding-block: 45cqh;
     mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);

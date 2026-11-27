@@ -1,12 +1,12 @@
 <script lang="ts">
-  // Clin d'œil (#399) : 7 clics sur la version (Réglages › Application) font défiler les
-  // remerciements et les licences comme un générique de fin. Un clic ou Échap le ferme, il
-  // se ferme seul à la fin. Animations réduites : la liste fixe.
+  // Easter egg (#399): 7 clicks on the version (Settings › Application) scroll the
+  // acknowledgements and licenses like end credits. A click or Escape closes it, it
+  // closes by itself at the end. Reduced motion: a static list.
   import { t } from "../lib/i18n.svelte";
 
   let { onClose }: { onClose: () => void } = $props();
 
-  /** Monté sous `<body>` : un panneau parent (flou, `contain`) bornerait `position: fixed`. */
+  /** Mounted under `<body>`: a parent panel (blur, `contain`) would bound `position: fixed`. */
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
     return { destroy: () => node.remove() };

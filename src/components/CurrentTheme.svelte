@@ -1,5 +1,5 @@
-<!-- Thème actuel (section Apparence des réglages, #390) : grande miniature, description, favori,
-     et les réglages propres au thème : variante claire / sombre et couleur d'accent. -->
+<!-- Current theme (Appearance section of the settings, #390): large thumbnail, description,
+     favorite, and the theme's own settings: light / dark variant and accent color. -->
 <script lang="ts">
   import { setTheme, toggleFavoriteTheme, ui } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
@@ -147,7 +147,7 @@
     color: var(--text-muted);
   }
 
-  /* Mêmes sélecteurs que ceux des réglages (styles des thèmes compris). */
+  /* Same selectors as the settings' (theme styles included). */
   .cache-sizes {
     display: inline-flex;
     gap: 4px;

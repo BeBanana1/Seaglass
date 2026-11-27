@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Fond d'ambiance : la pochette en cours, très floutée, en fondu entre deux titres.
+  // Ambient background: the current cover, heavily blurred, crossfading between two tracks.
   import { player } from "../lib/stores/player.svelte";
 
   let { intensity = 1 }: { intensity?: number } = $props();

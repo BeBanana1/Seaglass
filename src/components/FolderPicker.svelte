@@ -1,8 +1,8 @@
 <script lang="ts">
-  // « Déplacer vers un dossier… » (#331) : dossiers existants, « Hors dossier », création.
-  // Ouverte par `openFolderPicker` (lib/stores/folders.svelte.ts). Reprend les classes du
-  // sélecteur de playlist (`.playlist-picker`, `.picker-item`, `.picker-new-form`) : les
-  // thèmes l'habillent de la même façon.
+  // "Move to a folder…" (#331): existing folders, "No folder", creation.
+  // Opened by `openFolderPicker` (lib/stores/folders.svelte.ts). Reuses the classes of the
+  // playlist picker (`.playlist-picker`, `.picker-item`, `.picker-new-form`): the
+  // themes style it the same way.
   import { t } from "../lib/i18n.svelte";
   import {
     closeFolderPicker,
@@ -20,14 +20,14 @@
   let nameInput = $state<HTMLInputElement>();
   let dialog = $state<HTMLDivElement>();
 
-  // Sans dossier, la création est la seule chose à faire : formulaire ouvert d'emblée.
+  // Without a folder, creating one is the only thing to do: form open right away.
   const noFolder = $derived(folders.items?.length === 0);
 
   $effect(() => {
     if (!folderPicker.request) return;
     creating = false;
     newName = "";
-    // Le champ du nom, s'il est ouvert d'emblée, garde le focus.
+    // The name field, if open right away, keeps the focus.
     requestAnimationFrame(() => (creating ? nameInput : dialog)?.focus());
   });
 
@@ -39,7 +39,7 @@
     if (creating) requestAnimationFrame(() => nameInput?.focus());
   });
 
-  // Dossier actuel : celui de la première playlist (une seule à la fois depuis le menu).
+  // Current folder: that of the first playlist (only one at a time from the menu).
   const currentId = $derived(
     folderPicker.request ? (folderOf(folderPicker.request.uuids[0])?.id ?? null) : null,
   );

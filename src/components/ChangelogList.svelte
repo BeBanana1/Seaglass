@@ -1,13 +1,13 @@
 <script lang="ts">
-  // Journal des versions (#340), dans Réglages › Application. Le backend renvoie les
-  // versions déjà filtrées pour la plateforme.
+  // Version log (#340), in Settings › Application. The backend returns the
+  // versions already filtered for the platform.
   import { commands, type Release } from "../lib/ipc";
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
 
   let releases = $state<Release[] | null>(null);
 
-  // Monté à l'ouverture (bouton de Réglages › Application).
+  // Mounted on open (button in Settings › Application).
   $effect(() => {
     commands.changelog().then(
       (r) => (releases = r),
@@ -15,7 +15,7 @@
     );
   });
 
-  /** Découpe une entrée autour des `code` en ligne du Markdown. */
+  /** Splits an entry around the inline `code` spans of the Markdown. */
   function parts(entry: string): { text: string; code: boolean }[] {
     return entry.split("`").map((text, i) => ({ text, code: i % 2 === 1 }));
   }

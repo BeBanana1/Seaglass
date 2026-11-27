@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Classement d'un blind test à plusieurs (#441) : rang, joueur, points de la manche
-  // révélée (ou « a répondu » pendant la manche), score. Tout vient du backend.
+  // Scoreboard of a multiplayer blind test (#441): rank, player, points of the revealed
+  // round (or "answered" during the round), score. Everything comes from the backend.
   import type { BlindPlayer, BlindPlayerResult } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
 
@@ -10,7 +10,7 @@
     showAnswered = false,
   }: {
     players: BlindPlayer[];
-    /** Résultats de la manche révélée, affichés à côté du score. */
+    /** Results of the revealed round, shown next to the score. */
     round?: BlindPlayerResult[] | null;
     showAnswered?: boolean;
   } = $props();

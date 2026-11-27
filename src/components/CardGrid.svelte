@@ -11,11 +11,11 @@
   }: {
     items: MediaItem[];
     title?: string;
-    /** Une seule ligne défilante (accueil, recherche) plutôt qu'une grille. */
+    /** A single scrolling row (home, search) rather than a grid. */
     row?: boolean;
-    /** Mention sous chaque carte (nombre d'écoutes des statistiques, #326), dans l'ordre de `items`. */
+    /** Note under each card (play count of the statistics, #326), in the order of `items`. */
     notes?: string[];
-    /** Lien à droite du titre (« Voir l'artiste », #350). */
+    /** Link on the right of the title ("View artist", #350). */
     more?: { label: string; onclick: () => void };
   } = $props();
 </script>
@@ -102,7 +102,7 @@
     scrollbar-width: thin;
   }
 
-  /* Android (#24) : deux cartes par ligne sur un téléphone (170 px n'en laissait qu'une). */
+  /* Android (#24): two cards per row on a phone (170 px left room for only one). */
   :global(:root[data-platform="android"]) .items {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }

@@ -1,7 +1,7 @@
-<!-- Contrôles de l'hôte de la Jam (#288), repliés par défaut pour ne pas encombrer un petit
-     écran : lecture / pause et volume plafonné par les invités (#449), vote pour passer (#433), ajouts suspendus,
-     albums, limite par invité, liste des invités avec exclusion. Classes `.setting-row`, `.setting-switch`,
-     `.cache-sizes` et `.update-check` reprises de Réglages : les thèmes les habillent déjà. -->
+<!-- Jam host controls (#288), collapsed by default so as not to clutter a small
+     screen: play / pause and guest volume cap (#449), vote to skip (#433), suspended adds,
+     albums, per-guest limit, guest list with kick. `.setting-row`, `.setting-switch`,
+     `.cache-sizes` and `.update-check` classes reused from Settings: themes already style them. -->
 <script lang="ts">
   import type { JamRules, JamStatus } from "../lib/ipc";
   import { setJamAddsOpen, setJamGuestBanned, setJamRules } from "../lib/stores/jam.svelte";
@@ -10,11 +10,11 @@
 
   let { status }: { status: JamStatus } = $props();
 
-  /** Limites proposées ; `null` = sans limite. */
+  /** Suggested limits; `null` = no limit. */
   const LIMITS: (number | null)[] = [null, 1, 2, 3, 5, 10];
-  /** Plafonds du volume des invités proposés (#449), sur l'échelle 0–100 du lecteur. */
+  /** Suggested guest volume caps (#449), on the player's 0–100 scale. */
   const VOLUME_CAPS = [50, 60, 70, 80, 90, 100];
-  /** Votes qui passent un titre (#433), entre 2 et 10 côté Rust. */
+  /** Votes that skip a track (#433), between 2 and 10 on the Rust side. */
   const SKIP_THRESHOLDS = [2, 3, 4, 5, 7, 10];
 
   let open = $state(false);
@@ -147,7 +147,7 @@
               title={limit === null ? t.jam.host.unlimited : undefined}
               onclick={() => setRule({ maxPending: limit })}
             >
-              <!-- « ∞ » : les six choix tiennent sur une ligne de téléphone. -->
+              <!-- "∞": the six choices fit on one phone row. -->
               {limit ?? "∞"}
             </button>
           {/each}
@@ -251,7 +251,7 @@
     font-weight: 500;
   }
 
-  /* Interrupteur repris de Réglages : les thèmes l'habillent déjà par son nom de classe. */
+  /* Switch reused from Settings: the themes already style it by its class name. */
   .setting-switch {
     position: relative;
     flex-shrink: 0;
@@ -285,7 +285,7 @@
     background: var(--accent-contrast);
   }
 
-  /* Sélecteur repris de la taille du cache de Réglages, qui passe à la ligne sur un téléphone. */
+  /* Picker reused from the cache size in Settings, which wraps on a phone. */
   .cache-sizes {
     display: inline-flex;
     flex-wrap: wrap;
@@ -295,7 +295,7 @@
     border-radius: var(--radius-pill);
   }
 
-  /* Plus serré que dans Réglages : les six choix tiennent sur une ligne d'un téléphone. */
+  /* Tighter than in Settings: the six choices fit on one phone row. */
   .cache-size {
     min-width: 32px;
     padding: 6px 10px;
@@ -360,7 +360,7 @@
     text-decoration: line-through;
   }
 
-  /* Studio : angles vifs. Atelier : angles à peine arrondis, pas de fond. */
+  /* Studio: sharp corners. Atelier: barely rounded corners, no background. */
   :global([data-theme="studio"]) .setting-row,
   :global([data-theme="studio"]) .update-check {
     border-radius: 0;
