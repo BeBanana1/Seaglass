@@ -1,13 +1,13 @@
-/* Thème Solarpunk (#65) : futur végétal et lumineux, verts profonds, or solaire, Art nouveau.
-   Jetons (couleurs, pochettes en arche, panneaux, dialogues) dans app.css ; ici, le décor.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Solarpunk theme (#65): a lush, luminous future, deep greens, solar gold, Art Nouveau.
+   Tokens (colors, arch covers, panels, dialogs) are in app.css; here, the decoration.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
 :root[data-theme="solarpunk"] {
-  /* Vrille et feuille : ornement des titres de section, teinté par l'accent. */
+  /* Tendril and leaf: ornament of section titles, tinted by the accent. */
   --sol-vine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 14'%3E%3Cpath d='M1 9 C 9 3 15 13 23 8 S 33 3 36 7' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M35 7 C 37 1 42 0 43 2 C 43 7 39 10 35 7 Z'/%3E%3Ccircle cx='12' cy='7.5' r='1.6'/%3E%3C/svg%3E");
 }
 
-/* Titres de section : une vrille qui pousse après le texte. */
+/* Section titles: a tendril growing after the text. */
 :root[data-theme="solarpunk"] h2::after {
   content: "";
   display: inline-block;
@@ -31,7 +31,7 @@
   border-radius: 999px;
 }
 
-/* Navigation : la page active est une pousse claire. */
+/* Navigation: the active page is a light shoot. */
 :root[data-theme="solarpunk"] nav button.active,
 :root[data-theme="solarpunk"] nav .pin.active {
   color: var(--accent);
@@ -43,7 +43,7 @@
   color: var(--accent);
 }
 
-/* Lecture : bouton cerclé d'or, progression qui passe du vert à l'or. */
+/* Playback: gold-ringed button, progress going from green to gold. */
 :root[data-theme="solarpunk"] .transport .play {
   color: var(--accent-contrast);
   background: var(--accent);
@@ -65,7 +65,7 @@
   background: var(--accent);
 }
 
-/* Bandeau d'accueil : verrière claire au lieu de la pochette assombrie. */
+/* Home banner: light glass roof instead of the darkened cover. */
 :root[data-theme="solarpunk"] .hero {
   border-radius: 28px;
   color: var(--text);
@@ -86,7 +86,7 @@
   color: var(--text-muted);
 }
 
-/* « En lecture » : l'image garde l'arche de son cadre. */
+/* "Now playing": the image keeps the arch of its frame. */
 :root[data-theme="solarpunk"] .now-playing .art img {
   border-radius: var(--radius-cover);
 }

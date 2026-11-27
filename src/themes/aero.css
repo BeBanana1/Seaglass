@@ -1,11 +1,11 @@
-/* Thème Aéro (#101) : fiche technique de livrée d'avion.
-   Jetons (bleu glacier, encre ardoise, angles vifs, ombres en aplats) dans app.css ; ici, le
-   décor : repères en tiret aux angles des panneaux, trois points avant les titres de section,
-   gros filet sous les titres de page, numéros encadrés sur les cartes, trame de points.
-   Le jaune signal ne porte que de l'ardoise et reste cerné d'ardoise (invisible sur le fond).
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Aero theme (#101): aircraft livery spec sheet.
+   Tokens (glacier blue, slate ink, sharp corners, flat shadows) are in app.css; here, the
+   decoration: dash marks at panel corners, three dots before section titles, thick rule
+   under page titles, boxed numbers on cards, dot grid.
+   The signal yellow only carries slate and stays outlined in slate (invisible on the background).
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
-/* Panneaux : tiret en haut à gauche, point en haut à droite, tiret en bas à gauche. */
+/* Panels: dash at top left, dot at top right, dash at bottom left. */
 :root[data-theme="aero"] .panel {
   background-image:
     linear-gradient(var(--aero-ink), var(--aero-ink)),
@@ -22,7 +22,7 @@
   background-repeat: no-repeat;
 }
 
-/* Titres : Bahnschrift condensé, gros filet ardoise sous le titre de page. */
+/* Titles: condensed Bahnschrift, thick slate rule under the page title. */
 :root[data-theme="aero"] :is(h1, h2, .brand, .hero .title, .now-playing h1) {
   font-stretch: 75%;
   font-variation-settings: "wdth" 75;
@@ -40,7 +40,7 @@
   border-bottom: none;
 }
 
-/* Titres de section : trois points empilés, le premier jaune cerné. */
+/* Section titles: three stacked dots, the first one yellow and outlined. */
 :root[data-theme="aero"] h2 {
   font-size: 20px;
   font-weight: 500;
@@ -60,7 +60,7 @@
     radial-gradient(circle, var(--aero-ink) 3px, transparent 3.5px) 50% 14px / 7px 7px no-repeat;
 }
 
-/* Libellés techniques : minuscules capitales espacées. */
+/* Technical labels: spaced small capitals. */
 :root[data-theme="aero"] :is(.eyebrow, .pins-title, .hero .label) {
   font-family: var(--meta-family);
   font-size: 10px;
@@ -90,7 +90,7 @@
   box-shadow: none;
 }
 
-/* Cartes : numéro encadré (01, 02…) en bas à gauche de la pochette. */
+/* Cards: boxed number (01, 02...) at the bottom left of the cover. */
 :root[data-theme="aero"] .items {
   counter-reset: aero-card;
 }
@@ -128,7 +128,7 @@
   box-shadow: inset 0 -3px 0 var(--aero-ink);
 }
 
-/* Lignes de titres : numéros en Bahnschrift, titre en cours marqué d'une barre jaune. */
+/* Track rows: numbers in Bahnschrift, current track marked by a yellow bar. */
 :root[data-theme="aero"] .row .number {
   font-family: var(--display-family);
   font-size: 15px;
@@ -145,14 +145,14 @@
   color: var(--accent);
 }
 
-/* Navigation : page active sur fond jaune, cernée. */
+/* Navigation: active page on a yellow background, outlined. */
 :root[data-theme="aero"] :is(nav button.active, nav .pin.active) {
   color: var(--aero-ink);
   background: var(--aero-yellow);
   box-shadow: inset 0 0 0 1px var(--aero-ink);
 }
 
-/* Lecture : carré jaune cerné ; progression jaune sur filet ardoise. */
+/* Playback: outlined yellow square; yellow progress on a slate rule. */
 :root[data-theme="aero"] .transport .play {
   border-radius: 0;
   color: var(--aero-ink);
@@ -177,7 +177,7 @@
   box-shadow: inset 0 0 0 1px var(--aero-ink);
 }
 
-/* Boutons : rectangles à filet ardoise, action principale pleine. */
+/* Buttons: rectangles with a slate rule, primary action filled. */
 :root[data-theme="aero"] .info .actions button {
   border: 1px solid var(--aero-ink) !important;
 }
@@ -247,7 +247,7 @@
   background: var(--surface);
 }
 
-/* Bandeau d'accueil : bloc bleu tramé de points, bande jaune à droite. */
+/* Home banner: blue block with a dot pattern, yellow strip on the right. */
 :root[data-theme="aero"] .hero {
   border-radius: 0;
   color: var(--aero-ink);
@@ -278,7 +278,7 @@
     10px 10px 0 2px var(--aero-ink);
 }
 
-/* Grandes pochettes : cadre ardoise et aplat jaune décalé, cerné. */
+/* Large covers: slate frame and offset yellow fill, outlined. */
 :root[data-theme="aero"] .now-playing .art {
   box-shadow:
     0 0 0 2px var(--aero-ink),

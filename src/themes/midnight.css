@@ -1,6 +1,6 @@
-/* Minuit (#338) : noir OLED. Tout le thème est dans ses jetons (`app.css`) ; ne reste ici que
-   le bandeau d'accueil, dont le fond teinté par la pochette allumait une large surface : il
-   passe en noir cerné d'un filet, la pochette du bandeau reste la seule couleur. */
+/* Midnight (#338): OLED black. The whole theme is in its tokens (`app.css`); only the home
+   banner remains here, whose cover-tinted background lit up a large surface: it
+   turns black outlined by a rule, the banner's cover stays the only color. */
 
 :root[data-theme="midnight"] .hero {
   color: var(--text);

@@ -1,7 +1,7 @@
-/* Thème Surréalisme : paysage vectoriel onirique, aplats pastel, objets qui flottent.
-   Jetons (panneaux, dialogues, pochettes, titres en italique) dans app.css ; ici, ce qu'un
-   jeton ne dit pas. Surcharges par classe de composant (spécificité supérieure aux styles
-   scopés Svelte). */
+/* Surrealism theme: dreamlike vector landscape, pastel fills, floating objects.
+   Tokens (panels, dialogs, covers, italic titles) are in app.css; here, what a
+   token cannot express. Per-component-class overrides (higher specificity than Svelte's
+   scoped styles). */
 
 :root[data-theme="surreal"] .brand {
   font-size: 22px;
@@ -18,7 +18,7 @@
   background: color-mix(in oklab, var(--accent) 14%, #fffaf4);
 }
 
-/* Pochettes : objets posés au-dessus de leur ombre, qui lévitent au survol. */
+/* Covers: objects set above their shadow, levitating on hover. */
 :root[data-theme="surreal"] .card .image {
   transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -48,7 +48,7 @@
   border-radius: 10px;
 }
 
-/* Commandes : galets ronds. */
+/* Controls: round pebbles. */
 :root[data-theme="surreal"] .transport .play {
   color: var(--accent-contrast);
   background: var(--accent);
@@ -123,7 +123,7 @@
   font-style: italic;
 }
 
-/* Vue « En lecture » : la pochette flotte au-dessus de son ombre sur la colline. */
+/* "Now playing" view: the cover floats above its shadow on the hill. */
 :root[data-theme="surreal"] .now-playing .art {
   position: relative;
   overflow: visible;
@@ -181,7 +181,7 @@
   animation: surreal-float 7s ease-in-out infinite alternate;
 }
 
-/* Android (#158) : pochettes immobiles, aucun décor animé en boucle. */
+/* Android (#158): static covers, no looping animated decoration. */
 :root[data-platform="android"][data-theme="surreal"] header .image,
 :root[data-platform="android"][data-theme="surreal"] .now-playing .art,
 :root[data-platform="android"][data-theme="surreal"] .now-playing .art::after,
@@ -202,7 +202,7 @@
   }
 }
 
-/* Accueil personnalisable : cartes de papier qui flottent, titres en italique. */
+/* Customizable home: floating paper cards, italic titles. */
 :root[data-theme="surreal"] .home-customize,
 :root[data-theme="surreal"] .home-editor-reset,
 :root[data-theme="surreal"] .home-editor-toggle {
@@ -237,7 +237,7 @@
   border-radius: 12px;
 }
 
-/* Réglages : galets de papier posés au-dessus de leur ombre. */
+/* Settings: paper pebbles set above their shadow. */
 :root[data-theme="surreal"] .theme-card,
 :root[data-theme="surreal"] .setting-row {
   border: none;
@@ -263,7 +263,7 @@
   font-style: italic;
 }
 
-/* Paroles : ligne courante portée par la teinte de l'album, en flottement léger. */
+/* Lyrics: current line carried by the album tint, gently floating. */
 :root[data-theme="surreal"] .lyrics-line {
   border-radius: 999px;
 }
@@ -273,7 +273,7 @@
   transform: scale(1.06) rotate(-0.6deg);
 }
 
-/* Menu contextuel : nuage arrondi, entrées en pilule. */
+/* Context menu: rounded cloud, pill entries. */
 :root[data-theme="surreal"] .context-menu {
   padding: 6px;
 }
@@ -287,7 +287,7 @@
   background: color-mix(in oklch, var(--album) 18%, #fffaf4);
 }
 
-/* Cœurs et « Ajouter à une playlist » (#4) : entrées en pilule. */
+/* Hearts and "Add to a playlist" (#4): pill entries. */
 :root[data-theme="surreal"] .playlist-picker input {
   border-radius: 999px;
   background: rgb(255 255 255 / 0.75);
@@ -305,7 +305,7 @@
   color: color-mix(in oklch, var(--album) 55%, #c2416b);
 }
 
-/* Infos du titre (#3) : rubriques en italique, teintées par l'album. */
+/* Track info (#3): italic section headings, tinted by the album. */
 :root[data-theme="surreal"] .info-section h4 {
   font-style: italic;
   letter-spacing: 0.02em;

@@ -1,12 +1,12 @@
-/* Thème Ordinateur de bord (#339) : écrans de vaisseau de la SF d'avant l'image de synthèse.
-   Différent de Terminal (une console au phosphore) : ici un tableau de bord, en blocs.
-   Jetons (presque noir, ambre, couleurs des blocs) dans app.css ; ici, ce que les jetons ne
-   disent pas : étiquettes numérotées, onglets de couleur des panneaux, progression en
-   segments, chaîne audio en schéma de systèmes avec voyants, voyant rouge près du bouton
-   lecture, auto-test au démarrage.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Onboard Computer theme (#339): spaceship screens from sci-fi before computer graphics.
+   Unlike Terminal (a phosphor console): here a dashboard, in blocks.
+   Tokens (almost black, amber, block colors) are in app.css; here, what tokens cannot
+   express: numbered labels, colored tabs on the panels, progress as
+   segments, signal path as a systems diagram with indicator lights, red light next to the
+   play button, self-test at startup.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
-/* Panneaux : onglet de couleur en haut à gauche, comme un bloc repéré sur une console. */
+/* Panels: colored tab at the top left, like a marked block on a console. */
 :root[data-theme="onboard"] .panel {
   background-image:
     linear-gradient(var(--ob-orange), var(--ob-orange)),
@@ -24,8 +24,8 @@
   text-transform: uppercase;
 }
 
-/* Titres de section : étiquette numérotée (bloc orange, numéro à deux chiffres), libellé en
-   capitales à chasse fixe. Le compteur repart à chaque panneau. */
+/* Section titles: numbered label (orange block, two-digit number), label in
+   fixed-width capitals. The counter restarts for each panel. */
 :root[data-theme="onboard"] main {
   counter-reset: ob-section;
 }
@@ -94,8 +94,8 @@
   color: var(--ob-red);
 }
 
-/* Lecture : touche carrée ambre, cernée, et le voyant rouge, fixe et calme, juste au-dessus
-   à droite. Il ne clignote jamais. */
+/* Playback: square amber key, outlined, and the red light, steady and calm, just above
+   it to the right. It never blinks. */
 :root[data-theme="onboard"] .transport .play {
   position: relative;
   border-radius: 0;
@@ -128,7 +128,7 @@
   box-shadow: none;
 }
 
-/* Progression et volume en segments, comme un bargraphe. */
+/* Progress and volume as segments, like a bar graph. */
 :root[data-theme="onboard"] .progress .track {
   height: 8px;
   border-radius: 0;
@@ -156,8 +156,8 @@
   background: repeating-linear-gradient(90deg, var(--ob-teal) 0 4px, transparent 4px 6px);
 }
 
-/* Chaîne audio de « En lecture » : schéma de systèmes. Bande d'avertissement en haut,
-   chaque étape en bloc numéroté avec son voyant (couleur du verdict), liaisons épaisses. */
+/* Signal path in "Now playing": systems diagram. Warning strip at the top,
+   each stage as a numbered block with its indicator light (verdict color), thick links. */
 :root[data-theme="onboard"] .signal {
   padding-top: 20px;
   border: 1px solid rgb(243 214 162 / 0.3);
@@ -180,7 +180,7 @@
   counter-increment: ob-system;
 }
 
-/* Numéro du système, en bloc teal dans le coin. */
+/* System number, as a teal block in the corner. */
 :root[data-theme="onboard"] .signal .path:not(.dense) .node::before {
   content: "SYS " counter(ob-system, decimal-leading-zero);
   position: absolute;
@@ -193,7 +193,7 @@
   background: var(--ob-teal);
 }
 
-/* Voyant : allumé de la couleur du verdict (ok, réglage à surveiller, perte). */
+/* Indicator light: lit in the verdict color (ok, setting to watch, loss). */
 :root[data-theme="onboard"] .signal .path:not(.dense) .node::after {
   content: "";
   position: absolute;
@@ -223,7 +223,7 @@
   letter-spacing: 0.1em;
 }
 
-/* Bandeau d'accueil : bloc cerné, bande d'avertissement en bas, sans le fond teinté. */
+/* Home banner: outlined block, warning strip at the bottom, without the tinted background. */
 :root[data-theme="onboard"] .hero {
   color: var(--text);
   background:
@@ -240,10 +240,10 @@
   color: var(--text-muted);
 }
 
-/* --- Démarrage : séquence d'auto-test ------------------------------------------------
-   Pendant le chargement de l'app (`.boot`, App.svelte), une ligne de huit blocs s'allume
-   un à un pendant que le compteur passe de TEST 01 à TEST 08, puis OK. Ne joue qu'une fois
-   (`forwards`), rien ne tourne en boucle. */
+/* --- Startup: self-test sequence ------------------------------------------------
+   While the app is loading (`.boot`, App.svelte), a row of eight blocks lights up
+   one by one while the counter goes from TEST 01 to TEST 08, then OK. Plays only once
+   (`forwards`), nothing loops. */
 :root[data-theme="onboard"] .boot {
   font-family: var(--font-mono);
   text-transform: uppercase;
