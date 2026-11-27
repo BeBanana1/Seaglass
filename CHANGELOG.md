@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.148
+
+- chore: the remote control page's script is split into one file per area, still served as a single `remote.js` (#45).
+
 ## 0.5.147
 
 - chore: the Jam guest page's script is split into one file per area, still served as a single `jam.js` (#45).
