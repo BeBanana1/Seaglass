@@ -34,7 +34,7 @@ Tests marked `#[ignore]` (`cargo test live_… -- --ignored`) call the real TIDA
 
 ## Conventions
 
-- **Language**: code, comments, logs, docs, commits, issues and pull requests in English. Some code comments are still in French: translate those of a file you touch, but do not mass-translate unrelated files. User-facing strings go through the dictionaries (`src/lib/i18n/` for the UI, `tr` / `trf!` in Rust) with both French and English.
+- **Language**: code, comments, logs, docs, commits, issues and pull requests in English. Everything is in English: French in the code is only data, test values or the French half of a UI string. User-facing strings go through the dictionaries (`src/lib/i18n/` for the UI, `tr` / `trf!` in Rust) with both French and English.
 - **Rust**: no `unwrap()` / `expect()` outside tests and initialization; typed errors with `thiserror` in modules, `anyhow` only at the boundaries. Tauri commands return `Result<T, String>` or a serializable error, never panic.
 - **Shared types** are defined in Rust. Those deriving `ts_rs::TS` are generated into `src/lib/bindings/` by `cargo test` (commit them; CI fails if they differ) and re-exported by `src/lib/ipc.ts`; the others are still duplicated there by hand.
 - **Tests**: required for pure logic (the queue in `player/queue.rs` in particular). Frontend tests sit next to their module (`src/lib/<module>.test.ts`).
