@@ -168,6 +168,12 @@ async fn serves_its_own_page_without_code() {
     for file in ["/remote.js", "/remote.css", "/jam.css"] {
         assert_eq!(call(addr, "GET", file, "", "").await.0, 200, "{file}");
     }
+    // Assembled from every area file (#45): the dictionary first, the startup last.
+    let (_, script) = call(addr, "GET", "/remote.js", "", "").await;
+    assert!(script.contains("\"use strict\";"));
+    let text = script.find("const TEXT = {").unwrap_or(usize::MAX);
+    let startup = script.find("// --- Startup").unwrap_or(0);
+    assert!(text < startup);
     // The guests' page is not served here.
     assert_eq!(call(addr, "GET", "/jam.js", "", "").await.0, 404);
 }

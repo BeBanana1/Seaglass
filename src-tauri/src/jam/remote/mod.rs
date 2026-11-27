@@ -37,7 +37,8 @@ const PORT: u16 = 47801;
 const SEARCH_LIMIT: u32 = 30;
 
 const PAGE: &str = include_str!("page/index.html");
-const SCRIPT: &str = include_str!("page/remote.js");
+/// `remote.js`, assembled from the page's files by `page/script.rs` (#45).
+const SCRIPT: &str = include!("page/script.rs");
 const REMOTE_STYLE: &str = include_str!("page/remote.css");
 
 /// New owner code.
