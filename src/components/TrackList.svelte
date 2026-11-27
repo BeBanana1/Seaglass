@@ -24,38 +24,38 @@
     onRemoveSelected,
     context,
   }: {
-    /** Contexte de lecture : lire un titre met toute la liste en file, dans cet ordre. */
+    /** Playback context: playing a track queues the whole list, in this order. */
     tracks: Track[];
-    /** Origine de la liste, affichée dans « Joué depuis » (#124). */
+    /** Origin of the list, shown in "Played from" (#124). */
     source?: PlaySource;
     numbering?: "none" | "index";
-    /** Numéros à afficher (position d'origine d'une liste triée ou filtrée), sinon 1, 2, 3… */
+    /** Numbers to display (original position of a sorted or filtered list), otherwise 1, 2, 3… */
     positions?: number[];
     showAlbum?: boolean;
     showCover?: boolean;
-    /** Liste d'une de vos playlists : « Retirer de cette playlist » sur chaque titre. */
+    /** List of one of your playlists: "Remove from this playlist" on every track. */
     onRemoveFromPlaylist?: (index: number) => void;
-    /** Titre mis en évidence et amené à l'écran (lien collé, #203). */
+    /** Track highlighted and brought into view (pasted link, #203). */
     highlight?: number;
     /**
-     * Liste réorganisable (votre playlist, ni triée ni filtrée, #201) : glisser-déposer,
-     * Alt+↑ / Alt+↓, « Monter / Descendre ». `to` = position finale ; `true` si le
-     * déplacement a eu lieu.
+     * Reorderable list (your playlist, neither sorted nor filtered, #201): drag and drop,
+     * Alt+↑ / Alt+↓, "Move up / Move down". `to` = final position; `true` if the
+     * move took place.
      */
     onMove?: (from: number, to: number) => Promise<boolean>;
-    /** Mention propre à chaque ligne (`TrackRow` › `note`), dans l'ordre de `tracks`. */
+    /** Note specific to each row (`TrackRow` › `note`), in the order of `tracks`. */
     notes?: string[];
-    /** Une de vos playlists : « Retirer de la playlist » sur la sélection multiple (#332). */
+    /** One of your playlists: "Remove from the playlist" on multiple selection (#332). */
     onRemoveSelected?: (ids: ReadonlySet<TrackId>) => Promise<void>;
     /**
-     * Contexte d'un clic sur le titre `index` quand la liste affichée n'en est qu'une partie
-     * (filtre, #496) ; sans lui, la liste affichée.
+     * Context of a click on track `index` when the displayed list is only a part
+     * (filter, #496); without it, the displayed list.
      */
     context?: (index: number) => { ids: TrackId[]; start: number };
   } = $props();
 
-  // Sélection multiple (#332) : la liste s'inscrit tant qu'elle est montée ; la quitter
-  // (changement de page) vide sa sélection.
+  // Multiple selection (#332): the list registers while it is mounted; leaving it
+  // (page change) empties its selection.
   const handle: SelectionList = {
     tracks: () => tracks,
     get removeFromPlaylist() {
@@ -68,14 +68,14 @@
     return () => selection.unregister(handle);
   });
 
-  // Filtre ou rechargement : les titres qui ne sont plus affichés sortent de la sélection.
+  // Filter or reload: tracks that are no longer displayed leave the selection.
   $effect(() => {
     const ids = tracks.map((t) => t.id);
     untrack(() => selection.prune(handle, ids));
   });
 
-  // Ne change qu'au début et à la fin d'une sélection : les lignes ne se redessinent pas à
-  // chaque titre coché.
+  // Only changes at the start and end of a selection: the rows are not redrawn on
+  // every checked track.
   const selecting = $derived(selection.owner === handle && selection.count > 0);
 
   function select(id: TrackId, how: "toggle" | "extend") {
@@ -88,7 +88,7 @@
 
   async function move(from: number, to: number, focusButton?: number) {
     if (!onMove || !(await onMove(from, to)) || focusButton === undefined) return;
-    // Le focus suit la ligne déplacée au clavier.
+    // The focus follows the row moved with the keyboard.
     await tick();
     list?.children[to]?.querySelectorAll<HTMLElement>("button")[focusButton]?.focus();
   }
@@ -100,9 +100,9 @@
     move(i, to, Math.max(0, buttons.indexOf(document.activeElement as HTMLButtonElement)));
   }
 
-  // Rendu par morceaux (#181) : une longue liste créait toutes ses lignes d'un bloc, et la
-  // page restait vide jusque-là (près d'une seconde pour 500 titres sur le téléphone). Les
-  // premières lignes partent aussitôt, le reste suit tâche après tâche, ce qui laisse le
+  // Chunked rendering (#181): a long list created all its rows in one block, and the
+  // page stayed empty until then (nearly a second for 500 tracks on the phone). The
+  // first rows go out right away, the rest follows task after task, which leaves the
   // navigateur peindre entre deux morceaux. La lecture garde toute la liste en contexte.
   const FIRST_ROWS = 40;
   const ROWS_PER_STEP = 80;
@@ -206,8 +206,8 @@
     bottom: -1px;
   }
 
-  /* Android : pas de glisser HTML5 (il gênerait l'appui long), « Monter / Descendre » passent
-     par le menu. */
+  /* Android: no HTML5 drag (it would get in the way of the long press), "Move up / Move
+     down" go through the menu. */
   :global(:root[data-platform="android"]) .track-item {
     cursor: auto;
   }

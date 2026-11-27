@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Modifier une de vos playlists (#201) : titre, description, ou suppression après
-  // confirmation. Le parent applique le résultat (`onSaved`, `onDeleted`).
+  // Edit one of your playlists (#201): title, description, or deletion after
+  // confirmation. The parent applies the result (`onSaved`, `onDeleted`).
   import { commands, type PlaylistSummary } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
@@ -17,12 +17,12 @@
     onClose: () => void;
     onSaved: (title: string, description: string) => void;
     onDeleted: () => void;
-    /** Ouvre « Nettoyer » (#382) à la place de ce dialogue. */
+    /** Opens "Clean up" (#382) in place of this dialog. */
     onCleanup: () => void;
   } = $props();
 
   const e = t.views.playlistEdit;
-  // Valeurs de départ copiées une fois : le dialogue est recréé à chaque ouverture.
+  // Starting values copied once: the dialog is recreated on every opening.
   // svelte-ignore state_referenced_locally
   let title = $state(playlist.title);
   // svelte-ignore state_referenced_locally
@@ -37,7 +37,7 @@
   });
 
   $effect(() => {
-    // La confirmation prend le focus pour qu'Entrée ne supprime pas par mégarde.
+    // The confirmation takes focus so that Enter does not delete by mistake.
     if (confirming)
       requestAnimationFrame(() => dialog?.querySelector<HTMLElement>(".cancel")?.focus());
   });

@@ -7,7 +7,7 @@
   import { pinLabel } from "../lib/pins";
   import Icon from "./Icon.svelte";
 
-  // Bureau : barre latérale. Android : tuiles du mode conduite (#193), 8 au plus.
+  // Desktop: sidebar. Android: driving mode tiles (#193), 8 at most.
   let { pin }: { pin: Pin } = $props();
 
   const pinned = $derived(isPinned(pin));

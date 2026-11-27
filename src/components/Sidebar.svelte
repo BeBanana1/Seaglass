@@ -111,7 +111,7 @@
     background: var(--bg-raised);
   }
 
-  /* Nouveautés du fil pas encore vues (#415). */
+  /* Feed news not yet seen (#415). */
   .nav-badge {
     float: right;
     min-width: 18px;
@@ -126,12 +126,12 @@
     background: var(--accent);
   }
 
-  /* Réglages en bas de la barre, à l'écart de la navigation dans le catalogue. */
+  /* Settings at the bottom of the bar, away from the catalog navigation. */
   button.settings {
     margin-top: auto;
   }
 
-  /* Les épingles défilent seules : la barre garde Réglages en bas. */
+  /* The pins scroll on their own: the bar keeps Settings at the bottom. */
   .pins {
     display: flex;
     flex-direction: column;

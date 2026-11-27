@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Fond Film noir (#339) : la lumière d'une fenêtre passe à travers un store vénitien et
-  // tombe en biais sur le mur (lames claires dans un parallélogramme adouci). Grain argentique
-  // fixe. Dans « En lecture », une fumée immobile monte du bas en filigrane. Rien n'est animé.
+  // Film noir backdrop (#339): window light passes through a Venetian blind and
+  // falls at an angle on the wall (light slats in a softened parallelogram). Film grain,
+  // fixed. In "Now playing", still smoke rises from the bottom as a watermark. Nothing moves.
   let { intense = false }: { intense?: boolean } = $props();
 </script>
 
@@ -53,7 +53,7 @@
     background: radial-gradient(ellipse 70% 60% at 70% 30%, #1b1b1b, var(--bg) 75%);
   }
 
-  /* Lames du store : bandes claires, projetées en biais, bords adoucis par un masque. */
+  /* Blind slats: light bands, projected at an angle, edges softened by a mask. */
   .blinds {
     position: absolute;
     top: -20%;

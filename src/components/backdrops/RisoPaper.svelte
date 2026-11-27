@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Fond Risographie (#69) : papier grainé et formes géométriques tramées sur les bords,
-  // imprimées en deux encres qui se superposent (multiplication) avec un léger décalage.
-  // Rien n'est animé : une impression ne bouge pas.
+  // Risograph backdrop (#69): grainy paper and halftone geometric shapes on the edges,
+  // printed in two inks that overlap (multiply) with a slight offset.
+  // Nothing is animated: a print does not move.
   let { intense = false }: { intense?: boolean } = $props();
 </script>
 
@@ -32,14 +32,14 @@
       </filter>
     </defs>
 
-    <!-- Encre rose : grand cercle en haut à gauche, triangle en bas à droite. -->
+    <!-- Pink ink: large circle at the top left, triangle at the bottom right. -->
     <g class="ink">
       <circle cx="120" cy="140" r="210" fill="url(#riso-dots-a)" />
       <path d="M1600 1000 L1600 560 L1240 1000 Z" fill="url(#riso-dots-a)" />
       <rect x="1440" y="90" width="120" height="120" style="fill: var(--ink-a)" opacity="0.85" />
     </g>
 
-    <!-- Encre bleue, décalée de quelques pixels : demi-disque, bandes, petit cercle plein. -->
+    <!-- Blue ink, offset by a few pixels: half disc, bands, small solid circle. -->
     <g class="ink">
       <path d="M0 1000 L0 700 A 300 300 0 0 1 300 1000 Z" fill="url(#riso-dots-b)" />
       <circle cx="132" cy="150" r="120" style="fill: var(--ink-b)" opacity="0.8" />
@@ -70,7 +70,7 @@
     height: 100%;
   }
 
-  /* Deux encres qui se superposent comme sur le tambour. */
+  /* Two inks overlapping as on the drum. */
   .ink {
     mix-blend-mode: multiply;
     opacity: 0.55;

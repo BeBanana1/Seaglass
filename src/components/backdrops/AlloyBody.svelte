@@ -1,9 +1,9 @@
 <script lang="ts">
-  // Fond Alliage (#175) : un flanc de carrosserie en aluminium. Métal brossé (stries fines
-  // horizontales), reflet large en diagonale, ligne de caisse (filet sombre + filet clair)
-  // qui sépare un bas de caisse plus sombre, ouïes en biais en bas à gauche.
-  // Rien d'animé : dégradés fixes, aucun flou (#146, #158). Les couleurs viennent des jetons
-  // du thème (`--al-metal`, `--al-hi`, `--al-lo`), donc la même scène sert aux deux variantes.
+  // Alloy backdrop (#175): the side panel of an aluminium car body. Brushed metal (fine
+  // horizontal grain), wide diagonal highlight, character line (dark hairline + light one)
+  // separating a darker rocker panel, slanted vents at the bottom left.
+  // Nothing animated: fixed gradients, no blur (#146, #158). Colors come from the theme
+  // tokens (`--al-metal`, `--al-hi`, `--al-lo`), so the same scene serves both variants.
   let { intense = false }: { intense?: boolean } = $props();
 </script>
 
@@ -36,7 +36,7 @@
     background-blend-mode: soft-light, normal;
   }
 
-  /* Reflet large et doux, comme la lumière du ciel sur une portière. */
+  /* Wide, soft highlight, like sky light on a door. */
   .sheen {
     position: absolute;
     inset: -20% -10%;
@@ -48,7 +48,7 @@
     );
   }
 
-  /* Ligne de caisse : au-dessous, le bas de caisse plus sombre. */
+  /* Character line: below it, the darker rocker panel. */
   .crease {
     position: absolute;
     left: -10%;
@@ -63,7 +63,7 @@
       0 1px 0 var(--al-hi) inset;
   }
 
-  /* Ouïes en biais, en bas à gauche, sur le bas de caisse. */
+  /* Slanted vents, at the bottom left, on the rocker panel. */
   .louvers {
     position: absolute;
     left: 3%;
@@ -78,7 +78,7 @@
     opacity: 0.6;
   }
 
-  /* Dans « En lecture » et sur Android, les ouïes passeraient sous les commandes. */
+  /* In "Now playing" and on Android, the vents would pass under the controls. */
   .intense .louvers,
   :global(:root[data-platform="android"]) .louvers {
     display: none;

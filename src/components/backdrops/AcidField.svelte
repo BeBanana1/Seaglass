@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Fond Acidwave : nappes holographiques, grille en perspective, trame et grain.
-  // Les animations ne tournent que pendant la lecture (`data-playing` sur <html>).
+  // Acidwave backdrop: holographic washes, perspective grid, halftone and grain.
+  // Animations only run during playback (`data-playing` on <html>).
   let { intense = false }: { intense?: boolean } = $props();
 </script>
 
@@ -62,7 +62,7 @@
     animation-duration: 29s;
   }
 
-  /* Sol quadrillé en perspective, qui défile pendant la lecture. */
+  /* Perspective grid floor, scrolling during playback. */
   .grid {
     position: absolute;
     left: -50%;

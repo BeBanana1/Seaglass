@@ -1,7 +1,7 @@
-<!-- Relais de la Jam en ligne et des transferts (#452) : celui compilé par défaut, un autre
-     (adresse vérifiée par le backend), ou aucun. La clé n'est jamais relue : seulement
-     « une clé est enregistrée ». Classes `.setting-row`, `.setting-switch` et `.update-check`
-     reprises de Réglages : les thèmes les habillent déjà. -->
+<!-- Relay for online Jam and transfers (#452): the one compiled in by default, another
+     (address checked by the backend), or none. The key is never read back: only
+     "a key is saved". Classes `.setting-row`, `.setting-switch` and `.update-check`
+     taken from Settings: the themes already style them. -->
 <script lang="ts">
   import { commands, type RelayChange, type RelayView } from "../lib/ipc";
   import { refreshJamOnline } from "../lib/stores/jam.svelte";
@@ -48,7 +48,7 @@
 
   function save() {
     if (!relay) return;
-    // Clé vide : inchangée (`null` côté Rust garde celle enregistrée).
+    // Empty key: unchanged (`null` on the Rust side keeps the saved one).
     void apply({ enabled: true, url: address, key: key.trim() ? key : null }, true);
   }
 
@@ -198,7 +198,7 @@
     gap: 8px;
   }
 
-  /* Interrupteur repris de Réglages : les thèmes l'habillent déjà par son nom de classe. */
+  /* Switch taken from Settings: the themes already style it through its class name. */
   .setting-switch {
     position: relative;
     flex-shrink: 0;
@@ -254,7 +254,7 @@
     cursor: default;
   }
 
-  /* Studio : angles vifs. Atelier : angles à peine arrondis, pas de fond. */
+  /* Studio: sharp corners. Atelier: barely rounded corners, no background. */
   :global([data-theme="studio"]) .setting-row,
   :global([data-theme="studio"]) .update-check {
     border-radius: 0;

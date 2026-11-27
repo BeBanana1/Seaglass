@@ -1,10 +1,10 @@
 <script lang="ts">
-  // Fond Ordinateur de bord (#339) : console de vaisseau dessinée avant l'image de synthèse.
-  // Grille fine, repères d'angle, cadrans ronds à droite, blocs de couleur numérotés et
-  // relevés chiffrés en bas à gauche, bande d'avertissement. Rien n'est animé.
+  // Onboard computer backdrop (#339): spaceship console drawn before CGI.
+  // Fine grid, corner marks, round dials on the right, numbered color blocks and
+  // numeric readouts at the bottom left, warning band. Nothing is animated.
   let { intense = false }: { intense?: boolean } = $props();
 
-  // Relevés fixes (décor : aucune mesure réelle), générés une fois avec une graine.
+  // Fixed readouts (decor: no real measurement), generated once with a seed.
   let seed = 7;
   const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
   const readouts = Array.from({ length: 6 }, () =>
@@ -27,7 +27,7 @@
     <rect width="1600" height="1000" fill="var(--bg)" />
     <rect width="1600" height="1000" fill="url(#ob-grid)" />
 
-    <!-- Repères d'angle. -->
+    <!-- Corner marks. -->
     <g class="brackets" fill="none" stroke="var(--text)" stroke-width="2">
       <path d="M24 84 V24 H84" />
       <path d="M1516 24 H1576 V84" />
@@ -35,7 +35,7 @@
       <path d="M1516 976 H1576 V916" />
     </g>
 
-    <!-- Cadrans : anneaux gradués, aiguille fixe. -->
+    <!-- Dials: graduated rings, fixed needle. -->
     <g class="dials" fill="none" stroke="var(--text)">
       {#each [[1440, 300, 90], [1470, 560, 60]] as [cx, cy, r], i (i)}
         <circle {cx} {cy} {r} stroke-width="1.5" opacity="0.35" />
@@ -49,7 +49,7 @@
       {/each}
     </g>
 
-    <!-- Blocs de couleur numérotés et relevés. -->
+    <!-- Numbered color blocks and readouts. -->
     <g class="panel-blocks">
       {#each blocks as fill, i (i)}
         <rect x={60 + i * 64} y="800" width="56" height="34" style:fill />
@@ -60,7 +60,7 @@
       {/each}
     </g>
 
-    <!-- Bande d'avertissement en bas à droite. -->
+    <!-- Warning band at the bottom right. -->
     <rect class="hazard" x="1100" y="940" width="440" height="16" />
   </svg>
 </div>
@@ -103,7 +103,7 @@
     opacity: 0.5;
   }
 
-  /* « En lecture » : la bande passait sous la file, retirée ; cadrans et relevés plus sourds. */
+  /* "Now playing": the band used to pass under the queue, removed; dials and readouts muted. */
   .intense .hazard {
     display: none;
   }

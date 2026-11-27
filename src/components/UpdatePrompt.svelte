@@ -1,8 +1,8 @@
 <script lang="ts">
-  // Mise à jour téléchargée et vérifiée par le backend : on propose, on n'impose jamais.
-  // « Plus tard » laisse le backend l'installer à la fermeture de l'app. Sur Android, rien
-  // n'est téléchargé d'avance (données mobiles) : « Télécharger et installer » le fait, puis
-  // Android affiche sa boîte d'installation.
+  // Update downloaded and verified by the backend: we offer it, never impose it.
+  // "Later" lets the backend install it when the app closes. On Android, nothing
+  // is downloaded in advance (mobile data): "Download and install" does it, then
+  // Android shows its install dialog.
   import { onMount } from "svelte";
   import { commands, events, type UpdateInfo } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
@@ -36,7 +36,7 @@
     installing = true;
     try {
       await commands.installUpdate();
-      // Android : la boîte d'installation du système est ouverte, l'app sera remplacée.
+      // Android: the system install dialog is open, the app will be replaced.
       if (mobile) installing = false;
     } catch (e) {
       installing = false;
@@ -90,7 +90,7 @@
     box-shadow: var(--dialog-shadow);
   }
 
-  /* Au-dessus du mini-lecteur et de la navigation du bas. */
+  /* Above the mini-player and the bottom navigation. */
   .prompt.mobile {
     right: 12px;
     left: 12px;

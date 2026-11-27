@@ -1,5 +1,5 @@
-<!-- Réglages › Lecture › Sortie audio (#79) : périphérique par défaut du système ou un
-     périphérique WASAPI. La liste vient de mpv et suit les branchements. -->
+<!-- Settings › Playback › Audio output (#79): the system default device or a
+     WASAPI device. The list comes from mpv and follows plugging and unplugging. -->
 <script lang="ts">
   import { commands, events, type AudioDevice, type AudioDevices } from "../lib/ipc";
   import { pushToast } from "../lib/stores/toasts.svelte";
@@ -10,7 +10,7 @@
     disabled = false,
     onchange,
   }: {
-    /** Choix enregistré ; `undefined` tant que les réglages ne sont pas chargés. */
+    /** Saved choice; `undefined` until the settings are loaded. */
     value: AudioDevice | null | undefined;
     disabled?: boolean;
     onchange: (device: AudioDevice | null) => void;
@@ -45,7 +45,7 @@
       : null,
   );
 
-  /** Choix enregistré absent de la liste (débranché) : affiché quand même, sélectionné. */
+  /** Saved choice missing from the list (unplugged): still shown, selected. */
   const missing = $derived(
     value && known && !known.devices.some((d) => sameId(d.id, value.id)) ? value : null,
   );
@@ -105,7 +105,7 @@
 </div>
 
 <style>
-  /* Mêmes classes que les choix du cache (surchargées par les thèmes), en colonne. */
+  /* Same classes as the cache choices (overridden by the themes), in a column. */
   .cache-sizes {
     display: inline-flex;
     flex-direction: column;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // « Ajouter à une playlist » (#4) : vos playlists, filtre, création d'une nouvelle.
+  // "Add to a playlist" (#4): your playlists, filter, creation of a new one.
   // Ouverte par `openPlaylistPicker` (lib/stores/playlistPicker.svelte.ts).
   import { commands, type PlaylistSummary } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
@@ -22,7 +22,7 @@
   let filterInput = $state<HTMLInputElement>();
   let titleInput = $state<HTMLInputElement>();
 
-  // Rechargées à chaque ouverture : un titre ajouté change les compteurs.
+  // Reloaded on every opening: an added track changes the counters.
   $effect(() => {
     if (!picker.request) return;
     playlists = null;
@@ -48,8 +48,8 @@
     return q ? all.filter((p) => p.title.toLocaleLowerCase("fr").includes(q)) : all;
   });
 
-  // Dossiers (#331) : sans filtre, vos playlists hors dossier puis celles de chaque dossier
-  // sous son nom. Sans dossier (ou pendant un filtre), une seule liste, sans en-tête.
+  // Folders (#331): without a filter, your playlists outside folders, then those of each folder
+  // under its name. Without folders (or during a filter), a single list, without headers.
   const groups = $derived.by(
     (): { key: string; name: string | null; playlists: PlaylistSummary[] }[] => {
       const list = folders.items ?? [];
@@ -71,7 +71,7 @@
 
   function done(uuid: string) {
     notePlaylistChange(uuid);
-    // Les compteurs de la bibliothèque ont changé (et la liste, après une création).
+    // The library counters changed (and the list, after a creation).
     if (library.playlists.items) loadLibrary("playlists", true);
     closePlaylistPicker();
   }

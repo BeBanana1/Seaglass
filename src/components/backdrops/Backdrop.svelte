@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Fond propre à chaque thème, derrière le shell ou derrière la vue « En lecture ».
+  // Backdrop specific to each theme, behind the shell or behind the "Now playing" view.
   import { ui } from "../../lib/stores/ui.svelte";
   import Ambient from "../Ambient.svelte";
   import AcidField from "./AcidField.svelte";
@@ -67,14 +67,14 @@
 </div>
 
 <style>
-  /* Sans boîte : les fonds se placent comme avant par rapport au shell. */
+  /* Without a box: backdrops are placed as before relative to the shell. */
   .backdrop {
     display: contents;
   }
 
-  /* Android (#158) : fonds figés. Leurs animations (nappes floutées, grilles, pluie…)
-     faisaient recomposer l'écran à chaque image pendant la lecture (140 % de CPU sur le
-     S21 en Acidwave) ; seule la progression bouge. Vaut aussi pour les fonds à venir. */
+  /* Android (#158): frozen backdrops. Their animations (blurred washes, grids, rain...)
+     made the screen recompose on every frame during playback (140% CPU on the
+     S21 in Acidwave); only the progress bar moves. Also applies to future backdrops. */
   :global(:root[data-platform="android"]) .backdrop :global(*),
   :global(:root[data-platform="android"]) .backdrop :global(*::before),
   :global(:root[data-platform="android"]) .backdrop :global(*::after) {

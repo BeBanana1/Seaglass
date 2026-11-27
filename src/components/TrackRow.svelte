@@ -43,38 +43,38 @@
     selectionMenu,
   }: {
     track: Track;
-    /** Numéro affiché devant le titre (position dans l'album ou la playlist). */
+    /** Number shown before the title (position in the album or playlist). */
     number?: number;
-    /** Pochette en début de ligne (inutile sur une page d'album). */
+    /** Cover at the start of the row (useless on an album page). */
     showCover?: boolean;
-    /** Titre en cours (#241) : fond teinté, barre d'accent et égaliseur à la place de la pochette / du numéro. */
+    /** Current track (#241): tinted background, accent bar, equalizer replacing cover / number. */
     active?: boolean;
-    /** Variante étroite (panneau de file) : sans colonne album. */
+    /** Narrow variant (queue panel): without the album column. */
     compact?: boolean;
-    /** Boutons « Lire ensuite » / « Ajouter à la file » / « Radio » (ou « Retirer » si `onRemove`) ; le menu « … » reste. */
+    /** "Play next" / "Add to queue" / "Radio" buttons (or "Remove" if `onRemove`); "…" stays. */
     actions?: boolean;
     onPlay?: () => void;
     onRemove?: () => void;
-    /** Ligne de la file manuelle : « Monter » / « Descendre » dans le menu (#80). */
+    /** Manual queue row: "Move up" / "Move down" in the menu (#80). */
     onMoveUp?: () => void;
     onMoveDown?: () => void;
-    /** Ligne d'une de vos playlists : « Retirer de cette playlist » dans le menu. */
+    /** Row of one of your playlists: "Remove from this playlist" in the menu. */
     onRemoveFromPlaylist?: () => void;
-    /** Titre désigné par un lien collé (#203) : marqué et amené au centre de l'écran. */
+    /** Track designated by a pasted link (#203): marked and brought to the center of the screen. */
     highlighted?: boolean;
-    /** File manuelle pendant une Jam (#25) : invité qui a ajouté le titre. */
+    /** Manual queue during a Jam (#25): guest who added the track. */
     addedBy?: string;
-    /** Liste « Plus tard » (#249) : signet plein à côté du cœur, pour retirer le titre en un clic. */
+    /** "Later" list (#249): filled bookmark next to the heart, to remove the track in one click. */
     laterButton?: boolean;
-    /** Courte mention sous les artistes (nombre d'écoutes des statistiques, #326). */
+    /** Short note under the artists (listen count from the statistics, #326). */
     note?: string;
-    /** Titre coché dans la sélection multiple (#332). */
+    /** Track checked in the multiple selection (#332). */
     selected?: boolean;
-    /** Sélection en cours dans la liste : sur Android, un appui coche au lieu de lire. */
+    /** Selection in progress in the list: on Android, a tap checks instead of playing. */
     selecting?: boolean;
-    /** Liste qui permet la sélection : `toggle` (Ctrl+clic, appui), `extend` (Maj+clic). */
+    /** List that allows selection: `toggle` (Ctrl+click, tap), `extend` (Shift+click). */
     onSelect?: (how: "toggle" | "extend") => void;
-    /** Menu d'un titre sélectionné : actions sur toute la sélection. */
+    /** Menu of a selected track: actions on the whole selection. */
     selectionMenu?: () => MenuEntry[];
   } = $props();
 
@@ -89,7 +89,7 @@
   let moreButton = $state<HTMLButtonElement>();
   const menuOpen = $derived(!!rowEl && menu.open?.owner === rowEl);
 
-  // Les mêmes entrées au clic droit et sur le bouton « … » (#52).
+  // The same entries on right click and on the "…" button (#52).
   function entries() {
     if (selected && selectionMenu) return selectionMenu();
     return trackMenu(track, {
@@ -112,10 +112,10 @@
     openMenu({ ...menuPosition(e, focused ?? row), entries: entries(), from: focused, owner: row });
   }
 
-  // Android (#24) : un appui sur la ligne lance le titre (double-clic sur le bureau), hors
-  // boutons et liens. L'appui long émet `contextmenu` et ouvre le menu.
-  // Sélection multiple (#332) : Ctrl+clic et Maj+clic sur le bureau ; sur Android, pendant
-  // une sélection, l'appui coche ou décoche au lieu de lire.
+  // Android (#24): a tap on the row starts the track (double click on desktop), outside
+  // buttons and links. A long press emits `contextmenu` and opens the menu.
+  // Multiple selection (#332): Ctrl+click and Shift+click on desktop; on Android, during
+  // a selection, a tap checks or unchecks instead of playing.
   function onTap(e: MouseEvent) {
     if ((e.target as HTMLElement).closest("button, a, input")) return;
     if (onSelect && !platform.mobile && (e.ctrlKey || e.metaKey || e.shiftKey)) {
@@ -127,13 +127,13 @@
     else onPlay?.();
   }
 
-  // Maj+clic ne doit pas sélectionner le texte entre deux lignes.
+  // Shift+click must not select the text between two rows.
   function onMousedown(e: MouseEvent) {
     if (onSelect && e.shiftKey && !platform.mobile) e.preventDefault();
   }
 
-  // Android (#174) : glisser vers la droite ajoute le titre à la file. Pas sur les lignes de la
-  // file elle-même ni de « À suivre » (sans actions de file), ni pendant une sélection.
+  // Android (#174): swiping right adds the track to the queue. Not on the rows of the
+  // queue itself nor of "Up next" (without queue actions), nor during a selection.
   const swipeable = $derived(platform.mobile && actions && !onRemove && !selecting);
 
   async function swipeToQueue() {
@@ -159,7 +159,7 @@
   }
 </script>
 
-<!-- L'appui sur la ligne (Android) double le bouton de lecture de la pochette, accessible au clavier. -->
+<!-- A tap on the row (Android) duplicates the cover's play button (keyboard-accessible). -->
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <div
   class="row"
@@ -180,7 +180,7 @@
   oncontextmenu={onContextmenu}
 >
   {#snippet nowBars()}
-    <!-- Lu seulement par la ligne en cours : les autres ne suivent pas `player.playing`. -->
+    <!-- Read only by the current row: the others do not follow `player.playing`. -->
     <span class="now-bars" class:paused={!player.playing} aria-hidden="true">
       <i></i><i></i><i></i>
     </span>
@@ -215,8 +215,8 @@
       {#if track.ai}<span class="badge muted">{t.common.ai}</span>{/if}
       {#if track.hires}<span class="badge">HI-RES</span>{/if}
     </span>
-    <!-- Android (#180) : les artistes ne sont pas des liens, l'appui tombe sur la ligne et lance
-         le titre ; ils restent dans le menu (appui long ou « … ») et dans « En lecture ». -->
+    <!-- Android (#180): artists are not links, the tap falls on the row and starts
+         the track; they stay in the menu (long press or "…") and in "Now playing". -->
     <span class="sub">
       {#if platform.mobile}{track.artists
           .map((a) => a.name)
@@ -281,8 +281,8 @@
       <Icon name="more" size={16} />
     </button>
     {#if laterButton}
-      <!-- Classes du cœur (`like-button liked`) : même place, toujours visible et même
-           habillage dans chaque thème que le cœur plein des titres likés. -->
+      <!-- Heart classes (`like-button liked`): same place, always visible and same
+           styling in every theme as the filled heart of liked tracks. -->
       <button
         class="like-button later-row"
         class:liked={saved}
@@ -301,7 +301,7 @@
     {/if}
     <LikeButton {track} />
   </div>
-  <!-- #399 : recherche « kessel », les durées passent un instant en parsecs. -->
+  <!-- #399: search "kessel", the durations briefly turn into parsecs. -->
   <span class="duration">
     {eggs.search === "kessel"
       ? t.eggs.parsecs(parsecs(track.duration))
@@ -317,9 +317,9 @@
     gap: 12px;
     padding: 6px 10px;
     border-radius: var(--radius);
-    /* Lignes hors écran ni mises en page ni peintes (listes de milliers de titres, #88). La
-       hauteur réservée est celle d'une ligne (pochette 40 px + marges), `auto` garde ensuite la
-       hauteur mesurée. Contient la peinture : rien d'une ligne ne doit déborder de son cadre. */
+    /* Off-screen rows neither laid out nor painted (lists of thousands of tracks, #88). The
+       reserved height is that of one row (40 px cover + margins), `auto` then keeps the
+       measured height. Contains the paint: nothing in a row must overflow its frame. */
     content-visibility: auto;
     contain-intrinsic-size: auto 52px;
   }
@@ -352,7 +352,7 @@
     color: var(--text-muted);
   }
 
-  /* Vendredi 13 (#399) : la piste 13 devient « 12 bis », comme les étages d'hôtel. */
+  /* Friday the 13th (#399): track 13 becomes "12 bis", like hotel floors. */
   .bis {
     font-size: 0.65em;
     white-space: nowrap;
@@ -377,7 +377,7 @@
     box-shadow: inset 3px 0 0 var(--accent);
   }
 
-  /* Titre en cours (#241) : la seule couleur du titre se perdait dans certains thèmes. */
+  /* Current track (#241): the title's only color got lost in some themes. */
   .row.active {
     background: color-mix(in srgb, var(--accent) 12%, transparent);
     box-shadow: inset 3px 0 0 var(--accent);
@@ -392,8 +392,8 @@
     color: var(--accent);
   }
 
-  /* Sélection multiple (#332) : fond plus marqué que la ligne en cours, liseré complet et
-     coche sur la pochette. */
+  /* Multiple selection (#332): stronger background than the current row, full edge and
+     check mark on the cover. */
   .row.selected,
   .row.selected:hover {
     background: color-mix(in srgb, var(--accent) 24%, transparent);
@@ -456,7 +456,7 @@
     }
   }
 
-  /* Thème Désert (#399) : au début d'un album, les barres battent sans rythme régulier. */
+  /* Desert theme (#399): at the start of an album, the bars beat without a regular rhythm. */
   :global(:root[data-egg-walk]) .now-bars i {
     animation-timing-function: steps(3, jump-none);
     animation-duration: 0.53s;
@@ -470,7 +470,7 @@
     animation-duration: 0.81s;
   }
 
-  /* Recherche « silence » (#399) : les barres se figent un instant. */
+  /* Search "silence" (#399): the bars freeze for a moment. */
   :global(:root[data-egg="silence"]) .now-bars i {
     animation-play-state: paused;
   }
@@ -479,7 +479,7 @@
     transform: scaleY(0.7);
   }
 
-  /* Sur la pochette : voile sombre et barres claires, centrés. */
+  /* On the cover: dark veil and light bars, centered. */
   .cover .now-bars {
     position: absolute;
     inset: 0;
@@ -496,8 +496,8 @@
     background: none;
   }
 
-  /* Le bouton de lecture prend la place au survol (bureau : sur Android, `:hover` reste
-     collé après un appui et le bouton est masqué). */
+  /* The play button takes the place on hover (desktop: on Android, `:hover` stays
+     stuck after a tap and the button is hidden). */
   :global(:root:not([data-platform="android"])) .row:hover .cover .now-bars,
   .row.menu-open .cover .now-bars {
     visibility: hidden;
@@ -572,7 +572,7 @@
     gap: 4px;
   }
 
-  /* Boutons visibles au survol ; un cœur plein reste affiché. */
+  /* Buttons visible on hover; a filled heart stays shown. */
   .actions > :global(*) {
     opacity: 0;
   }
@@ -609,8 +609,8 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Android (#24) : pas de survol. « … » et le cœur restent affichés ; les boutons de file
-     (aussi dans le menu), l'album et la durée laissent la place au titre. */
+  /* Android (#24): no hover. "…" and the heart stay shown; the queue buttons
+     (also in the menu), the album and the duration make room for the title. */
   :global(:root[data-platform="android"]) .row,
   :global(:root[data-platform="android"]) .row.compact {
     grid-template-columns: 40px minmax(0, 1fr) auto;
@@ -623,7 +623,7 @@
     grid-template-columns: 22px 40px minmax(0, 1fr) auto;
   }
 
-  /* Page d'album : pas de colonne de pochette vide. */
+  /* Album page: no empty cover column. */
   :global(:root[data-platform="android"]) .row.no-cover {
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -636,9 +636,9 @@
     display: none;
   }
 
-  /* Au doigt, la ligne touchée garde `:hover` jusqu'au prochain appui ailleurs : pas de fond
-     de survol. La ligne en cours garde le sien (#291 : lancer un titre effaçait son fond
-     jusqu'à l'appui suivant, sur Pause par exemple). */
+  /* With a finger, the touched row keeps `:hover` until the next tap elsewhere: no
+     hover background. The current row keeps its own (#291: starting a track erased its background
+     until the next tap, on Pause for example). */
   :global(:root[data-platform="android"]) .row:hover:not(.menu-open, .active, .selected) {
     background: none;
   }
@@ -662,10 +662,10 @@
     padding: 8px;
   }
 
-  /* Glisser vers la droite = ajouter à la file (#174). Le défilement vertical reste au
-     navigateur ; le contenu de la ligne suit le doigt (`--swipe-x`, posé par `swipeRight`) et
-     découvre un « + », à l'accent une fois le seuil franchi. Rien n'est transformé hors du
-     geste : pas de contexte d'empilement ajouté aux lignes au repos. */
+  /* Swipe right = add to the queue (#174). Vertical scrolling stays with the
+     browser; the row content follows the finger (`--swipe-x`, set by `swipeRight`) and
+     reveals a "+", in the accent color once the threshold is crossed. Nothing is
+     transformed outside the gesture: no stacking context added to rows at rest. */
   .row.swipeable {
     position: relative;
     touch-action: pan-y;

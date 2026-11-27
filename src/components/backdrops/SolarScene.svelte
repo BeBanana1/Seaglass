@@ -1,12 +1,12 @@
 <script lang="ts">
-  // Fond Solarpunk (#65) : ville végétalisée au loin, soleil diffus, éolienne, fougères et
-  // vrilles sur les bords. Le centre reste au contenu. Les feuilles ne se balancent que
-  // pendant la lecture (`data-playing` sur <html>).
+  // Solarpunk backdrop (#65): green city in the distance, diffuse sun, wind turbine, ferns and
+  // tendrils on the edges. The center is left to the content. Leaves only sway
+  // during playback (`data-playing` on <html>).
   let { intense = false }: { intense?: boolean } = $props();
 
   type Pt = [number, number];
 
-  /** Fronde le long d'une courbe de Bézier quadratique : folioles de part et d'autre de la tige. */
+  /** Frond along a quadratic Bezier curve: leaflets on either side of the stem. */
   function frond(p0: Pt, p1: Pt, p2: Pt, size: number, count: number, sides: 1 | 2 = 2) {
     const leaves: { x: number; y: number; a: number; s: number }[] = [];
     for (let i = 1; i <= count; i++) {
@@ -41,7 +41,7 @@
     { ...frond([380, -10], [430, 80], [360, 190], 0.4, 6, 1), delay: -3 },
   ];
 
-  // Tours de la ville au loin : sommet en arche, terrasses plantées, panneaux solaires.
+  // Distant city towers: arched top, planted terraces, solar panels.
   const towers = [
     { x: 420, w: 70, h: 150 },
     { x: 510, w: 54, h: 200 },
@@ -82,7 +82,7 @@
 
     <rect width="1600" height="1000" fill="url(#sol-sky)" />
 
-    <!-- Soleil diffus et halos concentriques, à la manière d'un vitrail. -->
+    <!-- Diffuse sun and concentric halos, like stained glass. -->
     <circle cx="1240" cy="210" r="330" fill="url(#sol-sun)" />
     <g class="halo" fill="none" style="stroke: var(--gold)">
       <circle cx="1240" cy="210" r="120" stroke-width="2" opacity="0.28" />
@@ -90,7 +90,7 @@
       <circle cx="1240" cy="210" r="240" stroke-width="1" opacity="0.12" />
     </g>
 
-    <!-- Ville au loin. -->
+    <!-- City in the distance. -->
     <g class="city">
       {#each towers as tower (tower.x)}
         {@const top = ground - tower.h}
@@ -121,7 +121,7 @@
       {/each}
     </g>
 
-    <!-- Éolienne à gauche. -->
+    <!-- Wind turbine on the left. -->
     <g class="turbine">
       <path d="M248 820 L252 820 L251 540 L249 540 Z" style="fill: var(--city-dark)" />
       <g class="blades">
@@ -140,7 +140,7 @@
       <circle cx="250" cy="540" r="6" style="fill: var(--gold)" />
     </g>
 
-    <!-- Collines. -->
+    <!-- Hills. -->
     <path
       d="M0 820 C 300 770 600 800 900 820 S 1400 780 1600 800 V1000 H0Z"
       style="fill: var(--hill-1)"
@@ -150,7 +150,7 @@
       style="fill: var(--hill-2)"
     />
 
-    <!-- Grandes feuilles aux angles. -->
+    <!-- Large leaves in the corners. -->
     <g style="fill: var(--leaf-1)">
       <use href="#sol-broad" transform="translate(-30 1000) rotate(-38) scale(1.5)" />
       <use href="#sol-broad" transform="translate(1630 1000) rotate(-142) scale(1.5)" />
@@ -160,7 +160,7 @@
       <use href="#sol-broad" transform="translate(1570 1010) rotate(-168) scale(1.1)" />
     </g>
 
-    <!-- Fougères. -->
+    <!-- Ferns. -->
     {#each fronds as f, i (i)}
       <g
         class="sway"
@@ -178,7 +178,7 @@
       </g>
     {/each}
 
-    <!-- Vrilles qui descendent du haut. -->
+    <!-- Tendrils coming down from the top. -->
     {#each vines as v, i (i)}
       <g
         class="sway slow"
@@ -201,7 +201,7 @@
 </div>
 
 <style>
-  /* Mélanges en oklch : la teinte de l'album reste discrète, le vert domine. */
+  /* Mixes in oklch: the album tint stays discreet, green dominates. */
   .scene {
     position: absolute;
     inset: 0;
@@ -234,7 +234,7 @@
     opacity: 0.55;
   }
 
-  /* « En lecture » : la ville passe derrière les commandes, elle s'efface davantage. */
+  /* "Now playing": the city passes behind the controls, it fades out more. */
   .intense .city {
     opacity: 0.3;
   }
