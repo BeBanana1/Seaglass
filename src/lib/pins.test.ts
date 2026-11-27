@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrackSort } from "./ipc";
 import { entry } from "./testing/tracks";
 
-// Mode conduite (#193) : une tuile lit sa source dans l'ordre de sa page, tri mémorisé compris.
+// Driving mode (#193): a tile reads its source in its page's order, remembered sort included.
 const mocks = vi.hoisted(() => ({
   playlist: vi.fn(),
   libraryTracks: vi.fn(),
@@ -41,7 +41,7 @@ beforeEach(() => {
 });
 
 describe("playPin", () => {
-  it("lit une playlist dans son ordre sans tri mémorisé", async () => {
+  it("plays a playlist in its order with no remembered sort", async () => {
     await playPin({ kind: "playlist", uuid: UUID, title: "Route" }, false);
     expect(mocks.playTracks).toHaveBeenCalledWith([old.id, recent.id], 0, false, {
       kind: "playlist",
@@ -50,13 +50,13 @@ describe("playPin", () => {
     });
   });
 
-  it("suit le tri mémorisé de la playlist", async () => {
+  it("follows the playlist's remembered sort", async () => {
     mocks.sorts.set(UUID, { key: "added", descending: true });
     await playPin({ kind: "playlist", uuid: UUID, title: "Route" }, true);
     expect(mocks.playTracks).toHaveBeenCalledWith([recent.id, old.id], 0, true, expect.anything());
   });
 
-  it("suit le tri mémorisé des titres likés", async () => {
+  it("follows the remembered sort of the liked tracks", async () => {
     mocks.sorts.set("likedTracks", { key: "title", descending: false });
     await playPin({ kind: "likedTracks" }, false);
     expect(mocks.playTracks).toHaveBeenCalledWith([recent.id, old.id], 0, false, {
@@ -64,7 +64,7 @@ describe("playPin", () => {
     });
   });
 
-  it("ne garde que les titres de « Plus tard »", async () => {
+  it('keeps only the tracks of "Save for later"', async () => {
     mocks.saveForLater.mockResolvedValue({
       items: [
         { kind: "album", id: 9 },
@@ -75,7 +75,7 @@ describe("playPin", () => {
     expect(mocks.playTracks).toHaveBeenCalledWith([old.id], 0, false, { kind: "later" });
   });
 
-  it("lit une playlist intelligente dans l'ordre du backend (#383)", async () => {
+  it("plays a smart playlist in the backend's order (#383)", async () => {
     mocks.smartList.mockResolvedValue([recent, old]);
     await playPin({ kind: "smart", list: "onRepeat" }, false);
     expect(mocks.smartList).toHaveBeenCalledWith("onRepeat");
@@ -85,7 +85,7 @@ describe("playPin", () => {
     });
   });
 
-  it("refuse une source vide sans rien lire", async () => {
+  it("refuses an empty source without playing anything", async () => {
     mocks.playlist.mockResolvedValue({ tracks: [] });
     await expect(playPin({ kind: "playlist", uuid: UUID, title: "Vide" }, false)).rejects.toThrow();
     expect(mocks.playTracks).not.toHaveBeenCalled();

@@ -1,10 +1,10 @@
-// Clins d'œil (#399) : registre déclaratif et déclencheurs, logique pure sans DOM.
+// Easter eggs (#399): declarative registry and triggers, pure logic without DOM.
 //
-// Règles communes : des allusions, jamais un titre, un nom, une réplique ni une image repris
-// tels quels ; aucun son, aucune requête réseau ; un effet de recherche dure une à deux
-// secondes et ne se rejoue pas dans la session.
+// Common rules: allusions, never a title, a name, a line or an image taken over
+// as is; no sound, no network request; a search effect lasts one to two
+// seconds and does not replay in the session.
 
-/** Clin d'œil d'un jour : un détail dans l'en-tête, toute la journée. */
+/** Easter egg of a day: a detail in the header, all day long. */
 export type DateEgg =
   | "foundation"
   | "mozart"
@@ -26,8 +26,8 @@ export type DateEgg =
   | "leapDay"
   | "friday13";
 
-/** Dates fixes, `[clin d'œil, mois (1 à 12), jour]`, dans l'ordre de priorité : si deux
- *  clins d'œil tombent le même jour, le premier l'emporte. */
+/** Fixed dates, `[egg, month (1 to 12), day]`, in priority order: if two
+ *  eggs fall on the same day, the first wins. */
 const FIXED: [DateEgg, number, number][] = [
   ["christmas", 12, 24],
   ["christmas", 12, 25],
@@ -50,7 +50,7 @@ const FIXED: [DateEgg, number, number][] = [
   ["mozart", 1, 27],
 ];
 
-/** Clin d'œil du jour (heure locale), `null` s'il n'y en a pas. Un seul par jour. */
+/** Egg of the day (local time), `null` if there is none. Only one per day. */
 export function eggForDate(date: Date): DateEgg | null {
   const month = date.getMonth() + 1;
   const day = date.getDate();
@@ -60,7 +60,7 @@ export function eggForDate(date: Date): DateEgg | null {
   return null;
 }
 
-/** Clin d'œil d'une recherche : un effet bref, puis la recherche normale. */
+/** Egg of a search: a brief effect, then the normal search. */
 export type SearchEgg =
   | "seaglass"
   | "rosebud"
@@ -73,7 +73,7 @@ export type SearchEgg =
   | "witcher"
   | "kessel";
 
-/** Saisies reconnues, déjà normalisées (`normalize`). */
+/** Recognized inputs, already normalized (`normalize`). */
 const QUERIES: Record<string, SearchEgg> = {
   seaglass: "seaglass",
   "verre de mer": "seaglass",
@@ -90,17 +90,17 @@ const QUERIES: Record<string, SearchEgg> = {
   kessel: "kessel",
 };
 
-/** Minuscules, sans accents, espaces réduits : « Épice » et « épice » valent « epice ». */
+/** Lowercase, no accents, collapsed spaces: "Épice" and "épice" are worth "epice". */
 export function normalize(query: string): string {
   return query.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
-/** Clin d'œil d'une saisie exacte (pas d'un préfixe ni d'un mot dans une phrase). */
+/** Egg of an exact input (not of a prefix or a word in a sentence). */
 export function eggForQuery(query: string): SearchEgg | null {
   return QUERIES[normalize(query)] ?? null;
 }
 
-/** Durée d'un effet de recherche, en millisecondes ; une phrase reste le temps d'être lue. */
+/** Duration of a search effect, in milliseconds; a phrase stays long enough to be read. */
 export function searchEggMs(egg: SearchEgg): number {
   return egg === "answer" ? 4000 : 1800;
 }
@@ -121,7 +121,7 @@ const ROMAN: [number, string][] = [
   [1, "I"],
 ];
 
-/** Chiffres romains ; zéro s'écrit « N » (nulla), comme dans les tables médiévales. */
+/** Roman numerals; zero is written "N" (nulla), as in medieval tables. */
 export function roman(n: number): string {
   if (!Number.isInteger(n) || n < 0 || n >= 4000) return String(n);
   if (n === 0) return "N";
@@ -135,7 +135,7 @@ export function roman(n: number): string {
   return out;
 }
 
-/** Version en chiffres romains (1er avril) : `0.5.50` devient `N.V.L`. */
+/** Version in Roman numerals (April 1st): `0.5.50` becomes `N.V.L`. */
 export function romanVersion(version: string): string {
   return version
     .split(".")
@@ -143,7 +143,7 @@ export function romanVersion(version: string): string {
     .join(".");
 }
 
-/** Date d'aperçu `AAAA-MM-JJ` (paramètre `?date=`), en heure locale ; invalide : `null`. */
+/** Preview date `YYYY-MM-DD` (`?date=` parameter), in local time; invalid: `null`. */
 export function parsePreviewDate(value: string | null): Date | null {
   const m = value?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return null;

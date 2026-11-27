@@ -6,7 +6,7 @@ const at = (curve: [number, number][], hz: number) =>
   curve.reduce((best, p) => (Math.abs(p[0] - hz) < Math.abs(best[0] - hz) ? p : best))[1];
 
 describe("eqCurve", () => {
-  it("prend le préampli du profil, sinon compense le plus fort gain", () => {
+  it("takes the profile's preamp, otherwise compensates the strongest gain", () => {
     const p: EqProfile = {
       id: 1,
       name: "x",
@@ -21,7 +21,7 @@ describe("eqCurve", () => {
     expect(effectivePreamp({ ...p, filters: [] })).toBe(-0);
   });
 
-  it("donne le gain du pic à sa fréquence et rien loin de lui", () => {
+  it("gives the peak's gain at its frequency and nothing far from it", () => {
     const curve = response(
       { id: 1, name: "x", preamp: 0, filters: [{ kind: "peaking", freq: 1000, gain: 6, q: 1.41 }] },
       400,
@@ -30,7 +30,7 @@ describe("eqCurve", () => {
     expect(Math.abs(at(curve, 20))).toBeLessThan(0.1);
   });
 
-  it("monte les graves avec un plateau grave, préampli compris", () => {
+  it("raises the bass with a low shelf, preamp included", () => {
     const curve = response({
       id: 1,
       name: "x",
@@ -41,7 +41,7 @@ describe("eqCurve", () => {
     expect(at(curve, 10_000)).toBeCloseTo(-5, 0);
   });
 
-  it("baisse les aigus avec un plateau aigu", () => {
+  it("lowers the treble with a high shelf", () => {
     const curve = response({
       id: 1,
       name: "x",

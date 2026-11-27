@@ -23,7 +23,7 @@ import type { AlbumSummary, AudioParams, PlaylistSummary, StreamFormat } from ".
 import { platform } from "./platform.svelte";
 import { entry } from "./testing/tracks";
 
-// Espaces insécables de `Intl` (milliers en français) ramenées à des espaces simples.
+// Non-breaking spaces from `Intl` (thousands in French) turned back into plain spaces.
 const plain = (s: string) => s.replace(/[  ]/g, " ");
 
 afterEach(() => {
@@ -32,30 +32,30 @@ afterEach(() => {
 });
 
 describe("cacheLabel", () => {
-  it("donne la position atteinte, pas l'avance sur la lecture (#498)", () => {
+  it("gives the position reached, not the lead over playback (#498)", () => {
     expect(cacheLabel(160.7, 300)).toBe("en mémoire jusqu'à 2:40");
     i18n.lang = "en";
     expect(cacheLabel(160.7, 300)).toBe("in memory up to 2:40");
   });
 
-  it("annonce le titre entier à moins d'une seconde de la fin", () => {
+  it("announces the whole track within a second of the end", () => {
     expect(cacheLabel(299.2, 300)).toBe("titre en mémoire");
   });
 
-  it("ne dit rien sans cache ni durée", () => {
+  it("says nothing without cache or duration", () => {
     expect(cacheLabel(0, 300)).toBe("");
     expect(cacheLabel(40, 0)).toBe("");
   });
 });
 
 describe("formatTime", () => {
-  it("écrit minutes et heures", () => {
+  it("writes minutes and hours", () => {
     expect(formatTime(0)).toBe("0:00");
     expect(formatTime(65.9)).toBe("1:05");
     expect(formatTime(3600 + 2 * 60 + 3)).toBe("1:02:03");
   });
 
-  it("rend 0:00 pour une valeur absente ou fausse", () => {
+  it("returns 0:00 for a missing or wrong value", () => {
     expect(formatTime(-1)).toBe("0:00");
     expect(formatTime(Number.NaN)).toBe("0:00");
     expect(formatTime(Number.POSITIVE_INFINITY)).toBe("0:00");
@@ -63,36 +63,36 @@ describe("formatTime", () => {
 });
 
 describe("formatLongDuration", () => {
-  it("arrondit à la minute", () => {
+  it("rounds to the minute", () => {
     expect(formatLongDuration(42 * 60 + 20)).toBe("42 min");
     expect(formatLongDuration(2 * 3600 + 19 * 60 + 40)).toBe("2 h 20 min");
   });
 
-  it("ne rend rien sans durée", () => {
+  it("returns nothing without a duration", () => {
     expect(formatLongDuration(null)).toBeNull();
     expect(formatLongDuration(0)).toBeNull();
   });
 });
 
-describe("titres et sous-titres", () => {
-  it("ajoute la version entre parenthèses", () => {
+describe("titles and subtitles", () => {
+  it("adds the version in parentheses", () => {
     expect(fullTitle(entry({ title: "Halo", version: "Live" }))).toBe("Halo (Live)");
     expect(fullTitle(entry({ title: "Halo" }))).toBe("Halo");
   });
 
-  it("garde l'année d'une date", () => {
+  it("keeps the year of a date", () => {
     expect(year("2008-11-12")).toBe("2008");
     expect(year(null)).toBeNull();
   });
 
-  it("nomme le type d'album", () => {
+  it("names the album type", () => {
     const album = (albumType: string) => ({ albumType }) as unknown as AlbumSummary;
     expect(albumKind(album("SINGLE"))).toBe("Single");
     expect(albumKind(album("ALBUM"))).toBe("Album");
     expect(albumKind(album("COMPILATION"))).toBe("Album");
   });
 
-  it("décrit une playlist dans la langue courante", () => {
+  it("describes a playlist in the current language", () => {
     const p = (fields: Partial<PlaylistSummary>) =>
       ({ editorial: false, mine: false, numberOfTracks: null, ...fields }) as PlaylistSummary;
     expect(playlistSubtitle(p({ editorial: true, mine: true }))).toBe("Éditoriale");
@@ -115,14 +115,14 @@ describe("formatStream", () => {
     ...fields,
   });
 
-  it("donne profondeur et fréquence d'un FLAC, séparateur décimal de la langue", () => {
+  it("gives depth and rate of a FLAC, decimal separator of the language", () => {
     expect(formatStream(stream({ bitDepth: 24, sampleRate: 96000 }))).toBe("FLAC 24/96");
     expect(formatStream(stream({ bitDepth: 16, sampleRate: 44100 }))).toBe("FLAC 16/44,1");
     i18n.lang = "en";
     expect(formatStream(stream({ bitDepth: 16, sampleRate: 44100 }))).toBe("FLAC 16/44.1");
   });
 
-  it("nomme les autres codecs", () => {
+  it("names the other codecs", () => {
     expect(formatStream(stream({ codec: "mp4a.40.2" }))).toBe("AAC");
     expect(formatStream(stream({}))).toBe("FLAC");
   });
@@ -143,16 +143,16 @@ describe("signalVerdict", () => {
     channelCount: 2,
   });
 
-  it("sans flux ou en attente de la sortie", () => {
+  it("without a stream or waiting for the output", () => {
     expect(signalVerdict(null, null).tone).toBe("idle");
     expect(signalVerdict(hires, null)).toMatchObject({ tone: "idle", label: "En attente" });
   });
 
-  it("signale un flux compressé", () => {
+  it("flags a compressed stream", () => {
     expect(signalVerdict({ ...hires, codec: "mp4a.40.2" }, out(44100)).tone).toBe("lossy");
   });
 
-  it("reconnaît la fréquence native, avec le détail propre à Android", () => {
+  it("recognizes the native rate, with the detail specific to Android", () => {
     expect(signalVerdict(hires, out(96000))).toMatchObject({
       tone: "ok",
       label: "Fréquence native",
@@ -161,17 +161,17 @@ describe("signalVerdict", () => {
     expect(signalVerdict(hires, out(96000)).detail).toMatch(/^Media3/);
   });
 
-  it("signale un rééchantillonnage et une profondeur réduite", () => {
+  it("flags resampling and a reduced depth", () => {
     expect(signalVerdict(hires, out(48000))).toMatchObject({ tone: "warn", detail: "96 → 48 kHz" });
     expect(signalVerdict(hires, out(96000, "s16"))).toMatchObject({
       tone: "warn",
       label: "Profondeur réduite",
     });
-    // Un 16 bits en sortie 16 bits reste natif.
+    // A 16-bit stream on a 16-bit output stays native.
     expect(signalVerdict({ ...hires, bitDepth: 16 }, out(96000, "s16")).tone).toBe("ok");
   });
 
-  it("retire le verdict natif dès que le volume n'est pas à 100 %", () => {
+  it("drops the native verdict as soon as the volume is not at 100%", () => {
     expect(signalVerdict(hires, out(96000), { level: 60, muted: false })).toMatchObject({
       tone: "warn",
       label: "Volume logiciel",
@@ -181,13 +181,13 @@ describe("signalVerdict", () => {
     });
   });
 
-  it("garde une conversion prioritaire sur le volume, qui passe dans le détail", () => {
+  it("keeps a conversion ahead of the volume, which moves to the detail", () => {
     const v = signalVerdict(hires, out(48000), { level: 60, muted: false });
     expect(v.label).toBe("Rééchantillonné");
     expect(plain(v.detail)).toBe("96 → 48 kHz ; volume 60 %");
   });
 
-  it("signale la normalisation, sauf son coupé", () => {
+  it("flags normalization, except when muted", () => {
     const v = signalVerdict(hires, out(96000), { level: 100, muted: false }, -6.5);
     expect(v).toMatchObject({ tone: "warn", label: "Volume normalisé" });
     expect(v.detail).toBe("ReplayGain −6,5 dB appliqué par mpv, plus bit-perfect");
@@ -199,17 +199,17 @@ describe("signalVerdict", () => {
     );
   });
 
-  it("annonce le bit-perfect seulement en mode exclusif (#245)", () => {
+  it("announces bit-perfect only in exclusive mode (#245)", () => {
     const full = { level: 100, muted: false };
     expect(signalVerdict(hires, out(96000), full, null, true)).toMatchObject({
       tone: "ok",
       label: "Bit-perfect",
     });
-    // Fréquence refusée par le périphérique : mpv rééchantillonne, la cause est donnée.
+    // Rate refused by the device: mpv resamples, the cause is given.
     expect(plain(signalVerdict(hires, out(48000), full, null, true).detail)).toBe(
       "96 → 48 kHz : fréquence refusée par le périphérique en exclusif",
     );
-    // Volume logiciel gardé en exclusif, mais signalé.
+    // Software volume kept in exclusive mode, but flagged.
     expect(signalVerdict(hires, out(96000), { level: 60, muted: false }, null, true)).toMatchObject(
       {
         tone: "warn",
@@ -218,7 +218,7 @@ describe("signalVerdict", () => {
     );
   });
 
-  it("signale l'égaliseur, en exclusif aussi, sauf son coupé (#428)", () => {
+  it("flags the equalizer, in exclusive mode too, except when muted (#428)", () => {
     const full = { level: 100, muted: false };
     const v = signalVerdict(hires, out(96000), full, null, true, "HD 600");
     expect(v).toMatchObject({ tone: "warn", label: "Égaliseur" });
@@ -242,8 +242,8 @@ describe("signalVerdict", () => {
   });
 });
 
-describe("nombres", () => {
-  it("écrit un gain signé avec un vrai signe moins", () => {
+describe("numbers", () => {
+  it("writes a signed gain with a real minus sign", () => {
     expect(gainLabel(-6.54)).toBe("−6,5 dB");
     expect(gainLabel(2)).toBe("+2 dB");
     expect(decibels(-6.17)).toBe("−6,17 dB");
@@ -252,27 +252,27 @@ describe("nombres", () => {
     expect(decibels(1.5)).toBe("+1.50 dB");
   });
 
-  it("écrit une crête en dBFS", () => {
+  it("writes a peak in dBFS", () => {
     expect(peak(0.997)).toBe("0,997 (−0,03 dBFS)");
     expect(peak(1)).toBe("1 (0,00 dBFS)");
     expect(peak(0)).toBe("0");
   });
 
-  it("sépare les milliers selon la langue", () => {
+  it("separates thousands according to the language", () => {
     expect(plain(kbps(5071))).toBe("5 071 kbps");
     i18n.lang = "en";
     expect(kbps(5071)).toBe("5,071 kbps");
   });
 });
 
-describe("crédits et tonalités", () => {
-  it("traduit un rôle quelle que soit sa forme, garde un rôle inconnu", () => {
+describe("credits and keys", () => {
+  it("translates a role whatever its form, keeps an unknown role", () => {
     expect(creditRole("Executive Producer")).toBe("Production exécutive");
     expect(creditRole("Co-Producer")).toBe("Coproduction");
     expect(creditRole("Theremin")).toBe("Theremin");
   });
 
-  it("écrit une tonalité dans la notation de la langue", () => {
+  it("writes a key in the language's notation", () => {
     expect(musicalKey("FSharp", "MINOR")).toBe("Fa♯ mineur");
     expect(musicalKey("Bb", "MAJOR")).toBe("Si♭ majeur");
     expect(musicalKey("C", null)).toBe("Do");
@@ -280,19 +280,19 @@ describe("crédits et tonalités", () => {
     expect(musicalKey("FSharp", "MINOR")).toBe("F♯ minor");
   });
 
-  it("garde une forme inconnue telle quelle", () => {
+  it("keeps an unknown form as is", () => {
     expect(musicalKey("Cm7", "MAJOR")).toBe("Cm7 major");
     expect(musicalKey(null, "MAJOR")).toBeNull();
   });
 });
 
-describe("libellés techniques", () => {
-  it("nomme les tags connus seulement", () => {
+describe("technical labels", () => {
+  it("names the known tags only", () => {
     expect(tagLabel("HIRES_LOSSLESS")).toBe("Hi-Res");
     expect(tagLabel("MQA")).toBeNull();
   });
 
-  it("nomme les formats de sortie de mpv", () => {
+  it("names mpv's output formats", () => {
     expect(outputFormat("s24")).toBe("24 bits");
     expect(outputFormat("float")).toBe("32 bits flottant");
     expect(outputFormat("offload")).toBe("décodé par la puce audio");

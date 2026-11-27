@@ -7,7 +7,7 @@ afterEach(() => {
 });
 
 describe("playedFrom", () => {
-  it("rien sans source", () => {
+  it("nothing without a source", () => {
     expect(playedFrom(null)).toBeNull();
   });
 
@@ -27,7 +27,7 @@ describe("playedFrom", () => {
     });
   });
 
-  it("nomme les sources sans titre dans la langue courante", () => {
+  it("names sources without a title in the current language", () => {
     expect(playedFrom({ kind: "artist", id: 1, name: "Björk" })?.label).toBe(
       "Titres populaires de Björk",
     );

@@ -1,4 +1,4 @@
-// Entrées du menu contextuel d'une carte (album, artiste, playlist, mix), #81.
+// Entries of a card's context menu (album, artist, playlist, mix), #81.
 
 import type { LikeTarget, MediaItem } from "./ipc";
 import { isFavorite, toggleFavorite } from "./stores/likes.svelte";
@@ -23,13 +23,13 @@ export function cardRoute(item: MediaItem): Route {
   }
 }
 
-/** Lien public, à partager. */
+/** Public link, to share. */
 export function cardLink(item: MediaItem): string {
   const id = item.kind === "playlist" ? item.uuid : item.id;
   return `https://tidal.com/browse/${item.kind}/${id}`;
 }
 
-/** Favori possible, sauf pour vos propres playlists. */
+/** Can be favorited, except for your own playlists. */
 export function cardTarget(item: MediaItem): LikeTarget | null {
   switch (item.kind) {
     case "album":
@@ -93,7 +93,7 @@ export function cardMenu(item: MediaItem): MenuEntry[] {
     });
   }
 
-  // « Plus tard » (#196) : albums, artistes et playlists, les vôtres comprises ; pas les mixes.
+  // "Save for later" (#196): albums, artists and playlists, yours included; not mixes.
   const later = laterTarget(item);
   if (later) {
     const saved = isSavedForLater(later);
@@ -104,7 +104,7 @@ export function cardMenu(item: MediaItem): MenuEntry[] {
     });
   }
 
-  // Dossiers (#331) : seulement une playlist de la bibliothèque (la vôtre ou suivie).
+  // Folders (#331): only a playlist of the library (your own or a followed one).
   if (item.kind === "playlist" && library.playlists.items?.some((p) => p.uuid === item.uuid)) {
     entries.push({
       label: m.moveToFolder,

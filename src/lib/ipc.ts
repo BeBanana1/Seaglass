@@ -39,21 +39,21 @@ export type { Track } from "./bindings/Track";
 export type { TrackId } from "./bindings/TrackId";
 export type { Volume } from "./bindings/Volume";
 
-/** Résultat d'un import de réglages (#352). */
-/** #330 : export de la bibliothèque terminé (dossier déjà ouvert). */
+/** Result of a settings import (#352). */
+/** #330: library export finished (folder already opened). */
 export interface LibraryExportReport {
   dir: string;
   tracks: number;
   albums: number;
   artists: number;
   playlists: number;
-  /** Titres des playlists illisibles, laissées de côté. */
+  /** Titles of the unreadable playlists, left out. */
   failed: string[];
-  /** Une liste au moins est coupée au plafond de chargement. */
+  /** At least one list is cut at the loading cap. */
   truncated: boolean;
 }
 
-/** #330 : playlists lues sur le total. */
+/** #330: playlists read out of the total. */
 export interface LibraryExportProgress {
   done: number;
   total: number;
@@ -64,80 +64,80 @@ export interface ImportReport {
   ignored: string[];
 }
 
-/** Titre d'une liste (playlist ou favoris) avec sa date d'ajout à cette liste. */
+/** A list entry (playlist or favorites) with the date it was added to that list. */
 export interface TrackEntry extends Track {
-  /** Millisecondes depuis l'epoch Unix (UTC) ; `null` si l'API ne la donne pas. */
+  /** Milliseconds since the Unix epoch (UTC); `null` if the API does not give it. */
   addedAt: number | null;
 }
 
-/** Une catégorie de la bibliothèque, du plus récent au plus ancien (#91). */
+/** One library category, from newest to oldest (#91). */
 export interface LibraryList<T> {
   items: T[];
-  /** Coupée au plafond de chargement : seuls les plus récents sont là. */
+  /** Cut at the loading cap: only the most recent ones are there. */
   truncated: boolean;
-  /** Nombre annoncé par TIDAL (indisponibles compris), s'il est connu. */
+  /** Count announced by TIDAL (unavailable ones included), if known. */
   total: number | null;
 }
 
 /** `commands::project::ProjectPage`: project page opened in the browser (#188, #517). */
 export type ProjectPage = "website" | "repo" | "newIssue" | "clientId";
 
-/** Infos détaillées d'un titre (#3), demandées à l'ouverture du panneau. */
+/** Detailed info of a track (#3), requested when the panel opens. */
 export interface TrackInfo {
   track: Track;
   /** `LOSSLESS`, `HIRES_LOSSLESS`, `DOLBY_ATMOS`… */
   tags: string[];
-  /** Format servi en qualité maximale ; `null` si refusé (voir `streamError`). */
+  /** Format served at maximum quality; `null` if refused (see `streamError`). */
   stream: StreamFormat | null;
   streamError: string | null;
-  /** ReplayGain en dB et crêtes (pleine échelle = 1), jamais appliqués par Seaglass. */
+  /** ReplayGain in dB and peaks (full scale = 1), never applied by Seaglass. */
   trackGain: number | null;
   trackPeak: number | null;
   albumGain: number | null;
   albumPeak: number | null;
   bpm: number | null;
-  /** Tonalité brute de l'API (`B`, `FSharp`, `Bb`…) et mode (`MAJOR`, `MINOR`). */
+  /** Raw key from the API (`B`, `FSharp`, `Bb`…) and mode (`MAJOR`, `MINOR`). */
   key: string | null;
   keyScale: string | null;
   copyright: string | null;
   trackNumber: number | null;
   volumeNumber: number | null;
-  /** Autre édition hi-res du même enregistrement, si le titre n'est pas hi-res. */
+  /** Other hi-res edition of the same recording, if the track is not hi-res. */
   hiresEdition: HiresEdition | null;
-  /** Crédits groupés par rôle, rangés par le backend ; vide si TIDAL n'en a pas (#84). */
+  /** Credits grouped by role, sorted by the backend; empty if TIDAL has none (#84). */
   credits: CreditGroup[];
 }
 
 export interface CreditGroup {
-  /** Texte libre en anglais (`Composer`, `Bass guitar`…), traduit par `creditRole`. */
+  /** Free text in English (`Composer`, `Bass guitar`…), translated by `creditRole`. */
   role: string;
   contributors: Contributor[];
 }
 
 export interface Contributor {
   name: string;
-  /** Artiste TIDAL (page artiste), s'il y en a un. */
+  /** TIDAL artist (artist page), if there is one. */
   artistId: number | null;
 }
 
-/** Page à ouvrir pour un lien TIDAL collé (#203). */
+/** Page to open for a pasted TIDAL link (#203). */
 export type LinkTarget =
   | { kind: "album"; id: number; track: TrackId | null }
   | { kind: "artist"; id: number }
   | { kind: "playlist"; uuid: string }
   | { kind: "mix"; id: string }
-  /** Playlist d'un autre service à importer (#328) : adresse propre, relue par `importPlaylist`. */
+  /** Playlist from another service to import (#328): clean address, re-read by `importPlaylist`. */
   | { kind: "import"; link: string }
-  /** Fil d'actualité : notification groupée des nouvelles sorties (#435). */
+  /** News feed: grouped notification of new releases (#435). */
   | { kind: "feed" };
 
-/** Import d'une playlist d'un autre service (#328) : un titre d'origine et sa correspondance. */
+/** Import of a playlist from another service (#328): a source track and its match. */
 export interface ImportItem {
   title: string;
   artist: string | null;
-  /** `null` : rien de ressemblant sur TIDAL. */
+  /** `null`: nothing similar on TIDAL. */
   track: Track | null;
-  /** Titre, artiste et durée concordent (ou même ISRC) ; sinon à vérifier. */
+  /** Title, artist and duration match (or same ISRC); otherwise to be checked. */
   sure: boolean;
 }
 
@@ -146,9 +146,9 @@ export type ImportService = "deezer" | "spotify" | "apple";
 export interface ImportPreview {
   name: string;
   service: ImportService;
-  /** Titres de la playlist chez le service. */
+  /** Tracks of the playlist at the service. */
   total: number;
-  /** Titres lus : moins que `total` si le service n'en montre qu'une partie (Spotify : 100). */
+  /** Tracks read: fewer than `total` if the service only shows part of them (Spotify: 100). */
   read: number;
   items: ImportItem[];
 }
@@ -158,56 +158,56 @@ export interface ImportProgress {
   total: number;
 }
 
-/** Crédits d'un album entier (#206). */
+/** Credits of a whole album (#206). */
 export interface AlbumCreditGroup {
   role: string;
   contributors: AlbumContributor[];
 }
 
-/** Titres où une personne est créditée (#429), par lots. */
+/** Tracks where a person is credited (#429), in batches. */
 export interface ContributorPage {
   artist: ArtistSummary;
-  /** Nombre de titres annoncé par le service. */
+  /** Number of tracks announced by the service. */
   total: number;
   tracks: Contribution[];
-  /** À repasser à `contributor` pour le lot suivant ; `null` à la fin. */
+  /** To pass back to `contributor` for the next batch; `null` at the end. */
   nextOffset: number | null;
 }
 
 export interface Contribution {
   track: Track;
-  /** Rôles en anglais de l'API (`Producer`, `Composer`…), traduits par `creditRole`. */
+  /** English roles from the API (`Producer`, `Composer`…), translated by `creditRole`. */
   roles: string[];
 }
 
 export interface AlbumContributor {
   name: string;
   artistId: number | null;
-  /** Titres où il apparaît, dans l'ordre de l'album ; vide = tous. */
+  /** Tracks where they appear, in album order; empty = all. */
   tracks: TrackId[];
 }
 
 export interface HiresEdition {
   track: Track;
   stream: StreamFormat | null;
-  /** Seaglass la lit à la place du titre (réglage actif et flux meilleur). */
+  /** Seaglass plays it instead of the track (setting on and better stream). */
   played: boolean;
 }
 
-/** Périphérique de sortie WASAPI (#79) : identifiant mpv (`wasapi/{guid}`) et nom Windows. */
+/** WASAPI output device (#79): mpv identifier (`wasapi/{guid}`) and Windows name. */
 export interface AudioDevice {
   id: string;
   name: string;
 }
 
-/** Périphériques connus de mpv (commande `audio_devices`, événement `audio-devices`). */
+/** Devices known to mpv (`audio_devices` command, `audio-devices` event). */
 export interface AudioDevices {
   devices: AudioDevice[];
-  /** Identifiant du périphérique par défaut de Windows, s'il est connu. */
+  /** Identifier of the Windows default device, if known. */
   systemDefault: string | null;
 }
 
-/** Blind test (#434) : saisie libre ou quatre propositions. */
+/** Blind test (#434): free typing or four choices. */
 export type BlindMode = "typing" | "choices";
 
 export type BlindAnswer =
@@ -218,16 +218,16 @@ export interface BlindChoice {
   artist: string;
 }
 
-/** Joueur d'une partie (#441) : l'hôte (`id` 0) ou un invité de la Jam. */
+/** Player of a game (#441): the host (`id` 0) or a Jam guest. */
 export interface BlindPlayer {
   id: number;
-  /** Prénom donné dans la Jam ; `null` : « Invité <id> ». */
+  /** First name given in the Jam; `null`: "Guest <id>". */
   name: string | null;
   host: boolean;
   score: number;
   streak: number;
   bestStreak: number;
-  /** A répondu à la manche en cours. */
+  /** Has answered the current round. */
   answered: boolean;
 }
 
@@ -239,7 +239,7 @@ export interface BlindPlayerResult {
   title: boolean;
   artist: boolean;
   points: number;
-  /** Premier à trouver le titre (bonus compris dans `points`). */
+  /** First to find the title (bonus included in `points`). */
   fastest: boolean;
 }
 
@@ -256,17 +256,17 @@ export interface BlindRoundResult {
   answer: string | null;
   chosen: number | null;
   correct: number | null;
-  /** Tous les joueurs, du plus de points au moins (#441). */
+  /** All players, from most to fewest points (#441). */
   players: BlindPlayerResult[];
 }
 
-/** Partie tenue par le backend (événement `blind-test`) ; le titre de la manche n'y est
- *  qu'une fois révélé, dans `results`. */
+/** Game held by the backend (`blind-test` event); the round's track is only there once
+ *  revealed, in `results`. */
 export interface BlindTestView {
   title: string;
   mode: BlindMode;
   phase: "guess" | "revealed" | "finished";
-  /** Manche en cours, à partir de 1. */
+  /** Current round, starting at 1. */
   round: number;
   rounds: number;
   score: number;
@@ -278,11 +278,11 @@ export interface BlindTestView {
   choices: BlindChoice[];
   results: BlindRoundResult[];
   party: BlindParty;
-  /** Classement ; l'hôte seul en solo. */
+  /** Ranking; the host alone in solo. */
   players: BlindPlayer[];
-  /** Révélation automatique prévue (ms depuis l'epoch), à plusieurs. */
+  /** Automatic reveal planned (ms since the epoch), with several players. */
   revealAt: number | null;
-  /** L'extrait joue vraiment (#445) : avant, le moteur charge encore le titre. */
+  /** The clip is really playing (#445): before that, the engine is still loading the track. */
   clipPlaying: boolean;
 }
 
@@ -297,13 +297,13 @@ export interface AlbumSummary {
   /** 640×640 (#89). */
   coverLargeUrl?: string | null;
   color: string | null;
-  /** `AAAA-MM-JJ`. */
+  /** `YYYY-MM-DD`. */
   releaseDate: string | null;
   numberOfTracks: number | null;
-  /** `ALBUM`, `EP` ou `SINGLE`. */
+  /** `ALBUM`, `EP` or `SINGLE`. */
   albumType: string | null;
   explicit: boolean;
-  /** Généré par IA selon le service (#369). */
+  /** AI-generated according to the service (#369). */
   ai: boolean;
   hires: boolean;
 }
@@ -325,15 +325,15 @@ export interface PlaylistSummary {
   mine: boolean;
 }
 
-/** Dossier de playlists de la bibliothèque (#331), un seul niveau. */
+/** Playlist folder of the library (#331), a single level. */
 export interface PlaylistFolder {
   id: string;
   name: string;
-  /** Uuids des playlists rangées (les vôtres et celles que vous suivez). */
+  /** Uuids of the stored playlists (yours and the ones you follow). */
   playlists: string[];
 }
 
-/** Mix généré par le service (My Mix, Daily Discovery, mix d'artiste…). */
+/** Mix generated by the service (My Mix, Daily Discovery, artist mix…). */
 export interface MixSummary {
   id: string;
   title: string;
@@ -349,14 +349,14 @@ export type MediaItem =
   | ({ kind: "playlist" } & PlaylistSummary)
   | ({ kind: "mix" } & MixSummary);
 
-/** Élément de « Plus tard » (#196) : un titre avec sa date d'ajout, ou une carte. */
+/** "Save for later" item (#196): a track with its added date, or a card. */
 export type LaterItem =
   | ({ kind: "track" } & TrackEntry)
   | ({ kind: "album" } & AlbumSummary)
   | ({ kind: "artist" } & ArtistSummary)
   | ({ kind: "playlist" } & PlaylistSummary);
 
-/** Ce qu'on peut ajouter aux favoris (#4, #81). */
+/** What can be added to favorites (#4, #81). */
 export type LikeTarget =
   | { kind: "track"; id: TrackId }
   | { kind: "album"; id: number }
@@ -364,17 +364,17 @@ export type LikeTarget =
   | { kind: "playlist"; uuid: string }
   | { kind: "mix"; id: string };
 
-/** Ce qu'on peut bloquer (#334) : ni proposé par les mixes ni par les radios. */
+/** What can be blocked (#334): suggested neither by mixes nor by radios. */
 export type BlockTarget = { kind: "track"; id: TrackId } | { kind: "artist"; id: number };
 
-/** Titres et artistes bloqués, du plus récent au plus ancien. */
+/** Blocked tracks and artists, from newest to oldest. */
 export interface Blocked {
   tracks: Track[];
   artists: ArtistSummary[];
 }
 
-/** Tous les favoris, en identifiants (événement `likes`). */
-/** Position dans une playlist (0 = premier) et titre attendu à cette position (#332). */
+/** All favorites, as identifiers (`likes` event). */
+/** Position in a playlist (0 = first) and track expected at that position (#332). */
 export interface PlaylistItem {
   index: number;
   trackId: TrackId;
@@ -384,44 +384,44 @@ export interface LikedIds {
   tracks: TrackId[];
   albums: number[];
   artists: number[];
-  /** Playlists suivies. */
+  /** Followed playlists. */
   playlists: string[];
-  /** Mixes enregistrés (#204). */
+  /** Saved mixes (#204). */
   mixes: string[];
 }
 
 export interface HomeRow {
-  /** Identifiant stable de la section (`moduleId` de l'API), indépendant du titre. */
+  /** Stable identifier of the section (`moduleId` of the API), independent of the title. */
   key: string;
   title: string;
   items: MediaItem[];
 }
 
-/** Ligne de l'accueil dans l'ordre choisi ; les masquées ne sont montrées qu'en personnalisation. */
+/** Home row in the chosen order; hidden ones are only shown while customizing. */
 export interface HomeSection extends HomeRow {
   hidden: boolean;
 }
 
-/** Première page de l'accueil ; `more` : la suite vient de `homeRest` (#207). */
+/** First page of the home; `more`: the rest comes from `homeRest` (#207). */
 export interface HomeFeed {
   sections: HomeSection[];
   more: boolean;
 }
 
-/** Élément du fil d'actualité : sortie d'un artiste suivi (album) ou mix mensuel (mix). */
+/** News feed item: release by a followed artist (album) or monthly mix (mix). */
 export interface FeedItem {
-  /** Date de la sortie, en millisecondes UTC. */
+  /** Release date, in UTC milliseconds. */
   occurredAt: number | null;
-  /** Déjà vue dans l'app (état local, #415 ; à la première lecture, repris de TIDAL). */
+  /** Already seen in the app (local state, #415; on first read, taken from TIDAL). */
   seen: boolean;
   item: MediaItem;
 }
 
-/** Disposition de l'accueil enregistrée (clés de `HomeRow`). */
+/** Saved home layout (keys of `HomeRow`). */
 export interface HomeLayout {
   order: string[];
   hidden: string[];
-  /** Bandeau « À la une » masqué (#185). */
+  /** "Featured" banner hidden (#185). */
   featuredHidden: boolean;
 }
 
@@ -440,15 +440,15 @@ export interface ArtistPage {
   singles: AlbumSummary[];
 }
 
-/** Historique d'écoute local (#202). */
+/** Local listening history (#202). */
 export interface PlayHistory {
-  /** Albums écoutés, du plus récent au plus ancien. */
+  /** Albums listened to, from newest to oldest. */
   recent: AlbumSummary[];
-  /** Albums les plus écoutés ces 30 derniers jours (au moins deux écoutes). */
+  /** Most listened albums over the last 30 days (at least two listens). */
   top: AlbumSummary[];
 }
 
-/** Période des statistiques d'écoute (#326) : fenêtres glissantes de 7, 30, 365 jours. */
+/** Period of the listening statistics (#326): sliding windows of 7, 30, 365 days. */
 export type StatsPeriod = "week" | "month" | "year" | "all";
 
 export interface Counted<T> {
@@ -456,44 +456,44 @@ export interface Counted<T> {
   plays: number;
 }
 
-/** Statistiques d'écoute locales (#326), propres à cet appareil. */
+/** Local listening statistics (#326), specific to this device. */
 export interface PlayStats {
   plays: number;
-  /** Temps d'écoute approché (somme des durées des titres écoutés), en secondes. */
+  /** Approximate listening time (sum of the durations of the tracks listened), in seconds. */
   seconds: number;
-  /** Écoutes de durée inconnue (antérieures à la 0.5.33), absentes de `seconds`. */
+  /** Listens of unknown duration (before 0.5.33), absent from `seconds`. */
   unknown: number;
   tracks: Counted<Track>[];
   albums: Counted<AlbumSummary>[];
-  /** Photo demandée une fois à TIDAL, puis gardée avec l'historique. */
+  /** Picture requested once from TIDAL, then kept with the history. */
   artists: Counted<ArtistSummary>[];
 }
 
-/** Période de la rétrospective (#417) : mois civil, ou année entière sans `month`. */
+/** Period of the recap (#417): calendar month, or whole year without `month`. */
 export interface RecapPeriod {
   year: number;
   month: number | null;
 }
 
-/** Rétrospective d'un mois ou d'une année (#417), calculée sur l'historique de cet appareil. */
+/** Recap of a month or a year (#417), computed over this device's history. */
 export interface Recap {
   plays: number;
   seconds: number;
   unknown: number;
-  /** Jours avec au moins une écoute. */
+  /** Days with at least one listen. */
   days: number;
   tracks: Counted<Track>[];
   albums: Counted<AlbumSummary>[];
   artists: Counted<ArtistSummary>[];
-  /** Artistes sans aucune écoute avant la période. */
+  /** Artists with no listen at all before the period. */
   newArtists: Counted<ArtistSummary>[];
   newArtistCount: number;
   newTrackCount: number;
-  /** Écoutes par jour de la semaine, lundi en premier. */
+  /** Listens per weekday, Monday first. */
   weekdays: number[];
-  /** Écoutes par heure locale, de 0 à 23. */
+  /** Listens per local hour, from 0 to 23. */
   hours: number[];
-  /** 0 = lundi. */
+  /** 0 = Monday. */
   topWeekday: number | null;
   topHour: number | null;
   /** Plays per month for a year, per day for a month (#521). */
@@ -529,22 +529,22 @@ export interface PlayedFormat {
 
 export const SMART_LISTS: SmartList[] = ["topMonth", "onRepeat", "forgotten", "neverPlayed"];
 
-/** Clé de la section d'accueil « Écoutés dans Seaglass ». */
+/** Key of the "Listened in Seaglass" home section. */
 export const PLAY_HISTORY_KEY = "SEAGLASS_RECENT";
 
-/** Segment de biographie : texte ou lien interne (#205). */
+/** Biography segment: text or internal link (#205). */
 export type BioPart =
   | { kind: "text"; text: string }
   | { kind: "artist"; text: string; id: number }
   | { kind: "album"; text: string; id: number };
 
-/** Bas de la page d'album (#350), chargé après elle : chaque liste peut être vide. */
+/** Bottom of the album page (#350), loaded after it: each list can be empty. */
 export interface AlbumRelated {
   versions: AlbumSummary[];
   byArtist: AlbumSummary[];
 }
 
-/** Compléments de la page d'artiste (#205), chargés après elle. */
+/** Extras of the artist page (#205), loaded after it. */
 export interface ArtistExtra {
   bio: { source: string | null; paragraphs: BioPart[][] } | null;
   similar: ArtistSummary[];
@@ -553,14 +553,14 @@ export interface ArtistExtra {
 
 export interface PlaylistPage {
   playlist: PlaylistSummary;
-  /** Dans l'ordre de la playlist. */
+  /** In playlist order. */
   tracks: TrackEntry[];
-  /** Version de la playlist lue (#152) : à rendre à `playlist` pour savoir si elle a changé. */
+  /** Version of the playlist read (#152): hand back to `playlist` to know if it changed. */
   revision: string | null;
 }
 
-/** Changement proposé par « Nettoyer » (#382) ; `index` = position dans la liste lue,
- *  `op` = ce que l'accepter fait (renvoyé tel quel). */
+/** Change proposed by "Clean up" (#382); `index` = position in the list read,
+ *  `op` = what accepting it does (sent back as is). */
 export type CleanupItem = (
   | {
       kind: "duplicate";
@@ -573,17 +573,17 @@ export type CleanupItem = (
   | { kind: "unavailable"; index: number; track: Track; replacement: Track | null }
 ) & {
   op: ListOp;
-  /** Coché d'office (pas un indisponible sans remplaçant, dont le retrait est définitif). */
+  /** Checked by default (not an unavailable track without replacement: its removal is final). */
   suggested: boolean;
 };
 
 export interface CleanupReport {
   items: CleanupItem[];
-  /** Titres lus. */
+  /** Tracks read. */
   scanned: number;
 }
 
-/** Modification d'une liste (#382) ; les favoris ignorent `index`. */
+/** Change to a list (#382); favorites ignore `index`. */
 export type ListOp =
   | { op: "remove"; index: number; trackId: TrackId }
   | { op: "insert"; index: number; trackId: TrackId }
@@ -591,41 +591,41 @@ export type ListOp =
 
 export interface ListOpsResult {
   applied: number;
-  /** Titres que le service refuse de rajouter (retirés du catalogue). */
+  /** Tracks the service refuses to add back (removed from the catalog). */
   skipped: number;
-  /** De quoi annuler, à rendre tel quel. */
+  /** What it takes to undo, to hand back as is. */
   undo: ListOp[];
   error: string | null;
 }
 
-/** Paroles (`tidal/models.rs` : `Lyrics`). */
+/** Lyrics (`tidal/models.rs`: `Lyrics`). */
 export interface Lyrics {
   trackId: TrackId;
-  /** Fournisseur à créditer (« MUSIXMATCH »). */
+  /** Provider to credit ("MUSIXMATCH"). */
   provider: string | null;
-  /** Écriture de droite à gauche. */
+  /** Right-to-left writing. */
   rtl: boolean;
   text: { kind: "synced"; lines: LyricLine[] } | { kind: "plain"; lines: string[] };
 }
 
 export interface LyricLine {
-  /** Début de la ligne, en millisecondes ; texte vide = passage instrumental. */
+  /** Start of the line, in milliseconds; empty text = instrumental passage. */
   timeMs: number;
   text: string;
 }
 
 export interface MixPage {
   mix: MixSummary;
-  /** Image 640×640 pour l'en-tête. */
+  /** 640×640 image for the header. */
   imageLargeUrl: string | null;
   tracks: Track[];
 }
 
-/** Radio d'un titre ou d'un artiste. */
+/** Radio of a track or an artist. */
 export interface RadioPage {
   seed: RadioSeed;
   id: number;
-  /** Titre du morceau ou nom de l'artiste de départ. */
+  /** Title of the starting track or name of the starting artist. */
   title: string;
   imageUrl: string | null;
   tracks: Track[];
@@ -665,8 +665,8 @@ export type Theme =
   | "desert"
   | "generique";
 
-/** Raccourci de la barre latérale (bureau) ou tuile du mode conduite (Android, #193) ; le titre
- *  d'une playlist ou d'un mix est gardé pour l'afficher sans requête. */
+/** Sidebar shortcut (desktop) or driving mode tile (Android, #193); the title of a playlist
+ *  or a mix is kept to display it without a request. */
 export type Pin =
   | { kind: "playlist"; uuid: string; title: string }
   | { kind: "mix"; id: string; title: string }
@@ -674,7 +674,7 @@ export type Pin =
   | { kind: "later" }
   | { kind: "smart"; list: SmartList };
 
-/** Critères de tri d'une liste de titres (#1, #2). */
+/** Sort criteria of a track list (#1, #2). */
 export type SortKey = "position" | "added" | "title" | "artist" | "album" | "duration";
 
 export interface TrackSort {
@@ -682,15 +682,15 @@ export interface TrackSort {
   descending: boolean;
 }
 
-/** Tri mémorisé d'une liste (#93) : uuid de playlist, ou `likedTracks`. */
+/** Remembered sort of a list (#93): playlist uuid, or `likedTracks`. */
 export interface ListSort extends TrackSort {
   list: string;
 }
 
-/** Version du journal (#340), entrées déjà filtrées pour la plateforme. */
+/** Version of the log (#340), entries already filtered for the platform. */
 export interface Release {
   version: string;
-  /** `AAAA-MM-JJ` pour une version publiée. */
+  /** `YYYY-MM-DD` for a published version. */
   published: string | null;
   entries: string[];
 }
@@ -699,186 +699,186 @@ export interface UiSettings {
   theme: Theme;
   home: HomeLayout;
   pins: Pin[];
-  /** Couleur d'accent `#rrggbb` de chaque thème (#250) ; thème absent : celle de son CSS. */
+  /** `#rrggbb` accent color of each theme (#250); theme absent: the one from its CSS. */
   accents: Partial<Record<Theme, string>>;
-  /** Familles de thèmes favorites (#390), en tête de la galerie ; voir `lib/themes.ts`. */
+  /** Favorite theme families (#390), at the top of the gallery; see `lib/themes.ts`. */
   favoriteThemes: Theme[];
-  /** Langue choisie (#7) ; `system` suit la langue d'affichage de Windows. */
+  /** Chosen language (#7); `system` follows the Windows display language. */
   language: LanguagePref;
-  /** Fermer la fenêtre : quitter, ou réduire dans la zone de notification (#83). */
+  /** Closing the window: quit, or minimize to the notification area (#83). */
   closeAction: CloseAction;
-  /** Présence Discord (#215), désactivée par défaut. */
+  /** Discord presence (#215), off by default. */
   discord: boolean;
-  /** Tris mémorisés, le plus récent en tête (#93). */
+  /** Remembered sorts, most recent first (#93). */
   sorts: ListSort[];
-  /** Taille de l'interface en pourcentage (#337), une valeur de `ZOOM_LEVELS`. */
+  /** Interface size in percent (#337), one value of `ZOOM_LEVELS`. */
   zoom: number;
-  /** Animations de l'interface (#351). */
+  /** Interface animations (#351). */
   motion: Motion;
-  /** Clins d'œil de l'interface (#399), activés par défaut ; voir `lib/eggs/`. */
+  /** Interface winks (#399), on by default; see `lib/eggs/`. */
   easterEggs: boolean;
-  /** Contenu masqué dans ce que le service propose (#368) ; filtré côté Rust. */
+  /** Content hidden in what the service offers (#368); filtered on the Rust side. */
   content: ContentFilter;
-  /** Raccourcis clavier globaux (#413, bureau). */
+  /** Global keyboard shortcuts (#413, desktop). */
   globalShortcuts: GlobalShortcuts;
-  /** Vérification périodique des mises à jour (#452), activée par défaut. */
+  /** Periodic check for updates (#452), on by default. */
   autoUpdates: boolean;
-  /** Jam (#452) : désactivée, elle disparaît de l'UI. */
+  /** Jam (#452): when off, it disappears from the UI. */
   jam: boolean;
-  /** Notification des nouvelles sorties des artistes suivis (#435), désactivée par défaut. */
+  /** Notification of new releases by followed artists (#435), off by default. */
   releaseNotifications: boolean;
 }
 
-/** Envoi des écoutes à ListenBrainz (#431). Le jeton n'est jamais renvoyé à l'UI. */
+/** Sending listens to ListenBrainz (#431). The token is never sent back to the UI. */
 export interface ListenBrainzStatus {
-  /** Compte connecté ; `null` : envoi désactivé. */
+  /** Connected account; `null`: sending disabled. */
   user: string | null;
-  /** ListenBrainz a refusé le jeton à un envoi : il faut en coller un nouveau. */
+  /** ListenBrainz refused the token on a send: a new one must be pasted. */
   refused: boolean;
-  /** Écoutes pas encore envoyées. */
+  /** Listens not sent yet. */
   pending: number;
 }
 
-/** Relais de la Jam en ligne et des transferts (#452). La clé n'est jamais renvoyée. */
+/** Relay of the online Jam and of the transfers (#452). The key is never sent back. */
 export interface RelayView {
   enabled: boolean;
-  /** Adresse choisie ; `null` : celle compilée (`defaultUrl`). */
+  /** Chosen address; `null`: the compiled one (`defaultUrl`). */
   url: string | null;
   defaultUrl: string | null;
-  /** Une clé propre à ce relais est enregistrée. */
+  /** A key specific to this relay is saved. */
   customKey: boolean;
-  /** Adresse et clé connues : le relais est utilisable. */
+  /** Address and key known: the relay is usable. */
   usable: boolean;
 }
 
-/** `url` vide : relais compilé. `key` absente : inchangée ; vide : clé compilée. */
+/** Empty `url`: compiled relay. `key` absent: unchanged; empty: compiled key. */
 export interface RelayChange {
   enabled: boolean;
   url: string | null;
   key?: string | null;
 }
 
-/** Action d'un raccourci global (#413). */
+/** Action of a global shortcut (#413). */
 export type GlobalAction =
   "playPause" | "next" | "previous" | "volumeUp" | "volumeDown" | "like" | "showWindow";
 
-/** Combinaisons écrites `Ctrl+Alt+Space` (modificateurs puis `KeyboardEvent.code`) ; action
- *  sans combinaison : absente. */
+/** Combinations written `Ctrl+Alt+Space` (modifiers then `KeyboardEvent.code`); action
+ *  without a combination: absent. */
 export interface GlobalShortcuts {
   enabled: boolean;
   bindings: Partial<Record<GlobalAction, string>>;
 }
 
 export interface GlobalShortcutsStatus {
-  /** Le système offre des raccourcis globaux (faux sur Android, ou sans serveur X). */
+  /** The system offers global shortcuts (false on Android, or without an X server). */
   available: boolean;
-  /** Combinaisons non enregistrées : prises par une autre app, ou touche inconnue. */
+  /** Combinations not registered: taken by another app, or unknown key. */
   failed: GlobalAction[];
 }
 
-/** Ce que le backend retire des listes proposées (pas des favoris ni de ses playlists). */
+/** What the backend removes from the offered lists (not from favorites or own playlists). */
 export interface ContentFilter {
   hideExplicit: boolean;
-  /** Masqué par défaut (#369). */
+  /** Hidden by default (#369). */
   hideAi: boolean;
 }
 
 export type CloseAction = "quit" | "tray";
 
-/** `system` suit « réduire les animations » du système. */
+/** `system` follows the system's "reduce animations". */
 export type Motion = "system" | "reduced" | "full";
 
-/** Langue effective de l'app, décidée par le backend. */
+/** Effective language of the app, decided by the backend. */
 export type Lang = "fr" | "en";
 
-/** Plateforme de l'app, décidée à la compilation côté Rust. */
+/** Platform of the app, decided at compile time on the Rust side. */
 export type Platform = "desktop" | "android";
 
 export type LanguagePref = "system" | Lang;
 
-/** Taille du cache mpv en Mio : seules ces valeurs sont acceptées par le backend. */
+/** Size of the mpv cache in MiB: only these values are accepted by the backend. */
 export type CacheSize = 32 | 64 | 128 | 256;
 
 export type HiresUpgrade = "auto" | "ask" | "off";
 
 /**
- * Qualité de lecture sur Android (#325, #366), paliers de TIDAL : AAC 96 et 320 kbit/s, FLAC
- * 16/44,1, FLAC hi-res jusqu'à 24/192.
+ * Playback quality on Android (#325, #366), TIDAL tiers: AAC 96 and 320 kbit/s, FLAC
+ * 16/44.1, hi-res FLAC up to 24/192.
  */
 export type MobileQuality = "low" | "high" | "lossless" | "max";
 
-/** Normalisation du volume par ReplayGain (#82). */
+/** Volume normalization through ReplayGain (#82). */
 export type Normalization = "off" | "track" | "album";
 
-/** Égaliseur paramétrique (#428). Bornes vérifiées côté Rust (`player::eq`). */
+/** Parametric equalizer (#428). Bounds checked on the Rust side (`player::eq`). */
 export type EqFilterKind = "peaking" | "lowShelf" | "highShelf";
 
 export interface EqFilter {
   kind: EqFilterKind;
-  /** Hz, 20 à 20 000. */
+  /** Hz, 20 to 20,000. */
   freq: number;
   /** dB, ±20. */
   gain: number;
-  /** 0,1 à 10. */
+  /** 0.1 to 10. */
   q: number;
 }
 
 export interface EqProfile {
   id: number;
   name: string;
-  /** dB ; `null` = automatique (compense le plus fort gain positif). */
+  /** dB; `null` = automatic (compensates the strongest positive gain). */
   preamp: number | null;
   filters: EqFilter[];
 }
 
 export interface EqSettings {
-  /** Désactivé par défaut. */
+  /** Off by default. */
   enabled: boolean;
   active: number | null;
   profiles: EqProfile[];
 }
 
-/** Réglages de lecture, stockés à part des réglages d'UI. */
+/** Playback settings, stored apart from the UI settings. */
 export interface PlaybackSettings {
   cacheSize: CacheSize;
-  /** Édition hi-res d'un titre qui n'en a pas (même enregistrement) : la lire à sa place,
-   *  la proposer (#59) ou l'ignorer. */
+  /** Hi-res edition of a track that has none (same recording): play it instead,
+   *  offer it (#59) or ignore it. */
   hiresUpgrade: HiresUpgrade;
-  /** Désactivée par défaut : seul mode qui laisse le signal intact. */
+  /** Off by default: the only mode that leaves the signal intact. */
   normalization: Normalization;
   equalizer: EqSettings;
-  /** Périphérique de sortie choisi (#79) ; `null` = périphérique par défaut du système.
-   *  Gardé même débranché : le lecteur se replie sur le défaut puis y revient. */
+  /** Chosen output device (#79); `null` = system default device.
+   *  Kept even when unplugged: the player falls back to the default then returns to it. */
   audioDevice: AudioDevice | null;
-  /** Mode exclusif WASAPI (#245), désactivé par défaut : normalisation suspendue, les
-   *  autres apps n'ont plus de son pendant la lecture. Sans effet sur Android. */
+  /** WASAPI exclusive mode (#245), off by default: normalization suspended, other
+   *  apps have no sound during playback. No effect on Android. */
   exclusive: boolean;
-  /** Fin de file : enchaîner sur la radio du dernier titre (#78). */
+  /** End of queue: continue with the radio of the last track (#78). */
   autoRadio: boolean;
-  /** Bureau : pause quand le périphérique de sortie utilisé est débranché (#348). Activé
-   *  par défaut. */
+  /** Desktop: pause when the output device in use is unplugged (#348). On
+   *  by default. */
   pauseOnUnplug: boolean;
-  /** Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut. */
+  /** Desktop: resume playback when the app launches (#353). Off by default. */
   resumeOnLaunch: boolean;
-  /** Bureau : volume, normalisation et mode exclusif retenus par périphérique de sortie
-   *  (#416). Désactivé par défaut. */
+  /** Desktop: volume, normalization and exclusive mode kept per output device
+   *  (#416). Off by default. */
   deviceProfiles: boolean;
-  /** Android : qualité demandée (#325), Lossless par défaut. Sans effet sur le bureau. */
-  /** Android (#365) : réseau non facturé (Wi-Fi) et facturé (données mobiles). */
+  /** Android: requested quality (#325), Lossless by default. No effect on desktop. */
+  /** Android (#365): unmetered network (Wi-Fi) and metered (mobile data). */
   wifiQuality: MobileQuality;
   cellularQuality: MobileQuality;
-  /** Android (#365) : plafond quand la batterie est faible. */
+  /** Android (#365): cap when the battery is low. */
   lowBatteryQuality: boolean;
 }
 
-/** Android (#492) : qualité baissée par la batterie en ce moment. */
+/** Android (#492): quality lowered by the battery right now. */
 export interface QualityCap {
-  /** Qualité demandée pour l'instant. */
+  /** Quality requested for now. */
   quality: MobileQuality;
-  /** Celle du réglage pour le réseau en cours. */
+  /** The one from the setting for the current network. */
   chosen: MobileQuality;
   reason: "powerSave" | "batteryLow";
-  /** Niveau en %, s'il est connu. */
+  /** Level in %, if known. */
   battery: number | null;
 }
 
@@ -886,9 +886,9 @@ export interface UpdateInfo {
   version: string;
   currentVersion: string;
   notes: string | null;
-  /** Android seulement : taille de l'APK en octets, proposé avant d'être téléchargé. */
+  /** Android only: size of the APK in bytes, offered before it is downloaded. */
   size?: number;
-  /** Bureau : installeur en cours de téléchargement, `update-ready` suivra (#187). */
+  /** Desktop: installer being downloaded, `update-ready` will follow (#187). */
   downloading?: boolean;
 }
 
@@ -900,25 +900,25 @@ export interface SessionInfo {
 export interface Toast {
   level: "error" | "info";
   message: string;
-  /** Refus du lecteur (clin d'œil #399), que l'UI peut habiller selon le thème. */
+  /** Player refusal (wink #399), which the UI can dress up according to the theme. */
   kind?: "unplayable" | "stopped";
 }
 
-/** Jam (#25) : en ligne par le relais, ou sur le réseau local. */
+/** Jam (#25): online through the relay, or on the local network. */
 export type JamMode = "online" | "local";
 export type JamConnection = "connecting" | "online" | "reconnecting" | "failed";
 
-/** Serveur de la télécommande (#336) en cours, bureau seulement : télécommande et / ou
- *  transferts de lecture (#414). */
+/** Remote control server (#336) running, desktop only: remote control and / or
+ *  playback transfers (#414). */
 export interface RemoteStatus {
-  /** Page et commandes de la télécommande servies. */
+  /** Remote control page and commands served. */
   remote: boolean;
-  /** Transferts de lecture acceptés depuis l'app Android. */
+  /** Playback transfers accepted from the Android app. */
   handoff: boolean;
   url: string;
-  /** Code de propriétaire, 12 caractères. */
+  /** Owner code, 12 characters. */
   code: string;
-  /** Faux si aucune adresse du réseau local n'a été trouvée. */
+  /** False if no local network address was found. */
   lan: boolean;
   qrSvg: string | null;
   /** End of the last pairing window (ms since the epoch, #62), `null` before any. */
@@ -927,67 +927,67 @@ export interface RemoteStatus {
   relay: boolean;
 }
 
-/** Ordinateur lié pour les transferts de lecture (#414), côté téléphone. */
+/** Computer linked for playback transfers (#414), phone side. */
 export interface LinkedComputer {
   /** `192.168.1.105:47801`. */
   host: string;
-  /** Dernière synchro réussie de l'historique d'écoute (ms, #430). */
+  /** Last successful sync of the listening history (ms, #430). */
   syncedAt: number | null;
-  /** Joignable aussi hors du réseau local, par le relais (#430). */
+  /** Reachable also away from the local network, through the relay (#430). */
   online: boolean;
 }
 
-/** Jam (#25) : adresse et code à donner aux invités. */
+/** Jam (#25): address and code to give to the guests. */
 export interface JamStatus {
   mode: JamMode;
-  /** `null` tant que le relais n'a pas répondu. */
+  /** `null` until the relay has answered. */
   url: string | null;
   code: string;
-  /** Réseau local : faux si aucune adresse du réseau n'a été trouvée (`127.0.0.1`). */
+  /** Local network: false if no network address was found (`127.0.0.1`). */
   lan: boolean;
-  /** QR code de l'adresse avec le code, en SVG noir sur blanc (généré par le backend). */
+  /** QR code of the address with the code, as black-on-white SVG (generated by the backend). */
   qrSvg: string | null;
   connection: JamConnection;
-  /** Raison d'une reconnexion ou d'un échec, déjà traduite. */
+  /** Reason for a reconnection or a failure, already translated. */
   reason: string | null;
-  /** Nom de l'invité de chaque titre ajouté par la Jam, par identifiant de titre. */
+  /** Name of the guest of each track added by the Jam, by track identifier. */
   guests: Record<string, string>;
-  /** Règles de l'hôte (#222, #288), retenues d'une Jam à l'autre. */
+  /** Host rules (#222, #288), kept from one Jam to the next. */
   rules: JamRules;
-  /** Les invités peuvent ajouter (suspension propre à la Jam, #288). */
+  /** Guests can add (suspension specific to the Jam, #288). */
   addsOpen: boolean;
-  /** Invités qui ont ajouté pendant la Jam, exclus compris (#288). */
+  /** Guests who added during the Jam, banned ones included (#288). */
   members: JamGuest[];
 }
 
-/** Règles de l'hôte pour la Jam (#288). */
+/** Host rules for the Jam (#288). */
 export interface JamRules {
-  /** Les invités peuvent mettre en pause et relancer (#222). */
+  /** Guests can pause and resume (#222). */
   guestControls: boolean;
-  /** Titres en attente au plus par invité ; `null` = sans limite. */
+  /** Pending tracks at most per guest; `null` = no limit. */
   maxPending: number | null;
-  /** Les invités peuvent ajouter un album entier. */
+  /** Guests can add a whole album. */
   albums: boolean;
-  /** Les invités peuvent régler le volume (#449). */
+  /** Guests can set the volume (#449). */
   guestVolume: boolean;
-  /** Volume le plus haut qu'un invité peut demander (1 à 100). */
+  /** Highest volume a guest can request (1 to 100). */
   guestVolumeMax: number;
-  /** Les invités peuvent voter pour passer le titre en cours (#433). */
+  /** Guests can vote to skip the current track (#433). */
   skipVote: boolean;
-  /** Votes qui passent le titre (2 à 10). */
+  /** Votes that skip the track (2 to 10). */
   skipVotes: number;
 }
 
-/** Invité de la Jam vu par l'hôte (#288). */
+/** Jam guest as seen by the host (#288). */
 export interface JamGuest {
   id: number;
   name: string | null;
-  /** Titres ajoutés pendant la Jam. */
+  /** Tracks added during the Jam. */
   added: number;
   banned: boolean;
 }
 
-/** Événement `jam-guests` : noms des titres et invités. */
+/** `jam-guests` event: names of the tracks and guests. */
 export interface JamGuestsUpdate {
   guests: Record<string, string>;
   members: JamGuest[];
@@ -996,86 +996,86 @@ export interface JamGuestsUpdate {
 export const commands = {
   authStatus: () => invoke<SessionInfo | null>("auth_status"),
   login: () => invoke<SessionInfo>("login"),
-  /** Vrai si la connexion passe par le navigateur du système (Linux, #17). */
+  /** True if sign-in goes through the system browser (Linux, #17). */
   loginInBrowser: () => invoke<boolean>("login_in_browser"),
-  /** Ouvre la page de connexion dans le navigateur du système et renvoie son adresse. */
+  /** Opens the sign-in page in the system browser and returns its address. */
   browserLoginStart: () => invoke<string>("browser_login_start"),
-  /** Adresse de la page sur laquelle TIDAL a renvoyé après la connexion. */
+  /** Address of the page TIDAL redirected to after sign-in. */
   browserLoginFinish: (redirect: string) =>
     invoke<SessionInfo>("browser_login_finish", { redirect }),
   logout: () => invoke<void>("logout"),
   search: (query: string) => invoke<SearchResults>("search", { query }),
-  /** Dernières recherches retenues, la plus récente en tête (#211). */
+  /** Latest searches kept, most recent first (#211). */
   searchHistory: () => invoke<string[]>("search_history"),
-  /** Garde une requête dans l'historique (#248 : `search` ne le fait plus). */
+  /** Keeps a query in the history (#248: `search` no longer does it). */
   noteSearchHistory: (query: string) => invoke<string[]>("note_search_history", { query }),
   removeSearchHistory: (query: string) => invoke<string[]>("remove_search_history", { query }),
   clearSearchHistory: () => invoke<string[]>("clear_search_history"),
-  /** Historique d'écoute local (#202) : albums récents et les plus écoutés. */
+  /** Local listening history (#202): recent and most listened albums. */
   playHistory: () => invoke<PlayHistory>("play_history"),
   clearPlayHistory: () => invoke<void>("clear_play_history"),
   playStats: (period: StatsPeriod) => invoke<PlayStats>("play_stats", { period }),
   recapPeriods: () => invoke<RecapPeriod[]>("recap_periods"),
   recap: (year: number, month: number | null) => invoke<Recap>("recap", { year, month }),
   smartList: (list: SmartList) => invoke<Track[]>("smart_list", { list }),
-  /** Jam locale (#25), bureau seulement : `null` si aucune Jam ne tourne. */
+  /** Local Jam (#25), desktop only: `null` if no Jam is running. */
   jamStatus: () => invoke<JamStatus | null>("jam_status"),
   jamOnlineAvailable: () => invoke<boolean>("jam_online_available"),
-  /** Relais (#452) : l'adresse choisie est vérifiée (`/healthz`) avant d'être enregistrée. */
+  /** Relay (#452): the chosen address is checked (`/healthz`) before being saved. */
   listenbrainzStatus: () => invoke<ListenBrainzStatus>("listenbrainz_status"),
   listenbrainzConnect: (token: string) =>
     invoke<ListenBrainzStatus>("listenbrainz_connect", { token }),
   listenbrainzDisconnect: () => invoke<ListenBrainzStatus>("listenbrainz_disconnect"),
   relaySettings: () => invoke<RelayView>("relay_settings"),
   setRelaySettings: (change: RelayChange) => invoke<RelayView>("set_relay_settings", { change }),
-  /** Dossier des mises à jour compilé (#452) ; `null` : mises à jour absentes. */
+  /** Compiled updates folder (#452); `null`: no updates. */
   updateServer: () => invoke<string | null>("update_server"),
-  /** En ligne, l'adresse arrive ensuite par `jam-status`. */
+  /** Online, the address comes afterwards through `jam-status`. */
   startJam: (mode: JamMode) => invoke<JamStatus>("start_jam", { mode }),
   stopJam: () => invoke<void>("stop_jam"),
-  /** Règles de l'hôte, enregistrées et appliquées (#222, #288) ; `null` sans Jam. */
+  /** Host rules, saved and applied (#222, #288); `null` without a Jam. */
   setJamRules: (rules: JamRules) => invoke<JamStatus | null>("set_jam_rules", { rules }),
-  /** Suspend (`false`) ou rouvre les ajouts des invités (#288). */
+  /** Suspends (`false`) or reopens the guests' additions (#288). */
   setJamAddsOpen: (open: boolean) => invoke<JamStatus | null>("set_jam_adds_open", { open }),
-  /** Exclut un invité (ses titres en attente sont retirés) ou le réadmet (#288). */
+  /** Bans a guest (their pending tracks are removed) or readmits them (#288). */
   setJamGuestBanned: (id: number, banned: boolean) =>
     invoke<JamStatus | null>("set_jam_guest_banned", { id, banned }),
-  /** Télécommande (#336) : `null` si elle est éteinte. */
+  /** Remote control (#336): `null` if it is off. */
   remoteStatus: () => invoke<RemoteStatus | null>("remote_status"),
-  /** Allume la télécommande (choix et code retenus). */
+  /** Turns the remote control on (choice and code kept). */
   startRemote: () => invoke<RemoteStatus | null>("start_remote"),
   stopRemote: () => invoke<RemoteStatus | null>("stop_remote"),
-  /** #414 : « Accepter les transferts » ; `null` si le serveur s'arrête. */
+  /** #414: "Accept transfers"; `null` if the server stops. */
   setHandoffAccepted: (enabled: boolean) =>
     invoke<RemoteStatus | null>("set_handoff_accepted", { enabled }),
-  /** #414, téléphone : ordinateur lié (jamais le code). */
+  /** #414, phone: linked computer (never the code). */
   linkedComputer: () => invoke<LinkedComputer | null>("linked_computer"),
-  /** Adresse de la télécommande du PC avec son code après `#`, vérifiée avant d'être gardée. */
+  /** Address of the PC's remote control with its code after `#`, checked before being kept. */
   linkComputer: (link: string) => invoke<LinkedComputer>("link_computer", { link }),
   unlinkComputer: () => invoke<void>("unlink_computer"),
-  /** « Reprendre ici » : la lecture du PC passe sur le téléphone, le PC se met en pause. */
+  /** "Resume here": playback of the PC moves to the phone, the PC pauses. */
   handoffPull: () => invoke<void>("handoff_pull"),
-  /** « Continuer sur l'ordinateur » : le téléphone se met en pause, le PC reprend. */
+  /** "Continue on the computer": the phone pauses, the PC resumes. */
   handoffPush: () => invoke<void>("handoff_push"),
-  /** #430 : historique d'écoute échangé avec l'ordinateur lié ; date de la dernière synchro
-   *  réussie, `null` sans ordinateur lié. Sans `force`, rien si elle est toute récente. */
+  /** #430: listening history exchanged with the linked computer; date of the last
+   *  successful sync, `null` without a linked computer. Without `force`, nothing if recent. */
   syncHistory: (force: boolean) => invoke<number | null>("sync_history", { force }),
-  /** Nouveau code : les téléphones appairés sont déconnectés. */
+  /** New code: paired phones are disconnected. */
   renewRemoteCode: () => invoke<RemoteStatus | null>("renew_remote_code"),
   /** #62: "Link a phone", new relay key and 10 minutes for a phone to learn the route. */
   openHandoffPairing: () => invoke<RemoteStatus | null>("open_handoff_pairing"),
   album: (id: number) => invoke<AlbumPage>("album", { id }),
   artist: (id: number) => invoke<ArtistPage>("artist", { id }),
-  /** Autres versions et autres albums de l'artiste (#350), album affiché exclu. */
+  /** Other versions and other albums by the artist (#350), displayed album excluded. */
   albumRelated: (id: number) => invoke<AlbumRelated>("album_related", { id }),
-  /** Biographie, similaires, « Apparaît sur » (#205) : chaque partie peut être vide. */
+  /** Biography, similar artists, "Appears on" (#205): each part can be empty. */
   artistExtra: (id: number) => invoke<ArtistExtra>("artist_extra", { id }),
-  /** `null` si la playlist n'a pas changé depuis `revision` (#152). */
+  /** `null` if the playlist has not changed since `revision` (#152). */
   playlist: (uuid: string, revision: string | null = null) =>
     invoke<PlaylistPage | null>("playlist", { uuid, revision }),
-  /** Copie gardée par le backend, sans réseau : affichée en attendant `playlist`. */
+  /** Copy kept by the backend, without network: displayed while waiting for `playlist`. */
   cachedPlaylist: (uuid: string) => invoke<PlaylistPage | null>("cached_playlist", { uuid }),
-  /** Copie de l'onglet enregistrée au dernier lancement (#181), sans réseau ; pas de mixes. */
+  /** Copy of the tab saved at the last launch (#181), without network; no mixes. */
   cachedLibrary: (tab: "tracks" | "albums" | "artists" | "playlists") =>
     invoke<LibraryList<unknown> | null>("cached_library", { tab }),
   mix: (id: string) => invoke<MixPage>("mix", { id }),
@@ -1086,101 +1086,101 @@ export const commands = {
   libraryArtists: () => invoke<LibraryList<ArtistSummary>>("library_artists"),
   libraryPlaylists: () => invoke<LibraryList<PlaylistSummary>>("library_playlists"),
   home: () => invoke<HomeFeed>("home"),
-  /** Tout l'accueil, pages suivantes comprises : remplace la première page. */
+  /** The whole home, following pages included: replaces the first page. */
   homeRest: () => invoke<HomeSection[]>("home_rest"),
-  /** Fil complété des sorties des artistes suivis (#415) ; émet aussi `feed-unseen`. */
+  /** Completed feed of releases by followed artists (#415); also emits `feed-unseen`. */
   feed: () => invoke<FeedItem[]>("feed"),
-  /** Marque comme vu tout le dernier fil lu (ouverture de la page). */
+  /** Marks the whole last feed read as seen (page opening). */
   markFeedSeen: () => invoke<void>("mark_feed_seen"),
-  /** `null` si TIDAL n'a pas de paroles pour ce titre. */
+  /** `null` if TIDAL has no lyrics for this track. */
   lyrics: (trackId: TrackId) => invoke<Lyrics | null>("lyrics", { trackId }),
-  /** Format réel, ReplayGain, BPM… : une requête de lecture, à ne demander qu'à la demande. */
+  /** Actual format, ReplayGain, BPM…: a read request, to only ask for on demand. */
   trackInfo: (trackId: TrackId) => invoke<TrackInfo>("track_info", { trackId }),
-  /** Lien TIDAL contenu dans un texte collé, ou `null` (un titre est résolu en son album). */
+  /** TIDAL link contained in a pasted text, or `null` (a track resolves to its album). */
   openLink: (text: string) => invoke<LinkTarget | null>("open_link", { text }),
-  /** Lit une playlist d'un autre service et cherche ses titres (#328) ; avancement par
-   *  `onImportProgress`. Rien n'est enregistré. */
+  /** Reads a playlist from another service and looks for its tracks (#328); progress through
+   *  `onImportProgress`. Nothing is saved. */
   importPlaylist: (link: string) => invoke<ImportPreview>("import_playlist", { link }),
-  /** Arrête l'import en cours (page quittée). */
+  /** Stops the import in progress (page left). */
   cancelImport: () => invoke<void>("cancel_import"),
-  /** Crédits de tout l'album, à la demande (une requête par page de 100 titres). */
+  /** Credits of the whole album, on demand (one request per page of 100 tracks). */
   albumCredits: (albumId: number) => invoke<AlbumCreditGroup[]>("album_credits", { albumId }),
-  /** Lot de titres d'un contributeur (#429) : `offset` = `nextOffset` du lot précédent, 0 au départ. */
+  /** Batch of tracks of a contributor (#429): `offset` = previous `nextOffset`, 0 at the start. */
   contributor: (artistId: number, offset: number) =>
     invoke<ContributorPage>("contributor", { artistId, offset }),
-  /** Album hi-res au même titre, pour un album qui ne l'est pas (#59). */
+  /** Hi-res album with the same title, for an album that is not (#59). */
   hiresTwinAlbum: (albumId: number) => invoke<AlbumSummary | null>("hires_twin_album", { albumId }),
-  /** Identifiants de tous les favoris (mis à jour ensuite par l'événement `likes`). */
+  /** Identifiers of all favorites (updated afterwards by the `likes` event). */
   likes: () => invoke<LikedIds>("likes"),
-  /** Ajoute aux favoris ou retire ; l'événement `likes` suit la confirmation. */
+  /** Adds to or removes from favorites; the `likes` event follows the confirmation. */
   setLiked: (target: LikeTarget, liked: boolean) => invoke<void>("set_liked", { target, liked }),
-  /** Plusieurs titres ajoutés aux favoris ou retirés en une fois (sélection, #332). */
+  /** Several tracks added to or removed from favorites at once (selection, #332). */
   setTracksLiked: (trackIds: TrackId[], liked: boolean) =>
     invoke<void>("set_tracks_liked", { trackIds, liked }),
-  /** Titres et artistes bloqués (#334), lus chez le service. */
+  /** Blocked tracks and artists (#334), read from the service. */
   blocked: () => invoke<Blocked>("blocked"),
-  /** Bloque ou débloque un titre ou un artiste. */
+  /** Blocks or unblocks a track or an artist. */
   setBlocked: (target: BlockTarget, blocked: boolean) =>
     invoke<void>("set_blocked", { target, blocked }),
-  /** Identifiants de « Plus tard » (#196), mis à jour ensuite par l'événement `later`. */
+  /** Identifiers of "Save for later" (#196), updated afterwards by the `later` event. */
   laterIds: () => invoke<LikedIds>("later_ids"),
-  /** Toute la liste « Plus tard », du plus récent au plus ancien. */
+  /** The whole "Save for later" list, from newest to oldest. */
   saveForLater: () => invoke<LibraryList<LaterItem>>("save_for_later"),
-  /** Ajoute à « Plus tard » ou retire (pas de mix) ; l'événement `later` suit. */
+  /** Adds to or removes from "Save for later" (no mix); the `later` event follows. */
   setSavedForLater: (target: LikeTarget, saved: boolean) =>
     invoke<void>("set_saved_for_later", { target, saved }),
-  /** Playlists créées par l'utilisateur, les seules modifiables. */
+  /** Playlists created by the user, the only editable ones. */
   ownPlaylists: () => invoke<PlaylistSummary[]>("own_playlists"),
-  /** Ajoute à la fin, sans doublon ; renvoie le nombre de titres réellement ajoutés. */
+  /** Adds at the end, without duplicates; returns the number of tracks actually added. */
   addToPlaylist: (uuid: string, trackIds: TrackId[]) =>
     invoke<number>("add_to_playlist", { uuid, trackIds }),
-  /** Crée une playlist avec ces titres ; renvoie son uuid. */
+  /** Creates a playlist with these tracks; returns its uuid. */
   createPlaylist: (title: string, trackIds: TrackId[]) =>
     invoke<string>("create_playlist", { title, trackIds }),
-  /** `index` : position dans la playlist (0 = premier) ; refusé si un autre titre s'y trouve. */
+  /** `index`: position in the playlist (0 = first); refused if another track is there. */
   removeFromPlaylist: (uuid: string, index: number, trackId: TrackId) =>
     invoke<void>("remove_from_playlist", { uuid, index, trackId }),
-  /** Retire plusieurs positions (#332) ; tout est refusé si l'une a changé. */
+  /** Removes several positions (#332); everything is refused if one has changed. */
   removeManyFromPlaylist: (uuid: string, items: PlaylistItem[]) =>
     invoke<void>("remove_many_from_playlist", { uuid, items }),
-  /** Annule un retrait par lot ; renvoie le nombre de titres remis. */
+  /** Undoes a batch removal; returns the number of tracks put back. */
   restoreManyToPlaylist: (uuid: string, items: PlaylistItem[]) =>
     invoke<number>("restore_many_to_playlist", { uuid, items }),
-  /** Remet un titre retiré à sa position (annulation, #349) ; `false` si rien n'a été ajouté. */
+  /** Puts a removed track back at its position (undo, #349); `false` if nothing was added. */
   restoreToPlaylist: (uuid: string, index: number, trackId: TrackId) =>
     invoke<boolean>("restore_to_playlist", { uuid, index, trackId }),
-  /** Déplace le titre de `from` à `to` (position finale, 0 = premier, #201). */
+  /** Moves the track from `from` to `to` (final position, 0 = first, #201). */
   moveInPlaylist: (uuid: string, from: number, to: number, trackId: TrackId) =>
     invoke<void>("move_in_playlist", { uuid, from, to, trackId }),
-  /** Renomme et change la description (#201). */
+  /** Renames and changes the description (#201). */
   editPlaylist: (uuid: string, title: string, description: string) =>
     invoke<void>("edit_playlist", { uuid, title, description }),
   deletePlaylist: (uuid: string) => invoke<void>("delete_playlist", { uuid }),
-  /** Dossiers de playlists (#331), triés par nom ; vide si l'utilisateur n'en a pas. */
+  /** Playlist folders (#331), sorted by name; empty if the user has none. */
   playlistFolders: () => invoke<PlaylistFolder[]>("playlist_folders"),
-  /** Crée un dossier à la racine, avec ces playlists dedans. */
+  /** Creates a folder at the root, with these playlists inside. */
   createFolder: (name: string, uuids: string[]) =>
     invoke<PlaylistFolder>("create_folder", { name, uuids }),
   renameFolder: (id: string, name: string) => invoke<void>("rename_folder", { id, name }),
-  /** Range des playlists dans un dossier, ou les ressort à la racine (`folderId` nul). */
+  /** Puts playlists in a folder, or moves them back to the root (`folderId` null). */
   moveToFolder: (uuids: string[], folderId: string | null) =>
     invoke<void>("move_to_folder", { uuids, folderId }),
-  /** Supprime un dossier ; ses playlists sont gardées, à la racine. */
+  /** Deletes a folder; its playlists are kept, at the root. */
   deleteFolder: (id: string) => invoke<void>("delete_folder", { id }),
-  /** Doublons et titres indisponibles d'une de vos playlists (#382). */
+  /** Duplicates and unavailable tracks of one of your playlists (#382). */
   playlistCleanup: (uuid: string) => invoke<CleanupReport>("playlist_cleanup", { uuid }),
-  /** Applique les changements choisis (positions du rapport, dans n'importe quel ordre). */
+  /** Applies the chosen changes (positions of the report, in any order). */
   cleanPlaylist: (uuid: string, ops: ListOp[]) =>
     invoke<ListOpsResult>("clean_playlist", { uuid, ops }),
-  /** Annule : `ops` = le `undo` du nettoyage. */
+  /** Undoes: `ops` = the `undo` of the cleanup. */
   undoPlaylistCleanup: (uuid: string, ops: ListOp[]) =>
     invoke<ListOpsResult>("undo_playlist_cleanup", { uuid, ops }),
-  /** Doublons et titres indisponibles des titres likés (#382). */
+  /** Duplicates and unavailable tracks among the liked tracks (#382). */
   likedCleanup: () => invoke<CleanupReport>("liked_cleanup"),
-  /** Applique des changements aux titres likés, ou les annule ; l'événement `likes` suit. */
+  /** Applies changes to the liked tracks, or undoes them; the `likes` event follows. */
   cleanLiked: (ops: ListOp[]) => invoke<ListOpsResult>("clean_liked", { ops }),
-  /** Blind test (#434) : partie de `rounds` manches tirées dans `trackIds`. */
-  /** Avec `jam`, les invités de la Jam en cours jouent aussi (#441). */
+  /** Blind test (#434): game of `rounds` rounds drawn from `trackIds`. */
+  /** With `jam`, the guests of the current Jam play too (#441). */
   blindTestStart: (
     trackIds: TrackId[],
     mode: BlindMode,
@@ -1189,7 +1189,7 @@ export const commands = {
     jam = false,
     hostPlays = true,
   ) => invoke<void>("blind_test_start", { trackIds, mode, rounds, title, jam, hostPlays }),
-  /** Révèle la manche sans attendre les réponses qui manquent (à plusieurs). */
+  /** Reveals the round without waiting for the missing answers (with several players). */
   blindTestReveal: () => invoke<void>("blind_test_reveal"),
   blindTestAnswer: (answer: BlindAnswer) => invoke<void>("blind_test_answer", { answer }),
   blindTestReplay: () => invoke<void>("blind_test_replay"),
@@ -1204,32 +1204,32 @@ export const commands = {
     shuffle: boolean | null = null,
     source: PlaySource | null = null,
   ) => invoke<void>("play_tracks", { trackIds, startIndex, shuffle, source }),
-  /** Android : vrai une fois après le lien `seaglass://drive` ou le raccourci de l'app (#193). */
+  /** Android: true once after the `seaglass://drive` link or the app shortcut (#193). */
   takeDriveRequest: () => invoke<boolean>("take_drive_request"),
-  /** Android : épingle demandée par un raccourci de l'icône ou le lien `seaglass://pin/…`
-   *  (#335), une seule fois. */
+  /** Android: pin requested by an icon shortcut or the `seaglass://pin/…` link
+   *  (#335), only once. */
   takePinRequest: () => invoke<Pin | null>("take_pin_request"),
-  /** Android : écran gardé allumé (mode conduite, #193) ; rien sur le bureau. */
+  /** Android: screen kept on (driving mode, #193); nothing on desktop. */
   keepScreenOn: (on: boolean) => invoke<void>("keep_screen_on", { on }),
   playNext: (trackId: TrackId) => invoke<void>("play_next", { trackId }),
   addToQueue: (trackId: TrackId) => invoke<void>("add_to_queue", { trackId }),
-  /** Plusieurs titres dans l'ordre : en tête de la file avec `next` (« Lire ensuite »), sinon à la fin. */
+  /** Several tracks in order: at the head of the queue with `next` ("Play next"), else at the end. */
   enqueueTracks: (trackIds: TrackId[], next: boolean) =>
     invoke<void>("enqueue_tracks", { trackIds, next }),
   removeFromQueue: (index: number) => invoke<void>("remove_from_queue", { index }),
-  /** Déplace l'entrée `from` de la file manuelle pour qu'elle finisse à l'index `to`. */
+  /** Moves the entry `from` of the manual queue so that it ends at index `to`. */
   moveInQueue: (from: number, to: number) => invoke<void>("move_in_queue", { from, to }),
   clearQueue: () => invoke<void>("clear_queue"),
-  /** Annule le dernier vidage ou retrait d'un titre de la file (#349) ; `false` si la
-   *  file a changé depuis. */
+  /** Undoes the last clearing or removal of a track from the queue (#349); `false` if the
+   *  queue has changed since. */
   restoreQueue: () => invoke<boolean>("restore_queue"),
-  /** Lit le titre `index` de `QueueView.manual` ou `.upcoming` (#167) ; sans effet si ce
-   *  n'est plus `trackId` (file changée depuis l'affichage). */
+  /** Plays the track `index` of `QueueView.manual` or `.upcoming` (#167); no effect if it is no
+   *  longer `trackId` (queue changed since the display). */
   playFromQueue: (part: QueuePart, index: number, trackId: TrackId) =>
     invoke<void>("play_from_queue", { part, index, trackId }),
-  /** Réponse au bandeau « Édition hi-res disponible », valable pour tout l'album (#59). */
+  /** Answer to the "Hi-res edition available" banner, valid for the whole album (#59). */
   answerHiresOffer: (accept: boolean) => invoke<void>("answer_hires_offer", { accept }),
-  /** Pause après une durée ou à la fin du titre en cours ; `null` annule (#85). */
+  /** Pause after a duration or at the end of the current track; `null` cancels (#85). */
   setSleepTimer: (timer: SleepRequest | null) => invoke<void>("set_sleep_timer", { timer }),
   next: () => invoke<void>("next"),
   previous: () => invoke<void>("previous"),
@@ -1237,7 +1237,7 @@ export const commands = {
   seek: (seconds: number) => invoke<void>("seek", { seconds }),
   setShuffle: (enabled: boolean) => invoke<void>("set_shuffle", { enabled }),
   setRepeat: (mode: Repeat) => invoke<void>("set_repeat", { mode }),
-  /** 0 à 100 ; rétablit le son s'il était coupé (sauf à 0). */
+  /** 0 to 100; restores the sound if it was muted (except at 0). */
   setVolume: (volume: number) => invoke<void>("set_volume", { volume }),
   setMuted: (muted: boolean) => invoke<void>("set_muted", { muted }),
   playerState: () => invoke<PlayerState>("player_state"),
@@ -1246,95 +1246,95 @@ export const commands = {
   uiSettings: () => invoke<UiSettings>("ui_settings"),
   setUiSettings: (settings: UiSettings) => invoke<void>("set_ui_settings", { settings }),
   globalShortcutsStatus: () => invoke<GlobalShortcutsStatus>("global_shortcuts_status"),
-  /** Langue effective (réglage, ou langue du système). */
+  /** Effective language (setting, or system language). */
   language: () => invoke<Lang>("language"),
-  /** Enregistre le réglage ; renvoie la langue effective. */
+  /** Saves the setting; returns the effective language. */
   setLanguage: (language: LanguagePref) => invoke<Lang>("set_language", { language }),
-  /** Sections affichées, dans l'ordre de l'écran ; renvoie la disposition enregistrée. */
+  /** Sections displayed, in screen order; returns the saved layout. */
   setHomeLayout: (sections: { key: string; hidden: boolean }[]) =>
     invoke<HomeLayout>("set_home_layout", { sections }),
-  /** Affiche ou masque le bandeau « À la une » (#185) ; renvoie la disposition enregistrée. */
+  /** Shows or hides the "Featured" banner (#185); returns the saved layout. */
   setHomeFeatured: (shown: boolean) => invoke<HomeLayout>("set_home_featured", { shown }),
   resetHomeLayout: () => invoke<HomeLayout>("reset_home_layout"),
   /** Opens the website, the repository or a new issue in the browser (#188, #517); fixed URLs on the Rust side. */
   openProjectPage: (page: ProjectPage) => invoke<void>("open_project_page", { page }),
-  /** #192 : vrai une seule fois si le lancement précédent a planté. */
+  /** #192: true only once if the previous launch crashed. */
   takeCrashNotice: () => invoke<boolean>("take_crash_notice"),
-  /** Rapport du dernier plantage, à copier dans une issue. */
+  /** Report of the last crash, to copy into an issue. */
   lastCrashReport: () => invoke<string | null>("last_crash_report"),
-  /** Fin du journal de ce lancement. */
+  /** End of the log of this launch. */
   currentLog: () => invoke<string | null>("current_log"),
-  /** #352 : réglages de cet appareil en JSON, à coller ailleurs. */
+  /** #352: settings of this device as JSON, to paste elsewhere. */
   exportSettings: () => invoke<string>("export_settings"),
-  /** Reprend une sauvegarde collée ; clés `ui.theme`, `playback.autoRadio`… */
+  /** Restores a pasted backup; keys `ui.theme`, `playback.autoRadio`… */
   importSettings: (text: string) => invoke<ImportReport>("import_settings", { text }),
   changelog: () => invoke<Release[]>("changelog"),
-  /** Bureau : dossier des journaux dans l'explorateur. */
+  /** Desktop: log folder in the explorer. */
   openLogDir: () => invoke<void>("open_log_dir"),
-  /** Bureau (#330) : exporte la bibliothèque en JSON et CSV dans Documents\Seaglass. */
+  /** Desktop (#330): exports the library as JSON and CSV in Documents\Seaglass. */
   exportLibrary: () => invoke<LibraryExportReport>("export_library"),
   cancelLibraryExport: () => invoke<void>("cancel_library_export"),
-  /** Remplace les épingles ; renvoie la liste enregistrée (validée, sans doublons). */
+  /** Replaces the pins; returns the saved list (validated, without duplicates). */
   setPins: (pins: Pin[]) => invoke<Pin[]>("set_pins", { pins }),
-  /** Mémorise le tri d'une liste (`null` : l'oublie) ; renvoie les tris enregistrés. */
+  /** Remembers the sort of a list (`null`: forgets it); returns the saved sorts. */
   setListSort: (list: string, sort: TrackSort | null) =>
     invoke<ListSort[]>("set_list_sort", { list, sort }),
   playbackSettings: () => invoke<PlaybackSettings>("playback_settings"),
-  /** Enregistre et applique à chaud (sans recharger le titre en cours). */
+  /** Saves and applies live (without reloading the current track). */
   setPlaybackSettings: (settings: PlaybackSettings) =>
     invoke<void>("set_playback_settings", { settings }),
-  /** Android (#492) : plafond de batterie de l'instant ; `null` si la batterie ne change rien. */
+  /** Android (#492): battery cap of the moment; `null` if the battery changes nothing. */
   qualityCap: () => invoke<QualityCap | null>("quality_cap"),
-  /** #428 : analyse un « ParametricEQ.txt » d'AutoEQ ; profil d'identifiant 0, sans nom. */
+  /** #428: parses an AutoEQ "ParametricEQ.txt"; profile with identifier 0, no name. */
   parseAutoeq: (text: string) => invoke<EqProfile>("parse_autoeq", { text }),
-  /** Périphériques de sortie connus de mpv ; la suite arrive par `audio-devices`. */
+  /** Output devices known to mpv; the rest arrives through `audio-devices`. */
   audioDevices: () => invoke<AudioDevices>("audio_devices"),
-  /** Plateforme de l'app : choisit la mise en page (tactile sur Android). */
+  /** Platform of the app: chooses the layout (touch on Android). */
   platform: () => invoke<Platform>("platform"),
-  /** État réel du lancement au démarrage, lu dans le système. */
+  /** Actual launch-at-startup state, read from the system. */
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
-  /** Vrai si la présence Discord peut être proposée (bureau, application Discord compilée, #215). */
+  /** True if Discord presence can be offered (desktop, Discord app compiled, #215). */
   discordAvailable: () => invoke<boolean>("discord_available"),
-  /** Vrai si le mode exclusif peut être proposé (Windows seulement, #245, #17). */
+  /** True if exclusive mode can be offered (Windows only, #245, #17). */
   exclusiveAvailable: () => invoke<boolean>("exclusive_available"),
-  /** Renvoie l'état relu après changement. */
+  /** Returns the state read again after the change. */
   setAutostart: (enabled: boolean) => invoke<boolean>("set_autostart", { enabled }),
-  /** Bureau seulement : plein écran de la fenêtre principale (#131). */
-  /** Android : vrai une fois après un appui sur la notification (#163). */
+  /** Desktop only: full screen of the main window (#131). */
+  /** Android: true once after a tap on the notification (#163). */
   takeNowPlayingRequest: () => invoke<boolean>("take_now_playing_request"),
-  /** Android : lien reçu par le menu « Partager » (#203), une seule fois. */
+  /** Android: link received through the "Share" menu (#203), only once. */
   takeSharedLink: () => invoke<LinkTarget | null>("take_shared_link"),
-  /** Android 12+ : liens `https://tidal.com/…` donnés à l'app ; `null` = rien à régler (#203). */
+  /** Android 12+: `https://tidal.com/…` links given to the app; `null` = nothing to set (#203). */
   linkHandling: () => invoke<{ enabled: boolean } | null>("link_handling"),
-  /** Android : ouvre le réglage « Ouvrir par défaut » de l'app. */
+  /** Android: opens the app's "Open by default" setting. */
   openLinkSettings: () => invoke<void>("open_link_settings"),
   fullscreen: () => invoke<boolean>("fullscreen"),
-  /** Renvoie l'état relu ; la suite arrive aussi par `fullscreen`. */
+  /** Returns the state read again; the rest also arrives through `fullscreen`. */
   setFullscreen: (fullscreen: boolean) => invoke<boolean>("set_fullscreen", { fullscreen }),
-  /** Mini-lecteur du bureau (#384) : l'ouvrir cache la fenêtre principale, le fermer la réaffiche. */
+  /** Desktop mini player (#384): opening it hides the main window, closing it shows it again. */
   openMiniPlayer: () => invoke<void>("open_mini_player"),
   closeMiniPlayer: () => invoke<void>("close_mini_player"),
   miniPlayerOnTop: () => invoke<boolean>("mini_player_on_top"),
-  /** Renvoie l'état retenu. */
+  /** Returns the kept state. */
   setMiniPlayerOnTop: (onTop: boolean) => invoke<boolean>("set_mini_player_on_top", { onTop }),
   updateStatus: () => invoke<UpdateInfo | null>("update_status"),
-  /** Faux sous Linux hors d'une AppImage : mises à jour à faire à la main (#314). */
+  /** False on Linux outside an AppImage: updates to do by hand (#314). */
   updatesAvailable: () => invoke<boolean>("updates_available"),
-  /** L'installeur ferme l'app puis la relance (Linux : AppImage remplacée, puis relance). */
+  /** The installer closes the app then relaunches it (Linux: AppImage replaced, then relaunch). */
   installUpdate: () => invoke<void>("install_update"),
-  /** Vérifie tout de suite : la mise à jour prête (réémise en `update-ready`), en
-   *  téléchargement (`downloading`, `update-ready` suivra), ou `null` si à jour. */
+  /** Checks right away: the update ready (re-emitted as `update-ready`), being
+   *  downloaded (`downloading`, `update-ready` will follow), or `null` if up to date. */
   checkForUpdates: () => invoke<UpdateInfo | null>("check_for_updates"),
 };
 
 export const events = {
-  /** #430 : écoutes reçues de l'autre appareil (nombre) : recharger l'historique affiché. */
+  /** #430: listens received from the other device (count): reload the displayed history. */
   onHistorySynced: (cb: (added: number) => void): Promise<UnlistenFn> =>
     listen<number>("history-synced", (e) => cb(e.payload)),
-  /** Jam (#25) : connexion au relais (connecté, reconnexion, nouvelle adresse). */
+  /** Jam (#25): connection to the relay (connected, reconnection, new address). */
   onJamStatus: (cb: (status: JamStatus) => void): Promise<UnlistenFn> =>
     listen<JamStatus>("jam-status", (e) => cb(e.payload)),
-  /** Jam (#25) : un invité a ajouté ou retiré des titres, ou a été exclu (#288). */
+  /** Jam (#25): a guest added or removed tracks, or was banned (#288). */
   onJamGuests: (cb: (update: JamGuestsUpdate) => void): Promise<UnlistenFn> =>
     listen<JamGuestsUpdate>("jam-guests", (e) => cb(e.payload)),
   onPlayerState: (cb: (s: PlayerState) => void): Promise<UnlistenFn> =>
@@ -1345,11 +1345,11 @@ export const events = {
     listen<QueueView>("queue-state", (e) => cb(e.payload)),
   onUpdateReady: (cb: (u: UpdateInfo) => void): Promise<UnlistenFn> =>
     listen<UpdateInfo>("update-ready", (e) => cb(e.payload)),
-  /** Bureau : le téléchargement de l'installeur a échoué (message de l'erreur, #187). */
+  /** Desktop: the installer download failed (error message, #187). */
   onUpdateFailed: (cb: (message: string) => void): Promise<UnlistenFn> =>
     listen<string>("update-failed", (e) => cb(e.payload)),
-  /** #330 : progression de l'export de la bibliothèque. */
-  /** Import d'une playlist (#328) : titres cherchés sur TIDAL. */
+  /** #330: progress of the library export. */
+  /** Playlist import (#328): tracks searched on TIDAL. */
   onImportProgress: (cb: (p: ImportProgress) => void): Promise<UnlistenFn> =>
     listen<ImportProgress>("import-progress", (e) => cb(e.payload)),
   onLibraryExport: (cb: (p: LibraryExportProgress) => void): Promise<UnlistenFn> =>
@@ -1360,28 +1360,28 @@ export const events = {
     listen<LikedIds>("later", (e) => cb(e.payload)),
   onAudioDevices: (cb: (d: AudioDevices) => void): Promise<UnlistenFn> =>
     listen<AudioDevices>("audio-devices", (e) => cb(e.payload)),
-  /** Réglages de lecture changés par le backend (profil d'un périphérique de sortie, #416) :
-   *  à relire. */
+  /** Playback settings changed by the backend (profile of an output device, #416):
+   *  to read again. */
   onPlaybackSettings: (cb: () => void): Promise<UnlistenFn> =>
     listen<null>("playback-settings", () => cb()),
-  /** Android : appui sur la notification (#163) ; la demande se prend par `takeNowPlayingRequest`. */
+  /** Android: tap on the notification (#163); the request is taken with `takeNowPlayingRequest`. */
   onOpenNowPlaying: (cb: () => void): Promise<UnlistenFn> =>
     listen<null>("open-now-playing", () => cb()),
-  /** Android : mode conduite demandé (#193) ; la demande se prend par `takeDriveRequest`. */
+  /** Android: driving mode requested (#193); the request is taken with `takeDriveRequest`. */
   onOpenDrive: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-drive", () => cb()),
-  /** Android : épingle à lire (#335) ; elle se prend par `takePinRequest`. */
+  /** Android: pin to read (#335); it is taken with `takePinRequest`. */
   onOpenPin: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-pin", () => cb()),
-  /** Lien partagé prêt (Android, #203) ou notification touchée (#435) ; il se prend par
+  /** Shared link ready (Android, #203) or notification tapped (#435); it is taken with
    * `takeSharedLink`. */
   onSharedLink: (cb: () => void): Promise<UnlistenFn> => listen<null>("open-link", () => cb()),
-  /** Raccourci global exécuté par l'UI (#413) : « Aimer » seulement. */
+  /** Global shortcut run by the UI (#413): "Like" only. */
   onGlobalShortcut: (cb: (action: GlobalAction) => void): Promise<UnlistenFn> =>
     listen<GlobalAction>("global-shortcut", (e) => cb(e.payload)),
   onFullscreen: (cb: (fullscreen: boolean) => void): Promise<UnlistenFn> =>
     listen<boolean>("fullscreen", (e) => cb(e.payload)),
-  /** TIDAL a refusé le rafraîchissement en cours de route : reconnexion nécessaire (#259). */
+  /** TIDAL refused the refresh midway: sign-in needed again (#259). */
   onSessionLost: (cb: () => void): Promise<UnlistenFn> => listen<null>("session-lost", () => cb()),
-  /** Nombre de nouveautés du fil pas encore vues (#415). */
+  /** Number of unseen news from the feed (#415). */
   onFeedUnseen: (cb: (count: number) => void): Promise<UnlistenFn> =>
     listen<number>("feed-unseen", (e) => cb(e.payload)),
   onToast: (cb: (t: Toast) => void): Promise<UnlistenFn> =>

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { swipeRight } from "./swipe";
 
-// Ligne factice : juste ce que `swipeRight` lit et écrit, sans DOM simulé.
+// Fake row: just what `swipeRight` reads and writes, without a simulated DOM.
 class FakeRow extends EventTarget {
   readonly classes = new Set<string>();
   readonly vars = new Map<string, string>();
@@ -52,14 +52,14 @@ let row: FakeRow;
 let onSwipe: ReturnType<typeof vi.fn<() => void>>;
 let action: ReturnType<typeof swipeRight>;
 
-/** Doigt posé à x = 100, déplacé par étapes, puis relevé. */
+/** Finger placed at x = 100, moved in steps, then lifted. */
 function gesture(steps: [number, number][], end: "pointerup" | "pointercancel" = "pointerup") {
   row.dispatchEvent(pointer("pointerdown", 100));
   for (const [x, y] of steps) row.dispatchEvent(pointer("pointermove", x, y));
   row.dispatchEvent(pointer(end, steps.at(-1)?.[0] ?? 100));
 }
 
-/** Clic qui suit le geste : `true` s'il atteint la ligne. */
+/** Click that follows the gesture: `true` if it reaches the row. */
 function click() {
   const e = new Event("click", { cancelable: true });
   row.dispatchEvent(e);
@@ -79,7 +79,7 @@ afterEach(() => {
 });
 
 describe("swipeRight", () => {
-  it("déclenche au-delà du seuil (35 % de la largeur), au relâcher seulement", () => {
+  it("triggers beyond the threshold (35% of the width), on release only", () => {
     row.dispatchEvent(pointer("pointerdown", 100));
     row.dispatchEvent(pointer("pointermove", 120));
     row.dispatchEvent(pointer("pointermove", 260));
@@ -90,7 +90,7 @@ describe("swipeRight", () => {
     expect(onSwipe).toHaveBeenCalledOnce();
   });
 
-  it("ne déclenche pas en deçà du seuil, et ramène la ligne", () => {
+  it("does not trigger below the threshold, and brings the row back", () => {
     gesture([
       [120, 100],
       [230, 100],
@@ -103,7 +103,7 @@ describe("swipeRight", () => {
     expect(row.vars.size).toBe(0);
   });
 
-  it("garde un seuil minimal sur une ligne étroite", () => {
+  it("keeps a minimal threshold on a narrow row", () => {
     action.destroy();
     row = new FakeRow(100);
     action = swipeRight(row as unknown as HTMLElement, { enabled: true, onSwipe });
@@ -119,7 +119,7 @@ describe("swipeRight", () => {
     expect(onSwipe).toHaveBeenCalledOnce();
   });
 
-  it("abandonne un geste pas assez horizontal ou vers la gauche", () => {
+  it("abandons a gesture that is not horizontal enough or goes left", () => {
     gesture([
       [110, 110],
       [400, 110],
@@ -132,7 +132,7 @@ describe("swipeRight", () => {
     expect(row.classes.has("swiping")).toBe(false);
   });
 
-  it("attend quelques pixels avant de décider de la direction", () => {
+  it("waits a few pixels before deciding the direction", () => {
     row.dispatchEvent(pointer("pointerdown", 100));
     row.dispatchEvent(pointer("pointermove", 105, 104));
     expect(row.classes.has("swiping")).toBe(false);
@@ -140,14 +140,14 @@ describe("swipeRight", () => {
     expect(row.classes.has("swiping")).toBe(true);
   });
 
-  it("laisse le bord gauche au Retour d'Android", () => {
+  it("leaves the left edge to Android's Back", () => {
     row.dispatchEvent(pointer("pointerdown", 10));
     row.dispatchEvent(pointer("pointermove", 300));
     row.dispatchEvent(pointer("pointerup", 300));
     expect(onSwipe).not.toHaveBeenCalled();
   });
 
-  it("ignore un autre doigt ou un autre bouton", () => {
+  it("ignores another finger or another button", () => {
     row.dispatchEvent(pointer("pointerdown", 100, 100, { button: 2 }));
     row.dispatchEvent(pointer("pointermove", 300));
     row.dispatchEvent(pointer("pointerup", 300));
@@ -157,7 +157,7 @@ describe("swipeRight", () => {
     expect(onSwipe).not.toHaveBeenCalled();
   });
 
-  it("annulé par le navigateur (défilement) : rien ne se déclenche", () => {
+  it("cancelled by the browser (scrolling): nothing triggers", () => {
     gesture(
       [
         [120, 100],
@@ -169,19 +169,19 @@ describe("swipeRight", () => {
     expect(row.classes.has("swipe-release")).toBe(true);
   });
 
-  it("avale le clic qui suit un glissement, pas les autres", () => {
+  it("swallows the click that follows a swipe, not the others", () => {
     gesture([
       [120, 100],
       [150, 100],
     ]);
     expect(click()).toBe(false);
     expect(click()).toBe(true);
-    // Simple appui : le clic passe.
+    // Simple press: the click goes through.
     gesture([]);
     expect(click()).toBe(true);
   });
 
-  it("le clic avalé ne survit pas à la tâche du relâcher", () => {
+  it("the swallowed click does not outlive the release task", () => {
     gesture([
       [120, 100],
       [150, 100],
@@ -190,7 +190,7 @@ describe("swipeRight", () => {
     expect(click()).toBe(true);
   });
 
-  it("désactivé : ignore le geste, et ramène une ligne en cours de glissement", () => {
+  it("disabled: ignores the gesture, and brings back a row being dragged", () => {
     row.dispatchEvent(pointer("pointerdown", 100));
     row.dispatchEvent(pointer("pointermove", 200));
     action.update({ enabled: false, onSwipe });

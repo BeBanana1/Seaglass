@@ -1,38 +1,38 @@
-// Glisser au doigt pour réorganiser une liste (Android, #290) : le glisser HTML5 ne marche
-// pas au toucher dans la WebView. Un appui long (HOLD ms sans bouger) saisit la ligne, qui
-// suit alors le doigt ; le repère d'insertion et le déplacement final passent par le même
-// `Reorder` que le glisser de la souris.
-// - Avant la saisie, un déplacement de plus de SLOP px rend la main au défilement.
-// - Après la saisie, `touchmove` est annulé (écouteur non passif) : la page ne défile plus
-//   sous le doigt ; elle défile seule quand le doigt approche d'un bord du conteneur, mais
-//   seulement tant qu'il reste de la liste à montrer de ce côté (#302).
-// - La ligne saisie reste dans la liste : sinon son `transform` agrandissait la zone
-//   défilable et le défilement automatique descendait sans fin sous la liste (#302).
-// - Un appui qui commence sur un bouton n'est pas une saisie (Monter / Descendre, Masquer).
-// - Avec une poignée (`handle`, file d'attente #450), seul un appui sur elle saisit la ligne,
-//   et tout de suite : l'appui long sur le reste de la ligne garde son menu. La poignée porte
-//   `touch-action: none`, la page ne défile donc pas sous elle.
-// La ligne suit le doigt par une variable CSS et des classes posées ici, sans état Svelte.
+// Finger drag to reorder a list (Android, #290): HTML5 drag does not work
+// with touch in the WebView. A long press (HOLD ms without moving) grabs the row, which
+// then follows the finger; the insertion indicator and the final move go through the same
+// `Reorder` as the mouse drag.
+// - Before the grab, a move of more than SLOP px hands control back to scrolling.
+// - After the grab, `touchmove` is cancelled (non-passive listener): the page no longer scrolls
+//   under the finger; it scrolls by itself when the finger nears an edge of the container, but
+//   only while there is list left to show on that side (#302).
+// - The grabbed row stays in the list: otherwise its `transform` enlarged the scrollable
+//   area and the automatic scrolling went down endlessly below the list (#302).
+// - A press that starts on a button is not a grab (Move up / Move down, Hide).
+// - With a handle (`handle`, queue #450), only a press on it grabs the row,
+//   and immediately: the long press on the rest of the row keeps its menu. The handle carries
+//   `touch-action: none`, so the page does not scroll under it.
+// The row follows the finger through a CSS variable and classes set here, without Svelte state.
 
 import type { Reorder } from "./reorder.svelte";
 
-/** Durée de l'appui avant la saisie (ms). */
+/** Duration of the press before the grab (ms). */
 const HOLD = 350;
-/** Tolérance de mouvement du doigt pendant l'appui (px). */
+/** Tolerance of the finger's movement during the press (px). */
 const SLOP = 10;
-/** Zone près des bords du conteneur où la page défile seule (px). */
+/** Zone near the container's edges where the page scrolls by itself (px). */
 const EDGE = 64;
-/** Vitesse maximale du défilement automatique (px par image). */
+/** Maximum speed of the automatic scrolling (px per frame). */
 const SPEED = 14;
 
 export interface TouchReorderOptions {
   enabled: boolean;
-  /** Position de la ligne dans la liste réorganisable. */
+  /** Position of the row in the reorderable list. */
   index: number;
   reorder: Reorder;
-  /** Lignes de la liste, dans l'ordre, pour situer le doigt. */
+  /** Rows of the list, in order, to locate the finger. */
   items: () => HTMLElement[];
-  /** Sélecteur de la poignée : l'appui doit y commencer, et saisit sans attendre. */
+  /** Selector of the handle: the press must start there, and grabs without waiting. */
   handle?: string;
 }
 
@@ -56,12 +56,12 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
   let scroller: HTMLElement | null = null;
   let scroll0 = 0;
   let frame = 0;
-  /** Décalage appliqué à la ligne saisie (`--drag-y`), en px. */
+  /** Offset applied to the grabbed row (`--drag-y`), in px. */
   let shift = 0;
-  /** Une saisie vient de finir : le clic qui suit n'est pas un appui sur la ligne. */
+  /** A grab has just ended: the click that follows is not a press on the row. */
   let swallowClick = false;
 
-  /** Haut et bas de la liste à l'écran, la ligne saisie comptée à sa place d'origine. */
+  /** Top and bottom of the list on screen, the grabbed row counted at its original place. */
   function bounds(items: HTMLElement[]): { top: number; bottom: number } | null {
     if (items.length === 0) return null;
     const rect = (el: HTMLElement) => (el === node ? originRect() : el.getBoundingClientRect());
@@ -82,10 +82,10 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
     }
     shift = next;
     node.style.setProperty("--drag-y", `${shift}px`);
-    // Emplacement : avant la première ligne dont le milieu est sous le doigt.
+    // Slot: before the first row whose middle is under the finger.
     let slot = items.length;
     for (let i = 0; i < items.length; i++) {
-      // La ligne saisie est déplacée par `transform` : on la situe à sa place d'origine.
+      // The grabbed row is moved by `transform`: it is located at its original place.
       const rect = items[i] === node ? originRect() : items[i].getBoundingClientRect();
       if (y < rect.top + rect.height / 2) {
         slot = i;
@@ -110,7 +110,7 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
     let step = 0;
     if (y < box.top + EDGE) step = -SPEED * Math.min(1, (box.top + EDGE - y) / EDGE);
     else if (y > box.bottom - EDGE) step = SPEED * Math.min(1, (y - (box.bottom - EDGE)) / EDGE);
-    // Pas au-delà de la liste : on s'arrête quand son bout est sorti de la zone du bord.
+    // Not beyond the list: we stop when its end has left the edge zone.
     const list = bounds(opts.items());
     if (list && step > 0) step = Math.min(step, Math.max(0, list.bottom - (box.bottom - EDGE)));
     if (list && step < 0) step = Math.max(step, Math.min(0, list.top - (box.top + EDGE)));
@@ -183,12 +183,12 @@ export function touchReorder(node: HTMLElement, options: TouchReorderOptions) {
     if (e.pointerId === pointer) finish(false);
   }
 
-  /** Après la saisie, le doigt déplace la ligne et non la page. */
+  /** After the grab, the finger moves the row and not the page. */
   function onTouchMove(e: TouchEvent) {
     if (phase === "dragging" && e.cancelable) e.preventDefault();
   }
 
-  /** L'appui long ouvrirait sinon le menu ou la sélection de texte de la WebView. */
+  /** The long press would otherwise open the menu or the WebView's text selection. */
   function onContextMenu(e: Event) {
     if (phase !== "idle") e.preventDefault();
   }

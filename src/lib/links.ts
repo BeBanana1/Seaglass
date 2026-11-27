@@ -1,6 +1,6 @@
-// Liens TIDAL collés (#203) : le backend reconnaît le lien et donne la page à ouvrir ; un
-// titre ouvre son album, titre mis en évidence. Sur Android, le menu « Partager » du système
-// passe par le backend, qui garde la page jusqu'à ce que l'UI la prenne (`openSharedLink`).
+// Pasted TIDAL links (#203): the backend recognizes the link and gives the page to open; a
+// track opens its album, track highlighted. On Android, the system's "Share" menu
+// goes through the backend, which keeps the page until the UI takes it (`openSharedLink`).
 
 import { commands, type LinkTarget } from "./ipc";
 import { go } from "./stores/nav.svelte";
@@ -29,7 +29,7 @@ function openTarget(target: LinkTarget) {
   }
 }
 
-/** Ouvre la page du lien contenu dans `text` ; `false` s'il n'y en a pas. */
+/** Opens the page of the link contained in `text`; `false` if there is none. */
 export async function openTidalLink(text: string): Promise<boolean> {
   try {
     const target = await commands.openLink(text);
@@ -42,8 +42,8 @@ export async function openTidalLink(text: string): Promise<boolean> {
   }
 }
 
-/** Lien partagé vers l'app (Android, #203) ou page d'une notification touchée (#435), à
- * l'événement `open-link` ou au démarrage. */
+/** Link shared to the app (Android, #203) or page of a tapped notification (#435), to
+ * the `open-link` event or at startup. */
 export async function openSharedLink() {
   const target = await commands.takeSharedLink().catch(() => null);
   if (target) openTarget(target);

@@ -12,7 +12,7 @@ import {
 const day = (y: number, m: number, d: number) => new Date(y, m - 1, d);
 
 describe("eggForDate", () => {
-  it("reconnaît les dates fixes", () => {
+  it("recognizes fixed dates", () => {
     expect(eggForDate(day(2027, 5, 4))).toBe("may4");
     expect(eggForDate(day(2026, 10, 31))).toBe("halloween");
     expect(eggForDate(day(2026, 8, 1))).toBe("swissDay");
@@ -29,7 +29,7 @@ describe("eggForDate", () => {
     expect(eggForDate(day(2026, 12, 26))).toBeNull();
   });
 
-  it("passe le changement d'année", () => {
+  it("handles the year change", () => {
     expect(eggForDate(day(2026, 12, 31))).toBeNull();
     expect(eggForDate(day(2027, 1, 1))).toBeNull();
     expect(eggForDate(day(2027, 1, 27))).toBe("mozart");
@@ -41,15 +41,15 @@ describe("eggForDate", () => {
     expect(eggForDate(day(2026, 12, 13))).toBeNull();
   });
 
-  it("29 février les années bissextiles", () => {
+  it("February 29 in leap years", () => {
     expect(eggForDate(day(2028, 2, 29))).toBe("leapDay");
-    // 2027 n'est pas bissextile : le 29 février devient le 1er mars.
+    // 2027 is not a leap year: February 29 becomes March 1.
     expect(eggForDate(day(2027, 2, 29))).toBeNull();
   });
 });
 
 describe("eggForQuery", () => {
-  it("ignore la casse, les accents et les espaces", () => {
+  it("ignores case, accents and spaces", () => {
     expect(eggForQuery("Seaglass")).toBe("seaglass");
     expect(eggForQuery("  verre   de MER ")).toBe("seaglass");
     expect(eggForQuery("Épice")).toBe("spice");
@@ -58,7 +58,7 @@ describe("eggForQuery", () => {
     expect(eggForQuery("Kessel")).toBe("kessel");
   });
 
-  it("une saisie exacte seulement", () => {
+  it("an exact input only", () => {
     expect(eggForQuery("4")).toBeNull();
     expect(eggForQuery("420")).toBeNull();
     expect(eggForQuery("rosebud remix")).toBeNull();
@@ -74,7 +74,7 @@ describe("chiffres romains", () => {
     expect(roman(1994)).toBe("MCMXCIV");
   });
 
-  it("écrit une version", () => {
+  it("writes a version", () => {
     expect(romanVersion("0.5.50")).toBe("N.V.L");
     expect(romanVersion("1.0.9")).toBe("I.N.IX");
   });
@@ -90,7 +90,7 @@ describe("parsePreviewDate", () => {
 });
 
 describe("identifiants", () => {
-  it("sépare dates et recherches", () => {
+  it("separates dates and searches", () => {
     expect(isDateEgg("may4")).toBe(true);
     expect(isDateEgg("friday13")).toBe(true);
     expect(isSearchEgg("mellon")).toBe(true);

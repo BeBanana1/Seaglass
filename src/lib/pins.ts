@@ -1,4 +1,4 @@
-// Épingles (#10) : libellé et page de chacune, pour la barre latérale et le mode conduite (#193).
+// Pins (#10): label and page of each, for the sidebar and the driving mode (#193).
 
 import { commands, type Pin, type PlaySource, type TrackEntry, type TrackId } from "./ipc";
 import type { LibraryTab, Route } from "./stores/nav.svelte";
@@ -12,7 +12,7 @@ import {
 } from "./trackOrder";
 import { t } from "./i18n.svelte";
 
-/** Onglet de la bibliothèque d'une épingle qui n'est ni une playlist ni un mix. */
+/** Library tab of a pin that is neither a playlist nor a mix. */
 export const pinTab = (pin: Pin): LibraryTab => (pin.kind === "later" ? "later" : "tracks");
 
 export function pinRoute(pin: Pin): Route {
@@ -43,7 +43,7 @@ export function pinLabel(pin: Pin): string {
   }
 }
 
-/** « Joué depuis » (#124) d'une épingle. */
+/** "Played from" (#124) of a pin. */
 export function pinSource(pin: Pin): PlaySource {
   switch (pin.kind) {
     case "playlist":
@@ -57,11 +57,11 @@ export function pinSource(pin: Pin): PlaySource {
   }
 }
 
-/** Dans l'ordre affiché par la page : tri mémorisé de la liste (#93), sinon son tri par défaut. */
+/** In the order shown by the page: remembered sort of the list (#93), otherwise its default. */
 const sorted = (tracks: TrackEntry[], list: string, fallback: TrackSort): TrackId[] =>
   sortTracks(listTracks(tracks), listSort(list, fallback)).map((l) => l.track.id);
 
-/** Titres que lirait le bouton Lecture de la page de l'épingle, dans le même ordre. */
+/** Tracks that the page's Play button of the pin would play, in the same order. */
 async function pinTracks(pin: Pin): Promise<TrackId[]> {
   switch (pin.kind) {
     case "playlist": {
@@ -81,7 +81,7 @@ async function pinTracks(pin: Pin): Promise<TrackId[]> {
   }
 }
 
-/** Mode conduite (#193) : lit toute la source épinglée, comme Lecture (ou Aléatoire) sur sa page. */
+/** Driving mode (#193): plays the whole pinned source, like Play (or Shuffle) on its page. */
 export async function playPin(pin: Pin, shuffle: boolean): Promise<void> {
   const ids = await pinTracks(pin);
   if (ids.length === 0) throw new Error(t.views.mix.empty);

@@ -1,8 +1,8 @@
-// Clins d'œil liés à la lecture et au clavier (#399, lot B) : logique pure, sans DOM.
+// Easter eggs tied to playback and the keyboard (#399, batch B): pure logic, no DOM.
 
 import type { TrackId } from "../ipc";
 
-/** Boucles du titre courant en Repeat One : `last` est la dernière position vue. */
+/** Loops of the current track on Repeat One: `last` is the last position seen. */
 export interface Loops {
   id: TrackId | null;
   count: number;
@@ -11,12 +11,12 @@ export interface Loops {
 
 export const NO_LOOPS: Loops = { id: null, count: 0, last: 0 };
 
-/** Après 9 retours au début, le titre a joué 10 fois de suite : l'icône passe à ∞. */
+/** After 9 returns to the start, the track has played 10 times in a row: the icon turns to ∞. */
 export const LOOPS_FOR_INFINITY = 9;
 
-/** Compte un tour quand la position repart du début après être passée près de la fin, sur
- *  le même titre en Repeat One. Un autre titre ou un autre mode remet le compte à zéro ; un
- *  retour au début en pleine écoute (Précédent, recherche) ne compte pas. */
+/** Counts a lap when the position restarts from the start after passing near the end, on
+ *  the same track on Repeat One. Another track or another mode resets the count; a
+ *  return to the start in the middle of a listen (Previous, seek) does not count. */
 export function countLoops(
   prev: Loops,
   id: TrackId | null,
@@ -29,7 +29,7 @@ export function countLoops(
   return { id, count: wrapped ? prev.count + 1 : prev.count, last: pos };
 }
 
-/** Séquence au clavier (↑↑↓↓←→←→BA), touches de `KeyboardEvent.key`. */
+/** Keyboard sequence (↑↑↓↓←→←→BA), keys of `KeyboardEvent.key`. */
 export const SEQUENCE = [
   "ArrowUp",
   "ArrowUp",
@@ -43,20 +43,20 @@ export const SEQUENCE = [
   "a",
 ];
 
-/** Avance dans la séquence : renvoie le nombre de touches justes, `SEQUENCE.length` quand
- *  elle est complète. Une touche fausse repart de zéro, ou de un si c'est un début. */
+/** Advances in the sequence: returns the number of correct keys, `SEQUENCE.length` when
+ *  it is complete. A wrong key restarts from zero, or from one if it is a start. */
 export function sequenceStep(progress: number, key: string): number {
   const k = key.length === 1 ? key.toLowerCase() : key;
   if (k === SEQUENCE[progress]) return progress + 1;
   return k === SEQUENCE[0] ? (progress === 2 ? 2 : 1) : 0;
 }
 
-/** Tour du cadran d'une horloge de gare : la trotteuse fait le tour en 58,5 s. */
+/** Lap of a station clock's dial: the second hand goes round in 58.5 s. */
 const STATION_LAP = 58.5;
 
-/** 1er août : position montrée par la barre de progression, comme la trotteuse d'une
- *  horloge de gare. Chaque minute est parcourue en 58,5 s, la barre s'arrête sur la minute
- *  pleine, puis repart quand la vraie minute est passée. Jamais au-delà de `duration`. */
+/** August 1st: position shown by the progress bar, like the second hand of a station
+ *  clock. Each minute is covered in 58.5 s, the bar stops on the full minute,
+ *  then restarts when the real minute has passed. Never beyond `duration`. */
 export function stationClock(pos: number, duration: number): number {
   if (pos <= 0) return 0;
   const minute = Math.floor(pos / 60) * 60;
@@ -64,8 +64,8 @@ export function stationClock(pos: number, duration: number): number {
   return duration > 0 ? Math.min(shown, duration) : shown;
 }
 
-/** Recherche « kessel » : une durée en parsecs, unité fantaisiste (une minute vaut un
- *  parsec), arrondie au dixième. */
+/** "kessel" search: a duration in parsecs, a whimsical unit (one minute is worth a
+ *  parsec), rounded to the tenth. */
 export function parsecs(seconds: number): number {
   return Math.round((seconds / 60) * 10) / 10;
 }
