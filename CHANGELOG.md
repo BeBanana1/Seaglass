@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.144
+
+- chore: the comments and log messages of the native Android code (`plugins/seaglass-mobile/`, `gen/android/`) are now in English, with no change in behavior (#8).
+
 ## 0.5.143
 
 - chore: the comments and log messages of the Jam module (`jam/`, with its guest page and remote control) are now in English, with no change in behavior (#8).
