@@ -1,4 +1,4 @@
-# Seuls le relais et la page des invités entrent dans le contexte de build.
+# Only the relay and the guest page enter the build context.
 *
 !relay/
 !src-tauri/src/jam/page/

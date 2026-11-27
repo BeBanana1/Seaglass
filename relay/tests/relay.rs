@@ -1,4 +1,4 @@
-//! Relais de bout en bout : un faux hôte en WebSocket, des invités en HTTP.
+//! Relay end to end: a fake host over WebSocket, guests over HTTP.
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -46,7 +46,7 @@ async fn receive(socket: &mut Socket) -> ToHost {
     loop {
         let message = tokio::time::timeout(Duration::from_secs(5), socket.next())
             .await
-            .expect("rien reçu du relais")
+            .expect("nothing received from the relay")
             .unwrap()
             .unwrap();
         if let Message::Text(text) = message {
@@ -55,7 +55,7 @@ async fn receive(socket: &mut Socket) -> ToHost {
     }
 }
 
-/// Hôte branché : renvoie la connexion, l'identifiant et le secret de la Jam.
+/// Connected host: returns the connection, the identifier and the secret of the Jam.
 async fn host(addr: SocketAddr, resume: Option<Resume>) -> (Socket, String, String, bool) {
     let mut socket = connect_host(addr, KEY).await.unwrap();
     send(
@@ -76,11 +76,11 @@ async fn host(addr: SocketAddr, resume: Option<Resume>) -> (Socket, String, Stri
             assert_eq!(url, format!("https://jam.example/j/{id}/"));
             (socket, id, secret, resumed)
         }
-        other => panic!("attendu ready, reçu {other:?}"),
+        other => panic!("expected ready, got {other:?}"),
     }
 }
 
-/// Répond à chaque requête par le chemin, le client et le code reçus.
+/// Answers each request with the path, the client and the code received.
 fn echo(mut socket: Socket) -> tokio::task::JoinHandle<Socket> {
     tokio::spawn(async move {
         while let Some(Ok(message)) = socket.next().await {
@@ -182,7 +182,7 @@ async fn state_is_pushed_to_open_pages() {
     let request = format!("GET /j/{id}/api/events?code=ab2-3cd HTTP/1.1\r\nHost: x\r\n\r\n");
     s.write_all(request.as_bytes()).await.unwrap();
     let mut lines = BufReader::new(s).lines();
-    // Laisse le flux s'ouvrir avant que l'hôte publie.
+    // Lets the stream open before the host publishes.
     tokio::time::sleep(Duration::from_millis(200)).await;
     send(
         &mut socket,
@@ -194,7 +194,7 @@ async fn state_is_pushed_to_open_pages() {
     let data = loop {
         let line = tokio::time::timeout(Duration::from_secs(5), lines.next_line())
             .await
-            .expect("aucun état reçu")
+            .expect("no state received")
             .unwrap()
             .unwrap();
         if let Some(data) = line.strip_prefix("data: ") {
@@ -214,10 +214,10 @@ async fn a_disconnected_host_can_resume_the_same_jam() {
     let path = format!("/j/{id}/api/join");
     let (status, _, body) = http(addr, "POST", &path, CODE, "").await;
     assert_eq!((status, body.as_str()), (503, r#"{"error":"offline"}"#));
-    // La page reste servie pendant le délai de reprise.
+    // The page stays served during the resume delay.
     assert_eq!(http(addr, "GET", &format!("/j/{id}/"), "", "").await.0, 200);
 
-    // Mauvais secret : nouvelle Jam, pas de reprise.
+    // Wrong secret: new Jam, no resume.
     let wrong = Resume {
         id: id.clone(),
         secret: "faux".into(),
@@ -241,8 +241,8 @@ async fn a_disconnected_host_can_resume_the_same_jam() {
     assert_eq!(http(addr, "POST", &path, CODE, "").await.0, 200);
 }
 
-/// Changement de réseau (#253) : l'hôte revient alors que le relais croit encore
-/// l'ancienne connexion ouverte. Même Jam, et les invités atteignent la nouvelle connexion.
+/// Network change (#253): the host comes back while the relay still thinks the
+/// old connection is open. Same Jam, and guests reach the new connection.
 #[tokio::test]
 async fn a_host_resumes_while_its_old_connection_is_still_open() {
     let addr = start(|_| {}).await;
@@ -258,7 +258,7 @@ async fn a_host_resumes_while_its_old_connection_is_still_open() {
     let _host = echo(socket);
     let path = format!("/j/{id}/api/join");
     assert_eq!(http(addr, "POST", &path, CODE, "").await.0, 200);
-    // L'ancienne connexion, fermée après coup, ne coupe pas la nouvelle.
+    // The old connection, closed afterwards, does not cut the new one.
     drop(old);
     tokio::time::sleep(Duration::from_millis(200)).await;
     assert_eq!(http(addr, "POST", &path, CODE, "").await.0, 200);

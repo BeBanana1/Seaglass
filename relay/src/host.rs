@@ -1,4 +1,4 @@
-//! Connexion de l'app de l'hôte (`GET /host`, WebSocket).
+//! Connection of the host's app (`GET /host`, WebSocket).
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -15,10 +15,10 @@ use crate::limits::same;
 use crate::protocol::{FromHost, ToHost};
 use crate::{MAX_HOST_MESSAGE, Relay};
 
-/// L'hôte doit dire `hello` dans ce délai.
+/// The host must say `hello` within this delay.
 const HELLO_TIMEOUT: Duration = Duration::from_secs(10);
-/// Ping envoyé à l'hôte ; sans aucun message de sa part pendant `IDLE_TIMEOUT`, la
-/// connexion est considérée comme perdue (la Jam attend sa reprise).
+/// Ping sent to the host; with no message from it for `IDLE_TIMEOUT`, the
+/// connection is considered lost (the Jam waits for its resume).
 const PING_INTERVAL: Duration = Duration::from_secs(20);
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -88,9 +88,9 @@ async fn session(socket: WebSocket, relay: Arc<Relay>, ip: std::net::IpAddr) {
     };
     let (mut outbox, generation) = jam.attach(code, ip);
     tracing::info!(
-        "Jam {} : hôte {} ({} ouvertes)",
+        "Jam {}: host {} ({} open)",
         short(&jam.id),
-        if is_resume { "revenu" } else { "connecté" },
+        if is_resume { "resumed" } else { "connected" },
         relay.jams.len()
     );
     let ready = ToHost::Ready {
@@ -103,10 +103,10 @@ async fn session(socket: WebSocket, relay: Arc<Relay>, ip: std::net::IpAddr) {
         run(&mut sink, &mut stream, &mut outbox, &jam).await;
     }
     jam.detach(generation);
-    tracing::info!("Jam {} : hôte déconnecté", short(&jam.id));
+    tracing::info!("Jam {}: host disconnected", short(&jam.id));
 }
 
-/// Relaie dans les deux sens jusqu'à la fin de la connexion.
+/// Relays both ways until the connection ends.
 async fn run(
     sink: &mut futures_util::stream::SplitSink<WebSocket, Message>,
     stream: &mut futures_util::stream::SplitStream<WebSocket>,
@@ -150,7 +150,7 @@ fn handle(jam: &Jam, text: &Utf8Bytes) {
             jam.respond(rid, Reply { status, body });
         }
         Ok(FromHost::State { data }) => jam.push_state(data),
-        // Un second `hello` ou un message illisible est ignoré.
+        // A second `hello` or an unreadable message is ignored.
         Ok(FromHost::Hello { .. }) | Err(_) => {}
     }
 }
@@ -172,7 +172,7 @@ async fn send(
     )
 }
 
-/// Début de l'identifiant, pour les journaux (l'identifiant complet donne accès à la page).
+/// Start of the identifier, for the logs (the full identifier gives access to the page).
 fn short(id: &str) -> &str {
     id.get(..6).unwrap_or(id)
 }

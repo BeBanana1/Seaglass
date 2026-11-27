@@ -1,11 +1,11 @@
-//! Relais de la Jam Seaglass. Configuration par variables d'environnement :
+//! Seaglass Jam relay. Configuration through environment variables:
 //!
-//! - `SEAGLASS_RELAY_KEY` (obligatoire) : clé de build de l'app, la même que son `.env`.
-//! - `RELAY_PUBLIC_URL` (obligatoire) : adresse publique, par exemple `https://jam.example.org`.
-//! - `RELAY_BIND` : adresse d'écoute (défaut `0.0.0.0:8080`).
-//! - `RELAY_TRUST_PROXY` : `1` derrière Caddy (lit `X-Forwarded-For`), défaut `0`.
-//! - `RELAY_MAX_JAMS` : Jams ouvertes en même temps (défaut 20).
-//! - `RELAY_MAX_JAMS_PER_ADDRESS` : dont celles d'une même adresse d'hôte (défaut 3).
+//! - `SEAGLASS_RELAY_KEY` (required): the app's build key, the same as in its `.env`.
+//! - `RELAY_PUBLIC_URL` (required): public address, for example `https://jam.example.org`.
+//! - `RELAY_BIND`: listen address (default `0.0.0.0:8080`).
+//! - `RELAY_TRUST_PROXY`: `1` behind Caddy (reads `X-Forwarded-For`), default `0`.
+//! - `RELAY_MAX_JAMS`: Jams open at the same time (default 20).
+//! - `RELAY_MAX_JAMS_PER_ADDRESS`: of which from the same host address (default 3).
 
 use std::process::ExitCode;
 
@@ -22,11 +22,11 @@ async fn main() -> ExitCode {
         .init();
     let env = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
     let Some(key) = env("SEAGLASS_RELAY_KEY") else {
-        tracing::error!("SEAGLASS_RELAY_KEY manquante");
+        tracing::error!("SEAGLASS_RELAY_KEY missing");
         return ExitCode::FAILURE;
     };
     let Some(public_url) = env("RELAY_PUBLIC_URL") else {
-        tracing::error!("RELAY_PUBLIC_URL manquante (adresse publique du relais)");
+        tracing::error!("RELAY_PUBLIC_URL missing (public address of the relay)");
         return ExitCode::FAILURE;
     };
     let mut config = Config::new(&public_url, &key);
@@ -41,15 +41,15 @@ async fn main() -> ExitCode {
     let listener = match TcpListener::bind(&bind).await {
         Ok(l) => l,
         Err(e) => {
-            tracing::error!("écoute impossible sur {bind} : {e}");
+            tracing::error!("cannot listen on {bind}: {e}");
             return ExitCode::FAILURE;
         }
     };
-    tracing::info!("relais sur {bind}, adresse publique {}", config.public_url);
+    tracing::info!("relay on {bind}, public address {}", config.public_url);
     match serve(listener, config).await {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            tracing::error!("relais arrêté : {e}");
+            tracing::error!("relay stopped: {e}");
             ExitCode::FAILURE
         }
     }

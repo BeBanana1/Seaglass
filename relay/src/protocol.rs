@@ -1,14 +1,14 @@
-//! Messages échangés entre l'app de l'hôte et le relais, en JSON sur un WebSocket
-//! (`GET /host`, en-tête `Authorization: Bearer <clé de build>`). L'app (étape 3b)
-//! reprend ces types à l'identique.
+//! Messages exchanged between the host's app and the relay, as JSON over a WebSocket
+//! (`GET /host`, header `Authorization: Bearer <build key>`). The app (step 3b)
+//! reuses these types as they are.
 //!
-//! 1. L'hôte envoie `hello` (code d'accès, et la Jam à reprendre après une coupure).
-//! 2. Le relais répond `ready` (identifiant, secret de reprise, adresse publique).
-//! 3. Chaque appel d'un invité à l'API arrive en `request` ; l'hôte répond `response`
-//!    avec le même `rid`. Il applique ses propres règles (code, limites, titres proposés),
-//!    `client` tenant lieu d'adresse de l'invité.
-//! 4. L'hôte envoie `state` quand l'état change : le relais le pousse aux pages ouvertes
-//!    (`GET /j/<id>/api/events`), qu'il sert lui-même.
+//! 1. The host sends `hello` (access code, and the Jam to resume after a cut).
+//! 2. The relay answers `ready` (identifier, resume secret, public address).
+//! 3. Each guest call to the API arrives as a `request`; the host answers `response`
+//!    with the same `rid`. It applies its own rules (code, limits, suggested titles),
+//!    `client` standing in for the guest's address.
+//! 4. The host sends `state` when the state changes: the relay pushes it to the open pages
+//!    (`GET /j/<id>/api/events`), which it serves itself.
 
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,7 @@ pub struct Resume {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum FromHost {
     Hello {
-        /// Code d'accès de la Jam : le relais le vérifie pour les flux d'état.
+        /// Access code of the Jam: the relay checks it for the state streams.
         code: String,
         #[serde(default)]
         resume: Option<Resume>,
@@ -32,7 +32,7 @@ pub enum FromHost {
         status: u16,
         body: String,
     },
-    /// État des invités (JSON de `GuestState`), poussé tel quel aux pages.
+    /// State of the guests (JSON of `GuestState`), pushed as is to the pages.
     State {
         data: String,
     },
@@ -44,14 +44,14 @@ pub enum ToHost {
     Ready {
         id: String,
         secret: String,
-        /// `https://<relais>/j/<id>/` : à mettre dans le QR code, suivi de `#<code>`.
+        /// `https://<relay>/j/<id>/`: to put in the QR code, followed by `#<code>`.
         url: String,
-        /// Vrai si la Jam d'avant la coupure a été reprise (même adresse).
+        /// True if the Jam from before the cut was resumed (same address).
         resumed: bool,
     },
     Request {
         rid: u64,
-        /// Adresse de l'invité, pour les limites de l'hôte.
+        /// Address of the guest, for the host's limits.
         client: String,
         path: String,
         code: Option<String>,
@@ -62,12 +62,12 @@ pub enum ToHost {
     },
 }
 
-/// Tunnel d'appareil (#430, `GET /device`) : le PC d'un utilisateur, joignable par son
-/// téléphone lié. Les corps sont des paquets chiffrés de bout en bout, opaques ici.
+/// Device tunnel (#430, `GET /device`): a user's PC, reachable by its paired phone.
+/// The bodies are end-to-end encrypted packets, opaque here.
 ///
-/// 1. Le PC envoie `hello` avec l'identifiant et le secret qu'il a tirés lui-même.
-/// 2. Le relais répond `ready`, ou `error` (identifiant pris, relais plein).
-/// 3. Chaque `POST /d/<id>` du téléphone arrive en `request` ; le PC répond `response`.
+/// 1. The PC sends `hello` with the identifier and the secret it drew itself.
+/// 2. The relay answers `ready`, or `error` (identifier taken, relay full).
+/// 3. Each `POST /d/<id>` from the phone arrives as a `request`; the PC answers `response`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum FromDevice {
@@ -79,12 +79,12 @@ pub enum FromDevice {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ToDevice {
     Ready {
-        /// `https://<relais>/d/<id>` : l'adresse que le téléphone appelle.
+        /// `https://<relay>/d/<id>`: the address the phone calls.
         url: String,
     },
     Request {
         rid: u64,
-        /// Adresse du téléphone, pour les limites du PC.
+        /// Address of the phone, for the PC's limits.
         client: String,
         body: String,
     },
