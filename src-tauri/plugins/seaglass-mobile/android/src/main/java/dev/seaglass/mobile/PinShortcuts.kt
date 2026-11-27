@@ -10,12 +10,12 @@ import androidx.core.graphics.drawable.IconCompat
 import org.json.JSONObject
 
 /**
- * Épingles en raccourcis de l'icône de l'app (#335, appui long sur l'icône) : les premières
- * épingles deviennent des raccourcis dynamiques, qu'on peut aussi poser sur l'écran d'accueil.
- * Un appui ouvre `PinActivity` avec le lien `seaglass://pin/<clé>`.
+ * Pins as app icon shortcuts (#335, long press on the icon): the first pins become
+ * dynamic shortcuts, which can also be placed on the home screen. A tap opens
+ * `PinActivity` with the `seaglass://pin/<key>` link.
  *
- * Rust envoie toute la liste (`pins` : `key`, `label`, dans l'ordre) à chaque changement et au
- * démarrage ; rien n'est gardé ici.
+ * Rust sends the whole list (`pins`: `key`, `label`, in order) on every change and at
+ * startup; nothing is kept here.
  */
 object PinShortcuts {
     private const val TAG = "SeaglassShortcuts"
@@ -31,8 +31,8 @@ object PinShortcuts {
         }
         val ids = all.map { it.id }.toSet()
         try {
-            // Épingle retirée : son raccourci disparaît de l'icône, et celui posé sur l'écran
-            // d'accueil (que l'app ne peut pas retirer) est désactivé avec un message.
+            // Pin removed: its shortcut disappears from the icon, and the one placed on the home
+            // screen (which the app cannot remove) is disabled with a message.
             val known = ShortcutManagerCompat.getShortcuts(
                 context,
                 ShortcutManagerCompat.FLAG_MATCH_DYNAMIC or ShortcutManagerCompat.FLAG_MATCH_PINNED,
@@ -42,15 +42,15 @@ object PinShortcuts {
                 ShortcutManagerCompat.disableShortcuts(context, gone, args.optString("removed"))
                 ShortcutManagerCompat.removeDynamicShortcuts(context, gone)
             }
-            // Épingle revenue, renommée ou sortie des premières : son raccourci posé sur
-            // l'écran d'accueil reste valable et suit son nom.
+            // Pin back, renamed or dropped out of the first ones: its shortcut placed on the
+            // home screen stays valid and follows its name.
             ShortcutManagerCompat.enableShortcuts(context, all)
             ShortcutManagerCompat.updateShortcuts(context, all)
             ShortcutManagerCompat.setDynamicShortcuts(context, all.take(max))
         } catch (e: Exception) {
-            // Limite d'appels du système, appareil verrouillé : la liste repartira au
-            // prochain changement ou au prochain démarrage.
-            Log.w(TAG, "raccourcis non mis à jour : ${e.javaClass.simpleName}")
+            // System call rate limit, locked device: the list will be sent again at the next
+            // change or the next startup.
+            Log.w(TAG, "shortcuts not updated: ${e.javaClass.simpleName}")
         }
     }
 

@@ -1,5 +1,5 @@
-# Instancié par réflexion depuis Rust (register_android_plugin).
+# Instantiated by reflection from Rust (register_android_plugin).
 -keep class dev.seaglass.mobile.SeaglassPlugin { *; }
 -keep class dev.seaglass.mobile.LoginArgs { *; }
-# Appelé seulement par JNI depuis Rust (`src/direct.rs`, #169) : invisible pour R8.
+# Only called through JNI from Rust (`src/direct.rs`, #169): invisible to R8.
 -keep class dev.seaglass.mobile.Bridge { public static *; }

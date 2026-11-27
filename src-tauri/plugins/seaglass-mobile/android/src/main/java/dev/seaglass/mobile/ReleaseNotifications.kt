@@ -14,12 +14,12 @@ import androidx.core.app.NotificationManagerCompat
 import org.json.JSONObject
 
 /**
- * Nouvelles sorties des artistes suivis (#435), sur un canal à part que l'utilisateur peut
- * couper dans les réglages du système. Rust choisit quoi notifier et envoie le texte et le
- * lien (`https://tidal.com/album/<id>`, ou `seaglass://feed` pour plusieurs sorties) : un
- * appui l'ouvre par `ShareActivity`, comme un lien partagé. Une seule notification à la
- * fois : la suivante la remplace. Classes `…Compat` : les canaux n'existent qu'à partir
- * d'Android 8 (API 26), `minSdk` est à 24.
+ * New releases from followed artists (#435), on a separate channel the user can turn off
+ * in the system settings. Rust chooses what to notify and sends the text and the link
+ * (`https://tidal.com/album/<id>`, or `seaglass://feed` for several releases): a tap opens
+ * it through `ShareActivity`, like a shared link. One notification at a time: the next
+ * one replaces it. `...Compat` classes: channels only exist from Android 8 (API 26),
+ * `minSdk` is 24.
  */
 object ReleaseNotifications {
     private const val CHANNEL = "releases"
@@ -28,15 +28,15 @@ object ReleaseNotifications {
 
     fun show(context: Context, args: JSONObject) {
         val manager = NotificationManagerCompat.from(context)
-        // Recréer un canal existant ne fait que mettre son nom à jour (langue de l'app).
+        // Recreating an existing channel only updates its name (app language).
         manager.createNotificationChannel(
             NotificationChannelCompat.Builder(CHANNEL, NotificationManagerCompat.IMPORTANCE_DEFAULT)
                 .setName(args.getString("channel"))
                 .build(),
         )
-        // Permission refusée (Android 13+) ou notifications de l'app coupées.
+        // Permission denied (Android 13+) or the app's notifications turned off.
         if (!manager.areNotificationsEnabled()) {
-            throw IllegalStateException("notifications de l'app désactivées")
+            throw IllegalStateException("app notifications disabled")
         }
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(args.getString("link")))
             .setClass(context, ShareActivity::class.java)
@@ -58,11 +58,11 @@ object ReleaseNotifications {
         try {
             manager.notify(NOTIFICATION_ID, notification)
         } catch (e: SecurityException) {
-            throw IllegalStateException("permission des notifications refusée")
+            throw IllegalStateException("notification permission denied")
         }
     }
 
-    /** Android 13+ : demande la permission à l'activation du réglage ; sinon rien à faire. */
+    /** Android 13+: asks for the permission when the setting is enabled; else nothing to do. */
     fun requestPermission(activity: Activity) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
         val permission = Manifest.permission.POST_NOTIFICATIONS

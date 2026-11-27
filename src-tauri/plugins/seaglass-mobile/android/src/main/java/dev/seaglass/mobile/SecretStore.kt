@@ -13,9 +13,9 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Secrets de l'app (#24, refresh token TIDAL) : chiffrés en AES-256 GCM par une clé
- * générée dans l'Android Keystore, qui n'en sort jamais. Seuls l'IV et le texte chiffré
- * sont rangés dans les préférences privées de l'app. Aucune valeur n'est journalisée.
+ * The app's secrets (#24, TIDAL refresh token): encrypted with AES-256 GCM by a key
+ * generated in the Android Keystore, which never leaves it. Only the IV and the ciphertext
+ * are stored in the app's private preferences. No value is logged.
  */
 internal class SecretStore(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -28,13 +28,13 @@ internal class SecretStore(context: Context) {
             cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(TAG_BITS, iv))
             String(cipher.doFinal(data), Charsets.UTF_8)
         } catch (e: GeneralSecurityException) {
-            // Clé disparue (sauvegarde restaurée sur un autre appareil…) : illisible pour
-            // toujours, on l'oublie et l'utilisateur se reconnecte.
-            Log.w(TAG, "secret « $name » illisible, effacé (${e.javaClass.simpleName})")
+            // Key gone (backup restored on another device...): unreadable forever, so we
+            // forget it and the user signs in again.
+            Log.w(TAG, "secret \"$name\" unreadable, erased (${e.javaClass.simpleName})")
             delete(name)
             null
         } catch (e: IllegalArgumentException) {
-            Log.w(TAG, "secret « $name » mal formé, effacé")
+            Log.w(TAG, "secret \"$name\" malformed, erased")
             delete(name)
             null
         }
@@ -47,11 +47,11 @@ internal class SecretStore(context: Context) {
         val stored = Base64.encodeToString(cipher.iv, Base64.NO_WRAP) + ":" +
             Base64.encodeToString(data, Base64.NO_WRAP)
         if (!prefs.edit().putString(name, stored).commit()) {
-            throw IllegalStateException("écriture du secret impossible")
+            throw IllegalStateException("cannot write the secret")
         }
     }
 
-    /** `false` si le secret n'existait pas. */
+    /** `false` if the secret did not exist. */
     fun delete(name: String): Boolean {
         if (!prefs.contains(name)) return false
         prefs.edit().remove(name).commit()

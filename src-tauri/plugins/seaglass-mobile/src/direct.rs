@@ -1,9 +1,9 @@
-//! Commandes Kotlin appelées directement en JNI (`Bridge.kt`, #169), sans l'activité.
+//! Kotlin commands called directly over JNI (`Bridge.kt`, #169), without the activity.
 //!
-//! `PluginHandle::run_mobile_plugin` fait exécuter la commande par le `PluginManager` de
-//! l'activité (`wry::android::dispatch`), qui panique (« no available activity ») quand
-//! l'app a été balayée des récents. Le lecteur, la session média et les secrets doivent
-//! pourtant continuer : leurs commandes passent par ici, sur un thread attaché à la JVM.
+//! `PluginHandle::run_mobile_plugin` runs the command through the activity's `PluginManager`
+//! (`wry::android::dispatch`), which panics ("no available activity") when the app has been
+//! swiped away from the recents. The player, the media session and the secrets must
+//! keep going nonetheless: their commands go through here, on a thread attached to the JVM.
 
 use std::sync::OnceLock;
 
@@ -20,22 +20,22 @@ struct Bridge {
 
 static BRIDGE: OnceLock<Result<Bridge, String>> = OnceLock::new();
 
-/// Charge `Bridge` une fois par processus. Le contexte de `ndk-context` est celui de
-/// l'application (posé par tao), valide tant que le processus vit ; un thread natif ne
-/// trouve pas les classes de l'app avec `FindClass`, d'où son chargeur de classes.
+/// Loads `Bridge` once per process. The `ndk-context` context is the application's (set by
+/// tao), valid as long as the process lives; a native thread cannot find the app's classes
+/// with `FindClass`, hence its class loader.
 fn bridge() -> Result<&'static Bridge, String> {
     BRIDGE
-        .get_or_init(|| load().map_err(|e| format!("pont natif indisponible : {e}")))
+        .get_or_init(|| load().map_err(|e| format!("native bridge unavailable: {e}")))
         .as_ref()
         .map_err(Clone::clone)
 }
 
 fn load() -> jni::errors::Result<Bridge> {
     let ctx = ndk_context::android_context();
-    // SAFETY : pointeur de la JVM posé par tao au lancement, valide toute la vie du processus.
+    // SAFETY: JVM pointer set by tao at launch, valid for the whole life of the process.
     let vm = unsafe { JavaVM::from_raw(ctx.vm().cast()) };
     let class = vm.attach_current_thread(|env| -> jni::errors::Result<_> {
-        // SAFETY : référence globale tenue par ndk-context, jamais libérée par ce wrapper.
+        // SAFETY: global reference held by ndk-context, never released by this wrapper.
         let context = unsafe { JObject::from_raw(env, ctx.context().cast()) };
         let loader = env
             .call_method(
@@ -69,23 +69,23 @@ enum Response<T> {
     Error(String),
 }
 
-/// Appel bloquant : jamais depuis le thread principal d'Android (`Bridge` y attend le
-/// thread principal pour le lecteur ; il le tolère, mais un appelant y bloquerait l'UI).
+/// Blocking call: never from Android's main thread (`Bridge` waits on the main thread
+/// there for the player; it tolerates it, but a caller there would block the UI).
 pub fn call_blocking<T: DeserializeOwned>(command: &str, args: impl Serialize) -> Result<T, String> {
     let args = serde_json::to_string(&args).map_err(|e| e.to_string())?;
     let bridge = bridge()?;
     let response = bridge
         .vm
         .attach_current_thread(|env| invoke(env, &bridge.class, command, &args))
-        .map_err(|e| format!("appel natif « {command} » impossible : {e}"))?;
+        .map_err(|e| format!("native call \"{command}\" failed: {e}"))?;
     match serde_json::from_str::<Response<T>>(&response) {
         Ok(Response::Ok(value)) => Ok(value),
         Ok(Response::Error(e)) => Err(e),
-        Err(e) => Err(format!("réponse native « {command} » illisible : {e}")),
+        Err(e) => Err(format!("unreadable native response \"{command}\": {e}")),
     }
 }
 
-/// Même appel depuis du code asynchrone, sur un thread de `spawn_blocking`.
+/// Same call from async code, on a `spawn_blocking` thread.
 pub async fn call<T: DeserializeOwned + Send + 'static>(
     command: &str,
     args: impl Serialize,

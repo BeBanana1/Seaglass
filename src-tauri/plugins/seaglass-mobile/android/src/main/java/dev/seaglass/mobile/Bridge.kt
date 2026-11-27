@@ -9,19 +9,18 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * Commandes que Rust appelle directement en JNI (#169), sans passer par l'activité.
+ * Commands that Rust calls directly over JNI (#169), without going through the activity.
  *
- * Tauri exécute une commande de plugin dans le `PluginManager` de l'activité : quand l'app
- * est balayée des récents, il n'y en a plus et l'appel panique dans wry, alors que le
- * lecteur et la session média continuent. Tout ce que le lecteur, la session et les
- * secrets demandent passe donc par ici ; `Playback` et `SecretStore` vivent avec le
- * processus.
+ * Tauri runs a plugin command in the activity's `PluginManager`: when the app is swiped
+ * away from recents, there is none left and the call panics in wry, while the player and
+ * the media session keep going. Everything the player, the session and the secrets ask for
+ * therefore goes through here; `Playback` and `SecretStore` live with the process.
  *
- * Arguments et réponse en JSON : `{"ok": {…}}` ou `{"error": "…"}`. Jamais appelé depuis le
- * thread principal par Rust, mais toléré (exécution directe).
+ * Arguments and response in JSON: `{"ok": {…}}` or `{"error": "…"}`. Never called from the
+ * main thread by Rust, but tolerated (direct execution).
  */
 object Bridge {
-    /** Le thread principal peut être occupé, jamais bloqué : au-delà, la commande échoue. */
+    /** The main thread may be busy, never blocked: beyond this, the command fails. */
     private const val MAIN_TIMEOUT_S = 10L
 
     @Volatile
@@ -30,7 +29,7 @@ object Bridge {
     @Volatile
     private var context: Context? = null
 
-    /** Contexte de l'application, posé par Rust à la première commande. */
+    /** The application's context, set by Rust at the first command. */
     @JvmStatic
     fun init(context: Context) {
         synchronized(this) {
@@ -76,16 +75,16 @@ object Bridge {
             onMainSync { Playback.setModes(modes) }
             null
         }
-        // Messages sans valeur ni détail : seulement le type de l'erreur.
-        "secretGet" -> secret("lecture du secret impossible") { store ->
+        // Messages without value or detail: only the type of the error.
+        "secretGet" -> secret("could not read the secret") { store ->
             JSONObject().apply { store.get(args.getString("name"))?.let { put("value", it) } }
         }
-        "secretSet" -> secret("écriture du secret impossible") { store ->
-            val value = args.string("value") ?: throw IllegalArgumentException("valeur manquante")
+        "secretSet" -> secret("could not write the secret") { store ->
+            val value = args.string("value") ?: throw IllegalArgumentException("missing value")
             store.set(args.getString("name"), value)
             JSONObject()
         }
-        "secretDelete" -> secret("effacement du secret impossible") { store ->
+        "secretDelete" -> secret("could not delete the secret") { store ->
             JSONObject().put("existed", store.delete(args.getString("name")))
         }
         "crashSetup" -> CrashLog.setup(appContext(), java.io.File(args.getString("dir")))
@@ -103,14 +102,14 @@ object Bridge {
             LinkHandling.openSettings(appContext())
             null
         }
-        else -> throw IllegalArgumentException("commande inconnue : $command")
+        else -> throw IllegalArgumentException("unknown command: $command")
     }
 
     private fun appContext(): Context =
-        context ?: throw IllegalStateException("pont natif non initialisé")
+        context ?: throw IllegalStateException("native bridge not initialized")
 
     private fun secret(failure: String, block: (SecretStore) -> JSONObject): JSONObject {
-        val store = secrets ?: throw IllegalStateException("pont natif non initialisé")
+        val store = secrets ?: throw IllegalStateException("native bridge not initialized")
         return try {
             synchronized(store) { block(store) }
         } catch (e: Exception) {
@@ -131,7 +130,7 @@ object Bridge {
         eq = if (args.isNull("eq")) null else eqSpec(args.getJSONObject("eq"))
     }
 
-    /** Profil d'égaliseur (#467) : `{preamp, filters: [{kind, freq, gain, q}]}`. */
+    /** Equalizer profile (#467): `{preamp, filters: [{kind, freq, gain, q}]}`. */
     private fun eqSpec(o: JSONObject): EqSpec {
         val list = o.getJSONArray("filters")
         val filters = (0 until list.length()).map {
@@ -141,7 +140,7 @@ object Bridge {
         return EqSpec(o.getDouble("preamp"), filters)
     }
 
-    /** Exécute `block` sur le thread principal (celui de l'ExoPlayer) et attend sa fin. */
+    /** Runs `block` on the main thread (ExoPlayer's) and waits for it to finish. */
     private fun onMainSync(block: () -> Unit) {
         if (Looper.myLooper() == Looper.getMainLooper()) return block()
         val done = CountDownLatch(1)
@@ -156,12 +155,12 @@ object Bridge {
             }
         }
         if (!done.await(MAIN_TIMEOUT_S, TimeUnit.SECONDS)) {
-            throw IllegalStateException("thread principal indisponible")
+            throw IllegalStateException("main thread unavailable")
         }
         error?.let { throw it }
     }
 
-    // `isNull` couvre aussi la clé absente ; `optString` rendrait "null" pour un null JSON.
+    // `isNull` also covers a missing key; `optString` would return "null" for a JSON null.
     private fun JSONObject.string(key: String): String? = if (isNull(key)) null else getString(key)
     private fun JSONObject.double(key: String): Double? = if (isNull(key)) null else getDouble(key)
     private fun JSONObject.bool(key: String): Boolean? = if (isNull(key)) null else getBoolean(key)

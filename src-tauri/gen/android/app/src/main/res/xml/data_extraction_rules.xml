@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sauvegarde et transfert d'appareil depuis Android 12 (#145) : tout sauf les secrets
-     chiffrés, illisibles ailleurs (la clé du Keystore ne quitte pas l'appareil). -->
+<!-- Backup and device transfer since Android 12 (#145): everything except the encrypted
+     secrets, unreadable elsewhere (the Keystore key never leaves the device). -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="seaglass-secrets.xml" />

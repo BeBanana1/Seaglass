@@ -10,16 +10,16 @@ import android.provider.Settings
 import org.json.JSONObject
 
 /**
- * Liens `https://tidal.com/…` ouverts dans l'app (#203). Le domaine n'est pas à nous : pas de
- * vérification possible, donc depuis Android 12 le système les envoie au navigateur tant que
- * l'utilisateur ne les a pas donnés à Seaglass dans « Ouvrir par défaut ». Avant Android 12,
- * il propose l'app dans le choix habituel : rien à régler.
+ * `https://tidal.com/…` links opened in the app (#203). We do not own the domain: no
+ * verification is possible, so since Android 12 the system sends them to the browser until
+ * the user gives them to Seaglass in "Open by default". Before Android 12, it offers the
+ * app in the usual chooser: nothing to set up.
  */
 object LinkHandling {
-    /** Hôte des liens de partage de TIDAL ; les autres (`www.`, `listen.`) sont plus rares. */
+    /** Host of TIDAL's share links; the others (`www.`, `listen.`) are rarer. */
     private const val HOST = "tidal.com"
 
-    /** `{supported, enabled}` : `supported` faux avant Android 12 (rien à activer). */
+    /** `{supported, enabled}`: `supported` is false before Android 12 (nothing to enable). */
     fun state(context: Context): JSONObject {
         val result = JSONObject()
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -34,7 +34,7 @@ object LinkHandling {
         return result.put("supported", true).put("enabled", enabled)
     }
 
-    /** Ouvre « Ouvrir par défaut » de l'app (Android 12+), sinon sa page d'infos. */
+    /** Opens the app's "Open by default" page (Android 12+), otherwise its info page. */
     fun openSettings(context: Context) {
         val uri = Uri.parse("package:${context.packageName}")
         val action = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

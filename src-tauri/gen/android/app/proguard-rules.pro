@@ -20,5 +20,5 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# Appelé seulement par JNI depuis rustls-platform-verifier : invisible pour R8.
+# Only called through JNI from rustls-platform-verifier: invisible to R8.
 -keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }

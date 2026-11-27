@@ -1,5 +1,5 @@
-//! Pont natif Android de Seaglass (#24). Le code Kotlin vit dans `android/` ; l'app
-//! l'appelle depuis Rust, jamais depuis l'UI (aucune commande ni permission exposée).
+//! Seaglass native Android bridge (#24). The Kotlin code lives in `android/`; the app
+//! calls it from Rust, never from the UI (no command or permission exposed).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -27,12 +27,12 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .build()
 }
 
-/// Faux entre la destruction de l'activité (app balayée des récents) et la reconstruction de
-/// la fenêtre : posé par l'app (`android::keep_alive`).
+/// False between the activity's destruction (app swiped away from the recents) and the
+/// window's reconstruction: set by the app (`android::keep_alive`).
 static ACTIVITY: AtomicBool = AtomicBool::new(true);
 
-/// L'activité existe-t-elle ? Les commandes du plugin s'exécutent dans son
-/// `PluginManager` ; sans elle, wry panique (#169).
+/// Does the activity exist? The plugin's commands run in its `PluginManager`; without it,
+/// wry panics (#169).
 pub fn set_activity(present: bool) {
     ACTIVITY.store(present, Ordering::Release);
 }
@@ -42,11 +42,11 @@ fn require_activity() -> Result<(), String> {
     if ACTIVITY.load(Ordering::Acquire) {
         Ok(())
     } else {
-        Err("aucune activité (app fermée) : commande native ignorée".into())
+        Err("no activity (app closed): native command ignored".into())
     }
 }
 
-/// Accès au code Kotlin, géré par l'app (`app.state::<Native<R>>()`).
+/// Access to the Kotlin code, managed by the app (`app.state::<Native<R>>()`).
 #[cfg(target_os = "android")]
 pub struct Native<R: Runtime>(tauri::plugin::PluginHandle<R>);
 
@@ -59,16 +59,16 @@ struct LoginArgs<'a> {
 
 #[derive(Deserialize)]
 struct LoginResult {
-    /// URL de redirection complète, ou absente si l'utilisateur a fermé la page.
+    /// Full redirect URL, or absent if the user closed the page.
     #[serde(default)]
     url: Option<String>,
 }
 
 #[cfg(target_os = "android")]
 impl<R: Runtime> Native<R> {
-    /// Ouvre `url` dans une WebView plein écran, sans accès à l'IPC de l'app, et rend
-    /// l'URL de la première navigation qui commence par `redirect_prefix` (bloquée).
-    /// `None` si l'utilisateur ferme la page (bouton Retour).
+    /// Opens `url` in a full-screen WebView, without access to the app's IPC, and returns
+    /// the URL of the first navigation that starts with `redirect_prefix` (blocked).
+    /// `None` if the user closes the page (Back button).
     pub async fn login(&self, url: &str, redirect_prefix: &str) -> Result<Option<String>, String> {
         require_activity()?;
         self.0
@@ -84,11 +84,10 @@ impl<R: Runtime> Native<R> {
             .map_err(|e| e.to_string())
     }
 
-    /// Appelle une commande Kotlin du plugin qui ne renvoie rien : canaux des événements
-    /// (`engineStart`, `sessionStart`, au lancement) et installation d'une mise à jour
-    /// (`installApk`, depuis l'UI). Refusée sans activité ; tout ce qui peut partir en cours
-    /// de lecture passe par [`direct`]. Les arguments suivent les classes `@InvokeArg` de
-    /// `SeaglassPlugin.kt`.
+    /// Calls a Kotlin plugin command that returns nothing: event channels (`engineStart`,
+    /// `sessionStart`, at launch) and installing an update (`installApk`, from the UI).
+    /// Refused without an activity; anything that can fire during playback goes through
+    /// [`direct`]. The arguments follow the `@InvokeArg` classes of `SeaglassPlugin.kt`.
     pub async fn call(&self, command: &str, args: impl Serialize) -> Result<(), String> {
         require_activity()?;
         self.0
@@ -99,7 +98,7 @@ impl<R: Runtime> Native<R> {
     }
 }
 
-/// Raccourci : le pont natif de l'app.
+/// Shortcut: the app's native bridge.
 #[cfg(target_os = "android")]
 pub fn native<R: Runtime, M: Manager<R>>(manager: &M) -> tauri::State<'_, Native<R>> {
     manager.state::<Native<R>>()
