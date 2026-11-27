@@ -6,24 +6,24 @@ plugins {
     id("rust")
 }
 
-// Version de l'APK (#157) : lue dans `VERSION` à la racine du dépôt, source de vérité.
-// Le CLI Tauri n'écrit `tauri.properties` que si `tauri.conf.json` a un champ `version`,
-// ce qui n'est pas le cas (la version vient de Cargo.toml) : l'APK restait en 1.0 / 1.
-// versionCode = major * 1 000 000 + minor * 1 000 + patch, la formule du CLI Tauri.
+// APK version (#157): read from `VERSION` at the repository root, the source of truth.
+// The Tauri CLI only writes `tauri.properties` if `tauri.conf.json` has a `version` field,
+// which is not the case (the version comes from Cargo.toml): the APK stayed at 1.0 / 1.
+// versionCode = major * 1 000 000 + minor * 1 000 + patch, the Tauri CLI's formula.
 val appVersion: String = providers
     .fileContents(layout.projectDirectory.file("../../../../VERSION"))
     .asText.get().trim()
 val appVersionCode: Int = run {
     val parts = appVersion.split('.').map { it.toIntOrNull() }
     require(parts.size == 3 && parts.all { it != null && it in 0..999 }) {
-        "VERSION invalide pour Android : '$appVersion' (attendu x.y.z, chaque nombre < 1000)"
+        "VERSION invalid for Android: '$appVersion' (expected x.y.z, each number < 1000)"
     }
     val (major, minor, patch) = parts.map { it!! }
     major * 1_000_000 + minor * 1_000 + patch
 }
 
-// Clé de release (#24) : keystore PKCS12 hors du dépôt, chemin et mot de passe passés
-// par l'environnement (scripts/release-android.ps1). Sans eux, la release n'est pas signée.
+// Release key (#24): PKCS12 keystore outside the repository, path and password passed
+// through the environment (scripts/release-android.ps1). Without them, the release is unsigned.
 val releaseKeystore: String? = System.getenv("SEAGLASS_ANDROID_KEYSTORE")
 
 android {
@@ -41,7 +41,7 @@ android {
         if (releaseKeystore != null) {
             create("release") {
                 storeFile = file(releaseKeystore)
-                // PKCS12 : un seul mot de passe pour le magasin et la clé.
+                // PKCS12: a single password for the store and the key.
                 storePassword = System.getenv("SEAGLASS_ANDROID_KEY_PASSWORD")
                 keyPassword = System.getenv("SEAGLASS_ANDROID_KEY_PASSWORD")
                 keyAlias = System.getenv("SEAGLASS_ANDROID_KEY_ALIAS") ?: "seaglass"
@@ -93,9 +93,9 @@ rust {
     rootDirRel = "../../../"
 }
 
-// Composant Kotlin de rustls-platform-verifier (#24) : `reqwest` vérifie les certificats
-// HTTPS avec le magasin d'Android à travers lui. Sa version doit être exactement celle de
-// la crate `rustls-platform-verifier-android` du Cargo.lock, d'où la lecture ci-dessous.
+// Kotlin component of rustls-platform-verifier (#24): `reqwest` checks HTTPS certificates
+// against Android's store through it. Its version must be exactly that of the
+// `rustls-platform-verifier-android` crate in Cargo.lock, hence the lookup below.
 repositories {
     maven {
         url = uri("https://github.com/rustls/rustls-platform-verifier/raw/maven-archive/android-release-support/maven/")
@@ -115,7 +115,7 @@ abstract class RustlsVersion : ValueSource<String, RustlsVersion.Params> {
             .firstOrNull { nameIdx >= 0 && it.trimStart().startsWith("version = ") }
             ?.substringAfter('"')
             ?.substringBefore('"')
-            ?: error("rustls-platform-verifier-android absent du Cargo.lock")
+            ?: error("rustls-platform-verifier-android missing from Cargo.lock")
     }
 }
 

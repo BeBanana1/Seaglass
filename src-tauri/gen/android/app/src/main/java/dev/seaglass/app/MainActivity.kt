@@ -6,10 +6,10 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 
 class MainActivity : TauriActivity() {
-  // Retour est demandé à l'UI (`src/lib/backButton.ts`) : `window.__seaglassBack()` ferme ce
-  // qui est ouvert et renvoie vrai, sinon Android reçoit Retour et passe l'app en arrière-plan.
-  // Pas via l'historique de la WebView (`handleBackNavigation` de Wry) : elle ignore les
-  // entrées posées sans geste de l'utilisateur, celles d'une vue ouverte par un lien (#193).
+  // Back is asked of the UI (`src/lib/backButton.ts`): `window.__seaglassBack()` closes what
+  // is open and returns true, otherwise Android receives Back and sends the app to the
+  // background. Not through the WebView history (Wry's `handleBackNavigation`): it ignores
+  // entries pushed without a user gesture, such as those of a view opened by a link (#193).
   override val handleBackNavigation: Boolean = false
 
   override fun onCreate(savedInstanceState: Bundle?) {

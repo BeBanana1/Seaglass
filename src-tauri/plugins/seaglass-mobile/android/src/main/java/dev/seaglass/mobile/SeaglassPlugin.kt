@@ -28,7 +28,7 @@ class ChannelArgs {
     lateinit var channel: Channel
 }
 
-/** Une opération de `engine::Op` (champs selon `op`), lue par `Bridge`. */
+/** An operation of `engine::Op` (fields depend on `op`), read by `Bridge`. */
 class EngineArgs {
     lateinit var op: String
     var url: String? = null
@@ -39,7 +39,7 @@ class EngineArgs {
     var on: Boolean? = null
     var level: Int? = null
     var muted: Boolean? = null
-    /** Égaliseur (#467) avec `play` et `currentGain` ; `null` = désactivé. */
+    /** Equalizer (#467) with `play` and `currentGain`; `null` = disabled. */
     internal var eq: EqSpec? = null
 }
 
@@ -54,18 +54,18 @@ class InstallArgs {
 }
 
 /**
- * Commandes qui ont besoin de l'activité, ou qui ne tournent qu'au lancement (canaux des
- * événements). Celles que le lecteur, la session média et les secrets envoient en cours de
- * route passent par `Bridge` (#169) : l'app peut alors avoir été balayée des récents.
+ * Commands that need the activity, or that only run at launch (event channels). The ones
+ * that the player, the media session and the secrets send along the way go through
+ * `Bridge` (#169): the app may then have been swiped away from recents.
  */
 @TauriPlugin
 class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
-    /** WebView de l'app : la hauteur du clavier lui est transmise (#251). */
+    /** The app's WebView: the keyboard height is passed to it (#251). */
     override fun load(webView: WebView) {
         KeyboardInset.watch(webView)
     }
 
-    /** Installe l'APK de mise à jour déjà vérifié par Rust (`apk_update.rs`). */
+    /** Installs the update APK already verified by Rust (`apk_update.rs`). */
     @Command
     fun installApk(invoke: Invoke) {
         val args = invoke.parseArgs(InstallArgs::class.java)
@@ -76,7 +76,7 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    /** Mode conduite (#193) : l'écran reste allumé tant qu'il est ouvert. */
+    /** Drive mode (#193): the screen stays on while it is open. */
     @Command
     fun keepScreenOn(invoke: Invoke) {
         val args = invoke.parseArgs(ScreenArgs::class.java)
@@ -87,7 +87,7 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    /** Notifications des nouvelles sorties activées (#435) : permission d'Android 13+. */
+    /** Notifications for new releases turned on (#435): Android 13+ permission. */
     @Command
     fun requestNotifications(invoke: Invoke) {
         activity.runOnUiThread {
@@ -96,7 +96,7 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    /** Crée le lecteur (une fois par processus) et renvoie ses événements sur `channel`. */
+    /** Creates the player (once per process) and sends its events back on `channel`. */
     @Command
     fun engineStart(invoke: Invoke) {
         val args = invoke.parseArgs(ChannelArgs::class.java)
@@ -107,7 +107,7 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    /** Actions de la session média (notification, écouteurs), renvoyées sur `channel`. */
+    /** Media session actions (notification, headphones), sent back on `channel`. */
     @Command
     fun sessionStart(invoke: Invoke) {
         val args = invoke.parseArgs(ChannelArgs::class.java)
@@ -118,9 +118,9 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     /**
-     * Connexion TIDAL (#24) : Android n'a qu'une WebView pour l'app, la page de connexion
-     * s'ouvre donc dans une WebView à part, sans IPC Tauri. La première navigation vers la
-     * redirection est bloquée et son URL rendue à Rust, qui en tire le code PKCE.
+     * TIDAL sign-in (#24): Android has only one WebView for the app, so the sign-in page
+     * opens in a separate WebView, without Tauri IPC. The first navigation to the redirect
+     * is blocked and its URL handed back to Rust, which extracts the PKCE code from it.
      */
     @Command
     fun login(invoke: Invoke) {
@@ -145,8 +145,8 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
 
             webView.settings.javaScriptEnabled = true
             webView.settings.domStorageEnabled = true
-            // Pages web seulement (#145) : ni fichiers de l'appareil (vrai par défaut avant
-            // Android 11) ni fournisseurs de contenu.
+            // Web pages only (#145): no device files (true by default before Android 11)
+            // and no content providers.
             webView.settings.allowFileAccess = false
             webView.settings.allowContentAccess = false
             webView.webViewClient = object : WebViewClient() {
@@ -156,11 +156,11 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
                         finish(url)
                         return true
                     }
-                    // Tout autre schéma (`intent:`, `file:`, `javascript:`…) est bloqué.
+                    // Any other scheme (`intent:`, `file:`, `javascript:`…) is blocked.
                     return request.url.scheme != "https"
                 }
 
-                // Filet : une redirection qui ne passe pas par shouldOverrideUrlLoading.
+                // Safety net: a redirect that does not go through shouldOverrideUrlLoading.
                 override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                     if (url.startsWith(args.redirectPrefix)) finish(url)
                 }
@@ -173,10 +173,10 @@ class SeaglassPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     /**
-     * Données de la page de connexion (#258), avant et après usage : la session web de TIDAL
-     * ne survit pas, et une nouvelle connexion peut prendre un autre compte. `CookieManager`
-     * est commun à tout le processus, mais l'interface de l'app n'a pas de cookies ; le
-     * stockage web n'est effacé que pour les origines de TIDAL.
+     * Sign-in page data (#258), before and after use: TIDAL's web session must not survive,
+     * and a new sign-in may pick another account. `CookieManager` is shared by the whole
+     * process, but the app's interface has no cookies; web storage is only cleared for
+     * TIDAL's origins.
      */
     private fun clearLoginData() {
         CookieManager.getInstance().removeAllCookies(null)

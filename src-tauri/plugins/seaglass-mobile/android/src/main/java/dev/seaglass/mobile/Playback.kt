@@ -34,34 +34,34 @@ import kotlin.math.min
 import kotlin.math.pow
 
 /**
- * Moteur de lecture Android (#24) : l'ExoPlayer de l'app et sa fenêtre de 2 entrées au
- * plus (titre courant + suivant préchargé), comme mpv sur le bureau. Rust décide de tout
- * (`engine::Op`) ; ce qui se passe ici remonte en événements par `events`.
+ * Android playback engine (#24): the app's ExoPlayer and its window of at most 2 entries
+ * (current track + preloaded next one), like mpv on the desktop. Rust decides everything
+ * (`engine::Op`); what happens here goes back up as events through `events`.
  *
- * Tout tourne sur le thread principal, celui de l'ExoPlayer. L'objet vit aussi longtemps
- * que le processus : le service et la session peuvent être recréés autour de lui.
+ * Everything runs on the main thread, ExoPlayer's. The object lives as long as the process:
+ * the service and the session can be recreated around it.
  */
 @OptIn(UnstableApi::class)
 internal object Playback {
     private const val TAG = "SeaglassPlayback"
     /**
-     * Position envoyée pendant la lecture (#147) : l'UI interpole entre deux envois et Rust
-     * n'en a besoin que pour le préchargement (30 s avant la fin) et la sauvegarde. Plus
-     * espacée quand aucune activité n'est visible (écran éteint, autre app au premier plan).
-     * Un saut, une pause ou un changement de titre l'envoient toujours aussitôt. Au premier
-     * plan, toutes les 2 s depuis #473 (1 s avant) : chaque envoi réveille tout ce qui lit
-     * l'état du lecteur dans l'UI, qui interpole de toute façon.
+     * Position sent during playback (#147): the UI interpolates between two sends and Rust
+     * only needs it for preloading (30 s before the end) and for saving. Spaced further apart
+     * when no activity is visible (screen off, another app in the foreground). A seek, a
+     * pause or a track change always sends it right away. In the foreground, every 2 s since
+     * #473 (1 s before): every send wakes up everything in the UI that reads the player
+     * state, which interpolates anyway.
      */
     private const val FOREGROUND_POSITION_MS = 2_000L
     private const val BACKGROUND_POSITION_MS = 5_000L
 
     /**
-     * Tampon par rafales (#323). Media3 garde par défaut 50 s d'avance (minimum = maximum) et
-     * retélécharge donc au goutte-à-goutte pendant toute la lecture : le modem ne dort
-     * jamais. Ici le lecteur charge jusqu'à 5 minutes d'avance d'un coup, puis ne redemande
-     * rien avant d'être retombé à 1 minute. Un titre courant tient en une rafale.
-     * La limite en octets (13 Mo par défaut, environ 2 min de FLAC 16/44,1) est relevée pour
-     * ne pas couper la rafale. Tampon en mémoire seulement, rien sur disque.
+     * Burst buffering (#323). By default Media3 keeps 50 s ahead (minimum = maximum) and so
+     * downloads again drip by drip throughout playback: the modem never sleeps. Here the
+     * player loads up to 5 minutes ahead in one go, then asks for nothing more until it has
+     * dropped back to 1 minute. A current track fits in one burst.
+     * The byte limit (13 MB by default, about 2 min of 16/44.1 FLAC) is raised so as not to
+     * cut the burst short. In-memory buffer only, nothing on disk.
      */
     private const val MIN_BUFFER_MS = 60_000
     private const val MAX_BUFFER_MS = 300_000
@@ -71,7 +71,7 @@ internal object Playback {
     private var context: Context? = null
     private var exo: ExoPlayer? = null
 
-    /** Le lecteur vu par la session : ses commandes repartent vers Rust. */
+    /** The player as the session sees it: its commands go back to Rust. */
     var remote: RemotePlayer? = null
         private set
 
@@ -82,7 +82,7 @@ internal object Playback {
     private var muted = false
     private var currentGain: Double? = null
     private var nextGain: Double? = null
-    /** Égaliseur (#467), dans le sink audio ; le profil vaut pour toute la lecture. */
+    /** Equalizer (#467), in the audio sink; the profile applies to the whole playback. */
     private val equalizer = EqAudioProcessor()
     private var metadata: MediaMetadata = MediaMetadata.EMPTY
     private var idle: Boolean? = null
@@ -92,7 +92,7 @@ internal object Playback {
 
     fun onMain(block: () -> Unit) = main.post(block)
 
-    /** Crée le lecteur s'il n'existe pas encore, puis branche les événements sur `channel`. */
+    /** Creates the player if it does not exist yet, then plugs the events into `channel`. */
     fun start(appContext: Context, channel: Channel) {
         context = appContext
         val player = exo ?: build(appContext)
@@ -109,7 +109,7 @@ internal object Playback {
         refreshWidget()
     }
 
-    /** Ce que le widget d'écran d'accueil affiche (#329), sur le thread principal. */
+    /** What the home screen widget shows (#329), on the main thread. */
     fun widgetState(): WidgetState {
         val live = commands != null
         val p = exo
@@ -122,18 +122,18 @@ internal object Playback {
         )
     }
 
-    /** Titre, pause ou session changés : le widget suit, s'il y en a un de posé. */
+    /** Track, pause or session changed: the widget follows, if one is placed. */
     private fun refreshWidget() {
         context?.let { NowPlayingWidget.refresh(it) }
     }
 
-    /** Texte partagé arrivé avant que Rust ne branche la session (app lancée par le partage). */
+    /** Shared text received before Rust plugged in the session (app launched by the share). */
     private var pendingShare: String? = null
 
-    /** Mode conduite demandé avant que Rust ne branche la session (app lancée par le lien). */
+    /** Drive mode requested before Rust plugged in the session (app launched by the link). */
     private var pendingDrive = false
 
-    /** Épingle demandée avant que Rust ne branche la session (app lancée par le raccourci). */
+    /** Pin requested before Rust plugged in the session (app launched by the shortcut). */
     private var pendingPin: String? = null
 
     fun attachSession(channel: Channel) {
@@ -153,7 +153,7 @@ internal object Playback {
         refreshWidget()
     }
 
-    /** Lien `seaglass://drive` ou raccourci de l'app (#193), sur le thread principal. */
+    /** `seaglass://drive` link or app shortcut (#193), on the main thread. */
     fun openDrive() {
         val channel = commands
         if (channel == null) {
@@ -165,7 +165,7 @@ internal object Playback {
         channel.send(o)
     }
 
-    /** Raccourci d'une épingle ou lien `seaglass://pin/<clé>` (#335), sur le thread principal. */
+    /** Pin shortcut or `seaglass://pin/<key>` link (#335), on the main thread. */
     fun openPin(key: String) {
         val channel = commands
         if (channel == null) {
@@ -178,7 +178,7 @@ internal object Playback {
         channel.send(o)
     }
 
-    /** Lien reçu par le menu « Partager » (#203), sur le thread principal. */
+    /** Link received through the "Share" menu (#203), on the main thread. */
     fun share(text: String) {
         val channel = commands
         if (channel == null) {
@@ -191,35 +191,35 @@ internal object Playback {
         channel.send(o)
     }
 
-    /** Action de la notification, de l'écran verrouillé ou des écouteurs. */
+    /** Action from the notification, the lock screen or the headphones. */
     fun command(name: String, positionMs: Long? = null) {
         val o = JSObject()
         o.put("command", name)
         if (positionMs != null) o.put("position", positionMs / 1000.0)
-        commands?.send(o) ?: Log.w(TAG, "commande « $name » sans session branchée")
+        commands?.send(o) ?: Log.w(TAG, "command \"$name\" without a plugged-in session")
     }
 
-    /** Répétition demandée par un contrôleur (#254) : `off`, `all` ou `one`. */
+    /** Repeat requested by a controller (#254): `off`, `all` or `one`. */
     fun setRepeat(mode: String) {
         val o = JSObject()
         o.put("command", "setRepeat")
         o.put("repeat", mode)
-        commands?.send(o) ?: Log.w(TAG, "commande « setRepeat » sans session branchée")
+        commands?.send(o) ?: Log.w(TAG, "command \"setRepeat\" without a plugged-in session")
     }
 
-    /** Aléatoire demandé par un contrôleur (#254). */
+    /** Shuffle requested by a controller (#254). */
     fun setShuffle(on: Boolean) {
         val o = JSObject()
         o.put("command", "setShuffle")
         o.put("shuffle", on)
-        commands?.send(o) ?: Log.w(TAG, "commande « setShuffle » sans session branchée")
+        commands?.send(o) ?: Log.w(TAG, "command \"setShuffle\" without a plugged-in session")
     }
 
     fun apply(args: EngineArgs) {
-        val p = exo ?: throw IllegalStateException("lecteur non démarré")
+        val p = exo ?: throw IllegalStateException("player not started")
         when (args.op) {
             "play" -> {
-                val url = args.url ?: throw IllegalArgumentException("url manquante")
+                val url = args.url ?: throw IllegalArgumentException("missing url")
                 p.setMediaItem(item(url, metadata), ((args.start ?: 0.0) * 1000).toLong())
                 currentGain = args.gain
                 nextGain = null
@@ -231,7 +231,7 @@ internal object Playback {
                 startService()
             }
             "preload" -> {
-                val url = args.url ?: throw IllegalArgumentException("url manquante")
+                val url = args.url ?: throw IllegalArgumentException("missing url")
                 p.addMediaItem(item(url, MediaMetadata.EMPTY))
                 nextGain = args.gain
             }
@@ -264,22 +264,22 @@ internal object Playback {
                 updateOffload(p, args.eq)
                 applyVolume()
             }
-            else -> throw IllegalArgumentException("opération inconnue : ${args.op}")
+            else -> throw IllegalArgumentException("unknown operation: ${args.op}")
         }
     }
 
-    /** Dernier choix d'offload posé sur le lecteur (`null` : rien posé encore). */
+    /** Last offload choice set on the player (`null`: nothing set yet). */
     private var offloadAllowed: Boolean? = null
 
     /**
-     * Offload audio (#474) : le FLAC part compressé vers la puce audio, qui le décode, et le
-     * CPU dort entre deux remplissages du tampon. Media3 ne l'utilise que si l'appareil sait
-     * décoder ce format **et** enchaîner deux titres sans blanc (`isGaplessSupportRequired`) ;
-     * sinon, décodage dans l'app comme avant. Coupé tant qu'un profil d'égaliseur est actif :
-     * en offload, les `AudioProcessor` du sink sont contournés et l'égaliseur serait ignoré.
-     * Le volume (normalisation comprise) reste appliqué par l'`AudioTrack`. Les paramètres ne
-     * changent que si le choix change : un changement resélectionne la piste audio (le sink
-     * se reconfigure, petite coupure possible à l'activation de l'égaliseur).
+     * Audio offload (#474): the FLAC goes compressed to the audio chip, which decodes it, and
+     * the CPU sleeps between two buffer refills. Media3 only uses it if the device can decode
+     * this format **and** chain two tracks without a gap (`isGaplessSupportRequired`);
+     * otherwise, decoding in the app as before. Off while an equalizer profile is active:
+     * with offload, the sink's `AudioProcessor`s are bypassed and the equalizer would be
+     * ignored. The volume (normalization included) is still applied by the `AudioTrack`. The
+     * parameters only change if the choice changes: a change reselects the audio track (the
+     * sink reconfigures, a short dropout is possible when the equalizer is enabled).
      */
     private fun updateOffload(p: ExoPlayer, eq: EqSpec?) {
         val allowed = eq == null
@@ -297,10 +297,10 @@ internal object Playback {
         p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
             .setAudioOffloadPreferences(preferences)
             .build()
-        Log.i(TAG, "offload ${if (allowed) "autorisé" else "coupé (égaliseur actif)"}")
+        Log.i(TAG, "offload ${if (allowed) "allowed" else "off (equalizer active)"}")
     }
 
-    /** État des boutons aléatoire et répétition de la notification (#163), tenu par Rust. */
+    /** State of the notification's shuffle and repeat buttons (#163), held by Rust. */
     var modes = SessionModes()
         private set
 
@@ -311,7 +311,7 @@ internal object Playback {
         PlaybackService.current?.refreshLayout()
     }
 
-    /** Titre, artiste, album et pochette du titre courant, pour la notification. */
+    /** Title, artist, album and artwork of the current track, for the notification. */
     fun setNowPlaying(meta: MediaMetadata) {
         metadata = meta
         refreshWidget()
@@ -319,22 +319,22 @@ internal object Playback {
         if (p.mediaItemCount == 0) return
         val index = p.currentMediaItemIndex
         val current = p.getMediaItemAt(index)
-        // Même URI : Media3 met à jour l'entrée sans recharger le flux.
+        // Same URI: Media3 updates the entry without reloading the stream.
         p.replaceMediaItem(index, current.buildUpon().setMediaMetadata(meta).build())
     }
 
     /**
-     * Formats que la puce audio reçoit en offload (#474), HE-AAC exclu (#492) : sur le S21,
-     * l'offload HE-AAC vers les écouteurs Bluetooth ouvre bien la sortie, mais le HAL ne
-     * rend jamais rien (`get_render_position: No data available` en boucle) et ExoPlayer
-     * recrée l'AudioTrack toutes les ~5 s, sans aucun son. L'AAC-LC (qualité Haute) y
-     * marche, vérifié au casque et au haut-parleur. Décidé à chaque titre.
+     * Formats the audio chip receives in offload (#474), HE-AAC excluded (#492): on the S21,
+     * HE-AAC offload to Bluetooth headphones does open the output, but the HAL never renders
+     * anything (`get_render_position: No data available` in a loop) and ExoPlayer recreates
+     * the AudioTrack every ~5 s, with no sound at all. AAC-LC (High quality) works there,
+     * checked on headphones and on the speaker. Decided for each track.
      */
     private fun offloadSupport(context: Context): DefaultAudioSink.AudioOffloadSupportProvider {
         val system = DefaultAudioOffloadSupportProvider(context)
         return DefaultAudioSink.AudioOffloadSupportProvider { format, attributes ->
             if (isHeAac(format.codecs)) {
-                Log.i(TAG, "offload refusé pour le HE-AAC (${format.codecs})")
+                Log.i(TAG, "offload refused for HE-AAC (${format.codecs})")
                 AudioOffloadSupport.DEFAULT_UNSUPPORTED
             } else {
                 system.getAudioOffloadSupport(format, attributes)
@@ -342,7 +342,7 @@ internal object Playback {
         }
     }
 
-    /** HE-AAC (v1 : `mp4a.40.5`, v2 : `mp4a.40.29`), la qualité Basse de TIDAL. */
+    /** HE-AAC (v1: `mp4a.40.5`, v2: `mp4a.40.29`), TIDAL's Low quality. */
     private fun isHeAac(codecs: String?): Boolean =
         codecs?.split(',')?.any { it.trim() in HE_AAC_CODECS } == true
 
@@ -353,7 +353,7 @@ internal object Playback {
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
-        // Démarrage de la lecture inchangé : seuils par défaut de Media3.
+        // Playback start unchanged: Media3's default thresholds.
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 MIN_BUFFER_MS,
@@ -363,7 +363,7 @@ internal object Playback {
             )
             .setTargetBufferBytes(TARGET_BUFFER_BYTES)
             .build()
-        // Sink par défaut de Media3, avec l'égaliseur en fin de chaîne de traitement.
+        // Media3's default sink, with the equalizer at the end of the processing chain.
         val renderers = object : DefaultRenderersFactory(appContext) {
             override fun buildAudioSink(
                 context: Context,
@@ -381,15 +381,15 @@ internal object Playback {
             .setAudioAttributes(attributes, true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
-            // Pas d'ordonnancement dynamique (`experimentalSetDynamicSchedulingEnabled`, #474) :
-            // il faisait dormir le thread de lecture tant que le tampon de l'AudioTrack était
-            // plein, mais causait des micro-coupures au casque Bluetooth (#491). Il ne se
-            // règle qu'à la création du lecteur, pas selon la sortie. En offload (AAC), le
-            // lecteur dort de toute façon (`isSleepingForOffload`) : seul le FLAC y perd.
+            // No dynamic scheduling (`experimentalSetDynamicSchedulingEnabled`, #474): it made
+            // the playback thread sleep while the AudioTrack buffer was full, but caused
+            // micro-dropouts on Bluetooth headphones (#491). It can only be set when the
+            // player is created, not depending on the output. In offload (AAC), the player
+            // sleeps anyway (`isSleepingForOffload`): only FLAC loses out.
             .build()
         player.addListener(listener)
         player.addAnalyticsListener(analytics)
-        // Lecteur neuf : offload désactivé par défaut dans Media3, reposé au prochain `play`.
+        // New player: offload disabled by default in Media3, set again at the next `play`.
         offloadAllowed = null
         exo = player
         remote = RemotePlayer(player)
@@ -401,19 +401,19 @@ internal object Playback {
         try {
             ctx.startService(Intent(ctx, PlaybackService::class.java))
         } catch (e: IllegalStateException) {
-            // Application en arrière-plan : la session reprendra au prochain lancement.
-            Log.w(TAG, "service de lecture non démarré : $e")
+            // App in the background: the session will resume at the next launch.
+            Log.w(TAG, "playback service not started: $e")
         }
     }
 
-    /** Une URL `data:` porte le MPD (rien sur disque ni sur un port local) ; sinon flux direct. */
+    /** A `data:` URL carries the MPD (nothing on disk or on a local port); else a direct stream. */
     private fun item(url: String, meta: MediaMetadata): MediaItem {
         val builder = MediaItem.Builder().setUri(Uri.parse(url)).setMediaMetadata(meta)
         if (url.startsWith("data:application/dash+xml")) builder.setMimeType(MimeTypes.APPLICATION_MPD)
         return builder.build()
     }
 
-    /** Volume de l'app avec la courbe cubique de mpv, et gain de normalisation (≤ 0 dB). */
+    /** App volume with mpv's cubic curve, and normalization gain (<= 0 dB). */
     private fun applyVolume() {
         val p = exo ?: return
         val gain = currentGain?.let { min(1.0, 10.0.pow(it / 20.0)) } ?: 1.0
@@ -430,7 +430,7 @@ internal object Playback {
     private fun sendPosition() {
         val p = exo ?: return
         send("position") { if (p.mediaItemCount > 0) put("value", p.currentPosition / 1000.0) }
-        // Ce que Media3 a déjà en mémoire du titre courant (#453), au même rythme.
+        // What Media3 already has in memory for the current track (#453), at the same rate.
         send("cached") { if (p.mediaItemCount > 0) put("value", p.bufferedPosition / 1000.0) }
     }
 
@@ -465,7 +465,7 @@ internal object Playback {
         }
     }
 
-    /** Retour au premier plan : position aussitôt, puis à la cadence du premier plan. */
+    /** Back to the foreground: position right away, then at the foreground rate. */
     private val appLifecycle = object : DefaultLifecycleObserver {
         override fun onStart(owner: LifecycleOwner) {
             foreground = true
@@ -503,8 +503,8 @@ internal object Playback {
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            // Seul l'enchaînement automatique vaut passage au préchargé ; remplacer la
-            // fenêtre (`play`) ou boucler (repeat One) n'en est pas un.
+            // Only the automatic transition counts as moving to the preloaded track; replacing
+            // the window (`play`) or looping (repeat One) is not one.
             if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) return
             currentGain = nextGain
             nextGain = null
@@ -525,7 +525,7 @@ internal object Playback {
             val detail = listOfNotNull(error.errorCodeName, error.cause?.message?.let(::redact))
                 .joinToString(" : ")
                 .take(300)
-            Log.w(TAG, "erreur de lecture : $detail")
+            Log.w(TAG, "playback error: $detail")
             send("ended") {
                 put("reason", "error")
                 put("error", detail)
@@ -539,8 +539,9 @@ internal object Playback {
             eventTime: AnalyticsListener.EventTime,
             audioTrackConfig: AudioSink.AudioTrackConfig,
         ) {
-            Log.i(TAG, "AudioTrack : offload ${if (audioTrackConfig.offload) "actif" else "inactif"}")
-            // En offload (#474), l'AudioTrack reçoit le flux compressé : décodé par la puce audio.
+            Log.i(TAG, "AudioTrack: offload ${if (audioTrackConfig.offload) "active" else "inactive"}")
+            // In offload (#474), the AudioTrack receives the compressed stream, decoded by the
+            // audio chip.
             val format = if (audioTrackConfig.offload) "offload" else when (audioTrackConfig.encoding) {
                 C.ENCODING_PCM_16BIT -> "s16"
                 C.ENCODING_PCM_24BIT -> "s24"
@@ -556,11 +557,11 @@ internal object Playback {
         }
     }
 
-    // Les URLs de segments sont signées : jamais journalisées ni remontées avec leur signature.
-    private fun redact(text: String): String = text.replace(Regex("""\?[^\s"'<>]*"""), "?<signature masquée>")
+    // Segment URLs are signed: never logged nor sent back up with their signature.
+    private fun redact(text: String): String = text.replace(Regex("""\?[^\s"'<>]*"""), "?<signature redacted>")
 }
 
-/** Aléatoire, répétition (`off`, `all`, `one`) et libellés des deux boutons. */
+/** Shuffle, repeat (`off`, `all`, `one`) and labels of the two buttons. */
 internal data class SessionModes(
     val shuffle: Boolean = false,
     val repeat: String = "off",

@@ -13,22 +13,22 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-/** Filtre d'un profil d'égaliseur (#467), tel que Rust l'envoie (`player::eq::Filter`). */
+/** Filter of an equalizer profile (#467), as Rust sends it (`player::eq::Filter`). */
 internal data class EqFilterSpec(val kind: String, val freq: Double, val gain: Double, val q: Double)
 
-/** Profil appliqué : préampli effectif (dB) puis filtres. */
+/** Applied profile: effective preamp (dB) then filters. */
 internal data class EqSpec(val preamp: Double, val filters: List<EqFilterSpec>)
 
 /**
- * Égaliseur paramétrique d'Android (#467) : préampli puis biquads du « Audio EQ Cookbook »
- * de R. Bristow-Johnson, les mêmes que `libavfilter` sur le bureau (`equalizer`, `bass`,
- * `treble` en `t=q`) et qu'AutoEQ.
+ * Android's parametric equalizer (#467): preamp then biquads from R. Bristow-Johnson's
+ * "Audio EQ Cookbook", the same as `libavfilter` on the desktop (`equalizer`, `bass`,
+ * `treble` with `t=q`) and as AutoEQ.
  *
- * Placé dans le `DefaultAudioSink` (`Playback.build`) : il reçoit du PCM 16 bits (le sink
- * ramène le 24 bits à 16 sans sortie flottante) ou flottant. Toujours actif pour ces deux
- * formats : sans profil, il recopie le signal tel quel, ce qui permet d'activer
- * l'égaliseur à chaud sans reconfigurer le sink. Le profil est posé depuis le thread
- * principal (`profile`) et pris en compte au tampon suivant, sur le thread audio.
+ * Placed in the `DefaultAudioSink` (`Playback.build`): it receives 16-bit PCM (the sink
+ * brings 24-bit down to 16 without float output) or float. Always active for these two
+ * formats: without a profile, it copies the signal as is, which allows enabling the
+ * equalizer on the fly without reconfiguring the sink. The profile is set from the main
+ * thread (`profile`) and taken into account at the next buffer, on the audio thread.
  */
 @OptIn(UnstableApi::class)
 internal class EqAudioProcessor : BaseAudioProcessor() {
@@ -43,15 +43,15 @@ internal class EqAudioProcessor : BaseAudioProcessor() {
         if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT &&
             inputAudioFormat.encoding != C.ENCODING_PCM_FLOAT
         ) {
-            Log.w(TAG, "format ${inputAudioFormat.encoding} non pris en charge : égaliseur inactif")
+            Log.w(TAG, "format ${inputAudioFormat.encoding} not supported: equalizer inactive")
             return AudioFormat.NOT_SET
         }
         return inputAudioFormat
     }
 
     override fun onFlush() {
-        // Nouvelle configuration ou saut : coefficients recalculés pour la fréquence en
-        // cours, mémoire des filtres remise à zéro.
+        // New configuration or seek: coefficients recomputed for the current sample rate,
+        // filter memory reset to zero.
         applied = null
         stages = emptyArray()
     }
@@ -106,15 +106,15 @@ internal class EqAudioProcessor : BaseAudioProcessor() {
         val rate = inputAudioFormat.sampleRate.toDouble()
         val channels = inputAudioFormat.channelCount
         preampLinear = 10.0.pow(spec.preamp / 20.0)
-        // Un filtre à 0 dB ne fait rien ; au-delà de Nyquist, il n'a pas de sens.
+        // A 0 dB filter does nothing; beyond Nyquist, it makes no sense.
         stages = spec.filters
             .filter { it.gain != 0.0 && it.freq < rate * 0.49 }
             .map { Biquad(it, rate, channels) }
             .toTypedArray()
-        Log.i(TAG, "égaliseur : ${stages.size} filtres à ${rate.toInt()} Hz, préampli ${spec.preamp} dB")
+        Log.i(TAG, "equalizer: ${stages.size} filters at ${rate.toInt()} Hz, preamp ${spec.preamp} dB")
     }
 
-    /** Biquad en forme directe transposée II, une mémoire par canal. */
+    /** Biquad in transposed direct form II, one memory per channel. */
     private class Biquad(f: EqFilterSpec, rate: Double, channels: Int) {
         private val b0: Double
         private val b1: Double

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Seul usage : la photo prise depuis un <input type="file"> de la webview (wry,
-     RustWebChromeClient.createImageFile, dans getExternalFilesDir(Pictures)). Réduit à ce
-     dossier (#262) : le modèle de Tauri partageait tout le stockage externe et le cache. -->
+<!-- Only use: the photo taken from a <input type="file"> in the webview (wry,
+     RustWebChromeClient.createImageFile, in getExternalFilesDir(Pictures)). Reduced to this
+     folder (#262): Tauri's template shared all external storage and the cache. -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
   <external-files-path name="my_images" path="Pictures/" />
 </paths>

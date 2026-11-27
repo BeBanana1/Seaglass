@@ -20,8 +20,8 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
 /**
- * Service de lecture (#24) : garde l'app en vie écran éteint et publie la session média
- * (notification, écran verrouillé, touches Bluetooth). Le lecteur appartient à `Playback`.
+ * Playback service (#24): keeps the app alive with the screen off and publishes the media
+ * session (notification, lock screen, Bluetooth keys). The player belongs to `Playback`.
  */
 @OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
@@ -30,38 +30,38 @@ class PlaybackService : MediaSessionService() {
         const val REPEAT = "dev.seaglass.REPEAT"
 
         /**
-         * Durée pendant laquelle le service reste au premier plan après une pause (#247),
-         * comme Media3 le fait depuis la 1.6.
+         * How long the service stays in the foreground after a pause (#247), as Media3 does
+         * since 1.6.
          */
         private const val PAUSED_HOLD_MS = 10 * 60_000L
 
-        /** Service en cours, pour remettre à jour les boutons quand Rust change leur état. */
+        /** Running service, to refresh the buttons when Rust changes their state. */
         var current: PlaybackService? = null
             private set
     }
 
     private var session: MediaSession? = null
 
-    /** Chargeur d'images de la session : le widget y reprend la pochette déjà chargée (#329). */
+    /** The session's image loader: the widget reuses the artwork it already loaded (#329). */
     internal val bitmapLoader get() = session?.bitmapLoader
 
     private val main = Handler(Looper.getMainLooper())
 
-    /** Fin du maintien au premier plan (`SystemClock.elapsedRealtime`), 0 : jamais joué. */
+    /** End of the foreground hold (`SystemClock.elapsedRealtime`), 0: never played. */
     private var holdUntil = 0L
 
-    /** Maintien écoulé : la notification repasse en simple notification. */
+    /** Hold elapsed: the notification goes back to a plain notification. */
     private val endHold = Runnable {
         session?.let { onUpdateNotification(it, false) }
     }
 
     /**
-     * Toutes les mises à jour de la notification passent ici, avec ce que Media3 a décidé :
-     * premier plan pendant la lecture seulement. En pause, il rendait donc le service à
-     * l'arrière-plan ; app non visible, Android l'arrêtait une minute plus tard (« app
-     * idle »), la session média était détruite et l'appui suivant sur les écouteurs
-     * n'arrivait plus nulle part (#247). Le service reste donc au premier plan
-     * `PAUSED_HOLD_MS` après la dernière lecture, tant qu'un titre est chargé.
+     * Every notification update goes through here, with what Media3 decided: foreground
+     * during playback only. On pause, it therefore handed the service back to the
+     * background; with the app not visible, Android stopped it a minute later ("app
+     * idle"), the media session was destroyed and the next press on the headphones
+     * reached nowhere (#247). So the service stays in the foreground for
+     * `PAUSED_HOLD_MS` after the last playback, as long as a track is loaded.
      */
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
         val now = SystemClock.elapsedRealtime()
@@ -72,13 +72,13 @@ class PlaybackService : MediaSessionService() {
         super.onUpdateNotification(session, startInForegroundRequired || hold)
     }
 
-    /** Un titre est chargé et prêt : mêmes états que ceux où Media3 garde le premier plan. */
+    /** A track is loaded and ready: same states in which Media3 keeps the foreground. */
     private fun resumable(player: Player): Boolean = player.mediaItemCount > 0 &&
         (player.playbackState == Player.STATE_READY || player.playbackState == Player.STATE_BUFFERING)
 
     override fun onCreate() {
         super.onCreate()
-        // Relancé par le système sans lecteur (processus recréé) : rien à publier.
+        // Restarted by the system without a player (process recreated): nothing to publish.
         val player = Playback.remote ?: return stopSelf()
         val created = MediaSession.Builder(this, player)
             .setSessionActivity(nowPlayingIntent())
@@ -87,19 +87,19 @@ class PlaybackService : MediaSessionService() {
             .build()
         session = created
         current = this
-        // Aucun contrôleur ne se connecte à l'ouverture : la session est ajoutée ici pour
-        // que la notification apparaisse dès la lecture.
+        // No controller connects at startup: the session is added here so that the
+        // notification shows up as soon as playback starts.
         addSession(created)
     }
 
-    /** Aléatoire ou répétition changés (depuis l'app ou la notification). */
+    /** Shuffle or repeat changed (from the app or the notification). */
     fun refreshLayout() {
         session?.setCustomLayout(layout())
     }
 
     /**
-     * Appui sur la notification (#163) : `NowPlayingActivity` relaie la demande à Rust puis
-     * ramène l'app au premier plan, qui s'ouvre sur « En lecture ».
+     * Tap on the notification (#163): `NowPlayingActivity` relays the request to Rust then
+     * brings the app to the foreground, which opens on "Now playing".
      */
     private fun nowPlayingIntent(): PendingIntent = PendingIntent.getActivity(
         this,
@@ -108,7 +108,7 @@ class PlaybackService : MediaSessionService() {
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
-    /** Boutons aléatoire et répétition (#163), état et libellés venus de Rust. */
+    /** Shuffle and repeat buttons (#163), state and labels coming from Rust. */
     private fun layout(): List<CommandButton> {
         val modes = Playback.modes
         val shuffle = CommandButton.Builder(
@@ -139,8 +139,8 @@ class PlaybackService : MediaSessionService() {
                 .add(SessionCommand(SHUFFLE, Bundle.EMPTY))
                 .add(SessionCommand(REPEAT, Bundle.EMPTY))
                 .build()
-            // Aucun contrôleur n'est filtré (#145, Buds et écran verrouillé) : seules les
-            // commandes qu'aucun n'a à utiliser sont retirées (#254).
+            // No controller is filtered (#145, Buds and lock screen): only the commands that
+            // none of them needs to use are removed (#254).
             val player = MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon()
                 .removeAll(*RemotePlayer.BLOCKED)
                 .build()
@@ -150,7 +150,7 @@ class PlaybackService : MediaSessionService() {
                 .build()
         }
 
-        // Comme les autres boutons : Rust décide de l'état suivant et le renvoie.
+        // Like the other buttons: Rust decides the next state and sends it back.
         override fun onCustomCommand(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
@@ -174,7 +174,7 @@ class PlaybackService : MediaSessionService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
 
-    /** App balayée des récents : on ne garde le service que si la musique joue. */
+    /** App swiped away from recents: the service is only kept if music is playing. */
     override fun onTaskRemoved(rootIntent: Intent?) {
         val player = session?.player
         if (player == null || !player.playWhenReady || player.mediaItemCount == 0) stopSelf()
@@ -190,18 +190,18 @@ class PlaybackService : MediaSessionService() {
 }
 
 /**
- * Le lecteur tel que la session le voit : lecture, pause, saut, suivant, précédent,
- * répétition et aléatoire repartent vers Rust, qui tient la file (comme SMTC sur le bureau).
- * Rien n'est appliqué directement à l'ExoPlayer, et ce que la session n'a pas à faire
- * (changer les entrées, la vitesse, le volume) n'est pas proposé aux contrôleurs (#254).
+ * The player as the session sees it: play, pause, seek, next, previous, repeat and shuffle
+ * go back to Rust, which holds the queue (like SMTC on the desktop). Nothing is applied
+ * directly to the ExoPlayer, and what the session has no business doing (changing the
+ * entries, the speed, the volume) is not offered to controllers (#254).
  */
 @OptIn(UnstableApi::class)
 class RemotePlayer(player: ExoPlayer) : ForwardingPlayer(player) {
     companion object {
         /**
-         * Commandes jamais proposées : la fenêtre d'ExoPlayer (titre courant + suivant) et
-         * son volume appartiennent au moteur, piloté par Rust. Retirées aussi des commandes
-         * accordées aux contrôleurs dans `onConnect`.
+         * Commands never offered: ExoPlayer's window (current track + next one) and its
+         * volume belong to the engine, driven by Rust. Also removed from the commands
+         * granted to controllers in `onConnect`.
          */
         val BLOCKED = intArrayOf(
             Player.COMMAND_SET_MEDIA_ITEM,
@@ -211,7 +211,7 @@ class RemotePlayer(player: ExoPlayer) : ForwardingPlayer(player) {
         )
     }
 
-    /** Écouteurs de la session : prévenus quand Rust change la répétition ou l'aléatoire. */
+    /** Session listeners: notified when Rust changes the repeat or the shuffle. */
     private val listeners = mutableListOf<Player.Listener>()
 
     override fun addListener(listener: Player.Listener) {
@@ -230,7 +230,7 @@ class RemotePlayer(player: ExoPlayer) : ForwardingPlayer(player) {
 
     override fun setPlayWhenReady(playWhenReady: Boolean) = Playback.command(if (playWhenReady) "play" else "pause")
 
-    // La session prépare un lecteur inactif avant `play` : c'est Rust qui recharge le titre.
+    // The session prepares an idle player before `play`: Rust is the one reloading the track.
     override fun prepare() {}
 
     override fun stop() = Playback.command("pause")
@@ -249,8 +249,8 @@ class RemotePlayer(player: ExoPlayer) : ForwardingPlayer(player) {
         if (mediaItemIndex == currentMediaItemIndex) Playback.command("seek", positionMs)
     }
 
-    // Répétition et aléatoire de la file, pas de la fenêtre d'ExoPlayer : sa répétition
-    // ne sert qu'à « répéter le titre » (`loop`) et ignore « répéter la file ».
+    // Repeat and shuffle of the queue, not of ExoPlayer's window: its repeat is only used
+    // for "repeat the track" (`loop`) and ignores "repeat the queue".
     override fun setRepeatMode(repeatMode: Int) = Playback.setRepeat(
         when (repeatMode) {
             Player.REPEAT_MODE_ONE -> "one"
@@ -270,9 +270,9 @@ class RemotePlayer(player: ExoPlayer) : ForwardingPlayer(player) {
     override fun getShuffleModeEnabled(): Boolean = Playback.modes.shuffle
 
     /**
-     * État de Rust reçu (`sessionModes`, thread principal). La session ne relit pas les
-     * getters : elle prend la valeur des événements. ExoPlayer n'en émet que pour sa propre
-     * répétition (« répéter le titre »), avant que Rust renvoie l'état : celui-ci passe après.
+     * State received from Rust (`sessionModes`, main thread). The session does not reread the
+     * getters: it takes the value from the events. ExoPlayer only emits them for its own
+     * repeat ("repeat the track"), before Rust sends the state back: that one comes after.
      */
     fun modesChanged() {
         val repeat = repeatMode
@@ -283,7 +283,7 @@ class RemotePlayer(player: ExoPlayer) : ForwardingPlayer(player) {
         }
     }
 
-    // La fenêtre n'a souvent qu'une entrée : suivant et précédent restent toujours proposés.
+    // The window often has a single entry: next and previous are always offered.
     override fun getAvailableCommands(): Player.Commands = super.getAvailableCommands()
         .buildUpon()
         .addAll(

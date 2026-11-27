@@ -1,7 +1,7 @@
 [package]
 name = "tauri-plugin-seaglass-mobile"
 version = "0.1.0"
-description = "Pont natif Android de Seaglass (#24) : connexion TIDAL, puis lecture Media3"
+description = "Seaglass native Android bridge (#24): TIDAL sign-in, then Media3 playback"
 edition = "2024"
 license = "GPL-3.0-only"
 publish = false
@@ -11,7 +11,7 @@ links = "tauri-plugin-seaglass-mobile"
 serde = { version = "1.0.229", features = ["derive"] }
 tauri = "2"
 
-# Appels JNI directs (`src/direct.rs`, #169), mêmes versions que l'app.
+# Direct JNI calls (`src/direct.rs`, #169), same versions as the app.
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.22"
 ndk-context = "0.1"

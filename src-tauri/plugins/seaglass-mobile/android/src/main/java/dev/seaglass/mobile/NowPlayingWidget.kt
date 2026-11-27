@@ -17,7 +17,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
 import java.util.concurrent.Executor
 
-/** Ce que le widget affiche ; `live` : la session est branchée, les boutons répondent. */
+/** What the widget shows; `live`: the session is plugged in, the buttons respond. */
 internal data class WidgetState(
     val live: Boolean = false,
     val title: String? = null,
@@ -27,14 +27,14 @@ internal data class WidgetState(
 )
 
 /**
- * Widget d'écran d'accueil (#329) : pochette, titre, artiste, Précédent / Lecture-pause /
- * Suivant. Les boutons envoient les mêmes commandes que la notification (`Playback.command`,
- * donc Rust décide) ; la pochette et le texte ouvrent « En lecture ».
+ * Home screen widget (#329): artwork, title, artist, Previous / Play-pause / Next. The
+ * buttons send the same commands as the notification (`Playback.command`, so Rust
+ * decides); the artwork and the text open "Now playing".
  *
- * Redessiné seulement quand l'état affiché change (`refresh`, appelé par `Playback`), jamais
- * sur un minuteur, et pas du tout si aucun widget n'est posé. Sans session branchée
- * (processus relancé par le système, app pas encore ouverte), le moteur ne peut pas
- * démarrer sans l'activité : le widget invite à ouvrir l'app.
+ * Redrawn only when the displayed state changes (`refresh`, called by `Playback`), never
+ * on a timer, and not at all if no widget is placed. Without a plugged-in session (process
+ * restarted by the system, app not opened yet), the engine cannot start without the
+ * activity: the widget invites the user to open the app.
  */
 class NowPlayingWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
@@ -47,14 +47,14 @@ class NowPlayingWidget : AppWidgetProvider() {
         const val ACTION_NEXT = "dev.seaglass.widget.NEXT"
         const val ACTION_PREVIOUS = "dev.seaglass.widget.PREVIOUS"
 
-        /** Côté de la pochette envoyée au lanceur, en pixels : assez pour 72 dp. */
+        /** Side of the artwork sent to the launcher, in pixels: enough for 72 dp. */
         private const val COVER_PX = 288
 
         private var shown: WidgetState? = null
         private var cover: Bitmap? = null
         private var coverUri: Uri? = null
 
-        /** Thread principal. `force` : widget ajouté ou système qui redemande l'affichage. */
+        /** Main thread. `force`: widget added or system asking for the display again. */
         internal fun refresh(context: Context, force: Boolean = false) {
             val manager = AppWidgetManager.getInstance(context) ?: return
             val ids = manager.getAppWidgetIds(ComponentName(context, NowPlayingWidget::class.java))
@@ -73,7 +73,7 @@ class NowPlayingWidget : AppWidgetProvider() {
             try {
                 manager.updateAppWidget(ids, views(context, state))
             } catch (e: RuntimeException) {
-                Log.w(TAG, "widget non mis à jour : ${e.javaClass.simpleName}")
+                Log.w(TAG, "widget not updated: ${e.javaClass.simpleName}")
             }
         }
 
@@ -109,7 +109,7 @@ class NowPlayingWidget : AppWidgetProvider() {
                 R.id.widget_toggle,
                 context.getString(if (state.playing) R.string.widget_pause else R.string.widget_play),
             )
-            // Sans titre connu, seul Lecture reste : il ouvre l'app.
+            // Without a known title, only Play remains: it opens the app.
             val skip = if (known) View.VISIBLE else View.GONE
             views.setViewVisibility(R.id.widget_previous, skip)
             views.setViewVisibility(R.id.widget_next, skip)
@@ -127,8 +127,8 @@ class NowPlayingWidget : AppWidgetProvider() {
         )
 
         /**
-         * Pochette par le chargeur d'images de la session (celui de la notification, qui garde
-         * la dernière image : pas de second téléchargement), en mémoire seulement.
+         * Artwork through the session's image loader (the notification's, which keeps the
+         * last image: no second download), in memory only.
          */
         @OptIn(UnstableApi::class)
         private fun loadCover(context: Context, uri: Uri) {
@@ -151,7 +151,7 @@ class NowPlayingWidget : AppWidgetProvider() {
             }, onMain)
         }
 
-        /** Une image trop lourde ferait refuser la mise à jour par le lanceur. */
+        /** An image that is too heavy would make the launcher refuse the update. */
         private fun scaled(bitmap: Bitmap): Bitmap {
             val side = maxOf(bitmap.width, bitmap.height)
             if (side <= COVER_PX) return bitmap
@@ -167,9 +167,9 @@ class NowPlayingWidget : AppWidgetProvider() {
 }
 
 /**
- * Boutons du widget (#329). Non exporté : seules les diffusions de l'app y arrivent. Processus
- * relancé par l'appui (session pas branchée) : rien à commander, le widget repasse à
- * « toucher pour ouvrir ».
+ * Widget buttons (#329). Not exported: only the app's broadcasts reach it. Process
+ * restarted by the tap (session not plugged in): nothing to command, the widget goes back
+ * to "tap to open".
  */
 class WidgetActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

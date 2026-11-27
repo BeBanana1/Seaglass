@@ -16,31 +16,31 @@ import androidx.core.content.ContextCompat
 import java.io.File
 
 /**
- * Installation d'une mise à jour (#24) : l'APK, déjà téléchargé et vérifié par Rust
- * (SHA-256 du manifeste), passe par une session `PackageInstaller`. Android affiche sa
- * boîte de confirmation et refuse un APK signé par une autre clé que l'app installée.
+ * Installing an update (#24): the APK, already downloaded and verified by Rust (SHA-256
+ * from the manifest), goes through a `PackageInstaller` session. Android shows its
+ * confirmation dialog and rejects an APK signed with a different key than the installed app.
  */
 object ApkInstaller {
     private const val TAG = "SeaglassUpdate"
     private const val ACTION = "dev.seaglass.mobile.INSTALL_STATUS"
 
-    /** Message reconnu par Rust : Seaglass n'a pas encore le droit d'installer des apps. */
+    /** Message recognized by Rust: Seaglass is not yet allowed to install apps. */
     const val NEEDS_PERMISSION = "install-permission"
 
     private var receiver: BroadcastReceiver? = null
-    /** Réponse en attente : appelée une fois, à la confirmation affichée ou à l'échec. */
+    /** Pending answer: called once, when the confirmation is shown or on failure. */
     private var pending: ((String?) -> Unit)? = null
 
     /**
-     * `done(null)` quand la boîte de confirmation est affichée, `done(message)` sinon.
-     * Appelé sur le thread principal.
+     * `done(null)` when the confirmation dialog is shown, `done(message)` otherwise.
+     * Called on the main thread.
      */
     fun install(activity: Activity, path: String, done: (String?) -> Unit) {
         val context = activity.applicationContext
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             !context.packageManager.canRequestPackageInstalls()
         ) {
-            // Réglage « Installer des applis inconnues » de Seaglass ; l'utilisateur réessaie.
+            // Seaglass's "Install unknown apps" setting; the user retries.
             activity.startActivity(
                 Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
             )
@@ -50,7 +50,7 @@ object ApkInstaller {
         register(context)
         pending = done
         val file = File(path)
-        // Copie de quelques dizaines de Mo : hors du thread principal.
+        // Copying a few tens of MB: off the main thread.
         Thread {
             try {
                 val installer = context.packageManager.packageInstaller
@@ -68,8 +68,8 @@ object ApkInstaller {
                     session.commit(PendingIntent.getBroadcast(context, id, intent, flags).intentSender)
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "session d'installation impossible", e)
-                Playback.onMain { answer("installation impossible : ${e.javaClass.simpleName}") }
+                Log.w(TAG, "cannot create the install session", e)
+                Playback.onMain { answer("install failed: ${e.javaClass.simpleName}") }
             } finally {
                 file.delete()
             }
@@ -91,22 +91,22 @@ object ApkInstaller {
                         @Suppress("DEPRECATION")
                         val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
                         if (confirm == null) {
-                            answer("confirmation d'installation absente")
+                            answer("install confirmation missing")
                             return
                         }
                         confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         ctx.startActivity(confirm)
                         answer(null)
                     }
-                    // En cas de succès, Android remplace le processus : rien à faire.
-                    PackageInstaller.STATUS_SUCCESS -> Log.i(TAG, "mise à jour installée")
+                    // On success, Android replaces the process: nothing to do.
+                    PackageInstaller.STATUS_SUCCESS -> Log.i(TAG, "update installed")
                     else -> {
                         val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
-                        Log.w(TAG, "installation refusée ($status) : $message")
+                        Log.w(TAG, "install rejected ($status): $message")
                         if (pending != null) {
-                            answer("installation refusée ($status)")
+                            answer("install rejected ($status)")
                         } else if (status != PackageInstaller.STATUS_FAILURE_ABORTED) {
-                            // Après la confirmation : l'UI a déjà sa réponse, on prévient ici.
+                            // After the confirmation: the UI already has its answer, so warn here.
                             Toast.makeText(ctx, "Seaglass : installation refusée ($status)", Toast.LENGTH_LONG).show()
                         }
                     }

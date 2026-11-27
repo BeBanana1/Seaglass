@@ -4,11 +4,11 @@ import android.app.Activity
 import android.os.Bundle
 
 /**
- * Mode conduite (#193) : cible du lien `seaglass://drive` et du raccourci de l'app (appui long
- * sur l'icône), que les Modes et routines de Samsung peuvent ouvrir à la connexion de
- * l'autoradio. Sans interface, comme `NowPlayingActivity` : la demande part vers Rust (gardée
- * par `Playback` si l'app n'était pas lancée), l'app revient au premier plan, puis
- * l'activité se ferme.
+ * Drive mode (#193): target of the `seaglass://drive` link and of the app shortcut (long
+ * press on the icon), which Samsung's Modes and Routines can open when the car stereo
+ * connects. No UI, like `NowPlayingActivity`: the request goes to Rust (held by `Playback`
+ * if the app was not running), the app comes back to the foreground, then the activity
+ * closes.
  */
 class DriveActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Petite icône des notifications des nouvelles sorties (#435) : un disque, en silhouette
-     (Android n'en garde que l'opacité). -->
+<!-- Small icon of the new-release notifications (#435): a disc, as a silhouette
+     (Android only keeps its opacity). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"

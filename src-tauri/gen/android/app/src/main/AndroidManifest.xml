@@ -25,7 +25,7 @@
                 <!-- AndroidTV support -->
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
-            <!-- Raccourci « Mode conduite » (#193), appui long sur l'icône. -->
+            <!-- "Drive mode" shortcut (#193), long press on the icon. -->
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
 

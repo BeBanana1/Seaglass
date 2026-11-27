@@ -5,12 +5,12 @@ import android.content.Intent
 import android.os.Bundle
 
 /**
- * Cible du menu « Partager » du système (#203) : un lien TIDAL partagé depuis l'app TIDAL ou
- * un navigateur ; aussi un lien `https://tidal.com/…` touché, si l'utilisateur a donné ces
- * liens à l'app (`LinkHandling`). Sans interface, comme `NowPlayingActivity` : le texte part vers Rust (qui
- * n'en garde que le type et l'identifiant validé), l'app revient au premier plan, puis
- * l'activité se ferme. Si l'app n'était pas lancée, le texte attend que Rust branche la
- * session (`Playback.attachSession`).
+ * Target of the system "Share" menu (#203): a TIDAL link shared from the TIDAL app or a
+ * browser; also a tapped `https://tidal.com/…` link, if the user gave these links to the
+ * app (`LinkHandling`). No UI, like `NowPlayingActivity`: the text goes to Rust (which
+ * only keeps the type and the validated identifier), the app comes back to the
+ * foreground, then the activity closes. If the app was not running, the text waits until
+ * Rust attaches the session (`Playback.attachSession`).
  */
 class ShareActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,7 +20,7 @@ class ShareActivity : Activity() {
             Intent.ACTION_VIEW -> intent.dataString
             else -> null
         }
-            // Rust refuse aussi au-delà de 2 000 caractères : inutile d'en transmettre plus.
+            // Rust also rejects anything beyond 2,000 characters: no need to pass more.
             ?.take(4000)
         if (!text.isNullOrBlank()) {
             Playback.onMain { Playback.share(text) }

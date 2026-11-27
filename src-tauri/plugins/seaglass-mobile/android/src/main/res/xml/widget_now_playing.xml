@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget d'écran d'accueil (#329) : 4×1, jamais redessiné sur un minuteur. -->
+<!-- Home screen widget (#329): 4×1, never redrawn on a timer. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_description"
     android:initialLayout="@layout/widget_now_playing"

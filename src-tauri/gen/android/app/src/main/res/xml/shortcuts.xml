@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Raccourci de l'app (#193) : ouvre le mode conduite par `DriveActivity` (plugin). -->
+<!-- App shortcut (#193): opens drive mode through `DriveActivity` (plugin). -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut
         android:shortcutId="drive"

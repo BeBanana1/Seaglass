@@ -12,17 +12,17 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Plantages côté Kotlin (#192), dans le dossier des journaux choisi par Rust (`logs/`).
+ * Crashes on the Kotlin side (#192), in the logs folder chosen by Rust (`logs/`).
  *
- * - Exception non rattrapée : sa pile va dans `crash.txt`, que Rust joint au rapport au
- *   lancement suivant, puis le gestionnaire d'Android prend le relais (fermeture de l'app).
- * - Plantage natif (panic Rust compris) et ANR : Android 11+ garde la raison des dernières
- *   sorties du processus ; la plus récente pas encore vue est renvoyée à Rust.
+ * - Uncaught exception: its stack goes into `crash.txt`, which Rust attaches to the report
+ *   at the next launch, then Android's handler takes over (the app closes).
+ * - Native crash (Rust panic included) and ANR: Android 11+ keeps the reason for the last
+ *   process exits; the most recent one not yet seen is returned to Rust.
  */
 object CrashLog {
-    /** Même nom que `report::CRASH_FILE` côté Rust. */
+    /** Same name as `report::CRASH_FILE` on the Rust side. */
     private const val CRASH_FILE = "crash.txt"
-    /** Date de la dernière sortie déjà examinée : chaque sortie n'est rapportée qu'une fois. */
+    /** Date of the last exit already examined: each exit is reported only once. */
     private const val SEEN_FILE = "exit-seen"
     private const val HISTORY = 5
     private const val MAX_TRACE = 64 * 1024
@@ -47,11 +47,11 @@ object CrashLog {
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             try {
                 File(dir, CRASH_FILE).writeText(
-                    "${header()}\nexception Kotlin non rattrapée dans le thread « ${thread.name} »\n\n" +
+                    "${header()}\nuncaught Kotlin exception in thread \"${thread.name}\"\n\n" +
                         error.stackTraceToString(),
                 )
             } catch (_: Throwable) {
-                // Rien à faire de plus : le plantage suit son cours.
+                // Nothing more to do: the crash runs its course.
             }
             previous?.uncaughtException(thread, error)
         }
@@ -75,28 +75,28 @@ object CrashLog {
         try {
             seen.writeText(newest.timestamp.toString())
         } catch (_: Exception) {
-            // Au pire, la même sortie est rapportée au prochain lancement.
+            // At worst, the same exit is reported again at the next launch.
         }
         val exit = exits.firstOrNull { it.timestamp > last && kind(it.reason) != null } ?: return null
         return describe(exit)
     }
 
     private fun kind(reason: Int): String? = when (reason) {
-        ApplicationExitInfo.REASON_CRASH -> "exception Java/Kotlin"
-        ApplicationExitInfo.REASON_CRASH_NATIVE -> "plantage natif"
-        ApplicationExitInfo.REASON_ANR -> "application figée (ANR)"
+        ApplicationExitInfo.REASON_CRASH -> "Java/Kotlin exception"
+        ApplicationExitInfo.REASON_CRASH_NATIVE -> "native crash"
+        ApplicationExitInfo.REASON_ANR -> "application not responding (ANR)"
         else -> null
     }
 
     private fun describe(exit: ApplicationExitInfo): String {
         val text = StringBuilder()
-        text.append("${kind(exit.reason)} le ${utc(exit.timestamp)}")
+        text.append("${kind(exit.reason)} on ${utc(exit.timestamp)}")
         exit.description?.let { text.append("\n").append(it) }
-        // La trace d'un plantage natif est un tombstone binaire : seulement celle d'un ANR.
+        // A native crash trace is a binary tombstone: only an ANR's is read.
         if (exit.reason == ApplicationExitInfo.REASON_ANR) {
             try {
                 exit.traceInputStream?.use { stream ->
-                    // `readNBytes` n'existe qu'à partir d'Android 13.
+                    // `readNBytes` only exists from Android 13.
                     val buffer = ByteArray(MAX_TRACE)
                     var size = 0
                     while (size < MAX_TRACE) {
@@ -107,7 +107,7 @@ object CrashLog {
                     text.append("\n\n").append(String(buffer, 0, size, Charsets.UTF_8))
                 }
             } catch (_: Exception) {
-                // Trace illisible : la raison suffit.
+                // Unreadable trace: the reason is enough.
             }
         }
         return text.toString()

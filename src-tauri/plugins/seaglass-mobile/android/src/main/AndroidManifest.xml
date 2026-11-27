@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Lecture écran éteint (#24) : service au premier plan et verrou réseau d'ExoPlayer. -->
+    <!-- Playback with the screen off (#24): foreground service and ExoPlayer's network lock. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <!-- Réseau facturé ou non, pour la qualité (#365) : accordée sans demande. -->
+    <!-- Metered network or not, for quality (#365): granted without a prompt. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Mises à jour (#24) : APK installé par PackageInstaller, avec confirmation. -->
+    <!-- Updates (#24): APK installed through PackageInstaller, with confirmation. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <!-- Nouvelles sorties des artistes suivis (#435) : demandée à l'activation du réglage
+    <!-- New releases from followed artists (#435): requested when the setting is turned on
          (Android 13+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
-        <!-- Exporté : la notification, l'écran verrouillé et les écouteurs s'y connectent. -->
+        <!-- Exported: the notification, the lock screen and headphones connect to it. -->
         <service
             android:name="dev.seaglass.mobile.PlaybackService"
             android:exported="true"
@@ -22,8 +22,8 @@
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
-        <!-- Widget d'écran d'accueil (#329). Exporté : le lanceur et le système lui demandent
-             de s'afficher. Ses boutons passent par un récepteur à part, non exporté. -->
+        <!-- Home screen widget (#329). Exported: the launcher and the system ask it to
+             render. Its buttons go through a separate, non-exported receiver. -->
         <receiver
             android:name="dev.seaglass.mobile.NowPlayingWidget"
             android:exported="true"
@@ -38,9 +38,9 @@
         <receiver
             android:name="dev.seaglass.mobile.WidgetActionReceiver"
             android:exported="false" />
-        <!-- Appui sur la notification (#163) : relais sans interface vers « En lecture ».
-             Tâche à part (affinité vide) : elle ne s'empile pas sur l'app, qu'elle ramène
-             au premier plan avant de se fermer. -->
+        <!-- Tap on the notification (#163): UI-less relay to "Now playing". Separate task
+             (empty affinity): it does not stack on the app, which it brings to the
+             foreground before closing. -->
         <activity
             android:name="dev.seaglass.mobile.NowPlayingActivity"
             android:exported="false"
@@ -48,9 +48,9 @@
             android:noHistory="true"
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-        <!-- Mode conduite (#193) : lien `seaglass://drive` (Modes et routines, autres
-             automatisations) et raccourci de l'app (`res/xml/shortcuts.xml` de l'app). Même
-             relais sans interface ; exporté pour recevoir le lien. -->
+        <!-- Drive mode (#193): `seaglass://drive` link (Modes and routines, other
+             automations) and app shortcut (the app's `res/xml/shortcuts.xml`). Same
+             UI-less relay; exported to receive the link. -->
         <activity
             android:name="dev.seaglass.mobile.DriveActivity"
             android:exported="true"
@@ -65,8 +65,8 @@
                 <data android:scheme="seaglass" android:host="drive" />
             </intent-filter>
         </activity>
-        <!-- Épingle à lire (#335) : raccourcis de l'icône (`PinShortcuts`) et lien
-             `seaglass://pin/<clé>` (Modes et routines). Même relais sans interface. -->
+        <!-- Pin to play (#335): icon shortcuts (`PinShortcuts`) and `seaglass://pin/<key>`
+             link (Modes and routines). Same UI-less relay. -->
         <activity
             android:name="dev.seaglass.mobile.PinActivity"
             android:exported="true"
@@ -81,9 +81,8 @@
                 <data android:scheme="seaglass" android:host="pin" />
             </intent-filter>
         </activity>
-        <!-- Menu « Partager » du système et liens TIDAL touchés (#203) : la page du lien
-             s'ouvre dans l'app. Même relais sans interface que ci-dessus ; exporté pour
-             recevoir l'intent. -->
+        <!-- System "Share" menu and tapped TIDAL links (#203): the linked page opens in
+             the app. Same UI-less relay as above; exported to receive the intent. -->
         <activity
             android:name="dev.seaglass.mobile.ShareActivity"
             android:exported="true"
@@ -97,10 +96,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-            <!-- Liens `https://tidal.com/…` touchés (WhatsApp, navigateur…). Pas d'`autoVerify` :
-                 le domaine n'est pas à nous, Android 12+ ne les donne à l'app qu'une fois
-                 activés par l'utilisateur (Réglages › Application › Liens TIDAL). Seuls les
-                 types que l'app sait ouvrir ; le reste (vidéos…) va au navigateur. -->
+            <!-- Tapped `https://tidal.com/…` links (WhatsApp, browser…). No `autoVerify`: the
+                 domain is not ours, Android 12+ only hands them to the app once enabled by
+                 the user (Settings › Apps › TIDAL links). Only the types the app can open;
+                 the rest (videos…) goes to the browser. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

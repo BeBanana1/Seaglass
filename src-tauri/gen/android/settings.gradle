@@ -2,9 +2,9 @@ include ':app'
 
 apply from: 'tauri.settings.gradle'
 
-// Le plugin Kotlin de l'app est toujours celui de ce dépôt. `tauri.settings.gradle` (généré)
-// reprend le chemin sorti par le script de build du plugin, que Cargo garde en cache : après
-// une compilation depuis un worktree, il pointait vers le Kotlin de ce worktree, et l'APK
-// 0.5.25 est sorti sans le widget ni les raccourcis d'épingles.
+// The app's Kotlin plugin is always the one from this repository. `tauri.settings.gradle`
+// (generated) reuses the path output by the plugin's build script, which Cargo keeps cached:
+// after a build from a worktree, it pointed to that worktree's Kotlin, and APK 0.5.25 shipped
+// without the widget or the pin shortcuts.
 project(':tauri-plugin-seaglass-mobile').projectDir =
     new File(rootDir, '../../plugins/seaglass-mobile/android').canonicalFile

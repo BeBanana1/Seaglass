@@ -4,10 +4,10 @@ import android.app.Activity
 import android.os.Bundle
 
 /**
- * Épingle à lire (#335) : cible des raccourcis de l'icône (`PinShortcuts`) et du lien
- * `seaglass://pin/<clé>`, que les Modes et routines de Samsung peuvent ouvrir. Sans interface,
- * comme `DriveActivity` : la clé part vers Rust (gardée par `Playback` si l'app n'était pas
- * lancée), qui la valide ; l'app revient au premier plan, puis l'activité se ferme.
+ * Pin to play (#335): target of the icon shortcuts (`PinShortcuts`) and of the
+ * `seaglass://pin/<key>` link, which Samsung's Modes and Routines can open. No UI, like
+ * `DriveActivity`: the key goes to Rust (held by `Playback` if the app was not running),
+ * which validates it; the app comes back to the foreground, then the activity closes.
  */
 class PinActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
