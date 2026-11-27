@@ -26,14 +26,14 @@ import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.ui.PlayerControlView
 
 /**
- * Spike #24 : vérifier que Media3 lit les MPD de TIDAL (FLAC en fMP4, segments signés)
- * et noter le format décodé. Écran unique, jetable.
+ * Spike #24: check that Media3 plays TIDAL's MPDs (FLAC in fMP4, signed segments)
+ * and note the decoded format. Single screen, throwaway.
  *
- * Lancement depuis le PC (voir `spike/android/README.md`) :
- *   adb shell am start -a android.intent.action.VIEW -n ch.bebanana.seaglass.spike/.MainActivity -d <url du MPD>
- * Extras : `--ez append true` (ajoute à la file au lieu de remplacer, pour la transition),
- * `--ez float true` (sortie PCM flottante, pour garder les 24 bits). Sans URL,
- * `--el seek <ms>` saute dans le titre en cours.
+ * Launch from the PC (see `spike/android/README.md`):
+ *   adb shell am start -a android.intent.action.VIEW -n ch.bebanana.seaglass.spike/.MainActivity -d <MPD URL>
+ * Extras: `--ez append true` (adds to the queue instead of replacing, for the transition),
+ * `--ez float true` (float PCM output, to keep the 24 bits). Without a URL,
+ * `--el seek <ms>` seeks in the current track.
  */
 @OptIn(UnstableApi::class)
 class MainActivity : Activity() {
@@ -79,26 +79,26 @@ class MainActivity : Activity() {
         if (seek >= 0 && intent.data == null) {
             seekStarted = System.nanoTime()
             player?.seekTo(seek)
-            return say("Saut à $seek ms")
+            return say("Seek to $seek ms")
         }
-        val uri = intent.data ?: return say("En attente d'une URL (adb shell am start … -d <mpd>)")
+        val uri = intent.data ?: return say("Waiting for a URL (adb shell am start … -d <mpd>)")
         val wantFloat = intent.getBooleanExtra("float", false)
         if (player == null || wantFloat != floatOutput) {
             player?.release()
             floatOutput = wantFloat
             player = buildPlayer()
-            say("Lecteur créé (sortie flottante : $floatOutput)")
+            say("Player created (float output: $floatOutput)")
         }
         val p = player ?: return
         val item = MediaItem.Builder().setUri(uri).setMimeType(MimeTypes.APPLICATION_MPD).build()
         if (intent.getBooleanExtra("append", false)) {
             p.addMediaItem(item)
-            say("Ajouté à la file : ${redact(uri)} (${p.mediaItemCount} entrées)")
+            say("Added to the queue: ${redact(uri)} (${p.mediaItemCount} entries)")
         } else {
             p.setMediaItem(item)
             p.prepare()
             p.play()
-            say("Lecture : ${redact(uri)}")
+            say("Playing: ${redact(uri)}")
         }
         logOutputs()
     }
@@ -111,7 +111,7 @@ class MainActivity : Activity() {
             p.addListener(
                 object : Player.Listener {
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                        say("Transition (raison $reason) → ${mediaItem?.localConfiguration?.uri?.let { redact(it) }}")
+                        say("Transition (reason $reason) → ${mediaItem?.localConfiguration?.uri?.let { redact(it) }}")
                     }
 
                     override fun onPlaybackStateChanged(state: Int) {
@@ -123,9 +123,9 @@ class MainActivity : Activity() {
                             else -> "$state"
                         }
                         val sinceSeek = seekStarted?.takeIf { state == Player.STATE_READY }
-                            ?.let { " (${(System.nanoTime() - it) / 1_000_000} ms après le saut)" }
+                            ?.let { " (${(System.nanoTime() - it) / 1_000_000} ms after the seek)" }
                         if (sinceSeek != null) seekStarted = null
-                        say("État : $name${sinceSeek.orEmpty()}")
+                        say("State: $name${sinceSeek.orEmpty()}")
                     }
                 },
             )
@@ -139,9 +139,9 @@ class MainActivity : Activity() {
             decoderReuseEvaluation: DecoderReuseEvaluation?,
         ) {
             say(
-                "Entrée : ${format.sampleMimeType} codecs=${format.codecs} " +
+                "Input: ${format.sampleMimeType} codecs=${format.codecs} " +
                     "${format.sampleRate} Hz ${format.channelCount} ch " +
-                    "pcm=${encoding(format.pcmEncoding)} débit=${kbps(format.averageBitrate)}/${kbps(format.peakBitrate)} kbps",
+                    "pcm=${encoding(format.pcmEncoding)} bitrate=${kbps(format.averageBitrate)}/${kbps(format.peakBitrate)} kbps",
             )
         }
 
@@ -151,7 +151,7 @@ class MainActivity : Activity() {
             initializedTimestampMs: Long,
             initializationDurationMs: Long,
         ) {
-            say("Décodeur : $decoderName (${initializationDurationMs} ms)")
+            say("Decoder: $decoderName (${initializationDurationMs} ms)")
         }
 
         override fun onAudioTrackInitialized(
@@ -160,7 +160,7 @@ class MainActivity : Activity() {
         ) {
             say(
                 "AudioTrack : ${encoding(audioTrackConfig.encoding)} ${audioTrackConfig.sampleRate} Hz " +
-                    "offload=${audioTrackConfig.offload} tampon=${audioTrackConfig.bufferSize} o",
+                    "offload=${audioTrackConfig.offload} buffer=${audioTrackConfig.bufferSize} B",
             )
         }
 
@@ -170,11 +170,11 @@ class MainActivity : Activity() {
             bufferSizeMs: Long,
             elapsedSinceLastFeedMs: Long,
         ) {
-            say("Sous-alimentation audio (tampon $bufferSizeMs ms)")
+            say("Audio underrun (buffer $bufferSizeMs ms)")
         }
 
         override fun onPlayerError(eventTime: AnalyticsListener.EventTime, error: PlaybackException) {
-            say("ERREUR ${error.errorCodeName} : ${redact(error.cause?.toString() ?: error.message.orEmpty())}")
+            say("ERROR ${error.errorCodeName}: ${redact(error.cause?.toString() ?: error.message.orEmpty())}")
         }
     }
 
@@ -184,14 +184,14 @@ class MainActivity : Activity() {
             val type = when (d.type) {
                 AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "A2DP"
                 AudioDeviceInfo.TYPE_BLE_HEADSET -> "BLE"
-                AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "haut-parleur"
+                AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "speaker"
                 AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE -> "USB"
-                AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> "filaire"
+                AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> "wired"
                 else -> "type ${d.type}"
             }
             "${d.productName} ($type)"
         }
-        say("Sorties : $outputs")
+        say("Outputs: $outputs")
     }
 
     private fun encoding(value: Int): String = when (value) {
@@ -200,7 +200,7 @@ class MainActivity : Activity() {
         C.ENCODING_PCM_32BIT -> "s32"
         C.ENCODING_PCM_FLOAT -> "float"
         Format.NO_VALUE -> "-"
-        else -> "encodage $value"
+        else -> "encoding $value"
     }
 
     private fun kbps(bitrate: Int): String = if (bitrate == Format.NO_VALUE) "?" else "${bitrate / 1000}"
@@ -213,8 +213,8 @@ class MainActivity : Activity() {
     private companion object {
         const val TAG = "SeaglassSpike"
 
-        // Les URLs de segments sont signées : jamais affichées avec leur signature.
-        fun redact(text: String): String = text.replace(Regex("""\?[^\s"'<>]*"""), "?<signature masquée>")
+        // Segment URLs are signed: never displayed with their signature.
+        fun redact(text: String): String = text.replace(Regex("""\?[^\s"'<>]*"""), "?<signature redacted>")
 
         fun redact(uri: Uri): String = redact(uri.toString())
     }
