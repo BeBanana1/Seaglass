@@ -31,17 +31,17 @@
     eyebrow: string;
     title: string;
     round?: boolean;
-    /** Contexte lancé par les boutons Lecture / Aléatoire. */
+    /** Context started by the Play / Shuffle buttons. */
     trackIds?: TrackId[];
-    /** Origine de ce contexte, affichée dans « Joué depuis » (#124). */
+    /** Origin of this context, shown in "Played from" (#124). */
     source?: PlaySource;
-    /** Affiche « Lire ensuite » / « Ajouter à la file » pour tous les titres (album, playlist). */
+    /** Shows "Play next" / "Add to queue" for all the tracks (album, playlist). */
     queueable?: boolean;
-    /** Bouton Épingler dans la barre latérale (playlist). */
+    /** Pin button in the sidebar (playlist). */
     pin?: Pin;
-    /** Ajout aux favoris (album, playlist d'un autre) ou « Suivre » (artiste), #81. */
+    /** Add to favorites (album, someone else's playlist) or "Follow" (artist), #81. */
     favorite?: LikeTarget;
-    /** « Plus tard » (album, #227). */
+    /** "Later" (album, #227). */
     later?: LikeTarget;
     meta?: Snippet;
     description?: string | null;
@@ -261,7 +261,7 @@
     box-shadow: none;
   }
 
-  /* Studio et Atelier : portrait d'artiste carré, comme les pochettes. */
+  /* Studio and Atelier: square artist portrait, like the covers. */
   :global([data-theme="studio"]) .image.round,
   :global([data-theme="atelier"]) .image.round {
     border-radius: 0;
@@ -271,8 +271,8 @@
     font-size: 40px;
   }
 
-  /* Android (#24, #182) : en-tête centré, image au-dessus du titre. Boutons sur deux lignes :
-     Lecture et Aléatoire sur toute la largeur, les autres en dessous, centrés, en cibles de 44 px. */
+  /* Android (#24, #182): centered header, image above the title. Buttons on two lines:
+     Play and Shuffle at full width, the others below, centered, as 44 px targets. */
   :global(:root[data-platform="android"]) header {
     flex-direction: column;
     align-items: center;
@@ -311,7 +311,7 @@
 
   :global(:root[data-platform="android"]) .actions .primary,
   :global(:root[data-platform="android"]) .actions .primary + .secondary {
-    /* Deux moitiés de la ligne (écart de 16 px) : les autres boutons passent à la suivante. */
+    /* Two halves of the row (16 px gap): the other buttons wrap to the next one. */
     flex: 1 1 calc(50% - 8px);
     font-size: 15px;
   }

@@ -14,12 +14,12 @@
     shown,
     total,
   }: {
-    /** Texte du filtre (titre, artistes, album). */
+    /** Filter text (title, artists, album). */
     query: string;
     sort: TrackSort;
-    /** Critères proposés, dans l'ordre du menu. */
+    /** Offered criteria, in the menu order. */
     keys: SortKey[];
-    /** Nombre de titres affichés après filtrage, et nombre total. */
+    /** Number of tracks displayed after filtering, and total number. */
     shown: number;
     total: number;
   } = $props();
@@ -27,15 +27,15 @@
   let root = $state<HTMLElement>();
   let input = $state<HTMLInputElement>();
 
-  // Android (#151) : mode recherche dès le focus du champ (le clavier va s'ouvrir), quitté
-  // seulement par Annuler ou Retour. Le quitter sur la perte du focus déplacerait la page
-  // sous le doigt entre l'appui et le clic : le clic tomberait sur l'en-tête revenu.
+  // Android (#151): search mode as soon as the field is focused (the keyboard is about to open),
+  // left only by Cancel or Back. Leaving it on focus loss would move the page under the finger
+  // between the tap and the click: the click would land on the header that came back.
   let searching = $state(false);
 
   function enter() {
     if (!platform.mobile || searching) return;
     searching = true;
-    // La page masque son en-tête au rendu suivant : le champ remonte alors en haut.
+    // The page hides its header on the next render: the field then moves up to the top.
     tick().then(() => root?.scrollIntoView({ block: "start" }));
   }
 
@@ -54,7 +54,7 @@
     sort = { ...sort, key: (e.currentTarget as HTMLSelectElement).value as SortKey };
   }
 
-  // Android (#182) : un seul bouton de tri, qui ouvre le menu de l'app (critères, puis sens).
+  // Android (#182): a single sort button, which opens the app's menu (criteria, then direction).
   function openSortMenu(e: MouseEvent) {
     const button = e.currentTarget as HTMLElement;
     const rect = button.getBoundingClientRect();
@@ -81,7 +81,7 @@
 </script>
 
 <div class="track-tools" class:searching bind:this={root}>
-  <!-- Échap vide le champ (comportement natif d'un champ de recherche). -->
+  <!-- Escape clears the field (native behavior of a search field). -->
   {#if platform.mobile}<span class="filter-icon"><Icon name="search" size={18} /></span>{/if}
   <input
     type="search"
@@ -95,7 +95,7 @@
     spellcheck="false"
   />
   {#if searching}
-    <!-- `mousedown` sans effet : le champ garde le focus jusqu'au clic. -->
+    <!-- `mousedown` has no effect: the field keeps the focus until the click. -->
     <button class="search-cancel" onmousedown={(e) => e.preventDefault()} onclick={leave}>
       {t.common.cancel}
     </button>
@@ -183,7 +183,7 @@
     cursor: pointer;
   }
 
-  /* Liste déroulante : fond opaque, quel que soit le thème. */
+  /* Dropdown list: opaque background, whatever the theme. */
   option {
     color: var(--text);
     background: var(--dialog-bg);
@@ -199,7 +199,7 @@
     background: var(--bg-hover);
   }
 
-  /* Android (#151) : champ et Annuler sur la première ligne, compteur en dessous. */
+  /* Android (#151): field and Cancel on the first row, counter below. */
   .searching .filter {
     flex: 1 1 0;
     min-width: 0;
@@ -220,7 +220,7 @@
     font-weight: 600;
   }
 
-  /* Android (#182) : filtre sur toute la largeur avec une loupe, tri en un seul bouton. */
+  /* Android (#182): filter at full width with a magnifier, sort as a single button. */
   :global(:root[data-platform="android"]) .track-tools {
     position: relative;
     flex-wrap: nowrap;

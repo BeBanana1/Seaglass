@@ -1,13 +1,13 @@
 <script lang="ts">
-  // Fond Art déco (#338) : soleil levant en rayons dorés au bas de l'écran, arcs en gradins
-  // autour de lui, gradins (ziggourats) dans les angles du haut, frise de chevrons en bas.
-  // Tout est symétrique et fixe : rien n'est animé.
+  // Art deco backdrop (#338): rising sun in golden rays at the bottom of the screen, stepped
+  // arcs around it, stepped ziggurats in the top corners, chevron frieze at the bottom.
+  // Everything is symmetrical and fixed: nothing is animated.
   let { intense = false }: { intense?: boolean } = $props();
 
   const CX = 800;
   const CY = 1060;
 
-  // Rayons du soleil, de 196° à 344°, alternés long / court.
+  // Sun rays, from 196° to 344°, alternating long / short.
   const rays: { x: number; y: number }[] = [];
   for (let i = 0, a = 196; a <= 344; a += 4, i++) {
     const r = i % 2 === 0 ? 1100 : 780;
@@ -17,10 +17,10 @@
 
   const arcs = [240, 280, 320, 420];
 
-  // Gradins d'angle : L emboîtés, de plus en plus petits.
+  // Corner steps: nested Ls, smaller and smaller.
   const steps = [0, 1, 2, 3, 4].map((i) => 40 + i * 34);
 
-  // Frise de chevrons sur toute la largeur.
+  // Chevron frieze across the full width.
   const chevrons: number[] = [];
   for (let x = 0; x <= 1600; x += 40) chevrons.push(x);
 </script>
@@ -108,7 +108,7 @@
     opacity: 0.4;
   }
 
-  /* « En lecture » : le soleil passe derrière les commandes, plus discret. */
+  /* "Now playing": the sun passes behind the controls, more discreet. */
   .intense .sun {
     opacity: 0.55;
   }

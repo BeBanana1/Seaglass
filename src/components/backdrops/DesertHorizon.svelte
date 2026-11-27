@@ -1,15 +1,15 @@
 <script lang="ts">
-  // Fond Désert (#339) : ciel pâle, soleil voilé, horizon bas, trois plans de dunes, rides du
-  // sable au premier plan. Rien n'est animé, sauf une chose : à la fin d'un album, un minuscule
-  // ver passe une fois dans l'horizon (bureau seulement, jamais en boucle).
+  // Desert backdrop (#339): pale sky, veiled sun, low horizon, three planes of dunes, sand
+  // ripples in the foreground. Nothing is animated, except one thing: at the end of an album,
+  // a tiny worm crosses the horizon once (desktop only, never in a loop).
   import { player } from "../../lib/stores/player.svelte";
   import { queue } from "../../lib/stores/queue.svelte";
 
   let { intense = false }: { intense?: boolean } = $props();
 
-  /** Dernier titre d'un album lu jusqu'au bout : rien après lui dans la file ni de radio
-   *  automatique, pas de répétition. Le passage lui-même attend les 30 dernières secondes
-   *  (`.progress.ending`, voir desert.css). */
+  /** Last track of an album played to the end: nothing after it in the queue, no automatic
+   *  radio and no repeat. The crossing itself waits for the last 30 seconds
+   *  (`.progress.ending`, see desert.css). */
   const albumEnd = $derived(
     queue.view.source?.kind === "album" &&
       !player.state.hasNext &&
@@ -18,7 +18,7 @@
       queue.view.upcoming.length === 0,
   );
 
-  // Rides du premier plan, générées une fois.
+  // Foreground ripples, generated once.
   const ripples = Array.from({ length: 9 }, (_, i) => {
     const y = 905 + i * 11;
     const a = 6 + i * 0.6;
@@ -37,13 +37,13 @@
     </defs>
     <rect width="1600" height="1000" fill="url(#ds-sky)" />
 
-    <!-- Soleil voilé, haut et pâle. -->
+    <!-- Veiled sun, high and pale. -->
     <circle class="sun" cx="1180" cy="260" r="70" />
 
-    <!-- Horizon et dunes lointaines. -->
+    <!-- Horizon and distant dunes. -->
     <path class="far" d="M0 790 Q300 760 560 785 T1100 775 T1600 785 V1000 H0 Z" />
 
-    <!-- Le ver : un dos qui affleure, puis replonge, posé sur l'horizon. -->
+    <!-- The worm: a back that surfaces, then dives again, resting on the horizon. -->
     <g class="worm" class:armed={albumEnd}>
       <path d="M0 784 q6 -10 14 -10 q8 0 12 6 q4 -8 10 -8 q6 0 8 12 z" />
     </g>
@@ -98,8 +98,8 @@
     opacity: 0.18;
   }
 
-  /* Le ver ne se montre qu'armé (fin d'album) et pendant les 30 dernières secondes du titre ;
-     il traverse une fois en 16 s puis reste hors champ. Jamais sur Android. */
+  /* The worm only shows when armed (end of album) and during the last 30 seconds of the
+     track; it crosses once in 16 s then stays off-screen. Never on Android. */
   .worm {
     visibility: hidden;
     fill: var(--ds-burnt);
@@ -120,7 +120,7 @@
     }
   }
 
-  /* « En lecture » : les dunes restent, plus claires ; le soleil tombait sous les boutons. */
+  /* "Now playing": the dunes stay, lighter; the sun used to fall under the buttons. */
   .intense :is(.mid, .near) {
     opacity: 0.35;
   }

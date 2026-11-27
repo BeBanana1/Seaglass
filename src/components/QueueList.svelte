@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Contenu de la file d'attente (en cours, file manuelle, suite du contexte).
-  // Partagé par le panneau File du shell et par la vue « En lecture ».
+  // Content of the queue (now playing, manual queue, rest of the context).
+  // Shared by the shell's Queue panel and by the "Now playing" view.
   import { commands, type QueuePart, type Track } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
   import { queue } from "../lib/stores/queue.svelte";
@@ -16,12 +16,12 @@
   import { guestOf } from "../lib/stores/jam.svelte";
   import { openPlaylistPicker } from "../lib/stores/playlistPicker.svelte";
 
-  /** `current` : afficher aussi le titre en cours (inutile si la vue l'affiche déjà en grand). */
+  /** `current`: also show the current track (useless if the view already shows it large). */
   let { current = true }: { current?: boolean } = $props();
 
   const clearable = $derived(queue.view.manual.length > 0 || queue.view.upcoming.length > 0);
 
-  /** Toute la file, pas seulement les titres affichés (#327). */
+  /** The whole queue, not only the displayed tracks (#327). */
   async function saveAsPlaylist() {
     try {
       const trackIds = await commands.queueTrackIds();
@@ -35,7 +35,7 @@
     }
   }
 
-  /** Annule le dernier vidage ou retrait (#349), si la file n'a pas changé depuis. */
+  /** Undoes the last clear or removal (#349), if the queue has not changed since. */
   async function undo() {
     try {
       if (!(await commands.restoreQueue()))
@@ -65,7 +65,7 @@
 
   const currentTrack = $derived(player.currentTrack);
 
-  /** Lit un titre de la file (#167) : ceux qui le précèdent sont sautés. */
+  /** Plays a track of the queue (#167): those before it are skipped. */
   async function play(part: QueuePart, index: number, track: Track) {
     try {
       await commands.playFromQueue(part, index, track.id);
@@ -74,15 +74,15 @@
     }
   }
 
-  // Réorganisation de la file manuelle (#80) : glisser-déposer, Alt+↑ / Alt+↓, menu.
-  // Android (#450) : le glisser HTML5 ne marche pas au doigt et l'appui long ouvre le menu
-  // du titre ; une poignée à droite de la ligne la saisit tout de suite (`touchReorder`).
-  // Pas d'affichage optimiste : la liste change au `queue-state` du backend.
+  // Reordering the manual queue (#80): drag and drop, Alt+↑ / Alt+↓, menu.
+  // Android (#450): HTML5 dragging does not work with a finger and a long press opens the menu
+  // of the track; a handle on the right of the row grabs it right away (`touchReorder`).
+  // No optimistic display: the list changes on the backend's `queue-state`.
   let manualList = $state<HTMLElement>();
   const reorder = new Reorder((from, to) => move(from, to));
   const manualItems = () =>
     Array.from(manualList?.querySelectorAll<HTMLElement>(".queue-item") ?? []);
-  /** Bouton à refocaliser dans la ligne déplacée au clavier, une fois la file reçue. */
+  /** Button to refocus in the row moved with the keyboard, once the queue is received. */
   let pendingFocus: { index: number; button: number } | null = null;
 
   async function move(from: number, to: number) {
@@ -185,7 +185,7 @@
             addedBy={guestOf(track.id)}
           />
           {#if platform.mobile}
-            <!-- Au clavier et aux lecteurs d'écran : Alt+↑ / Alt+↓ et Monter / Descendre du menu. -->
+            <!-- For keyboard and screen readers: Alt+↑ / Alt+↓ and the menu's Move up / Down. -->
             <span class="queue-handle" aria-hidden="true"><Icon name="grip" size={18} /></span>
           {/if}
         </div>
@@ -195,7 +195,7 @@
 
   {#if queue.view.upcoming.length > 0}
     {#if queue.view.radio}
-      <!-- La suite est une radio qui prolonge la file épuisée (#78). -->
+      <!-- The rest is a radio that extends the exhausted queue (#78). -->
       <h3 class="queue-radio">
         <Icon name="radio" size={14} />
         <span>{t.player.radioFrom(fullTitle(queue.view.radio))}</span>
@@ -207,8 +207,8 @@
       {#each queue.view.upcoming as track, i (`${i}-${track.id}`)}
         <TrackRow {track} compact actions={false} onPlay={() => play("upcoming", i, track)} />
       {/each}
-      <!-- #399 : le 29 février, une « piste cachée » factice ferme la file, comme sur un disque.
-           Ni cliquable, ni lue par les lecteurs d'écran. -->
+      <!-- #399: on February 29th, a fake "hidden track" closes the queue, like on a disc.
+           Neither clickable, nor read by screen readers. -->
       {#if eggs.date === "leapDay"}
         <div class="hidden-track" aria-hidden="true">
           <span class="hidden-title">{t.eggs.hiddenTrack}</span>
@@ -262,7 +262,7 @@
     opacity: 0.4;
   }
 
-  /* Android (#450) : la ligne et sa poignée côte à côte. */
+  /* Android (#450): the row and its handle side by side. */
   .queue-item.touch {
     display: flex;
     align-items: center;
@@ -281,11 +281,11 @@
     align-self: stretch;
     width: 36px;
     color: var(--text-muted);
-    /* Le doigt posé ici déplace la ligne, jamais la page. */
+    /* A finger placed here moves the row, never the page. */
     touch-action: none;
   }
 
-  /* Ligne saisie au doigt : elle suit le doigt, au-dessus des autres (comme `HomeEditor`). */
+  /* Row grabbed by finger: it follows the finger, above the others (like `HomeEditor`). */
   .queue-item:global(.touch-dragging) {
     z-index: 1;
     border-radius: var(--radius);

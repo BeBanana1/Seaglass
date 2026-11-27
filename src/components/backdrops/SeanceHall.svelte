@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Fond Séance (#339) : la salle obscure. Rideaux de velours rouge sur les bords (plis en
-  // dégradés), faisceau du projecteur qui descend du haut, rangées de fauteuils en silhouette
-  // en bas, grain de pellicule fixe (`feTurbulence`). Rien n'est animé.
+  // Seance backdrop (#339): the dark theater. Red velvet curtains on the edges (folds as
+  // gradients), projector beam coming down from the top, rows of seats in silhouette
+  // at the bottom, fixed film grain (`feTurbulence`). Nothing is animated.
   let { intense = false }: { intense?: boolean } = $props();
 </script>
 
@@ -38,7 +38,7 @@
     background: radial-gradient(ellipse 80% 60% at 50% 40%, #1a1214, var(--bg) 70%);
   }
 
-  /* Faisceau : cône pâle depuis la cabine, au-dessus du centre. */
+  /* Beam: pale cone from the booth, above the center. */
   .beam {
     position: absolute;
     inset: 0;
@@ -52,7 +52,7 @@
     );
   }
 
-  /* Rideaux : plis verticaux du velours, plus sombres vers la salle. */
+  /* Curtains: vertical velvet folds, darker toward the auditorium. */
   .curtain {
     position: absolute;
     top: 0;
@@ -102,7 +102,7 @@
     mix-blend-mode: screen;
   }
 
-  /* « En lecture » : les rideaux reculent, la salle devient plus noire. */
+  /* "Now playing": the curtains recede, the hall gets blacker. */
   .intense .curtain {
     width: clamp(32px, 4vw, 80px);
     opacity: 0.6;

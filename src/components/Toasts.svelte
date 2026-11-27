@@ -19,8 +19,8 @@
 </div>
 
 <style>
-  /* Centrée juste au-dessus de la barre de lecture (#150), au-dessus de « En lecture »
-     (z-index 50) et de la mise à jour (55), sous le menu contextuel (100). */
+  /* Centered just above the player bar (#150), above "Now playing"
+     (z-index 50) and the update (55), below the context menu (100). */
   .stack {
     position: fixed;
     left: 50%;
@@ -35,20 +35,20 @@
     pointer-events: none;
   }
 
-  /* Au-dessus du mini-lecteur et de la navigation du bas (comme la mise à jour), et du
-     clavier quand il est ouvert : `--keyboard-inset` vient du plugin Android (#251). */
+  /* Above the mini-player and the bottom navigation (like the update), and the
+     keyboard when it is open: `--keyboard-inset` comes from the Android plugin (#251). */
   :global(:root[data-platform="android"]) .stack {
     bottom: max(calc(var(--safe-bottom) + 140px), calc(var(--keyboard-inset, 0px) + 12px));
     width: calc(100vw - 24px);
   }
 
-  /* « En lecture » couvre la barre de lecture : en bas de l'écran, pour ne pas
-     recouvrir la progression ni les commandes. */
+  /* "Now playing" covers the player bar: at the bottom of the screen, so as not to
+     cover the progress or the controls. */
   :global(:root:has(.now-playing)) .stack {
     bottom: max(calc(var(--safe-bottom) + 20px), calc(var(--keyboard-inset, 0px) + 12px));
   }
 
-  /* Surface pleine du menu contextuel : lisible sur n'importe quel contenu, dans chaque thème. */
+  /* Solid surface of the context menu: readable over any content, in every theme. */
   .toast {
     max-width: 100%;
     padding: 10px 16px;
@@ -68,7 +68,7 @@
     border: 1px solid var(--danger);
   }
 
-  /* Action du toast (« Annuler », #349) : tout le toast est cliquable, le libellé le dit. */
+  /* Toast action ("Undo", #349): the whole toast is clickable, the label says so. */
   .toast-action {
     margin-left: 10px;
     color: var(--accent);

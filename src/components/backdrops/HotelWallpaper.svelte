@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Fond Grand hôtel (#339) : papier peint à rayures roses, lambris bordeaux en bas avec une
-  // frise moutarde, médaillon bleu pâle au centre du haut, le tout symétrique. Rien n'est animé.
+  // Grand hotel backdrop (#339): pink striped wallpaper, burgundy wainscoting at the bottom,
+  // mustard frieze, pale blue medallion top center, all symmetrical. Nothing is animated.
   let { intense = false }: { intense?: boolean } = $props();
 </script>
 
@@ -42,7 +42,7 @@
     background: var(--bg);
   }
 
-  /* Rayures du papier peint : deux roses et un filet, répétés à l'identique. */
+  /* Wallpaper stripes: two pinks and a hairline, repeated identically. */
   .stripes {
     position: absolute;
     inset: 0;
@@ -56,7 +56,7 @@
     background-position: center;
   }
 
-  /* Lambris : bande bordeaux, frise moutarde au-dessus. */
+  /* Wainscoting: burgundy band, mustard frieze above it. */
   .wainscot {
     position: absolute;
     left: 0;
@@ -78,7 +78,7 @@
     transform: translateX(-50%);
   }
 
-  /* « En lecture » : papier peint plus pâle, médaillon retiré (il tombait sous les boutons). */
+  /* "Now playing": paler wallpaper, medallion removed (it fell under the buttons). */
   .intense .stripes {
     opacity: 0.6;
   }

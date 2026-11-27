@@ -1,12 +1,12 @@
 <script lang="ts" module>
-  // Clin d'œil (#399) : minuteur réglé sur une heure ici, partagé par la barre et « En lecture ».
+  // Easter egg (#399): timer set to one o'clock here, shared by the bar and "Now playing".
   const chosen = $state<{ hour: boolean; setAt: number | null }>({ hour: false, setAt: null });
 </script>
 
 <script lang="ts">
-  // Minuteur de mise en veille (#85) : bouton lune, menu des durées, temps restant affiché
-  // tant qu'il est actif. L'échéance vient du backend (`player-state`), le compte à rebours
-  // est calculé ici. Dans la barre de lecture et dans « En lecture ».
+  // Sleep timer (#85): moon button, durations menu, remaining time shown
+  // while it is active. The deadline comes from the backend (`player-state`), the countdown
+  // is computed here. In the player bar and in "Now playing".
   import { commands, type SleepRequest } from "../lib/ipc";
   import { formatTime } from "../lib/format";
   import { player } from "../lib/stores/player.svelte";
@@ -36,7 +36,7 @@
   });
 
   const remaining = $derived(endsAt === null ? null : formatTime(Math.max(0, endsAt - now) / 1000));
-  /** 21 octobre (#399) : le minuteur se lit comme un cadran à trois lignes. */
+  /** October 21st (#399): the timer reads like a three-line dial. */
   const circuits = $derived(eggs.date === "timeCircuits" && endsAt !== null);
   const clock = (ms: number) =>
     new Date(ms).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
@@ -82,7 +82,7 @@
     if (sleep)
       entries.push("separator", { label: p.sleepOff, icon: "close", action: () => set(null) });
     const rect = button.getBoundingClientRect();
-    // Dans la barre du bas, le menu s'ouvre au-dessus du bouton (recalé s'il déborde).
+    // In the bottom bar, the menu opens above the button (realigned if it overflows).
     const y = rect.top > innerHeight / 2 ? rect.top - 4 : rect.bottom + 4;
     openMenu({ x: rect.left, y, entries, from: button });
   }
@@ -131,7 +131,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* 21 octobre : afficheur à segments, chiffres orange sur fond sombre. */
+  /* October 21st: segment display, orange digits on a dark background. */
   .sleep-remaining.circuits {
     padding: 1px 4px;
     border-radius: 2px;

@@ -11,31 +11,31 @@
   let { large = false }: { large?: boolean } = $props();
 
   let position = $state(0);
-  /** Valeur en cours de glissement : la barre ne suit plus la lecture tant qu'on la tient. */
+  /** Value being dragged: the bar no longer follows playback while it is held. */
   let dragging = $state<number | null>(null);
 
-  // Boucle d'images seulement pendant la lecture (#88). Sur Android, une fois par seconde
-  // (#473) : le temps affiché ne change qu'à la seconde, et la barre d'« En lecture » avance
-  // d'un ou deux pixels par seconde. Les thèmes stylent `.fill` par sa largeur (dégradés,
-  // bobines de Cassette) : pas d'animation par le compositeur ici, contrairement au
+  // Frame loop only during playback (#88). On Android, once per second
+  // (#473): the displayed time only changes every second, and the "Now playing" bar advances
+  // by one or two pixels per second. The themes style `.fill` by its width (gradients,
+  // Cassette reels): no compositor animation here, unlike the
   // mini-lecteur.
   $effect(() => followPosition((p) => (position = p), 1));
 
   const s = $derived(player.state);
   const duration = $derived(s.duration);
   const shown = $derived(dragging ?? position);
-  /** 1er août (#399) : la barre suit la trotteuse d'une horloge de gare, arrêt compris.
-   *  Pas pendant un glissement, ni dans le temps affiché en chiffres. */
+  /** August 1st (#399): the bar follows the second hand of a station clock, stop included.
+   *  Not while dragging, nor in the time displayed as digits. */
   const bar = $derived(
     dragging === null && eggs.date === "swissDay" ? stationClock(position, duration) : shown,
   );
   const ratio = $derived(duration ? Math.min(bar / duration, 1) : 0);
-  /** Partie déjà en mémoire (#453), en bande plus claire sous la progression. */
+  /** Part already in memory (#453), as a lighter band under the progress. */
   const cachedRatio = $derived(s.track && duration ? Math.min(s.cached / duration, 1) : 0);
-  /** Le texte du temps ne change qu'à la seconde : pas de recalcul à chaque image. */
+  /** The time text only changes every second: no recomputation on every frame. */
   const shownText = $derived(formatTime(Math.floor(shown)));
-  /** Dernières secondes du titre, quand le suivant est préchargé (même seuil de 30 s que
-   *  l'acteur) : simple repère que les thèmes peuvent montrer (Séance, #339). */
+  /** Last seconds of the track, when the next one is preloaded (same 30 s threshold as
+   *  the actor): a simple marker the themes can show (Session, #339). */
   const ending = $derived(duration > ENDING_SECONDS && duration - shown <= ENDING_SECONDS);
 
   async function seekTo(value: number) {
@@ -93,7 +93,7 @@
     border-radius: 3px;
   }
 
-  /* Cache en mémoire (#453) : discret, la progression passe par-dessus. */
+  /* In-memory cache (#453): discreet, the progress goes over it. */
   .cached {
     position: absolute;
     inset: 0 auto 0 0;

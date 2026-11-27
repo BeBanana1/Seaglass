@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Chaîne audio : ce que le service envoie → ce que le moteur décode (mpv, ou Media3 sur
-  // Android) → ce qui part vers la sortie du système.
+  // Audio chain: what the service sends → what the engine decodes (mpv, or Media3 on
+  // Android) → what goes to the system output.
   import { player } from "../lib/stores/player.svelte";
   import {
     cacheLabel,
@@ -22,18 +22,18 @@
   }: {
     /** Pastille seule. */
     compact?: boolean;
-    /** Chaîne complète resserrée sur une ligne (barre de lecture du thème Studio). */
+    /** Full chain tightened onto one line (Studio theme player bar). */
     dense?: boolean;
   } = $props();
 
   const s = $derived(player.state);
-  /** Format réellement écrit sur la sortie (#245), sinon celui du décodage (Android). */
+  /** Format actually written to the output (#245), otherwise the decoding one (Android). */
   const sink = $derived(s.deviceFormat ?? s.output);
   const verdict = $derived(
     signalVerdict(s.stream, sink, s.volume, s.normalization, s.exclusive, s.equalizer),
   );
   const mode = $derived(s.exclusive ? t.player.exclusive : t.player.shared);
-  /** Sous-titre du nœud du moteur : format de sortie, et le volume s'il modifie le signal. */
+  /** Subtitle of the engine node: output format, and the volume if it modifies the signal. */
   const decodeSub = $derived(
     [
       s.output ? outputFormat(s.output.format) : "—",
@@ -44,14 +44,14 @@
       .filter(Boolean)
       .join(" · "),
   );
-  /** Cache en mémoire (#453, #498) : position atteinte, ou titre entier, et le suivant
-   *  préchargé. Rien tant que le moteur n'a rien reçu. */
+  /** In-memory cache (#453, #498): position reached, or whole track, and the next
+   *  preloaded one. Nothing until the engine has received anything. */
   const cacheSub = $derived.by(() => {
     const cache = s.track ? cacheLabel(s.cached, s.duration) : "";
     if (!cache) return "";
     return [cache, s.nextReady ? t.player.nextReady : ""].filter(Boolean).join(" · ");
   });
-  /** Flux pris sur une autre édition hi-res du même enregistrement (#18). */
+  /** Stream taken from another hi-res edition of the same recording (#18). */
   const edition = $derived(s.stream?.hiresEdition ?? null);
   const editionHint = $derived(edition ? t.player.editionHint(edition.title) : undefined);
   const sourceSub = $derived.by(() => {
@@ -63,12 +63,12 @@
         : s.stream.codec === "flac"
           ? "Lossless"
           : t.player.lossy;
-    // Débit moyen du manifeste (#3) ; la version resserrée garde la ligne courte.
+    // Average bitrate from the manifest (#3); the tightened version keeps the line short.
     return s.stream.bitrate && !dense ? `${kind} · ${kbps(s.stream.bitrate)}` : kind;
   });
-  /** Périphérique réellement ouvert (#79), en repli si le choix est débranché. */
+  /** Device actually opened (#79), as a fallback if the choice is unplugged. */
   const device = $derived(s.outputDevice);
-  /** La version resserrée garde « WASAPI · partagé » : le nom passe dans l'info-bulle. */
+  /** The tightened version keeps "WASAPI · shared": the name goes in the tooltip. */
   const outputSub = $derived(
     [
       (dense ? null : device?.name) ?? s.outputDriver?.toUpperCase() ?? "",
@@ -205,8 +205,8 @@
     color: var(--text-muted);
   }
 
-  /* Cache en mémoire (#453) : une ligne en retrait, plus petite que les autres, hors du
-     flux pour ne pas décaler le nœud Décodage par rapport à ses voisins. */
+  /* In-memory cache (#453): an indented line, smaller than the others, out of the
+     flow so as not to shift the Decoding node relative to its neighbors. */
   .node:has(.cache) {
     position: relative;
   }
@@ -225,7 +225,7 @@
     white-space: nowrap;
   }
 
-  /* Nom du périphérique Windows, souvent long (« Haut-parleurs (… USB Audio) »). */
+  /* Windows device name, often long ("Speakers (… USB Audio)"). */
   .output-device {
     max-width: 240px;
     overflow: hidden;
@@ -261,7 +261,7 @@
     background: color-mix(in oklab, var(--tone) 10%, transparent);
   }
 
-  /* Ligne pleine largeur sous la chaîne : édition réellement lue (#18). */
+  /* Full-width line under the chain: edition actually played (#18). */
   .hires-edition {
     flex-basis: 100%;
     margin: 0;
@@ -305,8 +305,8 @@
     font-size: 0;
   }
 
-  /* Android (#146, #158) : le signal ne circule pas (`background-position` animé repeint
-     l'élément à chaque image). */
+  /* Android (#146, #158): the signal does not flow (animated `background-position` repaints
+     the element on every frame). */
   :global(:root[data-platform="android"]) .wire {
     animation: none;
   }

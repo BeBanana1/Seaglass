@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Barre d'actions de la sélection multiple (#332). Android : à la place du mini-lecteur ;
+  // Action bar for multiple selection (#332). Android: in place of the mini-player;
   // bureau : flottante au-dessus de la barre de lecture.
   import { selection } from "../lib/stores/selection.svelte";
   import { likes } from "../lib/stores/likes.svelte";
@@ -16,7 +16,7 @@
   import Icon from "./Icon.svelte";
 
   const m = $derived(t.menu);
-  // Relu quand la sélection ou les favoris changent.
+  // Reread when the selection or the favorites change.
   const liked = $derived.by(() => {
     void selection.count;
     void likes.tracks;
@@ -39,7 +39,7 @@
   >
     <Icon name="close" {size} />
   </button>
-  <!-- Android : libellé court, la barre a la largeur du téléphone. -->
+  <!-- Android: short label, the bar has the width of the phone. -->
   <span class="selection-count">
     {platform.mobile ? m.selection.label(selection.count) : m.selection.count(selection.count)}
   </span>
@@ -88,7 +88,7 @@
     padding: 6px 8px;
   }
 
-  /* Bureau : au-dessus de la barre de lecture, centrée sur la fenêtre. */
+  /* Desktop: above the player bar, centered on the window. */
   .selection-bar:not(.mobile) {
     position: fixed;
     z-index: 20;
@@ -127,7 +127,7 @@
     color: var(--accent);
   }
 
-  /* Android : même hauteur que le mini-lecteur qu'elle remplace, cibles au doigt. */
+  /* Android: same height as the mini-player it replaces, finger-sized targets. */
   .selection-bar.mobile {
     min-height: 56px;
     gap: 2px;

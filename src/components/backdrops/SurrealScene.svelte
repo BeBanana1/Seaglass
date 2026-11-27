@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Fond Surréalisme : paysage vectoriel dessiné en SVG, teinté par la couleur de l'album
-  // (`--album`). Arche, escalier qui ne mène nulle part, sphère et cube flottent doucement.
-  // Les objets restent sur les bords : le centre est occupé par le contenu.
+  // Surrealism backdrop: vector landscape drawn in SVG, tinted by the album color
+  // (`--album`). Arch, staircase leading nowhere, sphere and cube float gently.
+  // Objects stay on the edges: the center is taken by the content.
   let { intense = false }: { intense?: boolean } = $props();
 </script>
 
@@ -28,10 +28,10 @@
 
     <rect width="1600" height="1000" fill="url(#sky)" />
 
-    <!-- Soleil bas, à droite, à moitié couché derrière les collines. -->
+    <!-- Low sun, on the right, half set behind the hills. -->
     <circle class="sun" cx="1330" cy="560" r="170" fill="url(#sun)" />
 
-    <!-- Nuages en pilules. -->
+    <!-- Pill-shaped clouds. -->
     <g class="cloud slow">
       <rect x="120" y="90" width="240" height="52" rx="26" fill="#fffaf3" opacity="0.85" />
       <rect x="185" y="60" width="140" height="52" rx="26" fill="#fffaf3" opacity="0.85" />
@@ -40,7 +40,7 @@
       <rect x="980" y="70" width="180" height="42" rx="21" fill="#fffaf3" opacity="0.7" />
     </g>
 
-    <!-- Collines. -->
+    <!-- Hills. -->
     <path
       d="M0 640 C 260 560 460 600 720 650 S 1200 560 1600 620 V1000 H0Z"
       style="fill: var(--hill-1)"
@@ -54,26 +54,26 @@
       style="fill: var(--hill-3)"
     />
 
-    <!-- Arche posée sur la colline de droite, avec une ombre trop longue. -->
+    <!-- Arch resting on the right hill, with a shadow that is too long. -->
     <path d="M1420 742 L 1180 772 L 1196 782 L 1430 756 Z" fill="#3d2a4d" opacity="0.12" />
     <path
       d="M1420 742 V 560 A 56 56 0 0 1 1532 560 V 742 H 1506 V 566 A 30 30 0 0 0 1446 566 V 742 Z"
       fill="#fffaf2"
     />
 
-    <!-- Escalier qui ne mène nulle part, suspendu en haut à droite. -->
+    <!-- Staircase leading nowhere, hanging at the top right. -->
     <g class="float">
       <path d="M1300 190 h40 v-28 h40 v-28 h40 v-28 h40 v84 Z" style="fill: var(--accent-soft)" />
       <path d="M1300 190 h160 v10 h-160 Z" fill="#3d2a4d" opacity="0.16" />
     </g>
 
-    <!-- Sphère qui lévite à gauche, au-dessus de son ombre. -->
+    <!-- Sphere levitating on the left, above its shadow. -->
     <g class="float slow">
       <circle cx="80" cy="520" r="46" fill="url(#sphere)" />
     </g>
     <ellipse class="shadow slow" cx="80" cy="690" rx="40" ry="7" fill="#3d2a4d" opacity="0.14" />
 
-    <!-- Petit cube incliné, en haut à gauche. -->
+    <!-- Small tilted cube, at the top left. -->
     <g class="float fast">
       <rect
         x="70"
@@ -91,7 +91,7 @@
 </div>
 
 <style>
-  /* Mélanges en oklch : la teinte de l'album est conservée au lieu de virer au gris. */
+  /* Mixes in oklch: the album tint is kept instead of turning grey. */
   .scene {
     position: absolute;
     inset: 0;

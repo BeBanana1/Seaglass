@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Fond Cassette (#338) : noyer sombre (veinage en `feTurbulence` étiré), traversé par les
-  // bandes larges d'une jaquette de cassette (orange, moutarde, olive) et un filet crème.
-  // Rien n'est animé.
+  // Cassette backdrop (#338): dark walnut (stretched `feTurbulence` grain), crossed by the
+  // wide bands of a cassette sleeve (orange, mustard, olive) and a cream hairline.
+  // Nothing is animated.
   let { intense = false }: { intense?: boolean } = $props();
 </script>
 
@@ -47,7 +47,7 @@
     opacity: 0.85;
   }
 
-  /* « En lecture » : la bande passe derrière la file et les commandes, plus sourde. */
+  /* "Now playing": the band passes behind the queue and the controls, more muted. */
   .intense .band {
     opacity: 0.35;
   }

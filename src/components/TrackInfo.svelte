@@ -1,7 +1,7 @@
 <script lang="ts">
-  // « Infos du titre » (#3) : format réel servi par TIDAL (profondeur, fréquence, débit),
-  // édition hi-res éventuelle, ReplayGain et métadonnées. Demandées au backend à
-  // l'ouverture (une requête de lecture), jamais pour une liste entière.
+  // "Track info" (#3): actual format served by TIDAL (depth, frequency, bitrate),
+  // possible hi-res edition, ReplayGain and metadata. Requested from the backend on
+  // opening (a read request), never for a whole list.
   // Ouvert par `openTrackInfo` (lib/stores/trackInfo.svelte.ts).
   import { commands, type StreamFormat, type TrackInfo } from "../lib/ipc";
   import {
@@ -74,7 +74,7 @@
     go({ name: "album", id });
   }
 
-  /** Titres où la personne est créditée (#429) ; sa page d'artiste est liée depuis là. */
+  /** Tracks where the person is credited (#429); their artist page is linked from there. */
   function openContributor(id: number) {
     closeTrackInfo();
     go({ name: "contributor", id });

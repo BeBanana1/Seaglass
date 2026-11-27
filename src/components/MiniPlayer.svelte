@@ -1,10 +1,10 @@
 <script lang="ts">
-  // Mini-lecteur d'Android (#24), au-dessus de la navigation du bas : un appui ouvre
-  // « En lecture » en plein écran, où sont les autres commandes.
-  // Pas de barre de progression (#473, #480) : une barre qui avance oblige la WebView à recomposer
-  // la page, 4 fois par seconde avec un minuteur (24 % d'un cœur en lecture sur le S21),
-  // à chaque rafraîchissement de l'écran avec une animation du compositeur (98 %). La
-  // position se lit dans « En lecture », comme dans l'app TIDAL.
+  // Android mini-player (#24), above the bottom navigation: a tap opens
+  // "Now playing" full screen, where the other controls are.
+  // No progress bar (#473, #480): a moving bar forces the WebView to recompose
+  // the page, 4 times per second with a timer (24% of a core during playback on the S21),
+  // on every screen refresh with a compositor animation (98%). The
+  // position is read in "Now playing", as in the TIDAL app.
   import { commands } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
   import { coverSmall, fullTitle } from "../lib/format";
@@ -53,7 +53,7 @@
     </button>
   </div>
 {:else if s.blindTest}
-  <!-- Blind test (#434) : titre masqué, un appui ramène à la partie. -->
+  <!-- Blind test (#434): title hidden, a tap goes back to the game. -->
   <div class="mini-player panel">
     <button class="mini-open" onclick={() => open({ name: "blindTest" })}>
       <span class="mini-cover blind"><Icon name="quiz" size={22} /></span>

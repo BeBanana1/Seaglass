@@ -1,13 +1,13 @@
 <script lang="ts">
-  // Fond Estampe (#338) : gravure japonaise en aplats. Ciel en dégradé d'indigo (bokashi) en
-  // haut, soleil vermillon et bandes de nuages à droite, motif de vagues concentriques
-  // (seigaiha) dans le coin bas gauche, horizon et vagues à crêtes en bas à droite. Le centre
-  // reste au papier, pour le contenu. Rien n'est animé : une estampe ne bouge pas.
+  // Estampe backdrop (#338): Japanese woodblock print in flat color. Indigo gradient sky
+  // (bokashi) at the top, vermilion sun and cloud bands on the right, concentric wave pattern
+  // (seigaiha) in the bottom left corner, horizon and crested waves at the bottom right.
+  // The center stays paper, for the content. Nothing is animated: a print does not move.
   let { intense = false }: { intense?: boolean } = $props();
 
-  // Seigaiha : rangées d'écailles de vagues (cercles concentriques), chaque rangée posée sur
-  // la précédente et décalée d'une demi-écaille. Dessinées dans l'ordre, sans `pattern`, pour
-  // que le recouvrement soit net.
+  // Seigaiha: rows of wave scales (concentric circles), each row laid over
+  // the previous one and offset by half a scale. Drawn in order, without `pattern`, so
+  // that the overlap is crisp.
   const R = 44;
   const scales: { x: number; y: number }[] = [];
   for (let row = 0; row < 12; row++) {
@@ -17,8 +17,8 @@
   }
   const rings = [1, 0.75, 0.5, 0.25];
 
-  // Vagues à crêtes : trois bandes de plus en plus proches, chacune une suite de creux et de
-  // crêtes qui se recourbent.
+  // Crested waves: three bands getting closer and closer, each a series of troughs and
+  // curling crests.
   function wave(y: number, amp: number, step: number, from: number): string {
     let d = `M${from} 1000 L${from} ${y}`;
     for (let x = from; x < 1600 + step; x += step) {
@@ -58,17 +58,17 @@
         />
         <feColorMatrix values="0 0 0 0 0.12  0 0 0 0 0.16  0 0 0 0 0.22  0 0 0 0.5 0" />
       </filter>
-      <!-- Fibres du washi : traits longs et pâles. -->
+      <!-- Washi fibers: long, pale strokes. -->
       <filter id="es-fibres">
         <feTurbulence type="fractalNoise" baseFrequency="0.004 0.18" numOctaves="2" seed="7" />
         <feColorMatrix values="0 0 0 0 0.45  0 0 0 0 0.38  0 0 0 0 0.25  0 0 0 0.9 -0.35" />
       </filter>
     </defs>
 
-    <!-- Ciel : bande d'indigo dégradée en haut (bokashi). -->
+    <!-- Sky: indigo band fading out at the top (bokashi). -->
     <rect width="1600" height="150" fill="url(#es-sky)" />
 
-    <!-- Soleil vermillon et bandes de nuages qui le traversent. -->
+    <!-- Vermilion sun and cloud bands crossing it. -->
     <g class="sun">
       <circle cx="1400" cy="210" r="64" style="fill: var(--accent)" />
       <g class="clouds">
@@ -78,7 +78,7 @@
       </g>
     </g>
 
-    <!-- Seigaiha dans le coin bas gauche, fondu vers le papier. -->
+    <!-- Seigaiha in the bottom left corner, fading to paper. -->
     <g class="seigaiha" mask="url(#es-corner)">
       {#each scales as s, i (i)}
         {#each rings as k, j (j)}
@@ -87,7 +87,7 @@
       {/each}
     </g>
 
-    <!-- Horizon et vagues à crêtes en bas à droite. -->
+    <!-- Horizon and crested waves at the bottom right. -->
     <line class="horizon" x1="880" y1="790" x2="1600" y2="790" />
     <g class="waves">
       {#each waves as w (w.cls)}
@@ -152,8 +152,8 @@
     fill: var(--es-indigo);
   }
 
-  /* « En lecture » : le soleil tombait sous le titre et les vagues sous la file, à droite ;
-     il ne reste que le ciel et le seigaiha, plus pâle, sous la pochette. */
+  /* "Now playing": the sun used to fall under the title and the waves under the queue, on
+     the right; only the sky and the seigaiha remain, paler, under the cover. */
   .intense :is(.sun, .waves, .horizon) {
     display: none;
   }

@@ -1,5 +1,5 @@
-<!-- Miniature d'un thème (#390), dessinée en CSS avec les couleurs d'origine du thème, quel que
-     soit le thème courant. `large` dans le bloc du thème actuel, `small` dans la galerie. -->
+<!-- Thumbnail of a theme (#390), drawn in CSS with the theme's original colors, whatever
+     the current theme. `large` in the current theme block, `small` in the gallery. -->
 <script lang="ts">
   import type { Theme } from "../lib/ipc";
 
@@ -26,7 +26,7 @@
     overflow: hidden;
   }
 
-  /* Tailles avant les règles des thèmes, qui peuvent changer marges et écarts. */
+  /* Sizes before the theme rules, which may change margins and gaps. */
   .preview.small {
     height: 72px;
   }
@@ -559,7 +559,7 @@
     background: #ef8a3c;
   }
 
-  /* Rideaux de velours sur les bords, salle noire. */
+  /* Velvet curtains on the edges, dark room. */
   .preview.seance {
     border-radius: 6px;
     background: linear-gradient(90deg, #7c141c 0 7%, transparent 7% 93%, #7c141c 93%), #0e0a0b;
@@ -579,7 +579,7 @@
     background: #e65a5e;
   }
 
-  /* Console : blocs de couleur en bas, panneaux cernés d'ambre. */
+  /* Console: color blocks at the bottom, panels outlined in amber. */
   .preview.onboard {
     border-radius: 0;
     background:
@@ -609,7 +609,7 @@
     background: #ffae3b;
   }
 
-  /* Ombres de store en biais sur le noir. */
+  /* Blind shadows slanting across the black. */
   .preview.noir {
     border-radius: 0;
     background:
@@ -632,7 +632,7 @@
     background: #f2f2f2;
   }
 
-  /* Papier peint rayé rose, lambris bordeaux. */
+  /* Pink striped wallpaper, burgundy wainscoting. */
   .preview.hotel {
     border-radius: 2px;
     background:
@@ -654,7 +654,7 @@
     background: #8e2240;
   }
 
-  /* Ciel pâle, horizon bas, dunes. */
+  /* Pale sky, low horizon, dunes. */
   .preview.desert {
     border-radius: 2px;
     background:
@@ -675,7 +675,7 @@
     background: #1f3a6b;
   }
 
-  /* Découpes orange et rouge de travers sur papier noir. */
+  /* Orange and red cut-outs slanted on black paper. */
   .preview.generique {
     border-radius: 0;
     background:

@@ -1,6 +1,6 @@
-<!-- Galerie des thèmes (section Apparence des réglages, #390) : vignettes compactes, une par
-     famille (les variantes claire / sombre se choisissent dans `CurrentTheme`), filtres et
-     favoris en tête. La description passe en infobulle et dans le bloc du thème actuel. -->
+<!-- Theme gallery (Appearance section of the settings, #390): compact thumbnails, one per
+     family (the light / dark variants are chosen in `CurrentTheme`), filters and
+     favorites first. The description goes in a tooltip and in the current theme block. -->
 <script lang="ts">
   import { setTheme, ui } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
@@ -23,7 +23,7 @@
   const currentFamily = $derived(familyOf(current));
   const favorites = $derived(ui.settings.favoriteThemes);
   const families = $derived(galleryFamilies(filter, favorites));
-  // Tabulation : la vignette du thème actuel, sinon la première affichée.
+  // Tab key: the thumbnail of the current theme, otherwise the first one displayed.
   const tabStop = $derived(families.includes(currentFamily) ? currentFamily : families[0]);
 
   async function choose(theme: Theme) {
@@ -35,14 +35,14 @@
     }
   }
 
-  /** Nombre de colonnes réellement affichées, pour Haut / Bas. */
+  /** Number of columns actually displayed, for Up / Down. */
   function columns(): number {
     if (!grid) return 1;
     return getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length || 1;
   }
 
-  // Les flèches déplacent le focus sans appliquer le thème (Espace ou Entrée le fait) :
-  // appliquer un thème remonte son fond décoratif, trop coûteux à chaque pression.
+  // The arrows move the focus without applying the theme (Space or Enter does):
+  // applying a theme rebuilds its decorative background, too costly on every key press.
   function onKeydown(e: KeyboardEvent) {
     const cards = [...(grid?.querySelectorAll<HTMLButtonElement>(".theme-card") ?? [])];
     const from = cards.indexOf(document.activeElement as HTMLButtonElement);
@@ -169,7 +169,7 @@
     color: var(--text-muted);
   }
 
-  /* Mêmes sélecteurs que ceux des réglages (styles des thèmes compris). */
+  /* Same selectors as those of the settings (theme styles included). */
   .cache-sizes {
     display: inline-flex;
     flex-wrap: wrap;
@@ -196,7 +196,7 @@
     background: var(--accent);
   }
 
-  /* Téléphone : trois vignettes par rangée. */
+  /* Phone: three thumbnails per row. */
   :global(:root[data-platform="android"]) .themes {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;

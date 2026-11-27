@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Volume : icône (couper / rétablir), curseur 0–100 et molette. Le niveau affiché est
-  // celui du backend ; seul le glissement en cours est gardé localement.
+  // Volume: icon (mute / unmute), 0–100 slider and wheel. The displayed level is
+  // that of the backend; only the drag in progress is kept locally.
   import { commands } from "../lib/ipc";
   import { player, stepVolume } from "../lib/stores/player.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -8,20 +8,20 @@
   import { ui } from "../lib/stores/ui.svelte";
 
   const v = $derived(player.state.volume);
-  /** Valeur en cours de glissement, pour que le curseur ne saute pas entre deux états. */
+  /** Value being dragged, so that the slider does not jump between two states. */
   let dragging = $state<number | null>(null);
   const shown = $derived(dragging ?? (v.muted ? 0 : v.level));
   const icon = $derived(shown === 0 ? "volumeMute" : shown < 50 ? "volumeLow" : "volume");
-  // Silencieux (coupé ou à 0) : l'icône rétablit le son ; le backend remonte un niveau à 0.
+  // Silent (muted or at 0): the icon restores the sound; the backend raises a level from 0.
   const label = $derived(shown === 0 ? t.player.unmute : t.player.mute);
-  // Clin d'œil (#399) : au maximum, l'étiquette monte jusqu'à 11. L'accessibilité garde 100 %.
+  // Easter egg (#399): at maximum, the label goes up to 11. Accessibility keeps 100%.
   const levelText = $derived(
     shown === 100 && ui.settings.easterEggs ? "11" : t.format.percent(shown),
   );
 
   let root: HTMLDivElement;
 
-  // `wheel` doit être non passif pour empêcher le défilement de la page.
+  // `wheel` must be non-passive to prevent the page from scrolling.
   $effect(() => {
     const onWheel = (e: WheelEvent) => {
       if (e.deltaY === 0) return;
@@ -137,7 +137,7 @@
     border-radius: 0;
   }
 
-  /* La barre de Studio montre aussi la chaîne audio complète : curseur plus court. */
+  /* Studio's bar also shows the full audio chain: shorter slider. */
   :global([data-theme="studio"]) .track {
     width: 72px;
   }

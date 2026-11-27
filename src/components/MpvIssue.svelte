@@ -1,6 +1,6 @@
-<!-- Bandeau persistant quand mpv ne tourne pas (#92, #261). Lu dans `player-state` plutôt que
-     reçu en toast : un échec au lancement précède l'écoute des événements par la webview.
-     Pas de bouton de fermeture : tant que mpv ne tourne pas, rien ne peut être lu. -->
+<!-- Persistent banner when mpv is not running (#92, #261). Read from `player-state` rather than
+     received as a toast: a launch failure comes before the webview listens to events.
+     No close button: as long as mpv is not running, nothing can be played. -->
 <script lang="ts">
   import { player } from "../lib/stores/player.svelte";
   import { t } from "../lib/i18n.svelte";

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Histogramme de la rétrospective (#417) : écoutes par jour de la semaine ou par heure.
+  // Histogram of the recap (#417): listens per day of the week or per hour.
   let {
     values,
     labels,
@@ -8,11 +8,11 @@
     label,
   }: {
     values: number[];
-    /** Repère sous chaque barre (vide pour n'en garder que quelques-uns). */
+    /** Marker under each bar (empty to keep only a few of them). */
     labels: string[];
     /** Info-bulle de chaque barre. */
     titles: string[];
-    /** Barre mise en avant (la plus écoutée). */
+    /** Highlighted bar (the most listened). */
     top: number | null;
     label: string;
   } = $props();

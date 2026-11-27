@@ -49,7 +49,7 @@
     title={t.player.repeat[s.repeat]}
   >
     <Icon name="repeat" size={size - 2} />
-    <!-- #399 : le même titre 10 fois de suite, le 1 devient ∞. -->
+    <!-- #399: the same track 10 times in a row, the 1 becomes ∞. -->
     {#if s.repeat === "one"}<span class="one" class:infinite={eggs.infinite}>
         {eggs.infinite ? "∞" : "1"}
       </span>{/if}
@@ -112,7 +112,7 @@
     font-size: 12px;
   }
 
-  /* Clins d'œil (#399). Recherche « play it again » : la répétition clignote une fois. */
+  /* Easter eggs (#399). Search "play it again": the repeat blinks once. */
   :global(:root[data-egg="playItAgain"]) .repeat {
     animation: egg-blink 0.6s ease-in-out 2;
   }
@@ -129,7 +129,7 @@
     color: var(--accent);
   }
 
-  /* 25 mars : l'anneau de la répétition rougeoie au survol, finement gravé. */
+  /* March 25th: the repeat ring glows red on hover, finely engraved. */
   :global(:root[data-date-egg="mountDoom"]) .repeat:hover {
     color: #ff6a2a;
     filter: drop-shadow(0 0 3px #ff4a1a) drop-shadow(0 0 1px #ffd36b);

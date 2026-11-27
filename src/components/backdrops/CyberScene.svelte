@@ -1,10 +1,10 @@
 <script lang="ts">
-  // Fond Cyberpunk (#66) : skyline sombre en contre-jour, fenêtres allumées, enseignes
-  // verticales, brume néon à l'horizon, pluie et lignes de balayage. Le centre reste sombre
-  // pour le contenu ; la pluie ne tombe que pendant la lecture (`data-playing` sur <html>).
+  // Cyberpunk backdrop (#66): dark backlit skyline, lit windows, vertical
+  // signs, neon haze on the horizon, rain and scan lines. The center stays dark
+  // for the content; rain only falls during playback (`data-playing` on <html>).
   let { intense = false }: { intense?: boolean } = $props();
 
-  // Générateur pseudo-aléatoire déterministe : la ville est la même à chaque lancement.
+  // Deterministic pseudo-random generator: the city is the same at every launch.
   let seed = 7;
   const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
 
@@ -67,7 +67,7 @@
     <rect width="1600" height="1000" fill="url(#cy-sky)" />
     <rect width="1600" height="1000" fill="url(#cy-haze)" />
 
-    <!-- Arrière-plan : skyline lointaine, fenêtres pâles. -->
+    <!-- Background: distant skyline, pale windows. -->
     <g class="far">
       {#each far as t, i (i)}
         <rect x={t.x} y={ground - t.h} width={t.w} height={t.h} fill="#0d0f1e" />
@@ -77,7 +77,7 @@
       {/each}
     </g>
 
-    <!-- Premier plan sur les bords : tours plus hautes, antennes, enseignes. -->
+    <!-- Foreground on the edges: taller towers, antennas, signs. -->
     <g class="near">
       {#each near as t, i (i)}
         <rect x={t.x} y={ground - t.h} width={t.w} height={t.h} fill="#05060c" />
@@ -127,7 +127,7 @@
       {/each}
     </g>
 
-    <!-- Pluie. -->
+    <!-- Rain. -->
     <g class="rain" stroke="#8fd6ff" stroke-width="1.2" opacity="0.28">
       {#each drops as d, i (i)}
         <line
@@ -160,7 +160,7 @@
     height: 100%;
   }
 
-  /* « En lecture » : la ville recule, le contenu passe devant. */
+  /* "Now playing": the city recedes, the content comes in front. */
   .intense .far {
     opacity: 0.6;
   }

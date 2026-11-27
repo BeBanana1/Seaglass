@@ -211,8 +211,8 @@
     color: var(--accent);
   }
 
-  /* Studio : la chaîne audio complète remplace la pastille, la pochette est carrée.
-     La colonne de droite porte aussi le volume : elle prend un peu sur le centre. */
+  /* Studio: the full audio chain replaces the pill, the cover is square.
+     The right column also holds the volume: it takes a bit from the center. */
   :global([data-theme="studio"]) footer {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.5fr);
     border-top: 1px solid var(--border);
