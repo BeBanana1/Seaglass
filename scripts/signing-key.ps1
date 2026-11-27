@@ -1,22 +1,22 @@
-# Mot de passe de la clé de signature de l'updater, partagé par release.ps1 (installeur
-# Windows) et release-linux.ps1 (AppImage, #314) : les deux sont signés avec la même clé.
-# À charger avec « . (Join-Path $PSScriptRoot 'signing-key.ps1') » ; utilise Fail du script.
+# Password of the updater signing key, shared by release.ps1 (Windows installer) and
+# release-linux.ps1 (AppImage, #314): both are signed with the same key.
+# Load with ". (Join-Path $PSScriptRoot 'signing-key.ps1')"; uses the script's Fail.
 
-# Mot de passe de la clé (#87) : TAURI_SIGNING_PRIVATE_KEY_PASSWORD (session), sinon entrée
-# générique « seaglass-signing-key » du Gestionnaire d'identifiants, sinon saisi au clavier.
-# Il ne passe que par l'environnement du build, jamais par un fichier, et il est vérifié
-# avant le build (scripts/protect-signing-key.py --check, mot de passe sur l'entrée standard).
-# Renvoie '' pour une clé sans mot de passe (avec un rappel).
+# Password of the key (#87): TAURI_SIGNING_PRIVATE_KEY_PASSWORD (session), otherwise the
+# generic entry "seaglass-signing-key" of the Credential Manager, otherwise typed at the
+# keyboard. It only goes through the build environment, never through a file, and it is
+# checked before the build (scripts/protect-signing-key.py --check, password on standard
+# input). Returns '' for a key without a password (with a reminder).
 function Get-SigningKeyPassword([string]$keyPath) {
     $credentialTarget = 'seaglass-signing-key'
-    $keyHelp = "procédure : issue #87 / docs/release.md, « Signature »"
+    $keyHelp = "procedure: issue #87 / docs/release.md, `"Signing`""
 
     . (Join-Path $PSScriptRoot 'credentials.ps1')
 
-    # Code de sortie de --check : 0 = le mot de passe ouvre la clé, 1 = non, 2 = clé illisible.
+    # Exit code of --check: 0 = the password opens the key, 1 = it does not, 2 = unreadable key.
     $python = Get-Command python -ErrorAction SilentlyContinue
     function Test-KeyPassword([string]$password) {
-        # UTF-8 pour les mots de passe non ASCII (le BOM ajouté par PowerShell 5.1 est retiré).
+        # UTF-8 for non-ASCII passwords (the BOM added by PowerShell 5.1 is stripped).
         $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
         $password | & $python.Source -I (Join-Path $PSScriptRoot 'protect-signing-key.py') --check $keyPath | Out-Null
         $LASTEXITCODE
@@ -24,16 +24,16 @@ function Get-SigningKeyPassword([string]$keyPath) {
 
     $keyPassword = $null
     if (-not $python) {
-        Write-Host "    python introuvable : mot de passe non vérifié avant le build" -ForegroundColor Yellow
+        Write-Host "    python not found: password not checked before the build" -ForegroundColor Yellow
     } else {
         switch (Test-KeyPassword '') {
             0 {
-                # Clé encore chiffrée avec un mot de passe vide : la release passe, avec un rappel.
-                Write-Host "    ATTENTION : la clé de signature n'a pas de mot de passe ($keyHelp)" -ForegroundColor Yellow
+                # Key still encrypted with an empty password: the release goes ahead, with a reminder.
+                Write-Host "    WARNING: the signing key has no password ($keyHelp)" -ForegroundColor Yellow
                 $keyPassword = ''
             }
             1 { }
-            default { Fail "clé de signature illisible : $keyPath" }
+            default { Fail "signing key unreadable: $keyPath" }
         }
     }
     if ($null -eq $keyPassword) {
@@ -42,21 +42,21 @@ function Get-SigningKeyPassword([string]$keyPath) {
             $origin = 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD'
         } else {
             $keyPassword = Read-StoredSecret $credentialTarget
-            $origin = "Gestionnaire d'identifiants ($credentialTarget)"
+            $origin = "Credential Manager ($credentialTarget)"
         }
         if ($null -eq $keyPassword) {
-            $origin = 'saisie'
-            try { $secure = Read-Host "    Mot de passe de la clé de signature" -AsSecureString }
-            catch { Fail "mot de passe de la clé absent (session non interactive) : définir TAURI_SIGNING_PRIVATE_KEY_PASSWORD ($keyHelp)" }
+            $origin = 'typed'
+            try { $secure = Read-Host "    Signing key password" -AsSecureString }
+            catch { Fail "key password missing (non-interactive session): set TAURI_SIGNING_PRIVATE_KEY_PASSWORD ($keyHelp)" }
             $keyPassword = [System.Net.NetworkCredential]::new('', $secure).Password
         }
         if ($python) {
-            if (-not $keyPassword) { Fail "mot de passe de la clé vide ($origin)" }
-            if ((Test-KeyPassword $keyPassword) -ne 0) { Fail "mot de passe de la clé incorrect ($origin)" }
-            Write-Host "    mot de passe vérifié ($origin)"
+            if (-not $keyPassword) { Fail "key password empty ($origin)" }
+            if ((Test-KeyPassword $keyPassword) -ne 0) { Fail "key password incorrect ($origin)" }
+            Write-Host "    password checked ($origin)"
         } elseif (-not $keyPassword) {
-            # Sans python, rien ne distingue une clé sans mot de passe : Tauri dira s'il est faux.
-            Write-Host "    mot de passe vide : clé supposée sans mot de passe ($keyHelp)" -ForegroundColor Yellow
+            # Without python, nothing tells a passwordless key apart: Tauri will say if it is wrong.
+            Write-Host "    empty password: key assumed to have no password ($keyHelp)" -ForegroundColor Yellow
         }
     }
     $keyPassword

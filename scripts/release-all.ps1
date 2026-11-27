@@ -1,32 +1,33 @@
 <#
 .SYNOPSIS
-  Construit puis publie Seaglass pour Windows, Android et Linux, sur le même commit.
+  Builds then publishes Seaglass for Windows, Android and Linux, on the same commit.
 
 .DESCRIPTION
-  1. Vérifie l'arbre git et le tag `v<version>` (absent, ou déjà sur HEAD).
-  2. Construit l'installeur Windows (`release.ps1`), l'APK (`release-android.ps1`), puis
-     l'AppImage (`release-linux.ps1`, dans WSL), sans rien publier : si un build échoue,
-     rien n'est en ligne.
-  3. Avec -Publish : publie Android, Linux puis Windows (`-PublishOnly` : les fichiers du
-     build de l'étape 2, contrôlés par leur repère), pose le tag, puis crée la release
-     GitHub avec l'installeur, l'APK et l'AppImage (`github-release.ps1`). Windows passe en
-     dernier : il envoie latest.json, qui annonce aussi l'AppImage aux mises à jour (#314).
+  1. Checks the git tree and the `v<version>` tag (absent, or already on HEAD).
+  2. Builds the Windows installer (`release.ps1`), the APK (`release-android.ps1`), then
+     the AppImage (`release-linux.ps1`, in WSL), without publishing anything: if a build
+     fails, nothing is online.
+  3. With -Publish: publishes Android, Linux then Windows (`-PublishOnly`: the files of the
+     step 2 build, checked through their stamp), sets the tag, then creates the GitHub
+     release with the installer, the APK and the AppImage (`github-release.ps1`). Windows
+     goes last: it uploads latest.json, which also announces the AppImage to the updater
+     (#314).
 
-  -SkipLinux laisse Linux de côté (WSL ou sa distribution de build absents).
+  -SkipLinux leaves Linux out (WSL or its build distribution missing).
 
-  Clés, mots de passe et variables d'environnement : ceux de release.ps1,
-  release-android.ps1, release-linux.ps1 et github-release.ps1. Chaque étape tourne dans
-  son propre processus PowerShell ; la première qui échoue arrête tout.
+  Keys, passwords and environment variables: those of release.ps1, release-android.ps1,
+  release-linux.ps1 and github-release.ps1. Each step runs in its own PowerShell process;
+  the first one that fails stops everything.
 
 .EXAMPLE
-  powershell -File scripts/release-all.ps1            # construit tout, ne publie rien
-  powershell -File scripts/release-all.ps1 -Publish   # construit, publie, tague, release GitHub
-  powershell -File scripts/release-all.ps1 -Publish -Notes "- Correctif lecture"
+  powershell -File scripts/release-all.ps1            # builds everything, publishes nothing
+  powershell -File scripts/release-all.ps1 -Publish   # builds, publishes, tags, GitHub release
+  powershell -File scripts/release-all.ps1 -Publish -Notes "- Playback fix"
 #>
 param(
     [switch]$Publish,
     [string]$Notes,
-    # Sans l'AppImage Linux (WSL ou sa distribution de build absents).
+    # Without the Linux AppImage (WSL or its build distribution missing).
     [switch]$SkipLinux
 )
 
@@ -34,82 +35,82 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-function Fail($message) { Write-Host "ERREUR : $message" -ForegroundColor Red; exit 1 }
+function Fail($message) { Write-Host "ERROR: $message" -ForegroundColor Red; exit 1 }
 function Step($message) { Write-Host "`n=== $message ===" -ForegroundColor Magenta }
 
-# Chaque script dans un processus à part : ses `exit` et ses variables d'environnement ne
-# touchent pas celui-ci. Appelés directement (pas dans une fonction) pour que leur sortie
-# aille à la console sans être capturée, couleurs comprises ; code dans $LASTEXITCODE.
+# Each script in its own process: its `exit` and its environment variables do not affect
+# this one. Called directly (not in a function) so that their output goes to the console
+# without being captured, colors included; exit code in $LASTEXITCODE.
 $ps = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File')
 $windows = Join-Path $PSScriptRoot 'release.ps1'
 $android = Join-Path $PSScriptRoot 'release-android.ps1'
 $linux = Join-Path $PSScriptRoot 'release-linux.ps1'
 $github = Join-Path $PSScriptRoot 'github-release.ps1'
 
-# --- 1. Vérifications -------------------------------------------------------------------
-# Refaites par chaque script ; ici pour échouer avant les builds.
+# --- 1. Checks -------------------------------------------------------------------
+# Repeated by each script; done here to fail before the builds.
 $version = (Get-Content VERSION -Raw).Trim()
-if ($version -notmatch '^\d+\.\d+\.\d+$') { Fail "VERSION invalide : '$version'" }
+if ($version -notmatch '^\d+\.\d+\.\d+$') { Fail "invalid VERSION: '$version'" }
 $tag = "v$version"
-if (git status --porcelain) { Fail "des modifications ne sont pas commitées" }
+if (git status --porcelain) { Fail "there are uncommitted changes" }
 if ($Publish) {
-    if (-not $env:SEAGLASS_RELEASE_DEST) { Fail "SEAGLASS_RELEASE_DEST n'est pas défini" }
+    if (-not $env:SEAGLASS_RELEASE_DEST) { Fail "SEAGLASS_RELEASE_DEST is not set" }
     if ((git tag --list $tag) -and (git rev-parse "$tag^{commit}") -ne (git rev-parse HEAD)) {
-        Fail "le tag $tag existe sur un autre commit : monter VERSION avant de publier"
+        Fail "tag $tag exists on another commit: bump VERSION before publishing"
     }
 }
 $buildArgs = if ($Notes) { @('-Notes', $Notes) } else { @() }
 
 # --- 2. Builds --------------------------------------------------------------------------
-Step "Windows $version : build"
+Step "Windows ${version}: build"
 powershell @ps $windows @buildArgs
-if ($LASTEXITCODE -ne 0) { Fail "build Windows en échec, rien n'a été publié" }
-Step "Android $version : build"
+if ($LASTEXITCODE -ne 0) { Fail "Windows build failed, nothing was published" }
+Step "Android ${version}: build"
 powershell @ps $android @buildArgs
-if ($LASTEXITCODE -ne 0) { Fail "build Android en échec, rien n'a été publié" }
+if ($LASTEXITCODE -ne 0) { Fail "Android build failed, nothing was published" }
 if ($SkipLinux) {
-    Write-Host "`nLinux laissé de côté (-SkipLinux)" -ForegroundColor Yellow
+    Write-Host "`nLinux left out (-SkipLinux)" -ForegroundColor Yellow
 } else {
-    Step "Linux $version : build"
+    Step "Linux ${version}: build"
     powershell @ps $linux @buildArgs
-    if ($LASTEXITCODE -ne 0) { Fail "build Linux en échec, rien n'a été publié (ou relancer avec -SkipLinux)" }
+    if ($LASTEXITCODE -ne 0) { Fail "Linux build failed, nothing was published (or rerun with -SkipLinux)" }
 }
-$platforms = if ($SkipLinux) { 'Windows et Android' } else { 'Windows, Android et Linux' }
+$platforms = if ($SkipLinux) { 'Windows and Android' } else { 'Windows, Android and Linux' }
 
 if (-not $Publish) {
-    Write-Host "`nBuilds $platforms terminés, rien n'a été publié (ajouter -Publish)." -ForegroundColor Green
+    Write-Host "`n$platforms builds done, nothing was published (add -Publish)." -ForegroundColor Green
     exit 0
 }
 
-# --- 3. Publication ---------------------------------------------------------------------
-# Windows en dernier : sa publication envoie latest.json, qui annonce aussi l'AppImage
-# (#314) ; elle vérifie que chaque fichier annoncé est déjà en ligne.
-Step "Android $version : publication"
+# --- 3. Publishing ---------------------------------------------------------------------
+# Windows last: its publication uploads latest.json, which also announces the AppImage
+# (#314); it checks that every announced file is already online.
+Step "Android ${version}: publishing"
 powershell @ps $android -PublishOnly -SkipGitHubRelease
 if ($LASTEXITCODE -ne 0) {
-    Fail "publication Android en échec, rien d'autre n'a été publié (relancer : powershell -File scripts/release-all.ps1 -Publish)"
+    Fail "Android publishing failed, nothing else was published (rerun: powershell -File scripts/release-all.ps1 -Publish)"
 }
 if (-not $SkipLinux) {
-    Step "Linux $version : publication"
+    Step "Linux ${version}: publishing"
     powershell @ps $linux -PublishOnly -SkipGitHubRelease
     if ($LASTEXITCODE -ne 0) {
-        Fail ("Android est publié mais pas Linux ni Windows. Pour finir :`n" +
+        Fail ("Android is published but neither Linux nor Windows. To finish:`n" +
             "    powershell -File scripts/release-linux.ps1 -PublishOnly`n" +
             "    powershell -File scripts/release.ps1 -PublishOnly")
     }
 }
-Step "Windows $version : publication (latest.json en dernier)"
+Step "Windows ${version}: publishing (latest.json last)"
 powershell @ps $windows -PublishOnly -SkipGitHubRelease
 if ($LASTEXITCODE -ne 0) {
-    Fail ("Android$(if (-not $SkipLinux) { ' et Linux sont publiés' } else { ' est publié' }), pas Windows ni le manifeste de l'updater. Pour finir :`n" +
+    Fail ("Android$(if (-not $SkipLinux) { ' and Linux are published' } else { ' is published' }), but not Windows nor the updater manifest. To finish:`n" +
         "    powershell -File scripts/release.ps1 -PublishOnly")
 }
 
-# Tout est en ligne : un échec ici n'est qu'un avertissement (#108).
-Step "release GitHub $tag"
+# Everything is online: a failure here is only a warning (#108).
+Step "GitHub release $tag"
 powershell @ps $github -Version $version
 if ($LASTEXITCODE -ne 0) {
-    Write-Host ("ATTENTION : release GitHub non créée, les mises à jour restent publiées.`n" +
-        "    Pour la refaire seule : powershell -File scripts/github-release.ps1") -ForegroundColor Yellow
+    Write-Host ("WARNING: GitHub release not created, the updates stay published.`n" +
+        "    To redo it alone: powershell -File scripts/github-release.ps1") -ForegroundColor Yellow
 }
-Write-Host "`nSeaglass $version publiée pour $platforms." -ForegroundColor Green
+Write-Host "`nSeaglass $version published for $platforms." -ForegroundColor Green
