@@ -1,24 +1,24 @@
-"""Clé de signature de l'updater (format Tauri) : rechiffrement et contrôle du mot de passe (#87).
+"""Updater signing key (Tauri format): re-encryption and password check (#87).
 
-Rechiffrer garde la même clé (même identifiant, même clé publique) : les versions installées
-continuent d'accepter les mises à jour. Seul le chiffrement du fichier change.
+Re-encrypting keeps the same key (same identifier, same public key): installed versions
+keep accepting updates. Only the encryption of the file changes.
 
-Format : un fichier Tauri est le base64 d'un fichier de clé secrète minisign
-(« untrusted comment: … » puis une ligne base64). Cette ligne décode en 158 octets :
-  sig_alg "Ed" | kdf_alg "Sc" (ou "\\0\\0") | cksum_alg "B2" | sel (32) |
+Format: a Tauri file is the base64 of a minisign secret key file
+("untrusted comment: ..." then a base64 line). That line decodes to 158 bytes:
+  sig_alg "Ed" | kdf_alg "Sc" (or "\\0\\0") | cksum_alg "B2" | salt (32) |
   opslimit (u64 LE) | memlimit (u64 LE) | keynum_sk (104) =
-  identifiant (8) + clé secrète Ed25519 (64) + somme BLAKE2b-256 (32)
-Avec "Sc", keynum_sk est XORé avec scrypt(mot de passe, sel, 104 octets), paramètres tirés
-d'opslimit / memlimit comme libsodium (`pickparams`). `tauri signer generate` chiffre
-toujours : une clé « sans mot de passe » l'est avec un mot de passe vide.
+  identifier (8) + Ed25519 secret key (64) + BLAKE2b-256 checksum (32)
+With "Sc", keynum_sk is XORed with scrypt(password, salt, 104 bytes), with parameters
+derived from opslimit / memlimit like libsodium (`pickparams`). `tauri signer generate`
+always encrypts: a "passwordless" key is encrypted with an empty password.
 
-Usage (bibliothèque standard seulement) :
-  python -I scripts/protect-signing-key.py <clé actuelle> <nouvelle clé>
-      Mots de passe lus au clavier, sans écho. La clé actuelle n'est jamais modifiée ;
-      la nouvelle est écrite dans un fichier qui ne doit pas exister.
-  python -I scripts/protect-signing-key.py --check <clé>
-      Mot de passe lu sur l'entrée standard (UTF-8, une ligne, vide permis) : code 0 s'il
-      ouvre la clé, 1 sinon, 2 si la clé est illisible. Utilisé par `release.ps1`.
+Usage (standard library only):
+  python -I scripts/protect-signing-key.py <current key> <new key>
+      Passwords read from the keyboard, without echo. The current key is never modified;
+      the new one is written to a file that must not exist.
+  python -I scripts/protect-signing-key.py --check <key>
+      Password read from standard input (UTF-8, one line, empty allowed): exit code 0 if it
+      opens the key, 1 if not, 2 if the key is unreadable. Used by `release.ps1`.
 """
 
 import base64
@@ -35,7 +35,7 @@ MIN_PASSWORD = 12
 
 
 class KeyError_(Exception):
-    """Clé illisible ou d'un format inattendu."""
+    """Unreadable key, or one in an unexpected format."""
 
 
 def pick_params(opslimit: int, memlimit: int) -> tuple[int, int, int]:
@@ -75,18 +75,18 @@ class Key:
             self.text = base64.b64decode(raw, validate=True).decode("utf-8")
             data = base64.b64decode(self.text.split("\n")[1].strip(), validate=True)
         except (OSError, ValueError, UnicodeDecodeError, IndexError) as e:
-            raise KeyError_(f"clé illisible ({e.__class__.__name__}) : est-ce bien une clé Tauri ?")
+            raise KeyError_(f"unreadable key ({e.__class__.__name__}): is it really a Tauri key?")
         if len(data) != KEY_LEN or data[0:2] != b"Ed" or data[4:6] != b"B2":
-            raise KeyError_("format de clé inattendu (minisign Ed25519 / BLAKE2b attendu)")
+            raise KeyError_("unexpected key format (minisign Ed25519 / BLAKE2b expected)")
         self.kdf = data[2:4]
         if self.kdf not in (b"Sc", b"\0\0"):
-            raise KeyError_(f"algorithme de dérivation inconnu : {self.kdf!r}")
+            raise KeyError_(f"unknown derivation algorithm: {self.kdf!r}")
         self.data = data
         self.salt = data[6:38]
         self.opslimit, self.memlimit = struct.unpack("<QQ", data[38:54])
 
     def open(self, password: str) -> bytes | None:
-        """keynum_sk en clair, ou None si le mot de passe ne l'ouvre pas."""
+        """keynum_sk in clear, or None if the password does not open it."""
         sealed = self.data[54:]
         if self.kdf == b"Sc":
             sealed = xor(sealed, stream(password, self.salt, self.opslimit, self.memlimit))
@@ -95,12 +95,12 @@ class Key:
         return sealed if secrets.compare_digest(digest, chk) else None
 
     def sealed_with(self, keynum_sk: bytes, password: str) -> str:
-        """Fichier Tauri de la même clé, chiffrée avec `password` et un nouveau sel."""
+        """Tauri file of the same key, encrypted with `password` and a new salt."""
         salt = secrets.token_bytes(32)
         limits = struct.pack("<QQ", self.opslimit, self.memlimit)
         resealed = xor(keynum_sk, stream(password, salt, self.opslimit, self.memlimit))
         data = self.data[0:2] + b"Sc" + self.data[4:6] + salt + limits + resealed
-        # Même mise en forme que `tauri signer generate` : base64 du fichier minisign.
+        # Same layout as `tauri signer generate`: base64 of the minisign file.
         lines = self.text.split("\n")
         lines[0] = "untrusted comment: rsign encrypted secret key"
         lines[1] = base64.b64encode(data).decode("ascii")
@@ -108,7 +108,7 @@ class Key:
 
 
 def fail(message: str, code: int = 1) -> None:
-    print(f"ERREUR : {message}", file=sys.stderr)
+    print(f"ERROR: {message}", file=sys.stderr)
     sys.exit(code)
 
 
@@ -117,7 +117,7 @@ def check(path: str) -> None:
         key = Key(path)
     except KeyError_ as e:
         fail(str(e), 2)
-    # PowerShell 5.1 préfixe un BOM UTF-8 à ce qu'il envoie à un programme : retiré.
+    # PowerShell 5.1 prefixes a UTF-8 BOM to what it sends to a program: stripped here.
     password = sys.stdin.buffer.read().decode("utf-8-sig")
     password = password[:-2] if password.endswith("\r\n") else password.removesuffix("\n")
     sys.exit(0 if key.open(password) is not None else 1)
@@ -125,31 +125,31 @@ def check(path: str) -> None:
 
 def protect(src: str, dst: str) -> None:
     if os.path.exists(dst):
-        fail(f"{dst} existe déjà : choisir un autre fichier")
+        fail(f"{dst} already exists: choose another file")
     try:
         key = Key(src)
     except KeyError_ as e:
         fail(str(e), 2)
-    current = getpass.getpass("Mot de passe actuel (Entrée s'il n'y en a pas) : ")
+    current = getpass.getpass("Current password (Enter if there is none): ")
     keynum_sk = key.open(current)
     if keynum_sk is None:
-        fail("mot de passe actuel incorrect (somme de contrôle invalide)")
-    print(f"Clé ouverte, identifiant {keynum_sk[:8][::-1].hex().upper()}.")
+        fail("current password is wrong (invalid checksum)")
+    print(f"Key opened, identifier {keynum_sk[:8][::-1].hex().upper()}.")
 
-    new = getpass.getpass(f"Nouveau mot de passe ({MIN_PASSWORD} caractères au moins) : ")
+    new = getpass.getpass(f"New password (at least {MIN_PASSWORD} characters): ")
     if len(new) < MIN_PASSWORD:
-        fail(f"mot de passe trop court (moins de {MIN_PASSWORD} caractères)")
-    if getpass.getpass("Confirmer le nouveau mot de passe : ") != new:
-        fail("les deux mots de passe diffèrent")
+        fail(f"password too short (fewer than {MIN_PASSWORD} characters)")
+    if getpass.getpass("Confirm the new password: ") != new:
+        fail("the two passwords differ")
 
     wrapped = key.sealed_with(keynum_sk, new)
     with open(dst, "x", encoding="ascii", newline="") as f:
         f.write(wrapped)
-    # Relecture : la nouvelle clé doit s'ouvrir avec le nouveau mot de passe, sur la même clé.
+    # Read back: the new key must open with the new password, and be the same key.
     if Key(dst).open(new) != keynum_sk:
         os.remove(dst)
-        fail("relecture de la nouvelle clé en échec : rien n'a été écrit")
-    print(f"Clé rechiffrée écrite dans {dst}.")
+        fail("reading back the new key failed: nothing was written")
+    print(f"Re-encrypted key written to {dst}.")
 
 
 def main() -> None:
@@ -159,8 +159,8 @@ def main() -> None:
     elif len(args) == 2 and not args[0].startswith("-"):
         protect(args[0], args[1])
     else:
-        fail("usage : protect-signing-key.py <clé actuelle> <nouvelle clé>\n"
-             "        protect-signing-key.py --check <clé>  (mot de passe sur l'entrée standard)")
+        fail("usage: protect-signing-key.py <current key> <new key>\n"
+             "        protect-signing-key.py --check <key>  (password on standard input)")
 
 
 if __name__ == "__main__":

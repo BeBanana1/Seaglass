@@ -1,8 +1,8 @@
-# Réglages des scripts de release (#489), sans aucune valeur par défaut propre à l'auteur.
-# À charger avec « . (Join-Path $PSScriptRoot 'release-env.ps1') » ; suppose `Fail` défini.
+# Settings of the release scripts (#489), with no default value specific to the author.
+# Load with ". (Join-Path $PSScriptRoot 'release-env.ps1')"; assumes `Fail` is defined.
 
-# Valeur d'un réglage : variable d'environnement, sinon ligne `NOM=valeur` du `.env` de la
-# racine, sinon $null. Même ordre que `src-tauri/build.rs`.
+# Value of a setting: environment variable, otherwise `NAME=value` line of the root `.env`,
+# otherwise $null. Same order as `src-tauri/build.rs`.
 function Get-ReleaseSetting([string]$name) {
     $value = [Environment]::GetEnvironmentVariable($name)
     if ($value -and $value.Trim()) { return $value.Trim() }
@@ -20,37 +20,37 @@ function Get-ReleaseSetting([string]$name) {
     return $null
 }
 
-# Dossier public des mises à jour, sans `/` final. Requis : il est compilé dans l'app
-# (build.rs) et écrit dans les manifestes. Posé dans l'environnement pour la compilation.
+# Public folder of the updates, without a trailing `/`. Required: it is compiled into the app
+# (build.rs) and written into the manifests. Set in the environment for the build.
 function Use-UpdateBaseUrl {
     $url = Get-ReleaseSetting 'SEAGLASS_UPDATE_BASE_URL'
     if (-not $url) {
-        Fail ("SEAGLASS_UPDATE_BASE_URL n'est pas défini (environnement ou .env) : adresse publique`n" +
-            "    du dossier des mises à jour, par exemple https://updates.example.org/seaglass")
+        Fail ("SEAGLASS_UPDATE_BASE_URL is not set (environment or .env): public address`n" +
+            "    of the updates folder, for example https://updates.example.org/seaglass")
     }
     $url = $url.TrimEnd('/')
     $env:SEAGLASS_UPDATE_BASE_URL = $url
     return $url
 }
 
-# Clé publique de l'updater du bureau, compilée dans l'app (build.rs) : variable
-# SEAGLASS_UPDATER_PUBKEY, sinon fichier `<clé privée>.pub` de `tauri signer generate`.
-# Posée dans l'environnement pour la compilation.
+# Public key of the desktop updater, compiled into the app (build.rs): variable
+# SEAGLASS_UPDATER_PUBKEY, otherwise the `<private key>.pub` file of `tauri signer generate`.
+# Set in the environment for the build.
 function Use-UpdaterPubkey([string]$keyPath) {
     $pubkey = Get-ReleaseSetting 'SEAGLASS_UPDATER_PUBKEY'
     if (-not $pubkey) {
         $pubPath = "$keyPath.pub"
         if (-not (Test-Path $pubPath)) {
-            Fail "clé publique de l'updater introuvable : $pubPath (ou variable SEAGLASS_UPDATER_PUBKEY)"
+            Fail "updater public key not found: $pubPath (or variable SEAGLASS_UPDATER_PUBKEY)"
         }
         $pubkey = (Get-Content $pubPath -Raw).Trim()
     }
     $env:SEAGLASS_UPDATER_PUBKEY = $pubkey
 }
 
-# Fichier `--config` du CLI Tauri avec la clé publique posée par Use-UpdaterPubkey : le CLI
-# vérifie la signature des artefacts de l'updater avec `plugins.updater.pubkey`, vide dans
-# `tauri.conf.json`. Fichier temporaire (UTF-8 sans BOM), à supprimer après le build.
+# `--config` file of the Tauri CLI with the public key set by Use-UpdaterPubkey: the CLI
+# checks the signature of the updater artifacts with `plugins.updater.pubkey`, which is empty
+# in `tauri.conf.json`. Temporary file (UTF-8 without BOM), to delete after the build.
 function New-UpdaterConfig {
     $path = [IO.Path]::GetTempFileName()
     $json = '{"plugins":{"updater":{"pubkey":"' + $env:SEAGLASS_UPDATER_PUBKEY + '"}}}'

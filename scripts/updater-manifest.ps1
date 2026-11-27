@@ -1,10 +1,10 @@
-# Manifeste de l'updater du bureau (release/latest.json), écrit par release.ps1 et
-# release-linux.ps1 (#314) : une seule fonction, pour que l'un n'efface pas l'autre.
-# À charger après build-stamp.ps1 ; utilise $root et Fail du script.
+# Desktop updater manifest (release/latest.json), written by release.ps1 and
+# release-linux.ps1 (#314): a single function, so that one does not erase the other.
+# Load after build-stamp.ps1; uses the script's $root and Fail.
 #
-# Le manifeste ne décrit que la version donnée, avec une entrée par plateforme dont le
-# build est de cette version, de ce commit, et dans le même état (propre ou non) que
-# l'arbre : jamais une entrée d'une version plus ancienne, que l'updater installerait.
+# The manifest only describes the given version, with one entry per platform whose build is
+# of this version, of this commit, and in the same state (clean or not) as the tree: never
+# an entry of an older version, which the updater would install.
 #   windows-x86_64 : release/<version>/Seaglass_<version>_x64-setup.exe(.sig)
 #   linux-x86_64   : release/<version>/Seaglass_<version>_amd64.AppImage(.sig)
 
@@ -13,7 +13,7 @@ $UpdaterPlatforms = [ordered]@{
     'linux-x86_64'   = @{ stamp = 'linux'; file = { param($v) "Seaglass_${v}_amd64.AppImage" } }
 }
 
-# Vrai si le dernier build de la plateforme est de cette version et de cet état de l'arbre.
+# True if the last build of the platform is of this version and of this tree state.
 function Test-FreshBuild([string]$platform, [string]$version) {
     $path = Get-BuildStampPath $platform
     if (-not (Test-Path $path)) { return $false }
@@ -23,20 +23,20 @@ function Test-FreshBuild([string]$platform, [string]$version) {
         [bool]$stamp.dirty -eq [bool](git status --porcelain)
 }
 
-# Écrit release/latest.json ; renvoie les plateformes annoncées.
+# Writes release/latest.json; returns the announced platforms.
 function Write-UpdaterManifest([string]$version, [string]$notes, [string]$baseUrl) {
     $platforms = [ordered]@{}
     foreach ($entry in $UpdaterPlatforms.GetEnumerator()) {
         if (-not (Test-FreshBuild $entry.Value.stamp $version)) { continue }
         $name = & $entry.Value.file $version
         $sig = Join-Path $root "release\$version\$name.sig"
-        if (-not (Test-Path $sig)) { Fail "signature absente pour $($entry.Key) : $sig" }
+        if (-not (Test-Path $sig)) { Fail "signature missing for $($entry.Key): $sig" }
         $platforms[$entry.Key] = [ordered]@{
             signature = (Get-Content $sig -Raw).Trim()
             url       = "$baseUrl/$version/$name"
         }
     }
-    if ($platforms.Count -eq 0) { Fail "aucun build de la $version sur ce commit pour le manifeste de l'updater" }
+    if ($platforms.Count -eq 0) { Fail "no $version build on this commit for the updater manifest" }
     $manifest = [ordered]@{
         version   = $version
         notes     = $notes
@@ -44,18 +44,18 @@ function Write-UpdaterManifest([string]$version, [string]$notes, [string]$baseUr
         platforms = $platforms
     }
     $path = Join-Path $root 'release\latest.json'
-    # UTF-8 sans BOM : l'updater lit du JSON strict.
+    # UTF-8 without BOM: the updater reads strict JSON.
     [System.IO.File]::WriteAllText($path, ($manifest | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
     @($platforms.Keys)
 }
 
-# Avant d'envoyer latest.json : chaque fichier annoncé, sauf ceux que l'appelant vient de
-# publier ($except), doit déjà être en ligne. Sinon l'updater d'une plateforme irait
-# chercher un fichier absent (release Windows seule après un build Linux du même commit).
-# Destination locale (essais) : le fichier y est cherché ; sinon, requête HEAD sur l'URL.
+# Before uploading latest.json: every announced file, except those the caller has just
+# published ($except), must already be online. Otherwise a platform's updater would look
+# for a missing file (Windows-only release after a Linux build of the same commit).
+# Local destination (tests): the file is looked up there; otherwise, HEAD request on the URL.
 function Assert-ManifestOnline([string]$manifestPath, [string]$dest, [string[]]$except) {
     $manifest = Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    # Même règle que la publication : « hôte:… » (2 caractères au moins, pas « D: »).
+    # Same rule as publishing: "host:..." (at least 2 characters, not "D:").
     $remote = $dest -match '^[^\\/:]{2,}:'
     foreach ($platform in $manifest.platforms.PSObject.Properties) {
         if ($except -contains $platform.Name) { continue }
@@ -69,9 +69,9 @@ function Assert-ManifestOnline([string]$manifestPath, [string]$dest, [string[]]$
             $ok = Test-Path (Join-Path $dest "$($manifest.version)\$(Split-Path $url -Leaf)")
         }
         if (-not $ok) {
-            Fail ("latest.json annonce $($platform.Name), mais $url n'est pas en ligne :`n" +
-                "    publier cette plateforme d'abord (release-all.ps1 le fait dans l'ordre)")
+            Fail ("latest.json announces $($platform.Name), but $url is not online:`n" +
+                "    publish that platform first (release-all.ps1 does it in order)")
         }
-        Write-Host "    $($platform.Name) déjà en ligne"
+        Write-Host "    $($platform.Name) already online"
     }
 }

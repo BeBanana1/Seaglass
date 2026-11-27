@@ -1,8 +1,8 @@
-# Lecture d'une entrée générique du Gestionnaire d'identifiants Windows, partagée par
-# release.ps1 (mot de passe de la clé de signature) et github-release.ps1 (jeton GitHub).
-# À charger avec « . (Join-Path $PSScriptRoot 'credentials.ps1') ».
+# Reads a generic entry of the Windows Credential Manager, shared by release.ps1 (signing
+# key password) and github-release.ps1 (GitHub token).
+# Load with ". (Join-Path $PSScriptRoot 'credentials.ps1')".
 
-# Secret d'une entrée générique (CRED_TYPE_GENERIC), $null si elle n'existe pas.
+# Secret of a generic entry (CRED_TYPE_GENERIC), $null if it does not exist.
 function Read-StoredSecret([string]$target) {
     if (-not ('Seaglass.StoredCredential' -as [type])) {
         Add-Type -Namespace Seaglass -Name StoredCredential -MemberDefinition @'
