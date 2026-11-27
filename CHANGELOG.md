@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.137
+
+- chore: the comments of the themes (`themes/`) and `app.css` are now in English, with no change in behavior (#8).
+
 ## 0.5.136
 
 - chore: the comments and logs of the player (`player/`) are now in English, with no change in behavior (#8).
