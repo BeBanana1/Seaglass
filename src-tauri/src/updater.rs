@@ -286,7 +286,7 @@ pub fn update_status(state: State<'_, UpdateState>) -> Option<UpdateInfo> {
 pub fn install_update(app: AppHandle, state: State<'_, UpdateState>) -> Result<(), String> {
     let pending = state
         .take()
-        .ok_or_else(|| "aucune mise à jour prête".to_owned())?;
+        .ok_or_else(|| tr("aucune mise à jour prête", "no update ready").to_owned())?;
     if let Err(e) = pending.update.install(&pending.bytes) {
         let message = install_error(&app, e);
         // Kept: after moving the AppImage, a new attempt downloads nothing again.

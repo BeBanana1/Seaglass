@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Toast when Android refuses the update after its confirmation (ApkInstaller). -->
+    <string name="install_rejected">Seaglass: installation refused (%1$d)</string>
+</resources>

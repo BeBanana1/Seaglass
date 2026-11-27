@@ -43,13 +43,13 @@ pub fn set_dir(dir: &Path) {
 fn panic_text(info: &PanicHookInfo<'_>) -> String {
     let thread = std::thread::current();
     let mut text = format!(
-        "{}\npanic dans le thread « {} » : {}\n",
+        "{}\npanic in thread \"{}\": {}\n",
         header(SystemTime::now()),
         thread.name().unwrap_or("?"),
-        info.payload_as_str().unwrap_or("(message non textuel)"),
+        info.payload_as_str().unwrap_or("(non-text message)"),
     );
     if let Some(at) = info.location() {
-        let _ = writeln!(text, "à {}:{}:{}", at.file(), at.line(), at.column());
+        let _ = writeln!(text, "at {}:{}:{}", at.file(), at.line(), at.column());
     }
     let _ = write!(text, "\n{}", std::backtrace::Backtrace::force_capture());
     text
@@ -96,21 +96,21 @@ pub fn collect(dir: &Path, system_exit: Option<&str>) -> bool {
 }
 
 fn build(crash: Option<&str>, system_exit: Option<&str>, log: Option<&str>) -> String {
-    let mut report = String::from("# Rapport de plantage Seaglass\n");
+    let mut report = String::from("# Seaglass crash report\n");
     if let Some(crash) = crash {
         let _ = write!(report, "\n{}\n", crash.trim_end());
     }
     if let Some(exit) = system_exit {
         let _ = write!(
             report,
-            "\n## Sortie signalée par Android\n\n{}\n",
+            "\n## Exit reported by Android\n\n{}\n",
             exit.trim_end()
         );
     }
     if let Some(log) = log {
         let _ = write!(
             report,
-            "\n## Fin du journal ({TAIL_LINES} dernières lignes au plus)\n\n{}\n",
+            "\n## End of the log (last {TAIL_LINES} lines at most)\n\n{}\n",
             redact(log)
         );
     }
@@ -140,11 +140,11 @@ mod tests {
     #[test]
     fn report_joins_available_parts() {
         let report = build(Some("panic ici\n"), None, Some("ligne https://a/b?sig=1"));
-        assert!(report.starts_with("# Rapport de plantage Seaglass\n\npanic ici\n"));
+        assert!(report.starts_with("# Seaglass crash report\n\npanic ici\n"));
         assert!(!report.contains("Android"));
         assert!(report.ends_with("ligne https://a/b?…\n"));
         let report = build(None, Some("ANR"), None);
-        assert!(report.contains("## Sortie signalée par Android\n\nANR\n"));
+        assert!(report.contains("## Exit reported by Android\n\nANR\n"));
     }
 
     #[test]

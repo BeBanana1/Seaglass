@@ -169,7 +169,7 @@ export const settingsHandlers: Handlers = {
   take_crash_notice: () => params.get("crash") === "1",
   last_crash_report: () =>
     params.get("crash") === "1"
-      ? "# Rapport de plantage Seaglass\n\npanic dans le thread « main » : exemple\n"
+      ? '# Seaglass crash report\n\npanic in thread "main": example\n'
       : null,
   changelog: () => [
     {
