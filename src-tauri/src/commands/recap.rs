@@ -1,7 +1,7 @@
-//! Rétrospective du mois et de l'année (#417) : classements, temps d'écoute, découvertes et
-//! habitudes d'un mois ou d'une année civils, en heure locale. Tout vient de l'historique
-//! de cet appareil (`store::recap`, `store::stats`) ; seuls les titres d'anciennes écoutes
-//! et les photos des artistes sont demandés à TIDAL, comme pour les statistiques.
+//! Monthly and yearly recap (#417): rankings, listening time, discoveries and
+//! habits of a calendar month or year, in local time. Everything comes from the history
+//! of this device (`store::recap`, `store::stats`); only the tracks of old plays
+//! and the artists' pictures are requested from TIDAL, as for the statistics.
 //! Timeline, heatmap and highlights since #521 (`store::moments`).
 
 use std::sync::Arc;
@@ -17,7 +17,7 @@ use crate::tidal::models::{AlbumSummary, ArtistSummary, Track, TrackId};
 
 const LIMIT: usize = 10;
 
-/// Période qui a des écoutes. `month` absent : l'année entière.
+/// Period that has plays. `month` absent: the whole year.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecapPeriod {
@@ -29,23 +29,23 @@ pub struct RecapPeriod {
 #[serde(rename_all = "camelCase")]
 pub struct Recap {
     pub plays: i64,
-    /// Temps d'écoute approché, en secondes (voir `PlayStats`).
+    /// Approximate listening time, in seconds (see `PlayStats`).
     pub seconds: i64,
     pub unknown: i64,
-    /// Jours avec au moins une écoute.
+    /// Days with at least one play.
     pub days: i64,
     pub tracks: Vec<Counted<Track>>,
     pub albums: Vec<Counted<AlbumSummary>>,
     pub artists: Vec<Counted<ArtistSummary>>,
-    /// Artistes sans aucune écoute avant la période, les plus écoutés d'abord.
+    /// Artists with no play before the period, most played first.
     pub new_artists: Vec<Counted<ArtistSummary>>,
     pub new_artist_count: i64,
     pub new_track_count: i64,
-    /// Écoutes par jour de la semaine, lundi en premier.
+    /// Plays per weekday, Monday first.
     pub weekdays: Vec<i64>,
-    /// Écoutes par heure locale, de 0 à 23.
+    /// Plays per local hour, from 0 to 23.
     pub hours: Vec<i64>,
-    /// Jour le plus écouté (0 = lundi), absent sans écoute.
+    /// Most played day (0 = Monday), absent without plays.
     pub top_weekday: Option<usize>,
     pub top_hour: Option<usize>,
     /// Plays per month for a year, per day for a month.
@@ -116,8 +116,8 @@ pub struct TopDay {
     pub date: String,
 }
 
-/// Mois qui ont des écoutes, groupés sous leur année : l'année d'abord, puis ses mois, du
-/// plus récent au plus ancien.
+/// Months that have plays, grouped under their year: the year first, then its months, from
+/// most recent to oldest.
 #[tauri::command]
 pub async fn recap_periods(state: State<'_, AppState>) -> CmdResult<Vec<RecapPeriod>> {
     let Some(store) = state.store.clone() else {
@@ -130,7 +130,7 @@ pub async fn recap_periods(state: State<'_, AppState>) -> CmdResult<Vec<RecapPer
 #[tauri::command]
 pub async fn recap(state: State<'_, AppState>, year: i32, month: Option<u32>) -> CmdResult<Recap> {
     if !(1970..=9999).contains(&year) || month.is_some_and(|m| !(1..=12).contains(&m)) {
-        return Err("période invalide".into());
+        return Err("invalid period".into());
     }
     let Some(store) = state.store.clone() else {
         return Ok(Recap::default());
@@ -215,7 +215,7 @@ async fn highlights(
     (top_day, first_track)
 }
 
-/// Ajoute chaque année devant ses mois (déjà triés du plus récent au plus ancien).
+/// Adds each year in front of its months (already sorted from most recent to oldest).
 fn with_years(months: &[CivilPeriod]) -> Vec<RecapPeriod> {
     let mut out: Vec<RecapPeriod> = Vec::new();
     for m in months {
@@ -233,7 +233,7 @@ fn with_years(months: &[CivilPeriod]) -> Vec<RecapPeriod> {
     out
 }
 
-/// Répartitions et maxima ; la semaine commence le lundi. À égalité, le premier l'emporte.
+/// Breakdowns and maxima; the week starts on Monday. On a tie, the first one wins.
 fn from_habits(habits: &Habits) -> Recap {
     let weekdays: Vec<i64> = (1..=7).map(|d| habits.weekdays[d % 7]).collect();
     let hours = habits.hours.to_vec();
@@ -285,8 +285,8 @@ mod tests {
     #[test]
     fn habits_start_on_monday() {
         let mut habits = Habits::default();
-        habits.weekdays[0] = 5; // dimanche
-        habits.weekdays[1] = 2; // lundi
+        habits.weekdays[0] = 5; // Sunday
+        habits.weekdays[1] = 2; // Monday
         habits.hours[22] = 4;
         habits.hours[8] = 4;
         habits.grid[0][22] = 5;
@@ -295,7 +295,7 @@ mod tests {
         assert_eq!(recap.grid.len(), 7);
         assert_eq!(recap.grid[6][22], 5);
         assert_eq!(recap.top_weekday, Some(6));
-        // Égalité : la première heure l'emporte.
+        // Tie: the first hour wins.
         assert_eq!(recap.top_hour, Some(8));
         assert_eq!(from_habits(&Habits::default()).top_hour, None);
     }

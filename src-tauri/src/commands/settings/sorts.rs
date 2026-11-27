@@ -1,24 +1,24 @@
-//! Tri mémorisé par liste (#93) : chaque playlist, et Bibliothèque › Titres, garde le
-//! dernier tri choisi. Logique pure : la liste est stockée dans `UiSettings::sorts`, la
-//! plus récemment triée en tête. Le filtre n'est pas mémorisé.
+//! Sort remembered per list (#93): each playlist, and Library › Tracks, keeps the
+//! last sort chosen. Pure logic: the list is stored in `UiSettings::sorts`, the
+//! most recently sorted first. The filter is not remembered.
 
 use crate::i18n::tr;
 use serde::{Deserialize, Serialize};
 
 use super::pins::is_uuid;
 
-/// Nombre maximal de listes mémorisées ; au-delà, la moins récemment triée est oubliée.
+/// Maximum number of remembered lists; beyond it, the least recently sorted is forgotten.
 pub const MAX_SORTS: usize = 200;
 
-/// Identifiant de Bibliothèque › Titres ; toute autre liste est une playlist (uuid).
+/// Identifier of Library › Tracks; any other list is a playlist (uuid).
 const LIKED_TRACKS: &str = "likedTracks";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SortKey {
-    /// Ordre de la playlist.
+    /// Playlist order.
     Position,
-    /// Date d'ajout (ou du like).
+    /// Date added (or liked).
     Added,
     Title,
     Artist,
@@ -36,7 +36,7 @@ pub struct TrackSort {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListSort {
-    /// Uuid de la playlist (en minuscules), ou `likedTracks`.
+    /// Playlist uuid (lowercase), or `likedTracks`.
     pub list: String,
     #[serde(flatten)]
     pub sort: TrackSort,
@@ -48,8 +48,8 @@ pub enum SortError {
     InvalidList,
 }
 
-/// Tri affiché quand rien n'est mémorisé : ordre de la playlist, ou like le plus récent
-/// d'abord (ordre de l'API) pour les titres likés.
+/// Sort displayed when nothing is remembered: playlist order, or most recent like
+/// first (API order) for the liked tracks.
 fn default_sort(list: &str) -> TrackSort {
     if list == LIKED_TRACKS {
         TrackSort {
@@ -64,8 +64,8 @@ fn default_sort(list: &str) -> TrackSort {
     }
 }
 
-/// Vrai si les tris venus d'une sauvegarde (#352) sont ceux que `update` aurait pu
-/// enregistrer : listes valides, pas plus de `MAX_SORTS`.
+/// True if the sorts coming from a backup (#352) are those that `update` could have
+/// saved: valid lists, no more than `MAX_SORTS`.
 pub(crate) fn are_valid(sorts: &[ListSort]) -> bool {
     sorts.len() <= MAX_SORTS
         && sorts
@@ -73,8 +73,8 @@ pub(crate) fn are_valid(sorts: &[ListSort]) -> bool {
             .all(|s| s.list == LIKED_TRACKS || is_uuid(&s.list))
 }
 
-/// Mémorise le tri de `list` (en tête), ou l'oublie si `sort` est `None` ou le tri par
-/// défaut : la liste ne garde que des valeurs utiles.
+/// Remembers the sort of `list` (first), or forgets it if `sort` is `None` or the default
+/// sort: the list only keeps useful values.
 pub fn update(
     sorts: &mut Vec<ListSort>,
     list: &str,
@@ -151,7 +151,7 @@ mod tests {
         update(&mut sorts, UUID, None).unwrap();
         assert!(sorts.is_empty());
 
-        // Le défaut d'une liste n'est pas celui de l'autre.
+        // One list's default is not the other's.
         update(&mut sorts, UUID, Some(by(SortKey::Added, true))).unwrap();
         update(&mut sorts, LIKED_TRACKS, Some(by(SortKey::Position, false))).unwrap();
         assert_eq!(sorts.len(), 2);

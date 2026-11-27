@@ -1,10 +1,10 @@
-//! Plein écran de la fenêtre principale (#131), bureau seulement : Android est déjà en
-//! plein écran. L'UI ne fait que demander et afficher l'état renvoyé ici.
+//! Full screen of the main window (#131), desktop only: Android is already in
+//! full screen. The UI only asks and displays the state returned here.
 //!
-//! Sous Windows, une fenêtre sans bordure qui couvre exactement l'écran est basculée par DWM
-//! en « independent flip » après ~2 s quand elle a le focus, et WebView2 y prend une image de
-//! retard (#191). On déborde donc d'un pixel hors de l'écran : la fenêtre le couvre toujours
-//! (barre des tâches masquée) sans lui correspondre exactement.
+//! On Windows, a borderless window that covers the screen exactly is switched by DWM
+//! to "independent flip" after ~2 s when it has focus, and WebView2 lags one frame
+//! behind (#191). So it overflows by one pixel off the screen: the window still covers it
+//! (taskbar hidden) without matching it exactly.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -15,7 +15,7 @@ use crate::i18n::tr;
 
 const MAIN: &str = "main";
 
-/// Dernier état envoyé à l'UI, pour n'émettre `fullscreen` que s'il change.
+/// Last state sent to the UI, to emit `fullscreen` only when it changes.
 static FULLSCREEN: AtomicBool = AtomicBool::new(false);
 
 fn main_window(app: &AppHandle) -> CmdResult<WebviewWindow> {
@@ -28,7 +28,7 @@ pub async fn fullscreen(app: AppHandle) -> CmdResult<bool> {
     main_window(&app)?.is_fullscreen().map_err(err)
 }
 
-/// Passe la fenêtre en plein écran ou l'en sort, puis renvoie l'état relu.
+/// Puts the window in full screen or takes it out, then returns the state read back.
 #[tauri::command]
 pub async fn set_fullscreen(app: AppHandle, fullscreen: bool) -> CmdResult<bool> {
     let window = main_window(&app)?;
@@ -36,13 +36,13 @@ pub async fn set_fullscreen(app: AppHandle, fullscreen: bool) -> CmdResult<bool>
     let state = window.is_fullscreen().map_err(err)?;
     #[cfg(windows)]
     if state && let Err(e) = overflow(&window) {
-        tracing::warn!("plein écran : débordement d'un pixel impossible : {e}");
+        tracing::warn!("full screen: one pixel overflow impossible: {e}");
     }
     notify(&app, state);
     Ok(state)
 }
 
-/// Appelé sur chaque redimensionnement : l'état peut aussi changer hors de l'app.
+/// Called on every resize: the state can also change outside the app.
 pub(crate) fn on_resized(window: &Window) {
     if window.label() != MAIN {
         return;
@@ -58,12 +58,12 @@ fn notify(app: &AppHandle, state: bool) {
     }
 }
 
-/// Agrandit la fenêtre (déjà en plein écran natif) d'un pixel vers un bord de son écran.
-/// tao ne la recale sur l'écran que si elle change d'écran, ce qui n'est pas le cas ici.
+/// Enlarges the window (already in native full screen) by one pixel towards an edge of its
+/// screen. tao only re-fits it to the screen when it changes screen, not the case here.
 ///
-/// `SetWindowPos` direct plutôt que `set_position` / `set_size` : ceux de tao effacent son
-/// drapeau « maximisé », et la sortie du plein écran repassait alors par la fenêtre restaurée
-/// avant de se maximiser. Appelé sur le thread de la fenêtre, après le passage en plein écran.
+/// Direct `SetWindowPos` rather than `set_position` / `set_size`: tao's clear its
+/// "maximized" flag, so leaving full screen went through the restored window before
+/// maximizing. Called on the window's thread, after switching to full screen.
 #[cfg(windows)]
 fn overflow(window: &WebviewWindow) -> tauri::Result<()> {
     use windows::Win32::Foundation::HWND;
@@ -89,14 +89,14 @@ fn overflow(window: &WebviewWindow) -> tauri::Result<()> {
     );
     window.run_on_main_thread(move || {
         let flags = SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER;
-        // SAFETY : `hwnd` est la fenêtre principale, vivante tant que l'app tourne.
+        // SAFETY: `hwnd` is the main window, alive as long as the app runs.
         if let Err(e) = unsafe { SetWindowPos(HWND(hwnd as *mut _), None, r.x, r.y, w, h, flags) } {
-            tracing::warn!("plein écran : SetWindowPos a échoué : {e}");
+            tracing::warn!("full screen: SetWindowPos failed: {e}");
         }
     })
 }
 
-/// Rectangle d'écran en pixels physiques.
+/// Screen rectangle in physical pixels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Rect {
     x: i32,
@@ -132,8 +132,8 @@ impl Rect {
     }
 }
 
-/// Écran agrandi d'un pixel vers le premier bord (bas, haut, droite, gauche) dont la bande
-/// d'un pixel ne tombe sur aucun autre écran ; le bas si tous ont un voisin.
+/// Screen enlarged by one pixel towards the first edge (bottom, top, right, left) whose
+/// one pixel strip lands on no other screen; the bottom if all have a neighbor.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn overflowed(s: Rect, others: &[Rect]) -> Rect {
     let (bottom_y, right_x) = (
@@ -221,8 +221,8 @@ mod tests {
 
     #[test]
     fn lower_neighbour_on_the_right_leaves_bottom_free() {
-        // L'écran de droite descend plus bas, mais il commence à x = 1920 : la bande du bas
-        // (x de 0 à 1919) ne le touche pas.
+        // The right screen goes lower, but it starts at x = 1920: the bottom strip
+        // (x from 0 to 1919) does not touch it.
         let others = [r(1920, 200, 1920, 1080)];
         assert_eq!(
             overflowed(r(0, 0, 1920, 1080), &others),

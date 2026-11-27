@@ -1,8 +1,8 @@
-//! Couleurs d'accent choisies (#23), une par thème (#250). Logique pure.
+//! Accent colors chosen (#23), one per theme (#250). Pure logic.
 //!
-//! `UiSettings::accents` associe un thème à sa couleur `#rrggbb` ; un thème absent garde
-//! l'accent de son CSS. L'ancien champ unique `accent` (avant 0.4.104) est lu seulement,
-//! puis rangé sous le thème enregistré avec lui (`UiSettings::migrate_accent`).
+//! `UiSettings::accents` maps a theme to its `#rrggbb` color; a theme not listed keeps
+//! the accent of its CSS. The old single `accent` field (before 0.4.104) is only read,
+//! then filed under the theme saved with it (`UiSettings::migrate_accent`).
 
 use std::collections::BTreeMap;
 
@@ -13,7 +13,7 @@ use crate::i18n::tr;
 
 pub type Accents = BTreeMap<Theme, String>;
 
-/// `#rrggbb` mis en minuscules, ou `None` : la valeur part telle quelle dans le CSS.
+/// `#rrggbb` lowercased, or `None`: the value goes into the CSS as is.
 fn normalize(color: &str) -> Option<String> {
     let hex = color.strip_prefix('#')?;
     (hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()))
@@ -27,7 +27,7 @@ fn invalid<E: serde::de::Error>() -> E {
     ))
 }
 
-/// Désérialise `accents` en refusant toute couleur qui n'est pas `#rrggbb`.
+/// Deserializes `accents`, refusing any color that is not `#rrggbb`.
 pub fn accents<'de, D: Deserializer<'de>>(d: D) -> Result<Accents, D::Error> {
     Accents::deserialize(d)?
         .into_iter()
@@ -35,7 +35,7 @@ pub fn accents<'de, D: Deserializer<'de>>(d: D) -> Result<Accents, D::Error> {
         .collect()
 }
 
-/// Ancien champ `accent` : même validation, `null` accepté.
+/// Old `accent` field: same validation, `null` accepted.
 pub fn legacy<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
     match Option::<String>::deserialize(d)? {
         None => Ok(None),
@@ -84,7 +84,7 @@ mod tests {
             Some("#ff5c8a")
         );
         assert_eq!(s.accents.len(), 1);
-        // Plus écrit : la table seule part dans la base et vers l'UI.
+        // No longer written: only the table goes to the database and to the UI.
         let json = serde_json::to_string(&s).unwrap();
         assert!(!json.contains(r#""accent":"#), "{json}");
         assert!(

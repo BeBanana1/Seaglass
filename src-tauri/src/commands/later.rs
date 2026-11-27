@@ -1,5 +1,5 @@
-//! « Plus tard » (Save for later, #196) : la liste de TIDAL où l'on met de côté titres,
-//! albums, artistes et playlists.
+//! "Later" (Save for later, #196): TIDAL's list where tracks,
+//! albums, artists and playlists are set aside.
 
 use tauri::{AppHandle, Emitter, State};
 
@@ -8,28 +8,28 @@ use super::{AppState, CmdResult, err};
 use crate::i18n::tr;
 use crate::tidal::models::{LaterItem, LibraryList, LikeTarget, LikedIds};
 
-/// Événement émis à chaque changement de la liste, avec tous les identifiants.
+/// Event emitted on every change of the list, with all the identifiers.
 pub const LATER_EVENT: &str = "later";
 
-/// Identifiants des éléments de la liste (les mixes y sont toujours vides).
+/// Identifiers of the list's items (mixes are always empty there).
 #[tauri::command]
 pub async fn later_ids(state: State<'_, AppState>) -> CmdResult<LikedIds> {
     state.tidal.later_ids().await.map_err(err)
 }
 
-/// Toute la liste, du plus récent au plus ancien (onglet de la bibliothèque).
+/// The whole list, from most recent to oldest (library tab).
 #[tauri::command]
 pub async fn save_for_later(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> CmdResult<LibraryList<LaterItem>> {
     let list = state.tidal.save_for_later().await.map_err(err)?;
-    // Lecture complète : elle fait foi pour les menus (ajouts faits sur un autre appareil).
+    // Full read: it is authoritative for the menus (additions made on another device).
     emit_later(&app, &state).await;
     Ok(list)
 }
 
-/// Ajoute à la liste ou retire (titre, album, artiste, playlist).
+/// Adds to or removes from the list (track, album, artist, playlist).
 #[tauri::command]
 pub async fn set_saved_for_later(
     app: AppHandle,
@@ -51,14 +51,14 @@ async fn emit_later(app: &AppHandle, state: &AppState) {
     match state.tidal.later_ids().await {
         Ok(ids) => {
             if let Err(e) = app.emit(LATER_EVENT, ids) {
-                tracing::warn!("émission de {LATER_EVENT} impossible : {e}");
+                tracing::warn!("could not emit {LATER_EVENT}: {e}");
             }
         }
-        Err(e) => tracing::warn!("« Plus tard » illisible : {e}"),
+        Err(e) => tracing::warn!("\"Later\" list unreadable: {e}"),
     }
 }
 
-/// L'identifiant finit dans le corps de la requête ; un mix n'y a pas sa place.
+/// The identifier ends up in the request body; a mix has no place there.
 fn validate(target: &LikeTarget) -> Result<(), String> {
     match target {
         LikeTarget::Playlist { uuid } if !is_uuid(uuid) => {

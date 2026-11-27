@@ -1,5 +1,5 @@
-//! Blind test (#434) : commandes validées puis envoyées à l'acteur du lecteur, qui tient la
-//! partie. L'état part dans l'événement `blind-test`.
+//! Blind test (#434): commands validated then sent to the player actor, which holds the
+//! game. The state goes out in the `blind-test` event.
 
 use tauri::State;
 use tokio::sync::oneshot;
@@ -11,15 +11,15 @@ use crate::player::Cmd;
 use crate::player::blind::{Answer, BlindCmd, BlindTestView, MAX_ROUNDS, Mode, Party};
 use crate::tidal::models::TrackId;
 
-/// Titres acceptés au plus pour tirer les manches (les titres likés compris).
+/// Maximum number of tracks accepted to draw the rounds from (liked tracks included).
 const MAX_POOL: usize = 10_000;
 const MAX_TITLE: usize = 200;
 const MAX_ANSWER: usize = 200;
 
-/// Lance une partie de `rounds` manches tirées dans `track_ids` ; `title` est le nom de la
-/// liste, affiché. Une partie en cours est remplacée (la file d'avant reste celle d'avant
-/// la première). Avec `jam`, les invités de la Jam en cours jouent aussi (#441) ; l'hôte
-/// répond s'il le veut (`host_plays`).
+/// Starts a game of `rounds` rounds drawn from `track_ids`; `title` is the name of the
+/// list, displayed. A game in progress is replaced (the earlier queue stays the one from
+/// before the first game). With `jam`, the guests of the current Jam play too (#441); the
+/// host answers if they want to (`host_plays`).
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn blind_test_start(
@@ -73,7 +73,7 @@ pub async fn blind_test_start(
     rx.await.map_err(|_| stopped())?
 }
 
-/// Réponse à la manche en cours (saisie, proposition ou « passer »).
+/// Answer to the current round (typed, suggested or "skip").
 #[tauri::command]
 pub async fn blind_test_answer(state: State<'_, AppState>, answer: Answer) -> CmdResult<()> {
     let answer = match answer {
@@ -85,31 +85,31 @@ pub async fn blind_test_answer(state: State<'_, AppState>, answer: Answer) -> Cm
     send(&state, BlindCmd::Answer(answer)).await
 }
 
-/// Réécoute l'extrait de la manche depuis son début.
+/// Replays the round's excerpt from its start.
 #[tauri::command]
 pub async fn blind_test_replay(state: State<'_, AppState>) -> CmdResult<()> {
     send(&state, BlindCmd::Replay).await
 }
 
-/// Révèle la manche sans attendre les réponses qui manquent (à plusieurs, #441).
+/// Reveals the round without waiting for the missing answers (with several players, #441).
 #[tauri::command]
 pub async fn blind_test_reveal(state: State<'_, AppState>) -> CmdResult<()> {
     send(&state, BlindCmd::Reveal).await
 }
 
-/// Manche suivante, ou fin de partie après la dernière.
+/// Next round, or end of the game after the last one.
 #[tauri::command]
 pub async fn blind_test_next(state: State<'_, AppState>) -> CmdResult<()> {
     send(&state, BlindCmd::Next).await
 }
 
-/// Quitte la partie : la file d'avant revient, en pause.
+/// Leaves the game: the earlier queue comes back, paused.
 #[tauri::command]
 pub async fn blind_test_quit(state: State<'_, AppState>) -> CmdResult<()> {
     send(&state, BlindCmd::Quit).await
 }
 
-/// Partie en cours, `null` sinon (ouverture de la page, rechargement de l'UI).
+/// Current game, `null` otherwise (page opening, UI reload).
 #[tauri::command]
 pub async fn blind_test_state(state: State<'_, AppState>) -> CmdResult<Option<BlindTestView>> {
     let (reply, rx) = oneshot::channel();

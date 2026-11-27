@@ -1,12 +1,12 @@
-//! Mini-lecteur du bureau (#384) : petite fenêtre sans bordure, au premier plan au choix,
-//! qui remplace la fenêtre principale tant qu'elle est ouverte. Elle charge la même UI, qui
-//! se reconnaît à l'étiquette de sa fenêtre et ne fait qu'afficher `player-state` et envoyer
-//! les commandes du lecteur. La position et « au premier plan » sont gardés dans les réglages
-//! SQLite.
+//! Desktop mini player (#384): a small borderless window, optionally always on top,
+//! that replaces the main window while it is open. It loads the same UI, which recognizes
+//! itself by its window label and only displays `player-state` and sends the player
+//! commands. The position and "always on top" are kept in the SQLite
+//! settings.
 //!
-//! Fermer le mini-lecteur (son bouton, Alt+F4) réaffiche la fenêtre principale ; réafficher
-//! la fenêtre principale (zone de notification, relance de l'app) ferme le mini-lecteur
-//! (`tray::show_main`). Les deux ne sont jamais visibles ensemble.
+//! Closing the mini player (its button, Alt+F4) shows the main window again; showing the
+//! main window again (notification area, relaunching the app) closes the mini player
+//! (`tray::show_main`). The two are never visible together.
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, Monitor, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
@@ -14,30 +14,30 @@ use tauri::{AppHandle, Manager, Monitor, PhysicalPosition, WebviewUrl, WebviewWi
 use super::{AppState, CmdResult, err};
 use crate::integrations::tray;
 
-/// Étiquette de la fenêtre, reprise par `capabilities/mini.json` et l'UI.
+/// Window label, used by `capabilities/mini.json` and the UI.
 pub const LABEL: &str = "mini";
 const KEY: &str = "mini_player";
-/// Taille logique de la fenêtre : l'UI du mini-lecteur est dessinée pour elle.
+/// Logical window size: the mini player's UI is drawn for it.
 const WIDTH: f64 = 360.0;
 const HEIGHT: f64 = 112.0;
-/// Écart au coin bas droit de l'écran à la première ouverture (au-dessus de la barre des
-/// tâches).
+/// Gap from the screen's bottom right corner on first open (above the
+/// taskbar).
 const MARGIN_X: f64 = 24.0;
 const MARGIN_Y: f64 = 72.0;
-/// Bande du haut de la fenêtre qui doit rester sur un écran pour qu'on puisse l'attraper.
+/// Top strip of the window that must stay on a screen so that it can be grabbed.
 const GRIP: i32 = 40;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 struct MiniPrefs {
     on_top: bool,
-    /// Coin haut gauche en pixels physiques, `None` avant la première fermeture.
+    /// Top left corner in physical pixels, `None` before the first close.
     position: Option<(i32, i32)>,
 }
 
 impl Default for MiniPrefs {
     fn default() -> Self {
-        // Au premier plan par défaut : c'est l'usage attendu d'un mini-lecteur.
+        // Always on top by default: that is the expected use of a mini player.
         Self {
             on_top: true,
             position: None,
@@ -45,7 +45,7 @@ impl Default for MiniPrefs {
     }
 }
 
-/// Rectangle d'un écran en pixels physiques.
+/// Rectangle of a screen in physical pixels.
 #[derive(Debug, Clone, Copy)]
 struct Area {
     x: i32,
@@ -70,15 +70,15 @@ impl Area {
     }
 }
 
-/// Position gardée seulement si le haut de la fenêtre tombe sur un écran : un écran
-/// débranché, ou une fenêtre réduite (-32000 sous Windows), la laisserait hors de vue.
-/// Logique pure, testée.
+/// Position kept only if the top of the window lands on a screen: an unplugged screen,
+/// or a minimized window (-32000 on Windows), would leave it out of view.
+/// Pure logic, tested.
 fn reachable(pos: (i32, i32), screens: &[Area]) -> bool {
     let (x, y) = (pos.0.saturating_add(GRIP), pos.1.saturating_add(GRIP / 2));
     screens.iter().any(|s| s.contains(x, y))
 }
 
-/// Coin bas droit de l'écran, en pixels physiques. Logique pure, testée.
+/// Bottom right corner of the screen, in physical pixels. Pure logic, tested.
 fn corner(screen: Area, scale: f64) -> (i32, i32) {
     let w = ((WIDTH + MARGIN_X) * scale).round() as i32;
     let h = ((HEIGHT + MARGIN_Y) * scale).round() as i32;
@@ -100,12 +100,12 @@ fn save(app: &AppHandle, prefs: &MiniPrefs) {
         return;
     };
     if let Err(e) = store.set_setting(KEY, prefs) {
-        tracing::warn!("réglages du mini-lecteur non enregistrés : {e}");
+        tracing::warn!("mini player settings not saved: {e}");
     }
 }
 
-/// Position de la fenêtre à l'ouverture : celle gardée si elle est encore sur un écran,
-/// sinon le coin bas droit de l'écran de la fenêtre principale.
+/// Window position on open: the kept one if it is still on a screen,
+/// otherwise the bottom right corner of the main window's screen.
 fn place(app: &AppHandle, saved: Option<(i32, i32)>) -> Option<(i32, i32)> {
     let monitors = app.available_monitors().ok()?;
     let screens: Vec<Area> = monitors.iter().map(Area::of).collect();
@@ -119,9 +119,9 @@ fn place(app: &AppHandle, saved: Option<(i32, i32)>) -> Option<(i32, i32)> {
     Some(corner(Area::of(&monitor), monitor.scale_factor()))
 }
 
-/// Ouvre le mini-lecteur (ou le ramène devant) et cache la fenêtre principale. À appeler
-/// hors du thread principal (commande `async`, tâche) : créer une WebView depuis un
-/// gestionnaire d'événement bloque sous Windows.
+/// Opens the mini player (or brings it to the front) and hides the main window. Call it
+/// off the main thread (`async` command, task): creating a WebView from an event
+/// handler blocks on Windows.
 fn open(app: &AppHandle) -> tauri::Result<()> {
     if let Some(mini) = app.get_webview_window(LABEL) {
         mini.unminimize()?;
@@ -150,26 +150,26 @@ fn open(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-/// Ouverture depuis le menu de la zone de notification, qui tourne sur le thread principal.
+/// Opening from the notification area menu, which runs on the main thread.
 pub fn open_in_background(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(e) = open(&app) {
-            tracing::warn!("mini-lecteur non ouvert : {e}");
+            tracing::warn!("mini player not opened: {e}");
         }
     });
 }
 
-/// Le mini-lecteur se ferme (son bouton, Alt+F4, fenêtre principale réaffichée) : sa
-/// position est gardée et la fenêtre principale revient.
+/// The mini player closes (its button, Alt+F4, main window shown again): its
+/// position is kept and the main window comes back.
 pub(crate) fn on_close_requested(window: &tauri::Window) {
     let app = window.app_handle();
     remember_position(app, window.outer_position());
     tray::reveal_main(app);
 }
 
-/// L'app quitte (menu de la zone de notification) avec le mini-lecteur ouvert : sa
-/// position est gardée, sa fermeture ne passant pas par `CloseRequested`.
+/// The app quits (notification area menu) with the mini player open: its
+/// position is kept, since its closing does not go through `CloseRequested`.
 pub(crate) fn on_exit(app: &AppHandle) {
     if let Some(mini) = app.get_webview_window(LABEL) {
         remember_position(app, mini.outer_position());
@@ -192,7 +192,7 @@ pub async fn open_mini_player(app: AppHandle) -> CmdResult<()> {
     open(&app).map_err(err)
 }
 
-/// Retour à la fenêtre principale ; la fermeture du mini-lecteur la réaffiche.
+/// Back to the main window; closing the mini player shows it again.
 #[tauri::command]
 pub async fn close_mini_player(app: AppHandle) -> CmdResult<()> {
     tray::show_main(&app);
@@ -204,7 +204,7 @@ pub async fn mini_player_on_top(app: AppHandle) -> CmdResult<bool> {
     Ok(load(&app).on_top)
 }
 
-/// Règle « Toujours au premier plan » et renvoie l'état retenu.
+/// Sets "Always on top" and returns the state kept.
 #[tauri::command]
 pub async fn set_mini_player_on_top(app: AppHandle, on_top: bool) -> CmdResult<bool> {
     if let Some(mini) = app.get_webview_window(LABEL) {
@@ -237,11 +237,11 @@ mod tests {
     fn saved_position_must_stay_on_a_screen() {
         assert!(reachable((100, 100), &[MAIN]));
         assert!(reachable((-1000, 500), &[LEFT, MAIN]));
-        // Écran de gauche débranché : la fenêtre serait hors de vue.
+        // Left screen unplugged: the window would be out of view.
         assert!(!reachable((-1000, 500), &[MAIN]));
-        // Fenêtre réduite sous Windows.
+        // Window minimized on Windows.
         assert!(!reachable((-32000, -32000), &[LEFT, MAIN]));
-        // Seul un bout du bord droit dépasse : trop peu pour l'attraper.
+        // Only a bit of the right edge shows: too little to grab.
         assert!(!reachable((2550, 100), &[MAIN]));
         assert!(!reachable((i32::MAX, i32::MAX), &[MAIN]));
     }

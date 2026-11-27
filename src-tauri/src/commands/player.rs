@@ -1,4 +1,4 @@
-//! Commandes du lecteur : toutes deviennent un `Cmd` envoyé à l'acteur.
+//! Player commands: all of them become a `Cmd` sent to the actor.
 
 use tauri::State;
 use tokio::sync::oneshot;
@@ -12,7 +12,7 @@ use crate::player::{Cmd, PlaySource, PlayerState, QueuePart, QueueView, Repeat};
 use crate::tidal::models::TrackId;
 
 const MAX_CONTEXT_LEN: usize = 10_000;
-// Lire ou mélanger toute une catégorie de la bibliothèque doit rester accepté (#91).
+// Playing or shuffling a whole library category must stay accepted (#91).
 const _: () = assert!(crate::tidal::LIBRARY_MAX <= MAX_CONTEXT_LEN);
 
 /// Plays `track_ids` as the context (album, playlist, search results) from `start_index`.
@@ -53,9 +53,9 @@ pub async fn play_tracks(
     .await
 }
 
-/// Vrai si un appui sur la notification d'Android a demandé « En lecture » depuis le dernier
-/// appel (#163) ; toujours faux sur le bureau. Lu au démarrage de l'UI et à l'événement
-/// `open-now-playing`.
+/// True if a tap on the Android notification asked for "Now playing" since the last
+/// call (#163); always false on desktop. Read at UI startup and on the
+/// `open-now-playing` event.
 #[tauri::command]
 pub async fn take_now_playing_request() -> CmdResult<bool> {
     Ok(crate::integrations::take_now_playing_request())
@@ -71,8 +71,8 @@ pub async fn add_to_queue(state: State<'_, AppState>, track_id: u64) -> CmdResul
     send_cmd(&state, Cmd::AddToQueue(TrackId(track_id))).await
 }
 
-/// Ajoute plusieurs titres (album, playlist) à la file manuelle, dans l'ordre donné :
-/// « Lire ensuite » avec `next`, sinon « Ajouter à la file ».
+/// Adds several tracks (album, playlist) to the manual queue, in the given order:
+/// "Play next" with `next`, otherwise "Add to queue".
 #[tauri::command]
 pub async fn enqueue_tracks(
     state: State<'_, AppState>,
@@ -89,22 +89,22 @@ pub async fn enqueue_tracks(
     send_cmd(&state, Cmd::Enqueue { ids, next }).await
 }
 
-/// Retire l'entrée `index` de la file manuelle.
+/// Removes entry `index` from the manual queue.
 #[tauri::command]
 pub async fn remove_from_queue(state: State<'_, AppState>, index: usize) -> CmdResult<()> {
     send_cmd(&state, Cmd::RemoveFromQueue(index)).await
 }
 
-/// Déplace l'entrée `from` de la file manuelle à l'index `to` (glisser-déposer, Monter /
-/// Descendre). Un index hors de la file est ignoré par l'acteur.
+/// Moves entry `from` of the manual queue to index `to` (drag and drop, Move up /
+/// Move down). An index outside the queue is ignored by the actor.
 #[tauri::command]
 pub async fn move_in_queue(state: State<'_, AppState>, from: usize, to: usize) -> CmdResult<()> {
     send_cmd(&state, Cmd::MoveInQueue { from, to }).await
 }
 
-/// Lit le titre `index` de la file manuelle ou de la suite du contexte, telles que
-/// `queue-state` les décrit (#167). `track_id` est le titre affiché : si la file a changé
-/// depuis, rien ne se passe.
+/// Plays track `index` of the manual queue or of the rest of the context, as
+/// `queue-state` describes them (#167). `track_id` is the displayed track: if the queue has
+/// changed since, nothing happens.
 #[tauri::command]
 pub async fn play_from_queue(
     state: State<'_, AppState>,
@@ -116,14 +116,14 @@ pub async fn play_from_queue(
     send_cmd(&state, Cmd::PlayFromQueue { part, index, id }).await
 }
 
-/// Vide la file (manuelle et suite du contexte) sans arrêter le titre en cours.
+/// Clears the queue (manual and rest of the context) without stopping the current track.
 #[tauri::command]
 pub async fn clear_queue(state: State<'_, AppState>) -> CmdResult<()> {
     send_cmd(&state, Cmd::ClearQueue).await
 }
 
-/// Annule le dernier « Vider la file » ou retrait d'un titre de la file (#349). `false` :
-/// la file a changé depuis, il n'y a plus rien à annuler.
+/// Undoes the last "Clear queue" or removal of a track from the queue (#349). `false`:
+/// the queue has changed since, there is nothing left to undo.
 #[tauri::command]
 pub async fn restore_queue(state: State<'_, AppState>) -> CmdResult<bool> {
     let (tx, rx) = oneshot::channel();
@@ -132,14 +132,14 @@ pub async fn restore_queue(state: State<'_, AppState>) -> CmdResult<bool> {
         .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
 }
 
-/// Réponse au bandeau « Édition hi-res disponible » (#59), valable pour tout l'album.
+/// Answer to the "Hi-res edition available" banner (#59), valid for the whole album.
 #[tauri::command]
 pub async fn answer_hires_offer(state: State<'_, AppState>, accept: bool) -> CmdResult<()> {
     send_cmd(&state, Cmd::AnswerHiresOffer(accept)).await
 }
 
-/// Minuteur de mise en veille (#85) : pause après `minutes` ou à la fin du titre en cours ;
-/// `null` l'annule.
+/// Sleep timer (#85): pause after `minutes` or at the end of the current track;
+/// `null` cancels it.
 #[tauri::command]
 pub async fn set_sleep_timer(
     state: State<'_, AppState>,
@@ -182,7 +182,7 @@ pub async fn set_repeat(state: State<'_, AppState>, mode: Repeat) -> CmdResult<(
     send_cmd(&state, Cmd::SetRepeat(mode)).await
 }
 
-/// Volume logiciel de 0 à 100 (100 = gain unitaire, seul réglage bit-perfect).
+/// Software volume from 0 to 100 (100 = unity gain, the only bit-perfect setting).
 #[tauri::command]
 pub async fn set_volume(state: State<'_, AppState>, volume: u8) -> CmdResult<()> {
     let level = Volume::validate(volume).map_err(|e| e.to_string())?;
@@ -210,8 +210,8 @@ pub async fn queue_state(state: State<'_, AppState>) -> CmdResult<QueueView> {
         .map_err(|_| crate::i18n::tr("lecteur arrêté", "player stopped").to_owned())
 }
 
-/// Titres de la file dans l'ordre de lecture (#327), pour l'enregistrer comme playlist :
-/// l'UI ne reçoit que le début de la suite. Plafonné comme un ajout à une playlist.
+/// Tracks of the queue in play order (#327), to save it as a playlist:
+/// the UI only receives the start of the rest. Capped like an addition to a playlist.
 #[tauri::command]
 pub async fn queue_track_ids(state: State<'_, AppState>) -> CmdResult<Vec<TrackId>> {
     let (tx, rx) = oneshot::channel();

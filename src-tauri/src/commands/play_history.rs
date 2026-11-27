@@ -1,6 +1,6 @@
-//! Historique d'écoute local (#202) : section « Écoutés dans Seaglass » de l'accueil, albums
-//! les plus écoutés pour « À la une », effacement. Les écoutes sont enregistrées par
-//! l'acteur (`player/listen.rs`) ; rien n'est envoyé à TIDAL.
+//! Local listening history (#202): the "Played in Seaglass" section of the home page, most
+//! played albums for "Featured", clearing. Plays are recorded by the actor
+//! (`player/listen.rs`); nothing is sent to TIDAL.
 
 use serde::Serialize;
 use tauri::State;
@@ -10,10 +10,10 @@ use crate::i18n::tr;
 use crate::store::{Span, Store};
 use crate::tidal::models::{AlbumSummary, HomeRow, MediaItem};
 
-/// Clé de la section d'accueil, stable comme celles du flux de TIDAL (personnalisable).
+/// Key of the home section, stable like those of TIDAL's feed (customizable).
 pub const HOME_KEY: &str = "SEAGLASS_RECENT";
 const RECENT_LIMIT: usize = 20;
-/// « À la une » : albums écoutés au moins deux fois ces 30 derniers jours.
+/// "Featured": albums played at least twice in the last 30 days.
 const TOP_WINDOW_MS: i64 = 30 * 24 * 3600 * 1000;
 const TOP_MIN_PLAYS: i64 = 2;
 const TOP_LIMIT: usize = 10;
@@ -21,9 +21,9 @@ const TOP_LIMIT: usize = 10;
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayHistory {
-    /// Albums écoutés, du plus récent au plus ancien.
+    /// Albums played, from most recent to oldest.
     pub recent: Vec<AlbumSummary>,
-    /// Albums les plus écoutés récemment.
+    /// Most played albums recently.
     pub top: Vec<AlbumSummary>,
 }
 
@@ -70,14 +70,14 @@ pub async fn clear_play_history(state: State<'_, AppState>) -> CmdResult<()> {
         .map_err(err)
 }
 
-/// Ligne d'accueil des albums écoutés, en tête du flux (avant la disposition), ou rien si
-/// l'historique est vide.
+/// Home row of the played albums, at the top of the feed (before the layout), or nothing
+/// if the history is empty.
 pub(super) fn home_row(state: &AppState) -> Option<HomeRow> {
     let albums = state
         .store
         .as_deref()?
         .recent_albums(RECENT_LIMIT)
-        .inspect_err(|e| tracing::warn!("historique d'écoute illisible : {e}"))
+        .inspect_err(|e| tracing::warn!("listening history unreadable: {e}"))
         .ok()?;
     (!albums.is_empty()).then(|| HomeRow {
         key: HOME_KEY.to_owned(),
@@ -86,11 +86,11 @@ pub(super) fn home_row(state: &AppState) -> Option<HomeRow> {
     })
 }
 
-/// Déconnexion : l'historique de la personne précédente disparaît.
+/// Sign-out: the previous person's history disappears.
 pub(super) fn clear(state: &AppState) {
     if let Some(store) = &state.store
         && let Err(e) = store.clear_plays()
     {
-        tracing::warn!("historique d'écoute non effacé : {e}");
+        tracing::warn!("listening history not cleared: {e}");
     }
 }

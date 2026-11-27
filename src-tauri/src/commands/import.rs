@@ -1,8 +1,8 @@
-//! Import d'une playlist d'un autre service (#328) : aperçu des correspondances TIDAL. Rien
-//! n'est écrit ici : « Créer une playlist » passe par `create_playlist` avec les titres que
-//! l'utilisateur a gardés.
+//! Import of a playlist from another service (#328): preview of the TIDAL matches. Nothing
+//! is written here: "Create a playlist" goes through `create_playlist` with the tracks the
+//! user kept.
 //!
-//! Le filtre du contenu (#368) ne s'applique pas : l'utilisateur a choisi cette liste.
+//! The content filter (#368) does not apply: the user chose this list.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -15,22 +15,22 @@ use crate::foreign::playlists::{self, MAX_IMPORT, PlaylistRef};
 use crate::i18n::tr;
 use crate::tidal::models::Track;
 
-/// Avancement envoyé à l'UI pendant la recherche des titres.
+/// Progress sent to the UI while searching for the tracks.
 pub const PROGRESS_EVENT: &str = "import-progress";
 
-/// Numéro de l'import en cours : un nouvel import (ou `cancel_import`) arrête le précédent.
+/// Number of the import in progress: a new import (or `cancel_import`) stops the previous one.
 static GENERATION: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportPreview {
     pub name: String,
-    /// `deezer`, `spotify` ou `apple`.
+    /// `deezer`, `spotify` or `apple`.
     pub service: &'static str,
-    /// Titres de la playlist chez le service.
+    /// Tracks of the playlist at the service.
     pub total: usize,
-    /// Titres lus : moins que `total` si le service n'en montre qu'une partie (Spotify : 100)
-    /// ou au-delà de `MAX_IMPORT`.
+    /// Tracks read: fewer than `total` if the service only shows part of them (Spotify: 100)
+    /// or beyond `MAX_IMPORT`.
     pub read: usize,
     pub items: Vec<ImportItem>,
 }
@@ -38,7 +38,7 @@ pub struct ImportPreview {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportItem {
-    /// Titre et artiste chez le service d'origine.
+    /// Title and artist at the original service.
     pub title: String,
     pub artist: Option<String>,
     pub track: Option<Track>,
@@ -62,8 +62,8 @@ impl From<Matched> for ImportItem {
     }
 }
 
-/// Lit la playlist du lien (adresse rendue par `open_link`) et cherche chaque titre sur
-/// TIDAL ; l'avancement part dans `import-progress`.
+/// Reads the playlist of the link (address returned by `open_link`) and searches each track on
+/// TIDAL; progress goes out in `import-progress`.
 #[tauri::command]
 pub async fn import_playlist(
     app: AppHandle,
@@ -85,7 +85,7 @@ pub async fn import_playlist(
     let listing = playlists::fetch(&playlist).await?;
     let read = listing.entries.len();
     let progress = |done: usize| {
-        // Une étape tous les 5 titres suffit à la barre.
+        // One step every 5 tracks is enough for the bar.
         if done.is_multiple_of(5) || done == read {
             let _ = app.emit(PROGRESS_EVENT, Progress { done, total: read });
         }
@@ -102,7 +102,7 @@ pub async fn import_playlist(
     })
 }
 
-/// Arrête l'import en cours (page quittée).
+/// Stops the import in progress (page left).
 #[tauri::command]
 pub async fn cancel_import() -> CmdResult<()> {
     GENERATION.fetch_add(1, Ordering::SeqCst);

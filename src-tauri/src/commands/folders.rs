@@ -1,4 +1,4 @@
-//! Dossiers de playlists (#331) : lecture, création, renommage, rangement, suppression.
+//! Playlist folders (#331): reading, creating, renaming, filing, deleting.
 
 use tauri::State;
 
@@ -8,16 +8,16 @@ use crate::i18n::{tr, trf};
 use crate::tidal::models::PlaylistFolder;
 
 const MAX_NAME_LEN: usize = 200;
-/// Playlists rangées en une fois.
+/// Playlists filed at once.
 const MAX_MOVE: usize = 500;
 
-/// Dossiers de l'utilisateur ; liste vide s'il n'en a aucun.
+/// The user's folders; empty list if they have none.
 #[tauri::command]
 pub async fn playlist_folders(state: State<'_, AppState>) -> CmdResult<Vec<PlaylistFolder>> {
     state.tidal.playlist_folders().await.map_err(err)
 }
 
-/// Crée un dossier, avec ces playlists dedans.
+/// Creates a folder, with these playlists inside.
 #[tauri::command]
 pub async fn create_folder(
     state: State<'_, AppState>,
@@ -36,7 +36,7 @@ pub async fn rename_folder(state: State<'_, AppState>, id: String, name: String)
     state.tidal.rename_folder(&id, name).await.map_err(err)
 }
 
-/// Range des playlists dans un dossier, ou les ressort à la racine (`folderId` absent).
+/// Files playlists in a folder, or takes them back out to the root (`folderId` absent).
 #[tauri::command]
 pub async fn move_to_folder(
     state: State<'_, AppState>,
@@ -57,7 +57,7 @@ pub async fn move_to_folder(
         .map_err(err)
 }
 
-/// Supprime un dossier ; ses playlists sont gardées, à la racine.
+/// Deletes a folder; its playlists are kept, at the root.
 #[tauri::command]
 pub async fn delete_folder(state: State<'_, AppState>, id: String) -> CmdResult<()> {
     validate_id(&id)?;
@@ -78,7 +78,7 @@ fn clean_name(name: &str) -> Result<&str, String> {
     Ok(name)
 }
 
-/// L'identifiant finit dans un TRN passé en query : c'est un uuid (vu le 2026-11-12).
+/// The identifier ends up in a TRN passed in the query: it is a uuid (seen on 2026-11-12).
 fn validate_id(id: &str) -> Result<(), String> {
     if is_uuid(id) {
         Ok(())
@@ -89,7 +89,7 @@ fn validate_id(id: &str) -> Result<(), String> {
 
 fn validate_uuids(uuids: &[String]) -> Result<(), String> {
     if uuids.len() > MAX_MOVE {
-        return Err(format!("{MAX_MOVE} playlists au plus"));
+        return Err(format!("at most {MAX_MOVE} playlists"));
     }
     if uuids.iter().all(|u| is_uuid(u)) {
         Ok(())

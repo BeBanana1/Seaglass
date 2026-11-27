@@ -1,7 +1,7 @@
-//! Playlists intelligentes locales (#383) : listes fixes calculées sur l'historique
-//! d'écoute de cet appareil (`store::smart`) et les titres likés, sans rien écrire chez
-//! TIDAL. Le résultat passe par les mêmes filtres que ce que le service propose : titres
-//! indisponibles, filtre de contenu (explicite, IA) et titres ou artistes bloqués.
+//! Local smart playlists (#383): fixed lists computed from the listening history
+//! of this device (`store::smart`) and the liked tracks, without writing anything to
+//! TIDAL. The result goes through the same filters as what the service offers: unavailable
+//! tracks, content filter (explicit, AI) and blocked tracks or artists.
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -17,24 +17,24 @@ use crate::tidal::TidalClient;
 use crate::tidal::models::{Track, TrackEntry, TrackId};
 
 const DAY_MS: i64 = 24 * 3600 * 1000;
-/// « Mes 50 du mois ».
+/// "My top 50 of the month".
 const TOP_DAYS: i64 = 30;
 const TOP_LIMIT: usize = 50;
-/// « En boucle » : au moins `REPEAT_MIN` écoutes sur `REPEAT_DAYS` jours.
+/// "On repeat": at least `REPEAT_MIN` plays over `REPEAT_DAYS` days.
 const REPEAT_DAYS: i64 = 7;
 const REPEAT_MIN: i64 = 3;
-/// « Oubliés » : au moins `FORGOTTEN_MIN` écoutes, aucune depuis `FORGOTTEN_DAYS` jours.
+/// "Forgotten": at least `FORGOTTEN_MIN` plays, none for `FORGOTTEN_DAYS` days.
 const FORGOTTEN_DAYS: i64 = 180;
 const FORGOTTEN_MIN: i64 = 5;
 const LIMIT: usize = 50;
-/// « Likés jamais écoutés ».
+/// "Liked, never played".
 const NEVER_LIMIT: usize = 100;
-/// Marge de candidats demandés en plus, pour remplir la liste malgré les titres écartés.
+/// Margin of extra candidates requested, to fill the list despite the discarded tracks.
 const SPARE: usize = 2;
-/// Titres vérifiés en parallèle.
+/// Tracks checked in parallel.
 const CHECK_PARALLEL: usize = 6;
 
-/// Titres de la liste, dans son ordre.
+/// Tracks of the list, in its order.
 #[tauri::command]
 pub async fn smart_list(state: State<'_, AppState>, list: SmartList) -> CmdResult<Vec<Track>> {
     let Some(store) = state.store.clone() else {
@@ -74,7 +74,7 @@ pub(crate) async fn smart_tracks(
         }
     };
     let ids: Vec<TrackId> = counted.iter().map(|(id, _, _)| *id).collect();
-    // Avant les métadonnées : la vérification met les titres dans le cache du catalogue.
+    // Before the metadata: the check puts the tracks in the catalog cache.
     let unavailable = unavailable(tidal, &ids).await;
     let missing: Vec<TrackId> = counted
         .iter()
@@ -85,22 +85,22 @@ pub(crate) async fn smart_tracks(
     if !fetched.is_empty() {
         let save = fetched.clone();
         if let Err(e) = blocking(store, move |s| s.save_played_tracks(&save)).await {
-            tracing::warn!("titres de l'historique non complétés : {e}");
+            tracing::warn!("history tracks not completed: {e}");
         }
     }
     let tracks = assemble(counted, &fetched, &unavailable);
     Ok(finish(tidal, tracks, limit).await)
 }
 
-/// Titres likés absents de l'historique, du like le plus récent au plus ancien.
+/// Liked tracks absent from the history, from the most recent like to the oldest.
 async fn never_played(tidal: &Arc<TidalClient>, store: &Arc<Store>) -> CmdResult<Vec<Track>> {
     let liked = tidal.favorite_tracks().await.map_err(err)?;
     let played = blocking(store, |s| s.played_track_ids()).await?;
-    // Ce qui est masqué ne compte pas dans les candidats à vérifier.
+    // What is hidden does not count among the candidates to check.
     let candidates: Vec<Track> = filtered(unplayed(liked.items, &played));
     let candidates: Vec<Track> = candidates.into_iter().take(NEVER_LIMIT * SPARE).collect();
     let ids: Vec<TrackId> = candidates.iter().map(|t| t.id).collect();
-    // Déjà connue par la lecture des favoris : pas de requête en pratique.
+    // Already known from reading the favorites: no request in practice.
     let unavailable = unavailable(tidal, &ids).await;
     let tracks = candidates
         .into_iter()
@@ -109,15 +109,15 @@ async fn never_played(tidal: &Arc<TidalClient>, store: &Arc<Store>) -> CmdResult
     Ok(finish(tidal, tracks, NEVER_LIMIT).await)
 }
 
-/// Filtres de contenu et blocages, puis plafond de la liste.
+/// Content filters and blocks, then the list's cap.
 async fn finish(tidal: &TidalClient, tracks: Vec<Track>, limit: usize) -> Vec<Track> {
     let mut tracks = tidal.without_blocked(filtered(tracks)).await;
     tracks.truncate(limit);
     tracks
 }
 
-/// Titres de l'historique dans l'ordre de la requête, avec leurs métadonnées enregistrées
-/// ou complétées ; un titre indisponible ou introuvable est écarté.
+/// Tracks of the history in the order of the query, with their recorded or completed
+/// metadata; an unavailable or missing track is discarded.
 fn assemble(
     counted: Vec<CountedTrack>,
     fetched: &[Track],
@@ -130,16 +130,16 @@ fn assemble(
         .collect()
 }
 
-/// Titres likés jamais écoutés, du plus récemment liké au plus ancien (date inconnue à la
-/// fin, dans l'ordre reçu).
+/// Liked tracks never played, from the most recently liked to the oldest (unknown date at
+/// the end, in the order received).
 fn unplayed(mut liked: Vec<TrackEntry>, played: &HashSet<TrackId>) -> Vec<Track> {
     liked.retain(|e| !played.contains(&e.track.id));
     liked.sort_by_key(|e| std::cmp::Reverse(e.added_at.unwrap_or(i64::MIN)));
     liked.into_iter().map(|e| e.track).collect()
 }
 
-/// Titres indisponibles parmi `ids` (vérifiés en parallèle, retenus pour la session). Une
-/// vérification qui échoue ne masque rien.
+/// Unavailable tracks among `ids` (checked in parallel, remembered for the session). A
+/// failed check hides nothing.
 async fn unavailable(tidal: &Arc<TidalClient>, ids: &[TrackId]) -> HashSet<TrackId> {
     let mut out = HashSet::new();
     for chunk in ids.chunks(CHECK_PARALLEL) {
@@ -154,7 +154,7 @@ async fn unavailable(tidal: &Arc<TidalClient>, ids: &[TrackId]) -> HashSet<Track
                     out.insert(id);
                 }
                 Ok(_) => {}
-                Err(e) => tracing::debug!("tâche interrompue : {e}"),
+                Err(e) => tracing::debug!("task interrupted: {e}"),
             }
         }
     }
@@ -203,7 +203,7 @@ mod tests {
             (TrackId(3), Some(track(3)), 3),
             (TrackId(4), None, 2),
         ];
-        // 2 complété, 3 indisponible, 4 introuvable.
+        // 2 completed, 3 unavailable, 4 not found.
         let tracks = assemble(counted, &[track(2)], &HashSet::from([TrackId(3)]));
         assert_eq!(ids(&tracks), [1, 2]);
     }

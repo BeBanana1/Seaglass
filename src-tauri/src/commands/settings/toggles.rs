@@ -1,4 +1,4 @@
-//! Interrupteurs activés par défaut (#452) : mises à jour automatiques, Jam.
+//! Switches on by default (#452): automatic updates, Jam.
 
 use serde::{Deserialize, Serialize};
 

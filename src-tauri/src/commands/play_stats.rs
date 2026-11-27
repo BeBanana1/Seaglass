@@ -1,10 +1,10 @@
-//! Statistiques d'écoute locales (#326) : titres, albums et artistes les plus écoutés sur
-//! une période, temps d'écoute. Calculées en SQL sur l'historique de cet appareil
-//! (`store::stats`) ; seuls les titres d'anciennes écoutes (avant la 0.5.33, enregistrées
-//! sans leurs métadonnées) et les photos des artistes sont demandés à TIDAL, une fois, puis
-//! enregistrés. L'API v1 n'a pas de lecture groupée des titres (`tracks?ids=` répond 400
-//! « ISRC is missing », vérifié le 2026-11-12) : ceux du classement sont complétés tout de
-//! suite, les autres en arrière-plan, une fois par session, pour le temps d'écoute.
+//! Local listening statistics (#326): most played tracks, albums and artists over a
+//! period, listening time. Computed in SQL over this device's history
+//! (`store::stats`); only the tracks of old plays (before 0.5.33, recorded
+//! without their metadata) and the artists' pictures are requested from TIDAL, once, then
+//! stored. The v1 API has no grouped read of tracks (`tracks?ids=` answers 400
+//! "ISRC is missing", checked on 2026-11-12): the ranking's tracks are completed right
+//! away, the others in the background, once per session, for the listening time.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -21,9 +21,9 @@ use crate::tidal::models::{AlbumSummary, ArtistSummary, Track, TrackId};
 
 const TRACK_LIMIT: usize = 50;
 const CARD_LIMIT: usize = 24;
-/// Titres complétés en parallèle.
+/// Tracks completed in parallel.
 const FETCH_PARALLEL: usize = 6;
-/// Anciens titres complétés en arrière-plan au plus, par session.
+/// Old tracks completed in the background at most, per session.
 const BACKFILL_LIMIT: usize = 2_000;
 static BACKFILL_STARTED: AtomicBool = AtomicBool::new(false);
 const DAY_MS: i64 = 24 * 3600 * 1000;
@@ -38,7 +38,7 @@ pub enum StatsPeriod {
 }
 
 impl StatsPeriod {
-    /// Début de la période (ms) : fenêtres glissantes, 0 pour tout l'historique.
+    /// Start of the period (ms): sliding windows, 0 for the whole history.
     fn since(self, now: i64) -> i64 {
         match self {
             Self::Week => now - 7 * DAY_MS,
@@ -60,9 +60,9 @@ pub struct Counted<T> {
 #[serde(rename_all = "camelCase")]
 pub struct PlayStats {
     pub plays: i64,
-    /// Temps d'écoute approché : somme des durées des titres écoutés, en secondes.
+    /// Approximate listening time: sum of the durations of the tracks played, in seconds.
     pub seconds: i64,
-    /// Écoutes dont la durée est inconnue, absentes de `seconds`.
+    /// Plays whose duration is unknown, missing from `seconds`.
     pub unknown: i64,
     pub tracks: Vec<Counted<Track>>,
     pub albums: Vec<Counted<AlbumSummary>>,
@@ -100,15 +100,15 @@ pub async fn play_stats(state: State<'_, AppState>, period: StatsPeriod) -> CmdR
     Ok(stats)
 }
 
-/// Lance `backfill` une fois par session.
+/// Starts `backfill` once per session.
 pub(super) fn start_backfill(tidal: &Arc<TidalClient>, store: &Arc<Store>) {
     if !BACKFILL_STARTED.swap(true, Ordering::Relaxed) {
         tauri::async_runtime::spawn(backfill(tidal.clone(), store.clone()));
     }
 }
 
-/// Classement des titres : ceux d'anciennes écoutes enregistrées sans métadonnées sont
-/// demandés à TIDAL et enregistrés ; un titre introuvable (retiré du catalogue) en sort.
+/// Ranking of tracks: those of old plays recorded without metadata are
+/// requested from TIDAL and stored; a track not found (removed from the catalog) drops out.
 pub(super) async fn complete(
     tidal: &Arc<TidalClient>,
     store: &Arc<Store>,
@@ -123,7 +123,7 @@ pub(super) async fn complete(
     if !fetched.is_empty() {
         let save = fetched.clone();
         if let Err(e) = blocking(store, move |s| s.save_played_tracks(&save)).await {
-            tracing::warn!("titres de l'historique non complétés : {e}");
+            tracing::warn!("history tracks not completed: {e}");
         }
     }
     top.into_iter()
@@ -134,25 +134,25 @@ pub(super) async fn complete(
         .collect()
 }
 
-/// Complète les titres des anciennes écoutes hors du classement (durée, pour le temps
-/// d'écoute). Un titre introuvable reste inconnu.
+/// Completes the tracks of old plays outside the ranking (duration, for the listening
+/// time). A track not found stays unknown.
 async fn backfill(tidal: Arc<TidalClient>, store: Arc<Store>) {
     let ids = match blocking(&store, |s| s.unknown_tracks(BACKFILL_LIMIT)).await {
         Ok(ids) => ids,
-        Err(e) => return tracing::warn!("historique illisible : {e}"),
+        Err(e) => return tracing::warn!("history unreadable: {e}"),
     };
     let tracks = fetch(&tidal, &ids).await;
     tracing::info!(
-        "historique d'écoute : {}/{} titres complétés",
+        "listening history: {}/{} tracks completed",
         tracks.len(),
         ids.len()
     );
     if let Err(e) = blocking(&store, move |s| s.save_played_tracks(&tracks)).await {
-        tracing::warn!("titres de l'historique non complétés : {e}");
+        tracing::warn!("history tracks not completed: {e}");
     }
 }
 
-/// Artistes du classement, avec leur photo.
+/// Artists of the ranking, with their picture.
 pub(super) async fn artists(
     tidal: &Arc<TidalClient>,
     store: &Arc<Store>,
@@ -163,8 +163,8 @@ pub(super) async fn artists(
     Ok(pictured(tidal, store, top).await)
 }
 
-/// Photos des artistes : celles qui n'ont jamais été demandées le sont à TIDAL puis
-/// enregistrées (un échec laisse l'artiste sans photo, retenté plus tard).
+/// Artists' pictures: those never requested are requested from TIDAL then
+/// stored (a failure leaves the artist without a picture, retried later).
 pub(super) async fn pictured(
     tidal: &Arc<TidalClient>,
     store: &Arc<Store>,
@@ -180,16 +180,16 @@ pub(super) async fn pictured(
         match tidal.artists_by_id(&missing).await {
             Ok(artists) => {
                 found = artists;
-                // Artiste disparu : enregistré sans photo, comme un artiste qui n'en a pas.
+                // Artist gone: stored without a picture, like an artist who has none.
                 let pictures: Vec<(u64, Option<String>)> = missing
                     .iter()
                     .map(|id| (*id, found.get(id).and_then(|a| a.picture_url.clone())))
                     .collect();
                 if let Err(e) = blocking(store, move |s| s.save_artist_pictures(&pictures)).await {
-                    tracing::warn!("photos des artistes non enregistrées : {e}");
+                    tracing::warn!("artist pictures not stored: {e}");
                 }
             }
-            Err(e) => tracing::debug!("photos des artistes indisponibles : {e}"),
+            Err(e) => tracing::debug!("artist pictures unavailable: {e}"),
         }
     }
     top.into_iter()
@@ -216,8 +216,8 @@ pub(super) async fn blocking<T: Send + 'static>(
         .map_err(err)
 }
 
-/// Métadonnées des titres manquants (cache du catalogue, sinon TIDAL), par petits lots. Un
-/// échec est ignoré : le titre sera retenté à la prochaine ouverture.
+/// Metadata of the missing tracks (catalog cache, otherwise TIDAL), in small batches. A
+/// failure is ignored: the track will be retried at the next opening.
 pub(super) async fn fetch(tidal: &Arc<TidalClient>, ids: &[TrackId]) -> Vec<Track> {
     let mut out = Vec::new();
     for chunk in ids.chunks(FETCH_PARALLEL) {
@@ -229,8 +229,8 @@ pub(super) async fn fetch(tidal: &Arc<TidalClient>, ids: &[TrackId]) -> Vec<Trac
         while let Some(result) = set.join_next().await {
             match result {
                 Ok(Ok(track)) => out.push(track),
-                Ok(Err(e)) => tracing::debug!("titre de l'historique introuvable : {e}"),
-                Err(e) => tracing::debug!("tâche interrompue : {e}"),
+                Ok(Err(e)) => tracing::debug!("history track not found: {e}"),
+                Err(e) => tracing::debug!("task interrupted: {e}"),
             }
         }
     }

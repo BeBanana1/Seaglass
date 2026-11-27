@@ -1,12 +1,12 @@
-//! Sauvegarde des réglages dans un texte JSON (#352), copié et collé par le presse-papiers :
-//! préférences d'interface et de lecture seulement. Ni jeton, ni session, ni file, ni
-//! historique. Le périphérique de sortie et le mode exclusif, propres à la machine, ne sont
-//! pas exportés.
+//! Backup of the settings as a JSON text (#352), copied and pasted through the clipboard:
+//! interface and playback preferences only. No token, no session, no queue, no
+//! history. The output device and exclusive mode, specific to the machine, are not
+//! exported.
 //!
-//! L'import reprend les clés une par une sur les réglages courants : chacune repasse par la
-//! désérialisation qui valide déjà les commandes de réglage (thème, zoom, accents…), puis
-//! par les mêmes contrôles (épingles, tris, accueil). Une clé invalide, inconnue ou propre
-//! à l'autre plateforme est ignorée et citée dans le résumé.
+//! The import takes the keys one by one onto the current settings: each goes through the
+//! deserialization that already validates the settings commands (theme, zoom, accents...), then
+//! through the same checks (pins, sorts, home). A key that is invalid, unknown or specific
+//! to the other platform is ignored and named in the summary.
 
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -21,12 +21,12 @@ use crate::player::{Cmd, PlaybackSettings};
 
 const FORMAT: &str = "seaglass-settings";
 const VERSION: u32 = 1;
-/// Taille maximale du texte collé : un export réel fait quelques kilo-octets.
+/// Maximum size of the pasted text: a real export is a few kilobytes.
 const MAX_LEN: usize = 256 * 1024;
 
-/// Clés de lecture liées à la machine : jamais exportées ni importées.
+/// Playback keys tied to the machine: never exported nor imported.
 const PLAYBACK_LOCAL: [&str; 2] = ["audioDevice", "exclusive"];
-/// Réglages du bureau seulement (Android : ignorés à l'import).
+/// Desktop-only settings (Android: ignored on import).
 const UI_DESKTOP: [&str; 4] = ["closeAction", "discord", "zoom", "globalShortcuts"];
 const PLAYBACK_DESKTOP: &[&str] = &[
     "cacheSize",
@@ -34,7 +34,7 @@ const PLAYBACK_DESKTOP: &[&str] = &[
     "resumeOnLaunch",
     "deviceProfiles",
 ];
-/// Réglages d'Android seulement (bureau : ignorés à l'import).
+/// Android-only settings (desktop: ignored on import).
 const PLAYBACK_ANDROID: &[&str] = &["wifiQuality", "cellularQuality", "lowBatteryQuality"];
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -47,7 +47,7 @@ struct Backup {
     playback: Option<Value>,
 }
 
-/// Clés reprises et ignorées, par section (`ui.theme`, `playback.autoRadio`…).
+/// Keys taken and ignored, per section (`ui.theme`, `playback.autoRadio`...).
 #[derive(Debug, Default, PartialEq, Serialize)]
 pub struct ImportReport {
     pub applied: Vec<String>,
@@ -77,8 +77,8 @@ fn invalid() -> String {
     .into()
 }
 
-/// Reprend les clés de `text` sur les réglages courants. Logique pure : `desktop` choisit
-/// les clés propres à une plateforme.
+/// Takes the keys of `text` onto the current settings. Pure logic: `desktop` chooses
+/// the keys specific to a platform.
 fn import(
     text: &str,
     ui: &UiSettings,
@@ -122,7 +122,7 @@ fn import(
     Ok((ui, playback, report))
 }
 
-/// Contrôles des commandes de réglage que la désérialisation ne fait pas.
+/// Checks of the settings commands that the deserialization does not do.
 fn ui_valid(ui: &UiSettings, key: &str) -> bool {
     match key {
         "pins" => pins::normalize(ui.pins.clone()).is_ok(),
@@ -132,8 +132,8 @@ fn ui_valid(ui: &UiSettings, key: &str) -> bool {
     }
 }
 
-/// `HomeLayout::update` garde les sections absentes du flux du jour : l'ordre enregistré
-/// peut dépasser `MAX_SECTIONS`, d'où une marge.
+/// `HomeLayout::update` keeps the sections absent from the day's feed: the saved order
+/// can exceed `MAX_SECTIONS`, hence a margin.
 fn home_valid(home: &HomeLayout) -> bool {
     let key_ok = |k: &String| !k.is_empty() && k.chars().count() <= MAX_KEY_LEN;
     home.order.len() <= MAX_SECTIONS * 10
@@ -142,8 +142,8 @@ fn home_valid(home: &HomeLayout) -> bool {
         && home.hidden.iter().all(key_ok)
 }
 
-/// Pose les clés de `incoming` une à une sur `current` ; une clé que `T` refuse (ou que
-/// `check` refuse) est ignorée, les autres restent.
+/// Sets the keys of `incoming` one by one onto `current`; a key that `T` refuses (or that
+/// `check` refuses) is ignored, the others stay.
 fn merge<T: Serialize + DeserializeOwned>(
     current: &T,
     incoming: Option<&Value>,
@@ -179,14 +179,14 @@ fn merge<T: Serialize + DeserializeOwned>(
     serde_json::from_value(Value::Object(base)).map_err(err)
 }
 
-/// Réglages de cet appareil, en JSON à coller ailleurs.
+/// Settings of this device, as JSON to paste elsewhere.
 #[tauri::command]
 pub async fn export_settings(state: State<'_, AppState>) -> CmdResult<String> {
     let playback = PlaybackSettings::load(state.store.as_deref());
     export(&load(&state), &playback).map_err(err)
 }
 
-/// Importe une sauvegarde collée, l'enregistre et l'applique ; l'UI se recharge ensuite.
+/// Imports a pasted backup, saves it and applies it; the UI then reloads.
 #[tauri::command]
 pub async fn import_settings(
     app: AppHandle,
@@ -270,7 +270,7 @@ mod tests {
         let (ui2, pb, report) = import(&text, &ui, &PlaybackSettings::default(), false).unwrap();
         assert_eq!(ui2.theme, Theme::Seaglass);
         assert_eq!(ui2.motion, super::super::Motion::Reduced);
-        assert_eq!(ui2.zoom, ui.zoom, "zoom : bureau seulement");
+        assert_eq!(ui2.zoom, ui.zoom, "zoom: desktop only");
         assert!(ui2.pins.is_empty());
         assert_eq!(ui2.sorts.len(), 1);
         assert!(pb.auto_radio && pb.audio_device.is_none());

@@ -1,4 +1,4 @@
-//! Commandes d'écriture dans la bibliothèque : favoris (#4, #81) et playlists de l'utilisateur.
+//! Library write commands: favorites (#4, #81) and the user's playlists.
 
 use tauri::{AppHandle, Emitter, State};
 
@@ -9,19 +9,19 @@ use crate::tidal::models::{LikeTarget, LikedIds, PlaylistSummary, TrackId};
 
 const MAX_TITLE_LEN: usize = 200;
 const MAX_DESCRIPTION_LEN: usize = 2_000;
-/// Titres ajoutés en une fois (un album, une playlist affichée).
+/// Tracks added at once (an album, a displayed playlist).
 pub(crate) const MAX_ADD: usize = 10_000;
 
-/// Événement émis à chaque changement des favoris, avec toutes les listes.
+/// Event emitted on every change of the favorites, with all the lists.
 pub const LIKES_EVENT: &str = "likes";
 
-/// Identifiants de tous les favoris : titres, albums, artistes, playlists suivies.
+/// Identifiers of all the favorites: tracks, albums, artists, followed playlists.
 #[tauri::command]
 pub async fn likes(state: State<'_, AppState>) -> CmdResult<LikedIds> {
     state.tidal.liked_ids().await.map_err(err)
 }
 
-/// Ajoute aux favoris ou retire (titre, album, artiste, playlist d'un autre utilisateur, mix).
+/// Adds to or removes from the favorites (track, album, artist, another user's playlist, mix).
 #[tauri::command]
 pub async fn set_liked(
     app: AppHandle,
@@ -35,7 +35,7 @@ pub async fn set_liked(
     Ok(())
 }
 
-/// Ajoute ou retire plusieurs titres des favoris (sélection multiple, #332).
+/// Adds or removes several tracks from the favorites (multiple selection, #332).
 #[tauri::command]
 pub async fn set_tracks_liked(
     app: AppHandle,
@@ -44,7 +44,7 @@ pub async fn set_tracks_liked(
     liked: bool,
 ) -> CmdResult<()> {
     if track_ids.is_empty() || track_ids.len() > MAX_ADD {
-        return Err(format!("1 à {MAX_ADD} titres"));
+        return Err(format!("1 to {MAX_ADD} tracks"));
     }
     state
         .tidal
@@ -55,7 +55,7 @@ pub async fn set_tracks_liked(
     Ok(())
 }
 
-/// Une position dans une playlist et le titre attendu à cette position.
+/// A position in a playlist and the track expected at that position.
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistItem {
@@ -68,13 +68,13 @@ fn playlist_items(uuid: &str, items: &[PlaylistItem]) -> Result<Vec<(usize, Trac
         return Err("identifiant de playlist invalide".into());
     }
     if items.is_empty() || items.len() > MAX_ADD {
-        return Err(format!("1 à {MAX_ADD} titres"));
+        return Err(format!("1 to {MAX_ADD} tracks"));
     }
     Ok(items.iter().map(|i| (i.index, i.track_id)).collect())
 }
 
-/// Retire plusieurs titres d'une playlist (#332) ; tout est refusé si l'un d'eux n'est plus
-/// à sa position.
+/// Removes several tracks from a playlist (#332); everything is refused if one of them is no longer
+/// at its position.
 #[tauri::command]
 pub async fn remove_many_from_playlist(
     state: State<'_, AppState>,
@@ -90,7 +90,7 @@ pub async fn remove_many_from_playlist(
         .map_err(err)
 }
 
-/// Annule un retrait par lot : chaque titre revient à sa position ; renvoie le nombre remis.
+/// Undoes a batch removal: each track returns to its position; returns the number restored.
 #[tauri::command]
 pub async fn restore_many_to_playlist(
     state: State<'_, AppState>,
@@ -106,14 +106,14 @@ pub async fn restore_many_to_playlist(
         .map_err(err)
 }
 
-/// Les playlists modifiables (créées par l'utilisateur), pour « Ajouter à une playlist ».
+/// The editable playlists (created by the user), for "Add to a playlist".
 #[tauri::command]
 pub async fn own_playlists(state: State<'_, AppState>) -> CmdResult<Vec<PlaylistSummary>> {
     state.tidal.own_playlists().await.map_err(err)
 }
 
-/// Ajoute les titres à la fin de la playlist ; renvoie le nombre réellement ajoutés
-/// (les titres déjà présents sont ignorés).
+/// Adds the tracks at the end of the playlist; returns the number actually added
+/// (tracks already present are ignored).
 #[tauri::command]
 pub async fn add_to_playlist(
     state: State<'_, AppState>,
@@ -129,7 +129,7 @@ pub async fn add_to_playlist(
         .map_err(err)
 }
 
-/// Crée une playlist avec ces titres ; renvoie son uuid.
+/// Creates a playlist with these tracks; returns its uuid.
 #[tauri::command]
 pub async fn create_playlist(
     state: State<'_, AppState>,
@@ -138,7 +138,7 @@ pub async fn create_playlist(
 ) -> CmdResult<String> {
     let title = clean_title(&title)?;
     if track_ids.len() > MAX_ADD {
-        return Err(format!("{MAX_ADD} titres au plus"));
+        return Err(format!("at most {MAX_ADD} tracks"));
     }
     let uuid = state.tidal.create_playlist(title, "").await.map_err(err)?;
     if !track_ids.is_empty() {
@@ -156,8 +156,8 @@ pub async fn create_playlist(
     Ok(uuid)
 }
 
-/// Retire le titre `track_id` à la position `index` (0 = premier) ; refusé si la playlist
-/// a changé depuis son affichage.
+/// Removes the track `track_id` at position `index` (0 = first); refused if the playlist
+/// changed since it was displayed.
 #[tauri::command]
 pub async fn remove_from_playlist(
     state: State<'_, AppState>,
@@ -176,8 +176,8 @@ pub async fn remove_from_playlist(
         .map_err(err)
 }
 
-/// Remet le titre `track_id` à la position `index` (0 = premier) : annulation d'un retrait
-/// (#349). `false` si TIDAL n'a rien ajouté.
+/// Puts the track `track_id` back at position `index` (0 = first): undo of a removal
+/// (#349). `false` if TIDAL added nothing.
 #[tauri::command]
 pub async fn restore_to_playlist(
     state: State<'_, AppState>,
@@ -196,8 +196,8 @@ pub async fn restore_to_playlist(
         .map_err(err)
 }
 
-/// Déplace le titre `track_id` de la position `from` à la position `to` (0 = premier, #201) ;
-/// refusé si la playlist a changé depuis son affichage.
+/// Moves the track `track_id` from position `from` to position `to` (0 = first, #201);
+/// refused if the playlist changed since it was displayed.
 #[tauri::command]
 pub async fn move_in_playlist(
     state: State<'_, AppState>,
@@ -220,7 +220,7 @@ pub async fn move_in_playlist(
         .map_err(err)
 }
 
-/// Renomme une playlist et change sa description (#201).
+/// Renames a playlist and changes its description (#201).
 #[tauri::command]
 pub async fn edit_playlist(
     state: State<'_, AppState>,
@@ -247,7 +247,7 @@ pub async fn edit_playlist(
         .map_err(err)
 }
 
-/// Supprime une playlist de l'utilisateur (#201).
+/// Deletes one of the user's playlists (#201).
 #[tauri::command]
 pub async fn delete_playlist(state: State<'_, AppState>, uuid: String) -> CmdResult<()> {
     if !is_uuid(&uuid) {
@@ -271,20 +271,20 @@ fn clean_title(title: &str) -> Result<&str, String> {
     Ok(title)
 }
 
-/// Après une écriture ou une lecture complète d'une catégorie de la bibliothèque, les
-/// favoris affichés peuvent avoir changé.
+/// After a write or a full read of a library category, the displayed
+/// favorites may have changed.
 pub(super) async fn emit_likes(app: &AppHandle, state: &AppState) {
     match state.tidal.liked_ids().await {
         Ok(ids) => {
             if let Err(e) = app.emit(LIKES_EVENT, ids) {
-                tracing::warn!("émission de {LIKES_EVENT} impossible : {e}");
+                tracing::warn!("could not emit {LIKES_EVENT}: {e}");
             }
         }
-        Err(e) => tracing::warn!("favoris illisibles : {e}"),
+        Err(e) => tracing::warn!("favorites unreadable: {e}"),
     }
 }
 
-/// L'uuid finit dans le chemin de la requête : il est vérifié.
+/// The uuid ends up in the request path: it is checked.
 fn validate_target(target: &LikeTarget) -> Result<(), String> {
     match target {
         LikeTarget::Playlist { uuid } if !is_uuid(uuid) => {
@@ -303,7 +303,7 @@ fn validate_tracks(uuid: &str, track_ids: &[TrackId]) -> Result<(), String> {
         return Err(tr("aucun titre à ajouter", "no tracks to add").into());
     }
     if track_ids.len() > MAX_ADD {
-        return Err(format!("{MAX_ADD} titres au plus"));
+        return Err(format!("at most {MAX_ADD} tracks"));
     }
     Ok(())
 }

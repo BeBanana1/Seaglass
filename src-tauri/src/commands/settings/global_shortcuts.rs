@@ -1,11 +1,11 @@
-//! Raccourcis clavier globaux (#413) : combinaisons choisies par l'utilisateur, actives même
-//! quand la fenêtre n'a pas le focus. Ce module ne garde que le réglage et sa lecture
-//! (logique pure, testée) ; l'enregistrement auprès du système est dans
+//! Global keyboard shortcuts (#413): combinations chosen by the user, active even
+//! when the window does not have focus. This module only keeps the setting and its reading
+//! (pure logic, tested); the registration with the system is in
 //! `integrations::hotkeys` (bureau).
 //!
-//! Une combinaison est écrite comme la construit l'UI à partir de `KeyboardEvent.code` :
-//! modificateurs puis touche, séparés par `+` (`Ctrl+Alt+Space`, `Ctrl+Shift+KeyL`). C'est le
-//! format que lit `global-hotkey`.
+//! A combination is written as the UI builds it from `KeyboardEvent.code`:
+//! modifiers then key, separated by `+` (`Ctrl+Alt+Space`, `Ctrl+Shift+KeyL`). It is the
+//! format that `global-hotkey` reads.
 
 use std::collections::BTreeMap;
 
@@ -19,7 +19,7 @@ pub enum GlobalAction {
     Previous,
     VolumeUp,
     VolumeDown,
-    /// Aimer ou ne plus aimer le titre en cours : exécuté par l'UI (registre des actions).
+    /// Like or unlike the current track: run by the UI (action registry).
     Like,
     ShowWindow,
 }
@@ -45,13 +45,13 @@ impl GlobalAction {
     }
 }
 
-/// Désactivés par défaut ; les combinaisons proposées passent toutes par Ctrl+Alt, que les
-/// raccourcis internes de l'app n'utilisent pas.
+/// Disabled by default; the proposed combinations all go through Ctrl+Alt, which the app's
+/// internal shortcuts do not use.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct GlobalShortcuts {
     pub enabled: bool,
-    /// Action sans combinaison : absente.
+    /// Action without a combination: absent.
     #[serde(deserialize_with = "bindings")]
     pub bindings: BTreeMap<GlobalAction, String>,
 }
@@ -77,15 +77,15 @@ impl Default for GlobalShortcuts {
     }
 }
 
-/// Longueur maximale d'une combinaison (`Ctrl+Alt+Shift+Super+NumpadMultiply` en fait 35).
+/// Maximum length of a combination (`Ctrl+Alt+Shift+Super+NumpadMultiply` is 35).
 const MAX_LEN: usize = 64;
 
-/// Modificateurs reconnus ; Maj seule ne suffit pas (elle sert à écrire).
+/// Recognized modifiers; Shift alone is not enough (it is used for typing).
 const STRONG_MODIFIERS: [&str; 3] = ["CTRL", "ALT", "SUPER"];
 const MODIFIERS: [&str; 4] = ["CTRL", "ALT", "SUPER", "SHIFT"];
 
-/// Combinaison bien formée : modificateurs connus d'abord, dont Ctrl, Alt ou Super, puis une
-/// seule touche. Que la touche existe, c'est `global-hotkey` qui le dira à l'enregistrement.
+/// Well-formed combination: known modifiers first, including Ctrl, Alt or Super, then a
+/// single key. Whether the key exists is for `global-hotkey` to say at registration.
 pub fn is_valid(keys: &str) -> bool {
     if keys.is_empty() || keys.len() > MAX_LEN || !keys.is_ascii() {
         return false;
@@ -110,7 +110,7 @@ pub fn is_valid(keys: &str) -> bool {
     seen.iter().any(|m| STRONG_MODIFIERS.contains(&m.as_str()))
 }
 
-/// Même combinaison écrite autrement (casse, ordre des modificateurs).
+/// Same combination written differently (case, order of the modifiers).
 fn canonical(keys: &str) -> (Vec<String>, String) {
     let mut parts: Vec<String> = keys.split('+').map(str::to_ascii_uppercase).collect();
     let key = parts.pop().unwrap_or_default();
@@ -118,9 +118,9 @@ fn canonical(keys: &str) -> (Vec<String>, String) {
     (parts, key)
 }
 
-/// Lecture tolérante : action inconnue (version plus récente), combinaison mal formée ou déjà
-/// prise par une action précédente sont laissées de côté plutôt que de faire perdre tous les
-/// réglages d'interface.
+/// Tolerant reading: an unknown action (newer version), a malformed combination or one
+/// already taken by a previous action is left aside rather than making all the
+/// interface settings unreadable.
 fn bindings<'de, D: Deserializer<'de>>(d: D) -> Result<BTreeMap<GlobalAction, String>, D::Error> {
     let raw = BTreeMap::<String, String>::deserialize(d)?;
     Ok(clean(raw))
@@ -167,7 +167,7 @@ mod tests {
         assert!(is_valid("Ctrl+Alt+Space"));
         assert!(is_valid("Super+KeyM"));
         assert!(is_valid("alt+shift+F5"));
-        assert!(!is_valid("Shift+KeyA"), "Maj seule sert à écrire");
+        assert!(!is_valid("Shift+KeyA"), "Shift alone is used for typing");
         assert!(!is_valid("KeyA"));
         assert!(!is_valid("Ctrl+Alt"));
         assert!(!is_valid("Ctrl+Ctrl+KeyA"));

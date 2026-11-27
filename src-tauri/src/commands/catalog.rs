@@ -1,5 +1,5 @@
-//! Commandes de navigation : recherche, pages album / artiste / playlist / mix, radios,
-//! bibliothèque, accueil, paroles, infos d'un titre. Le fil d'actualité est dans `feed.rs`.
+//! Navigation commands: search, album / artist / playlist / mix pages, radios,
+//! library, home, lyrics, track info. The news feed is in `feed.rs`.
 
 use serde::Serialize;
 use tauri::{AppHandle, State};
@@ -32,8 +32,8 @@ pub async fn search(state: State<'_, AppState>, query: String) -> CmdResult<Sear
             "search limited to {MAX_QUERY_LEN} characters"
         ));
     }
-    // L'historique n'est pas tenu ici : l'UI cherche pendant la frappe (#248) et
-    // n'enregistre que la requête retenue (`note_search_history`).
+    // History is not kept here: the UI searches while typing (#248) and
+    // only records the query that is kept (`note_search_history`).
     state
         .tidal
         .search(query, SEARCH_LIMIT)
@@ -47,7 +47,7 @@ pub async fn album(state: State<'_, AppState>, id: u64) -> CmdResult<AlbumPage> 
     state.tidal.album(id).await.map(filtered).map_err(err)
 }
 
-/// Autres versions de l'album et autres albums de l'artiste (#350), après la page elle-même.
+/// Other versions of the album and other albums by the artist (#350), after the page itself.
 #[tauri::command]
 pub async fn album_related(state: State<'_, AppState>, id: u64) -> CmdResult<AlbumRelated> {
     Ok(filtered(state.tidal.album_related(id).await))
@@ -58,8 +58,8 @@ pub async fn artist(state: State<'_, AppState>, id: u64) -> CmdResult<ArtistPage
     state.tidal.artist(id).await.map(filtered).map_err(err)
 }
 
-/// Page à jour de la playlist, ou `null` si elle n'a pas changé depuis `revision` (la
-/// `revision` de la page déjà affichée, #152).
+/// Up-to-date playlist page, or `null` if it has not changed since `revision` (the
+/// `revision` of the page already displayed, #152).
 #[tauri::command]
 pub async fn playlist(
     state: State<'_, AppState>,
@@ -67,7 +67,7 @@ pub async fn playlist(
     revision: Option<String>,
 ) -> CmdResult<Option<PlaylistPage>> {
     check_playlist_uuid(&uuid)?;
-    // Un ETag de TIDAL fait quelques dizaines de caractères ; il n'est que comparé.
+    // A TIDAL ETag is a few dozen characters long; it is only compared.
     if revision.as_ref().is_some_and(|r| r.len() > 256) {
         return Err(tr("révision de playlist invalide", "invalid playlist revision").into());
     }
@@ -91,21 +91,21 @@ pub(super) fn check_playlist_uuid(uuid: &str) -> CmdResult<()> {
     }
 }
 
-/// Biographie, artistes similaires et « Apparaît sur » (#205), après la page elle-même.
+/// Biography, similar artists and "Appears on" (#205), after the page itself.
 #[tauri::command]
 pub async fn artist_extra(state: State<'_, AppState>, id: u64) -> CmdResult<ArtistExtra> {
     Ok(filtered(state.tidal.artist_extra(id).await))
 }
 
-/// Titres où une personne est créditée (#429), par lots : `offset` = `nextOffset` du lot
-/// précédent, 0 pour la page.
+/// Tracks where a person is credited (#429), in batches: `offset` = `nextOffset` of the
+/// previous batch, 0 for the page.
 #[tauri::command]
 pub async fn contributor(
     state: State<'_, AppState>,
     artist_id: u64,
     offset: u32,
 ) -> CmdResult<ContributorPage> {
-    // Bien au-delà des plus gros catalogues mesurés (7 605 titres pour Hans Zimmer).
+    // Well beyond the largest catalogs measured (7,605 tracks for Hans Zimmer).
     if offset > 1_000_000 {
         return Err(tr("position invalide", "invalid offset").into());
     }
@@ -147,12 +147,12 @@ pub async fn library_tracks(
 ) -> CmdResult<LibraryList<TrackEntry>> {
     let tracks = state.tidal.favorite_tracks().await.map_err(err)?;
     snapshots::save_library(&state, LibraryTab::Tracks, &tracks);
-    // La liste complète met à jour les cœurs (likes faits sur un autre appareil).
+    // The full list updates the hearts (likes made on another device).
     super::collection::emit_likes(&app, &state).await;
     Ok(tracks)
 }
 
-// Comme pour les titres, chaque liste complète met à jour les favoris affichés (#81).
+// As for tracks, each full list updates the displayed favorites (#81).
 #[tauri::command]
 pub async fn library_albums(
     app: AppHandle,
@@ -186,18 +186,18 @@ pub async fn library_playlists(
     Ok(playlists)
 }
 
-/// Première page de l'accueil, déjà disposée.
+/// First page of the home, already laid out.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HomeFeed {
     pub sections: Vec<HomeSection>,
-    /// D'autres pages existent : l'UI appelle ensuite `home_rest` (#207).
+    /// More pages exist: the UI then calls `home_rest` (#207).
     pub more: bool,
 }
 
-/// Lignes de la première page de l'accueil dans l'ordre choisi, masquées comprises
-/// (marquées `hidden`). La suite du flux vient de `home_rest`, pour que l'accueil
-/// s'affiche sans attendre ses pages suivantes (~0,5 s chacune).
+/// Rows of the home's first page in the chosen order, hidden ones included
+/// (marked `hidden`). The rest of the feed comes from `home_rest`, so that the home
+/// is displayed without waiting for its following pages (~0.5 s each).
 #[tauri::command]
 pub async fn home(state: State<'_, AppState>) -> CmdResult<HomeFeed> {
     let start = state.tidal.home_start().await.map_err(err)?;
@@ -209,7 +209,7 @@ pub async fn home(state: State<'_, AppState>) -> CmdResult<HomeFeed> {
     })
 }
 
-/// Tout l'accueil (première page et suivantes), disposé : remplace la première page.
+/// The whole home (first and following pages), laid out: replaces the first page.
 #[tauri::command]
 pub async fn home_rest(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>> {
     let rows = state.tidal.home_rest().await.map_err(err)?;
@@ -218,9 +218,9 @@ pub async fn home_rest(state: State<'_, AppState>) -> CmdResult<Vec<HomeSection>
         .arrange(with_local_row(&state, rows)))
 }
 
-/// « Écoutés dans Seaglass » (#202) en tête du flux : la disposition enregistrée s'applique
-/// ensuite comme aux lignes de TIDAL.
-/// Le filtre de contenu (#368) s'applique aux deux.
+/// "Listened in Seaglass" (#202) at the head of the feed: the saved layout then applies
+/// to it as to TIDAL's rows.
+/// The content filter (#368) applies to both.
 fn with_local_row(state: &AppState, mut rows: Vec<HomeRow>) -> Vec<HomeRow> {
     if let Some(row) = super::play_history::home_row(state) {
         rows.insert(0, row);
@@ -228,15 +228,15 @@ fn with_local_row(state: &AppState, mut rows: Vec<HomeRow>) -> Vec<HomeRow> {
     filtered(rows)
 }
 
-/// Paroles d'un titre ; `None` si TIDAL n'en a pas (ce n'est pas une erreur).
+/// Lyrics of a track; `None` if TIDAL has none (this is not an error).
 #[tauri::command]
 pub async fn lyrics(state: State<'_, AppState>, track_id: TrackId) -> CmdResult<Option<Lyrics>> {
     state.tidal.lyrics(track_id).await.map_err(err)
 }
 
-/// Infos détaillées d'un titre (#3), à la demande (une requête de lecture). `played` dit
-/// si Seaglass lirait l'édition hi-res trouvée à la place du titre sans demander (réglage
-/// automatique ; en mode « Demander », c'est la barre de lecture qui la propose, #59).
+/// Detailed info of a track (#3), on demand (one read request). `played` says whether
+/// Seaglass would play the hi-res edition found instead of the track without asking
+/// (automatic setting; in "Ask" mode, the playback bar offers it, #59).
 #[tauri::command]
 pub async fn track_info(state: State<'_, AppState>, track_id: TrackId) -> CmdResult<TrackInfo> {
     let mut info = state.tidal.track_info(track_id).await.map_err(err)?;
@@ -251,7 +251,7 @@ pub async fn track_info(state: State<'_, AppState>, track_id: TrackId) -> CmdRes
     Ok(info)
 }
 
-/// Crédits de l'album entier (#206), à la demande.
+/// Credits of the whole album (#206), on demand.
 #[tauri::command]
 pub async fn album_credits(
     state: State<'_, AppState>,
@@ -260,7 +260,7 @@ pub async fn album_credits(
     state.tidal.album_credits(album_id).await.map_err(err)
 }
 
-/// Album hi-res au même titre de l'artiste principal, pour un album qui ne l'est pas (#59).
+/// Hi-res album with the same title by the main artist, for an album that is not one (#59).
 #[tauri::command]
 pub async fn hires_twin_album(
     state: State<'_, AppState>,
@@ -274,7 +274,7 @@ pub async fn hires_twin_album(
         .map_err(err)
 }
 
-/// UUID au format `8-4-4-4-12` (hexadécimal), seul format de playlist accepté dans l'URL.
+/// UUID in the `8-4-4-4-12` format (hexadecimal), the only playlist format accepted in the URL.
 pub(super) fn is_uuid(s: &str) -> bool {
     let groups: Vec<&str> = s.split('-').collect();
     groups.len() == 5
@@ -284,7 +284,7 @@ pub(super) fn is_uuid(s: &str) -> bool {
             .all(|(g, len)| g.len() == len && g.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
-/// Identifiant de mix : alphanumérique (30 caractères hexadécimaux observés), il part dans l'URL.
+/// Mix identifier: alphanumeric (30 hexadecimal characters observed), it goes in the URL.
 pub(super) fn is_mix_id(s: &str) -> bool {
     (1..=64).contains(&s.len()) && s.chars().all(|c| c.is_ascii_alphanumeric())
 }

@@ -1,10 +1,10 @@
-//! Disposition de l'accueil choisie par l'utilisateur : ordre des sections et sections
-//! masquées (#21, #22). Logique pure, sans réseau ni base : le réglage est stocké dans
-//! `UiSettings::home` et appliqué au flux à chaque chargement de l'accueil.
+//! Home page layout chosen by the user: order of the sections and hidden
+//! sections (#21, #22). Pure logic, with no network or database: the setting is stored in
+//! `UiSettings::home` and applied to the feed on every load of the home page.
 //!
-//! Les sections sont identifiées par `HomeRow::key` (le `moduleId` de l'API). Le flux
-//! change d'un jour à l'autre : une section inconnue apparaît à sa place par défaut,
-//! une section absente garde sa position enregistrée pour le jour où elle revient.
+//! Sections are identified by `HomeRow::key` (the API's `moduleId`). The feed
+//! changes from one day to the next: an unknown section appears at its default place,
+//! an absent section keeps its saved position for the day it comes back.
 
 use std::collections::{BTreeSet, HashMap};
 
@@ -13,25 +13,25 @@ use serde::{Deserialize, Serialize};
 use crate::i18n::{tr, trf};
 use crate::tidal::models::HomeRow;
 
-/// Nombre maximal de sections envoyées par l'UI (le flux en compte une quinzaine).
+/// Maximum number of sections sent by the UI (the feed has about fifteen).
 pub const MAX_SECTIONS: usize = 100;
-/// Longueur maximale d'une clé (`moduleId` ou titre normalisé).
+/// Maximum length of a key (`moduleId` or normalized title).
 pub const MAX_KEY_LEN: usize = 200;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct HomeLayout {
-    /// Clés dans l'ordre choisi. Vide = ordre du flux.
+    /// Keys in the chosen order. Empty = feed order.
     pub order: Vec<String>,
-    /// Clés des sections masquées.
+    /// Keys of the hidden sections.
     pub hidden: BTreeSet<String>,
-    /// Bandeau « À la une » masqué (#185). Ce n'est pas une ligne du flux : l'UI le tire
-    /// des albums des sections affichées.
+    /// "Featured" banner hidden (#185). It is not a row of the feed: the UI draws it
+    /// from the albums of the displayed sections.
     pub featured_hidden: bool,
 }
 
-/// Ligne de l'accueil telle qu'affichée : la ligne du flux et son état de masquage
-/// (l'UI a besoin des sections masquées pour pouvoir les réafficher).
+/// Home row as displayed: the feed row and its hiding state
+/// (the UI needs the hidden sections to be able to show them again).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HomeSection {
@@ -40,7 +40,7 @@ pub struct HomeSection {
     pub hidden: bool,
 }
 
-/// Section telle que l'UI l'affiche en mode « Personnaliser », dans l'ordre de l'écran.
+/// Section as the UI displays it in "Customize" mode, in screen order.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SectionPref {
@@ -61,12 +61,12 @@ pub enum LayoutError {
 }
 
 impl HomeLayout {
-    /// Ordonne les lignes du flux selon la disposition enregistrée et marque les masquées.
+    /// Orders the feed rows according to the saved layout and marks the hidden ones.
     ///
-    /// Plusieurs lignes peuvent partager une clé (deux « Parce que vous avez écouté ») :
-    /// elles restent groupées à la place de la première.
+    /// Several rows can share a key (two "Because you listened to"):
+    /// they stay grouped at the place of the first one.
     pub fn arrange(&self, rows: Vec<HomeRow>) -> Vec<HomeSection> {
-        // Groupes de lignes par clé, dans l'ordre du flux.
+        // Groups of rows by key, in feed order.
         let mut groups: Vec<(String, Vec<HomeRow>)> = Vec::new();
         for row in rows {
             match groups.iter_mut().find(|(k, _)| *k == row.key) {
@@ -87,8 +87,8 @@ impl HomeLayout {
             .collect()
     }
 
-    /// Enregistre l'ordre et le masquage des sections affichées. Les sections absentes de
-    /// `shown` (pas dans le flux du jour) gardent leur position et leur état.
+    /// Saves the order and hiding of the displayed sections. Sections absent from
+    /// `shown` (not in the day's feed) keep their position and state.
     pub fn update(&mut self, shown: &[SectionPref]) -> Result<(), LayoutError> {
         if shown.len() > MAX_SECTIONS {
             return Err(LayoutError::TooMany(shown.len()));
@@ -105,7 +105,7 @@ impl HomeLayout {
             .map(|s| s.key.as_str())
             .filter(|k| seen.insert(*k))
             .collect();
-        // Base = ancien ordre + nouvelles clés : les absentes s'y raccrochent à leur voisine.
+        // Base = old order + new keys: the absent ones attach to their neighbor.
         let mut base: Vec<&str> = self.order.iter().map(String::as_str).collect();
         base.extend(
             shown_keys
@@ -124,10 +124,10 @@ fn owned(keys: &[&str]) -> Vec<String> {
     keys.iter().map(|k| (*k).to_owned()).collect()
 }
 
-/// Fusionne un ordre de `base` (l'ordre par défaut) avec un ordre `preferred` :
-/// les clés de `base` présentes dans `preferred` suivent `preferred` ; chaque autre clé de
-/// `base` est insérée juste après celle qui la précède dans `base` (en tête si aucune).
-/// Les clés de `preferred` absentes de `base` ne sont pas reprises.
+/// Merges an order of `base` (the default order) with an order `preferred`:
+/// the keys of `base` present in `preferred` follow `preferred`; every other key of
+/// `base` is inserted right after the one that precedes it in `base` (first if none).
+/// The keys of `preferred` absent from `base` are not taken.
 fn merge_order(base: &[&str], preferred: &[String]) -> Vec<String> {
     let rank: HashMap<&str, usize> = preferred
         .iter()
@@ -213,7 +213,7 @@ mod tests {
             hidden: BTreeSet::new(),
             ..HomeLayout::default()
         };
-        // N1 suit A dans le flux, N0 est en tête, N2 suit N1.
+        // N1 follows A in the feed, N0 is first, N2 follows N1.
         let out = layout.arrange(feed(&["N0", "A", "N1", "N2", "C"]));
         assert_eq!(keys(&out), ["N0", "C", "A", "N1", "N2"]);
     }
@@ -247,7 +247,7 @@ mod tests {
             hidden: ["GONE".to_owned(), "A".to_owned()].into(),
             ..HomeLayout::default()
         };
-        // Le flux du jour n'a pas GONE ; l'utilisateur remonte C et réaffiche A.
+        // The day's feed does not have GONE; the user moves C up and shows A again.
         layout
             .update(&prefs(&[("C", false), ("A", false), ("B", true)]))
             .unwrap();
