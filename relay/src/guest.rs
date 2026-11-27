@@ -16,9 +16,10 @@ use futures_util::stream;
 use crate::jams::{CodeError, ForwardError};
 use crate::{MAX_BODY, Relay, into_text, read_body};
 
-/// The page is the local Jam's: a single file to maintain.
+/// The page is the local Jam's: one set of files to maintain, and one list of the script's
+/// files (`script.rs`, #45).
 const PAGE: &str = include_str!("../../src-tauri/src/jam/page/index.html");
-const SCRIPT: &str = include_str!("../../src-tauri/src/jam/page/jam.js");
+const SCRIPT: &str = include!("../../src-tauri/src/jam/page/script.rs");
 const STYLE: &str = include_str!("../../src-tauri/src/jam/page/jam.css");
 
 /// Same policy as the local Jam.
