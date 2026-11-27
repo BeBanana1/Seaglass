@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.139
+
+- chore: the comments of the components (`components/`, A to L) are now in English, with no change in behavior (#8).
+
 ## 0.5.138
 
 - chore: the comments of the shared frontend code (`lib/`, outside `mock/`, `stores/` and the dictionaries) are now in English, with no change in behavior (#8).
