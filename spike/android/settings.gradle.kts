@@ -1,4 +1,4 @@
-// Spike Android (#24) : projet jetable, indépendant de l'app Tauri.
+// Android spike (#24): throwaway project, independent of the Tauri app.
 pluginManagement {
     repositories {
         google()
