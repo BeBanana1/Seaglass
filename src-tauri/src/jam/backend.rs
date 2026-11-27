@@ -103,7 +103,7 @@ impl Backend for AppBackend {
             ),
         };
         if let Err(e) = self.app.emit("toast", toast) {
-            tracing::warn!("Jam : {e}");
+            tracing::warn!("Jam: {e}");
         }
         Ok(())
     }
@@ -175,7 +175,7 @@ impl Backend for AppBackend {
             members: guests.members.list(),
         };
         if let Err(e) = self.app.emit(GUESTS_EVENT, update) {
-            tracing::warn!("Jam : {e}");
+            tracing::warn!("Jam: {e}");
         }
     }
 }

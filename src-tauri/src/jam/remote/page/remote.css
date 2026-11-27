@@ -1,4 +1,4 @@
-/* Télécommande (#336) : complète jam.css (couleurs, champs, listes, onglets). */
+/* Remote control (#336): completes jam.css (colors, fields, lists, tabs). */
 
 .player {
   position: sticky;
@@ -95,7 +95,7 @@ input[type="range"] {
   height: 26px;
 }
 
-/* Répéter un titre : « 1 » sur l'icône. */
+/* Repeat one track: "1" on the icon. */
 #repeat {
   position: relative;
 }
@@ -139,7 +139,7 @@ h2[hidden] {
   margin: 8px 0 12px;
 }
 
-/* Ligne cliquable : lire ce titre de la file, cet album, cette playlist. */
+/* Clickable row: play this queue track, this album, this playlist. */
 .track .open {
   flex: 1;
   display: flex;

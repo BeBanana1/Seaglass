@@ -1,5 +1,5 @@
-//! Ce que la page des invités reçoit (#25) : titres, albums et état, rien d'autre ne sort
-//! de l'app.
+//! What the guests' page receives (#25): tracks, albums and state, nothing else leaves
+//! the app.
 
 use serde::Serialize;
 
@@ -17,7 +17,7 @@ fn artist_names(artists: &[ArtistRef]) -> String {
         .join(", ")
 }
 
-/// Titre tel que la page l'affiche.
+/// Track as the page shows it.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuestTrack {
@@ -27,10 +27,10 @@ pub struct GuestTrack {
     pub album: String,
     pub cover: Option<String>,
     pub duration: u32,
-    /// Invité qui l'a ajouté à la file manuelle.
+    /// Guest who added it to the manual queue.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub by: Option<String>,
-    /// Lot de la Jam qui l'a ajouté (#223) : la page de son auteur propose de le retirer.
+    /// Jam batch that added it (#223): its author's page offers to remove it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub batch: Option<u32>,
 }
@@ -54,7 +54,7 @@ impl From<&Track> for GuestTrack {
     }
 }
 
-/// Album d'une recherche de la Jam (#223).
+/// Album from a Jam search (#223).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuestAlbum {
@@ -88,51 +88,51 @@ impl From<&AlbumSummary> for GuestAlbum {
 pub struct GuestState {
     pub now: Option<GuestTrack>,
     pub paused: bool,
-    /// Les invités peuvent mettre en pause et relancer (#222, choix de l'hôte).
+    /// Guests can pause and resume (#222, the host's choice).
     pub controls: bool,
-    /// Les invités peuvent ajouter (l'hôte peut suspendre les ajouts, #288).
+    /// Guests can add (the host can suspend additions, #288).
     pub adds: bool,
-    /// Les invités peuvent ajouter un album entier (#288).
+    /// Guests can add a whole album (#288).
     pub albums: bool,
-    /// Titres en attente au plus par invité, si l'hôte en a fixé une (#288).
+    /// Pending tracks at most per guest, if the host set a limit (#288).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
-    /// File manuelle (avec le nom de l'invité) puis suite du contexte, `MAX_QUEUE` au plus.
+    /// Manual queue (with the guest's name) then the rest of the context, `MAX_QUEUE` at most.
     pub queue: Vec<GuestTrack>,
-    /// Blind test ouvert aux invités (#441).
+    /// Blind test open to guests (#441).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blind: Option<GuestBlind>,
-    /// Volume, seulement si l'hôte laisse les invités le régler (#449).
+    /// Volume, only if the host lets guests set it (#449).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub volume: Option<GuestVolume>,
-    /// Instant (ms depuis l'epoch, heure de l'hôte) où le titre en cours aurait commencé,
-    /// en lecture (#448, `clock.rs`).
+    /// Instant (ms since the epoch, host's time) when the current track would have started,
+    /// while playing (#448, `clock.rs`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub started_at: Option<i64>,
-    /// Position en ms, en pause.
+    /// Position in ms, while paused.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub position: Option<u64>,
-    /// Le titre en cours a des paroles ; absent tant qu'aucun invité ne les a demandées.
+    /// The current track has lyrics; absent until a guest has asked for them.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lyrics: Option<bool>,
-    /// Vote pour passer le titre en cours (#433), seulement si l'hôte le permet.
+    /// Vote to skip the current track (#433), only if the host allows it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub skip: Option<GuestSkip>,
 }
 
-/// Volume vu par les invités (#449).
+/// Volume as the guests see it (#449).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuestVolume {
     pub level: u8,
-    /// Plafond de l'hôte : le curseur ne va pas plus haut.
+    /// The host's cap: the slider does not go higher.
     pub max: u8,
-    /// Son coupé par l'hôte : le curseur est grisé.
+    /// Sound muted by the host: the slider is greyed out.
     pub muted: bool,
 }
 
-/// Blind test vu par les invités (#441) : jamais la réponse avant la révélation, ni les
-/// saisies des joueurs.
+/// Blind test as the guests see it (#441): never the answer before the reveal, nor the
+/// players' entries.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuestBlind {
@@ -144,11 +144,11 @@ pub struct GuestBlind {
     pub clip_start: f64,
     pub clip_length: f64,
     pub choices: Vec<Choice>,
-    /// Classement, avec qui a répondu à la manche en cours.
+    /// Ranking, with who answered the current round.
     pub players: Vec<PlayerView>,
-    /// Révélation automatique prévue (ms depuis l'epoch).
+    /// Planned automatic reveal (ms since the epoch).
     pub reveal_at: Option<i64>,
-    /// Dernière manche révélée : son titre et le résultat de chacun.
+    /// Last revealed round: its track and everyone's result.
     pub last: Option<GuestRound>,
 }
 

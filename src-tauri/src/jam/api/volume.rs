@@ -1,5 +1,5 @@
-//! Volume réglé par les invités (#449), si l'hôte le permet, jamais au-dessus du plafond
-//! qu'il a choisi. Même chemin que la télécommande (#336) : `Cmd::SetVolume`.
+//! Volume set by guests (#449), if the host allows it, never above the cap
+//! the host chose. Same path as the remote control (#336): `Cmd::SetVolume`.
 
 use std::net::IpAddr;
 
@@ -16,8 +16,8 @@ struct VolumeBody {
 }
 
 impl Core {
-    /// `POST api/volume {guest, level}` : niveau ramené au plafond de l'hôte. Refusé si
-    /// l'hôte a coupé le son : un invité ne le rétablit pas à sa place.
+    /// `POST api/volume {guest, level}`: level brought down to the host's cap. Refused if
+    /// the host has muted: a guest does not restore it in their place.
     pub(super) async fn volume<B: Backend>(
         &self,
         body: &[u8],

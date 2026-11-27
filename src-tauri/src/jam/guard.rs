@@ -1,11 +1,11 @@
-//! Code d'accès et limites par invité et par adresse : logique pure, horloge passée en
+//! Access code and per-guest and per-address limits: pure logic, clock passed as an
 //! argument.
 //!
-//! En données mobiles, plusieurs invités sortent souvent par la même adresse (#256) : chaque
-//! action est donc comptée par invité (jeton du navigateur, sinon l'adresse) aux seuils
-//! ci-dessous, et par adresse avec un seuil `IP_FACTOR` fois plus large. Le jeton n'est pas
-//! une identité forte (un navigateur en tire un autre quand il veut) : le plafond par
-//! adresse reste la vraie borne.
+//! On mobile data, several guests often exit through the same address (#256): each
+//! action is thus counted per guest (browser token, otherwise the address) at the
+//! thresholds below, and per address with a threshold `IP_FACTOR` times wider. The token is
+//! not a strong identity (a browser can draw another whenever it wants): the per-address
+//! cap remains the real bound.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::net::IpAddr;
@@ -13,47 +13,47 @@ use std::time::{Duration, Instant};
 
 use rand::Rng;
 
-/// Sans 0/O, 1/I : le code se lit à voix haute ou sur un écran de loin.
+/// Without 0/O, 1/I: the code can be read aloud or on a screen from afar.
 const ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 pub const CODE_LEN: usize = 6;
-/// Essais ratés par adresse sur `FAILURE_WINDOW` avant que l'adresse soit bloquée ; le
-/// blocage tombe quand les essais les plus anciens sortent de la fenêtre (#256).
+/// Failed attempts per address over `FAILURE_WINDOW` before the address is blocked; the
+/// block lifts when the oldest attempts leave the window (#256).
 pub const MAX_FAILURES: usize = 10;
 pub const FAILURE_WINDOW: Duration = Duration::from_secs(15 * 60);
 pub const ADDS_PER_MINUTE: usize = 10;
-/// Assez pour la recherche pendant la saisie (une requête par pause de la frappe).
+/// Enough for search while typing (one request per typing pause).
 pub const SEARCHES_PER_MINUTE: usize = 60;
-/// Lecture / pause (#222) : assez pour l'usage normal, pas pour en faire un jeu.
+/// Play / pause (#222): enough for normal use, not to turn it into a game.
 pub const CONTROLS_PER_MINUTE: usize = 6;
-/// Retraits de ses propres ajouts (#223).
+/// Removals of one's own adds (#223).
 pub const REMOVES_PER_MINUTE: usize = 30;
-/// Seuils d'une adresse = seuils d'un invité × ce facteur (#256).
+/// Thresholds of an address = thresholds of a guest × this factor (#256).
 pub const IP_FACTOR: usize = 5;
-/// Adresses et invités suivis au plus ; les inactifs sont oubliés quand la table est pleine.
+/// Addresses and guests tracked at most; inactive ones are forgotten when the table is full.
 const MAX_ADDRESSES: usize = 1024;
 const MAX_GUESTS: usize = 4096;
-/// Titres proposés par les recherches de la Jam, les seuls que les invités peuvent ajouter.
+/// Tracks offered by Jam searches, the only ones guests can add.
 const MAX_OFFERED: usize = 5000;
 const WINDOW: Duration = Duration::from_secs(60);
 
-/// Commandes du propriétaire par minute (télécommande, #336) : un curseur de volume ou de
-/// position en envoie une par geste, jamais une rafale.
+/// Owner commands per minute (remote control, #336): a volume or position slider
+/// sends one per gesture, never a burst.
 pub const COMMANDS_PER_MINUTE: usize = 120;
-/// Réponses de blind test par minute (#441) : une par manche suffit largement.
+/// Blind test answers per minute (#441): one per round is plenty.
 pub const ANSWERS_PER_MINUTE: usize = 30;
-/// Volume réglé par un invité (#449) : un envoi par geste du curseur, compté à part de la
-/// pause pour que l'un ne bloque pas l'autre.
+/// Volume set by a guest (#449): one send per slider gesture, counted apart from
+/// pause so that one does not block the other.
 pub const VOLUMES_PER_MINUTE: usize = 30;
-/// Votes pour passer un titre (#433) : un par titre suffit, la marge couvre les refus
-/// (titre changé entre-temps).
+/// Votes to skip a track (#433): one per track is enough, the margin covers refusals
+/// (track changed in the meantime).
 pub const VOTES_PER_MINUTE: usize = 20;
 
-/// 32⁶ ≈ 1,07 milliard de codes.
+/// 32⁶ ≈ 1.07 billion codes.
 pub fn new_code() -> String {
     code_of_len(CODE_LEN)
 }
 
-/// Code de `len` caractères de l'alphabet sans ambiguïté (5 bits chacun).
+/// Code of `len` characters from the unambiguous alphabet (5 bits each).
 pub fn code_of_len(len: usize) -> String {
     let mut rng = rand::rng();
     (0..len)
@@ -61,12 +61,12 @@ pub fn code_of_len(len: usize) -> String {
         .collect()
 }
 
-/// Vrai si `code` n'a que des caractères de l'alphabet (code relu dans les réglages).
+/// True if `code` only has characters from the alphabet (code read back from the settings).
 pub fn is_code(code: &str, len: usize) -> bool {
     code.len() == len && code.bytes().all(|b| ALPHABET.contains(&b))
 }
 
-/// Compare un code saisi (casse, espaces et tirets ignorés) en temps constant.
+/// Compares an entered code (case, spaces and dashes ignored) in constant time.
 pub fn code_matches(expected: &str, given: &str) -> bool {
     let given: Vec<u8> = given
         .bytes()
@@ -90,13 +90,13 @@ pub enum Action {
     Add,
     Control,
     Remove,
-    /// Commande du propriétaire (télécommande, #336).
+    /// Owner command (remote control, #336).
     Command,
-    /// Réponse de blind test (#441).
+    /// Blind test answer (#441).
     Answer,
-    /// Volume réglé par un invité (#449).
+    /// Volume set by a guest (#449).
     Volume,
-    /// Vote pour passer le titre (#433).
+    /// Vote to skip the track (#433).
     Vote,
 }
 
@@ -115,7 +115,7 @@ impl Action {
     }
 }
 
-/// Actions récentes d'un invité ou d'une adresse.
+/// Recent actions of a guest or an address.
 #[derive(Default)]
 struct Counters {
     searches: VecDeque<Instant>,
@@ -142,7 +142,7 @@ impl Counters {
         }
     }
 
-    /// Place pour une action de plus sous `max` (anciennes actions oubliées au passage).
+    /// Room for one more action under `max` (old actions forgotten along the way).
     fn has_room(&mut self, action: Action, max: usize, now: Instant) -> bool {
         let times = self.times(action);
         while times
@@ -200,7 +200,7 @@ pub struct Limits {
 }
 
 impl Limits {
-    /// Adresse bloquée (trop d'essais ratés récents) ou refusée (trop d'adresses actives).
+    /// Address blocked (too many recent failed attempts) or refused (too many active addresses).
     pub fn blocked(&mut self, ip: IpAddr, now: Instant) -> bool {
         match self.address(ip, now) {
             Some(a) => {
@@ -217,8 +217,8 @@ impl Limits {
         }
     }
 
-    /// Vrai si l'action est permise maintenant à l'invité `guest` (sa clé, `owner_key`)
-    /// depuis `ip` ; elle est alors comptée pour les deux.
+    /// True if the action is allowed now for guest `guest` (their key, `owner_key`)
+    /// from `ip`; it is then counted for both.
     pub fn allow(&mut self, ip: IpAddr, guest: &str, action: Action, now: Instant) -> bool {
         let max = action.per_minute();
         let ip_room = match self.address(ip, now) {
@@ -262,8 +262,8 @@ impl Limits {
     }
 }
 
-/// Titres sortis des recherches de la Jam : un invité ne peut ajouter qu'eux, pas
-/// n'importe quel identifiant.
+/// Tracks coming out of Jam searches: a guest can only add these, not
+/// any identifier.
 #[derive(Default)]
 pub struct Offered {
     ids: HashSet<u64>,
@@ -325,7 +325,7 @@ mod tests {
         limits.fail(IP, t0 + Duration::from_secs(60));
         assert!(limits.blocked(IP, t0 + Duration::from_secs(60)));
         assert!(!limits.blocked(OTHER, t0));
-        // Le premier essai sort de la fenêtre : l'adresse peut réessayer.
+        // The first attempt leaves the window: the address can retry.
         assert!(limits.blocked(IP, t0 + FAILURE_WINDOW - Duration::from_secs(1)));
         assert!(!limits.blocked(IP, t0 + FAILURE_WINDOW));
     }
@@ -338,9 +338,9 @@ mod tests {
             assert!(limits.allow(IP, "lea", Action::Add, t0));
         }
         assert!(!limits.allow(IP, "lea", Action::Add, t0 + Duration::from_secs(30)));
-        // Un autre invité derrière la même adresse a ses propres ajouts (#256).
+        // Another guest behind the same address has their own adds (#256).
         assert!(limits.allow(IP, "max", Action::Add, t0));
-        // Les recherches et les commandes de lecture ont leur propre compteur.
+        // Searches and playback commands have their own counter.
         assert!(limits.allow(IP, "lea", Action::Search, t0));
         assert!(limits.allow(IP, "lea", Action::Control, t0));
         assert!(limits.allow(IP, "lea", Action::Add, t0 + WINDOW));
@@ -350,13 +350,13 @@ mod tests {
     fn an_address_keeps_a_wider_ceiling() {
         let mut limits = Limits::default();
         let t0 = Instant::now();
-        // Des jetons neufs à chaque ajout ne dépassent pas le plafond de l'adresse.
+        // Fresh tokens on every add do not exceed the address's cap.
         for i in 0..ADDS_PER_MINUTE * IP_FACTOR {
             assert!(limits.allow(IP, &format!("k{i}"), Action::Add, t0));
         }
         assert!(!limits.allow(IP, "fresh", Action::Add, t0));
         assert!(limits.allow(OTHER, "fresh", Action::Add, t0));
-        // Un refus de l'adresse ne compte pas pour l'invité.
+        // A refusal by the address does not count for the guest.
         assert!(limits.allow(IP, "fresh", Action::Add, t0 + WINDOW));
     }
 

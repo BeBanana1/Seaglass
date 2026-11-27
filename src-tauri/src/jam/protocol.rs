@@ -1,7 +1,7 @@
-//! Messages échangés avec le relais (#25), copie de `relay/src/protocol.rs` : les deux
-//! doivent rester identiques (même JSON). L'hôte se connecte en WebSocket à `/host`
-//! (`Authorization: Bearer <clé de build>`), dit `hello`, reçoit `ready`, puis répond aux
-//! `request` des invités et pousse `state` quand l'état change.
+//! Messages exchanged with the relay (#25), copy of `relay/src/protocol.rs`: the two
+//! must stay identical (same JSON). The host connects by WebSocket to `/host`
+//! (`Authorization: Bearer <build key>`), says `hello`, receives `ready`, then answers the
+//! guests' `request`s and pushes `state` when the state changes.
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -14,7 +14,7 @@ pub struct Resume {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum FromHost {
     Hello {
-        /// Code d'accès de la Jam : le relais le vérifie pour les flux d'état.
+        /// The Jam's access code: the relay checks it for the state streams.
         code: String,
         #[serde(default)]
         resume: Option<Resume>,
@@ -24,7 +24,7 @@ pub enum FromHost {
         status: u16,
         body: String,
     },
-    /// État des invités (JSON de `GuestState`), poussé tel quel aux pages.
+    /// Guests' state (`GuestState` JSON), pushed as is to the pages.
     State {
         data: String,
     },
@@ -36,14 +36,14 @@ pub enum ToHost {
     Ready {
         id: String,
         secret: String,
-        /// `https://<relais>/j/<id>/` : à mettre dans le QR code, suivi de `#<code>`.
+        /// `https://<relay>/j/<id>/`: to put in the QR code, followed by `#<code>`.
         url: String,
-        /// Vrai si la Jam d'avant la coupure a été reprise (même adresse).
+        /// True if the Jam from before the cut was resumed (same address).
         resumed: bool,
     },
     Request {
         rid: u64,
-        /// Adresse de l'invité, pour les limites de l'hôte.
+        /// The guest's address, for the host's limits.
         client: String,
         path: String,
         code: Option<String>,
@@ -54,8 +54,8 @@ pub enum ToHost {
     },
 }
 
-/// Tunnel d'appareil (#430, `GET /device`) : le PC joignable par son téléphone lié hors du
-/// réseau local. Les corps sont des paquets chiffrés de bout en bout (`handoff::sealed`).
+/// Device tunnel (#430, `GET /device`): the PC reachable by its linked phone outside the
+/// local network. The bodies are end-to-end encrypted packets (`handoff::sealed`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum FromDevice {
@@ -67,12 +67,12 @@ pub enum FromDevice {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ToDevice {
     Ready {
-        /// `https://<relais>/d/<id>` : l'adresse que le téléphone appelle.
+        /// `https://<relay>/d/<id>`: the address the phone calls.
         url: String,
     },
     Request {
         rid: u64,
-        /// Adresse du téléphone, pour les limites du PC.
+        /// The phone's address, for the PC's limits.
         client: String,
         body: String,
     },

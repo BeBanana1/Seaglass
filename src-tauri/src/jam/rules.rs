@@ -1,7 +1,7 @@
-//! Règles de l'hôte pour la Jam (#288) : logique pure, testée sans lecteur ni réseau.
+//! The host's rules for the Jam (#288): pure logic, tested without a player or network.
 //!
-//! Les règles sont retenues d'une Jam à l'autre (réglage `jam.rules`) ; la suspension des
-//! ajouts et les exclusions restent propres à chaque Jam (`Core`).
+//! The rules are kept from one Jam to the next (`jam.rules` setting); the suspension of
+//! additions and the bans stay specific to each Jam (`Core`).
 
 use std::collections::HashSet;
 
@@ -9,14 +9,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::player::volume::MAX_LEVEL;
 
-/// Plus grande limite de titres en attente par invité acceptée.
+/// Largest accepted limit of pending tracks per guest.
 pub const MAX_PENDING_LIMIT: u32 = 50;
-/// Titres venus de la Jam en attente dans la file manuelle, tous invités confondus (#256) :
-/// une adresse qui tire des jetons à la volée ne remplit pas la file de l'hôte.
+/// Tracks from the Jam waiting in the manual queue, all guests together (#256): an address
+/// that draws tokens on the fly does not fill the host's queue.
 pub const MAX_JAM_PENDING: usize = 100;
-/// Plafond du volume réglé par les invités, par défaut (#449).
+/// Default cap on the volume set by guests (#449).
 pub const DEFAULT_GUEST_VOLUME_MAX: u8 = 80;
-/// Votes nécessaires pour passer un titre (#433) : par défaut, bornes.
+/// Votes needed to skip a track (#433): default, bounds.
 pub const DEFAULT_SKIP_VOTES: u8 = 3;
 pub const MIN_SKIP_VOTES: u8 = 2;
 pub const MAX_SKIP_VOTES: u8 = 10;
@@ -24,20 +24,20 @@ pub const MAX_SKIP_VOTES: u8 = 10;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct JamRules {
-    /// Les invités peuvent mettre en pause et relancer (#222).
+    /// Guests can pause and resume (#222).
     pub guest_controls: bool,
-    /// Titres en attente au plus par invité ; `None` = sans limite.
+    /// Pending tracks at most per guest; `None` = no limit.
     pub max_pending: Option<u32>,
-    /// Les invités peuvent ajouter un album entier (#223).
+    /// Guests can add a whole album (#223).
     pub albums: bool,
-    /// Les invités peuvent régler le volume (#449), désactivé par défaut.
+    /// Guests can set the volume (#449), off by default.
     pub guest_volume: bool,
-    /// Volume le plus haut qu'un invité peut demander (1 à 100).
+    /// Highest volume a guest can ask for (1 to 100).
     pub guest_volume_max: u8,
-    /// Les invités peuvent voter pour passer le titre en cours (#433), désactivé par défaut.
+    /// Guests can vote to skip the current track (#433), off by default.
     pub skip_vote: bool,
-    /// Votes qui passent le titre (2 à 10) : un seuil fixe, l'hôte ne sait pas combien
-    /// d'invités regardent la page.
+    /// Votes that skip the track (2 to 10): a fixed threshold, the host does not know how
+    /// many guests are looking at the page.
     pub skip_votes: u8,
 }
 
@@ -56,8 +56,8 @@ impl Default for JamRules {
 }
 
 impl JamRules {
-    /// Limite ramenée entre 1 et `MAX_PENDING_LIMIT` (0 = sans limite), plafond du volume
-    /// entre 1 et 100, seuil du vote entre 2 et 10.
+    /// Limit brought between 1 and `MAX_PENDING_LIMIT` (0 = no limit), volume cap between
+    /// 1 and 100, vote threshold between 2 and 10.
     pub fn sanitized(self) -> Self {
         Self {
             max_pending: self
@@ -70,26 +70,26 @@ impl JamRules {
         }
     }
 
-    /// Niveau appliqué pour la demande `level` d'un invité : ramené au plafond.
+    /// Level applied for a guest's `level` request: brought down to the cap.
     pub fn guest_level(&self, level: u8) -> u8 {
         level.min(self.guest_volume_max)
     }
 
-    /// Place restante d'un invité qui a déjà `pending` titres en attente ; `None` = sans limite.
+    /// Room left for a guest who already has `pending` tracks waiting; `None` = no limit.
     pub fn room(&self, pending: usize) -> Option<usize> {
         self.max_pending
             .map(|max| (max as usize).saturating_sub(pending))
     }
 }
 
-/// Pourquoi un ajout est refusé ; le nom est le type d'erreur que la page reçoit.
+/// Why an addition is refused; the name is the error type the page receives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Refusal {
-    /// Tous les titres sont déjà dans la file manuelle.
+    /// All the tracks are already in the manual queue.
     Duplicate,
-    /// L'invité a atteint sa limite de titres en attente.
+    /// The guest has reached their limit of pending tracks.
     Full,
-    /// La Jam a atteint sa part de la file manuelle (`MAX_JAM_PENDING`, #256).
+    /// The Jam has reached its share of the manual queue (`MAX_JAM_PENDING`, #256).
     QueueFull,
 }
 
@@ -103,14 +103,14 @@ impl Refusal {
     }
 }
 
-/// Place restante de la Jam dans la file quand `pending` de ses titres y attendent.
+/// Room left for the Jam in the queue when `pending` of its tracks are waiting there.
 pub fn jam_room(pending: usize) -> usize {
     MAX_JAM_PENDING.saturating_sub(pending)
 }
 
-/// Titres d'un ajout à mettre dans la file : sans ceux déjà en attente dans la file manuelle
-/// ni les répétitions, tronqués à la place restante de l'invité (`room`, `None` = sans limite)
-/// et à celle de la Jam (`jam_room`).
+/// Tracks of an addition to put in the queue: without those already waiting in the manual
+/// queue or the repeats, cut to the guest's remaining room (`room`, `None` = no limit) and
+/// to the Jam's (`jam_room`).
 pub fn admit(
     candidates: &[u64],
     queued: &[u64],
@@ -147,14 +147,14 @@ mod tests {
         let rules = JamRules::default();
         assert!(rules.guest_controls && rules.albums);
         assert_eq!(rules.room(100), None);
-        // Réglage d'avant #288 ou incomplet : valeurs par défaut.
+        // Setting from before #288 or incomplete: default values.
         let saved: JamRules = serde_json::from_str(r#"{"albums":false}"#).unwrap();
         assert!(saved.guest_controls);
         assert!(!saved.albums);
-        // Réglage d'avant #449 : volume fermé aux invités, plafond par défaut.
+        // Setting from before #449: volume closed to guests, default cap.
         assert!(!saved.guest_volume);
         assert_eq!(saved.guest_volume_max, DEFAULT_GUEST_VOLUME_MAX);
-        // Réglage d'avant #433 : vote fermé, seuil par défaut.
+        // Setting from before #433: vote closed, default threshold.
         assert!(!saved.skip_vote);
         assert_eq!(saved.skip_votes, DEFAULT_SKIP_VOTES);
     }
@@ -207,7 +207,7 @@ mod tests {
         assert_eq!(admit(&[1, 2, 3, 2, 4], &[2], None, all), Ok(vec![1, 3, 4]));
         assert_eq!(admit(&[1, 2, 3], &[], Some(2), all), Ok(vec![1, 2]));
         assert_eq!(admit(&[1], &[], Some(0), all), Err(Refusal::Full));
-        // Déjà en attente : le doublon l'emporte sur la limite (message plus juste).
+        // Already waiting: the duplicate wins over the limit (more accurate message).
         assert_eq!(admit(&[1], &[1], Some(0), all), Err(Refusal::Duplicate));
     }
 
@@ -215,10 +215,10 @@ mod tests {
     fn the_jam_share_of_the_queue_is_capped() {
         assert_eq!(jam_room(MAX_JAM_PENDING - 2), 2);
         assert_eq!(jam_room(MAX_JAM_PENDING + 5), 0);
-        // Un album est coupé à la plus petite des deux places.
+        // An album is cut to the smaller of the two rooms.
         assert_eq!(admit(&[1, 2, 3, 4], &[], None, 2), Ok(vec![1, 2]));
         assert_eq!(admit(&[1, 2, 3, 4], &[], Some(1), 2), Ok(vec![1]));
-        // La file pleine l'emporte sur la limite de l'invité : ce n'est pas de son fait.
+        // The full queue wins over the guest's limit: it is not their doing.
         assert_eq!(admit(&[1], &[], Some(0), 0), Err(Refusal::QueueFull));
     }
 }

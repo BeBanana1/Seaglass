@@ -1,5 +1,5 @@
-// Télécommande de Seaglass (#336) : servie par l'app sur le réseau local, pilote le
-// lecteur du PC. Tout le texte passe par `textContent` (titres venus de TIDAL).
+// Seaglass remote control (#336): served by the app on the local network, drives the PC's
+// player. All text goes through `textContent` (titles coming from TIDAL).
 "use strict";
 
 const TEXT = {
@@ -101,9 +101,9 @@ const SEARCH_DELAY = 400;
 let code = localStorage.getItem(CODE_KEY) || "";
 let events = null;
 let state = null;
-/** Moment où `state.position` a été reçu, pour faire avancer la barre entre deux envois. */
+/** Moment `state.position` was received, to advance the bar between two sends. */
 let receivedAt = 0;
-/** Le doigt est sur un curseur : l'état reçu ne le déplace pas. */
+/** The finger is on a slider: the received state does not move it. */
 let dragging = { position: false, volume: false };
 
 class ApiError extends Error {
@@ -141,7 +141,7 @@ function message(kind) {
   );
 }
 
-/** Code refusé (changé depuis l'ordinateur) ou adresse bloquée : retour à l'écran du code. */
+/** Code refused (changed from the computer) or address blocked: back to the code screen. */
 function lostAccess(e) {
   if (!["code", "blocked"].includes(e.kind)) return false;
   localStorage.removeItem(CODE_KEY);
@@ -150,7 +150,7 @@ function lostAccess(e) {
   return true;
 }
 
-/** Commande ; l'erreur s'affiche en bas de l'écran. */
+/** Command; the error is shown at the bottom of the screen. */
 async function send(path, body) {
   try {
     return await api(path, body);
@@ -193,12 +193,12 @@ function clock(seconds) {
   return h ? `${h}:${String(m).padStart(2, "0")}:${rest}` : `${m}:${rest}`;
 }
 
-/** Icône « aléatoire » de l'app, reprise du bouton du lecteur. */
+/** The app's "shuffle" icon, taken from the player's button. */
 function shuffleIcon() {
   return $("shuffle").querySelector("svg").cloneNode(true);
 }
 
-/** `symbol` : un caractère, ou une icône (nœud SVG). */
+/** `symbol`: a character, or an icon (SVG node). */
 function smallButton(label, symbol, onClick) {
   const button = el("button", "small");
   button.append(symbol);
@@ -209,7 +209,7 @@ function smallButton(label, symbol, onClick) {
   return button;
 }
 
-/** Ligne de liste : la zone principale lance `onOpen`, les boutons à droite font le reste. */
+/** List row: the main area calls `onOpen`, the buttons on the right do the rest. */
 function row(item, sub, onOpen, actions = []) {
   const li = el("li", "track");
   const open = el("button", "open");
@@ -228,7 +228,7 @@ function row(item, sub, onOpen, actions = []) {
   return li;
 }
 
-// --- Connexion -----------------------------------------------------------------
+// --- Connection -----------------------------------------------------------------
 
 function showJoin(error) {
   closeEvents();
@@ -262,11 +262,11 @@ function openEvents() {
     try {
       render(JSON.parse(event.data));
     } catch {
-      // Message illisible : le suivant le remplacera.
+      // Unreadable message: the next one will replace it.
     }
   };
-  // Le navigateur se reconnecte seul ; un code changé depuis l'ordinateur le fait échouer
-  // en boucle : on le vérifie une fois.
+  // The browser reconnects on its own; a code changed from the computer makes it fail in a
+  // loop: check it once.
   events.onerror = async () => {
     try {
       await api("join");
@@ -281,7 +281,7 @@ function closeEvents() {
   events = null;
 }
 
-// --- Lecteur -------------------------------------------------------------------
+// --- Player -------------------------------------------------------------------
 
 function position() {
   if (!state) return 0;
@@ -375,7 +375,7 @@ function renderQueue(next) {
 function setupPlayer() {
   $("play").addEventListener("click", () => {
     if (!state) return;
-    // Explicite, pas une bascule : un double appui ne relance pas la pause.
+    // Explicit, not a toggle: a double tap does not trigger the pause again.
     state.paused = !state.paused;
     send("pause", { paused: state.paused });
     render(state);
@@ -400,7 +400,7 @@ function setupPlayer() {
   });
   $("mute").addEventListener("click", () => state && send("mute", { muted: !state.muted }));
 
-  // Curseurs : une commande au relâchement, pas pendant le geste.
+  // Sliders: one command on release, not during the gesture.
   const seek = $("position");
   seek.addEventListener("input", () => {
     dragging.position = true;
@@ -427,7 +427,7 @@ function setupPlayer() {
   setInterval(tick, 250);
 }
 
-// --- Onglets -------------------------------------------------------------------
+// --- Tabs -------------------------------------------------------------------
 
 let playlistsLoaded = false;
 
@@ -469,7 +469,7 @@ async function loadPlaylists() {
   status.textContent = t.noPlaylists;
 }
 
-// --- Recherche -----------------------------------------------------------------
+// --- Search -----------------------------------------------------------------
 
 let searchTimer = null;
 let searchSeq = 0;
@@ -499,7 +499,7 @@ async function search(query) {
     if (!lostAccess(e)) status.textContent = message(e.kind);
     return;
   }
-  // Une réponse plus ancienne que la dernière frappe est ignorée.
+  // A response older than the last keystroke is ignored.
   if (seq !== searchSeq) return;
   const empty = !hits.tracks.length && !hits.albums.length && !hits.playlists.length;
   status.hidden = !empty;
@@ -542,7 +542,7 @@ function showHits(hits) {
   }
 }
 
-// --- Démarrage -----------------------------------------------------------------
+// --- Startup -----------------------------------------------------------------
 
 $("join-form").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -573,13 +573,13 @@ for (const name of ["queue", "search", "playlists"]) {
 setupPlayer();
 showTab("queue");
 
-// QR code de l'app : le code arrive après `#`, jamais envoyé au serveur. Retiré de
-// l'adresse pour ne pas rester dans l'historique. Un fragment mal formé est ignoré.
+// The app's QR code: the code comes after `#`, never sent to the server. Removed from the
+// address so it does not stay in the history. A malformed fragment is ignored.
 let fromQr = "";
 try {
   fromQr = decodeURIComponent(location.hash.slice(1));
 } catch {
-  // Fragment illisible : rien à reprendre.
+  // Unreadable fragment: nothing to pick up.
 }
 if (location.hash) history.replaceState(null, "", location.pathname);
 if (fromQr) code = fromQr;

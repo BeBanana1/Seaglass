@@ -1,11 +1,11 @@
-//! Jam en ligne (#25, étape 3b) : l'app se connecte au relais (`relay/`) en WebSocket
-//! sortant, sans port ouvert chez l'hôte. Les appels des invités arrivent en `request`,
-//! passent par le même cœur que la Jam locale (`api.rs`) et repartent en `response` ;
-//! l'état est poussé au relais quand il change.
+//! Online Jam (#25, step 3b): the app connects to the relay (`relay/`) over an outgoing
+//! WebSocket, with no port open on the host's side. The guests' calls arrive as `request`,
+//! go through the same core as the local Jam (`api.rs`) and leave as `response`; the state
+//! is pushed to the relay when it changes.
 //!
-//! Coupure (réseau mobile, veille) : reconnexion de plus en plus espacée (1 s à 30 s) avec
-//! la reprise du relais, qui garde la même adresse et le même QR code 30 min (depuis la 0.4.85). Au-delà, le
-//! relais ouvre une nouvelle Jam : l'adresse change et l'UI en est prévenue.
+//! Cut (mobile network, sleep): reconnection at increasing intervals (1 s to 30 s) with the
+//! relay's resume, which keeps the same address and the same QR code for 30 min (since
+//! 0.4.85). Beyond that, the relay opens a new Jam: the address changes and the UI is told.
 
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
@@ -27,25 +27,25 @@ use crate::i18n::{tr, trf};
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 const READY_TIMEOUT: Duration = Duration::from_secs(10);
 const PING_INTERVAL: Duration = Duration::from_secs(20);
-/// Sans aucun message du relais pendant ce délai, la connexion est perdue.
+/// With no message from the relay for this long, the connection is lost.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const MAX_BACKOFF: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone)]
 pub struct RelayConfig {
-    /// `wss://…/host` (ou `ws://` pour un relais local de test).
+    /// `wss://…/host` (or `ws://` for a local test relay).
     pub url: String,
     pub key: String,
 }
 
 impl RelayConfig {
-    /// Relais des Réglages, sinon compilé (#452, voir `relay_settings`). `None` sans relais :
-    /// seule la Jam locale est proposée.
+    /// The Settings relay, otherwise the built-in one (#452, see `relay_settings`). `None`
+    /// without a relay: only the local Jam is offered.
     pub fn current() -> Option<Self> {
         super::relay_settings::config()
     }
 
-    /// Tunnel d'appareil (#430) : même relais, `/device` au lieu de `/host`.
+    /// Device tunnel (#430): same relay, `/device` instead of `/host`.
     pub fn device_url(&self) -> String {
         match self.url.strip_suffix("/host") {
             Some(base) => format!("{base}/device"),
@@ -54,20 +54,20 @@ impl RelayConfig {
     }
 }
 
-/// Ce que la connexion annonce à `JamState` (adresse, état pour l'UI).
+/// What the connection announces to `JamState` (address, state for the UI).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RelayEvent {
     Connecting,
-    /// Jam ouverte (ou reprise avec la même adresse si `resumed`).
+    /// Jam open (or resumed with the same address if `resumed`).
     Ready {
         url: String,
         resumed: bool,
     },
-    /// Connexion perdue ou refusée pour l'instant : nouvelle tentative.
+    /// Connection lost or refused for now: trying again.
     Lost {
         reason: Option<String>,
     },
-    /// Refus définitif (clé refusée) : la Jam en ligne s'arrête.
+    /// Final refusal (key refused): the online Jam stops.
     Failed {
         reason: String,
     },
@@ -80,7 +80,7 @@ enum Failure {
     Fatal(String),
 }
 
-/// Tient la Jam ouverte sur le relais jusqu'à l'annulation de la tâche.
+/// Keeps the Jam open on the relay until the task is cancelled.
 pub async fn run<B: Backend>(
     config: RelayConfig,
     code: String,
@@ -93,14 +93,14 @@ pub async fn run<B: Backend>(
     loop {
         notify(RelayEvent::Connecting);
         match session(&config, &code, &core, &backend, &mut resume, &notify).await {
-            // Connexion établie puis perdue : on repart vite.
+            // Connection established then lost: go again quickly.
             Ok(()) => {
                 backoff = Duration::from_secs(1);
                 notify(RelayEvent::Lost { reason: None });
             }
             Err(Failure::Retry(reason)) => notify(RelayEvent::Lost { reason }),
             Err(Failure::Fatal(reason)) => {
-                tracing::warn!("Jam en ligne arrêtée : {reason}");
+                tracing::warn!("Online Jam stopped: {reason}");
                 notify(RelayEvent::Failed { reason });
                 return;
             }
@@ -116,7 +116,7 @@ fn unreachable_relay() -> Failure {
     ))
 }
 
-/// Une connexion : `Ok` si elle a été établie (Jam prête) puis perdue.
+/// One connection: `Ok` if it was established (Jam ready) then lost.
 async fn session<B: Backend>(
     config: &RelayConfig,
     code: &str,
@@ -150,7 +150,7 @@ async fn session<B: Backend>(
             ));
         }
         Ok(Err(e)) => {
-            tracing::info!("relais : {e}");
+            tracing::info!("relay: {e}");
             return Err(unreachable_relay());
         }
         Err(_) => return Err(unreachable_relay()),
@@ -179,13 +179,10 @@ async fn session<B: Backend>(
             resumed,
         } => {
             *resume = Some(Resume { id, secret });
-            tracing::info!(
-                "Jam en ligne {}",
-                if resumed { "reprise" } else { "ouverte" }
-            );
+            tracing::info!("Online Jam {}", if resumed { "resumed" } else { "opened" });
             notify(RelayEvent::Ready { url, resumed });
         }
-        // Relais complet, trop de Jams depuis cette adresse : réessayer plus tard.
+        // Relay full, too many Jams from this address: try again later.
         ToHost::Error { message } => {
             return Err(Failure::Retry(Some(trf!(
                 "refusé par le relais : {}",
@@ -226,9 +223,9 @@ async fn session<B: Backend>(
                                 let _ = replies.send(FromHost::Response { rid, status, body }).await;
                             });
                         }
-                        // Jam fermée par le relais (12 h) : la reprise échouera, nouvelle Jam.
+                        // Jam closed by the relay (12 h): the resume will fail, new Jam.
                         Ok(ToHost::Error { message }) => {
-                            tracing::info!("relais : {message}");
+                            tracing::info!("relay: {message}");
                             return Ok(());
                         }
                         _ => {}
@@ -287,7 +284,7 @@ async fn send(sink: &mut Sink, message: &FromHost) -> Result<(), Failure> {
 }
 
 #[cfg(test)]
-// La réponse d'erreur du handshake de tungstenite est grosse : sans importance ici.
+// tungstenite's handshake error response is big: unimportant here.
 #[allow(clippy::result_large_err)]
 mod tests {
     use super::*;
@@ -304,7 +301,7 @@ mod tests {
 
     type Relay = WebSocketStream<TcpStream>;
 
-    /// Accepte un hôte en vérifiant sa clé, comme le relais.
+    /// Accepts a host while checking its key, like the relay.
     async fn accept(listener: &TcpListener) -> Result<Relay, ()> {
         let (stream, _) = listener.accept().await.unwrap();
         let check = |request: &Request, response: HandshakeResponse| {
@@ -327,7 +324,7 @@ mod tests {
         loop {
             let message = tokio::time::timeout(Duration::from_secs(5), relay.next())
                 .await
-                .expect("rien reçu de l'hôte")
+                .expect("nothing received from the host")
                 .unwrap()
                 .unwrap();
             if let Message::Text(text) = message {
@@ -403,11 +400,11 @@ mod tests {
                     assert!(data.contains("Titre 7"));
                     state = true;
                 }
-                other => panic!("inattendu : {other:?}"),
+                other => panic!("unexpected: {other:?}"),
             }
         }
 
-        // Coupure : l'hôte revient avec la reprise et garde la même adresse.
+        // Cut: the host comes back with the resume and keeps the same address.
         drop(relay);
         let mut relay = accept(&listener).await.unwrap();
         assert_eq!(
@@ -430,7 +427,7 @@ mod tests {
             },
         )
         .await;
-        // Laisse l'hôte traiter `ready`.
+        // Let the host process `ready`.
         receive(&mut relay).await;
         task.abort();
 
@@ -454,7 +451,7 @@ mod tests {
         assert!(accept(&listener).await.is_err());
         tokio::time::timeout(Duration::from_secs(5), task)
             .await
-            .expect("la Jam en ligne aurait dû s'arrêter")
+            .expect("the online Jam should have stopped")
             .unwrap();
         let events = events.lock().unwrap().clone();
         assert!(matches!(events.last(), Some(RelayEvent::Failed { .. })));
@@ -462,7 +459,7 @@ mod tests {
 
     #[test]
     fn protocol_matches_the_relay() {
-        // Mêmes messages que relay/src/protocol.rs (tests du relais).
+        // Same messages as relay/src/protocol.rs (the relay's tests).
         let hello = serde_json::to_value(FromHost::Hello {
             code: CODE.into(),
             resume: None,
@@ -479,13 +476,13 @@ mod tests {
         assert!(matches!(request, ToHost::Request { rid: 1, .. }));
     }
 
-    /// Jam ouverte sur le vrai relais (clé du `.env`), puis appelée comme un invité en
-    /// HTTPS à travers Caddy : `cargo test live_relay -- --ignored --nocapture`.
+    /// Jam opened on the real relay (key from `.env`), then called like a guest over
+    /// HTTPS through Caddy: `cargo test live_relay -- --ignored --nocapture`.
     #[tokio::test]
     #[ignore]
     async fn live_relay() {
         let config = RelayConfig::current()
-            .expect("relais absent : SEAGLASS_RELAY_KEY et SEAGLASS_RELAY_BASE_URL du .env");
+            .expect("relay missing: SEAGLASS_RELAY_KEY and SEAGLASS_RELAY_BASE_URL from .env");
         let events: Arc<Mutex<Vec<RelayEvent>>> = Arc::default();
         let seen = Arc::clone(&events);
         let notify: Notify = Arc::new(move |e| seen.lock().unwrap().push(e));
@@ -502,11 +499,11 @@ mod tests {
             let last = events.lock().unwrap().last().cloned();
             match last {
                 Some(RelayEvent::Ready { url, .. }) => break url,
-                Some(RelayEvent::Failed { reason }) => panic!("refusé : {reason}"),
+                Some(RelayEvent::Failed { reason }) => panic!("refused: {reason}"),
                 _ => {}
             }
         };
-        println!("Jam en ligne : {url}");
+        println!("Online Jam: {url}");
         let http = reqwest::Client::new();
         let page = http.get(&url).send().await.unwrap();
         assert_eq!(page.status(), 200);
@@ -533,7 +530,7 @@ mod tests {
             401
         );
 
-        // Flux d'état à travers Caddy : le premier événement doit arriver sans tampon.
+        // State stream through Caddy: the first event must arrive unbuffered.
         let mut events_stream = http
             .get(format!("{url}api/events?code={CODE}"))
             .send()
@@ -544,13 +541,13 @@ mod tests {
         while !received.contains("data: ") {
             let chunk = tokio::time::timeout(Duration::from_secs(10), events_stream.chunk())
                 .await
-                .expect("aucun état reçu à travers Caddy")
+                .expect("no state received through Caddy")
                 .unwrap()
-                .expect("flux fermé");
+                .expect("stream closed");
             received.push_str(&String::from_utf8_lossy(&chunk));
         }
         assert!(received.contains("Titre 7"));
         task.abort();
-        println!("rejoindre, recherche, code faux, flux d'état : ok");
+        println!("join, search, wrong code, state stream: ok");
     }
 }

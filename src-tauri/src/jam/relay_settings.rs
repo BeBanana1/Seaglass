@@ -1,15 +1,15 @@
-//! Relais réglable (#452) : la Jam en ligne et le tunnel des transferts (#430) passent par
-//! un relais (`relay/`) que chacun peut héberger. Par défaut, celui compilé
-//! (`servers::relay_base`) ; l'utilisateur peut en donner un autre, ou couper le relais.
+//! Configurable relay (#452): the online Jam and the transfer tunnel (#430) go through a
+//! relay (`relay/`) that anyone can host. By default, the built-in one
+//! (`servers::relay_base`); the user can give another one, or turn the relay off.
 //!
-//! Le relais n'accepte que les hôtes qui présentent sa clé (`SEAGLASS_RELAY_KEY`, pas un
-//! secret : elle écarte les robots). Un autre relais a la sienne, saisie avec l'adresse ;
-//! sans clé saisie, la clé compilée est envoyée.
+//! The relay only accepts hosts that present its key (`SEAGLASS_RELAY_KEY`, not a secret:
+//! it keeps bots out). Another relay has its own, entered with the address; without an
+//! entered key, the built-in key is sent.
 //!
-//! Gardé à part des réglages d'interface (`relay.settings`) : `set_ui_settings` reçoit
-//! l'objet entier de l'UI et contournerait la validation de l'adresse. Pas exporté par la
-//! sauvegarde des réglages (#352). Un changement vaut pour la prochaine Jam, et pour le
-//! tunnel à sa prochaine ouverture.
+//! Kept apart from the interface settings (`relay.settings`): `set_ui_settings` receives
+//! the UI's whole object and would bypass the address validation. Not exported by the
+//! settings backup (#352). A change applies to the next Jam, and to the tunnel at its next
+//! opening.
 
 use std::sync::RwLock;
 use std::time::Duration;
@@ -29,11 +29,11 @@ const HEALTH_TIMEOUT: Duration = Duration::from_secs(10);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct RelaySettings {
-    /// Faux : ni Jam en ligne ni tunnel, même avec un relais compilé.
+    /// False: neither online Jam nor tunnel, even with a built-in relay.
     pub enabled: bool,
-    /// `https://…` sans `/` final ; `None` : relais compilé.
+    /// `https://…` without a trailing `/`; `None`: built-in relay.
     pub url: Option<String>,
-    /// Clé de ce relais ; `None` : clé compilée.
+    /// This relay's key; `None`: built-in key.
     pub key: Option<String>,
 }
 
@@ -49,13 +49,13 @@ impl Default for RelaySettings {
 
 static SETTINGS: RwLock<Option<RelaySettings>> = RwLock::new(None);
 
-/// Lit les réglages enregistrés (au lancement).
+/// Reads the saved settings (at launch).
 pub fn load(store: Option<&Store>) {
     let settings = store
         .and_then(|s| match s.get_setting::<RelaySettings>(KEY) {
             Ok(v) => v,
             Err(e) => {
-                tracing::warn!("relais : réglage illisible, valeurs par défaut ({e})");
+                tracing::warn!("relay: unreadable setting, using defaults ({e})");
                 None
             }
         })
@@ -77,7 +77,7 @@ pub fn current() -> RelaySettings {
         .unwrap_or_default()
 }
 
-/// Relais à joindre maintenant, `None` sans relais (coupé, aucune adresse, aucune clé).
+/// Relay to reach now, `None` without a relay (turned off, no address, no key).
 pub fn config() -> Option<RelayConfig> {
     let runtime = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
     resolve(
@@ -91,8 +91,8 @@ pub fn config() -> Option<RelayConfig> {
     )
 }
 
-/// Variables d'environnement au lancement (tests) : `SEAGLASS_RELAY_URL` (adresse
-/// `ws(s)://…/host` complète) et `SEAGLASS_RELAY_KEY`.
+/// Environment variables at launch (tests): `SEAGLASS_RELAY_URL` (full `ws(s)://…/host`
+/// address) and `SEAGLASS_RELAY_KEY`.
 #[derive(Default)]
 struct Overrides {
     url: Option<String>,
@@ -120,13 +120,13 @@ fn resolve(
     Some(RelayConfig { url, key })
 }
 
-/// `https://hôte[/chemin]` → `wss://hôte[/chemin]/host`.
+/// `https://host[/path]` → `wss://host[/path]/host`.
 fn host_url(base: &str) -> Option<String> {
     let rest = base.strip_prefix("https://")?;
     Some(format!("wss://{}/host", rest.trim_end_matches('/')))
 }
 
-/// Adresse saisie, ramenée à `https://hôte[:port][/chemin]` ; refusée sinon.
+/// Entered address, reduced to `https://host[:port][/path]`; refused otherwise.
 pub fn normalize(input: &str) -> Result<String, String> {
     let invalid = || {
         tr(
@@ -152,12 +152,12 @@ pub fn normalize(input: &str) -> Result<String, String> {
     Ok(url.as_str().trim_end_matches('/').to_owned())
 }
 
-/// La clé part dans un en-tête HTTP : caractères visibles seulement.
+/// The key goes in an HTTP header: visible characters only.
 fn valid_key(key: &str) -> bool {
     !key.is_empty() && key.len() <= MAX_KEY_LEN && key.bytes().all(|b| b.is_ascii_graphic())
 }
 
-/// Le relais répond-il ? `GET /healthz` doit renvoyer `ok`.
+/// Does the relay answer? `GET /healthz` must return `ok`.
 async fn check_health(base: &str) -> Result<(), String> {
     let unreachable = |detail: String| {
         trf!(
@@ -190,17 +190,17 @@ async fn check_health(base: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Réglage du relais pour l'UI. La clé n'est jamais renvoyée.
+/// Relay setting for the UI. The key is never returned.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RelayView {
     pub enabled: bool,
-    /// Adresse choisie ; `None` : celle compilée (`default_url`).
+    /// Chosen address; `None`: the built-in one (`default_url`).
     pub url: Option<String>,
     pub default_url: Option<String>,
-    /// Une clé propre à ce relais est enregistrée.
+    /// A key specific to this relay is saved.
     pub custom_key: bool,
-    /// Le relais est utilisable (adresse et clé connues).
+    /// The relay is usable (address and key known).
     pub usable: bool,
 }
 
@@ -215,8 +215,8 @@ pub fn view() -> RelayView {
     }
 }
 
-/// Changement demandé par l'UI. `url` vide ou égale au relais compilé : relais compilé.
-/// `key` : `None` garde la clé, vide revient à la clé compilée.
+/// Change requested by the UI. `url` empty or equal to the built-in relay: built-in relay.
+/// `key`: `None` keeps the key, empty goes back to the built-in key.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RelayChange {
@@ -225,7 +225,7 @@ pub struct RelayChange {
     pub key: Option<String>,
 }
 
-/// Valide, vérifie qu'un relais choisi répond, enregistre et applique.
+/// Validates, checks that a chosen relay answers, saves and applies.
 pub async fn update(store: Option<&Store>, change: RelayChange) -> Result<RelayView, String> {
     let mut settings = current();
     settings.enabled = change.enabled;
@@ -290,7 +290,7 @@ mod tests {
         let c = resolve(&settings, Overrides::default(), COMPILED, KEY).unwrap();
         assert_eq!(c.url, "wss://relay.friend.org/seaglass/host");
         assert_eq!(c.key, "their-key");
-        // Sans clé saisie : la clé compilée.
+        // Without an entered key: the built-in key.
         let settings = RelaySettings {
             key: None,
             ..settings

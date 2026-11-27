@@ -1,4 +1,4 @@
-//! Télécommande servie pour de vrai (`serve_site`) avec un faux lecteur.
+//! Remote control served for real (`serve_site`) with a fake player.
 
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
@@ -20,9 +20,9 @@ const PLAYLIST: &str = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
 #[derive(Default)]
 struct FakeRemote {
     commands: Mutex<Vec<Command>>,
-    /// Transferts reçus (`give`).
+    /// Handoffs received (`give`).
     given: Mutex<Vec<Handoff>>,
-    /// Historique d'écoute du PC (#430), en mémoire.
+    /// The PC's listening history (#430), in memory.
     history: std::sync::OnceLock<Arc<crate::store::Store>>,
 }
 
@@ -44,7 +44,7 @@ impl Remote for FakeRemote {
             has_previous: true,
             ..PlayerState::default()
         };
-        // Les commandes reçues changent l'état, comme le vrai lecteur (aperçu de la page).
+        // Received commands change the state, like the real player (page preview).
         for command in self.commands.lock().unwrap().iter() {
             match command {
                 Command::SetPaused(p) => player.paused = *p,
@@ -96,7 +96,7 @@ impl Remote for FakeRemote {
     }
 
     async fn take_handoff(&self) -> Result<Option<Handoff>, String> {
-        // Comme le vrai lecteur : il se met en pause en donnant la lecture.
+        // Like the real player: it pauses when handing the playback over.
         self.commands.lock().unwrap().push(Command::SetPaused(true));
         Ok(Some(handoff::sample(200)))
     }
@@ -168,7 +168,7 @@ async fn serves_its_own_page_without_code() {
     for file in ["/remote.js", "/remote.css", "/jam.css"] {
         assert_eq!(call(addr, "GET", file, "", "").await.0, 200, "{file}");
     }
-    // La page des invités n'est pas servie ici.
+    // The guests' page is not served here.
     assert_eq!(call(addr, "GET", "/jam.js", "", "").await.0, 404);
 }
 
@@ -176,14 +176,14 @@ async fn serves_its_own_page_without_code() {
 async fn only_the_owner_code_opens_the_remote() {
     let (addr, site) = start().await;
     let fake = &site.remote;
-    // Un code de Jam (6 caractères) ou un code voisin n'ouvre rien.
+    // A Jam code (6 characters) or a nearby code opens nothing.
     assert_eq!(call(addr, "POST", "/api/next", "AB23CD", "").await.0, 401);
     assert_eq!(
         call(addr, "POST", "/api/next", "AB23CDEF45GJ", "").await.0,
         401
     );
     assert!(fake.commands.lock().unwrap().is_empty());
-    // Casse et tirets ignorés, comme pour la Jam.
+    // Case and dashes ignored, as for the Jam.
     assert_eq!(
         call(addr, "POST", "/api/join", "ab23-cdef-45gh", "")
             .await
@@ -343,7 +343,7 @@ async fn commands_are_rate_limited() {
         assert_eq!(post(addr, "/api/next", "").await.0, 200);
     }
     assert_eq!(post(addr, "/api/next", "").await.0, 429);
-    // L'état et la recherche ont leurs propres compteurs.
+    // The state and the search have their own counters.
     assert_eq!(post(addr, "/api/state", "").await.0, 200);
     assert_eq!(post(addr, "/api/search", r#"{"query":"x"}"#).await.0, 200);
 }
@@ -358,7 +358,7 @@ async fn events_push_the_player_state() {
     let mut next_data = async || loop {
         let line = tokio::time::timeout(Duration::from_secs(5), lines.next_line())
             .await
-            .expect("aucun événement")
+            .expect("no event")
             .unwrap()
             .unwrap();
         if let Some(data) = line.strip_prefix("data: ") {
@@ -376,7 +376,7 @@ async fn events_push_the_player_state() {
     assert_eq!(next_data().await["paused"], true);
 }
 
-/// Page servie avec ce faux lecteur, pour la regarder dans un navigateur (30 min) :
+/// Page served with this fake player, to look at it in a browser (30 min):
 /// #62: the relay route (and its key) is only given during a pairing window.
 #[tokio::test]
 async fn the_relay_route_waits_for_a_pairing_window() {
@@ -399,7 +399,7 @@ async fn the_relay_route_waits_for_a_pairing_window() {
     assert_eq!(post(addr, "/api/join", "").await.0, 200);
 }
 
-/// `cargo test remote_page_preview -- --ignored --nocapture`, puis
+/// `cargo test remote_page_preview -- --ignored --nocapture`, then
 /// `http://127.0.0.1:47899/#AB23CDEF45GH`.
 #[tokio::test]
 #[ignore]

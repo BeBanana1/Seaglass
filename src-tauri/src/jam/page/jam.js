@@ -1,5 +1,5 @@
-// Page des invités de la Jam (#25). Aucune donnée distante n'entre dans le HTML :
-// tout passe par textContent.
+// Jam guests' page (#25). No remote data enters the HTML: everything goes through
+// textContent.
 "use strict";
 
 const TEXT = {
@@ -70,7 +70,7 @@ const TEXT = {
     lyricsCredit: (p) => `Paroles fournies par ${p}`,
     closed: "Ajouts suspendus par l'hôte.",
     limit: (n) => `Jusqu'à ${n} titre${n > 1 ? "s" : ""} en attente par personne.`,
-    // Blind test à plusieurs (#441).
+    // Multiplayer blind test (#441).
     game: "Blind test",
     gameRound: (n, total) => `Manche ${n} / ${total}`,
     gameListen: "Écoutez… Le titre s'affichera à la révélation.",
@@ -202,9 +202,9 @@ const t = TEXT[lang];
 document.documentElement.lang = lang;
 
 const $ = (id) => document.getElementById(id);
-/** Code rangé par Jam (#256) : sur le relais, toutes les Jams partagent l'origine, et un
- * ancien code gâcherait un essai sur la nouvelle. Le chemin est `/j/<id>/` (relais) ou `/`
- * (réseau local). L'ancienne clé commune est retirée. */
+/** Code stored per Jam (#256): on the relay, all Jams share the origin, and an old code
+ * would waste an attempt on the new one. The path is `/j/<id>/` (relay) or `/` (local
+ * network). The old shared key is removed. */
 const CODE_KEY = `seaglass-jam-code:${location.pathname}`;
 localStorage.removeItem("seaglass-jam-code");
 const NAME_KEY = "seaglass-jam-name";
@@ -214,14 +214,14 @@ const SEARCH_DELAY = 400;
 
 let code = localStorage.getItem(CODE_KEY) || "";
 let name = localStorage.getItem(NAME_KEY) || "";
-/** Flux de l'état poussé par l'hôte. */
+/** Stream of the state pushed by the host. */
 let events = null;
-/** Titres ajoutés depuis cette page, montrés tout de suite sans attendre l'hôte. */
+/** Tracks added from this page, shown right away without waiting for the host. */
 const pending = new Set();
 const pendingAlbums = new Set();
 
-/** Jeton de ce navigateur (#223) : l'hôte ne laisse retirer un ajout qu'à son auteur.
- * `getRandomValues` existe aussi en HTTP simple (réseau local), pas `randomUUID`. */
+/** Token of this browser (#223): the host only lets an addition be removed by its author.
+ * `getRandomValues` also exists over plain HTTP (local network), `randomUUID` does not. */
 const guest =
   localStorage.getItem(GUEST_KEY) ||
   (() => {
@@ -231,7 +231,7 @@ const guest =
     return token;
   })();
 
-/** Lots ajoutés depuis ce navigateur pendant la Jam en cours : `{ <lot>: "track" | "album" }`. */
+/** Batches added from this browser during the current Jam: `{ <batch>: "track" | "album" }`. */
 let mine = {};
 function loadMine() {
   try {
@@ -259,8 +259,8 @@ class ApiError extends Error {
 async function api(path, body) {
   let res;
   try {
-    // Chemins relatifs : la page est servie à `/` (réseau local) ou à `/j/<id>/` (relais).
-    // Le jeton part avec chaque requête : l'hôte peut exclure un invité (#288).
+    // Relative paths: the page is served at `/` (local network) or `/j/<id>/` (relay).
+    // The token goes with every request: the host can exclude a guest (#288).
     res = await fetch(`api/${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Jam-Code": code },
@@ -305,8 +305,8 @@ function message(kind) {
   );
 }
 
-/** Code refusé, adresse bloquée, invité exclu (#288) ou Jam terminée (relais) : retour à
- * l'écran pour rejoindre. */
+/** Code refused, address blocked, guest excluded (#288) or Jam ended (relay): back to the
+ * join screen. */
 function lostAccess(e) {
   if (!["code", "blocked", "ended", "banned"].includes(e.kind)) return false;
   localStorage.removeItem(CODE_KEY);
@@ -351,7 +351,7 @@ function trackRow(track, action) {
   return li;
 }
 
-// --- Rejoindre ---------------------------------------------------------------
+// --- Join ---------------------------------------------------------------
 
 function showJoin(error) {
   closeEvents();
@@ -386,7 +386,7 @@ function showWho() {
   $("who").textContent = name ? t.who(name) : t.anonymous;
 }
 
-// --- État en direct ---------------------------------------------------------
+// --- Live state ---------------------------------------------------------
 
 function render(state) {
   const now = $("now");
@@ -399,7 +399,7 @@ function render(state) {
       el("div", "title", state.now.title),
       el("div", "sub", state.now.artists),
     );
-    // Paroles (#448) : masqué pendant un blind test, ou quand l'hôte sait qu'il n'y en a pas.
+    // Lyrics (#448): hidden during a blind test, or when the host knows there are none.
     if (!state.blind && state.lyrics !== false) {
       const open = el("button", "link lyrics-open", t.lyrics);
       open.type = "button";
@@ -414,7 +414,7 @@ function render(state) {
   renderVolume(state.volume);
   renderSkip(state);
   followLyrics(state);
-  // Règles de l'hôte (#288) : ajouts suspendus, limite par invité, albums.
+  // Host rules (#288): additions suspended, limit per guest, albums.
   const notice = $("notice");
   const lines = [];
   if (state.blind) lines.push(t.gameNotice);
@@ -425,14 +425,14 @@ function render(state) {
   notice.classList.toggle("warn", state.adds === false && !state.blind);
   renderGame(state.blind);
   const albumsChanged = lastState && lastState.albums !== state.albums;
-  // L'hôte a pris en compte les ajouts en attente qu'il renvoie.
+  // The host has taken into account the pending additions it sends back.
   for (const track of state.queue) pending.delete(track.id);
   lastState = state;
   const rows = [];
   const headed = new Set();
   for (const track of state.queue) {
     const kind = track.batch === undefined ? undefined : mine[track.batch];
-    // Un album ajouté depuis ce navigateur : un en-tête avant son premier titre.
+    // An album added from this browser: a header before its first track.
     if (kind === "album" && !headed.has(track.batch)) {
       headed.add(track.batch);
       rows.push(albumHead(track));
@@ -464,7 +464,8 @@ function removeButton(track) {
   return button;
 }
 
-/** Retire un titre ou tout un lot ajouté depuis ce navigateur ; la file revient par le flux. */
+/** Removes a track or a whole batch added from this browser; the queue comes back via the
+ * stream. */
 async function removeAdded(button, target) {
   button.disabled = true;
   let res;
@@ -479,7 +480,7 @@ async function removeAdded(button, target) {
   else toast(t.removed);
 }
 
-/** Lecture / pause (#222), si l'hôte le permet. L'état réel revient par le flux. */
+/** Play / pause (#222), if the host allows it. The real state comes back via the stream. */
 function pauseButton(paused) {
   const button = el("button", "play-pause", paused ? "▶︎" : "❚❚");
   button.type = "button";
@@ -496,8 +497,8 @@ function pauseButton(paused) {
   return button;
 }
 
-/** Volume (#449), si l'hôte le permet : le curseur s'arrête au plafond de l'hôte, et n'est
- * pas déplacé par l'état poussé pendant que l'invité le tient. */
+/** Volume (#449), if the host allows it: the slider stops at the host's ceiling, and is not
+ * moved by the pushed state while the guest is holding it. */
 let volumeDragging = false;
 function renderVolume(volume) {
   const box = $("guest-volume");
@@ -518,13 +519,13 @@ async function sendVolume() {
   } catch (e) {
     if (!lostAccess(e)) toast(message(e.kind));
   }
-  // L'état réel revient par le flux ; en cas de refus, le curseur reprend sa place.
+  // The real state comes back via the stream; if refused, the slider goes back.
   if (lastState) renderVolume(lastState.volume);
 }
 
-// --- Vote pour passer (#433) ---------------------------------------------------------
-// Un vote par titre : la page retient le titre pour lequel elle a voté, le compte revient
-// par le flux.
+// --- Vote to skip (#433) ---------------------------------------------------------
+// One vote per track: the page remembers the track it voted for, the count comes back
+// via the stream.
 
 const SKIP_KEY = "seaglass-jam-skip";
 let skipVotedFor = Number(sessionStorage.getItem(SKIP_KEY)) || null;
@@ -560,19 +561,19 @@ async function voteSkip() {
   if (lastState) renderSkip(lastState);
 }
 
-// --- Paroles (#448) ----------------------------------------------------------------
-// Paroles du titre en cours seulement, demandées à l'hôte. Synchronisées : la ligne en
-// cours suit la position, déduite du point de départ du titre (`startedAt`, heure de
-// l'hôte, corrigée de l'écart d'horloge reçu avec les paroles) ou de la position en pause.
+// --- Lyrics (#448) ----------------------------------------------------------------
+// Lyrics of the current track only, requested from the host. Synchronized: the current
+// line follows the position, derived from the track's start point (`startedAt`, host time,
+// corrected by the clock offset received with the lyrics) or from the paused position.
 
-/** Titre dont les paroles sont affichées (`null` panneau fermé), lignes horodatées. */
+/** Track whose lyrics are shown (`null` panel closed), timestamped lines. */
 let lyricsTrack = null;
 let lyricsLines = [];
-/** Heure de l'hôte moins celle de ce téléphone, en ms. */
+/** Host time minus this phone's time, in ms. */
 let clockOffset = 0;
 let lyricsTimer = null;
 let currentLine = -1;
-/** L'invité fait défiler les paroles : on arrête de suivre un moment. */
+/** The guest is scrolling the lyrics: stop following for a while. */
 let lyricsHeldUntil = 0;
 
 function openLyrics() {
@@ -612,7 +613,7 @@ async function loadLyrics() {
     closeLyrics();
     return;
   }
-  // Fermé, ou le titre a changé pendant la requête : la suite s'en charge.
+  // Closed, or the track changed during the request: what follows takes care of it.
   if ($("lyrics").hidden || res.trackId !== lyricsTrack) return;
   if (typeof res.now === "number") clockOffset = res.now - Date.now();
   const lyrics = res.lyrics;
@@ -636,7 +637,7 @@ async function loadLyrics() {
   }
 }
 
-/** Position du titre en cours en ms d'après l'état poussé, `null` inconnue. */
+/** Position of the current track in ms from the pushed state, `null` unknown. */
 function playbackPosition() {
   const s = lastState;
   if (!s) return null;
@@ -660,7 +661,7 @@ function syncLyrics() {
   if (Date.now() >= lyricsHeldUntil) line.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 
-/** État poussé : nouveau titre (paroles rechargées), blind test ou plus rien (fermé). */
+/** Pushed state: new track (lyrics reloaded), blind test or nothing (closed). */
 function followLyrics(state) {
   if ($("lyrics").hidden) return;
   if (!state.now || state.blind) {
@@ -677,11 +678,11 @@ function openEvents() {
     try {
       render(JSON.parse(event.data));
     } catch {
-      // Message illisible : le suivant le remplacera.
+      // Unreadable message: the next one will replace it.
     }
   };
-  // Le navigateur se reconnecte seul ; un code devenu invalide (Jam relancée) le fait
-  // échouer en boucle : on le vérifie une fois.
+  // The browser reconnects on its own; a code that became invalid (Jam restarted) makes it
+  // fail in a loop: check it once.
   events.onerror = async () => {
     try {
       await api("join");
@@ -696,7 +697,7 @@ function closeEvents() {
   events = null;
 }
 
-// --- Recherche et ajout ---------------------------------------------------------
+// --- Search and add ---------------------------------------------------------
 
 let searchTimer = null;
 let searchSeq = 0;
@@ -729,9 +730,9 @@ async function search(query) {
     if (!lostAccess(e)) toast(message(e.kind));
     return;
   }
-  // Une recherche plus récente est partie entre-temps.
+  // A more recent search went out in the meantime.
   if (seq !== searchSeq) return;
-  // Un hôte d'avant #223 ne renvoie que les titres.
+  // A host from before #223 only returns tracks.
   lastHits = Array.isArray(hits) ? { tracks: hits, albums: [] } : hits;
   results.classList.remove("stale");
   showResults();
@@ -742,13 +743,13 @@ let tab = "tracks";
 
 function showResults() {
   const { tracks } = lastHits;
-  // L'hôte peut refuser les albums entiers (#288) : l'onglet disparaît.
+  // The host can refuse whole albums (#288): the tab disappears.
   const albums = lastState?.albums === false ? [] : lastHits.albums;
   const status = $("search-status");
   const any = tracks.length + albums.length > 0;
   status.hidden = any;
   status.textContent = any ? "" : lastHits.link ? t.noLinkResults : t.noResults;
-  // Onglets seulement s'il y a des titres et des albums (un lien n'en donne qu'un).
+  // Tabs only if there are both tracks and albums (a link only gives one).
   $("tabs").hidden = albums.length === 0 || tracks.length === 0;
   if (albums.length === 0) tab = "tracks";
   if (tab === "tracks" && tracks.length === 0 && albums.length > 0) tab = "albums";
@@ -821,7 +822,7 @@ function addButton(track) {
   button.setAttribute("aria-label", `${t.add} : ${track.title}`);
   if (pending.has(track.id)) markAdded(button, true);
   button.addEventListener("click", async () => {
-    // Affiché aussitôt, annulé si l'hôte refuse.
+    // Shown right away, undone if the host refuses.
     markAdded(button, true);
     pending.add(track.id);
     let res;
@@ -840,11 +841,11 @@ function addButton(track) {
 }
 
 
-// --- Blind test à plusieurs (#441) ------------------------------------------------
-// La partie est tenue par l'hôte : la page affiche la manche, envoie une réponse, puis le
-// résultat et le classement. Le titre n'arrive qu'à la révélation.
+// --- Multiplayer blind test (#441) ------------------------------------------------
+// The game is run by the host: the page shows the round, sends an answer, then the result
+// and the ranking. The track only arrives at the reveal.
 
-/** Identifiant de joueur de ce navigateur dans la partie, rendu par la première réponse. */
+/** Player id of this browser in the game, returned by the first answer. */
 const PLAYER_KEY = `seaglass-jam-player:${location.pathname}`;
 let player = null;
 function loadPlayer() {
@@ -855,10 +856,10 @@ function loadPlayer() {
     player = null;
   }
 }
-/** Manche à laquelle cette page vient de répondre, avant que l'hôte le confirme. */
+/** Round this page has just answered, before the host confirms it. */
 let answeredRound = 0;
-/** Clé de ce qui est affiché dans `#game-play` : reconstruit seulement quand elle change
- *  (sinon la saisie en cours serait effacée à chaque état poussé). */
+/** Key of what is shown in `#game-play`: rebuilt only when it changes (otherwise the
+ *  input in progress would be erased on every pushed state). */
 let playKey = "";
 let revealTimer = null;
 
@@ -1013,7 +1014,7 @@ function renderBoard(game) {
   $("game-board-title").hidden = rows.length === 0;
 }
 
-// --- Démarrage -------------------------------------------------------------------
+// --- Startup -------------------------------------------------------------------
 
 for (const node of document.querySelectorAll("[data-t]")) node.textContent = t[node.dataset.t];
 $("query").placeholder = t.searchPlaceholder;
@@ -1036,7 +1037,8 @@ $("query").addEventListener("input", () => {
   scheduleSearch();
 });
 
-// Croix maison (#224) : celle de `type="search"` n'existe pas partout (Safari iOS, Firefox).
+// Custom cross (#224): the one of `type="search"` does not exist everywhere (iOS Safari,
+// Firefox).
 $("clear").setAttribute("aria-label", t.clear);
 $("clear").addEventListener("click", () => {
   $("query").value = "";
@@ -1058,7 +1060,7 @@ for (const event of ["wheel", "touchmove"]) {
   });
 }
 
-// Un envoi par geste (`change`), pas à chaque pas du curseur (`input`).
+// One send per gesture (`change`), not at every step of the slider (`input`).
 $("volume").setAttribute("aria-label", t.volume);
 $("volume").addEventListener("input", () => {
   volumeDragging = true;
@@ -1066,8 +1068,8 @@ $("volume").addEventListener("input", () => {
 });
 $("volume").addEventListener("change", sendVolume);
 $("skip").addEventListener("click", voteSkip);
-// Geste annulé (le navigateur reprend le doigt pour défiler) : pas de `change`, le curseur
-// doit pourtant suivre de nouveau l'état poussé.
+// Gesture cancelled (the browser takes the finger back to scroll): no `change`, yet the
+// slider must follow the pushed state again.
 for (const event of ["pointercancel", "blur"]) {
   $("volume").addEventListener(event, () => {
     if (!volumeDragging) return;
@@ -1086,9 +1088,9 @@ for (const [id, which] of [
   });
 }
 
-// QR code de l'hôte : le code arrive après `#`, jamais envoyé au serveur. Retiré de
-// l'adresse pour ne pas rester dans l'historique ni être partagé par erreur.
-// Un fragment mal formé (`%` isolé) ferait lever `decodeURIComponent` : ignoré (#262).
+// Host's QR code: the code comes after `#`, never sent to the server. Removed from the
+// address so it does not stay in the history or get shared by mistake.
+// A malformed fragment (lone `%`) would make `decodeURIComponent` throw: ignored (#262).
 let fromQr = "";
 try {
   fromQr = decodeURIComponent(location.hash.slice(1));

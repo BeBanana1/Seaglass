@@ -1,5 +1,5 @@
-//! Ajouts et retraits des invités (#223), sous les règles de l'hôte (#288) : doublons,
-//! limite par invité, albums, ajouts suspendus ; plafond de la Jam dans la file (#256).
+//! Guest adds and removals (#223), under the host's rules (#288): duplicates,
+//! per-guest limit, albums, suspended adds; cap of the Jam in the queue (#256).
 
 use std::net::IpAddr;
 
@@ -52,8 +52,8 @@ impl Core {
         Response::json(200, &serde_json::json!({ "ok": true, "batch": batch }))
     }
 
-    /// Titres de l'ajout que les règles laissent passer (doublons, limite par invité), d'après
-    /// la file manuelle du moment.
+    /// Tracks of the add that the rules let through (duplicates, per-guest limit), based on
+    /// the current manual queue.
     async fn admit<B: Backend>(
         &self,
         candidates: &[u64],
@@ -63,9 +63,9 @@ impl Core {
         let snapshot = match tokio::time::timeout(BACKEND_TIMEOUT, backend.state()).await {
             Ok(Ok(snapshot)) => snapshot,
             Ok(Err(e)) => return Err(backend_error(&e)),
-            Err(_) => return Err(backend_error("lecteur sans réponse")),
+            Err(_) => return Err(backend_error("player did not respond")),
         };
-        // Blind test avec les invités (#441) : la file attend la fin de la partie.
+        // Blind test with guests (#441): the queue waits for the end of the game.
         if snapshot.jam_game().is_some() {
             return Err(Response::error(403, "game"));
         }
@@ -82,7 +82,7 @@ impl Core {
         })
     }
 
-    /// Les titres d'un album à la fin de la file, en un seul lot (#223).
+    /// The tracks of an album at the end of the queue, in a single batch (#223).
     pub(super) async fn add_album<B: Backend>(
         &self,
         body: &[u8],
@@ -122,8 +122,8 @@ impl Core {
         if ids.is_empty() {
             return Response::error(400, "empty");
         }
-        // Les titres viennent de TIDAL avant de prendre son tour : un album lent à venir ne
-        // retient pas les ajouts des autres.
+        // The tracks come from TIDAL before taking its turn: a slow album does not
+        // hold back the others' adds.
         let _turn = self.add_turn.lock().await;
         let ids = match self.admit(&ids, key, backend).await {
             Ok(ids) => ids,
@@ -142,7 +142,7 @@ impl Core {
         )
     }
 
-    /// Note un ajout sous le nom et la clé de l'invité (`owner_key`) ; renvoie le lot.
+    /// Notes an add under the guest's name and key (`owner_key`); returns the batch.
     fn note<B: Backend>(
         &self,
         ids: &[u64],
@@ -167,8 +167,8 @@ impl Core {
         Some(batch)
     }
 
-    /// Retire un lot de l'invité, ou un seul de ses titres (#223). Seul l'auteur du lot,
-    /// reconnu par son jeton, peut le faire.
+    /// Removes a guest's batch, or just one of its tracks (#223). Only the batch's author,
+    /// recognized by its token, can do it.
     pub(super) async fn remove<B: Backend>(
         &self,
         body: &[u8],
@@ -211,7 +211,7 @@ impl Core {
     }
 }
 
-/// Prénom affiché, facultatif.
+/// First name shown, optional.
 #[derive(Deserialize)]
 struct GuestFields {
     #[serde(default)]
@@ -239,7 +239,7 @@ struct AddAlbumBody {
 struct RemoveBody {
     guest: String,
     batch: u32,
-    /// Un seul titre du lot ; tout le lot sinon.
+    /// A single track of the batch; the whole batch otherwise.
     #[serde(default)]
     track_id: Option<u64>,
 }

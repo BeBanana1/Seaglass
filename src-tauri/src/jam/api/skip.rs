@@ -1,12 +1,12 @@
-//! Vote des invités pour passer le titre en cours (#433), si l'hôte le permet.
+//! Guest vote to skip the current track (#433), if the host allows it.
 //!
-//! Seuil fixe choisi par l'hôte (`JamRules::skip_votes`) : l'hôte ne sait pas combien
-//! d'invités regardent la page, un seuil relatif aux « présents » serait faux. Un vote par
-//! invité (jeton) et par titre ; sur le réseau local, un vote par adresse aussi (un appareil
-//! qui ouvre des onglets privés ne vote qu'une fois). Par le relais, plusieurs invités en
-//! données mobiles partagent une adresse : le jeton seul compte, les limites par adresse
-//! bornent l'abus. Le vote nomme le titre visé : un vote parti juste avant un changement
-//! de titre ne passe pas le suivant.
+//! Fixed threshold chosen by the host (`JamRules::skip_votes`): the host does not know
+//! how many guests are looking at the page, so a threshold relative to "present" guests
+//! would be wrong. One vote per guest (token) and per track; on the local network, one vote
+//! per address too (a device opening private tabs votes only once). Through the relay,
+//! several guests on shared mobile data share an address: the token alone counts, the
+//! per-address limits bound abuse. The vote names the target track: a vote sent just
+//! before a track change does not skip the next one.
 
 use std::collections::HashSet;
 use std::net::IpAddr;
@@ -17,21 +17,21 @@ use super::{Backend, Core, backend_error};
 use crate::jam::guard::Action;
 use crate::jam::http::Response;
 
-/// Votes du titre en cours, oubliés au changement de titre.
+/// Votes for the current track, forgotten when the track changes.
 #[derive(Debug, Default)]
 pub struct SkipVotes {
     track: Option<u64>,
     keys: HashSet<String>,
     ips: HashSet<IpAddr>,
-    /// Seuil atteint pour ce titre : il est en train d'être passé, plus aucun vote.
+    /// Threshold reached for this track: it is being skipped, no more votes.
     passed: bool,
 }
 
-/// Résultat d'un vote.
+/// Result of a vote.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tally {
     pub votes: usize,
-    /// Ce vote a atteint le seuil : passer le titre (une seule fois par titre).
+    /// This vote reached the threshold: skip the track (only once per track).
     pub pass: bool,
 }
 
@@ -45,14 +45,14 @@ impl SkipVotes {
         }
     }
 
-    /// Votes pour `track` ; ceux d'un autre titre sont oubliés.
+    /// Votes for `track`; those for another track are forgotten.
     pub fn count(&mut self, track: u64) -> usize {
         self.sync(track);
         self.keys.len()
     }
 
-    /// Compte le vote de `key` (et de son adresse, si `ip`) pour `track`. Un second vote du
-    /// même invité ou de la même adresse ne change rien.
+    /// Counts the vote of `key` (and of its address, if `ip`) for `track`. A second vote by
+    /// the same guest or address changes nothing.
     pub fn vote(&mut self, track: u64, key: &str, ip: Option<IpAddr>, needed: u8) -> Tally {
         self.sync(track);
         let fresh_ip = ip.is_none_or(|ip| !self.ips.contains(&ip));
@@ -75,7 +75,7 @@ impl SkipVotes {
     }
 }
 
-/// Vote vu par les invités : compte et seuil.
+/// Vote as seen by guests: count and threshold.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuestSkip {
@@ -90,7 +90,7 @@ struct SkipBody {
 }
 
 impl Core {
-    /// Vote du titre en cours pour l'état des invités, `None` sans la règle.
+    /// Vote on the current track for the guests' state, `None` without the rule.
     pub(super) fn skip_view(&self, track: Option<u64>, game: bool) -> Option<GuestSkip> {
         let rules = self.rules();
         if !rules.skip_vote || game {
@@ -104,8 +104,8 @@ impl Core {
         })
     }
 
-    /// `POST api/skip {guest, trackId}` : vote pour passer `trackId`, s'il est encore en
-    /// cours. Le vote qui atteint le seuil passe le titre.
+    /// `POST api/skip {guest, trackId}`: vote to skip `trackId`, if it is still playing.
+    /// The vote that reaches the threshold skips the track.
     pub(super) async fn skip<B: Backend>(
         &self,
         body: &[u8],
@@ -173,7 +173,7 @@ mod tests {
                 pass: false
             }
         );
-        // Même invité : rien ne change.
+        // Same guest: nothing changes.
         assert_eq!(votes.vote(7, "a", None, 2).votes, 1);
         assert_eq!(
             votes.vote(7, "b", None, 2),
@@ -182,7 +182,7 @@ mod tests {
                 pass: true
             }
         );
-        // Seuil déjà atteint : le titre est en train d'être passé.
+        // Threshold already reached: the track is being skipped.
         assert!(!votes.vote(7, "c", None, 2).pass);
     }
 
@@ -200,7 +200,7 @@ mod tests {
     fn on_the_local_network_one_device_votes_once() {
         let mut votes = SkipVotes::default();
         votes.vote(7, "onglet-1", LAN, 3);
-        // Autre jeton (navigation privée), même téléphone : ignoré.
+        // Other token (private browsing), same phone: ignored.
         assert_eq!(votes.vote(7, "onglet-2", LAN, 3).votes, 1);
         assert_eq!(votes.vote(7, "autre", OTHER, 3).votes, 2);
     }

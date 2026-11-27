@@ -1,4 +1,4 @@
-//! Transferts de lecture (#414) servis pour de vrai, avec le faux lecteur.
+//! Playback handoffs (#414) served for real, with the fake player.
 
 use rand::SeedableRng;
 use rand::rngs::StdRng;
@@ -6,7 +6,7 @@ use rand::rngs::StdRng;
 use super::*;
 use crate::player::queue::Queue;
 
-/// Transfert d'un contexte de `len` titres, sur le deuxième, à 83 s.
+/// Handoff of a context of `len` tracks, on the second one, at 83 s.
 pub(super) fn sample(len: u64) -> Handoff {
     let mut queue = Queue::default();
     queue.set_context(
@@ -49,7 +49,7 @@ async fn take_returns_the_queue_and_pauses() {
 #[tokio::test]
 async fn give_accepts_a_large_queue_with_the_code() {
     let (addr, site) = start_with(false, true).await;
-    // 2 000 titres : bien plus que les 2 Kio des autres routes.
+    // 2,000 tracks: far more than the 2 KiB of the other routes.
     let sent = sample(2_000);
     let body = serde_json::to_string(&sent).unwrap();
     assert!(body.len() > 8 * 1024);
@@ -70,7 +70,7 @@ async fn a_large_body_without_the_code_is_never_read() {
     let _ = s.write_all(body.as_bytes()).await;
     let mut out = String::new();
     let _ = s.read_to_string(&mut out).await;
-    // Connexion fermée sans réponse : le corps n'a pas été lu.
+    // Connection closed without a response: the body was not read.
     assert!(out.is_empty(), "{out}");
     assert!(site.remote.given.lock().unwrap().is_empty());
 }
@@ -93,18 +93,18 @@ async fn transfers_alone_serve_nothing_of_the_remote() {
     assert_eq!(call(addr, "GET", "/remote.js", "", "").await.0, 404);
     assert_eq!(post(addr, "/api/next", "").await.0, 404);
     assert_eq!(post(addr, "/api/state", "").await.0, 404);
-    // Le téléphone vérifie la liaison avec `join`.
+    // The phone checks the link with `join`.
     assert_eq!(post(addr, "/api/join", "").await.0, 200);
     assert!(site.remote.commands.lock().unwrap().is_empty());
 }
 
-/// Le client du téléphone (`crate::handoff`) face au vrai serveur.
+/// The phone's client (`crate::handoff`) against the real server.
 #[tokio::test]
 async fn the_phone_client_talks_to_the_server() {
     let (addr, site) = start_with(false, false).await;
     let link = crate::handoff::Link::parse(&format!("http://{addr}/#ab23-cdef-45gh")).unwrap();
     link.check().await.unwrap();
-    // Transferts refusés tant que le PC ne les accepte pas : message clair.
+    // Handoffs refused as long as the PC does not accept them: clear message.
     let refused = link.take().await.unwrap_err();
     assert!(refused.contains("transfer"), "{refused}");
 

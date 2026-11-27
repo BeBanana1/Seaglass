@@ -1,5 +1,5 @@
-//! Réponses des invités au blind test de l'hôte (#441). La partie (manches, points,
-//! révélation) est tenue par l'acteur du lecteur ; ici, les garde-fous de la Jam.
+//! Guests' answers to the host's blind test (#441). The game (rounds, points,
+//! reveal) is held by the player actor; here, the Jam's safeguards.
 
 use std::net::IpAddr;
 
@@ -11,7 +11,7 @@ use crate::jam::guests::sanitize_name;
 use crate::jam::http::Response;
 use crate::player::blind::{Answer, Refusal};
 
-/// Une saisie plus longue est coupée (même plafond que dans l'app).
+/// A longer entry is cut (same cap as in the app).
 const MAX_ANSWER_CHARS: usize = 200;
 
 #[derive(Deserialize)]
@@ -27,7 +27,7 @@ struct AnswerBody {
 }
 
 impl Core {
-    /// `POST api/blind-answer {guest, name?, round, text | choice}` : vide = passer.
+    /// `POST api/blind-answer {guest, name?, round, text | choice}`: empty = skip.
     pub(super) async fn blind_answer<B: Backend>(
         &self,
         body: &[u8],
@@ -54,7 +54,7 @@ impl Core {
             .await;
         match result {
             Ok(Ok(player)) => {
-                // Joueur connu de l'hôte, qui peut l'exclure comme un invité qui ajoute.
+                // Player known to the host, who can exclude them like a guest who adds.
                 if let Ok(mut guests) = self.guests.lock() {
                     guests.members.added(key, name, ip, 0);
                     backend.guests_changed(&guests);

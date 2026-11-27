@@ -1,5 +1,5 @@
-//! Règles et exclusions de l'hôte (#288), appelées directement sur `Core` avec le faux
-//! lecteur (le transport est testé dans `server.rs` et `relay.rs`).
+//! Host rules and exclusions (#288), called directly on `Core` with the fake
+//! player (the transport is tested in `server.rs` and `relay.rs`).
 
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
@@ -27,7 +27,7 @@ async fn call(core: &Core, fake: &Fake, path: &str, body: Value, ip: IpAddr) -> 
     (response.status, json)
 }
 
-/// Recherche (les titres 1 et 2, l'album 40 deviennent ajoutables).
+/// Search (tracks 1 and 2, album 40 become addable).
 async fn search(core: &Core, fake: &Fake) {
     let (status, _) = call(
         core,
@@ -72,14 +72,14 @@ async fn each_guest_has_a_limit_of_waiting_tracks() {
     assert_eq!(add(&core, &fake, 1, LEA, IP).await.0, 200);
     let (status, body) = add(&core, &fake, 2, LEA, IP).await;
     assert_eq!((status, body["error"].as_str()), (429, Some("full")));
-    // Un autre invité, même adresse (données mobiles) : sa propre limite.
+    // Another guest, same address (mobile data): their own limit.
     assert_eq!(add(&core, &fake, 2, MAX, IP).await.0, 200);
 
-    // Le titre de Léa a été lu : elle peut en ajouter un autre.
+    // Léa's track has been played: she can add another.
     fake.added.lock().unwrap().retain(|id| *id != 1);
     assert_eq!(add(&core, &fake, 1, LEA, IP).await.0, 200);
 
-    // Un album est coupé à la place restante.
+    // An album is cut to the remaining room.
     let core = self::core(
         JamRules {
             max_pending: Some(3),
@@ -100,7 +100,7 @@ async fn the_jam_share_of_the_queue_is_capped() {
     let guests = Arc::new(std::sync::Mutex::new(crate::jam::guests::Guests::default()));
     let core = Core::with_rules(CODE.into(), Arc::clone(&guests), JamRules::default(), false);
     let fake = Fake::default();
-    // D'autres invités ont déjà mis 99 titres en attente.
+    // Other guests have already queued 99 tracks.
     {
         let mut guests = guests.lock().unwrap();
         let batch = guests.new_batch();
@@ -111,14 +111,14 @@ async fn the_jam_share_of_the_queue_is_capped() {
     fake.added.lock().unwrap().extend(1000..1099);
     search(&core, &fake).await;
 
-    // L'album est coupé à la dernière place, puis la file de la Jam est pleine (#256).
+    // The album is cut to the last slot, then the Jam queue is full (#256).
     let body = json!({ "albumId": 40, "guest": LEA });
     let (status, body) = call(&core, &fake, "/api/add-album", body, IP).await;
     assert_eq!((status, body["count"].as_u64()), (200, Some(1)));
     let (status, body) = add(&core, &fake, 1, LEA, IP).await;
     assert_eq!((status, body["error"].as_str()), (429, Some("queue")));
 
-    // Un titre de la Jam est lu : la place revient.
+    // A Jam track is played: the room comes back.
     fake.added.lock().unwrap().retain(|id| *id != 1000);
     assert_eq!(add(&core, &fake, 1, LEA, IP).await.0, 200);
 }
@@ -127,13 +127,13 @@ async fn the_jam_share_of_the_queue_is_capped() {
 async fn adds_are_counted_per_guest_behind_a_shared_address() {
     let (core, fake) = (core(JamRules::default(), false), Fake::default());
     search(&core, &fake).await;
-    // Léa épuise ses ajouts de la minute (les doublons comptent aussi).
+    // Léa uses up her adds for the minute (duplicates count too).
     for _ in 0..crate::jam::guard::ADDS_PER_MINUTE {
         assert_ne!(add(&core, &fake, 1, LEA, IP).await.0, 429);
     }
     let (status, body) = add(&core, &fake, 2, LEA, IP).await;
     assert_eq!((status, body["error"].as_str()), (429, Some("slow")));
-    // Max, derrière la même adresse (données mobiles), n'est pas freiné par elle (#256).
+    // Max, behind the same address (mobile data), is not slowed down by it (#256).
     assert_eq!(add(&core, &fake, 2, MAX, IP).await.0, 200);
 }
 
@@ -179,14 +179,14 @@ async fn a_banned_guest_loses_their_tracks_and_access() {
     assert!(core.set_banned(members[0].id, true, &fake).await);
     assert_eq!(*fake.added.lock().unwrap(), vec![2]);
 
-    // Toutes ses requêtes sont refusées, celles de l'autre invité de la même adresse non.
+    // All her requests are refused, those of the other guest on the same address are not.
     let (status, body) = call(&core, &fake, "/api/join", json!({ "guest": LEA }), IP).await;
     assert_eq!((status, body["error"].as_str()), (403, Some("banned")));
     let search = json!({ "query": "x", "guest": LEA });
     assert_eq!(call(&core, &fake, "/api/search", search, IP).await.0, 403);
     assert_eq!(add(&core, &fake, 1, MAX, IP).await.0, 200);
 
-    // Réadmise.
+    // Readmitted.
     assert!(core.set_banned(members[0].id, false, &fake).await);
     assert!(!core.members()[0].banned);
     assert_eq!(
@@ -204,7 +204,7 @@ async fn on_the_local_network_a_ban_blocks_the_device() {
     search(&core, &fake).await;
     assert_eq!(add(&core, &fake, 1, LEA, IP).await.0, 200);
     core.set_banned(core.members()[0].id, true, &fake).await;
-    // Nouveau jeton (navigation privée), même appareil : refusé.
+    // New token (private browsing), same device: refused.
     let (status, _) = call(&core, &fake, "/api/join", json!({ "guest": MAX }), IP).await;
     assert_eq!(status, 403);
     assert_eq!(
@@ -213,7 +213,7 @@ async fn on_the_local_network_a_ban_blocks_the_device() {
     );
 }
 
-/// Volume des invités (#449) : fermé par défaut, plafonné, refusé quand l'hôte a coupé le son.
+/// Guest volume (#449): closed by default, capped, refused when the host has muted.
 #[tokio::test]
 async fn guests_set_the_volume_under_the_host_cap() {
     let (core, fake) = (core(JamRules::default(), false), Fake::default());
@@ -221,14 +221,17 @@ async fn guests_set_the_volume_under_the_host_cap() {
     let (status, body) = call(&core, &fake, "/api/volume", volume(json!(40)), IP).await;
     assert_eq!((status, body["error"].as_str()), (403, Some("volume")));
     let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
-    assert!(state.get("volume").is_none(), "volume caché sans la règle");
+    assert!(
+        state.get("volume").is_none(),
+        "volume hidden without the rule"
+    );
 
     core.set_rules(JamRules {
         guest_volume: true,
         guest_volume_max: 70,
         ..JamRules::default()
     });
-    // L'hôte est à 100 : un invité qui monte au-delà du plafond est ramené à 70.
+    // Host is at 100: a guest raising it above the cap is brought back to 70.
     let (status, body) = call(&core, &fake, "/api/volume", volume(json!(95)), IP).await;
     assert_eq!((status, body["level"].as_u64()), (200, Some(70)));
     assert_eq!(fake.volume.lock().unwrap().level, 70);
@@ -251,14 +254,14 @@ async fn guests_set_the_volume_under_the_host_cap() {
         );
     }
 
-    // Son coupé par l'hôte : un invité ne le rétablit pas.
+    // Muted by the host: a guest does not restore it.
     fake.volume.lock().unwrap().set_muted(true);
     let (status, body) = call(&core, &fake, "/api/volume", volume(json!(50)), IP).await;
     assert_eq!((status, body["error"].as_str()), (409, Some("muted")));
     assert!(fake.volume.lock().unwrap().muted);
     fake.volume.lock().unwrap().set_muted(false);
 
-    // Compté à part de la pause, par invité.
+    // Counted apart from pause, per guest.
     for _ in 3..crate::jam::guard::VOLUMES_PER_MINUTE {
         assert_eq!(
             call(&core, &fake, "/api/volume", volume(json!(20)), IP)
@@ -273,8 +276,8 @@ async fn guests_set_the_volume_under_the_host_cap() {
     assert_eq!(call(&core, &fake, "/api/pause", pause, IP).await.0, 200);
 }
 
-/// Vote pour passer (#433) : fermé par défaut, un vote par invité, seuil de l'hôte, titre
-/// changé entre-temps, blind test.
+/// Skip vote (#433): closed by default, one vote per guest, host threshold, track
+/// changed in the meantime, blind test.
 #[tokio::test]
 async fn guests_vote_to_skip_the_current_track() {
     const ZOE: &str = "cccccccccccccccccccccccccccccccc";
@@ -283,7 +286,7 @@ async fn guests_vote_to_skip_the_current_track() {
     let (status, body) = call(&core, &fake, "/api/skip", vote(LEA, 7), IP).await;
     assert_eq!((status, body["error"].as_str()), (403, Some("skip")));
     let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
-    assert!(state.get("skip").is_none(), "vote caché sans la règle");
+    assert!(state.get("skip").is_none(), "vote hidden without the rule");
 
     core.set_rules(JamRules {
         skip_vote: true,
@@ -295,7 +298,7 @@ async fn guests_vote_to_skip_the_current_track() {
 
     let (status, body) = call(&core, &fake, "/api/skip", vote(LEA, 7), IP).await;
     assert_eq!((status, body["votes"].as_u64()), (200, Some(1)));
-    // Même invité : compté une fois. Par le relais, l'adresse partagée ne compte pas.
+    // Same guest: counted once. Through the relay, the shared address does not count.
     assert_eq!(
         call(&core, &fake, "/api/skip", vote(LEA, 7), IP).await.1["votes"],
         1
@@ -304,7 +307,7 @@ async fn guests_vote_to_skip_the_current_track() {
         call(&core, &fake, "/api/skip", vote(MAX, 7), IP).await.1["votes"],
         2
     );
-    // Vote parti pour le titre d'avant : refusé, rien n'est compté.
+    // Vote sent for the previous track: refused, nothing is counted.
     let (status, body) = call(&core, &fake, "/api/skip", vote(ZOE, 6), IP).await;
     assert_eq!((status, body["error"].as_str()), (409, Some("changed")));
     assert_eq!(*fake.skips.lock().unwrap(), 0);
@@ -314,12 +317,12 @@ async fn guests_vote_to_skip_the_current_track() {
     assert_eq!(body["skipped"], true);
     assert_eq!(*fake.skips.lock().unwrap(), 1);
 
-    // Nouveau titre : les votes repartent de zéro.
+    // New track: votes start again from zero.
     *fake.now.lock().unwrap() = Some(Some(8));
     let state: Value = serde_json::from_str(&core.state_json(&fake).await.unwrap()).unwrap();
     assert_eq!(state["skip"]["votes"], 0);
 
-    // Blind test ouvert aux invités : pas de vote.
+    // Blind test open to guests: no vote.
     *fake.blind.lock().unwrap() = Some(crate::jam::testing::blind_game(true));
     let (status, body) = call(&core, &fake, "/api/skip", vote(LEA, 8), IP).await;
     assert_eq!((status, body["error"].as_str()), (409, Some("game")));
@@ -327,7 +330,7 @@ async fn guests_vote_to_skip_the_current_track() {
     assert!(state.get("skip").is_none());
 }
 
-/// Réseau local : un appareil ne vote qu'une fois, même avec un autre jeton.
+/// Local network: a device votes only once, even with another token.
 #[tokio::test]
 async fn on_the_local_network_a_device_votes_once() {
     let rules = JamRules {
@@ -351,14 +354,14 @@ async fn on_the_local_network_a_device_votes_once() {
     assert_eq!(*fake.skips.lock().unwrap(), 1);
 }
 
-/// Paroles du titre en cours (#448) : une requête à TIDAL pour plusieurs invités, rien sans
-/// titre, refus pendant un blind test, position dans l'état.
+/// Lyrics of the current track (#448): one request to TIDAL for several guests, nothing
+/// without a track, refused during a blind test, position in the state.
 #[tokio::test]
 async fn guests_read_the_lyrics_of_the_current_track() {
     let (core, fake) = (core(JamRules::default(), false), Fake::default());
     let state =
         || async { serde_json::from_str::<Value>(&core.state_json(&fake).await.unwrap()).unwrap() };
-    // Avant toute demande : on ne sait pas, le bouton reste affiché.
+    // Before any request: unknown, the button stays shown.
     let before = state().await;
     assert!(before.get("lyrics").is_none());
     assert!(before["startedAt"].as_i64().is_some(), "{before}");
@@ -375,11 +378,11 @@ async fn guests_read_the_lyrics_of_the_current_track() {
     assert_eq!(
         *fake.lyrics_calls.lock().unwrap(),
         vec![7],
-        "une seule requête"
+        "a single request"
     );
     assert_eq!(state().await["lyrics"], true);
 
-    // Autre titre sans paroles : réponse vide, retenue aussi.
+    // Other track without lyrics: empty answer, remembered too.
     *fake.now.lock().unwrap() = Some(Some(8));
     let (status, body) = ask(LEA, IP).await;
     assert_eq!((status, body["trackId"].as_u64()), (200, Some(8)));
@@ -388,18 +391,18 @@ async fn guests_read_the_lyrics_of_the_current_track() {
     assert_eq!(*fake.lyrics_calls.lock().unwrap(), vec![7, 8]);
     assert_eq!(state().await["lyrics"], false);
 
-    // En pause : la position, pas de point de départ.
+    // Paused: the position, no start point.
     *fake.paused.lock().unwrap() = Some(true);
     let paused = state().await;
     assert_eq!(paused["position"], 42_000);
     assert!(paused.get("startedAt").is_none());
 
-    // Rien en lecture.
+    // Nothing playing.
     *fake.now.lock().unwrap() = Some(None);
     let (status, body) = ask(LEA, IP).await;
     assert_eq!((status, body["trackId"].clone()), (200, Value::Null));
 
-    // Blind test : les paroles donneraient la réponse.
+    // Blind test: the lyrics would give the answer.
     *fake.now.lock().unwrap() = None;
     *fake.blind.lock().unwrap() = Some(crate::jam::testing::blind_game(false));
     let (status, body) = ask(LEA, IP).await;
@@ -408,7 +411,7 @@ async fn guests_read_the_lyrics_of_the_current_track() {
     assert!(during.get("lyrics").is_none() && during.get("position").is_none());
 }
 
-/// Blind test à plusieurs (#441) : réponses, refus, partie dans l'état, ajouts suspendus.
+/// Multi-player blind test (#441): answers, refusals, game in the state, suspended adds.
 #[tokio::test]
 async fn guests_answer_the_blind_test() {
     let core = core(JamRules::default(), false);
@@ -420,7 +423,7 @@ async fn guests_answer_the_blind_test() {
         }
         body
     };
-    // Sans partie : refusé.
+    // Without a game: refused.
     let (status, body) = call(
         &core,
         &fake,
@@ -431,7 +434,7 @@ async fn guests_answer_the_blind_test() {
     .await;
     assert_eq!((status, body["error"].as_str()), (409, Some("round")));
 
-    // Une partie en solo ne regarde pas les invités : ni dans l'état, ni pour répondre.
+    // A solo game does not involve guests: neither in the state, nor to answer.
     *fake.blind.lock().unwrap() = Some(crate::jam::testing::blind_game(false));
     let state = core.state_json(&fake).await.unwrap();
     assert!(!state.contains("\"blind\""), "{state}");
@@ -454,7 +457,7 @@ async fn guests_answer_the_blind_test() {
     assert_eq!(state["blind"]["last"], Value::Null);
     assert_eq!(state["adds"], false, "ajouts suspendus pendant la partie");
 
-    // Manche périmée, puis bonne manche, puis doublon.
+    // Stale round, then right round, then duplicate.
     assert_eq!(
         call(
             &core,
@@ -505,13 +508,13 @@ async fn guests_answer_the_blind_test() {
         assert_eq!(
             answers[1].3,
             crate::player::blind::Answer::Pass,
-            "réponse vide = passer"
+            "empty answer = skip"
         );
     }
-    // Les joueurs apparaissent chez l'hôte, qui peut les exclure.
+    // Players appear on the host's side, who can exclude them.
     assert_eq!(core.members().len(), 2);
 
-    // Ajouts refusés tant que la partie dure.
+    // Adds refused while the game lasts.
     search(&core, &fake).await;
     let (status, body) = add(&core, &fake, 1, LEA, IP).await;
     assert_eq!((status, body["error"].as_str()), (403, Some("game")));

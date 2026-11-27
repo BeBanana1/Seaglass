@@ -16,7 +16,7 @@
   box-sizing: border-box;
 }
 
-/* `hidden` l'emporte sur les `display` des classes (recherche cachée pendant un blind test). */
+/* `hidden` wins over the classes' `display` (search hidden during a blind test). */
 [hidden] {
   display: none !important;
 }
@@ -51,7 +51,7 @@ h2 {
   letter-spacing: 0.08em;
 }
 
-/* Boutons vers les apps de musique (#225), en haut à droite : logo seul, nom en info-bulle. */
+/* Buttons to the music apps (#225), top right: logo only, name in a tooltip. */
 .apps {
   display: flex;
   flex-wrap: wrap;
@@ -206,7 +206,7 @@ button:disabled {
   letter-spacing: -0.1em;
 }
 
-/* Paroles (#448) : bouton sous l'artiste, panneau plein écran. */
+/* Lyrics (#448): button under the artist, full-screen panel. */
 .now .lyrics-open {
   margin-top: 4px;
   font-size: 0.85rem;
@@ -222,7 +222,7 @@ button:disabled {
   background: var(--bg);
 }
 
-/* La page ne défile pas sous le panneau. */
+/* The page does not scroll under the panel. */
 body.locked {
   overflow: hidden;
 }
@@ -296,7 +296,7 @@ body.locked {
   font-size: 0.75rem;
 }
 
-/* Vote pour passer le titre (#433), sous le titre en cours. */
+/* Vote to skip the track (#433), under the current track. */
 .guest-skip {
   display: flex;
   align-items: center;
@@ -321,7 +321,7 @@ body.locked {
   flex: none;
 }
 
-/* Volume réglé par les invités (#449), sous le titre en cours. */
+/* Volume set by the guests (#449), under the current track. */
 .guest-volume {
   display: flex;
   align-items: center;
@@ -374,7 +374,7 @@ body.locked {
   gap: 8px;
 }
 
-/* Titres / Albums d'une recherche (#223). */
+/* Tracks / Albums of a search (#223). */
 .tabs {
   display: flex;
   gap: 8px;
@@ -399,7 +399,7 @@ body.locked {
   background: var(--accent);
 }
 
-/* Ajouts de ce navigateur dans la file : retirer un titre, ou tout un album. */
+/* Additions from this browser in the queue: remove a track, or a whole album. */
 .track .remove {
   flex: none;
   width: 44px;
@@ -533,7 +533,7 @@ body.locked {
   padding-right: 52px;
 }
 
-/* La croix native est masquée : le bouton `.clear` la remplace (#224). */
+/* The native cross is hidden: the `.clear` button replaces it (#224). */
 .search input::-webkit-search-cancel-button {
   appearance: none;
   -webkit-appearance: none;
@@ -571,7 +571,7 @@ body.locked {
   box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
 }
 
-/* Règles de l'hôte (#288) : ajouts suspendus, limite par invité. */
+/* Host rules (#288): additions suspended, limit per guest. */
 .notice {
   margin: 0 0 12px;
   padding: 8px 12px;
@@ -585,7 +585,7 @@ body.locked {
   color: var(--danger);
 }
 
-/* Blind test à plusieurs (#441). */
+/* Multiplayer blind test (#441). */
 .game {
   margin: 8px 0 16px;
   padding: 14px;
@@ -644,7 +644,7 @@ body.locked {
   max-width: 100%;
 }
 
-/* Titre sur 2 lignes au plus plutôt qu'une ligne rognée (#446). */
+/* Title on 2 lines at most rather than one truncated line (#446). */
 .choice .title {
   display: -webkit-box;
   -webkit-box-orient: vertical;
