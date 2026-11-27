@@ -15,7 +15,7 @@ class PinActivity : Activity() {
         val key = intent?.data
             ?.takeIf { it.scheme == "seaglass" && it.host == "pin" }
             ?.lastPathSegment
-        if (key != null) Playback.onMain { Playback.openPin(key) }
+        if (key != null) Playback.onMain { LaunchRequests.openPin(key) }
         packageManager.getLaunchIntentForPackage(packageName)?.let(::startActivity)
         finish()
     }

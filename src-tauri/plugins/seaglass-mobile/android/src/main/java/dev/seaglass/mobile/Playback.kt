@@ -18,15 +18,12 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
-import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
-import androidx.media3.exoplayer.audio.AudioOffloadSupport
 import androidx.media3.exoplayer.audio.AudioSink
-import androidx.media3.exoplayer.audio.DefaultAudioOffloadSupportProvider
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import app.tauri.plugin.Channel
 import app.tauri.plugin.JSObject
@@ -84,6 +81,8 @@ internal object Playback {
     private var nextGain: Double? = null
     /** Equalizer (#467), in the audio sink; the profile applies to the whole playback. */
     private val equalizer = EqAudioProcessor()
+    /** Audio offload (#474): what the chip decodes, and whether it is allowed now. */
+    private val offload = AudioOffload()
     private var metadata: MediaMetadata = MediaMetadata.EMPTY
     private var idle: Boolean? = null
     private var buffering: Boolean? = null
@@ -127,68 +126,10 @@ internal object Playback {
         context?.let { NowPlayingWidget.refresh(it) }
     }
 
-    /** Shared text received before Rust plugged in the session (app launched by the share). */
-    private var pendingShare: String? = null
-
-    /** Drive mode requested before Rust plugged in the session (app launched by the link). */
-    private var pendingDrive = false
-
-    /** Pin requested before Rust plugged in the session (app launched by the shortcut). */
-    private var pendingPin: String? = null
-
     fun attachSession(channel: Channel) {
         commands = channel
-        pendingPin?.let {
-            pendingPin = null
-            openPin(it)
-        }
-        pendingShare?.let {
-            pendingShare = null
-            share(it)
-        }
-        if (pendingDrive) {
-            pendingDrive = false
-            openDrive()
-        }
+        LaunchRequests.attach(channel)
         refreshWidget()
-    }
-
-    /** `seaglass://drive` link or app shortcut (#193), on the main thread. */
-    fun openDrive() {
-        val channel = commands
-        if (channel == null) {
-            pendingDrive = true
-            return
-        }
-        val o = JSObject()
-        o.put("command", "openDrive")
-        channel.send(o)
-    }
-
-    /** Pin shortcut or `seaglass://pin/<key>` link (#335), on the main thread. */
-    fun openPin(key: String) {
-        val channel = commands
-        if (channel == null) {
-            pendingPin = key
-            return
-        }
-        val o = JSObject()
-        o.put("command", "openPin")
-        o.put("pin", key)
-        channel.send(o)
-    }
-
-    /** Link received through the "Share" menu (#203), on the main thread. */
-    fun share(text: String) {
-        val channel = commands
-        if (channel == null) {
-            pendingShare = text
-            return
-        }
-        val o = JSObject()
-        o.put("command", "openLink")
-        o.put("text", text)
-        channel.send(o)
     }
 
     /** Action from the notification, the lock screen or the headphones. */
@@ -224,7 +165,7 @@ internal object Playback {
                 currentGain = args.gain
                 nextGain = null
                 equalizer.profile = args.eq
-                updateOffload(p, args.eq)
+                offload.update(p, args.eq)
                 applyVolume()
                 p.prepare()
                 p.playWhenReady = true
@@ -261,43 +202,11 @@ internal object Playback {
             "currentGain" -> {
                 currentGain = args.gain
                 equalizer.profile = args.eq
-                updateOffload(p, args.eq)
+                offload.update(p, args.eq)
                 applyVolume()
             }
             else -> throw IllegalArgumentException("unknown operation: ${args.op}")
         }
-    }
-
-    /** Last offload choice set on the player (`null`: nothing set yet). */
-    private var offloadAllowed: Boolean? = null
-
-    /**
-     * Audio offload (#474): the FLAC goes compressed to the audio chip, which decodes it, and
-     * the CPU sleeps between two buffer refills. Media3 only uses it if the device can decode
-     * this format **and** chain two tracks without a gap (`isGaplessSupportRequired`);
-     * otherwise, decoding in the app as before. Off while an equalizer profile is active:
-     * with offload, the sink's `AudioProcessor`s are bypassed and the equalizer would be
-     * ignored. The volume (normalization included) is still applied by the `AudioTrack`. The
-     * parameters only change if the choice changes: a change reselects the audio track (the
-     * sink reconfigures, a short dropout is possible when the equalizer is enabled).
-     */
-    private fun updateOffload(p: ExoPlayer, eq: EqSpec?) {
-        val allowed = eq == null
-        if (allowed == offloadAllowed) return
-        offloadAllowed = allowed
-        val mode = if (allowed) {
-            AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
-        } else {
-            AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
-        }
-        val preferences = AudioOffloadPreferences.Builder()
-            .setAudioOffloadMode(mode)
-            .setIsGaplessSupportRequired(true)
-            .build()
-        p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
-            .setAudioOffloadPreferences(preferences)
-            .build()
-        Log.i(TAG, "offload ${if (allowed) "allowed" else "off (equalizer active)"}")
     }
 
     /** State of the notification's shuffle and repeat buttons (#163), held by Rust. */
@@ -322,31 +231,6 @@ internal object Playback {
         // Same URI: Media3 updates the entry without reloading the stream.
         p.replaceMediaItem(index, current.buildUpon().setMediaMetadata(meta).build())
     }
-
-    /**
-     * Formats the audio chip receives in offload (#474), HE-AAC excluded (#492): on the S21,
-     * HE-AAC offload to Bluetooth headphones does open the output, but the HAL never renders
-     * anything (`get_render_position: No data available` in a loop) and ExoPlayer recreates
-     * the AudioTrack every ~5 s, with no sound at all. AAC-LC (High quality) works there,
-     * checked on headphones and on the speaker. Decided for each track.
-     */
-    private fun offloadSupport(context: Context): DefaultAudioSink.AudioOffloadSupportProvider {
-        val system = DefaultAudioOffloadSupportProvider(context)
-        return DefaultAudioSink.AudioOffloadSupportProvider { format, attributes ->
-            if (isHeAac(format.codecs)) {
-                Log.i(TAG, "offload refused for HE-AAC (${format.codecs})")
-                AudioOffloadSupport.DEFAULT_UNSUPPORTED
-            } else {
-                system.getAudioOffloadSupport(format, attributes)
-            }
-        }
-    }
-
-    /** HE-AAC (v1: `mp4a.40.5`, v2: `mp4a.40.29`), TIDAL's Low quality. */
-    private fun isHeAac(codecs: String?): Boolean =
-        codecs?.split(',')?.any { it.trim() in HE_AAC_CODECS } == true
-
-    private val HE_AAC_CODECS = setOf("mp4a.40.5", "mp4a.40.29")
 
     private fun build(appContext: Context): ExoPlayer {
         val attributes = AudioAttributes.Builder()
@@ -373,7 +257,7 @@ internal object Playback {
                 .setEnableFloatOutput(enableFloatOutput)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessors(arrayOf(equalizer))
-                .setAudioOffloadSupportProvider(offloadSupport(context))
+                .setAudioOffloadSupportProvider(offload.support(context))
                 .build()
         }
         val player = ExoPlayer.Builder(appContext, renderers)
@@ -389,8 +273,7 @@ internal object Playback {
             .build()
         player.addListener(listener)
         player.addAnalyticsListener(analytics)
-        // New player: offload disabled by default in Media3, set again at the next `play`.
-        offloadAllowed = null
+        offload.reset()
         exo = player
         remote = RemotePlayer(player)
         return player
