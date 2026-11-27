@@ -1,8 +1,8 @@
-//! Radio automatique en fin de file (#78, réglage `PlaybackSettings::auto_radio`).
+//! Automatic radio at the end of the queue (#78, `PlaybackSettings::auto_radio` setting).
 //!
-//! Demandée au moment du préchargement, quand rien ne suit le titre courant : la radio
-//! arrive avant la fin du titre et son premier titre est préchargé comme un autre
-//! (gapless conservé). La logique de file est dans `Queue::extend_with_radio`.
+//! Requested at preload time, when nothing follows the current track: the radio arrives
+//! before the end of the track and its first track is preloaded like any other (gapless
+//! kept). The queue logic is in `Queue::extend_with_radio`.
 
 use super::actor::{Cmd, Player};
 use crate::tidal::models::{RadioSeed, TrackId};
@@ -10,13 +10,13 @@ use crate::tidal::models::{RadioSeed, TrackId};
 #[derive(Debug, Default)]
 pub(super) struct AutoRadio {
     pub(super) enabled: bool,
-    /// Compteur contre les réponses périmées.
+    /// Counter against stale responses.
     req: u64,
-    /// Titre dont la radio a déjà été demandée : une seule demande par titre, même en
-    /// échec, tant que la file ne change pas (`Player::mark_queue_dirty` l'efface).
+    /// Track whose radio was already requested: a single request per track, even on failure,
+    /// as long as the queue does not change (`Player::mark_queue_dirty` clears it).
     pub(super) asked: Option<TrackId>,
     pending: bool,
-    /// La lecture s'est arrêtée en fin de file avant la réponse : elle repart sur la radio.
+    /// Playback stopped at the end of the queue before the response: it resumes on the radio.
     waiting: bool,
 }
 
@@ -30,7 +30,7 @@ impl AutoRadio {
 }
 
 impl Player {
-    /// Rien ne suit le titre courant : demande sa radio, hors de l'acteur.
+    /// Nothing follows the current track: requests its radio, outside the actor.
     pub(super) fn maybe_request_radio(&mut self) {
         let Some(seed) = self.queue.current() else {
             return;
@@ -47,7 +47,7 @@ impl Player {
                 .radio(RadioSeed::Track, seed.0)
                 .await
                 .map(|page| {
-                    // Le filtre de contenu (#368) vaut aussi pour la radio automatique.
+                    // The content filter (#368) also applies to the automatic radio.
                     crate::content::filtered(page.tracks)
                         .into_iter()
                         .map(|t| t.id)
@@ -64,16 +64,16 @@ impl Player {
         });
     }
 
-    /// Fin de file atteinte (dernier titre terminé, rien de préchargé) : la lecture
-    /// reprendra à l'arrivée de la radio si elle est en route.
+    /// End of the queue reached (last track finished, nothing preloaded): playback will
+    /// resume when the radio arrives, if it is on its way.
     pub(super) fn on_queue_end(&mut self) {
-        // Blind test (#434) : le titre révélé est allé au bout, la manche suivante attend.
+        // Blind test (#434): the revealed track played to the end, the next round waits.
         if self.blind.is_some() {
             return;
         }
         self.maybe_request_radio();
         self.radio.waiting = self.radio.pending;
-        // Sans radio en route, la file est vraiment terminée (carton « Fin », #399).
+        // Without a radio on its way, the queue is really over ("End" card, #399).
         self.state.ended = !self.radio.waiting;
     }
 
@@ -91,7 +91,7 @@ impl Player {
         let tracks = match result {
             Ok(tracks) => tracks,
             Err(e) => {
-                // La file attendait cette radio : elle s'arrête là.
+                // The queue was waiting for this radio: it stops there.
                 self.state.ended |= waiting;
                 return tracing::warn!("radio de {seed} indisponible : {e}");
             }
@@ -100,7 +100,7 @@ impl Player {
             self.state.ended |= waiting;
             return;
         }
-        tracing::info!("file prolongée par la radio de {seed}");
+        tracing::info!("queue extended by the radio of {seed}");
         self.mark_queue_dirty();
         if waiting {
             if let Some(id) = self.queue.advance() {

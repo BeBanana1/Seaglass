@@ -208,7 +208,7 @@ fn with_guests_the_round_waits_for_everyone() {
     assert_eq!(
         game.answer("max", None, Answer::Pass),
         Err(Refusal::Closed),
-        "trop tard"
+        "too late"
     );
 
     // The host reveals without waiting for Léa.

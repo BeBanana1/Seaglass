@@ -1,5 +1,5 @@
-//! Réglages de lecture, stockés à part des réglages d'UI (clé `playback.settings` de la
-//! table `kv`) : le lecteur les lit avant de lancer mpv.
+//! Playback settings, stored apart from the UI settings (`playback.settings` key of the
+//! `kv` table): the player reads them before launching mpv.
 
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -15,39 +15,39 @@ const KEY: &str = "playback.settings";
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PlaybackSettings {
-    /// Taille du cache mpv, en Mio (#16).
+    /// Size of mpv's cache, in MiB (#16).
     pub cache_size: CacheSize,
-    /// Titre sans version hi-res : lire l'édition hi-res du même enregistrement si elle
-    /// existe (#18), ou la proposer (#59).
+    /// Track without a hi-res version: play the hi-res edition of the same recording if it
+    /// exists (#18), or offer it (#59).
     pub hires_upgrade: HiresUpgrade,
-    /// Normalisation du volume par ReplayGain (#82), désactivée par défaut.
+    /// Volume normalization through ReplayGain (#82), off by default.
     pub normalization: Normalization,
-    /// Égaliseur paramétrique (#428, Android #467), désactivé par défaut.
+    /// Parametric equalizer (#428, Android #467), off by default.
     pub equalizer: EqSettings,
-    /// Périphérique de sortie choisi (#79) ; `None` = périphérique par défaut du système.
-    /// Gardé même débranché : le lecteur se replie sur le défaut et y revient au
-    /// rebranchement.
+    /// Chosen output device (#79); `None` = the system's default device. Kept even when
+    /// unplugged: the player falls back to the default and returns to it when it is plugged
+    /// back in.
     pub audio_device: Option<AudioDevice>,
-    /// Mode exclusif WASAPI (#245), désactivé par défaut : les autres apps n'ont plus de son
-    /// pendant la lecture, et la normalisation est suspendue. Sans effet sur Android.
+    /// WASAPI exclusive mode (#245), off by default: other apps get no sound during
+    /// playback, and normalization is suspended. No effect on Android.
     pub exclusive: bool,
-    /// Fin de file : enchaîner sur la radio du dernier titre (#78). Désactivé par défaut.
+    /// End of queue: carry on with the last track's radio (#78). Off by default.
     pub auto_radio: bool,
-    /// Bureau : mettre en pause quand le périphérique de sortie utilisé disparaît (casque
-    /// débranché, #348). Activé par défaut.
+    /// Desktop: pause when the output device in use disappears (headset unplugged, #348). On
+    /// by default.
     pub pause_on_unplug: bool,
-    /// Bureau : reprendre la lecture au lancement de l'app (#353). Désactivé par défaut.
+    /// Desktop: resume playback when the app launches (#353). Off by default.
     pub resume_on_launch: bool,
-    /// Bureau : volume, normalisation et mode exclusif retenus par périphérique de sortie
-    /// (#416, `player::profiles`). Désactivé par défaut : réglages globaux.
+    /// Desktop: volume, normalization, exclusive mode and equalizer profile kept per output
+    /// device (#416, `player::profiles`). Off by default: global settings.
     pub device_profiles: bool,
-    /// Android : qualité demandée à TIDAL sur un réseau non facturé à l'usage (Wi-Fi, #365,
-    /// #366), Lossless par défaut. Sans effet sur le bureau, toujours en Hi-Res Lossless.
+    /// Android: quality requested from TIDAL on an unmetered network (Wi-Fi, #365, #366),
+    /// Lossless by default. No effect on desktop, which is always Hi-Res Lossless.
     pub wifi_quality: MobileQuality,
-    /// Android : qualité sur un réseau facturé (données mobiles, partage de connexion, #365).
+    /// Android: quality on a metered network (mobile data, tethering, #365).
     pub cellular_quality: MobileQuality,
-    /// Android : plafonner la qualité quand la batterie est faible (#365, `player::quality`).
-    /// Désactivé par défaut.
+    /// Android: cap the quality when the battery is low (#365, `player::quality`). Off by
+    /// default.
     pub low_battery_quality: bool,
 }
 
@@ -71,10 +71,10 @@ impl Default for PlaybackSettings {
     }
 }
 
-/// Qualité de lecture sur Android (#325, #366), les paliers de l'API TIDAL. L'écoute y passe
-/// souvent par le Bluetooth, qui réencode le son : « Haute » (AAC 320 kbit/s) demande
-/// environ trois fois moins de données que le FLAC, « Basse » (HE-AAC 96 kbit/s) dix fois
-/// moins. Ordre croissant : `Ord` sert à plafonner (#365).
+/// Playback quality on Android (#325, #366), the tiers of the TIDAL API. Listening there
+/// often goes through Bluetooth, which re-encodes the sound: "High" (AAC 320 kbit/s) needs
+/// about three times less data than FLAC, "Low" (HE-AAC 96 kbit/s) ten times less.
+/// Ascending order: `Ord` is used to cap (#365).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum MobileQuality {
@@ -82,8 +82,8 @@ pub enum MobileQuality {
     High,
     #[default]
     Lossless,
-    /// FLAC jusqu'à 24 bits / 192 kHz, édition hi-res comprise comme sur le bureau. Android
-    /// ramène le 24 bits à 16 bits (pas de sortie flottante), la fréquence reste.
+    /// FLAC up to 24 bits / 192 kHz, hi-res edition included as on desktop. Android brings
+    /// 24 bits down to 16 bits (no float output), the sample rate stays.
     Max,
 }
 
@@ -98,19 +98,19 @@ impl MobileQuality {
     }
 }
 
-/// Que faire d'une édition hi-res trouvée pour un titre qui n'en a pas.
+/// What to do with a hi-res edition found for a track that has none.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HiresUpgrade {
-    /// La lire à sa place, sans demander (indiquée dans la chaîne audio).
+    /// Play it instead, without asking (shown in the signal path).
     #[default]
     Auto,
-    /// Lire le titre d'origine et proposer l'édition dans la barre de lecture.
+    /// Play the original track and offer the edition in the player bar.
     Ask,
     Off,
 }
 
-/// Accepte aussi l'interrupteur des versions 0.4.8 à 0.4.14 (`true` = automatique).
+/// Also accepts the on/off switch of versions 0.4.8 to 0.4.14 (`true` = automatic).
 impl<'de> Deserialize<'de> for HiresUpgrade {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
@@ -133,8 +133,8 @@ impl<'de> Deserialize<'de> for HiresUpgrade {
 }
 
 impl PlaybackSettings {
-    /// Réglages enregistrés ; valeurs par défaut sans base ou si la valeur est illisible
-    /// (ancienne version, taille retirée des choix).
+    /// Saved settings; defaults without a database or if the value is unreadable (old
+    /// version, size removed from the choices).
     pub fn load(store: Option<&Store>) -> Self {
         let Some(store) = store else {
             return Self::default();
@@ -151,14 +151,14 @@ impl PlaybackSettings {
         match saved {
             Ok(saved) => saved.unwrap_or_default(),
             Err(e) => {
-                tracing::warn!("réglages de lecture illisibles, valeurs par défaut : {e}");
+                tracing::warn!("unreadable playback settings, using defaults: {e}");
                 Self::default()
             }
         }
     }
 
-    /// Lit les réglages enregistrés. `mobileQuality` (une seule qualité, 0.5.22 à 0.5.29)
-    /// devient la qualité des deux réseaux (#365).
+    /// Reads the saved settings. `mobileQuality` (a single quality, 0.5.22 to 0.5.29) becomes
+    /// the quality of both networks (#365).
     fn from_saved(mut saved: serde_json::Value) -> serde_json::Result<Self> {
         if let Some(map) = saved.as_object_mut()
             && let Some(old) = map.remove("mobileQuality")
@@ -185,9 +185,9 @@ mod tests {
         assert_eq!(
             s.hires_upgrade,
             HiresUpgrade::Auto,
-            "automatique par défaut, y compris depuis une 0.4.7"
+            "automatic by default, including since a 0.4.7"
         );
-        assert_eq!(s.normalization, Normalization::Off, "désactivée par défaut");
+        assert_eq!(s.normalization, Normalization::Off, "off by default");
         let s: PlaybackSettings = serde_json::from_str(r#"{"cacheSize":256}"#).unwrap();
         assert_eq!(s.cache_size, CacheSize::Mib256);
         assert!(serde_json::from_str::<PlaybackSettings>(r#"{"cacheSize":100}"#).is_err());
@@ -195,17 +195,11 @@ mod tests {
             serde_json::to_string(&PlaybackSettings::default()).unwrap(),
             r#"{"cacheSize":64,"hiresUpgrade":"auto","normalization":"off","equalizer":{"enabled":false,"active":null,"profiles":[]},"audioDevice":null,"exclusive":false,"autoRadio":false,"pauseOnUnplug":true,"resumeOnLaunch":false,"deviceProfiles":false,"wifiQuality":"lossless","cellularQuality":"lossless","lowBatteryQuality":false}"#
         );
-        assert!(!s.auto_radio, "radio automatique désactivée par défaut");
-        assert!(!s.exclusive, "mode exclusif désactivé par défaut");
-        assert!(
-            s.pause_on_unplug,
-            "pause au débranchement par défaut (#348)"
-        );
-        assert!(
-            !s.resume_on_launch,
-            "pas de reprise au lancement par défaut (#353)"
-        );
-        assert!(!s.device_profiles, "réglages globaux par défaut (#416)");
+        assert!(!s.auto_radio, "automatic radio off by default");
+        assert!(!s.exclusive, "exclusive mode off by default");
+        assert!(s.pause_on_unplug, "pause on unplug by default (#348)");
+        assert!(!s.resume_on_launch, "no resume at launch by default (#353)");
+        assert!(!s.device_profiles, "global settings by default (#416)");
     }
 
     #[test]

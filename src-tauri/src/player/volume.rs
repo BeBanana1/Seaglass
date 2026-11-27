@@ -118,7 +118,7 @@ mod tests {
             muted: true,
         };
         v.set_level(0);
-        assert!(v.muted, "à 0, la coupure reste");
+        assert!(v.muted, "at 0, the mute stays");
         v.set_level(60);
         assert_eq!(
             v,

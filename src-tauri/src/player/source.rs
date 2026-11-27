@@ -59,7 +59,7 @@ pub enum PlaySource {
     Search {
         query: String,
     },
-    /// Playlist intelligente locale (#383).
+    /// Local smart playlist (#383).
     Smart {
         list: SmartList,
     },

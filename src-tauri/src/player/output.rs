@@ -289,7 +289,7 @@ mod tests {
         assert_eq!(
             out.update(),
             (None, None),
-            "rien ne change sans nouvelle liste"
+            "nothing changes without a new list"
         );
 
         // Plugged back.

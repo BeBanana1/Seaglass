@@ -1,21 +1,22 @@
-//! Réponse libre d'un blind test (#434) comparée au titre et aux artistes. Logique pure.
+//! Free-text answer of a blind test (#434) compared with the title and the artists. Pure
+//! logic.
 //!
-//! Les deux côtés sont ramenés à des mots en minuscules sans accents ni ponctuation ; le
-//! titre perd ce qui est entre parenthèses, « feat. … » et un suffixe de version, l'artiste
-//! un « The » initial. Une faute de frappe est tolérée selon la longueur attendue, et une
-//! même saisie peut nommer l'artiste et le titre (« daft punk one more time »).
+//! Both sides are reduced to lowercase words without accents or punctuation; the title loses
+//! what is in parentheses, "feat. …" and a version suffix, the artist a leading "The". A
+//! typo is tolerated depending on the expected length, and a single input can name both the
+//! artist and the title ("daft punk one more time").
 
 use crate::foreign::strip_decorations;
 use crate::tidal::models::Track;
 
-/// Ce que la réponse a trouvé.
+/// What the answer found.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Verdict {
     pub title: bool,
     pub artist: bool,
 }
 
-/// Compare `guess` au titre et aux artistes de `track`.
+/// Compares `guess` with the title and the artists of `track`.
 pub fn check(guess: &str, track: &Track) -> Verdict {
     let guess = normalize(guess);
     if guess.is_empty() {
@@ -29,7 +30,7 @@ pub fn check(guess: &str, track: &Track) -> Verdict {
         .filter(|a| !a.is_empty())
         .collect();
 
-    // Saisie entière : un titre éponyme (« Weezer » de Weezer) compte des deux côtés.
+    // Whole input: a self-titled track ("Weezer" by Weezer) counts on both sides.
     let whole_title = close(&guess, &title);
     let whole_artist = artists.iter().any(|a| close(&guess, a));
     if whole_title || whole_artist {
@@ -39,8 +40,8 @@ pub fn check(guess: &str, track: &Track) -> Verdict {
         };
     }
 
-    // Sinon l'artiste d'abord, retiré de la saisie : « daft punk » ne trouve pas le titre
-    // « Punk ».
+    // Otherwise the artist first, removed from the input: "daft punk" does not find the title
+    // "Punk".
     let mut words: Vec<&str> = guess.split(' ').collect();
     let mut artist = false;
     for name in &artists {
@@ -54,7 +55,7 @@ pub fn check(guess: &str, track: &Track) -> Verdict {
     Verdict { title, artist }
 }
 
-/// Clé d'un titre : sans décorations (« (Remastered) », « feat. … », « - Radio Edit »).
+/// Key of a title: without decorations ("(Remastered)", "feat. …", "- Radio Edit").
 pub fn title_key(title: &str) -> String {
     let key = normalize(&strip_decorations(title));
     if key.is_empty() {
@@ -64,7 +65,7 @@ pub fn title_key(title: &str) -> String {
     }
 }
 
-/// Clé d'un artiste : sans « The » initial (« The Beatles » = « Beatles »).
+/// Key of an artist: without a leading "The" ("The Beatles" = "Beatles").
 fn artist_key(name: &str) -> String {
     let key = normalize(name);
     match key.strip_prefix("the ") {
@@ -73,9 +74,8 @@ fn artist_key(name: &str) -> String {
     }
 }
 
-/// Minuscules, sans accents ni ponctuation, espaces réduits ; « & » vaut « and », et « et »
-/// aussi (« Simon & Garfunkel », « Simon et Garfunkel »). Apostrophes retirées : « don't »
-/// = « dont ».
+/// Lowercase, no accents or punctuation, collapsed spaces; "&" counts as "and", and so does
+/// "et" ("Simon & Garfunkel", "Simon et Garfunkel"). Apostrophes removed: "don't" = "dont".
 pub fn normalize(text: &str) -> String {
     let mut folded = String::with_capacity(text.len());
     for c in text.chars().flat_map(char::to_lowercase) {
@@ -93,7 +93,7 @@ pub fn normalize(text: &str) -> String {
         .join(" ")
 }
 
-/// Lettre sans diacritique (latin courant) ; les autres caractères restent tels quels.
+/// Letter without diacritic (common Latin); other characters are left as they are.
 fn fold(c: char, out: &mut String) {
     let base = match c {
         'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' | 'ā' | 'ă' | 'ą' => 'a',
@@ -119,7 +119,7 @@ fn fold(c: char, out: &mut String) {
     out.push(base);
 }
 
-/// Fautes tolérées pour une clé de `len` caractères : aucune sous 4.
+/// Typos tolerated for a key of `len` characters: none below 4.
 fn tolerance(len: usize) -> usize {
     match len {
         0..=3 => 0,
@@ -133,8 +133,8 @@ fn close(guess: &str, key: &str) -> bool {
     !key.is_empty() && distance(guess, key) <= tolerance(key.chars().count())
 }
 
-/// Mots consécutifs de `words` proches de `key` (un mot de plus ou de moins toléré) :
-/// leurs bornes.
+/// Consecutive words of `words` close to `key` (one word more or less tolerated): their
+/// bounds.
 fn find(words: &[&str], key: &str) -> Option<(usize, usize)> {
     if key.is_empty() || words.is_empty() {
         return None;
@@ -157,7 +157,7 @@ fn find(words: &[&str], key: &str) -> Option<(usize, usize)> {
     None
 }
 
-/// Distance de Levenshtein, en caractères.
+/// Levenshtein distance, in characters.
 fn distance(a: &str, b: &str) -> usize {
     let b: Vec<char> = b.chars().collect();
     let mut row: Vec<usize> = (0..=b.len()).collect();
@@ -242,10 +242,10 @@ mod tests {
         assert_eq!(
             found("bohemain rapsodie", &t),
             (false, false),
-            "trop de fautes"
+            "too many typos"
         );
         assert_eq!(found("rhapsody in blue", &t), (false, false));
-        // Clé courte : aucune faute.
+        // Short key: no typo allowed.
         let t = track("One", &["U2"]);
         assert_eq!(found("u3", &t), (false, false));
         assert_eq!(found("u2", &t), (false, true));

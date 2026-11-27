@@ -1,34 +1,34 @@
-//! Joueurs d'un blind test (#434, #441) : l'hôte et, par la Jam, les invités. Réponses de
-//! la manche en cours, points, bonus du plus rapide, séries. Logique pure.
+//! Players of a blind test (#434, #441): the host and, through the Jam, the guests. Answers
+//! of the current round, points, fastest-player bonus, streaks. Pure logic.
 
 use serde::Serialize;
 
-/// Clé de l'hôte ; celles des invités sont leurs clés de la Jam (`jam::members::owner_key`),
-/// qui ne sortent jamais d'ici.
+/// The host's key; the guests' keys are their Jam keys (`jam::members::owner_key`), which
+/// never leave this module.
 pub const HOST_KEY: &str = "host";
 pub const HOST_ID: u32 = 0;
-/// Joueurs au plus par partie, l'hôte compris.
+/// Most players per game, the host included.
 pub const MAX_PLAYERS: usize = 32;
 const NAME_CHARS: usize = 24;
-/// Bonus du premier à trouver le titre, à plusieurs seulement.
+/// Bonus for the first to find the title, with several players only.
 pub const FASTEST_BONUS: u32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Refusal {
-    /// Pas de manche en cours (révélée, finie) ou autre manche.
+    /// No round in progress (revealed, finished) or another round.
     Closed,
-    /// Ce joueur a déjà répondu à la manche.
+    /// This player has already answered the round.
     Duplicate,
-    /// Plus de place dans la partie.
+    /// No room left in the game.
     Full,
 }
 
-/// Réponse retenue jusqu'à la révélation.
+/// Answer kept until the reveal.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pending {
     pub title: bool,
     pub artist: bool,
-    /// Points sans le bonus.
+    /// Points without the bonus.
     pub points: u32,
     pub answer: Option<String>,
     pub chosen: Option<usize>,
@@ -45,22 +45,22 @@ struct Contestant {
     pending: Option<Pending>,
 }
 
-/// Joueur tel que l'hôte et les invités le voient : jamais sa clé ni sa réponse.
+/// Player as the host and the guests see them: never their key or their answer.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerView {
     pub id: u32,
-    /// Prénom donné dans la Jam ; `None` : l'UI affiche « Invité <id> ».
+    /// First name given in the Jam; `None`: the UI shows "Guest <id>".
     pub name: Option<String>,
     pub host: bool,
     pub score: u32,
     pub streak: u32,
     pub best_streak: u32,
-    /// A répondu à la manche en cours.
+    /// Has answered the current round.
     pub answered: bool,
 }
 
-/// Résultat d'un joueur pour une manche révélée.
+/// A player's result for a revealed round.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerResult {
@@ -71,16 +71,16 @@ pub struct PlayerResult {
     pub title: bool,
     pub artist: bool,
     pub points: u32,
-    /// Premier à trouver le titre (bonus compris dans `points`).
+    /// First to find the title (bonus included in `points`).
     pub fastest: bool,
 }
 
 #[derive(Debug, Default)]
 pub struct Players {
-    /// Dans l'ordre d'arrivée, l'hôte d'abord s'il joue.
+    /// In order of arrival, the host first if they play.
     list: Vec<Contestant>,
     next_id: u32,
-    /// Ordre des réponses de la manche, pour le bonus du plus rapide.
+    /// Order of the round's answers, for the fastest-player bonus.
     order: Vec<u32>,
 }
 
@@ -111,7 +111,7 @@ impl Players {
         players
     }
 
-    /// Joueur de `key`, ajouté à sa première réponse ; le dernier prénom l'emporte.
+    /// Player of `key`, added on their first answer; the latest first name wins.
     fn join(&mut self, key: &str, name: Option<&str>) -> Result<usize, Refusal> {
         let name = clean_name(name);
         if let Some(i) = self.list.iter().position(|c| c.key == key) {
@@ -121,7 +121,7 @@ impl Players {
             return Ok(i);
         }
         if key == HOST_KEY || self.list.len() >= MAX_PLAYERS {
-            // L'hôte qui ne joue pas ne rejoint pas en cours de partie.
+            // A host who does not play does not join mid-game.
             return Err(if key == HOST_KEY {
                 Refusal::Closed
             } else {
@@ -141,7 +141,7 @@ impl Players {
         Ok(self.list.len() - 1)
     }
 
-    /// Retient la réponse de `key` ; renvoie l'identifiant du joueur.
+    /// Keeps the answer of `key`; returns the player's id.
     pub fn record(
         &mut self,
         key: &str,
@@ -158,13 +158,13 @@ impl Players {
         Ok(player.id)
     }
 
-    /// Tous les joueurs connus ont répondu (au moins un joueur).
+    /// All known players have answered (at least one player).
     pub fn all_answered(&self) -> bool {
         !self.list.is_empty() && self.list.iter().all(|c| c.pending.is_some())
     }
 
-    /// Révélation : points (bonus au premier qui a trouvé le titre si `bonus`), scores et
-    /// séries ; un joueur sans réponse perd sa série. Les réponses sont oubliées.
+    /// Reveal: points (bonus to the first who found the title if `bonus`), scores and
+    /// streaks; a player without an answer loses their streak. The answers are forgotten.
     pub fn settle(&mut self, bonus: bool) -> Vec<PlayerResult> {
         let fastest = bonus
             .then(|| {
@@ -204,7 +204,7 @@ impl Players {
         results
     }
 
-    /// Réponse de l'hôte à la manche en cours.
+    /// The host's answer to the current round.
     pub fn host_pending(&self) -> Option<&Pending> {
         self.host().and_then(|c| c.pending.as_ref())
     }
@@ -213,13 +213,13 @@ impl Players {
         self.list.iter().find(|c| c.id == HOST_ID)
     }
 
-    /// Score, série et meilleure série de l'hôte (0 s'il ne joue pas).
+    /// The host's score, streak and best streak (0 if they do not play).
     pub fn host_score(&self) -> (u32, u32, u32) {
         self.host()
             .map_or((0, 0, 0), |c| (c.score, c.streak, c.best_streak))
     }
 
-    /// Classement : meilleur score d'abord, puis ordre d'arrivée.
+    /// Ranking: best score first, then order of arrival.
     pub fn views(&self) -> Vec<PlayerView> {
         let mut views: Vec<PlayerView> = self
             .list
@@ -269,7 +269,7 @@ mod tests {
             points,
             vec![(HOST_ID, 3, false), (2, 3, true), (1, 1, false)]
         );
-        assert!(!p.all_answered(), "réponses oubliées après la révélation");
+        assert!(!p.all_answered(), "answers forgotten after the reveal");
     }
 
     #[test]
@@ -289,13 +289,13 @@ mod tests {
         );
         p.record("max", None, right(false, false)).unwrap();
         p.settle(true);
-        // Max ne répond pas à la manche suivante : sa série reste à zéro, celle de Léa
-        // aussi retombe.
+        // Max does not answer the next round: his streak stays at zero, Léa's also falls
+        // back.
         p.record("max", Some("Max"), right(true, false)).unwrap();
         assert!(!p.all_answered());
         p.settle(true);
         let views = p.views();
-        assert_eq!(views[0].id, 1, "Léa en tête (3 points)");
+        assert_eq!(views[0].id, 1, "Léa in the lead (3 points)");
         assert_eq!(
             (views[0].score, views[0].streak, views[0].best_streak),
             (3, 0, 1)
@@ -312,7 +312,7 @@ mod tests {
             Err(Refusal::Closed)
         );
         assert_eq!(p.host_score(), (0, 0, 0));
-        assert!(!p.all_answered(), "personne n'a encore joué");
+        assert!(!p.all_answered(), "nobody has played yet");
     }
 
     #[test]

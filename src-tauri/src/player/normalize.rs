@@ -1,39 +1,40 @@
-//! Normalisation du volume (#82) : gain ReplayGain de l'API (pas les tags du FLAC),
-//! limité par la crête pour ne jamais écrêter, appliqué par le moteur **à chaque fichier**
-//! séparément (`Op::Play`, `Op::Preload`, `Op::CurrentFilters`), avant l'égaliseur
-//! (#428, `player::eq`).
+//! Volume normalization (#82): ReplayGain gain from the API (not the FLAC tags), limited by
+//! the peak so it never clips, applied by the engine **to each file** separately
+//! (`Op::Play`, `Op::Preload`, `Op::CurrentFilters`), before the equalizer (#428,
+//! `player::eq`).
 //!
-//! Sous mpv (`mpv::engine`), vérifié avec mpv 0.41 et 0.37 (`live_per_file_af`) : `loadfile` avec `options` `af=…` pose le
-//! filtre en option locale du fichier préchargé ; le titre en cours garde le sien jusqu'au
-//! passage gapless, et un fichier chargé sans option revient à `af=[]`. Pour le titre en
-//! cours, `file-local-options/af` change le filtre à chaud ; la valeur d'avant est remise
-//! à la fin du fichier (`options/af` montre la valeur en vigueur, pas celle-là).
+//! With mpv (`mpv::engine`), verified with mpv 0.41 and 0.37 (`live_per_file_af`):
+//! `loadfile` with `options` `af=…` sets the filter as a local option of the preloaded
+//! file; the current track keeps its own until the gapless switch, and a file loaded without
+//! an option goes back to `af=[]`. For the current track, `file-local-options/af` changes
+//! the filter live; the previous value is restored at the end of the file (`options/af`
+//! shows the value in effect, not that one).
 
 use serde::{Deserialize, Serialize};
 
 use super::actor::Player;
 use crate::tidal::models::ReplayGain;
 
-/// Bornes du gain appliqué, en dB : au-delà, une valeur de l'API serait suspecte.
+/// Bounds of the applied gain, in dB: beyond them, an API value would be suspect.
 const MIN_GAIN: f64 = -24.0;
 const MAX_GAIN: f64 = 12.0;
 
-/// Réglage Réglages › Lecture › Normalisation du volume.
+/// Setting Settings › Playback › Volume normalization.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Normalization {
-    /// Signal intact (seul mode compatible avec une sortie bit-perfect).
+    /// Untouched signal (the only mode compatible with a bit-perfect output).
     #[default]
     Off,
-    /// Chaque titre au même volume perçu.
+    /// Every track at the same perceived volume.
     Track,
-    /// Écarts d'un album conservés, albums ramenés au même volume.
+    /// Differences within an album kept, albums brought to the same volume.
     Album,
 }
 
-/// Gain à appliquer en dB, ou `None` (réglage désactivé, gain inconnu, ou nul après
-/// arrondi : le signal n'est alors pas modifié). Mode album sans gain d'album : gain du
-/// titre. La crête limite le gain : `crête × 10^(gain/20) ≤ 1`.
+/// Gain to apply in dB, or `None` (setting off, unknown gain, or zero after rounding: the
+/// signal is then left untouched). Album mode without an album gain: the track's gain. The
+/// peak limits the gain: `peak × 10^(gain/20) ≤ 1`.
 pub fn gain_db(mode: Normalization, rg: &ReplayGain) -> Option<f64> {
     let (gain, peak) = match mode {
         Normalization::Off => return None,
@@ -51,13 +52,13 @@ pub fn gain_db(mode: Normalization, rg: &ReplayGain) -> Option<f64> {
     (rounded != 0.0).then_some(rounded)
 }
 
-/// État de la normalisation tenu par l'acteur : ReplayGain du titre courant et du suivant
-/// préchargé, pour recalculer le gain quand le réglage change.
+/// Normalization state held by the actor: ReplayGain of the current track and of the
+/// preloaded next one, to recompute the gain when the setting changes.
 #[derive(Debug, Clone, Default)]
 pub(super) struct Normalizer {
-    /// Réglage choisi, gardé tel quel pendant le mode exclusif.
+    /// Chosen setting, kept as is during exclusive mode.
     pub(super) mode: Normalization,
-    /// Mode exclusif (#245) : aucun filtre posé, quel que soit le réglage.
+    /// Exclusive mode (#245): no filter set, whatever the setting.
     pub(super) bypass: bool,
     current: ReplayGain,
     next: ReplayGain,
@@ -72,7 +73,7 @@ impl Normalizer {
         }
     }
 
-    /// Normalisation réellement appliquée : aucune en mode exclusif.
+    /// Normalization actually applied: none in exclusive mode.
     pub(super) fn effective(&self) -> Normalization {
         if self.bypass {
             Normalization::Off
@@ -81,19 +82,19 @@ impl Normalizer {
         }
     }
 
-    /// Titre chargé en entrée 0 : gain à lui appliquer.
+    /// Track loaded at entry 0: gain to apply to it.
     pub(super) fn loaded(&mut self, rg: ReplayGain) -> Option<f64> {
         self.current = rg;
         gain_db(self.effective(), &rg)
     }
 
-    /// Titre préchargé en entrée 1 : gain posé avec son `loadfile`.
+    /// Track preloaded at entry 1: gain set with its `loadfile`.
     pub(super) fn preloaded(&mut self, rg: ReplayGain) -> Option<f64> {
         self.next = rg;
         gain_db(self.effective(), &rg)
     }
 
-    /// Passage gapless sur le préchargé : son gain devient le courant.
+    /// Gapless switch to the preloaded track: its gain becomes the current one.
     pub(super) fn advance(&mut self) -> Option<f64> {
         self.current = std::mem::take(&mut self.next);
         gain_db(self.effective(), &self.current)
@@ -105,8 +106,8 @@ impl Normalizer {
 }
 
 impl Player {
-    /// Nouveau réglage : appliqué tout de suite au titre en cours, et le suivant préchargé
-    /// est retiré pour être rechargé avec son gain.
+    /// New setting: applied right away to the current track, and the preloaded next one is
+    /// removed so it is reloaded with its gain.
     pub(super) async fn set_normalization(&mut self, mode: Normalization) {
         let before = self.normalizer.effective();
         self.normalizer.mode = mode;
@@ -114,8 +115,8 @@ impl Player {
         self.on_normalization_changed(before).await;
     }
 
-    /// Réapplique le gain si la normalisation effective a changé (réglage, ou passage en
-    /// mode exclusif et retour).
+    /// Reapplies the gain if the effective normalization changed (setting, or switching to
+    /// exclusive mode and back).
     pub(super) async fn on_normalization_changed(&mut self, before: Normalization) {
         if self.normalizer.effective() == before {
             return;
@@ -150,17 +151,17 @@ pub(crate) mod tests {
 
     #[test]
     fn peak_prevents_clipping() {
-        // +6 dB demandés, crête à 0,7 : au plus −20·log10(0,7) ≈ +3,10 dB.
+        // +6 dB requested, peak at 0.7: at most −20·log10(0.7) ≈ +3.10 dB.
         let g = gain_db(Normalization::Track, &rg((6.0, 0.7), None)).unwrap();
         assert!((g - 3.1).abs() < 0.01, "{g}");
         assert!(0.7 * 10f64.powf(g / 20.0) <= 1.0 + 1e-3);
-        // Crête pleine échelle : aucun gain positif, une atténuation passe telle quelle.
+        // Full-scale peak: no positive gain, an attenuation goes through as is.
         assert_eq!(gain_db(Normalization::Track, &rg((2.0, 1.0), None)), None);
         assert_eq!(
             gain_db(Normalization::Track, &rg((-3.0, 1.0), None)),
             Some(-3.0)
         );
-        // Crête inconnue ou absurde : seulement les bornes.
+        // Unknown or absurd peak: only the bounds.
         let no_peak = ReplayGain {
             track_gain: Some(20.0),
             ..ReplayGain::default()
@@ -184,13 +185,13 @@ pub(crate) mod tests {
         assert_eq!(n.current_gain(), Some(-5.0));
         assert_eq!(n.advance(), Some(-2.0));
         assert_eq!(n.current_gain(), Some(-2.0));
-        // Pas de préchargé connu : rien à appliquer après le passage.
+        // No known preloaded track: nothing to apply after the switch.
         assert_eq!(n.advance(), None);
         n.mode = Normalization::Off;
         assert_eq!(n.loaded(rg((-5.0, 0.5), None)), None);
     }
 
-    /// Mode exclusif (#245) : aucun gain, le réglage est gardé pour le retour en partagé.
+    /// Exclusive mode (#245): no gain, the setting is kept for the return to shared mode.
     #[test]
     fn exclusive_bypasses_normalization() {
         let mut n = Normalizer::new(Normalization::Album, true);
@@ -211,7 +212,7 @@ pub(crate) mod tests {
         assert!(serde_json::from_str::<Normalization>(r#""loud""#).is_err());
     }
 
-    /// WAV PCM 16 bits stéréo 44,1 kHz : sinus à −40 dBFS (volume bas), fichier de test.
+    /// 16-bit stereo 44.1 kHz PCM WAV: sine at −40 dBFS (low volume), test file.
     pub(crate) fn quiet_wav(name: &str, secs: u32, freq: f64) -> std::path::PathBuf {
         let rate = 44_100u32;
         let frames = rate * secs;
@@ -246,15 +247,16 @@ pub(crate) mod tests {
         path
     }
 
-    /// Vrai mpv, lecture réelle courte à volume bas (sinus à −40 dBFS, `volume=30`) : le
-    /// filtre posé par `loadfile` (`append`, `options` `af=…`, commandes de `mpv::engine`) ne vaut que pour le fichier préchargé,
-    /// le titre en cours garde le sien jusqu'au passage gapless ; `file-local-options/af`
-    /// change celui du titre en cours sans déborder sur les suivants (le préchargé garde
-    /// le sien, un fichier chargé ensuite sans option revient à `af=[]`). Avec l'égaliseur
-    /// (#428) : la chaîne à plusieurs filtres passe dans `options` en `%longueur%valeur`.
+    /// Real mpv, short real playback at low volume (sine at −40 dBFS, `volume=30`): the
+    /// filter set by `loadfile` (`append`, `options` `af=…`, commands of `mpv::engine`) only
+    /// applies to the preloaded file, the current track keeps its own until the gapless
+    /// switch; `file-local-options/af` changes the current track's filter without spilling
+    /// over to the next ones (the preloaded one keeps its own, a file loaded afterwards
+    /// without an option goes back to `af=[]`). With the equalizer (#428): the multi-filter
+    /// chain goes through `options` as `%length%value`.
     /// `cargo test live_per_file_af -- --ignored --nocapture`
     #[tokio::test]
-    #[ignore = "lance un vrai mpv sur la sortie audio"]
+    #[ignore = "launches a real mpv on the audio output"]
     async fn live_per_file_af() {
         use crate::engine::{Filters, Op};
         use crate::mpv::CacheSize;
@@ -318,21 +320,21 @@ pub(crate) mod tests {
         }
         tokio::time::sleep(Duration::from_millis(800)).await;
         let on_a = af().await;
-        println!("A : af = {on_a}");
+        println!("A: af = {on_a}");
         assert_eq!(
             volume_of(on_a.clone()).as_deref(),
             Some("-12.20dB"),
-            "titre en cours : gain −6 dB + préampli −6,2 dB"
+            "current track: −6 dB gain + −6.2 dB preamp"
         );
         assert_eq!(
             names(on_a),
             ["volume", "bass", "equalizer", "treble"],
-            "chaîne de l'égaliseur entière malgré les virgules"
+            "whole equalizer chain despite the commas"
         );
         let params = cmd(json!(["get_property", "audio-params"])).await;
-        println!("A : préchargé B en attente, audio-params = {params}");
+        println!("A: preloaded B waiting, audio-params = {params}");
 
-        // Changement à chaud du titre en cours : option locale seulement.
+        // Live change of the current track: local option only.
         cmd(json!([
             "set_property",
             "file-local-options/af",
@@ -343,7 +345,7 @@ pub(crate) mod tests {
         assert_eq!(volume_of(hot.clone()).as_deref(), Some("-9.20dB"));
         assert_eq!(names(hot).len(), 4);
 
-        // Passage gapless sur B : son propre filtre.
+        // Gapless switch to B: its own filter.
         tokio::time::timeout(Duration::from_secs(6), async {
             while let Some(ev) = events.recv().await {
                 if ev == MpvEvent::Property(Property::PlaylistPos(Some(1))) {
@@ -352,20 +354,20 @@ pub(crate) mod tests {
             }
         })
         .await
-        .expect("passage sur le titre préchargé");
+        .expect("switch to the preloaded track");
         tokio::time::sleep(Duration::from_millis(300)).await;
         let on_b = volume_of(af().await);
-        println!("B après passage gapless : {on_b:?}");
+        println!("B after gapless switch: {on_b:?}");
         assert_eq!(on_b.as_deref(), Some("-12.00dB"));
-        assert_eq!(names(af().await), ["volume"], "B sans égaliseur");
+        assert_eq!(names(af().await), ["volume"], "B without equalizer");
 
-        // Fichier sans option : aucun filtre.
+        // File without an option: no filter.
         cmd(json!(["loadfile", path(&c), "replace"])).await;
         tokio::time::sleep(Duration::from_millis(500)).await;
         assert_eq!(
             af().await,
             json!([]),
-            "sans option, plus de filtre : le changement à chaud n'a pas débordé"
+            "without an option, no more filter: the live change did not spill over"
         );
 
         let _ = child.start_kill();

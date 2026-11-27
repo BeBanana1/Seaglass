@@ -1,10 +1,9 @@
-//! Égaliseur paramétrique (#428) : profils nommés (préampli + filtres en pic ou en
-//! plateau), un profil actif, désactivé par défaut. Logique pure testée ; le moteur mpv
-//! traduit le profil en filtres `af` (`mpv::filters`), Media3 en biquads
-//! (`EqAudioProcessor.kt`, #467).
+//! Parametric equalizer (#428): named profiles (preamp + peak or shelf filters), one active
+//! profile, off by default. Pure, tested logic; the mpv engine translates the profile into
+//! `af` filters (`mpv::filters`), Media3 into biquads (`EqAudioProcessor.kt`, #467).
 //!
-//! Les bornes sont vérifiées à la désérialisation : un profil qui arrive de l'UI, d'une
-//! sauvegarde ou de l'import AutoEQ (`player::autoeq`) est toujours valide.
+//! The bounds are checked on deserialization: a profile coming from the UI, from a backup or
+//! from the AutoEQ import (`player::autoeq`) is always valid.
 
 use std::sync::Arc;
 
@@ -13,13 +12,13 @@ use serde::{Deserialize, Serialize};
 use super::actor::Player;
 use crate::engine::{Filters, Op};
 
-/// Filtres par profil au plus (AutoEQ en donne 10 ; certaines corrections jusqu'à 15).
+/// Most filters per profile (AutoEQ gives 10; some corrections up to 15).
 pub const MAX_FILTERS: usize = 20;
-/// Profils enregistrés au plus.
+/// Most saved profiles.
 pub const MAX_PROFILES: usize = 32;
-/// Longueur maximale d'un nom de profil, en caractères.
+/// Maximum length of a profile name, in characters.
 pub const MAX_NAME: usize = 80;
-/// Gain d'un filtre et préampli, en dB.
+/// Gain of a filter and preamp, in dB.
 pub const GAIN_RANGE: (f64, f64) = (-20.0, 20.0);
 pub const Q_RANGE: (f64, f64) = (0.1, 10.0);
 pub const FREQ_RANGE: (f64, f64) = (20.0, 20_000.0);
@@ -27,11 +26,11 @@ pub const FREQ_RANGE: (f64, f64) = (20.0, 20_000.0);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum FilterKind {
-    /// Pic (cloche) centré sur `freq`.
+    /// Peak (bell) centered on `freq`.
     Peaking,
-    /// Plateau des graves, sous `freq`.
+    /// Low shelf, below `freq`.
     LowShelf,
-    /// Plateau des aigus, au-dessus de `freq`.
+    /// High shelf, above `freq`.
     HighShelf,
 }
 
@@ -39,14 +38,14 @@ pub enum FilterKind {
 #[serde(rename_all = "camelCase")]
 pub struct Filter {
     pub kind: FilterKind,
-    /// Fréquence centrale (pic) ou de coupure (plateau), en Hz.
+    /// Center frequency (peak) or cutoff (shelf), in Hz.
     pub freq: f64,
-    /// Gain en dB.
+    /// Gain in dB.
     pub gain: f64,
     pub q: f64,
 }
 
-/// Raison du refus d'un profil, déjà dans la langue de l'app.
+/// Reason a profile was refused, already in the app's language.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("{0}")]
 pub struct Invalid(pub String);
@@ -56,7 +55,7 @@ fn within(v: f64, (min, max): (f64, f64)) -> bool {
 }
 
 impl Filter {
-    /// Vérifie les bornes ; `n` est le numéro du filtre (à partir de 1) pour le message.
+    /// Checks the bounds; `n` is the filter number (from 1) for the message.
     pub fn check(&self, n: usize) -> Result<(), Invalid> {
         use crate::i18n::trf;
         if !within(self.freq, FREQ_RANGE) {
@@ -84,13 +83,13 @@ impl Filter {
     }
 }
 
-/// Profil d'égaliseur : préampli puis filtres, dans l'ordre.
+/// Equalizer profile: preamp then filters, in order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", try_from = "RawProfile")]
 pub struct EqProfile {
     pub id: u32,
     pub name: String,
-    /// Préampli en dB ; `None` = automatique (`auto_preamp`).
+    /// Preamp in dB; `None` = automatic (`auto_preamp`).
     pub preamp: Option<f64>,
     pub filters: Vec<Filter>,
 }
@@ -135,7 +134,7 @@ impl EqProfile {
         self.check_values()
     }
 
-    /// Bornes du préampli et des filtres, sans le nom (import AutoEQ, `player::autoeq`).
+    /// Bounds of the preamp and the filters, without the name (AutoEQ import).
     pub fn check_values(&self) -> Result<(), Invalid> {
         use crate::i18n::{tr, trf};
         if self.preamp.is_some_and(|p| !within(p, GAIN_RANGE)) {
@@ -156,25 +155,25 @@ impl EqProfile {
         Ok(())
     }
 
-    /// Préampli automatique : compense le plus fort gain positif, pour ne pas écrêter.
+    /// Automatic preamp: compensates the largest positive gain, to avoid clipping.
     pub fn auto_preamp(&self) -> f64 {
         let boost = self.filters.iter().map(|f| f.gain).fold(0.0_f64, f64::max);
         -boost
     }
 
-    /// Préampli appliqué : celui du profil, sinon l'automatique.
+    /// Preamp applied: the profile's, otherwise the automatic one.
     pub fn effective_preamp(&self) -> f64 {
         self.preamp.unwrap_or_else(|| self.auto_preamp())
     }
 }
 
-/// Réglage Réglages › Lecture › Égaliseur.
+/// Setting Settings › Playback › Equalizer.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", try_from = "RawSettings")]
 pub struct EqSettings {
-    /// Désactivé par défaut : le signal reste intact.
+    /// Off by default: the signal stays untouched.
     pub enabled: bool,
-    /// Profil choisi, gardé même désactivé.
+    /// Chosen profile, kept even when disabled.
     pub active: Option<u32>,
     pub profiles: Vec<EqProfile>,
 }
@@ -207,7 +206,7 @@ impl TryFrom<RawSettings> for EqSettings {
                 tr("identifiants de profil en double", "duplicate profile ids").into(),
             ));
         }
-        // Profil choisi disparu : aucun, plutôt que de refuser tous les réglages.
+        // Chosen profile gone: none, rather than refusing the whole settings.
         let active = raw
             .active
             .filter(|id| raw.profiles.iter().any(|p| p.id == *id));
@@ -220,7 +219,7 @@ impl TryFrom<RawSettings> for EqSettings {
 }
 
 impl EqSettings {
-    /// Profil réellement appliqué : aucun si désactivé ou sans profil choisi.
+    /// Profile actually applied: none if disabled or without a chosen profile.
     pub fn applied(&self) -> Option<&EqProfile> {
         if !self.enabled {
             return None;
@@ -229,13 +228,13 @@ impl EqSettings {
         self.profiles.iter().find(|p| p.id == id)
     }
 
-    /// Valeur retenue par périphérique de sortie (#416) : le profil appliqué, ou aucun.
+    /// Value kept per output device (#416): the applied profile, or none.
     pub fn device_choice(&self) -> Option<u32> {
         self.applied().map(|p| p.id)
     }
 
-    /// Applique le choix retenu pour un périphérique : un profil (s'il existe encore) ou
-    /// l'égaliseur désactivé.
+    /// Applies the choice kept for a device: a profile (if it still exists) or the equalizer
+    /// off.
     pub fn apply_device_choice(&mut self, choice: Option<u32>) {
         match choice.filter(|id| self.profiles.iter().any(|p| p.id == *id)) {
             Some(id) => {
@@ -247,14 +246,14 @@ impl EqSettings {
     }
 }
 
-/// Égaliseur tenu par l'acteur : réglage et profil appliqué, partagé avec le moteur.
+/// Equalizer held by the actor: setting and applied profile, shared with the engine.
 #[derive(Debug, Clone, Default)]
 pub(super) struct Equalizer {
     pub(super) settings: EqSettings,
     applied: Option<Arc<EqProfile>>,
 }
 
-/// Profil réellement appliqué par le moteur (mpv, ou `EqAudioProcessor.kt` sous Android).
+/// Profile actually applied by the engine (mpv, or `EqAudioProcessor.kt` on Android).
 fn engine_profile(settings: &EqSettings) -> Option<EqProfile> {
     settings.applied().cloned()
 }
@@ -265,7 +264,7 @@ impl Equalizer {
         Self { settings, applied }
     }
 
-    /// Nom du profil appliqué, pour la chaîne audio.
+    /// Name of the applied profile, for the signal path.
     pub(super) fn applied_name(&self) -> Option<String> {
         self.applied.as_ref().map(|p| p.name.clone())
     }
@@ -274,7 +273,7 @@ impl Equalizer {
         self.applied.clone()
     }
 
-    /// Nouveau réglage ; renvoie `true` si le profil appliqué a changé.
+    /// New setting; returns `true` if the applied profile changed.
     pub(super) fn set(&mut self, settings: EqSettings) -> bool {
         let applied = engine_profile(&settings);
         let changed = applied.as_ref() != self.applied.as_deref();
@@ -287,7 +286,7 @@ impl Equalizer {
 }
 
 impl Player {
-    /// Filtres d'un fichier : gain de normalisation donné, égaliseur en vigueur.
+    /// Filters of a file: given normalization gain, current equalizer.
     pub(super) fn filters(&self, gain: Option<f64>) -> Filters {
         Filters {
             gain,
@@ -295,8 +294,8 @@ impl Player {
         }
     }
 
-    /// Filtres du titre en cours, posés à chaud (normalisation ou égaliseur changé), puis
-    /// le préchargé est retiré pour être rechargé avec les siens.
+    /// Filters of the current track, set live (normalization or equalizer changed), then the
+    /// preloaded track is removed so it is reloaded with its own.
     pub(super) async fn refresh_filters(&mut self) {
         let gain = self.normalizer.current_gain();
         if self.loaded {
@@ -306,7 +305,7 @@ impl Player {
         self.invalidate_next().await;
     }
 
-    /// Nouveau réglage de l'égaliseur.
+    /// New equalizer setting.
     pub(super) async fn set_equalizer(&mut self, settings: EqSettings) {
         let changed = self.equalizer.set(settings);
         self.state.equalizer = self.equalizer.applied_name();
@@ -346,7 +345,7 @@ mod tests {
             r#"{"id":1,"name":" HD 600 ","filters":[{"kind":"peaking","freq":105,"gain":3.4,"q":0.7}]}"#,
         )
         .unwrap();
-        assert_eq!(ok.name, "HD 600", "nom nettoyé");
+        assert_eq!(ok.name, "HD 600", "name cleaned up");
         assert_eq!(ok.preamp, None);
         for bad in [
             r#"{"id":1,"name":"x","filters":[{"kind":"peaking","freq":10,"gain":1,"q":1}]}"#,
@@ -381,14 +380,14 @@ mod tests {
     fn settings_default_off_and_validate_profiles() {
         let s: EqSettings = serde_json::from_str("{}").unwrap();
         assert_eq!(s, EqSettings::default());
-        assert!(!s.enabled, "désactivé par défaut");
+        assert!(!s.enabled, "off by default");
         assert_eq!(s.applied(), None);
 
         let dup =
             r#"{"profiles":[{"id":1,"name":"a","filters":[]},{"id":1,"name":"b","filters":[]}]}"#;
         assert!(serde_json::from_str::<EqSettings>(dup).is_err());
 
-        // Profil choisi disparu : oublié, sans refuser le reste.
+        // Chosen profile gone: forgotten, without refusing the rest.
         let s: EqSettings = serde_json::from_str(
             r#"{"enabled":true,"active":9,"profiles":[{"id":1,"name":"a","filters":[]}]}"#,
         )
@@ -414,9 +413,9 @@ mod tests {
         assert_eq!(s.active, Some(1));
         s.apply_device_choice(None);
         assert!(!s.enabled);
-        assert_eq!(s.active, Some(1), "le choix reste pour la prochaine fois");
+        assert_eq!(s.active, Some(1), "the choice is kept for next time");
         s.apply_device_choice(Some(42));
-        assert!(!s.enabled, "profil supprimé depuis : désactivé");
+        assert!(!s.enabled, "profile deleted since: disabled");
     }
 
     #[test]
@@ -436,11 +435,11 @@ mod tests {
         assert!(eq.set(on.clone()));
         assert_eq!(eq.applied().as_deref(), Some(&a));
         assert!(!eq.set(on.clone()), "rien de neuf");
-        // Un autre profil, inactif, ajouté : le profil appliqué ne change pas.
+        // Another, inactive profile added: the applied profile does not change.
         let mut more = on.clone();
         more.profiles.push(profile(2, vec![]));
         assert!(!eq.set(more.clone()));
-        // Le profil appliqué modifié : changement.
+        // The applied profile modified: change.
         more.profiles[0].filters[0].gain = 4.0;
         assert!(eq.set(more));
         assert!(eq.set(off));
