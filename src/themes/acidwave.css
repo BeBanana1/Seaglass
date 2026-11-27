@@ -1,15 +1,15 @@
-/* Thème Acidwave : néons acides, chrome liquide, hologrammes.
-   Jetons (panneaux, dialogues, pochettes, angles) dans app.css ; ici, ce qu'un jeton ne dit pas.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Acidwave theme: acid neons, liquid chrome, holograms.
+   Tokens (panels, dialogs, covers, corners) are in app.css; here, what a token cannot express.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
-/* Titres : chrome liquide, capitales serrées. */
+/* Titles: liquid chrome, tight capitals. */
 :root[data-theme="acidwave"] h1,
 :root[data-theme="acidwave"] .hero .title,
 :root[data-theme="acidwave"] .brand {
   font-family: var(--display-family);
   font-stretch: condensed;
   text-transform: uppercase;
-  /* Reflet répété à chaque ligne : sinon un titre sur trois lignes s'assombrit au milieu. */
+  /* Reflection repeated on each line: otherwise a title on three lines darkens in the middle. */
   line-height: 1.12;
   background: var(--chrome);
   background-size: 100% 1.12em;
@@ -33,7 +33,7 @@
   color: var(--accent);
 }
 
-/* Aberration chromatique sur le grand titre de la vue « En lecture ». */
+/* Chromatic aberration on the big title of the "Now playing" view. */
 :root[data-theme="acidwave"] .now-playing h1 {
   filter: drop-shadow(2px 0 0 rgb(255 43 214 / 0.7)) drop-shadow(-2px 0 0 rgb(0 240 255 / 0.6));
 }
@@ -62,7 +62,7 @@
   filter: saturate(1.4) contrast(1.05);
 }
 
-/* Lignes de titre. */
+/* Title rows. */
 :root[data-theme="acidwave"] .row:hover {
   background: linear-gradient(
     90deg,
@@ -76,7 +76,7 @@
   text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
-/* Commandes. */
+/* Controls. */
 :root[data-theme="acidwave"] .transport .play {
   border-radius: 4px;
   color: var(--accent-contrast);
@@ -125,12 +125,12 @@
   color: var(--acid-magenta);
 }
 
-/* Pendant la lecture, la lueur du bouton pulse. */
+/* During playback, the button's glow pulses. */
 :root[data-theme="acidwave"][data-playing="true"] .transport .play {
   animation: acid-pulse 1.6s ease-in-out infinite;
 }
 
-/* Android (#158) : pas de pulsation, aucun décor animé en boucle. */
+/* Android (#158): no pulsing, no looping animated decoration. */
 :root[data-platform="android"][data-theme="acidwave"][data-playing="true"] .transport .play {
   animation: none;
 }
@@ -141,7 +141,7 @@
   }
 }
 
-/* Boutons à angles vifs, coupés en biais (les autres suivent --control-clip). */
+/* Sharp-cornered buttons, cut on the bias (the others follow --control-clip). */
 :root[data-theme="acidwave"] .tabs button,
 :root[data-theme="acidwave"] .refresh,
 :root[data-theme="acidwave"] .search-hint {
@@ -178,7 +178,7 @@
   font-family: var(--font-mono);
 }
 
-/* Chaîne audio : écran d'équipement. */
+/* Signal path: equipment screen. */
 :root[data-theme="acidwave"] .signal,
 :root[data-theme="acidwave"] .chip {
   border-radius: 0;
@@ -236,7 +236,7 @@
   border-radius: 0;
 }
 
-/* Paroles : ligne courante en néon, les autres en filigrane. */
+/* Lyrics: current line in neon, the others as a watermark. */
 :root[data-theme="acidwave"] .lyrics-line {
   border-radius: 0;
   text-transform: uppercase;
@@ -255,7 +255,7 @@
   letter-spacing: 0.12em;
 }
 
-/* Accueil personnalisable : lignes de console, filet néon, interrupteurs en biais. */
+/* Customizable home: console rows, neon rule, slanted switches. */
 :root[data-theme="acidwave"] .home-customize,
 :root[data-theme="acidwave"] .home-editor-reset,
 :root[data-theme="acidwave"] .update-check,
@@ -310,7 +310,7 @@
   box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-/* Réglages : cartes et sélecteurs à angles vifs, sélection au néon. */
+/* Settings: sharp-cornered cards and selectors, neon selection. */
 :root[data-theme="acidwave"] .theme-card,
 :root[data-theme="acidwave"] .cache-sizes,
 :root[data-theme="acidwave"] .setting-row {
@@ -349,7 +349,7 @@
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
-/* Menu contextuel : console noire, filet néon, entrée active soulignée à gauche. */
+/* Context menu: black console, neon rule, active entry underlined on the left. */
 :root[data-theme="acidwave"] .context-menu {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -377,7 +377,7 @@
   opacity: 0.5;
 }
 
-/* Cœurs et « Ajouter à une playlist » (#4). */
+/* Hearts and "Add to a playlist" (#4). */
 :root[data-theme="acidwave"] .like-button.liked {
   color: var(--acid-magenta);
   filter: drop-shadow(0 0 6px var(--acid-magenta));
@@ -408,7 +408,7 @@
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
 
-/* Infos du titre (#3) : rubriques en néon. */
+/* Track info (#3): neon section headings. */
 :root[data-theme="acidwave"] .info-section h4 {
   text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
 }

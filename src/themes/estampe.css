@@ -1,9 +1,9 @@
-/* Thème Estampe (#338) : gravure japonaise.
-   Jetons (papier, encres, cadres doubles) dans app.css ; ici, ce que les jetons ne disent pas :
-   cachet vermillon, titres, bandeau d'accueil en estampe encadrée.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Estampe theme (#338): Japanese woodblock print.
+   Tokens (paper, inks, double frames) are in app.css; here, what tokens cannot express:
+   vermilion seal, titles, home banner as a framed print.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
-/* Cachet : petit carré vermillon à coins adoucis après le nom de l'app. */
+/* Seal: small vermilion square with softened corners after the app name. */
 :root[data-theme="estampe"] .brand {
   font-family: var(--display-family);
   font-weight: 700;
@@ -29,7 +29,7 @@
   background: var(--es-prussian);
 }
 
-/* Ligne en cours : liseré vermillon, fond à peine teinté (la base pose l'accent à 12 %). */
+/* Current row: vermilion edge, barely tinted background (the base sets the accent at 12%). */
 :root[data-theme="estampe"] .row:hover {
   background: rgb(31 53 80 / 0.06);
 }
@@ -38,7 +38,7 @@
   color: var(--es-indigo);
 }
 
-/* Commandes : le bouton de lecture devient le cachet. */
+/* Controls: the play button becomes the seal. */
 :root[data-theme="estampe"] .transport .play {
   border-radius: 4px;
   color: var(--accent-contrast);
@@ -70,7 +70,7 @@
     inset 0 0 0 4px var(--accent);
 }
 
-/* Bandeau d'accueil : planche encadrée sur papier, pochette sous passe-partout. */
+/* Home banner: framed plate on paper, cover under a mat. */
 :root[data-theme="estampe"] .hero {
   color: var(--text);
   background: var(--es-paper);

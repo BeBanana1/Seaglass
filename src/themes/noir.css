@@ -1,10 +1,10 @@
-/* Thème Film noir (#339) : noir et blanc strict, gris argentiques, un seul accent.
-   Jetons dans app.css ; ici, ce que les jetons ne disent pas : titres d'affiche des années 40,
-   informations à la machine à écrire, toasts en télégrammes, pochettes en tirage photo.
-   Les pochettes et photos restent en couleur (pas de teinte imposée, comme #110).
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Film noir theme (#339): strict black and white, silver-gelatin grays, a single accent.
+   Tokens are in app.css; here, what tokens cannot express: 1940s poster titles,
+   typewriter-style information, telegram toasts, covers as photo prints.
+   Covers and photos stay in color (no imposed tint, as in #110).
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
-/* Titres d'affiche : serif condensé, capitales. */
+/* Poster titles: condensed serif, capitals. */
 :root[data-theme="noir"] h1 {
   text-transform: uppercase;
 }
@@ -25,7 +25,7 @@
   text-transform: uppercase;
 }
 
-/* Informations à la machine à écrire : sous-titres, métadonnées, durées. */
+/* Typewriter-style information: subtitles, metadata, durations. */
 :root[data-theme="noir"] :is(.meta, .sub, .time, .duration, .who, .played-from) {
   font-family: var(--nr-typewriter);
 }
@@ -64,7 +64,7 @@
   color: var(--accent);
 }
 
-/* Lecture : rond blanc, icône noire. */
+/* Playback: white circle, black icon. */
 :root[data-theme="noir"] .transport .play {
   color: var(--accent-contrast);
   background: var(--accent);
@@ -74,7 +74,7 @@
   box-shadow: none;
 }
 
-/* Chaîne audio : fiche dactylographiée, filet fin. */
+/* Signal path: typed sheet, thin rule. */
 :root[data-theme="noir"] .signal {
   border-radius: 0;
   backdrop-filter: none;
@@ -88,7 +88,7 @@
   border-radius: 0;
 }
 
-/* Bandeau d'accueil : à plat, sans le fond teinté par la pochette (elle seule garde la couleur). */
+/* Home banner: flat, without the cover-tinted background (only the cover keeps color). */
 :root[data-theme="noir"] .hero {
   color: var(--text);
   background: #141414;
@@ -104,14 +104,14 @@
   color: var(--text-muted);
 }
 
-/* « En lecture » : le titre en affiche, l'artiste comme un générique tapé à la machine. */
+/* "Now playing": the title as a poster, the artist like typed credits. */
 :root[data-theme="noir"] .now-playing .info h1 {
   color: var(--accent-strong);
 }
 
-/* --- Toasts en télégrammes -------------------------------------------------------------
-   Bande de papier, texte tapé en capitales, « STOP » final (mot des télégrammes, en français
-   comme en anglais). Une erreur garde le même papier, avec un filet noir plus épais. */
+/* --- Telegram toasts --------------------------------------------------------------
+   Paper strip, text typed in capitals, final "STOP" (the telegram word, the same in
+   French and English). An error keeps the same paper, with a thicker black rule. */
 :root[data-theme="noir"] .toast {
   border: 1px solid #b9b4a7;
   border-radius: 0;

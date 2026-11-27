@@ -1,15 +1,15 @@
-/* Thème Bauhaus (#70) : affiche géométrique, grille, primaires.
-   Jetons (papier crème, filets noirs, angles vifs, ombres en aplats) dans app.css ; ici, la
-   composition : formes primaires en coin des cartes, gros cercle du bouton de lecture,
-   bandeau d'accueil en affiche. Le jaune et le bleu ne portent jamais de texte clair.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Bauhaus theme (#70): geometric poster, grid, primaries.
+   Tokens (cream paper, black rules, sharp corners, flat shadows) are in app.css; here, the
+   composition: primary shapes in card corners, big circle for the play button, home
+   banner as a poster. Yellow and blue never carry light text.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
 :root[data-theme="bauhaus"] h1 {
   font-size: 34px;
   line-height: 1.05;
 }
 
-/* Titres de section : carré rouge en tête. */
+/* Section titles: red square at the start. */
 :root[data-theme="bauhaus"] h2::before {
   content: "";
   display: inline-block;
@@ -37,7 +37,7 @@
   background: var(--bg-hover);
 }
 
-/* Cartes : une forme primaire en coin, qui tourne entre cercle, carré et triangle. */
+/* Cards: a primary shape in the corner, cycling between circle, square and triangle. */
 :root[data-theme="bauhaus"] .card .image {
   position: relative;
 }
@@ -73,7 +73,7 @@
   box-shadow: inset 0 0 0 2px var(--text);
 }
 
-/* Lignes de titres : numéros mis en avant, titre en cours en rouge. */
+/* Track rows: numbers emphasized, current track in red. */
 :root[data-theme="bauhaus"] .row .number {
   font-family: var(--display-family);
   font-size: 16px;
@@ -95,7 +95,7 @@
   background: var(--bh-yellow);
 }
 
-/* Lecture : cercle plein rouge ; curseurs en barre + carré. */
+/* Playback: solid red circle; sliders as a bar + square. */
 :root[data-theme="bauhaus"] .transport .play {
   border-radius: 50%;
   color: var(--accent-contrast);
@@ -125,7 +125,7 @@
   background: var(--bh-blue);
 }
 
-/* Boutons : rectangles à filet noir, action principale rouge. */
+/* Buttons: rectangles with a black rule, primary action red. */
 :root[data-theme="bauhaus"] .info .actions button {
   border: 2px solid var(--text) !important;
 }
@@ -189,7 +189,7 @@
   background: var(--surface);
 }
 
-/* Bandeau d'accueil : affiche jaune, grand disque rouge derrière la pochette. */
+/* Home banner: yellow poster, big red disc behind the cover. */
 :root[data-theme="bauhaus"] .hero {
   border-radius: 0;
   color: var(--text);

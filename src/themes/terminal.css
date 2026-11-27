@@ -1,15 +1,15 @@
-/* Thème Terminal (#68) : écran cathodique monochrome, tout en mono.
-   Jetons (une seule couleur, l'accent ; angles vifs ; police mono partout) dans app.css ;
-   ici, l'écran (lignes de balayage, halo, vignettage) et les invites de commande.
-   Pas de scintillement : fatigue visuelle.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Terminal theme (#68): monochrome CRT screen, all in mono.
+   Tokens (a single color, the accent; sharp corners; mono font everywhere) are in app.css;
+   here, the screen (scanlines, glow, vignette) and the command prompts.
+   No flicker: eye strain.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
 :root[data-theme="terminal"] body {
   background: radial-gradient(ellipse at 50% 45%, #0a130a, #020402 75%);
   text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-/* Écran : lignes de balayage et vignettage, au-dessus de tout, sans capter la souris. */
+/* Screen: scanlines and vignette, above everything, without capturing the mouse. */
 :root[data-theme="terminal"] body::after {
   content: "";
   position: fixed;
@@ -21,7 +21,7 @@
     radial-gradient(ellipse at center, transparent 62%, rgb(0 0 0 / 0.45));
 }
 
-/* Invites : les titres se lisent comme des commandes. */
+/* Prompts: titles read like commands. */
 :root[data-theme="terminal"] h1::before {
   content: "> ";
   color: var(--text-muted);
@@ -46,7 +46,7 @@
   animation: term-caret 1.1s steps(1) infinite;
 }
 
-/* Android (#158) : curseur fixe, aucun décor animé en boucle. */
+/* Android (#158): static cursor, no looping animated decoration. */
 :root[data-platform="android"][data-theme="terminal"] .brand::after {
   animation: none;
 }
@@ -64,9 +64,9 @@
   box-shadow: inset 0 0 0 1px currentColor;
 }
 
-/* Pochettes et photos toujours en couleur (#110) : seules les lignes de balayage passent dessus. */
+/* Covers and photos always in color (#110): only the scanlines go over them. */
 
-/* Vidéo inversée : sélection et éléments actifs. */
+/* Inverse video: selection and active elements. */
 :root[data-theme="terminal"]
   :is(nav button.active, nav .pin.active, .tabs button.active, .cache-size.selected) {
   color: var(--bg);
@@ -104,7 +104,7 @@
   outline-offset: -1px;
 }
 
-/* Barres en blocs, comme [█████-----]. */
+/* Block bars, like [█████-----]. */
 :root[data-theme="terminal"] :is(.progress .track, .volume .track) {
   height: 8px;
   border-radius: 0;
@@ -117,7 +117,7 @@
   box-shadow: none;
 }
 
-/* Commandes : crochets plutôt que boutons pleins. */
+/* Commands: brackets rather than solid buttons. */
 :root[data-theme="terminal"] .transport .play {
   border-radius: 0;
   color: var(--bg);

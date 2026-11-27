@@ -1,16 +1,16 @@
-/* Thème Grand hôtel (#339) : comédie pastel et symétrique, aux antipodes d'Acidwave.
-   Jetons (rose poudré, bordeaux, cadres doubles) dans app.css ; ici, ce que les jetons ne
-   disent pas : étiquettes en cartouche façon signalétique d'hôtel, numéros de piste en
-   médaillons, sections de l'accueil numérotées en chapitres, clé de concierge pour les
-   réglages, « En lecture » centré.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Grand hotel theme (#339): pastel, symmetrical comedy, the antipode of Acidwave.
+   Tokens (powder pink, burgundy, double frames) are in app.css; here, what tokens cannot
+   express: cartouche labels like hotel signage, track numbers as
+   medallions, home sections numbered as chapters, concierge key for the
+   settings, centered "Now playing".
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
 :root[data-theme="hotel"] {
-  /* Clé de concierge : anneau, tige, deux dents (masque, prend la couleur du texte). */
+  /* Concierge key: ring, shaft, two teeth (mask, takes the text color). */
   --gh-key: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='12' r='4'/%3E%3Cpath d='M11 12h11M18 12v3M21 12v4'/%3E%3C/svg%3E");
 }
 
-/* Enseignes : capitales espacées. */
+/* Signs: spaced capitals. */
 :root[data-theme="hotel"] h1 {
   text-transform: uppercase;
 }
@@ -29,7 +29,7 @@
   color: var(--accent);
 }
 
-/* Cartouches : pastilles en ovale cerné, comme un panneau « Réception ». */
+/* Cartouches: outlined oval badges, like a "Reception" sign. */
 :root[data-theme="hotel"] .badge {
   padding-inline: 6px;
   border: 1px solid var(--gh-burgundy);
@@ -38,7 +38,7 @@
   background: var(--gh-mustard);
 }
 
-/* Numéros de piste en médaillons : rond crème cerné de bordeaux, chiffre centré. */
+/* Track numbers as medallions: cream circle outlined in burgundy, centered digit. */
 :root[data-theme="hotel"] .row .number {
   display: grid;
   place-items: center;
@@ -71,7 +71,7 @@
   box-shadow: none;
 }
 
-/* La clé de concierge devant « Réglages », en bas de la barre latérale. */
+/* The concierge key before "Settings", at the bottom of the sidebar. */
 :root[data-theme="hotel"] nav button.settings {
   display: flex;
   align-items: center;
@@ -106,7 +106,7 @@
   color: var(--accent);
 }
 
-/* Lecture : rond bordeaux à double filet. */
+/* Playback: burgundy circle with a double rule. */
 :root[data-theme="hotel"] .transport .play {
   color: var(--accent-contrast);
   background: var(--accent);
@@ -123,9 +123,9 @@
   box-shadow: none;
 }
 
-/* --- Accueil : chapitres ---------------------------------------------------------------
-   Chaque section porte son numéro de chapitre en chiffres romains, centré entre deux
-   filets, au-dessus du titre (sans texte à traduire). */
+/* --- Home: chapters -----------------------------------------------------------------
+   Each section carries its chapter number in Roman numerals, centered between two
+   rules, above the title (no text to translate). */
 :root[data-theme="hotel"] section:has(> .home-head) {
   counter-reset: gh-chapter;
 }
@@ -143,7 +143,7 @@
   color: var(--accent);
 }
 
-/* Bandeau d'accueil : cadre double, rayé, sans le fond teinté. */
+/* Home banner: double frame, striped, without the tinted background. */
 :root[data-theme="hotel"] .hero {
   color: var(--text);
   background: var(--gh-cream);
@@ -161,7 +161,7 @@
   color: var(--text-muted);
 }
 
-/* --- « En lecture » : tout centré ----------------------------------------------------- */
+/* --- "Now playing": everything centered ------------------------------------------------- */
 :root[data-theme="hotel"] .now-playing .info {
   align-items: center;
   text-align: center;

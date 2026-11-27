@@ -1,9 +1,9 @@
-/* Thème Risographie (#69) : fanzine imprimé en deux encres.
-   Jetons (papier, encres, aplats décalés, cadres épais) dans app.css ; ici, l'impression :
-   décalage de repérage des titres, surligneur, cartes de travers.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Risograph theme (#69): fanzine printed in two inks.
+   Tokens (paper, inks, offset fills, thick frames) are in app.css; here, the printing:
+   misregistration of titles, highlighter, crooked cards.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
-/* Titres : seconde encre décalée de quelques pixels. */
+/* Titles: second ink offset by a few pixels. */
 :root[data-theme="riso"] :is(h1, .hero .title) {
   text-shadow: 3px 2px 0 color-mix(in srgb, var(--accent) 50%, transparent);
 }
@@ -31,9 +31,9 @@
   background: var(--riso-blue);
 }
 
-/* Pochettes et photos toujours en couleur (#110) : le thème n'en teinte aucune. */
+/* Covers and photos always in color (#110): the theme tints none of them. */
 
-/* Cartes posées un peu de travers, redressées au survol. */
+/* Cards set slightly crooked, straightened on hover. */
 :root[data-theme="riso"] .card .image {
   transition: transform var(--motion-fast);
 }
@@ -56,7 +56,7 @@
   background: transparent;
 }
 
-/* Surligneur : ligne en cours, navigation, paroles. */
+/* Highlighter: current row, navigation, lyrics. */
 :root[data-theme="riso"] :is(nav button.active, nav .pin.active) {
   color: var(--text);
   background: color-mix(in srgb, var(--accent) 22%, transparent);
@@ -79,7 +79,7 @@
   background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-/* Commandes : aplats à bord épais, ombre d'encre décalée. */
+/* Controls: fills with a thick border, offset ink shadow. */
 :root[data-theme="riso"] .transport .play {
   color: var(--accent-contrast);
   background: var(--accent);
@@ -123,7 +123,7 @@
   box-shadow: 4px 4px 0 color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Bandeau d'accueil : affiche sur papier, pochette décalée. */
+/* Home banner: poster on paper, offset cover. */
 :root[data-theme="riso"] .hero {
   color: var(--text);
   background: color-mix(in srgb, var(--accent) 16%, var(--bg));

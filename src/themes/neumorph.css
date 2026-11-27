@@ -1,10 +1,10 @@
-/* Thèmes Neumorphism clair et sombre (#67) : reliefs ton sur ton.
-   Le relief porte sur les grandes surfaces et les commandes ; les listes restent à plat,
-   le survol et la sélection passent par l'accent, jamais par l'ombre seule (lisibilité).
-   Jetons (ombres --nm-light / --nm-dark, panneaux, dialogues) dans app.css ; ici, les commandes.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Light and dark Neumorphism themes (#67): tone-on-tone reliefs.
+   The relief applies to large surfaces and controls; lists stay flat,
+   hover and selection go through the accent, never through the shadow alone (legibility).
+   Tokens (shadows --nm-light / --nm-dark, panels, dialogs) are in app.css; here, the controls.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
-/* Commandes en relief, enfoncées quand elles sont actives. */
+/* Controls in relief, pressed in when active. */
 :root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
   :is(
     .transport .play,
@@ -41,7 +41,7 @@
   box-shadow: var(--shadow-inset);
 }
 
-/* Lecture : gros bouton rond en relief, icône à l'accent. */
+/* Playback: big round button in relief, icon in the accent color. */
 :root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) .transport .play {
   color: var(--accent);
 }
@@ -53,7 +53,7 @@
   background-color: var(--accent);
 }
 
-/* Action principale de l'en-tête : pastille d'accent en relief. */
+/* Header primary action: accent pill in relief. */
 :root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) .info .actions .primary {
   color: var(--accent-contrast);
   background-color: var(--accent);
@@ -69,7 +69,7 @@
   outline-offset: -2px;
 }
 
-/* Rainures : pistes, interrupteurs, champs et sélecteurs en creux. */
+/* Grooves: tracks, switches, fields and selectors sunken in. */
 :root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
   :is(.progress .track, .volume .track) {
   height: 8px;
@@ -116,7 +116,7 @@
   box-shadow: var(--shadow-raised);
 }
 
-/* Listes à plat : le survol et la sélection passent par l'accent. */
+/* Flat lists: hover and selection go through the accent. */
 :root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) .row:hover {
   background: var(--bg-hover);
   box-shadow: inset 3px 0 0 var(--accent);
@@ -144,7 +144,7 @@
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
-/* Chaîne audio et cartes d'information : en relief, sans filet. */
+/* Signal path and info cards: in relief, without a rule. */
 :root:is([data-theme="neumorph"], [data-theme="neumorph-dark"])
   :is(.signal, .hires-offer, .hires-twin, .home-editor-item) {
   border-color: transparent;
@@ -153,7 +153,7 @@
   box-shadow: var(--shadow-raised);
 }
 
-/* Bandeau d'accueil : grande plaque en relief, pochette posée dessus. */
+/* Home banner: large plate in relief, cover set on top. */
 :root:is([data-theme="neumorph"], [data-theme="neumorph-dark"]) .hero {
   color: var(--text);
   background: var(--bg);

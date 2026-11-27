@@ -1,17 +1,17 @@
-/* Thèmes Alliage clair et sombre (#175) : carrosserie néo-rétro en aluminium.
-   Jetons (métal, lignes de carrosserie, chanfreins, feux `--al-led`, étrier `--al-red`) dans
-   app.css, fond `backdrops/AlloyBody.svelte` ; ici, le décor : panneaux chanfreinés, barre
-   de lecture en jupe noire avec ouïes, temps et page active en pixels ambre, bouton de
-   lecture rouge, numéros de titres encadrés comme un numéro de course.
-   Pixels : le texte est masqué par une trame de points (`mask`), pas de police à ajouter.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Light and dark Alloy themes (#175): neo-retro aluminum bodywork.
+   Tokens (metal, body lines, chamfers, lights `--al-led`, caliper `--al-red`) are in
+   app.css, background `backdrops/AlloyBody.svelte`; here, the decoration: chamfered panels,
+   black skirted playback bar with vents, time and active page in amber pixels, red
+   play button, track numbers boxed like a racing number.
+   Pixels: the text is masked by a dot grid (`mask`), no font to add.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
-/* Trame des feux : un point de 1 px tous les 2 px. */
+/* Light grid: a 1 px dot every 2 px. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) {
   --al-pixels: radial-gradient(circle, #000 0.7px, transparent 0.95px) 0 0 / 2px 2px;
 }
 
-/* Panneaux : chanfrein en haut à droite et en bas à gauche, ligne claire sur l'arête haute. */
+/* Panels: chamfer at top right and bottom left, light line on the top edge. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .panel {
   clip-path: polygon(
     0 0,
@@ -23,8 +23,8 @@
   );
 }
 
-/* Barre de lecture : la jupe noire. Les jetons de texte y sont redéfinis, les composants
-   qu'elle contient (titre, temps, volume, chaîne audio) suivent sans autre surcharge. */
+/* Playback bar: the black skirt. The text tokens are redefined there, so the components
+   it contains (title, time, volume, signal path) follow without further overrides. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) footer.panel {
   --text: var(--al-skirt-text);
   --text-muted: var(--al-skirt-muted);
@@ -41,7 +41,7 @@
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
 }
 
-/* Temps : feux en pixels ambre. */
+/* Time: amber pixel lights. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) footer .progress .time,
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .now-playing .progress .time {
   font-family: Bahnschrift, var(--font-mono);
@@ -53,7 +53,7 @@
   mask: var(--al-pixels);
 }
 
-/* Hors de la jupe (« En lecture »), les feux sont posés sur une plaque noire. */
+/* Outside the skirt ("Now playing"), the lights sit on a black plate. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .now-playing .progress .time {
   padding: 3px 6px;
   background: var(--al-skirt);
@@ -63,7 +63,7 @@
   clip-path: var(--al-cut);
 }
 
-/* La trame passe au-dessus du texte : des trous dans une plaque de la couleur du fond. */
+/* The grid goes over the text: holes in a plate the color of the background. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .now-playing .progress .time::after {
   content: "";
   position: absolute;
@@ -72,7 +72,7 @@
   pointer-events: none;
 }
 
-/* Lecture : étrier rouge, chanfreiné, icône blanche. */
+/* Playback: red caliper, chamfered, white icon. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .transport .play {
   border-radius: 0;
   color: #ffffff;
@@ -85,7 +85,7 @@
   background: color-mix(in srgb, var(--al-red) 85%, white);
 }
 
-/* Progression : rainure sombre, remplissage métal (clair) ou ambre (sombre). */
+/* Progress: dark groove, metal fill (light) or amber (dark). */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(.progress .track, .volume .track) {
   border-radius: 0;
   background: rgb(0 0 0 / 0.35);
@@ -105,7 +105,7 @@
   background: var(--al-led);
 }
 
-/* Titres : Bahnschrift. Titre de page condensé ; titres de section précédés d'ouïes. */
+/* Titles: Bahnschrift. Condensed page title; section titles preceded by vents. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(h1, .hero .title, .now-playing h1) {
   font-stretch: 87.5%;
   font-variation-settings: "wdth" 87.5;
@@ -130,7 +130,7 @@
   text-transform: uppercase;
 }
 
-/* Pastilles : HI-RES en feu ambre sur noir ; les autres en métal. */
+/* Badges: HI-RES as an amber light on black; the others in metal. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .badge {
   border-radius: 0;
   font-family: var(--meta-family);
@@ -143,13 +143,13 @@
   background: var(--bg-hover);
 }
 
-/* Navigation : page active éclairée par un feu à gauche. */
+/* Navigation: active page lit by a light on the left. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) :is(nav button.active, nav .pin.active) {
   border-radius: 0;
   box-shadow: inset 3px 0 0 var(--al-led);
 }
 
-/* Cartes : pochettes chanfreinées (les photos d'artistes restent rondes). */
+/* Cards: chamfered covers (artist photos stay round). */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .card .image:not(.round) {
   clip-path: polygon(
     0 0,
@@ -165,7 +165,7 @@
   background: var(--bg-hover);
 }
 
-/* Lignes de titres : numéro encadré comme un numéro de course. */
+/* Track rows: number boxed like a racing number. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .row .number {
   justify-self: center;
   min-width: 22px;
@@ -186,7 +186,7 @@
   color: var(--accent);
 }
 
-/* Boutons d'en-tête de page : chanfreinés ; l'action principale en noir, texte en feu. */
+/* Page header buttons: chamfered; primary action in black, text as a light. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .info .actions button {
   border-radius: 0;
   clip-path: var(--al-cut);
@@ -242,7 +242,7 @@
   background: var(--al-led);
 }
 
-/* Chaîne audio : plaque chanfreinée, sans flou. */
+/* Signal path: chamfered plate, no blur. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .signal {
   border-radius: 0;
   backdrop-filter: none;
@@ -255,7 +255,7 @@
   box-shadow: var(--shadow-inset);
 }
 
-/* Bandeau d'accueil : vitre teintée (la pochette floutée reste), cadre métal, chanfreins. */
+/* Home banner: tinted glass (the blurred cover stays), metal frame, chamfers. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .hero {
   border-radius: 0;
   clip-path: polygon(
@@ -273,7 +273,7 @@
   clip-path: var(--al-cut);
 }
 
-/* « En lecture » : grande pochette chanfreinée. */
+/* "Now playing": large chamfered cover. */
 :root:is([data-theme="alloy"], [data-theme="alloy-dark"]) .now-playing .art {
   clip-path: polygon(
     0 0,

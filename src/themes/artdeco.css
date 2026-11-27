@@ -1,10 +1,10 @@
-/* Thème Art déco (#338) : affiche des années 1920.
-   Jetons (bleu nuit, or, double filet, pans coupés des boutons) dans app.css ; ici, le décor :
-   éventails aux angles des panneaux, titres en capitales, cartouches, cadre de l'affiche
-   dans « En lecture ». Surcharges par classe de composant (spécificité supérieure aux
-   styles scopés Svelte). */
+/* Art deco theme (#338): 1920s poster.
+   Tokens (midnight blue, gold, double rule, cut corners of buttons) are in app.css; here,
+   the decoration: fans at panel corners, capitalized titles, cartouches, poster frame in
+   "Now playing". Per-component-class overrides (higher specificity than Svelte's scoped
+   styles). */
 
-/* Panneaux : éventail de deux arcs dorés dans le coin haut gauche et le coin bas droit. */
+/* Panels: fan of two gold arcs in the top left and bottom right corners. */
 :root[data-theme="artdeco"] .panel {
   background-image:
     radial-gradient(
@@ -30,7 +30,7 @@
   background-repeat: no-repeat;
 }
 
-/* Titres : capitales géométriques espacées. */
+/* Titles: spaced geometric capitals. */
 :root[data-theme="artdeco"] :is(h1, .hero .title) {
   text-transform: uppercase;
 }
@@ -42,7 +42,7 @@
   color: var(--accent);
 }
 
-/* Losange doré avant les titres de section. */
+/* Gold diamond before section titles. */
 :root[data-theme="artdeco"] h2::before {
   content: "";
   display: inline-block;
@@ -68,7 +68,7 @@
   background: var(--ad-gold);
 }
 
-/* Lignes : filet doré au survol, titre en cours en or. */
+/* Rows: gold rule on hover, current track in gold. */
 :root[data-theme="artdeco"] .row:hover {
   background: linear-gradient(90deg, rgb(201 162 74 / 0.1), transparent 75%);
 }
@@ -83,7 +83,7 @@
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
-/* Cartouches : boutons à pans coupés, bouton de lecture en octogone doré. */
+/* Cartouches: buttons with cut corners, play button as a gold octagon. */
 :root[data-theme="artdeco"] .transport .play {
   border-radius: 0;
   color: var(--accent-contrast);
@@ -143,7 +143,7 @@
   color: var(--accent-strong);
 }
 
-/* Bandeau d'accueil : cartouche sombre à double filet, sans le fond teinté. */
+/* Home banner: dark cartouche with a double rule, without the tinted background. */
 :root[data-theme="artdeco"] .hero {
   color: var(--text);
   background: var(--surface);
@@ -161,7 +161,7 @@
   color: var(--text-muted);
 }
 
-/* « En lecture » : la pochette encadrée comme une affiche, double filet et marge. */
+/* "Now playing": the cover framed like a poster, double rule and margin. */
 :root[data-theme="artdeco"] .now-playing .art {
   overflow: visible;
 }

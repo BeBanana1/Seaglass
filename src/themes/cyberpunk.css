@@ -1,9 +1,9 @@
-/* Thème Cyberpunk (#66) : ville néon, interface de visée (HUD), angles coupés.
-   Jetons (couleurs, angles vifs, découpe des boutons, dialogues) dans app.css ; ici, le décor.
-   Différent d'Acidwave : jaune signal + cyan + magenta, encoches, données plutôt que chrome.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Cyberpunk theme (#66): neon city, targeting interface (HUD), cut corners.
+   Tokens (colors, sharp corners, button cut-out, dialogs) are in app.css; here, the decoration.
+   Unlike Acidwave: signal yellow + cyan + magenta, notches, data rather than chrome.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
-/* Panneaux : coins coupés, repères d'angle cyan. */
+/* Panels: cut corners, cyan corner marks. */
 :root[data-theme="cyberpunk"] .panel {
   clip-path: polygon(
     0 0,
@@ -30,7 +30,7 @@
   background-repeat: no-repeat;
 }
 
-/* Titres : capitales condensées, léger dédoublement cyan / magenta (fixe). */
+/* Titles: condensed capitals, slight cyan / magenta doubling (fixed). */
 :root[data-theme="cyberpunk"] h1,
 :root[data-theme="cyberpunk"] .hero .title {
   text-transform: uppercase;
@@ -72,14 +72,14 @@
   background: var(--bg-hover);
 }
 
-/* Pochettes : légère saturation au survol, cadre jaune. */
+/* Covers: slight saturation on hover, yellow frame. */
 :root[data-theme="cyberpunk"] .card:hover {
   background: transparent;
   outline: 1px solid var(--accent);
   outline-offset: -1px;
 }
 
-/* Lignes : barre cyan à gauche au survol, titre en cours en jaune. */
+/* Rows: cyan bar on the left on hover, current track in yellow. */
 :root[data-theme="cyberpunk"] .row:hover {
   background: linear-gradient(90deg, rgb(0 229 255 / 0.1), transparent 70%);
   box-shadow: inset 2px 0 0 var(--cy-cyan);
@@ -97,7 +97,7 @@
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
-/* Commandes : bouton de lecture jaune à coins coupés. */
+/* Controls: yellow play button with cut corners. */
 :root[data-theme="cyberpunk"] .transport .play {
   border-radius: 0;
   color: var(--accent-contrast);
@@ -126,7 +126,7 @@
   box-shadow: 0 0 10px rgb(252 238 10 / 0.5);
 }
 
-/* Boutons secondaires et onglets : coupés comme les actions. */
+/* Secondary buttons and tabs: cut like the actions. */
 :root[data-theme="cyberpunk"] .tabs button,
 :root[data-theme="cyberpunk"] .search-hint,
 :root[data-theme="cyberpunk"] .update-check,
@@ -163,7 +163,7 @@
   font-family: var(--font-mono);
 }
 
-/* Chaîne audio : télémétrie. */
+/* Signal path: telemetry. */
 :root[data-theme="cyberpunk"] .signal,
 :root[data-theme="cyberpunk"] .chip,
 :root[data-theme="cyberpunk"] .verdict {
@@ -176,7 +176,7 @@
   background: rgb(0 0 0 / 0.55);
 }
 
-/* Réglages et éditeur d'accueil : cartes à angles vifs. */
+/* Settings and home editor: sharp-cornered cards. */
 :root[data-theme="cyberpunk"] .theme-card,
 :root[data-theme="cyberpunk"] .setting-row,
 :root[data-theme="cyberpunk"] .home-editor-item,
@@ -205,7 +205,7 @@
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
-/* « En lecture » : boutons carrés, titre en cours des paroles en jaune. */
+/* "Now playing": square buttons, current lyric line in yellow. */
 :root[data-theme="cyberpunk"] .now-playing .close,
 :root[data-theme="cyberpunk"] .now-playing .fullscreen-toggle,
 :root[data-theme="cyberpunk"] .now-playing .queue-toggle,

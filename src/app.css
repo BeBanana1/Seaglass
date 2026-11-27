@@ -1,39 +1,39 @@
-/* Thèmes : `data-theme` sur <html> (voir lib/stores/ui.svelte.ts).
-   `--album` est la couleur dominante de la pochette en cours, posée par App.svelte.
+/* Themes: `data-theme` on <html> (see lib/stores/ui.svelte.ts).
+   `--album` is the dominant color of the current cover, set by App.svelte.
 
-   Un thème est d'abord un jeu de jetons. Couleurs : --bg, --surface, --dialog-bg, --bg-raised,
+   A theme is first of all a set of tokens. Colors: --bg, --surface, --dialog-bg, --bg-raised,
    --bg-hover, --border, --text, --text-muted, --accent (+ -strong, -contrast), --danger, --ok, --warn.
-   Le reste, avec sa valeur par défaut ci-dessous :
+   The rest, with its default value below:
 
-   Formes
-     --radius            lignes, cartes, champs carrés
-     --radius-pill       boutons-pilules, puces, sélecteurs (999px ; 0 = angles vifs)
-     --radius-card       pochettes des cartes (= --radius)
-     --radius-cover      grandes pochettes : en-tête de page, « En lecture », bandeau d'accueil
-                         (facultatif : sans lui, chaque pochette garde son arrondi)
-     --panel-radius      panneaux du shell
-     --dialog-radius     dialogues (sélecteur de playlist, infos du titre, mise à jour)
-     --popover-radius    menu contextuel, bandeau d'édition hi-res
-     --control-clip      découpe des boutons d'action (`clip-path`, none par défaut)
-   Profondeur
-     --panel-border, --panel-shadow    panneaux du shell
-     --dialog-border, --dialog-surface, --dialog-blur, --dialog-shadow    dialogues et menu
-     --popover-shadow    menu contextuel, bandeau d'édition hi-res
-     --shadow-cover      grandes pochettes et cartes (facultatif, comme --radius-cover)
-     --shadow-raised     contrôles posés au-dessus de la page (none)
-     --shadow-inset      rainures : pistes de progression et de volume, interrupteurs, recherche (none)
-     --focus-ring        contour du focus clavier
+   Shapes
+     --radius            rows, cards, square fields
+     --radius-pill       pill buttons, chips, selectors (999px; 0 = sharp corners)
+     --radius-card       card covers (= --radius)
+     --radius-cover      large covers: page header, "Now playing", home banner
+                         (optional: without it, each cover keeps its own rounding)
+     --panel-radius      shell panels
+     --dialog-radius     dialogs (playlist picker, track info, update)
+     --popover-radius    context menu, hi-res edition banner
+     --control-clip      cut-out of action buttons (`clip-path`, none by default)
+   Depth
+     --panel-border, --panel-shadow    shell panels
+     --dialog-border, --dialog-surface, --dialog-blur, --dialog-shadow    dialogs and menu
+     --popover-shadow    context menu, hi-res edition banner
+     --shadow-cover      large covers and cards (optional, like --radius-cover)
+     --shadow-raised     controls sitting above the page (none)
+     --shadow-inset      grooves: progress and volume tracks, switches, search (none)
+     --focus-ring        keyboard focus outline
    Surfaces
-     --control-bg        boutons secondaires (Personnaliser, Vérifier, Vider la file…) ; facultatif
-   Typo
-     --display-family, --display-weight, --display-tracking, --display-style    titres
-     --label-transform, --label-tracking    libellés en capitales (boutons secondaires, pastilles)
-     --meta-family       informations techniques (édition hi-res, infos du titre, épingles)
-   Mouvement
-     --motion-fast       transitions courtes (survol, interrupteurs)
+     --control-bg        secondary buttons (Customize, Check, Clear queue...); optional
+   Type
+     --display-family, --display-weight, --display-tracking, --display-style    headings
+     --label-transform, --label-tracking    uppercase labels (secondary buttons, badges)
+     --meta-family       technical information (hi-res edition, track info, pins)
+   Motion
+     --motion-fast       short transitions (hover, switches)
 
-   Les surcharges par classe (themes/*.css) restent pour ce qu'un jeton ne dit pas : décor,
-   pseudo-éléments, animations, découpes particulières. */
+   Per-class overrides (themes/*.css) remain for what a token cannot express: decoration,
+   pseudo-elements, animations, particular cut-outs. */
 
 :root {
   --album: #4f95b0;
@@ -63,13 +63,13 @@
   --motion-fast: 0.15s;
 }
 
-/* --- Verre de mer : panneaux translucides sur la pochette floutée ----------------- */
+/* --- Seaglass: translucent panels over the blurred cover ------------------------- */
 :root,
 :root[data-theme="seaglass"] {
   color-scheme: dark;
   --bg: #061012;
   --surface: rgb(12 24 27 / 0.52);
-  /* Fond opaque des boîtes de dialogue : lisible quel que soit le fond. */
+  /* Opaque background of dialog boxes: readable whatever the backdrop. */
   --dialog-bg: color-mix(in oklab, var(--album) 10%, #0a1517);
   --bg-raised: rgb(255 255 255 / 0.06);
   --bg-hover: rgb(255 255 255 / 0.09);
@@ -91,7 +91,7 @@
   --label-transform: none;
 }
 
-/* --- Studio : console sombre, dense, à angles vifs ---------------------------------- */
+/* --- Studio: dark, dense console with sharp corners ---------------------------------- */
 :root[data-theme="studio"] {
   color-scheme: dark;
   --bg: #0a0a0b;
@@ -122,7 +122,7 @@
   --player-height: 96px;
 }
 
-/* --- Atelier : papier clair, éditorial --------------------------------------------- */
+/* --- Atelier: light, editorial paper ------------------------------------------------ */
 :root[data-theme="atelier"] {
   color-scheme: light;
   --bg: #f3efe6;
@@ -154,7 +154,7 @@
   --label-transform: none;
 }
 
-/* --- Acidwave : néons acides, chrome liquide, hologrammes (voir themes/acidwave.css) - */
+/* --- Acidwave: acid neons, liquid chrome, holograms (see themes/acidwave.css) ------- */
 :root[data-theme="acidwave"] {
   color-scheme: dark;
   --bg: #050507;
@@ -200,7 +200,7 @@
     0 0 0 1px rgb(0 0 0 / 0.7), 0 0 40px color-mix(in srgb, var(--accent) 18%, transparent);
   --popover-shadow:
     0 0 0 1px rgb(0 0 0 / 0.7), 0 0 26px color-mix(in srgb, var(--accent) 18%, transparent);
-  /* Pochettes : liseré holographique. */
+  /* Covers: holographic edge. */
   --shadow-cover:
     0 0 0 1px rgb(255 255 255 / 0.15), 0 0 0 3px #050507, 0 0 0 4px var(--album-glow),
     0 0 28px color-mix(in oklab, var(--album-glow) 45%, transparent);
@@ -214,7 +214,7 @@
   --meta-family: var(--font-mono);
 }
 
-/* --- Surréalisme : paysage vectoriel onirique (voir themes/surreal.css) ------------ */
+/* --- Surrealism: dreamlike vector landscape (see themes/surreal.css) --------------- */
 :root[data-theme="surreal"] {
   color-scheme: light;
   --bg: color-mix(in oklch, var(--album) 16%, #f7efe5);
@@ -245,7 +245,7 @@
   --dialog-blur: blur(10px);
   --dialog-shadow: 0 30px 60px -30px rgb(61 42 77 / 0.6);
   --popover-shadow: 0 24px 40px -22px rgb(61 42 77 / 0.55);
-  /* Pochettes posées au-dessus de leur ombre, galets de papier. */
+  /* Covers sit above their shadow, like paper pebbles. */
   --shadow-cover: var(--float-shadow);
   --shadow-raised: 0 8px 16px -10px rgb(61 42 77 / 0.35);
   --control-bg: rgb(255 255 255 / 0.7);
@@ -257,7 +257,7 @@
   --label-transform: none;
 }
 
-/* --- Solarpunk : futur végétal et lumineux (voir themes/solarpunk.css) ------------- */
+/* --- Solarpunk: a lush, luminous future (see themes/solarpunk.css) ----------------- */
 :root[data-theme="solarpunk"] {
   color-scheme: light;
   --sol-gold: #d99a1e;
@@ -276,7 +276,7 @@
   --ok: #2c7a41;
   --warn: #93650f;
   --radius: 12px;
-  /* Pochettes en arche : sommet arrondi, base presque droite. */
+  /* Arch-shaped covers: rounded top, almost straight base. */
   --radius-card: 46% 46% 10px 10px / 30% 30% 10px 10px;
   --radius-cover: 46% 46% 14px 14px / 30% 30% 14px 14px;
   --panel-radius: 24px;
@@ -299,7 +299,7 @@
   --label-transform: none;
 }
 
-/* --- Cyberpunk : ville néon, interface de visée (voir themes/cyberpunk.css) --------- */
+/* --- Cyberpunk: neon city, targeting interface (see themes/cyberpunk.css) ----------- */
 :root[data-theme="cyberpunk"] {
   color-scheme: dark;
   --cy-cyan: #00e5ff;
@@ -334,7 +334,7 @@
   --dialog-surface: rgb(8 10 19 / 0.96);
   --dialog-shadow: 0 0 0 1px rgb(0 0 0 / 0.8), 0 0 40px rgb(0 229 255 / 0.18);
   --popover-shadow: 0 0 0 1px rgb(0 0 0 / 0.8), 0 0 26px rgb(0 229 255 / 0.16);
-  /* Pochettes : filet cyan et bloc magenta décalé, comme une image en surimpression. */
+  /* Covers: cyan outline and offset magenta block, like an overprinted image. */
   --shadow-cover: 0 0 0 1px rgb(0 229 255 / 0.55), 6px 6px 0 rgb(255 42 109 / 0.55);
   --control-bg: rgb(0 0 0 / 0.5);
   --focus-ring: 2px solid var(--cy-cyan);
@@ -348,9 +348,9 @@
   --meta-family: var(--font-mono);
 }
 
-/* --- Neumorphism : reliefs ton sur ton (voir themes/neumorph.css) ------------------- */
-/* Les surfaces ont la couleur du fond ; seul le couple d'ombres claire / sombre (--nm-light,
-   --nm-dark) les fait sortir ou rentrer. Le texte reste bien contrasté. */
+/* --- Neumorphism: tone-on-tone reliefs (see themes/neumorph.css) -------------------- */
+/* Surfaces have the color of the background; only the light / dark pair of shadows (--nm-light,
+   --nm-dark) makes them stand out or sink in. Text stays well contrasted. */
 :root[data-theme="neumorph"],
 :root[data-theme="neumorph-dark"] {
   --radius: 12px;
@@ -416,9 +416,9 @@
   --warn: #f0c26a;
 }
 
-/* --- Terminal : écran cathodique monochrome (voir themes/terminal.css) -------------- */
-/* Une seule couleur : le texte est l'accent (le phosphore). Une couleur d'accent choisie
-   dans les réglages change donc tout l'écran (vert, ambre, blanc…). */
+/* --- Terminal: monochrome CRT screen (see themes/terminal.css) ---------------------- */
+/* A single color: the text is the accent (the phosphor). An accent color chosen in the
+   settings therefore changes the whole screen (green, amber, white...). */
 :root[data-theme="terminal"] {
   color-scheme: dark;
   --font-ui: var(--font-mono);
@@ -462,9 +462,9 @@
   --meta-family: var(--font-mono);
 }
 
-/* --- Risographie : fanzine deux encres (voir themes/riso.css) ----------------------- */
-/* Encre principale = accent (rose), seconde encre --riso-blue. Pas de flou ni d'ombre
-   douce : des aplats décalés, comme deux passages mal repérés. */
+/* --- Risograph: two-ink fanzine (see themes/riso.css) ------------------------------- */
+/* Main ink = accent (pink), second ink --riso-blue. No blur or soft shadow: offset flat
+   fills, like two misregistered passes. */
 :root[data-theme="riso"] {
   color-scheme: light;
   --riso-blue: #0b5fa5;
@@ -507,9 +507,9 @@
   --label-tracking: 0.08em;
 }
 
-/* --- Bauhaus : affiche géométrique (voir themes/bauhaus.css) ------------------------ */
-/* L'accent remplace le rouge ; le jaune et le bleu restent fixes, pour la composition,
-   jamais pour du texte clair. Filets noirs, angles vifs, ombres en aplats de couleur. */
+/* --- Bauhaus: geometric poster (see themes/bauhaus.css) ----------------------------- */
+/* The accent replaces the red; yellow and blue stay fixed, for the composition, never for
+   light text. Black rules, sharp corners, flat colored shadows. */
 :root[data-theme="bauhaus"] {
   color-scheme: light;
   --bh-yellow: #f2b80d;
@@ -553,10 +553,10 @@
   --label-tracking: 0.1em;
 }
 
-/* --- Aéro : fiche technique de livrée d'avion (voir themes/aero.css) ------------------ */
-/* Bleu glacier, encre ardoise. Le jaune signal est fixe et sert au décor : sur le fond, il
-   est invisible (1:1), donc toujours cerné d'ardoise et ne porte que du texte ardoise.
-   L'accent (rouge-orangé des marquages) est celui que la couleur d'accent remplace. */
+/* --- Aero: aircraft livery spec sheet (see themes/aero.css) -------------------------- */
+/* Glacier blue, slate ink. The signal yellow is fixed and used for decoration: on the
+   background it is invisible (1:1), so it is always outlined in slate and only carries slate
+   text. The accent (orange-red of the markings) is the one the accent color replaces. */
 :root[data-theme="aero"] {
   color-scheme: light;
   --aero-yellow: #f2ee1d;
@@ -601,12 +601,12 @@
   --meta-family: Bahnschrift, var(--font-ui);
 }
 
-/* --- Alliage : carrosserie néo-rétro en aluminium (voir themes/alloy.css) ----------- */
-/* Deux variantes, comme Neumorphism : satiné clair (`alloy`) et gunmetal (`alloy-dark`).
-   Métal en dégradés fixes (fond `AlloyBody`), lignes de carrosserie (filet sombre + filet
-   clair), coins chanfreinés, barre de lecture en jupe noire dans les deux variantes.
-   Feux en pixels : `--al-led`, tiré de l'accent et éclairci pour rester lisible sur le noir.
-   Le rouge de l'étrier (`--al-red`, bouton de lecture) est fixe et ne porte que du blanc. */
+/* --- Alloy: neo-retro aluminum bodywork (see themes/alloy.css) --------------------- */
+/* Two variants, like Neumorphism: light satin (`alloy`) and gunmetal (`alloy-dark`).
+   Metal in fixed gradients (`AlloyBody` background), body lines (dark rule + light
+   rule), chamfered corners, black skirted playback bar in both variants.
+   Pixel lights: `--al-led`, derived from the accent and lightened to stay legible on black.
+   The caliper red (`--al-red`, play button) is fixed and only carries white. */
 :root[data-theme="alloy"],
 :root[data-theme="alloy-dark"] {
   --al-red: #c3261f;
@@ -695,11 +695,11 @@
   --control-bg: linear-gradient(#3a3f46, #2a2e34);
 }
 
-/* --- Minuit : noir OLED (#338) ------------------------------------------------------- */
-/* Noir pur partout (un pixel noir est éteint sur un écran AMOLED) : panneaux, barre et
-   dialogues se distinguent par un filet fin, jamais par une surface, un flou ou une ombre.
-   Pas de fond ; `themes/midnight.css` ne fait qu'éteindre le bandeau d'accueil. L'accent
-   vient de la pochette, mêlé à 60 % de gris clair pour rester au-dessus de 4,5:1 même avec une pochette noire. */
+/* --- Midnight: OLED black (#338) ----------------------------------------------------- */
+/* Pure black everywhere (a black pixel is off on an AMOLED screen): panels, bar and
+   dialogs are told apart by a thin rule, never by a surface, a blur or a shadow.
+   No background; `themes/midnight.css` only turns off the home banner. The accent
+   comes from the cover, mixed with 60% light gray to stay above 4.5:1 even with a black cover. */
 :root[data-theme="midnight"] {
   color-scheme: dark;
   --bg: #000;
@@ -734,10 +734,10 @@
   --label-transform: none;
 }
 
-/* --- Estampe : gravure japonaise (voir themes/estampe.css) --------------------------- */
-/* Papier washi, encre indigo pour le texte, bleu de Prusse pour le décor, vermillon du
-   cachet pour l'accent (remplaçable). Pas de flou ni d'ombre douce : des filets fins et des
-   cadres doubles, comme la marge d'une estampe. */
+/* --- Estampe: Japanese woodblock print (see themes/estampe.css) ---------------------- */
+/* Washi paper, indigo ink for text, Prussian blue for decoration, seal vermilion
+   for the accent (replaceable). No blur or soft shadow: thin rules and double
+   frames, like the margin of a print. */
 :root[data-theme="estampe"] {
   color-scheme: light;
   --es-indigo: #1f3550;
@@ -765,7 +765,7 @@
   --dialog-radius: 0;
   --popover-radius: 0;
   --panel-blur: none;
-  /* Cadre d'estampe : filet d'encre, marge de papier, second filet plus pâle. */
+  /* Print frame: ink rule, paper margin, second paler rule. */
   --panel-border: 1px solid rgb(31 53 80 / 0.55);
   --panel-shadow: inset 0 0 0 4px var(--es-paper), inset 0 0 0 5px rgb(31 53 80 / 0.18);
   --dialog-border: 1px solid var(--es-indigo);
@@ -786,10 +786,10 @@
   --label-tracking: 0.12em;
 }
 
-/* --- Art déco : affiche des années 1920 (voir themes/artdeco.css) ------------------- */
-/* Bleu nuit, ivoire, or. L'or est l'accent (remplaçable) ; `--ad-gold` reste fixe pour le
-   décor (filets, éventails), qui ne porte jamais de texte. Ni néon ni métal brossé : des
-   filets fins, des pans coupés et de la symétrie. */
+/* --- Art deco: 1920s poster (see themes/artdeco.css) -------------------------------- */
+/* Midnight blue, ivory, gold. Gold is the accent (replaceable); `--ad-gold` stays fixed for
+   decoration (rules, fans), which never carries text. Neither neon nor brushed metal: thin
+   rules, cut corners and symmetry. */
 :root[data-theme="artdeco"] {
   color-scheme: dark;
   --ad-gold: #c9a24a;
@@ -827,7 +827,7 @@
   --popover-radius: 0;
   --control-clip: var(--ad-cut);
   --panel-blur: none;
-  /* Double filet doré : le cadre, puis une ligne intérieure plus pâle. */
+  /* Double gold rule: the frame, then a paler inner line. */
   --panel-border: 1px solid var(--ad-line);
   --panel-shadow: inset 0 0 0 4px rgb(12 20 35 / 0.9), inset 0 0 0 5px rgb(201 162 74 / 0.16);
   --dialog-border: 1px solid var(--ad-gold);
@@ -847,10 +847,10 @@
   --label-tracking: 0.2em;
 }
 
-/* --- Cassette : hi-fi des années 70-80 (voir themes/cassette.css) -------------------- */
-/* Noyer sombre, façades d'ampli brunes, crème pour le texte, orange brûlé pour l'accent
-   (remplaçable). Moutarde et olive (`--cs-mustard`, `--cs-olive`) restent fixes, pour les
-   bandes de jaquette ; elles ne portent jamais de texte. */
+/* --- Cassette: 70s-80s hi-fi (see themes/cassette.css) ------------------------------ */
+/* Dark walnut, brown amp fronts, cream for text, burnt orange for the accent
+   (replaceable). Mustard and olive (`--cs-mustard`, `--cs-olive`) stay fixed, for the
+   sleeve stripes; they never carry text. */
 :root[data-theme="cassette"] {
   color-scheme: dark;
   --cs-mustard: #d9a336;
@@ -885,7 +885,7 @@
   --dialog-radius: 6px;
   --popover-radius: 4px;
   --panel-blur: none;
-  /* Façade : liseré clair en haut, ombre franche dessous, comme une tôle vissée. */
+  /* Front panel: light edge on top, hard shadow below, like a screwed-on metal plate. */
   --panel-border: 1px solid rgb(0 0 0 / 0.55);
   --panel-shadow: inset 0 1px 0 rgb(241 227 196 / 0.1), 0 6px 18px rgb(0 0 0 / 0.35);
   --dialog-border: 1px solid rgb(0 0 0 / 0.6);
@@ -906,9 +906,9 @@
   --meta-family: var(--font-mono);
 }
 
-/* --- Séance : la salle de cinéma (voir themes/seance.css) -------------------------- */
-/* Noir de salle, ivoire des cartons-titres, accent rouge (remplaçable). Le velours
-   (`--se-velvet`, `--se-velvet-deep`) reste fixe pour le décor et ne porte jamais de texte. */
+/* --- Seance: the movie theater (see themes/seance.css) ----------------------------- */
+/* Theater black, ivory of the title cards, red accent (replaceable). The velvet
+   (`--se-velvet`, `--se-velvet-deep`) stays fixed for decoration and never carries text. */
 :root[data-theme="seance"] {
   color-scheme: dark;
   --se-velvet: #7c141c;
@@ -932,7 +932,7 @@
   --radius: 4px;
   --radius-pill: 4px;
   --radius-card: 6px;
-  /* Coins d'une image projetée : légèrement arrondis. */
+  /* Corners of a projected image: slightly rounded. */
   --radius-cover: 10px;
   --panel-radius: 8px;
   --dialog-radius: 8px;
@@ -944,7 +944,7 @@
   --dialog-surface: var(--dialog-bg);
   --dialog-shadow: 0 30px 80px rgb(0 0 0 / 0.7);
   --popover-shadow: 0 14px 34px rgb(0 0 0 / 0.6);
-  /* Pochettes éclairées comme un écran : un halo ivoire très faible. */
+  /* Covers lit like a screen: a very faint ivory halo. */
   --shadow-cover:
     0 0 0 1px rgb(239 230 210 / 0.06), 0 0 60px rgb(246 239 224 / 0.08),
     0 24px 60px rgb(0 0 0 / 0.6);
@@ -958,10 +958,10 @@
   --meta-family: var(--font-mono);
 }
 
-/* --- Ordinateur de bord : écrans de vaisseau de la SF des années 70-80 (themes/onboard.css) */
-/* Presque noir, texte ambre pâle, accent ambre (remplaçable). Les couleurs des blocs
-   (`--ob-red`, `--ob-orange`, `--ob-yellow`, `--ob-teal`) sont fixes, pour les étiquettes
-   numérotées, les voyants et les bandes d'avertissement ; elles ne portent jamais de texte. */
+/* --- Onboard computer: 70s-80s sci-fi spaceship screens (themes/onboard.css) */
+/* Almost black, pale amber text, amber accent (replaceable). The block colors
+   (`--ob-red`, `--ob-orange`, `--ob-yellow`, `--ob-teal`) are fixed, for numbered
+   labels, indicator lights and warning stripes; they never carry text. */
 :root[data-theme="onboard"] {
   color-scheme: dark;
   --ob-red: #e0412c;
@@ -971,7 +971,7 @@
   --ob-cut: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   --ob-hazard: repeating-linear-gradient(-45deg, var(--ob-yellow) 0 6px, #0b0c0b 6px 12px);
   --bg: #0b0c0b;
-  /* Opaque : le décor (relevés, cadrans) ne doit pas transparaître sous le texte. */
+  /* Opaque: the decoration (readouts, dials) must not show through under the text. */
   --surface: #151612;
   --dialog-bg: #151612;
   --bg-raised: rgb(243 214 162 / 0.05);
@@ -1021,9 +1021,9 @@
   --meta-family: var(--font-mono);
 }
 
-/* --- Film noir : noir et blanc strict (voir themes/noir.css) ------------------------ */
-/* Gris argentiques, un seul accent (blanc par défaut, remplaçable) ; les pochettes et les
-   photos restent en couleur, seules touches de couleur de l'écran. */
+/* --- Film noir: strict black and white (see themes/noir.css) ------------------------ */
+/* Silver-gelatin grays, a single accent (white by default, replaceable); covers and
+   photos stay in color, the screen's only touches of color. */
 :root[data-theme="noir"] {
   color-scheme: dark;
   --nr-paper: #e6e2d8;
@@ -1057,7 +1057,7 @@
   --dialog-surface: var(--dialog-bg);
   --dialog-shadow: 0 30px 80px rgb(0 0 0 / 0.8);
   --popover-shadow: 0 14px 34px rgb(0 0 0 / 0.7);
-  /* Ombre portée dure, en biais, comme sous une lampe de bureau. */
+  /* Hard drop shadow, slanted, like under a desk lamp. */
   --shadow-cover: 14px 18px 0 rgb(0 0 0 / 0.55);
   --focus-ring: 2px solid var(--accent);
   --shell-gap: 10px;
@@ -1069,10 +1069,10 @@
   --meta-family: var(--nr-typewriter);
 }
 
-/* --- Grand hôtel : comédie pastel et symétrique (voir themes/hotel.css) ------------- */
-/* Rose poudré, bordeaux pour le texte et l'accent (remplaçable), moutarde et bleu pâle fixes
-   pour le décor (`--gh-mustard`, `--gh-blue`) : seul le bordeaux est posé dessus. Clair, très
-   ordonné : cadres doubles à filets, étiquettes en cartouche. */
+/* --- Grand hotel: pastel, symmetrical comedy (see themes/hotel.css) ------------------ */
+/* Powder pink, burgundy for text and accent (replaceable), fixed mustard and pale blue
+   for decoration (`--gh-mustard`, `--gh-blue`): only the burgundy is laid over them. Light,
+   very orderly: double-rule frames, cartouche-style labels. */
 :root[data-theme="hotel"] {
   color-scheme: light;
   --gh-burgundy: #4e1424;
@@ -1102,7 +1102,7 @@
   --dialog-radius: 4px;
   --popover-radius: 3px;
   --panel-blur: none;
-  /* Cadre double : filet bordeaux, marge crème, filet rose. */
+  /* Double frame: burgundy rule, cream margin, pink rule. */
   --panel-border: 1px solid var(--gh-burgundy);
   --panel-shadow: inset 0 0 0 4px var(--gh-cream), inset 0 0 0 5px var(--gh-rose);
   --dialog-border: 1px solid var(--gh-burgundy);
@@ -1111,7 +1111,7 @@
     inset 0 0 0 4px var(--gh-cream), inset 0 0 0 5px var(--gh-rose),
     0 20px 50px rgb(78 20 36 / 0.25);
   --popover-shadow: 0 10px 28px rgb(78 20 36 / 0.22);
-  /* Pochettes encadrées comme une gravure au mur : passe-partout crème et filet bordeaux. */
+  /* Covers framed like an engraving on a wall: cream mat and burgundy rule. */
   --shadow-cover:
     0 0 0 5px var(--gh-cream), 0 0 0 6px var(--gh-burgundy), 0 10px 24px rgb(78 20 36 / 0.2);
   --shadow-raised: 0 1px 0 rgb(78 20 36 / 0.25);
@@ -1128,10 +1128,10 @@
   --meta-family: var(--font-ui);
 }
 
-/* --- Désert : space opera des sables (voir themes/desert.css) ----------------------- */
-/* Sable, ocres et brun brûlé, ciel pâle ; accent bleu profond (remplaçable), très rare : le
-   thème pose peu de choses en accent. `--ds-ochre`, `--ds-burnt`, `--ds-sky` restent fixes
-   pour le décor. Calme et monumental : grandes surfaces, typographie fine et très espacée. */
+/* --- Desert: space opera of the sands (see themes/desert.css) ----------------------- */
+/* Sand, ochres and burnt brown, pale sky; deep blue accent (replaceable), very rare: the
+   theme uses accent in few places. `--ds-ochre`, `--ds-burnt`, `--ds-sky` stay fixed
+   for decoration. Calm and monumental: large surfaces, thin, widely spaced type. */
 :root[data-theme="desert"] {
   color-scheme: light;
   --ds-ochre: #c98d4a;
@@ -1166,7 +1166,7 @@
   --dialog-surface: var(--dialog-bg);
   --dialog-shadow: 0 24px 60px rgb(58 36 22 / 0.22);
   --popover-shadow: 0 12px 30px rgb(58 36 22 / 0.2);
-  /* Ombre longue et basse, soleil rasant. */
+  /* Long, low shadow, raking sun. */
   --shadow-cover: 18px 14px 30px rgb(122 63 29 / 0.25);
   --focus-ring: 2px solid var(--accent);
   --shell-gap: 14px;
@@ -1178,18 +1178,18 @@
   --meta-family: var(--font-ui);
 }
 
-/* --- Générique : papier découpé des années 50-60 (voir themes/generique.css) -------- */
-/* Papier noir, découpes orange, rouges et crème. Distinct de Bauhaus (crème, grille,
-   primaires, construit) : fond sombre, bords coupés aux ciseaux, rien d'aligné ni de
-   symétrique. Accent orange remplaçable (texte noir dessus) ; le rouge (`--gq-red`) et le
-   crème des découpes (`--gq-cream`) restent fixes et ne portent pas de petit texte. */
+/* --- Generique: 50s-60s cut-paper (see themes/generique.css) ------------------------ */
+/* Black paper, orange, red and cream cut-outs. Distinct from Bauhaus (cream, grid,
+   primaries, constructed): dark background, scissor-cut edges, nothing aligned or
+   symmetrical. Replaceable orange accent (black text on it); the red (`--gq-red`) and the
+   cream of the cut-outs (`--gq-cream`) stay fixed and carry no small text. */
 :root[data-theme="generique"] {
   color-scheme: dark;
   --gq-orange: #e8761c;
   --gq-red: #c8321a;
   --gq-cream: #efe4cc;
   --gq-black: #161412;
-  /* Coupe aux ciseaux : quatre coins légèrement de travers, jamais deux pareils. */
+  /* Scissor cut: four slightly crooked corners, never two alike. */
   --gq-cut: polygon(0.6% 1.4%, 99.2% 0, 100% 97.8%, 1.2% 100%);
   --gq-cut-b: polygon(1.4% 0, 100% 1.8%, 98.6% 100%, 0 98.2%);
   --bg: var(--gq-black);
@@ -1221,7 +1221,7 @@
   --dialog-surface: var(--dialog-bg);
   --dialog-shadow: 10px 12px 0 var(--gq-orange);
   --popover-shadow: 6px 8px 0 var(--gq-red);
-  /* Pochettes posées sur une découpe orange décalée, comme deux papiers collés. */
+  /* Covers sitting on an offset orange cut-out, like two glued papers. */
   --shadow-cover: 9px 11px 0 var(--gq-orange);
   --shadow-raised: none;
   --shadow-inset: none;
@@ -1262,9 +1262,9 @@ body {
   transition: background-color 0.4s;
 }
 
-/* Android (#24) : la page passe sous les barres système (`viewport-fit=cover`), le shell et
-   « En lecture » s'en écartent de ces marges. Ni surbrillance au toucher, ni menu natif ou
-   rebond sur appui long et défilement. */
+/* Android (#24): the page goes under the system bars (`viewport-fit=cover`), the shell and
+   "Now playing" keep away from them by those margins. No tap highlight, no native menu or
+   bounce on long press and scrolling. */
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -1303,7 +1303,7 @@ input {
   scrollbar-color: var(--border) transparent;
 }
 
-/* Panneaux du shell : cartes de verre flottantes ou zones à plat selon le thème. */
+/* Shell panels: floating glass cards or flat areas depending on the theme. */
 .panel {
   border: var(--panel-border);
   background: var(--surface);
@@ -1312,10 +1312,10 @@ input {
   box-shadow: var(--panel-shadow);
 }
 
-/* Android (#146) : pas de flou d'arrière-plan sous les panneaux. Le fond animé le faisait
-   recalculer à chaque image (120 Hz sur le S21). Dans Seaglass, le fond est déjà flouté à
-   90 px : rien ne change à l'œil. Dans les autres thèmes à panneaux flous, un peu de `--bg`
-   dans la surface garde le décor discret sous le contenu. */
+/* Android (#146): no backdrop blur under the panels. The animated background made it
+   recompute on every frame (120 Hz on the S21). In Seaglass, the background is already blurred
+   at 90 px: nothing changes to the eye. In the other themes with blurred panels, a bit of `--bg`
+   in the surface keeps the decoration discreet under the content. */
 :root[data-platform="android"] .panel {
   backdrop-filter: none;
 }
@@ -1330,7 +1330,7 @@ input {
   background-color: color-mix(in srgb, var(--surface) 70%, var(--bg));
 }
 
-/* Titres de page et de section. */
+/* Page and section titles. */
 .display {
   font-family: var(--display-family);
   font-style: var(--display-style);
@@ -1383,8 +1383,8 @@ input {
   color: var(--text-muted);
 }
 
-/* Animations réduites (#351) : attribut posé par `stores/ui.svelte.ts` selon le réglage
-   et « réduire les animations » du système. */
+/* Reduced animations (#351): attribute set by `stores/ui.svelte.ts` according to the setting
+   and the system's "reduce animations". */
 :root[data-motion="reduced"] *,
 :root[data-motion="reduced"] *::before,
 :root[data-motion="reduced"] *::after {
@@ -1392,7 +1392,7 @@ input {
   animation: none !important;
 }
 
-/* Titres : police d'affichage du thème (serif pour Atelier). */
+/* Titles: the theme's display font (serif for Atelier). */
 h1,
 h2 {
   font-family: var(--display-family);
@@ -1401,7 +1401,7 @@ h2 {
   letter-spacing: var(--display-tracking);
 }
 
-/* Liens en forme de bouton (artistes, albums) : sans marge interne. */
+/* Button-shaped links (artists, albums): no inner padding. */
 button.link {
   padding: 0;
   text-align: inherit;

@@ -1,15 +1,15 @@
-/* Thème Désert (#339) : space opera des sables. Calme et monumental.
-   Jetons (sable, ocres, brun brûlé, bleu profond rare) dans app.css ; ici, ce que les jetons
-   ne disent pas : titres fins et très espacés, glyphes géométriques devant la navigation,
-   progression en trace dans le sable, chargement en ondulation de dune.
-   Surcharges par classe de composant (spécificité supérieure aux styles scopés Svelte). */
+/* Desert theme (#339): space opera of the sands. Calm and monumental.
+   Tokens (sand, ochres, burnt brown, rare deep blue) are in app.css; here, what tokens
+   cannot express: thin, widely spaced titles, geometric glyphs before the navigation,
+   progress as a trail in the sand, loading as a dune ripple.
+   Per-component-class overrides (higher specificity than Svelte's scoped styles). */
 
 :root[data-theme="desert"] {
-  /* Ondulation de dune : une vague douce, répétée (masque du chargement). */
+  /* Dune ripple: a soft wave, repeated (loading mask). */
   --ds-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 8'%3E%3Cpath d='M0 5 Q4 1 8 5 T16 5' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E");
 }
 
-/* Titres monumentaux : fins, capitales, très espacés. */
+/* Monumental titles: thin, capitals, widely spaced. */
 :root[data-theme="desert"] h1 {
   font-weight: 300;
   text-transform: uppercase;
@@ -42,8 +42,8 @@
   color: var(--accent);
 }
 
-/* Navigation : texte espacé et glyphe géométrique (cercle, triangle, carré, losange) devant
-   chaque entrée ; Réglages prend l'hexagone. La page active est soulignée, pas remplie. */
+/* Navigation: spaced text and a geometric glyph (circle, triangle, square, diamond) before
+   each entry; Settings takes the hexagon. The active page is underlined, not filled. */
 :root[data-theme="desert"] nav > button {
   display: flex;
   align-items: center;
@@ -104,15 +104,15 @@
   color: var(--accent);
 }
 
-/* Lecture : le seul aplat bleu profond de l'écran. */
+/* Playback: the only deep blue solid fill on screen. */
 :root[data-theme="desert"] .transport .play {
   color: var(--accent-contrast);
   background: var(--accent);
 }
 
-/* --- Progression : une trace dans le sable -------------------------------------------
-   La piste est une bande de sable lisse ; la partie lue garde des empreintes en quinconce
-   (deux rangées d'ovales décalés) dans un sillon plus sombre. */
+/* --- Progress: a trail in the sand ------------------------------------------------
+   The track is a strip of smooth sand; the played part keeps footprints in staggered rows
+   (two rows of offset ovals) in a darker groove. */
 :root[data-theme="desert"] .progress .track {
   height: 8px;
   border-radius: 4px;
@@ -140,8 +140,8 @@
   background: var(--ds-burnt);
 }
 
-/* --- Chargement : ondulation de dune ---------------------------------------------------
-   À la place de la roue, une vague qui glisse doucement de droite à gauche. */
+/* --- Loading: dune ripple -----------------------------------------------------------
+   In place of the wheel, a wave that slowly slides from right to left. */
 :root[data-theme="desert"] .spinner {
   border: none;
   border-radius: 0;
@@ -158,7 +158,7 @@
   }
 }
 
-/* Chaîne audio : fine, sans cadre lourd. */
+/* Signal path: thin, without a heavy frame. */
 :root[data-theme="desert"] .signal {
   border: none;
   border-top: 1px solid var(--border);
@@ -176,7 +176,7 @@
   border-radius: 999px;
 }
 
-/* Bandeau d'accueil : grande surface vide, sans le fond teinté. */
+/* Home banner: large empty surface, without the tinted background. */
 :root[data-theme="desert"] .hero {
   color: var(--text);
   background: rgb(243 232 210 / 0.7);
@@ -190,7 +190,7 @@
   color: var(--text-muted);
 }
 
-/* « En lecture » : titre fin et très espacé, comme gravé. */
+/* "Now playing": thin, widely spaced title, as if engraved. */
 :root[data-theme="desert"] .now-playing .info h1 {
   font-weight: 200;
   letter-spacing: 0.18em;
