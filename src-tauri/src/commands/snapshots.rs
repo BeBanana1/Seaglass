@@ -1,12 +1,12 @@
-//! Copies des listes gardées d'un lancement à l'autre (#181) : pages de playlist et onglets
-//! de la bibliothèque. L'UI affiche la copie aussitôt, puis la version à jour : une
-//! playlist est revalidée par son ETag (#152), un onglet de la bibliothèque toujours relu
-//! en entier (l'API ne donne pas de révision).
+//! Copies of the lists kept from one launch to the next (#181): playlist pages and library
+//! tabs. The UI displays the copy at once, then the up to date version: a
+//! playlist is revalidated by its ETag (#152), a library tab is always read again
+//! in full (the API gives no revision).
 //!
-//! Écritures et lectures sur un thread bloquant (`spawn_blocking`) : la base est partagée
-//! avec la sauvegarde de la file. Les écritures partent sans être attendues ; deux écritures
-//! de la même clé peuvent donc s'inverser, ce qui ne laisse au pire qu'une copie un peu
-//! ancienne, remplacée à l'ouverture suivante.
+//! Writes and reads on a blocking thread (`spawn_blocking`): the database is shared
+//! with the queue saving. Writes are not awaited; two writes
+//! of the same key can therefore swap, which at worst leaves a slightly
+//! old copy, replaced at the next opening.
 
 use std::sync::Arc;
 
@@ -22,15 +22,15 @@ use crate::tidal::models::{
     AlbumSummary, ArtistSummary, LibraryList, PlaylistPage, PlaylistSummary, TrackEntry,
 };
 
-/// Comme en mémoire (`tidal/playlist.rs`) : 20 playlists, 20 000 titres au plus.
+/// As in memory (`tidal/playlist.rs`): 20 playlists, 20,000 tracks at most.
 const PLAYLISTS: SnapshotLimit = SnapshotLimit {
     prefix: "playlist:",
     count: 20,
     size: 20_000,
 };
 
-/// Onglets de la bibliothèque gardés. Les mixes n'en sont pas : leurs images sont des URLs
-/// signées qui expirent, et leur contenu change.
+/// Library tabs kept. Mixes are not among them: their images are signed URLs
+/// that expire, and their content changes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LibraryTab {
@@ -51,7 +51,7 @@ impl LibraryTab {
     }
 }
 
-/// Copie d'un onglet, sérialisée comme la réponse de la commande de l'onglet.
+/// Copy of a tab, serialized like the tab command's response.
 #[derive(Serialize)]
 #[serde(untagged)]
 pub enum CachedLibrary {
@@ -65,7 +65,7 @@ fn playlist_key(uuid: &str) -> String {
     format!("{}{uuid}", PLAYLISTS.prefix)
 }
 
-/// Copie de la playlist : en mémoire, sinon sur le disque (gardée ensuite en mémoire).
+/// Copy of the playlist: in memory, otherwise on disk (then kept in memory).
 #[tauri::command]
 pub async fn cached_playlist(
     state: State<'_, AppState>,
@@ -82,7 +82,7 @@ pub async fn cached_playlist(
     Ok(filtered(page))
 }
 
-/// Copie de l'onglet enregistrée au dernier chargement complet, `None` sans copie.
+/// Copy of the tab recorded at the last full load, `None` without a copy.
 #[tauri::command]
 pub async fn cached_library(
     state: State<'_, AppState>,
@@ -94,7 +94,7 @@ pub async fn cached_library(
         LibraryTab::Tracks => load::<LibraryList<TrackEntry>>(store, key)
             .await
             .map(|list| {
-                // La lecture peut partir de la copie avant la relecture : titres dans le cache.
+                // Playback may start from the copy before the re-read: tracks in the cache.
                 state
                     .tidal
                     .cache
@@ -107,8 +107,8 @@ pub async fn cached_library(
     })
 }
 
-/// Page lue en entier : gardée si elle a une révision (sans, rien ne dirait si elle est
-/// encore juste).
+/// Page read in full: kept if it has a revision (without one, nothing would say whether it
+/// is still right).
 pub(super) fn save_playlist(state: &AppState, page: &PlaylistPage) {
     if page.revision.is_none() {
         return;
@@ -117,7 +117,7 @@ pub(super) fn save_playlist(state: &AppState, page: &PlaylistPage) {
     save(state, key, page.clone(), page.tracks.len(), Some(PLAYLISTS));
 }
 
-/// Playlist modifiée par l'app : sa copie ne vaut plus rien.
+/// Playlist modified by the app: its copy is worth nothing anymore.
 pub(super) fn forget_playlist(state: &AppState, uuid: &str) {
     let Some(store) = state.store.clone() else {
         return;
@@ -125,7 +125,7 @@ pub(super) fn forget_playlist(state: &AppState, uuid: &str) {
     let key = playlist_key(uuid);
     tauri::async_runtime::spawn_blocking(move || {
         if let Err(e) = store.remove_snapshot(&key) {
-            tracing::warn!("copie {key} non effacée : {e}");
+            tracing::warn!("copy {key} not cleared: {e}");
         }
     });
 }
@@ -144,8 +144,8 @@ pub(super) fn save_library<T: Serialize + Clone + Send + 'static>(
     );
 }
 
-/// Connexion ou déconnexion : les copies décrivent la bibliothèque d'un autre compte.
-/// Attendu, pour qu'aucune copie ne soit relue après.
+/// Sign-in or sign-out: the copies describe another account's library.
+/// Awaited, so that no copy is read afterwards.
 pub(super) async fn clear(state: &AppState) {
     let Some(store) = state.store.clone() else {
         return;
@@ -153,8 +153,8 @@ pub(super) async fn clear(state: &AppState) {
     let cleared = tauri::async_runtime::spawn_blocking(move || store.clear_snapshots()).await;
     match cleared {
         Ok(Ok(())) => {}
-        Ok(Err(e)) => tracing::warn!("copies des listes non effacées : {e}"),
-        Err(e) => tracing::warn!("copies des listes non effacées : {e}"),
+        Ok(Err(e)) => tracing::warn!("list copies not cleared: {e}"),
+        Err(e) => tracing::warn!("list copies not cleared: {e}"),
     }
 }
 
@@ -171,11 +171,11 @@ async fn load<T: DeserializeOwned + Send + 'static>(
     match read {
         Ok((_, Ok(value))) => value,
         Ok((key, Err(e))) => {
-            tracing::warn!("copie {key} illisible : {e}");
+            tracing::warn!("copy {key} unreadable: {e}");
             None
         }
         Err(e) => {
-            tracing::warn!("lecture d'une copie interrompue : {e}");
+            tracing::warn!("reading a copy interrupted: {e}");
             None
         }
     }
@@ -193,7 +193,7 @@ fn save<T: Serialize + Send + 'static>(
     };
     tauri::async_runtime::spawn_blocking(move || {
         if let Err(e) = store.put_snapshot(&key, &value, size, limit) {
-            tracing::warn!("copie {key} non enregistrée : {e}");
+            tracing::warn!("copy {key} not stored: {e}");
         }
     });
 }

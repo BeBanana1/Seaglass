@@ -1,9 +1,9 @@
-//! Export de la bibliothèque (#330), bureau seulement : lit les listes, écrit les fichiers
-//! dans `Documents/Seaglass/export-<date UTC>/` et ouvre ce dossier. Pas de boîte
-//! « Enregistrer sous » : elle demanderait `tauri-plugin-dialog` (voir `docs/interface.md`).
+//! Library export (#330), desktop only: reads the lists, writes the files
+//! in `Documents/Seaglass/export-<UTC date>/` and opens that folder. No "Save as"
+//! dialog: it would need `tauri-plugin-dialog` (see `docs/interface.md`).
 //!
-//! Les playlists sont lues une par une, avec l'événement `library-export` (`done`/`total`)
-//! après chacune ; `cancel_library_export` arrête la lecture avant la suivante.
+//! Playlists are read one by one, with the `library-export` event (`done`/`total`)
+//! after each one; `cancel_library_export` stops reading before the next one.
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -19,7 +19,7 @@ use crate::utc::Utc;
 
 const PROGRESS_EVENT: &str = "library-export";
 
-/// Un export à la fois.
+/// One export at a time.
 static RUNNING: AtomicBool = AtomicBool::new(false);
 static CANCELLED: AtomicBool = AtomicBool::new(false);
 
@@ -30,23 +30,23 @@ struct Progress {
     total: usize,
 }
 
-/// Résultat montré à l'utilisateur.
+/// Result shown to the user.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportReport {
-    /// Dossier écrit (déjà ouvert dans l'explorateur).
+    /// Folder written (already open in the file explorer).
     pub dir: String,
     pub tracks: usize,
     pub albums: usize,
     pub artists: usize,
     pub playlists: usize,
-    /// Titres des playlists illisibles (supprimées, indisponibles), laissées de côté.
+    /// Titles of unreadable playlists (deleted, unavailable), left aside.
     pub failed: Vec<String>,
-    /// Une liste au moins est coupée au plafond de chargement.
+    /// At least one list is cut at the loading cap.
     pub truncated: bool,
 }
 
-/// Remet `RUNNING` à faux quoi qu'il arrive.
+/// Resets `RUNNING` to false whatever happens.
 struct RunGuard;
 
 impl Drop for RunGuard {
@@ -87,7 +87,7 @@ pub async fn export_library(app: AppHandle, state: State<'_, AppState>) -> CmdRe
         match tidal.playlist_tracks(&summary.uuid).await {
             Ok(tracks) => exported.push(PlaylistExport { summary, tracks }),
             Err(e) => {
-                tracing::warn!("export : playlist {} illisible : {e}", summary.uuid);
+                tracing::warn!("export: playlist {} unreadable: {e}", summary.uuid);
                 failed.push(summary.title);
             }
         }
@@ -133,7 +133,7 @@ pub async fn export_library(app: AppHandle, state: State<'_, AppState>) -> CmdRe
         })?;
 
     if let Err(e) = app.opener().open_path(dir.to_string_lossy(), None::<&str>) {
-        tracing::warn!("export : ouverture du dossier impossible : {e}");
+        tracing::warn!("export: could not open the folder: {e}");
     }
     let (tracks, albums, artists, playlists, truncated) = report_counts;
     Ok(ExportReport {
@@ -147,7 +147,7 @@ pub async fn export_library(app: AppHandle, state: State<'_, AppState>) -> CmdRe
     })
 }
 
-/// Arrête l'export en cours avant la playlist suivante.
+/// Stops the running export before the next playlist.
 #[tauri::command]
 pub fn cancel_library_export() {
     CANCELLED.store(true, Ordering::SeqCst);
@@ -155,7 +155,7 @@ pub fn cancel_library_export() {
 
 fn emit(app: &AppHandle, done: usize, total: usize) {
     if let Err(e) = app.emit(PROGRESS_EVENT, Progress { done, total }) {
-        tracing::warn!("événement {PROGRESS_EVENT} non émis : {e}");
+        tracing::warn!("event {PROGRESS_EVENT} not emitted: {e}");
     }
 }
 

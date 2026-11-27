@@ -1,17 +1,17 @@
-//! Titres et artistes bloqués (#334) : ni proposés par les mixes ni par les radios.
+//! Blocked tracks and artists (#334): suggested neither by mixes nor by radios.
 
 use tauri::State;
 
 use super::{AppState, CmdResult, err};
 use crate::tidal::models::{BlockTarget, Blocked};
 
-/// Les deux listes, lues chez TIDAL (Réglages › Lecture).
+/// Both lists, read from TIDAL (Settings › Playback).
 #[tauri::command]
 pub async fn blocked(state: State<'_, AppState>) -> CmdResult<Blocked> {
     state.tidal.blocked().await.map_err(err)
 }
 
-/// Bloque ou débloque un titre ou un artiste.
+/// Blocks or unblocks a track or an artist.
 #[tauri::command]
 pub async fn set_blocked(
     state: State<'_, AppState>,

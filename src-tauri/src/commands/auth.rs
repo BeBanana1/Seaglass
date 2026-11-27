@@ -1,4 +1,4 @@
-//! Connexion, déconnexion et état de la session.
+//! Sign-in, sign-out and session state.
 
 #[cfg(desktop)]
 use std::sync::{Arc, Mutex};
@@ -21,8 +21,8 @@ pub async fn auth_status(state: State<'_, AppState>) -> CmdResult<Option<Session
     state.tidal.current_session().await.map_err(err)
 }
 
-/// Ouvre la page de connexion TIDAL et intercepte la redirection finale pour récupérer le
-/// code PKCE, puis l'échange contre une session.
+/// Opens the TIDAL sign-in page and intercepts the final redirect to retrieve the
+/// PKCE code, then exchanges it for a session.
 #[tauri::command]
 pub async fn login(app: AppHandle, state: State<'_, AppState>) -> CmdResult<SessionInfo> {
     let (challenge, url) = state.tidal.begin_login().map_err(err)?;
@@ -41,33 +41,33 @@ async fn finish_login(
         .complete_login(challenge, code)
         .await
         .map_err(err)?;
-    // Copies des listes d'un compte précédent (#181) : jamais montrées à celui-ci.
+    // Copies of a previous account's lists (#181): never shown to this one.
     super::snapshots::clear(state).await;
     Ok(session)
 }
 
-/// Vrai si la connexion passe par le navigateur du système plutôt que par une fenêtre de
-/// l'app. Linux (#17) : TIDAL sert une vérification anti-robot à WebKitGTK et finit par le
-/// bloquer ; un navigateur courant (Firefox, Chrome…) passe sans difficulté.
+/// True if sign-in goes through the system browser rather than through a window of the
+/// app. Linux (#17): TIDAL serves an anti-bot check to WebKitGTK and ends up blocking
+/// it; a mainstream browser (Firefox, Chrome…) gets through without difficulty.
 #[tauri::command]
 pub async fn login_in_browser() -> CmdResult<bool> {
     Ok(cfg!(target_os = "linux"))
 }
 
-/// Défi PKCE de la connexion par navigateur en cours, entre l'ouverture de la page et
-/// l'adresse collée. Une seule connexion à la fois : en rouvrir une remplace le défi.
+/// PKCE challenge of the browser sign-in in progress, between opening the page and the
+/// pasted address. One sign-in at a time: opening another one replaces the challenge.
 #[cfg(desktop)]
 static BROWSER_LOGIN: Mutex<Option<auth::PkceChallenge>> = Mutex::new(None);
 
-/// Longueur maximale de l'adresse collée : celle de TIDAL fait quelques centaines de
-/// caractères.
+/// Maximum length of the pasted address: TIDAL's is a few hundred
+/// characters.
 #[cfg(desktop)]
 const MAX_REDIRECT: usize = 4096;
 
-/// Connexion par navigateur, étape 1 : ouvre la page de connexion TIDAL dans le navigateur
-/// du système (adresse construite ici, jamais reçue de l'UI) et la renvoie, pour qu'elle
-/// puisse être copiée à la main si aucun navigateur ne s'ouvre (WSL, système sans
-/// navigateur par défaut). Elle ne contient que le défi PKCE, pas le vérificateur.
+/// Browser sign-in, step 1: opens the TIDAL sign-in page in the system browser
+/// (address built here, never received from the UI) and returns it, so that it can
+/// be copied by hand if no browser opens (WSL, system without a default
+/// browser). It only contains the PKCE challenge, not the verifier.
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn browser_login_start(app: AppHandle, state: State<'_, AppState>) -> CmdResult<String> {
@@ -76,16 +76,16 @@ pub async fn browser_login_start(app: AppHandle, state: State<'_, AppState>) -> 
     let (challenge, url) = state.tidal.begin_login().map_err(err)?;
     *BROWSER_LOGIN.lock().map_err(err)? = Some(challenge);
     if let Err(e) = app.opener().open_url(url.as_str(), None::<&str>) {
-        tracing::warn!("navigateur du système non ouvert : {e}");
+        tracing::warn!("system browser not opened: {e}");
     }
     Ok(url.into())
 }
 
-/// Connexion par navigateur, étape 2 : l'adresse de la page sur laquelle TIDAL a renvoyé
-/// après la connexion. Seule une adresse de redirection attendue (`auth::redirect_code`)
-/// est acceptée. Le défi n'est retiré qu'une fois la session ouverte : après un échec
-/// (adresse refusée, code périmé ou venu d'une autre page de connexion), un nouvel essai
-/// montre la vraie erreur au lieu de « ouvrez d'abord la page ».
+/// Browser sign-in, step 2: the address of the page TIDAL redirected to after
+/// sign-in. Only an expected redirect address (`auth::redirect_code`)
+/// is accepted. The challenge is only removed once the session is open: after a failure
+/// (rejected address, expired code or one from another sign-in page), a new attempt
+/// shows the real error instead of "open the page first".
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn browser_login_finish(
@@ -124,10 +124,10 @@ fn browser_redirect_code(redirect: &str) -> Option<String> {
         .and_then(|u| auth::redirect_code(&u))
 }
 
-/// Bureau : fenêtre dédiée, sans aucune capability Tauri. `None` si elle est fermée.
-/// Navigation privée (#258) : les cookies de TIDAL ne survivent pas à la fenêtre, si bien
-/// qu'une nouvelle connexion peut prendre un autre compte et que la session web ne reste
-/// pas dans le profil WebView2 de l'app.
+/// Desktop: dedicated window, without any Tauri capability. `None` if it is closed.
+/// Private browsing (#258): TIDAL's cookies do not outlive the window, so that a new
+/// sign-in can pick another account and the web session does not stay
+/// in the app's WebView2 profile.
 #[cfg(desktop)]
 async fn login_page(app: &AppHandle, url: Url) -> CmdResult<Option<String>> {
     if let Some(existing) = app.get_webview_window(LOGIN_WINDOW) {
@@ -170,8 +170,8 @@ async fn login_page(app: &AppHandle, url: Url) -> CmdResult<Option<String>> {
     Ok(code)
 }
 
-/// Android : une seule WebView pour l'app, la page s'ouvre dans une WebView native à part
-/// (plugin Kotlin, sans IPC Tauri). `None` si l'utilisateur revient en arrière.
+/// Android: a single WebView for the app, the page opens in a separate native WebView
+/// (Kotlin plugin, without Tauri IPC). `None` if the user goes back.
 #[cfg(target_os = "android")]
 async fn login_page(app: &AppHandle, url: Url) -> CmdResult<Option<String>> {
     let redirect = tauri_plugin_seaglass_mobile::native(app)
@@ -192,19 +192,19 @@ pub async fn logout(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()>
     Ok(())
 }
 
-/// Bureau : données de navigation du profil WebView2 de l'app (#258), où restent les cookies
-/// de TIDAL des connexions faites avant la navigation privée. L'interface n'y garde rien
-/// (ni cookies ni stockage web). Échec seulement journalisé : la déconnexion est faite.
+/// Desktop: browsing data of the app's WebView2 profile (#258), where TIDAL's cookies from
+/// sign-ins made before private browsing remain. The interface keeps nothing there
+/// (no cookies or web storage). Failure is only logged: the sign-out is done.
 #[cfg(desktop)]
 fn clear_login_data(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main")
         && let Err(e) = window.clear_all_browsing_data()
     {
-        tracing::warn!("données de navigation non effacées : {e}");
+        tracing::warn!("browsing data not cleared: {e}");
     }
 }
 
-/// Android : la WebView de connexion efface déjà ses cookies avant et après usage
+/// Android: the sign-in WebView already clears its cookies before and after use
 /// (`SeaglassPlugin.login`).
 #[cfg(target_os = "android")]
 fn clear_login_data(_app: &AppHandle) {}

@@ -1,10 +1,10 @@
-//! Raccourcis épinglés (#10) : playlists, mixes, titres likés, « Plus tard » et playlists
-//! intelligentes (#383). Barre latérale
-//! sur le bureau, tuiles du mode conduite sur Android (#193). Logique pure : la liste est
-//! stockée dans `UiSettings::pins`, dans l'ordre d'affichage.
+//! Pinned shortcuts (#10): playlists, mixes, liked tracks, "Later" and smart
+//! playlists (#383). Sidebar
+//! on desktop, driving mode tiles on Android (#193). Pure logic: the list is
+//! stored in `UiSettings::pins`, in display order.
 //!
-//! Le titre d'une playlist ou d'un mix est gardé avec l'épingle pour l'afficher sans
-//! requête ; l'UI le remet à jour quand elle ouvre la playlist.
+//! The title of a playlist or mix is kept with the pin to display it without a
+//! request; the UI updates it when it opens the playlist.
 
 use std::collections::HashSet;
 
@@ -12,9 +12,9 @@ use crate::i18n::{tr, trf};
 use crate::store::SmartList;
 use serde::{Deserialize, Serialize};
 
-/// Nombre maximal d'épingles.
+/// Maximum number of pins.
 pub const MAX_PINS: usize = 50;
-/// Longueur maximale d'un titre gardé (en caractères), au-delà il est tronqué.
+/// Maximum length of a kept title (in characters), beyond it is truncated.
 pub const MAX_TITLE_CHARS: usize = 200;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,16 +24,16 @@ pub enum Pin {
         uuid: String,
         title: String,
     },
-    /// Mix ou radio de TIDAL (#193).
+    /// TIDAL mix or radio (#193).
     Mix {
         id: String,
         title: String,
     },
-    /// Bibliothèque › Titres.
+    /// Library › Tracks.
     LikedTracks,
-    /// Bibliothèque › Plus tard (#244).
+    /// Library › Later (#244).
     Later,
-    /// Playlist intelligente locale (#383).
+    /// Local smart playlist (#383).
     Smart {
         list: SmartList,
     },
@@ -54,7 +54,7 @@ pub enum PinError {
 }
 
 impl Pin {
-    /// Identité de l'épingle : deux épingles de même clé sont des doublons.
+    /// Identity of the pin: two pins with the same key are duplicates.
     pub(crate) fn key(&self) -> &str {
         match self {
             Pin::Playlist { uuid, .. } => uuid,
@@ -66,8 +66,8 @@ impl Pin {
     }
 }
 
-/// Valide la liste envoyée par l'UI : uuid bien formés, titres nettoyés, doublons retirés
-/// (la première occurrence garde sa place).
+/// Validates the list sent by the UI: well-formed uuids, cleaned titles, duplicates removed
+/// (the first occurrence keeps its place).
 pub fn normalize(pins: Vec<Pin>) -> Result<Vec<Pin>, PinError> {
     let mut seen = HashSet::new();
     let mut out = Vec::with_capacity(pins.len());
@@ -107,8 +107,8 @@ fn clean_title(title: &str) -> String {
     title.trim().chars().take(MAX_TITLE_CHARS).collect()
 }
 
-/// Forme `8-4-4-4-12` en hexadécimal, celle des uuid de playlists TIDAL. L'uuid finit
-/// dans une URL d'API : rien d'autre n'est accepté.
+/// `8-4-4-4-12` form in hexadecimal, that of TIDAL playlist uuids. The uuid ends up
+/// in an API URL: nothing else is accepted.
 pub(crate) fn is_uuid(s: &str) -> bool {
     let groups: Vec<&str> = s.split('-').collect();
     groups.len() == 5
@@ -180,7 +180,7 @@ mod tests {
             json,
             r#"{"kind":"mix","id":"0abc","title":" Mix du jour "}"#
         );
-        // Titre nettoyé, doublon retiré.
+        // Title cleaned, duplicate removed.
         let pins = normalize(vec![mix("0abc"), mix("0abc"), Pin::LikedTracks]).unwrap();
         assert_eq!(
             pins,
@@ -222,7 +222,7 @@ mod tests {
         let long = "é".repeat(MAX_TITLE_CHARS + 10);
         let pins = normalize(vec![playlist(UUID, &format!("  {long}  "))]).unwrap();
         let Pin::Playlist { title, .. } = &pins[0] else {
-            panic!("épingle de playlist attendue");
+            panic!("playlist pin expected");
         };
         assert_eq!(title.chars().count(), MAX_TITLE_CHARS);
     }

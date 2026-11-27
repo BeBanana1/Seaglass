@@ -1,9 +1,9 @@
-//! Thèmes favoris (#390), en tête de la galerie des réglages. Logique pure.
+//! Favorite themes (#390), at the top of the settings gallery. Pure logic.
 //!
-//! `UiSettings::favorite_themes` garde l'identifiant de la famille (le thème clair de
-//! Neumorphism ou d'Alliage, pas sa variante sombre : c'est l'UI qui regroupe), sans doublons.
-//! Un identifiant inconnu (réglages écrits par une version plus récente) est ignoré, pour ne
-//! pas rendre tous les réglages illisibles.
+//! `UiSettings::favorite_themes` keeps the family identifier (the light theme of
+//! Neumorphism or Alloy, not its dark variant: the UI does the grouping), without duplicates.
+//! An unknown identifier (settings written by a newer version) is ignored, so as not to
+//! make all the settings unreadable.
 
 use serde::de::IntoDeserializer;
 use serde::de::value::{Error as ValueError, StrDeserializer};
@@ -11,7 +11,7 @@ use serde::{Deserialize, Deserializer};
 
 use super::Theme;
 
-/// Désérialise la liste en ignorant les thèmes inconnus et les doublons.
+/// Deserializes the list, ignoring unknown themes and duplicates.
 pub fn favorites<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<Theme>, D::Error> {
     let mut themes = Vec::new();
     for id in Vec::<String>::deserialize(d)? {

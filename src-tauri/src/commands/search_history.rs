@@ -1,8 +1,8 @@
-//! Historique de recherche (#211) : dernières requêtes, la plus récente en tête, dans la
-//! table `kv` (`search.history`). L'UI cherche pendant la frappe (#248) : elle n'enregistre
-//! une requête (`note_search_history`) que lorsqu'elle est retenue (Entrée, clic dans les
-//! résultats), sinon chaque préfixe tapé finirait dans la liste.
-//! Effacé à la déconnexion (il appartient à la personne connectée).
+//! Search history (#211): latest queries, most recent first, in the `kv` table
+//! (`search.history`). The UI searches while typing (#248): it only records a query
+//! (`note_search_history`) once it is retained (Enter, click in the results),
+//! otherwise every typed prefix would end up in the list.
+//! Cleared at sign-out (it belongs to the signed-in person).
 
 use tauri::State;
 
@@ -11,10 +11,10 @@ use crate::store::Store;
 
 const KEY: &str = "search.history";
 
-/// Nombre de requêtes gardées ; au-delà, la plus ancienne est oubliée.
+/// Number of queries kept; beyond it, the oldest is forgotten.
 pub const MAX_ENTRIES: usize = 20;
 
-/// Forme gardée d'une requête : espaces de bord retirés, espaces intérieurs réduits à un.
+/// Kept form of a query: edge whitespace removed, inner whitespace reduced to one.
 fn normalize(query: &str) -> String {
     query.split_whitespace().collect::<Vec<_>>().join(" ")
 }
@@ -23,8 +23,8 @@ fn same(a: &str, b: &str) -> bool {
     a.to_lowercase() == b.to_lowercase()
 }
 
-/// Met `query` en tête ; une requête identique (casse ignorée) est remplacée par la
-/// nouvelle forme. Une requête vide n'est pas gardée.
+/// Puts `query` first; an identical query (case ignored) is replaced by the
+/// new form. An empty query is not kept.
 pub fn record(history: &mut Vec<String>, query: &str) {
     let query = normalize(query);
     if query.is_empty() {
@@ -35,7 +35,7 @@ pub fn record(history: &mut Vec<String>, query: &str) {
     history.truncate(MAX_ENTRIES);
 }
 
-/// Retire `query` (casse et espaces ignorés).
+/// Removes `query` (case and whitespace ignored).
 pub fn remove(history: &mut Vec<String>, query: &str) {
     let query = normalize(query);
     history.retain(|q| !same(q, &query));
@@ -54,10 +54,10 @@ fn save(store: Option<&Store>, history: &[String]) -> CmdResult<()> {
     }
 }
 
-/// Déconnexion : l'historique de la personne précédente disparaît.
+/// Sign-out: the previous person's history disappears.
 pub(super) fn clear(state: &AppState) {
     if let Err(e) = save(state.store.as_deref(), &[]) {
-        tracing::warn!("historique de recherche non effacé : {e}");
+        tracing::warn!("search history not cleared: {e}");
     }
 }
 
@@ -66,7 +66,7 @@ pub async fn search_history(state: State<'_, AppState>) -> CmdResult<Vec<String>
     Ok(load(state.store.as_deref()))
 }
 
-/// Enregistre une requête retenue ; renvoie l'historique à jour.
+/// Records a retained query; returns the up to date history.
 #[tauri::command]
 pub async fn note_search_history(
     state: State<'_, AppState>,
@@ -82,7 +82,7 @@ pub async fn note_search_history(
     Ok(history)
 }
 
-/// Retire une requête ; renvoie l'historique restant.
+/// Removes a query; returns the remaining history.
 #[tauri::command]
 pub async fn remove_search_history(
     state: State<'_, AppState>,

@@ -1,5 +1,5 @@
-//! « Nettoyer » une playlist de l'utilisateur ou ses titres likés (#382) : rapport, puis
-//! changements choisis par l'utilisateur, et leur annulation.
+//! "Clean up" a user's playlist or their liked tracks (#382): report, then
+//! changes chosen by the user, and their undo.
 
 use tauri::{AppHandle, State};
 
@@ -18,12 +18,12 @@ fn check_uuid(uuid: &str) -> CmdResult<()> {
 
 fn check_len(ops: &[ListOp]) -> CmdResult<()> {
     if ops.len() > MAX_ADD {
-        return Err(format!("{MAX_ADD} changements au plus"));
+        return Err(format!("at most {MAX_ADD} changes"));
     }
     Ok(())
 }
 
-/// Doublons et titres indisponibles d'une de vos playlists, avec leurs remplaçants.
+/// Duplicates and unavailable tracks of one of your playlists, with their replacements.
 #[tauri::command]
 pub async fn playlist_cleanup(
     state: State<'_, AppState>,
@@ -33,7 +33,7 @@ pub async fn playlist_cleanup(
     state.tidal.playlist_cleanup(&uuid).await.map_err(err)
 }
 
-/// Applique les changements choisis (positions du rapport). Renvoie aussi de quoi annuler.
+/// Applies the chosen changes (positions in the report). Also returns what is needed to undo.
 #[tauri::command]
 pub async fn clean_playlist(
     state: State<'_, AppState>,
@@ -46,7 +46,7 @@ pub async fn clean_playlist(
     state.tidal.clean_playlist(&uuid, ops).await.map_err(err)
 }
 
-/// Annule un nettoyage : `ops` = le `undo` renvoyé par `clean_playlist`, appliqué tel quel.
+/// Undoes a cleanup: `ops` = the `undo` returned by `clean_playlist`, applied as is.
 #[tauri::command]
 pub async fn undo_playlist_cleanup(
     state: State<'_, AppState>,
@@ -59,13 +59,13 @@ pub async fn undo_playlist_cleanup(
     Ok(state.tidal.apply_playlist_ops(&uuid, &ops).await)
 }
 
-/// Doublons et titres indisponibles des titres likés.
+/// Duplicates and unavailable tracks of the liked tracks.
 #[tauri::command]
 pub async fn liked_cleanup(state: State<'_, AppState>) -> CmdResult<CleanupReport> {
     state.tidal.liked_cleanup().await.map_err(err)
 }
 
-/// Applique des changements aux titres likés (ou les annule : l'ordre n'y compte pas).
+/// Applies changes to the liked tracks (or undoes them: order does not matter there).
 #[tauri::command]
 pub async fn clean_liked(
     app: AppHandle,

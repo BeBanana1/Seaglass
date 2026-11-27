@@ -1,8 +1,8 @@
-//! Liens TIDAL collés (#203) : `tidal.com/browse/<type>/<id>`, `tidal.com/<type>/<id>`,
-//! `listen.tidal.com/…`, avec ou sans schéma, `/u` final ou paramètres, éventuellement au
-//! milieu d'un texte de partage. Le texte n'est jamais envoyé tel quel : seuls le type et
-//! un identifiant validé (numérique, uuid ou id de mix) en sortent. Sur Android, le même
-//! texte arrive aussi par le menu « Partager » du système et par les liens touchés (`share`).
+//! Pasted TIDAL links (#203): `tidal.com/browse/<type>/<id>`, `tidal.com/<type>/<id>`,
+//! `listen.tidal.com/…`, with or without scheme, trailing `/u` or parameters, possibly in the
+//! middle of a share text. The text is never sent as is: only the type and
+//! a validated identifier (numeric, uuid or mix id) come out of it. On Android, the same
+//! text also arrives through the system "Share" menu and through tapped links (`share`).
 
 use std::sync::Mutex;
 
@@ -16,14 +16,14 @@ use crate::i18n::tr;
 use crate::tidal::TidalClient;
 use crate::tidal::models::TrackId;
 
-/// Un texte collé plus long n'est pas un lien.
+/// A longer pasted text is not a link.
 const MAX_TEXT_LEN: usize = 2_000;
 
-/// Page à ouvrir pour un lien.
+/// Page to open for a link.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum LinkTarget {
-    /// Un titre ouvre son album, titre mis en évidence (`track`).
+    /// A track opens its album, with the track highlighted (`track`).
     #[serde(rename_all = "camelCase")]
     Album {
         id: u64,
@@ -38,19 +38,19 @@ pub enum LinkTarget {
     Mix {
         id: String,
     },
-    /// Playlist d'un autre service à importer (#328) : `link` = adresse propre, relue par
+    /// Playlist from another service to import (#328): `link` = clean address, read again by
     /// `import_playlist`.
     Import {
         link: String,
     },
-    /// Fil d'actualité : notification groupée des nouvelles sorties (#435).
+    /// News feed: grouped notification of new releases (#435).
     Feed,
 }
 
-/// Lien interne du fil, donné par la notification groupée d'Android (#435) à `ShareActivity`.
+/// Internal link to the feed, given by Android's grouped notification (#435) to `ShareActivity`.
 pub(crate) const FEED_LINK: &str = "seaglass://feed";
 
-/// Ce que désigne un lien, avant résolution d'un titre en album.
+/// What a link designates, before resolving a track into an album.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Link {
     Track(u64),
@@ -60,22 +60,22 @@ pub(crate) enum Link {
     Mix(String),
 }
 
-/// Page à ouvrir pour le texte collé, ou `null` s'il ne contient pas de lien TIDAL.
+/// Page to open for the pasted text, or `null` if it contains no TIDAL link.
 #[tauri::command]
 pub async fn open_link(state: State<'_, AppState>, text: String) -> CmdResult<Option<LinkTarget>> {
     resolve(&state.tidal, &text).await
 }
 
-/// Lien partagé vers l'app sur Android (menu « Partager », #203) ou page d'une notification
-/// touchée (#435), gardé jusqu'à ce que l'UI le prenne : l'app peut démarrer avec, avant que
-/// la WebView n'écoute.
+/// Link shared to the app on Android ("Share" menu, #203) or page of a tapped
+/// notification (#435), kept until the UI takes it: the app may start with it, before
+/// the WebView is listening.
 static SHARED: Mutex<Option<LinkTarget>> = Mutex::new(None);
 
-/// Événement émis quand un lien partagé est prêt (`take_shared_link` le prend).
+/// Event emitted when a shared link is ready (`take_shared_link` takes it).
 pub const SHARED_LINK_EVENT: &str = "open-link";
 
-/// Texte reçu par le menu « Partager » : résolu hors du thread appelant, gardé, puis
-/// annoncé à l'UI. Un texte sans lien TIDAL donne un toast.
+/// Text received through the "Share" menu: resolved off the calling thread, kept, then
+/// announced to the UI. A text without a TIDAL link gives a toast.
 #[cfg_attr(not(target_os = "android"), allow(dead_code))]
 pub fn share(app: &AppHandle, text: String) {
     let app = app.clone();
@@ -96,14 +96,14 @@ pub fn share(app: &AppHandle, text: String) {
     });
 }
 
-/// Garde `target` pour l'UI et l'annonce : menu « Partager », clic sur une notification des
-/// nouvelles sorties (#435).
+/// Keeps `target` for the UI and announces it: "Share" menu, tap on a notification of
+/// new releases (#435).
 pub fn open(app: &AppHandle, target: LinkTarget) {
     if let Ok(mut shared) = SHARED.lock() {
         *shared = Some(target);
     }
     if let Err(e) = app.emit(SHARED_LINK_EVENT, ()) {
-        tracing::warn!("lien partagé non annoncé à l'UI : {e}");
+        tracing::warn!("shared link not announced to the UI: {e}");
     }
 }
 
@@ -119,24 +119,24 @@ fn toast(app: &AppHandle, message: String) {
         message,
     };
     if let Err(e) = app.emit("toast", toast) {
-        tracing::warn!("toast non émis : {e}");
+        tracing::warn!("toast not emitted: {e}");
     }
 }
 
-/// Lien partagé en attente, une seule fois.
+/// Pending shared link, only once.
 #[tauri::command]
 pub async fn take_shared_link() -> CmdResult<Option<LinkTarget>> {
     Ok(SHARED.lock().ok().and_then(|mut s| s.take()))
 }
 
-/// Liens `https://tidal.com/…` donnés à l'app sur Android 12+ (#203) : le domaine n'est pas
-/// à nous, l'utilisateur doit les activer dans « Ouvrir par défaut ».
+/// `https://tidal.com/…` links given to the app on Android 12+ (#203): the domain is not
+/// ours, the user must enable them in "Open by default".
 #[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct LinkHandling {
     pub enabled: bool,
 }
 
-/// État des liens TIDAL, ou `null` s'il n'y a rien à régler (bureau, Android avant 12).
+/// State of the TIDAL links, or `null` if there is nothing to set (desktop, Android before 12).
 #[tauri::command]
 pub async fn link_handling() -> CmdResult<Option<LinkHandling>> {
     #[cfg(target_os = "android")]
@@ -157,7 +157,7 @@ pub async fn link_handling() -> CmdResult<Option<LinkHandling>> {
     Ok(None)
 }
 
-/// Ouvre le réglage « Ouvrir par défaut » de l'app (Android seulement).
+/// Opens the app's "Open by default" setting (Android only).
 #[tauri::command]
 pub async fn open_link_settings() -> CmdResult<()> {
     #[cfg(target_os = "android")]
@@ -178,7 +178,7 @@ async fn resolve(tidal: &TidalClient, text: &str) -> CmdResult<Option<LinkTarget
         return Ok(Some(LinkTarget::Feed));
     }
     let Some(link) = parse(text) else {
-        // Playlist d'un autre service (#328) : la page d'import s'ouvre.
+        // Playlist from another service (#328): the import page opens.
         return match crate::foreign::playlist_ref(text).await {
             Some(Ok(PlaylistRef::YouTube)) => Err(playlists::youtube_unsupported()),
             Some(Ok(playlist)) => Ok(Some(LinkTarget::Import {
@@ -220,11 +220,11 @@ fn parse_url(word: &str) -> Option<Link> {
     if !matches!(host, "tidal.com" | "www.tidal.com" | "listen.tidal.com") {
         return None;
     }
-    // Les identifiants gardent leur casse (ids de mix) : on relit le chemin dans le mot.
+    // Identifiers keep their case (mix ids): the path is read again from the word.
     let path = &word[word.len() - path.len()..];
     let path = path.split(['?', '#']).next().unwrap_or("");
     let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
-    // Dernière paire valide : `album/1/track/2` désigne le titre.
+    // Last valid pair: `album/1/track/2` designates the track.
     segments
         .windows(2)
         .rev()

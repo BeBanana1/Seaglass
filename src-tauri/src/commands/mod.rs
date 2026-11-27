@@ -1,4 +1,4 @@
-//! Commandes Tauri : valident l'entrée puis délèguent à `tidal` ou envoient un `Cmd`.
+//! Tauri commands: they validate the input then delegate to `tidal` or send a `Cmd`.
 
 pub mod auth;
 pub mod blind_test;

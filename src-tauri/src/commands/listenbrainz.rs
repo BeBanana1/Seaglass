@@ -1,5 +1,6 @@
-//! Réglages › Application › ListenBrainz (#431) : compte connecté, connexion par jeton,
-//! retrait. Tout passe par `integrations::listenbrainz` ; l'UI ne parle jamais au service.
+//! Settings › Application › ListenBrainz (#431): connected account, sign-in by token,
+//! removal. Everything goes through `integrations::listenbrainz`; the UI never talks to the
+//! service.
 
 use super::CmdResult;
 use crate::integrations::listenbrainz::{self, Status};
@@ -9,7 +10,7 @@ pub async fn listenbrainz_status() -> CmdResult<Status> {
     Ok(listenbrainz::status().await)
 }
 
-/// Vérifie le jeton collé auprès de ListenBrainz avant de le garder.
+/// Checks the pasted token with ListenBrainz before keeping it.
 #[tauri::command]
 pub async fn listenbrainz_connect(token: String) -> CmdResult<Status> {
     listenbrainz::connect(token).await

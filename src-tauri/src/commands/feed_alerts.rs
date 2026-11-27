@@ -1,11 +1,11 @@
-//! Notifications des nouvelles sorties des artistes suivis (#435), désactivées par défaut.
+//! Notifications of new releases from followed artists (#435), disabled by default.
 //!
-//! Après chaque lecture du fil en fond (`feed::spawn_watch` : au lancement puis toutes les
-//! 6 h), les albums pas vus, sortis depuis moins de `RECENT_DAYS` jours et pas encore
-//! notifiés donnent une notification du système : une sortie ouvre son album, plusieurs
-//! ouvrent le fil. Les clés notifiées sont gardées par compte (réglage `feed_notified`).
-//! Sans ensemble pour ce compte (premier passage après l'activation, autre compte), il est
-//! créé avec les sorties du moment, sans rien notifier : pas de rafale à l'activation.
+//! After each background read of the feed (`feed::spawn_watch`: at launch then every
+//! 6 h), the albums not seen, released less than `RECENT_DAYS` days ago and not yet
+//! notified give a system notification: one release opens its album, several
+//! open the feed. The notified keys are kept per account (`feed_notified` setting).
+//! Without a set for this account (first pass after activation, other account), it is
+//! created with the current releases, notifying nothing: no burst on activation.
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -22,13 +22,13 @@ use crate::store::Store;
 use crate::tidal::models::{AlbumSummary, FeedItem, MediaItem};
 
 const NOTIFIED_KEY: &str = "feed_notified";
-/// Une sortie plus ancienne n'est plus « nouvelle » : le fil remonte à 3 mois.
+/// An older release is no longer "new": the feed goes back 3 months.
 const RECENT_DAYS: i64 = 3;
 const DAY_MS: i64 = 86_400_000;
-/// Artistes cités dans une notification groupée.
+/// Artists named in a grouped notification.
 const MAX_ARTISTS: usize = 3;
 
-/// Interrupteur des Réglages, reporté par `UiSettings::apply_to_backend`.
+/// Settings switch, relayed by `UiSettings::apply_to_backend`.
 static ENABLED: AtomicBool = AtomicBool::new(false);
 
 pub fn set_enabled(enabled: bool) {
@@ -39,8 +39,8 @@ pub fn enabled() -> bool {
     ENABLED.load(Ordering::Relaxed)
 }
 
-/// Notifie les nouvelles sorties de `items` (fil déjà marqué vu ou non), si le réglage est
-/// activé. Les erreurs ne font que passer au journal : c'est une tâche de fond.
+/// Notifies the new releases of `items` (feed already marked seen or not), if the setting is
+/// enabled. Errors only go to the log: this is a background task.
 pub async fn check(app: &AppHandle, store: Option<&Arc<Store>>, user: u64, items: &[FeedItem]) {
     if !enabled() {
         return;
@@ -49,8 +49,8 @@ pub async fn check(app: &AppHandle, store: Option<&Arc<Store>>, user: u64, items
     let saved = match blocking(store, |s| s.get_setting::<SeenSet>(NOTIFIED_KEY)).await {
         Ok(saved) => saved,
         Err(e) => {
-            // Illisible : traité comme un premier passage, sans notifier.
-            tracing::warn!("{NOTIFIED_KEY} illisible : {e}");
+            // Unreadable: treated as a first pass, without notifying.
+            tracing::warn!("{NOTIFIED_KEY} unreadable: {e}");
             None
         }
     };
@@ -58,8 +58,8 @@ pub async fn check(app: &AppHandle, store: Option<&Arc<Store>>, user: u64, items
     if let Some(save) = picked.save
         && let Err(e) = blocking(store, move |s| s.set_setting(NOTIFIED_KEY, &save)).await
     {
-        // Pas enregistré : on ne notifie pas, sinon la même sortie reviendrait dans 6 h.
-        tracing::warn!("{NOTIFIED_KEY} non enregistré : {e}");
+        // Not saved: we do not notify, otherwise the same release would come back in 6 h.
+        tracing::warn!("{NOTIFIED_KEY} not saved: {e}");
         return;
     }
     if let Some(notice) = notice(&picked.fresh) {
@@ -67,7 +67,7 @@ pub async fn check(app: &AppHandle, store: Option<&Arc<Store>>, user: u64, items
     }
 }
 
-/// Résultat de [`pick`] : sorties à notifier, et ensemble à enregistrer s'il change.
+/// Result of [`pick`]: releases to notify, and set to save if it changes.
 #[derive(Debug, PartialEq)]
 struct Picked<'a> {
     fresh: Vec<&'a AlbumSummary>,
@@ -107,7 +107,7 @@ fn pick(items: &[FeedItem], saved: Option<SeenSet>, user: u64, now_ms: i64) -> P
     }
 }
 
-/// Texte et page de la notification, dans la langue de l'app.
+/// Text and page of the notification, in the app's language.
 fn notice(fresh: &[&AlbumSummary]) -> Option<Notice> {
     match fresh {
         [] => None,
@@ -195,7 +195,7 @@ mod tests {
         let picked = pick(&items, None, 7, NOW);
         assert!(picked.fresh.is_empty());
         assert_eq!(picked.save, Some(set(7, &["album-1"])));
-        // Autre compte : même chose.
+        // Other account: same thing.
         let picked = pick(&items, Some(set(8, &["album-9"])), 7, NOW);
         assert!(picked.fresh.is_empty());
         assert_eq!(picked.save, Some(set(7, &["album-1"])));
@@ -205,7 +205,7 @@ mod tests {
     fn notifies_only_new_unseen_recent_albums() {
         let mut items = vec![
             album(1, "A", NOW - DAY_MS, false),
-            // Déjà notifiée, vue, trop ancienne, sans date.
+            // Already notified, seen, too old, without a date.
             album(2, "B", NOW, false),
             album(3, "C", NOW, true),
             album(4, "D", NOW - 4 * DAY_MS, false),
@@ -214,7 +214,7 @@ mod tests {
                 ..album(5, "E", NOW, false)
             },
         ];
-        // Un mix pas vu n'est pas une sortie.
+        // A mix not seen is not a release.
         items.push(FeedItem {
             occurred_at: Some(NOW),
             seen: false,

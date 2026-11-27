@@ -1,5 +1,5 @@
-//! Jam (#25) : démarrer (en ligne, ou sur le réseau local depuis le bureau), arrêter, état,
-//! contrôles de l'hôte (#288).
+//! Jam (#25): start (online, or on the local network from the desktop), stop, state,
+//! host controls (#288).
 
 use tauri::{AppHandle, State};
 
@@ -8,7 +8,7 @@ use crate::jam::relay_settings::{self, RelayChange, RelayView};
 use crate::jam::{JamMode, JamRules, JamState, JamStatus};
 use crate::store::Store;
 
-/// Règles de l'hôte, retenues d'une Jam à l'autre (#288).
+/// Host rules, kept from one Jam to the next (#288).
 const KEY_RULES: &str = "jam.rules";
 
 fn load_rules(store: Option<&Store>) -> JamRules {
@@ -16,7 +16,7 @@ fn load_rules(store: Option<&Store>) -> JamRules {
         .and_then(|s| match s.get_setting::<JamRules>(KEY_RULES) {
             Ok(rules) => rules,
             Err(e) => {
-                tracing::warn!("Jam : règles illisibles, valeurs par défaut ({e})");
+                tracing::warn!("Jam: rules unreadable, using defaults ({e})");
                 None
             }
         })
@@ -24,26 +24,26 @@ fn load_rules(store: Option<&Store>) -> JamRules {
         .sanitized()
 }
 
-/// Jam en cours (adresse, code, QR code, connexion, invités, règles), ou `null`.
+/// Current Jam (address, code, QR code, connection, guests, rules), or `null`.
 #[tauri::command]
 pub async fn jam_status(jam: State<'_, JamState>) -> CmdResult<Option<JamStatus>> {
     Ok(jam.status())
 }
 
-/// Vrai si l'app peut ouvrir une Jam en ligne (relais utilisable, #452).
+/// True if the app can open an online Jam (usable relay, #452).
 #[tauri::command]
 pub async fn jam_online_available() -> CmdResult<bool> {
     Ok(crate::jam::online_available())
 }
 
-/// Relais de la Jam en ligne et des transferts (#452) : choisi, compilé, utilisable.
+/// Relay of the online Jam and of the handoffs (#452): chosen, compiled in, usable.
 #[tauri::command]
 pub async fn relay_settings() -> CmdResult<RelayView> {
     Ok(relay_settings::view())
 }
 
-/// Change de relais (adresse vérifiée par `/healthz`), revient à celui compilé ou le coupe.
-/// Vaut pour la prochaine Jam, et pour le tunnel des transferts à sa prochaine ouverture.
+/// Changes relay (address checked by `/healthz`), goes back to the compiled-in one or turns it off.
+/// Applies to the next Jam, and to the handoff tunnel on its next opening.
 #[tauri::command]
 pub async fn set_relay_settings(
     state: State<'_, AppState>,
@@ -52,8 +52,8 @@ pub async fn set_relay_settings(
     relay_settings::update(state.store.as_deref(), change).await
 }
 
-/// Démarre la Jam (ou renvoie celle qui tourne) : adresse et code à donner aux invités.
-/// En ligne, l'adresse arrive ensuite par l'événement `jam-status`.
+/// Starts the Jam (or returns the one that is running): address and code to give to the guests.
+/// Online, the address then arrives through the `jam-status` event.
 #[tauri::command]
 pub async fn start_jam(
     app: AppHandle,
@@ -72,8 +72,8 @@ pub async fn stop_jam(jam: State<'_, JamState>) -> CmdResult<()> {
     Ok(())
 }
 
-/// Règles de l'hôte (lecture / pause par les invités, limite par invité, albums) :
-/// enregistrées, puis appliquées à la Jam en cours. État de la Jam, ou `null` sans Jam.
+/// Host rules (play / pause by guests, limit per guest, albums):
+/// saved, then applied to the current Jam. State of the Jam, or `null` without a Jam.
 #[tauri::command]
 pub async fn set_jam_rules(
     state: State<'_, AppState>,
@@ -87,7 +87,7 @@ pub async fn set_jam_rules(
     Ok(jam.set_rules(rules))
 }
 
-/// Suspend (`false`) ou rouvre les ajouts des invités, le temps de la Jam (#288).
+/// Suspends (`false`) or reopens guest additions, for the duration of the Jam (#288).
 #[tauri::command]
 pub async fn set_jam_adds_open(
     jam: State<'_, JamState>,
@@ -96,7 +96,7 @@ pub async fn set_jam_adds_open(
     Ok(jam.set_adds_open(open))
 }
 
-/// Exclut un invité (ses titres en attente sont retirés) ou le réadmet (#288).
+/// Kicks a guest (their pending tracks are removed) or readmits them (#288).
 #[tauri::command]
 pub async fn set_jam_guest_banned(
     jam: State<'_, JamState>,

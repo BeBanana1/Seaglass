@@ -1,5 +1,5 @@
-//! Clins d'œil de l'interface (#399) : un simple interrupteur, activé par défaut. Les
-//! déclencheurs (dates, recherches) sont de la présentation pure et vivent dans le frontend
+//! Winks of the interface (#399): a simple switch, on by default. The
+//! triggers (dates, searches) are pure presentation and live in the frontend
 //! (`src/lib/eggs/`).
 
 use serde::{Deserialize, Serialize};

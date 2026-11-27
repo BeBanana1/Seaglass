@@ -52,7 +52,7 @@ pub enum Theme {
     Cyberpunk,
     /// Soft tone-on-tone reliefs, light: raised controls, flat lists (#67).
     Neumorph,
-    /// Neumorphism en version sombre, graphite (#67).
+    /// Dark version of Neumorphism, graphite (#67).
     #[serde(rename = "neumorph-dark")]
     NeumorphDark,
     /// Monochrome CRT screen, all monospace; the accent is the phosphor color (#68).
@@ -65,13 +65,13 @@ pub enum Theme {
     Aero,
     /// Neo-retro bodywork in satin aluminum, amber pixel lights, light (#175).
     Alloy,
-    /// Alliage en version sombre, gunmetal (#175).
+    /// Dark version of Alloy, gunmetal (#175).
     #[serde(rename = "alloy-dark")]
     AlloyDark,
     /// OLED black: pure black background, thin rules, no blur or decor; only the cover in
     /// color (#338).
     Midnight,
-    /// Estampe japonaise : papier washi, encre indigo, cachet vermillon, vagues en aplats (#338).
+    /// Japanese print: washi paper, indigo ink, vermilion seal, flat waves (#338).
     Estampe,
     /// Art deco: midnight blue, gold rules, corner fans, cartouches with cut corners (#338).
     Artdeco,
@@ -413,7 +413,7 @@ mod tests {
         assert_eq!(
             s.motion,
             Motion::System,
-            "animations : système par défaut (#351)"
+            "animations: system by default (#351)"
         );
         let s: UiSettings = serde_json::from_str(r#"{"motion":"reduced"}"#).unwrap();
         assert_eq!(s.motion, Motion::Reduced);

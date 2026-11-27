@@ -1,10 +1,10 @@
-//! Fil d'actualité (#14) et nouveautés des artistes suivis (#415).
+//! News feed (#14) and new releases from followed artists (#415).
 //!
-//! L'état « vu » est tenu en local (réglage `feed_seen`, par compte), pas chez TIDAL : le fil
-//! est complété de sorties que TIDAL n'y met pas (`tidal/releases.rs`). Ouvrir la page marque
-//! tout comme vu (`mark_feed_seen`). Le nombre de sorties pas encore vues part dans
-//! l'événement `feed-unseen` (pastille de la navigation) : après chaque lecture du fil, et
-//! toutes les 6 h depuis une tâche de fond.
+//! The "seen" state is kept locally (`feed_seen` setting, per account), not at TIDAL: the feed
+//! is completed with releases that TIDAL does not put there (`tidal/releases.rs`). Opening
+//! the page marks everything as seen (`mark_feed_seen`). The number of releases not yet seen
+//! goes out in the `feed-unseen` event (navigation badge): after each read of the feed, and
+//! every 6 h from a background task.
 
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -22,29 +22,29 @@ use crate::tidal::models::{FeedItem, MediaItem};
 
 const SEEN_KEY: &str = "feed_seen";
 const UNSEEN_EVENT: &str = "feed-unseen";
-/// Clés gardées : bien plus que les ~100 éléments d'un fil.
+/// Keys kept: well above the ~100 items of a feed.
 const MAX_SEEN: usize = 1000;
-/// À la première lecture, une sortie plus ancienne compte comme déjà vue.
+/// On the first read, an older release counts as already seen.
 const FIRST_RUN_DAYS: i64 = 14;
 const DAY_MS: i64 = 86_400_000;
-/// Première lecture en fond après le lancement, puis intervalle entre deux.
+/// First background read after launch, then the interval between two.
 const WATCH_DELAY: Duration = Duration::from_secs(20);
 const WATCH_EVERY: Duration = Duration::from_secs(6 * 3600);
-/// Nouvel essai quand la session n'est pas prête ou que la lecture a échoué.
+/// New attempt when the session is not ready or the read failed.
 const WATCH_RETRY: Duration = Duration::from_secs(5 * 60);
 
-/// Clés du dernier fil lu, pour `mark_feed_seen`.
+/// Keys of the last feed read, for `mark_feed_seen`.
 #[derive(Default)]
 pub struct FeedState(Mutex<Vec<String>>);
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(super) struct SeenSet {
     pub(super) user: u64,
-    /// Plus récentes d'abord.
+    /// Most recent first.
     pub(super) keys: Vec<String>,
 }
 
-/// Sorties récentes des artistes suivis et mixes mensuels, `seen` selon l'état local.
+/// Recent releases of followed artists and monthly mixes, `seen` according to the local state.
 #[tauri::command]
 pub async fn feed(
     app: AppHandle,
@@ -56,7 +56,7 @@ pub async fn feed(
     Ok(items)
 }
 
-/// Marque comme vus tous les éléments du dernier fil lu.
+/// Marks all the items of the last feed read as seen.
 #[tauri::command]
 pub async fn mark_feed_seen(
     app: AppHandle,
@@ -75,8 +75,8 @@ pub async fn mark_feed_seen(
     Ok(())
 }
 
-/// Lit le fil en fond au lancement puis toutes les 6 h, pour la pastille et les
-/// notifications des nouvelles sorties (`feed_alerts`, #435).
+/// Reads the feed in the background at launch then every 6 h, for the badge and the
+/// notifications of new releases (`feed_alerts`, #435).
 pub fn spawn_watch(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(WATCH_DELAY).await;
@@ -92,7 +92,7 @@ pub fn spawn_watch(app: AppHandle) {
                     WATCH_EVERY
                 }
                 Err(e) => {
-                    tracing::debug!("fil d'actualité en fond : {e}");
+                    tracing::debug!("background news feed: {e}");
                     WATCH_RETRY
                 }
             };
@@ -110,15 +110,15 @@ async fn load(
     let mut items = filtered(tidal.feed_with_releases(now_ms()).await.map_err(err)?);
     if let Some(store) = store {
         let saved = blocking(store, |s| s.get_setting::<SeenSet>(SEEN_KEY)).await;
-        // Réglage illisible : traité comme une première lecture.
+        // Unreadable setting: treated as a first read.
         let saved = saved.unwrap_or_else(|e| {
-            tracing::warn!("{SEEN_KEY} illisible : {e}");
+            tracing::warn!("{SEEN_KEY} unreadable: {e}");
             None
         });
         if let Some(seed) = apply_seen(&mut items, saved, user, now_ms())
             && let Err(e) = blocking(store, move |s| s.set_setting(SEEN_KEY, &seed)).await
         {
-            tracing::warn!("{SEEN_KEY} non enregistré : {e}");
+            tracing::warn!("{SEEN_KEY} not saved: {e}");
         }
     }
     if let Ok(mut keys) = feed.0.lock() {
@@ -134,7 +134,7 @@ async fn user_id(tidal: &TidalClient) -> Option<u64> {
 
 fn emit_unseen(app: &AppHandle, unseen: usize) {
     if let Err(e) = app.emit(UNSEEN_EVENT, unseen) {
-        tracing::warn!("émission de {UNSEEN_EVENT} impossible : {e}");
+        tracing::warn!("could not emit {UNSEEN_EVENT}: {e}");
     }
 }
 
@@ -144,7 +144,7 @@ pub(super) fn now_ms() -> i64 {
         .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX))
 }
 
-/// Clé stable d'un élément (un album et un mix peuvent partager un identifiant).
+/// Stable key of an item (an album and a mix can share an identifier).
 pub(super) fn item_key(item: &MediaItem) -> String {
     match item {
         MediaItem::Album(a) => format!("album-{}", a.id),
@@ -154,9 +154,9 @@ pub(super) fn item_key(item: &MediaItem) -> String {
     }
 }
 
-/// Applique l'état local à `items`. Sans état pour ce compte (première lecture, autre
-/// compte), part de l'état de TIDAL et considère comme vu tout ce qui a plus de
-/// `FIRST_RUN_DAYS` jours (ou pas de date) : renvoie alors l'ensemble à enregistrer.
+/// Applies the local state to `items`. Without a state for this account (first read, other
+/// account), starts from TIDAL's state and considers as seen everything older than
+/// `FIRST_RUN_DAYS` days (or without a date): then returns the set to save.
 fn apply_seen(
     items: &mut [FeedItem],
     saved: Option<SeenSet>,
@@ -185,8 +185,8 @@ fn apply_seen(
     }
 }
 
-/// Ajoute `keys` en tête de l'ensemble du compte (remplacé s'il était à un autre compte),
-/// sans doublon, en gardant les `MAX_SEEN` plus récentes.
+/// Adds `keys` at the head of the account's set (replaced if it belonged to another account),
+/// without duplicates, keeping the `MAX_SEEN` most recent.
 pub(super) fn mark_all(saved: Option<SeenSet>, user: u64, keys: Vec<String>) -> SeenSet {
     let old = saved
         .filter(|s| s.user == user)
@@ -277,7 +277,7 @@ mod tests {
         ];
         let seed = apply_seen(&mut items, Some(set(7, &["album-2"])), 7, NOW);
         assert_eq!(seed, None);
-        // Un mix et un album de même id ne se confondent pas.
+        // A mix and an album with the same id are not confused.
         assert_eq!(seen(&items), [false, true, false]);
     }
 
