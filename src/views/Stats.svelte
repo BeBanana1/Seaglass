@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Statistiques d'écoute locales (#326) : tout est calculé par le backend (`play_stats`),
-  // la page n'affiche que le résultat de la période choisie.
+  // Local listening statistics (#326): everything is computed by the backend (`play_stats`),
+  // the page only shows the result for the chosen period.
   import {
     commands,
     SMART_LISTS,
@@ -21,7 +21,7 @@
   let period = $state<StatsPeriod>("month");
   let stats = $state<PlayStats | null>(null);
   let error = $state<string | null>(null);
-  /** Relu quand des écoutes arrivent de l'appareil lié (#430). */
+  /** Reread when plays arrive from the linked device (#430). */
   let version = $state(0);
 
   $effect(() => watchHistory(() => version++));
@@ -56,7 +56,7 @@
     return t.library.stats.time(Math.floor(minutes / 60), minutes % 60);
   });
 
-  // « Lire » : le classement des titres de la période, dans l'ordre.
+  // "Play": the ranking of the tracks of the period, in order.
   async function playTop(shuffle: boolean) {
     try {
       await commands.playTracks(
@@ -74,12 +74,12 @@
 <section class="stats">
   <div class="stats-head">
     <h1>{t.library.stats.title}</h1>
-    <!-- Rétrospective du mois et de l'année (#417). -->
+    <!-- Month and year recap (#417). -->
     <button class="secondary stats-recap" onclick={() => go({ name: "recap" })}>
       {t.library.recap.open}
     </button>
   </div>
-  <!-- Playlists intelligentes locales (#383), calculées sur le même historique. -->
+  <!-- Local smart playlists (#383), computed on the same history. -->
   <h2 class="smart-title">{t.views.smart.title}</h2>
   <div class="smart-lists">
     {#each SMART_LISTS as list (list)}
@@ -123,7 +123,7 @@
       {#if tracks.length > 0}
         <div class="section-head">
           <h2>{t.library.stats.tracks}</h2>
-          <!-- Mêmes classes que l'en-tête d'une page : les thèmes habillent ces boutons. -->
+          <!-- Same classes as a page header: the themes style these buttons. -->
           <div class="actions">
             <button class="primary" onclick={() => playTop(false)}>
               <Icon name="play" size={16} />

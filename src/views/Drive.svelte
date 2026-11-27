@@ -1,8 +1,8 @@
 <script lang="ts">
-  // Mode conduite (#193, Android) : plein écran, titre en cours, gros boutons de lecture et
-  // tuiles des épingles (8 au plus). Un appui sur une tuile lit toute la source tout de suite,
-  // dans l'ordre de sa page ; la bande à droite (›) ouvre sa page ; appui long : avancer,
-  // reculer, retirer. L'écran reste allumé tant que la vue est ouverte.
+  // Drive mode (#193, Android): full screen, current track, big playback buttons and
+  // pin tiles (8 at most). Tapping a tile plays the whole source right away,
+  // in the order of its page; the strip on the right (›) opens its page; long press: move forward,
+  // move back, remove. The screen stays on while the view is open.
   import { onMount } from "svelte";
   import { commands, type Pin, type PlaySource } from "../lib/ipc";
   import { player } from "../lib/stores/player.svelte";
@@ -16,14 +16,14 @@
   import { t } from "../lib/i18n.svelte";
   import Icon, { type IconName } from "../components/Icon.svelte";
 
-  /** `onOpen` : quitte le mode conduite et ouvre la page de l'épingle. */
+  /** `onOpen`: leaves drive mode and opens the pin's page. */
   let { onClose, onOpen }: { onClose: () => void; onOpen: (route: Route) => void } = $props();
 
   const s = $derived(player.state);
   const track = $derived(player.currentTrack);
   const playing = $derived(!s.paused && !s.idle);
   const tiles = $derived(ui.settings.pins.slice(0, MAX_DRIVE_TILES));
-  /** Tuile dont la lecture se prépare (titres de la source en cours de chargement). */
+  /** Tile whose playback is being prepared (tracks of the source are loading). */
   let starting = $state<string | null>(null);
 
   onMount(() => {
@@ -39,7 +39,7 @@
     smart: "queue",
   };
 
-  /** La tuile est la source du titre en cours. */
+  /** The tile is the source of the current track. */
   function isCurrent(pin: Pin, source: PlaySource | null): boolean {
     if (!source || source.kind !== pin.kind) return false;
     if (pin.kind === "playlist") return source.kind === "playlist" && source.uuid === pin.uuid;
@@ -153,7 +153,7 @@
     >
       {#each tiles as pin, i (pinKey(pin))}
         {@const label = pinLabel(pin)}
-        <!-- Deux zones (#193) : la tuile lit, la bande à droite (›) ouvre la page. -->
+        <!-- Two zones (#193): the tile plays, the strip on the right (›) opens the page. -->
         <div
           class="drive-tile"
           class:current={isCurrent(pin, queue.view.source)}
@@ -310,8 +310,8 @@
     transform: scale(0.95);
   }
 
-  /* Les tuiles se partagent la hauteur restante : 1 tuile = tout l'espace, puis 2 colonnes ;
-     une tuile seule sur sa ligne prend la largeur. */
+  /* Tiles share the remaining height: 1 tile = all the space, then 2 columns;
+     a tile alone on its row takes the full width. */
   .drive-tiles {
     flex: 1;
     display: grid;
@@ -334,7 +334,7 @@
     border-radius: var(--radius);
     background: var(--bg-raised);
     color: var(--text);
-    /* Pas de sélection de texte ni de loupe à l'appui long : il ouvre le menu. */
+    /* No text selection or magnifier on long press: it opens the menu. */
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
@@ -356,8 +356,8 @@
     color: inherit;
   }
 
-  /* Dernier tiers de la tuile, 56 px au moins : assez large pour le pouce même à 8 tuiles,
-     séparé par un trait pour qu'on voie où il commence. */
+  /* Last third of the tile, 56 px at least: wide enough for a thumb even with 8 tiles,
+     separated by a line so that you can see where it starts. */
   .drive-tile-open {
     display: grid;
     flex: 0 0 clamp(56px, 30%, 120px);
@@ -385,10 +385,10 @@
     font-weight: 600;
     line-height: 1.2;
     text-align: center;
-    /* Trois lignes : la bande › prend un tiers de la largeur, un long titre tient quand même. */
+    /* Three lines: the › strip takes a third of the width, a long title still fits. */
     -webkit-line-clamp: 3;
     line-clamp: 3;
-    /* Un mot plus large que la tuile (« Masculine » à 2 colonnes) est coupé plutôt que rogné. */
+    /* A word wider than the tile ("Masculine" at 2 columns) is broken rather than clipped. */
     overflow-wrap: break-word;
     -webkit-box-orient: vertical;
   }

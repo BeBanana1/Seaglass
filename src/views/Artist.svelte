@@ -10,8 +10,8 @@
 
   let page = $state<ArtistPage | null>(null);
   let error = $state<string | null>(null);
-  // Compléments (#205) : demandés en même temps, affichés quand ils arrivent, sans erreur
-  // visible (chaque partie est simplement absente).
+  // Extras (#205): requested together, shown as they arrive, with no visible error
+  // (each part is simply absent).
   let extra = $state<ArtistExtra | null>(null);
   let bioOpen = $state(false);
 
@@ -37,7 +37,7 @@
   const similar = $derived<MediaItem[]>(
     extra ? extra.similar.map((a) => ({ kind: "artist", ...a })) : [],
   );
-  // Repli seulement si le texte dépasse environ trois lignes.
+  // Collapse only if the text runs past about three lines.
   const bioLong = $derived(
     !!extra?.bio &&
       (extra.bio.paragraphs.length > 1 ||
@@ -62,7 +62,7 @@
       onRadio={() => go({ name: "radio", seed: "artist", id })}
     >
       {#snippet meta()}
-        <!-- Titres où l'artiste est crédité (#429), producteur ou compositeur compris. -->
+        <!-- Tracks where the artist is credited (#429), producer or composer included. -->
         <button class="artist-credits" onclick={() => go({ name: "contributor", id })}>
           {t.views.artist.credits}
         </button>
@@ -142,7 +142,7 @@
     max-width: 760px;
     margin: 0 10px;
     line-height: 1.55;
-    /* Replié : trois lignes du premier paragraphe environ, fondu en bas. */
+    /* Collapsed: about three lines of the first paragraph, fading out at the bottom. */
     max-height: 4.65em;
     overflow: hidden;
     mask-image: linear-gradient(to bottom, #000 55%, transparent);

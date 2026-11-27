@@ -11,15 +11,15 @@
   import { i18n, locale, t } from "../lib/i18n.svelte";
   import { feed } from "../lib/stores/feed.svelte";
 
-  // Gardé entre deux visites, comme l'accueil : le fil ne bouge qu'une fois par jour.
-  // Rechargé si la langue change (sous-titres des mixes) ou s'il y a des nouveautés (#415).
+  // Kept between two visits, like the home page: the feed only changes once a day.
+  // Reloaded if the language changes (mix subtitles) or if there is something new (#415).
   if (cachedLang !== i18n.lang || feed.unseen > 0) cached = null;
   let items = $state<FeedItem[] | null>(cached);
   let error = $state<string | null>(null);
 
   const DAY_MS = 24 * 60 * 60 * 1000;
 
-  /** Sorties groupées : aujourd'hui, les 7 derniers jours, puis par mois. */
+  /** Releases grouped: today, the last 7 days, then by month. */
   const groups = $derived.by(() => {
     const out: { label: string; items: FeedItem[] }[] = [];
     const today = new Date();
@@ -43,11 +43,11 @@
     return month.charAt(0).toUpperCase() + month.slice(1);
   }
 
-  /** Clé d'un élément (un album et un mix peuvent partager un identifiant numérique). */
+  /** Key of an item (an album and a mix can share a numeric id). */
   const itemKey = (item: MediaItem) =>
     `${item.kind}-${item.kind === "playlist" ? item.uuid : item.id}`;
 
-  /** Type de l'élément : Single / EP / Album, ou Mix pour le mix mensuel. */
+  /** Type of the item: Single / EP / Album, or Mix for the monthly mix. */
   const itemKind = (item: MediaItem) => (item.kind === "album" ? albumKind(item) : t.format.mix);
 
   function shortDate(at: number | null): string | null {
@@ -62,11 +62,11 @@
       const loaded = await commands.feed();
       items = loaded;
       cachedLang = i18n.lang;
-      // Ouvrir la page vaut lecture (#415) : les pastilles « Nouveau » restent affichées
-      // pendant cette visite, pas à la suivante.
+      // Opening the page counts as reading (#415): the "New" badges stay shown
+      // during this visit, not the next one.
       cached = loaded.map((entry) => ({ ...entry, seen: true }));
       if (loaded.some((entry) => !entry.seen)) {
-        commands.markFeedSeen().catch((e) => console.warn("fil non marqué comme vu", e));
+        commands.markFeedSeen().catch((e) => console.warn("feed not marked as seen", e));
       }
     } catch (e) {
       error = String(e);

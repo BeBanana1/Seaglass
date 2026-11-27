@@ -26,16 +26,16 @@
   import { platform } from "../lib/platform.svelte";
   import { listSearch } from "../lib/stores/listSearch.svelte";
 
-  // Titres likés : l'API les renvoie du plus récent au plus ancien (date du like).
+  // Liked tracks: the API returns them from newest to oldest (like date).
   const TRACK_SORT_KEYS: SortKey[] = ["added", "title", "artist", "album", "duration"];
   const TRACK_DEFAULT_SORT = LIKED_DEFAULT_SORT;
 
   let { tab }: { tab: LibraryTab } = $props();
 
   let query = $state("");
-  // « Nettoyer » les titres likés (#382).
+  // "Clean up" the liked tracks (#382).
   let cleaning = $state(false);
-  // Tri mémorisé (#93), lu à l'ouverture de la bibliothèque.
+  // Remembered sort (#93), read when the library opens.
   let sort = $state<TrackSort>(listSort("likedTracks", TRACK_DEFAULT_SORT));
 
   function setSort(next: TrackSort) {
@@ -46,11 +46,11 @@
   }
 
   const allTracks = $derived(library.tracks.items ?? []);
-  // Le contexte de lecture est la liste affichée, dans l'ordre affiché.
+  // The playback context is the displayed list, in the displayed order.
   const sortedTracks = $derived(sortTracks(listTracks(allTracks), sort));
   const shownTracks = $derived(filterTracks(sortedTracks, query));
 
-  // « Plus tard » (#196) : les titres d'abord (liste lisible), puis les cartes.
+  // "Later" (#196): the tracks first (readable list), then the cards.
   const laterTracks = $derived<Track[]>(
     (library.later.items ?? []).flatMap((item) => (item.kind === "track" ? [item] : [])),
   );
@@ -58,8 +58,8 @@
     (library.later.items ?? []).flatMap((item) => (item.kind === "track" ? [] : [item])),
   );
 
-  // Lecture / Aléatoire (#161) : comme l'en-tête d'une playlist, ils suivent le tri mais
-  // pas le filtre.
+  // Play / Shuffle (#161): like a playlist's header, they follow the sort but
+  // not the filter.
   async function playAll(shuffle: boolean) {
     const later = tab === "later";
     const ids = later ? laterTracks.map((t) => t.id) : sortedTracks.map((l) => l.track.id);
@@ -71,8 +71,8 @@
     }
   }
 
-  // Sur Android, les titres likés ont leur onglet dans la navigation du bas (#143) : page à
-  // part, sans les onglets de la bibliothèque, et sans onglet « Titres » en doublon.
+  // On Android, the liked tracks have their own tab in the bottom navigation (#143): a page of
+  // their own, without the library tabs, and without a duplicate "Tracks" tab.
   const likesPage = $derived(platform.mobile && tab === "tracks");
   const tabs = $derived<LibraryTab[]>(
     platform.mobile
@@ -80,8 +80,8 @@
       : ["playlists", "mixes", "albums", "artists", "tracks", "later"],
   );
 
-  // « Chargement… » seulement si l'onglet tarde : la copie du lancement précédent arrive
-  // en quelques millisecondes et ne doit pas être précédée d'un clignotement (#181).
+  // "Loading…" only if the tab is slow: the copy from the previous launch arrives
+  // within a few milliseconds and must not be preceded by a flicker (#181).
   const LOADING_DELAY_MS = 300;
   let slow = $state(false);
 
@@ -90,7 +90,7 @@
     slow = false;
     const timer = setTimeout(() => (slow = true), LOADING_DELAY_MS);
     loadLibrary(tab);
-    // Dossiers de playlists (#331) : une petite requête, rien d'affiché s'il n'y en a pas.
+    // Playlist folders (#331): one small request, nothing shown if there are none.
     if (tab === "playlists") loadFolders();
     return () => clearTimeout(timer);
   });
@@ -100,7 +100,7 @@
   const cards = $derived.by((): MediaItem[] => {
     switch (tab) {
       case "playlists":
-        // Les playlists rangées dans un dossier n'apparaissent que dans leur dossier (#331).
+        // Playlists filed in a folder only appear in their folder (#331).
         return rootPlaylists(library.playlists.items ?? []).map((p) => ({
           kind: "playlist",
           ...p,
@@ -118,7 +118,7 @@
 </script>
 
 <section>
-  <!-- Android : titre et onglets masqués pendant une recherche dans les titres likés (#151). -->
+  <!-- Android: title and tabs hidden during a search in the liked tracks (#151). -->
   {#if !listSearch.active}
     <div class="top">
       <h1>{likesPage ? t.library.likedTracks : t.library.title}</h1>
@@ -130,7 +130,7 @@
           </button>
         {/if}
         {#if tab === "later"}<PinButton pin={{ kind: "later" }} />{/if}
-        <!-- Statistiques d'écoute locales (#326). -->
+        <!-- Local listening statistics (#326). -->
         {#if !likesPage}<button class="refresh" onclick={() => go({ name: "stats" })}>
             {t.library.stats.open}
           </button>{/if}
@@ -177,7 +177,7 @@
     {#if slot.truncated && tab === "later"}
       <p class="library-truncated" role="status">{t.library.later.truncated(slot.items.length)}</p>
     {:else if slot.truncated && tab !== "mixes" && tab !== "later"}
-      <!-- Plafond de chargement atteint (#91) : on le dit plutôt que de tronquer en silence. -->
+      <!-- Loading cap reached (#91): we say so rather than truncating silently. -->
       <p class="library-truncated" role="status">
         {t.library.truncated(tab, slot.items.length, slot.total)}
       </p>
@@ -198,8 +198,8 @@
 </section>
 
 {#snippet playButtons()}
-  <!-- Mêmes classes que l'en-tête d'une page (`header .info .actions`) : les thèmes
-       habillent ces boutons comme ceux d'une playlist. -->
+  <!-- Same classes as a page header (`header .info .actions`): the themes
+       style these buttons like a playlist's. -->
   <header class="liked-header">
     <div class="info">
       <div class="actions">
@@ -299,7 +299,7 @@
     margin: 16px 10px 20px;
   }
 
-  /* Page des titres likés sur Android : l'espace que laissaient les onglets. */
+  /* Liked tracks page on Android: the space the tabs used to take. */
   .likes-gap {
     height: 16px;
   }
@@ -322,7 +322,7 @@
     opacity: 0.7;
   }
 
-  /* Lecture / Aléatoire des titres likés : styles des boutons de `PageHeader`. */
+  /* Play / Shuffle of the liked tracks: styles of the `PageHeader` buttons. */
   .liked-header {
     margin: 0 10px 18px;
   }
@@ -384,7 +384,7 @@
     background: color-mix(in srgb, var(--accent) 10%, transparent);
   }
 
-  /* Android (#24) : onglets sur une ligne, qui défile au doigt. */
+  /* Android (#24): tabs on one row, which scrolls with the finger. */
   :global(:root[data-platform="android"]) .tabs {
     overflow-x: auto;
     scrollbar-width: none;

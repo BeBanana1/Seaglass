@@ -1,8 +1,8 @@
 <script lang="ts">
-  // Import d'une playlist d'un autre service (#328) : le backend lit la playlist et cherche
-  // chaque titre sur TIDAL (`importPlaylist`), la page montre les titres trouvés, ceux à
-  // vérifier (décochés tant que l'utilisateur ne les garde pas) et les introuvables. Rien
-  // n'est enregistré avant « Créer une playlist ».
+  // Import of a playlist from another service (#328): the backend reads the playlist and looks up
+  // each track on TIDAL (`importPlaylist`), the page shows the tracks found, those to
+  // check (unchecked until the user keeps them) and the ones not found. Nothing
+  // is saved before "Create a playlist".
   import { onDestroy } from "svelte";
   import { commands, events, type ImportPreview, type PlaySource, type Track } from "../lib/ipc";
   import { formatLongDuration, formatTime } from "../lib/format";
@@ -19,7 +19,7 @@
   let preview = $state<ImportPreview | null>(null);
   let error = $state<string | null>(null);
   let progress = $state<{ done: number; total: number } | null>(null);
-  /** Positions des titres à vérifier que l'utilisateur garde. */
+  /** Positions of the tracks to check that the user keeps. */
   let kept = $state<Set<number>>(new Set());
   let creating = $state(false);
   let finished = false;
@@ -43,7 +43,7 @@
 
   void load();
 
-  // Page quittée pendant la recherche : inutile de continuer.
+  // Page left during the search: no point going on.
   onDestroy(() => {
     if (!finished) void commands.cancelImport().catch(() => {});
   });
@@ -54,7 +54,7 @@
     items.map((item, index) => ({ item, index })).filter(({ item }) => !item.sure && item.track),
   );
   const missing = $derived(items.filter((i) => !i.track));
-  /** Titres retenus, dans l'ordre de la playlist d'origine. */
+  /** Tracks kept, in the order of the original playlist. */
   const keptTracks = $derived(
     items.flatMap((item, index) =>
       item.track && (item.sure || kept.has(index)) ? [item.track] : [],

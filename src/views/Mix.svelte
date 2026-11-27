@@ -6,7 +6,7 @@
   import TrackList from "../components/TrackList.svelte";
   import { platform } from "../lib/platform.svelte";
 
-  /** Un mix du service, ou la radio d'un titre ou d'un artiste : même présentation. */
+  /** A mix from the service, or the radio of a track or an artist: same presentation. */
   type Source = { mix: string } | { seed: RadioSeed; id: number };
 
   interface View {
@@ -93,7 +93,7 @@
     {#if view.tracks.length === 0}
       <p class="muted">{t.views.mix.empty}</p>
     {:else}
-      <!-- Android : pas de numéros, ils encombrent plus qu'ils n'aident (#162). -->
+      <!-- Android: no numbers, they clutter more than they help (#162). -->
       <TrackList
         tracks={view.tracks}
         source={playSource}

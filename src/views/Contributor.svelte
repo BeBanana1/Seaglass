@@ -7,8 +7,8 @@
   import PageHeader from "../components/PageHeader.svelte";
   import TrackList from "../components/TrackList.svelte";
 
-  // Titres où une personne est créditée (#429), par lots de 200 : le service en compte des
-  // milliers pour un compositeur prolifique. Lire un titre met en contexte les titres chargés.
+  // Tracks where a person is credited (#429), in batches of 200: the service counts
+  // thousands for a prolific composer. Playing a track sets the loaded tracks as the context.
   let { id }: { id: number } = $props();
 
   let artist = $state<ArtistSummary | null>(null);
