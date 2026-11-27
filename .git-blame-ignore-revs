@@ -43,3 +43,19 @@ e3e3adbceec1c69e0ba31b627955e8b6eb6a708e
 54fe8b54c17eb9904d7605d88bd3bb845b6adc90
 # chore(spike): translate comments and messages to English (#8, #92)
 41c7e0f910b84431001bf11a738b56a540cf91a9
+# chore: translate the comments of lib/ to English (#8, #94)
+296a65e6cfc3d23e153e13d01b0b76fc3a001889
+# chore: translate the comments of components/ (A to L) to English (#8, #95)
+ab3eade1d21abae36915b400f602916913a0f0c7
+# chore: translate the comments of components/ (M to Z, backdrops) to English (#8, #96)
+16cfd35f61dd2a3deea935219b4091804be106e6
+# chore: translate the comments and logs of commands/ to English (#8, #97)
+8e08b98521e8fc04f1942b98a3b0f6578bab64fa
+# chore: translate the comments and logs of tidal/ to English (#8, #98)
+4fd73c2a5ffb6130659e20c8d757d80db4572c24
+# chore: translate the comments and logs of jam/ to English (#8, #99)
+d042409ecc77e928814184830eddd7f9d92065d6
+# chore: translate the comments and logs of the Android code to English (#8, #100)
+69f5ab1b5378137be84a2d40099cca6b7ccb6c8b
+# chore: translate the remaining French comments and logs (build, config, sweep) to English (#8, #101)
+c7d5274f04a5905b264022a4a3184fd6be3eac6e
