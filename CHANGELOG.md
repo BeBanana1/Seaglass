@@ -11,6 +11,10 @@ a platform starts with `Android:`, `Windows:`, `Linux:` or `Desktop:` (Windows a
 Linux) and is only shown there; without a prefix, it applies to all. `chore:` entries are not
 shown. A published version's title ends with `(published <YYYY-MM-DD>)`.
 
+## 0.5.150
+
+- chore: the comments of the translation dictionaries and of the language module are in English too (#8).
+
 ## 0.5.149
 
 - chore: Android: audio offload and the requests that open the app (share, drive mode, pins) move out of the playback engine's file (#45).

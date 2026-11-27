@@ -1,4 +1,4 @@
-// Menus contextuels (titres, cartes) et boutons d'action (cœur, épingle, Suivre).
+// Context menus (tracks, cards) and action buttons (heart, pin, Follow).
 
 export const fr = {
   play: "Lire",
@@ -11,14 +11,14 @@ export const fr = {
   like: "Ajouter aux titres likés",
   addToPlaylist: "Ajouter à une playlist…",
   removeFromPlaylist: "Retirer de cette playlist",
-  // « Plus tard » (#196), titres et cartes.
+  // "Save for later" (#196), tracks and cards.
   saveForLater: "Enregistrer pour plus tard",
   removeFromLater: "Retirer de « Plus tard »",
   trackRadio: "Radio du titre",
   goToAlbum: "Aller à l'album",
   goToArtist: "Aller à l'artiste",
   goTo: (name: string) => `Aller à ${name}`,
-  // Blocages (#334) : ni proposé par les mixes ni par les radios, sur tous les appareils.
+  // Blocks (#334): offered by neither mixes nor radios, on every device.
   blockTrack: "Bloquer ce titre",
   blockArtist: (name: string) => `Bloquer ${name}`,
   trackBlocked: (title: string) => `« ${title} » ne sera plus proposé`,
@@ -28,11 +28,11 @@ export const fr = {
   // "Now playing" card as an image (#518).
   shareImage: "Copier en image",
   imageCopied: "Image copiée",
-  // Dossiers de playlists (#331).
+  // Playlist folders (#331).
   moveToFolder: "Déplacer vers un dossier…",
   pin: "Épingler dans la barre latérale",
   unpin: "Désépingler de la barre latérale",
-  // Favoris des albums, artistes et playlists (#81), en-têtes et menu des cartes.
+  // Favorite albums, artists and playlists (#81), headers and the cards' menu.
   open: "Ouvrir",
   addToLibrary: "Ajouter à la bibliothèque",
   removeFromLibrary: "Retirer de la bibliothèque",
@@ -40,7 +40,7 @@ export const fr = {
   following: "Suivi",
   unfollow: "Ne plus suivre",
   artistRadio: "Radio de l'artiste",
-  // Sélection multiple (#332) : menu d'un titre sélectionné et barre d'actions.
+  // Multiple selection (#332): menu of a selected track and action bar.
   select: "Sélectionner",
   selection: {
     count: (n: number) => (n > 1 ? `${n} titres sélectionnés` : "1 titre sélectionné"),

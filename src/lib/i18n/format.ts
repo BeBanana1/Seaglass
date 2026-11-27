@@ -1,4 +1,4 @@
-// Mise en forme partagée : durées, verdicts de la chaîne audio, tonalités, sous-titres.
+// Shared formatting: durations, signal path verdicts, keys, subtitles.
 
 import { num } from "./state.svelte";
 
@@ -48,7 +48,7 @@ export const fr = {
       `${from} → ${to} kHz : fréquence refusée par le périphérique en exclusif`,
   },
 
-  /** Noms des notes, de Do à Si (C à B). */
+  /** Note names, from C to B (Do to Si in French). */
   notes: { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" } as Record<
     string,
     string
@@ -57,7 +57,7 @@ export const fr = {
   minor: " mineur",
   bits: (n: number) => `${n} bits`,
   float32: "32 bits flottant",
-  /** Offload Android (#474) : le flux compressé est décodé par la puce audio du téléphone. */
+  /** Android offload (#474): the compressed stream is decoded by the phone's audio chip. */
   offload: "décodé par la puce audio",
 };
 

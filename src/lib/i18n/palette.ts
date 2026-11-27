@@ -1,4 +1,4 @@
-// Palette de commandes (#412) et registre des actions.
+// Command palette (#412) and the action registry.
 
 export const fr = {
   placeholder: "Aller à une page, lancer une action, chercher un titre…",

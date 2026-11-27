@@ -1,8 +1,8 @@
-//! Langue de l'app (#7) : français ou anglais. La langue effective est décidée ici
-//! (réglage, sinon langue d'affichage du système) ; l'UI la reçoit et ne fait que l'afficher.
+//! The app's language (#7): French or English. The effective language is decided here
+//! (the setting, otherwise the system's display language); the UI receives it and only shows it.
 //!
-//! Côté Rust, elle sert aux messages montrés à l'utilisateur (erreurs des commandes, toasts)
-//! et à la `locale` des requêtes TIDAL dont le contenu est rédigé (accueil, fil, mixes).
+//! On the Rust side, it is used for the messages shown to the user (command errors, toasts)
+//! and for the `locale` of the TIDAL requests whose content is written text (home, feed, mixes).
 
 use std::sync::atomic::{AtomicU8, Ordering};
 
@@ -16,7 +16,7 @@ pub enum Lang {
     En,
 }
 
-/// Réglage de l'utilisateur ; `System` suit la langue d'affichage du système.
+/// The user's setting; `System` follows the system's display language.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LanguagePref {
@@ -49,7 +49,7 @@ pub fn set(lang: Lang) {
     CURRENT.store(lang as u8, Ordering::Relaxed);
 }
 
-/// Choisit le texte dans la langue courante.
+/// Picks the text in the current language.
 pub fn tr(fr: &'static str, en: &'static str) -> &'static str {
     match current() {
         Lang::Fr => fr,
@@ -57,13 +57,13 @@ pub fn tr(fr: &'static str, en: &'static str) -> &'static str {
     }
 }
 
-/// `locale` des requêtes TIDAL : langue des titres de l'accueil, du fil et des mixes.
+/// `locale` of the TIDAL requests: language of the titles of the home page, the feed and the mixes.
 pub fn tidal_locale() -> &'static str {
     tr("fr_FR", "en_US")
 }
 
-/// Message formaté dans la langue courante : `trf!("réseau : {}", "network: {}", e)`.
-/// Les deux modèles reçoivent les mêmes arguments.
+/// Formatted message in the current language: `trf!("réseau : {}", "network: {}", e)`.
+/// Both templates receive the same arguments.
 macro_rules! trf {
     ($fr:literal, $en:literal $(, $arg:expr)* $(,)?) => {
         match $crate::i18n::current() {
@@ -74,12 +74,12 @@ macro_rules! trf {
 }
 pub(crate) use trf;
 
-/// Français si la langue d'affichage du système est le français, anglais sinon.
+/// French if the system's display language is French, English otherwise.
 #[cfg(windows)]
 fn system() -> Lang {
     use windows::Win32::Globalization::GetUserDefaultUILanguage;
-    // Langue principale = 10 bits de poids faible du LANGID ; LANG_FRENCH = 0x0c.
-    // SAFETY : fonction sans argument ni état partagé.
+    // Primary language = low 10 bits of the LANGID; LANG_FRENCH = 0x0c.
+    // SAFETY: function with no argument and no shared state.
     let langid = unsafe { GetUserDefaultUILanguage() };
     if langid & 0x3ff == 0x0c {
         Lang::Fr
@@ -88,14 +88,14 @@ fn system() -> Lang {
     }
 }
 
-/// Android (#186) : aucune variable `LANG` n'est posée pour une app, la langue vient de
-/// `java.util.Locale` (qui suit aussi la langue choisie pour l'app sous Android 13+).
+/// Android (#186): no `LANG` variable is set for an app, the language comes from
+/// `java.util.Locale` (which also follows the language chosen for the app on Android 13+).
 #[cfg(target_os = "android")]
 fn system() -> Lang {
     match crate::android::system_language() {
         Ok(code) => from_code(&code),
         Err(e) => {
-            tracing::warn!("langue du système illisible : {e}");
+            tracing::warn!("unreadable system language: {e}");
             Lang::En
         }
     }
@@ -110,7 +110,7 @@ fn system() -> Lang {
     from_code(&var)
 }
 
-/// `fr`, `fr_CH.UTF-8`, `fr-FR`… → français ; tout le reste → anglais.
+/// `fr`, `fr_CH.UTF-8`, `fr-FR`… → French; everything else → English.
 #[cfg_attr(windows, allow(dead_code))]
 fn from_code(code: &str) -> Lang {
     let primary = code.split(['_', '-', '.', '@']).next().unwrap_or_default();

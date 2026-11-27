@@ -1,9 +1,9 @@
-// Textes partagés : navigation, en-tête, actions génériques, compteurs.
+// Shared strings: navigation, header, generic actions, counters.
 
 import { num } from "./state.svelte";
 
 export const fr = {
-  /** Badge des titres et albums générés par IA (#369). */
+  /** Badge of AI-generated tracks and albums (#369). */
   ai: "IA",
   nav: {
     home: "Accueil",
@@ -12,7 +12,7 @@ export const fr = {
     library: "Bibliothèque",
     settings: "Réglages",
   },
-  /** Libellés courts de la navigation du bas (Android). */
+  /** Short labels of the bottom navigation (Android). */
   tabs: {
     home: "Accueil",
     likes: "Titres likés",
@@ -41,7 +41,7 @@ export const fr = {
   shuffle: "Aléatoire",
   linkCopied: "Lien copié",
   tracks: (n: number) => `${num(n)} ${n > 1 ? "titres" : "titre"}`,
-  /** « 12 sur 340 titres » (liste filtrée). */
+  /** "12 of 340 tracks" (filtered list). */
   tracksOf: (shown: number, total: number) =>
     `${num(shown)} sur ${num(total)} ${total > 1 ? "titres" : "titre"}`,
   likesError: (e: string) => `Titres likés illisibles : ${e}`,

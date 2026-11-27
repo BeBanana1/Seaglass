@@ -1,17 +1,17 @@
-// Clins d'œil (#399) : les quelques textes qu'ils affichent.
+// Easter eggs (#399): the few strings they show.
 
 export const fr = {
-  /** 2 février : le jour qui recommence. */
+  /** February 2: the day that starts over. */
   groundhog: "2 février, encore",
-  /** Recherche « 42 ». */
+  /** Search for "42". */
   answer: "La réponse est trouvée. Reste la question.",
-  /** Vendredi 13 : la piste 13 des listes devient « 12 bis », comme les étages d'hôtel. */
+  /** Friday the 13th: track 13 of the lists becomes "12A", like hotel floors. */
   thirteen: "bis",
-  /** Playlist vide, une fois sur dix. */
+  /** Empty playlist, one time in ten. */
   track404: "Piste 404 : introuvable.",
-  /** Minuteur réglé sur une heure : ajouté à l'infobulle. */
+  /** Sleep timer set to one hour: added to the tooltip. */
   sevenYears: " (soit sept ans ailleurs)",
-  /** Générique de fin (7 clics sur la version). */
+  /** End credits (7 clicks on the version). */
   creditsTitle: "Générique",
   credits: [
     ["Lecture", "mpv · GPL-2.0 ou ultérieure"],
@@ -24,18 +24,18 @@ export const fr = {
     ["Licence de Seaglass", "GPL-3.0"],
   ] as [string, string][],
   creditsEnd: "Merci d'avoir écouté jusqu'au bout.",
-  /** 29 février : dernière ligne factice de la file. */
+  /** February 29: fake last row of the queue. */
   hiddenTrack: "Piste cachée",
-  /** Recherche « kessel » : durée en parsecs. */
+  /** Search for "kessel": duration in parsecs. */
   parsecs: (n: number) => `${n.toLocaleString("fr")} pc`,
-  /** 21 octobre : infobulle du minuteur en cadran à trois lignes. */
+  /** October 21: the sleep timer's tooltip as a three-line dial. */
   circuits: (arrival: string, now: string, departure: string) =>
     `Arrivée     ${arrival}
 Maintenant  ${now}
 Départ      ${departure}`,
-  /** Thème Séance : carton de fin de file. */
+  /** Séance theme: end-of-queue title card. */
   theEnd: "Fin",
-  /** Thème Ordinateur de bord : refus du lecteur, avant le message d'origine. */
+  /** On-board computer theme: the player's refusal, before the original message. */
   refusals: {
     unplayable: "Je ne lirai pas ce titre. Ce n'est rien de personnel.",
     stopped: "J'ai arrêté la lecture, pour votre bien. Tout est sous contrôle.",

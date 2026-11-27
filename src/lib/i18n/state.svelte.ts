@@ -1,16 +1,16 @@
-// Langue courante et mise en forme des nombres. À part de `i18n.svelte.ts` pour que les
-// dictionnaires puissent l'utiliser sans import circulaire.
+// Current language and number formatting. Apart from `i18n.svelte.ts` so that the
+// dictionaries can use it without a circular import.
 
 import type { Lang } from "../ipc";
 
 export const i18n = $state<{ lang: Lang }>({ lang: "fr" });
 
-/** Locale de `Intl` (nombres, dates, tri) pour la langue courante. */
+/** `Intl` locale (numbers, dates, sorting) for the current language. */
 export function locale(): string {
   return i18n.lang === "en" ? "en-US" : "fr-FR";
 }
 
-/** Nombre mis en forme : « 1 234,5 » ou « 1,234.5 ». */
+/** Formatted number: "1 234,5" or "1,234.5". */
 export function num(n: number, options?: Intl.NumberFormatOptions): string {
   return n.toLocaleString(locale(), options);
 }
