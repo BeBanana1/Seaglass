@@ -4,7 +4,7 @@
 //! - `artists/{id}/bio` → `{source, lastUpdated, text}`, 404 if the artist has none. The text
 //!   mixes `<br/>` and internal links `[wimpLink artistId="4082"]Ennio Morricone[/wimpLink]`
 //!   (also `albumId`).
-//! - `artists/{id}/similar` → page d'artistes.
+//! - `artists/{id}/similar` → artist page.
 //! - `artists/{id}/albums?filter=COMPILATIONS` → albums where the artist appears, mostly
 //!   compilations of other artists (664 for Hans Zimmer, 642 in the « Appears on » of
 //!   `pages/artist`, which groups everything but weighs ~196 kB).

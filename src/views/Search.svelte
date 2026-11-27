@@ -26,7 +26,7 @@
   import { eggs, searched } from "../lib/eggs/eggs.svelte";
 
   const COLLAPSED_TRACKS = 8;
-  /** Pause de frappe avant de chercher (#248), comme la page de la Jam. */
+  /** Typing pause before searching (#248), like the Jam page. */
   const TYPING_DELAY = 400;
 
   let searching = $state(false);

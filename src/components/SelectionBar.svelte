@@ -1,6 +1,6 @@
 <script lang="ts">
   // Action bar for multiple selection (#332). Android: in place of the mini-player;
-  // bureau : flottante au-dessus de la barre de lecture.
+  // desktop: floating above the playback bar.
   import { selection } from "../lib/stores/selection.svelte";
   import { likes } from "../lib/stores/likes.svelte";
   import {

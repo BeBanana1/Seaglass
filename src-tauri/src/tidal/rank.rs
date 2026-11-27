@@ -15,7 +15,7 @@
 use super::models::Track;
 
 /// Lowercase, letters and digits only, spaces collapsed; apostrophes
-/// disparaissent (« don't » = « dont »).
+/// removed ("don't" = "dont").
 fn normalize(text: &str) -> String {
     text.chars()
         .filter(|c| !matches!(c, '\'' | '\u{2019}'))

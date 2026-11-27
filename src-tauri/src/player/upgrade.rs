@@ -158,7 +158,7 @@ impl Player {
 /// A failed lookup falls back to "no hi-res edition": the original is played.
 fn lookup_result(track: &Track, result: crate::tidal::Result<Option<Track>>) -> Option<Track> {
     result.unwrap_or_else(|e| {
-        tracing::warn!("recherche hi-res de {} impossible : {e}", track.id);
+        tracing::warn!("hi-res lookup for {} failed: {e}", track.id);
         None
     })
 }
@@ -222,7 +222,7 @@ mod tests {
         );
     }
 
-    /// `cargo test live_hires_playback -- --ignored --nocapture` : *Billie Jean* de
+    /// `cargo test live_hires_playback -- --ignored --nocapture` : *Billie Jean* from
     /// "Thriller 25 Super Deluxe Edition" (16/44.1 only), resolved as the current track then
     /// decoded by a real mpv (`null` output).
     #[tokio::test]

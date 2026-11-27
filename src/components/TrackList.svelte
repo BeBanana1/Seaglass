@@ -103,7 +103,7 @@
   // Chunked rendering (#181): a long list created all its rows in one block, and the
   // page stayed empty until then (nearly a second for 500 tracks on the phone). The
   // first rows go out right away, the rest follows task after task, which leaves the
-  // navigateur peindre entre deux morceaux. La lecture garde toute la liste en contexte.
+  // browser paint between two chunks. Playback keeps the whole list as its context.
   const FIRST_ROWS = 40;
   const ROWS_PER_STEP = 80;
   let rendered = $state(FIRST_ROWS);

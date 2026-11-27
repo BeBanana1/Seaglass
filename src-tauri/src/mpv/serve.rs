@@ -55,7 +55,7 @@ impl ManifestServer {
                     Ok((stream, _)) => {
                         // With no free slot, `stream` is dropped here: the connection is closed.
                         let Ok(permit) = Arc::clone(&slots).try_acquire_owned() else {
-                            tracing::warn!("serveur de manifestes : trop de connexions");
+                            tracing::warn!("manifest server: too many connections");
                             continue;
                         };
                         let entries = Arc::clone(&shared);
@@ -64,7 +64,7 @@ impl ManifestServer {
                             drop(permit);
                         });
                     }
-                    Err(e) => tracing::warn!("serveur de manifestes : {e}"),
+                    Err(e) => tracing::warn!("manifest server: {e}"),
                 }
             }
         });

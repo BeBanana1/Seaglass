@@ -58,7 +58,7 @@ impl TidalClient {
         let id = created
             .data
             .id
-            .ok_or_else(|| TidalError::Decode(format!("{path} : id absent")))?;
+            .ok_or_else(|| TidalError::Decode(format!("{path}: missing id")))?;
         Ok(PlaylistFolder {
             id,
             name: created.name.unwrap_or_else(|| name.to_owned()),

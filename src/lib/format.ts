@@ -270,7 +270,7 @@ export function musicalKey(key: string | null, scale: string | null): string | n
   return `${t.format.notes[m[1]]}${accidental}${mode}`;
 }
 
-/** Gain ReplayGain : « −6,17 dB ». */
+/** ReplayGain gain: "−6,17 dB". */
 export function decibels(gain: number): string {
   const text = num(Math.abs(gain), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${gain < 0 ? "−" : gain > 0 ? "+" : ""}${text} dB`;

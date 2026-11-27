@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Premier plan de l'icône adaptative d'Android : app-icon.svg réduit pour tenir
-       dans la zone sûre (cercle de 66 dp sur 108). -->
+  <!-- Foreground of Android's adaptive icon: app-icon.svg scaled down to fit
+       in the safe zone (66 dp circle out of 108). -->
   <g transform="translate(512 512) scale(0.68) translate(-512 -512)">
   <defs>
     <clipPath id="sky"><path d="M300 300 H724 V488 C 660 568 580 572 512 516 S 380 456 300 540 Z" /></clipPath>
@@ -15,7 +15,7 @@
     <circle cx="512" cy="512" r="336" />
     <circle cx="512" cy="512" r="370" />
   </g>
-  <!-- Étiquette : la mer, puis le soleil au-dessus de la vague. -->
+  <!-- Label: the sea, then the sun above the wave. -->
   <circle cx="512" cy="512" r="168" fill="#13a89e" />
   <circle cx="512" cy="512" r="168" fill="#ffb547" clip-path="url(#sky)" />
   <circle cx="512" cy="512" r="22" fill="#111417" />

@@ -13,7 +13,7 @@ export function effectivePreamp(profile: EqProfile): number {
   return profile.preamp ?? -Math.max(0, ...profile.filters.map((f) => f.gain));
 }
 
-/** Coefficients `[b0, b1, b2, a0, a1, a2]` d'un filtre. */
+/** Coefficients `[b0, b1, b2, a0, a1, a2]` of a filter. */
 function coefficients(f: EqFilter): number[] {
   const a = 10 ** (f.gain / 40);
   const w0 = (2 * Math.PI * f.freq) / FS;

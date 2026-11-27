@@ -20,7 +20,7 @@
     compact = false,
     dense = false,
   }: {
-    /** Pastille seule. */
+    /** Badge only. */
     compact?: boolean;
     /** Full chain tightened onto one line (Studio theme player bar). */
     dense?: boolean;

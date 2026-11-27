@@ -61,9 +61,7 @@ async fn emit_later(app: &AppHandle, state: &AppState) {
 /// The identifier ends up in the request body; a mix has no place there.
 fn validate(target: &LikeTarget) -> Result<(), String> {
     match target {
-        LikeTarget::Playlist { uuid } if !is_uuid(uuid) => {
-            Err("identifiant de playlist invalide".into())
-        }
+        LikeTarget::Playlist { uuid } if !is_uuid(uuid) => Err("invalid playlist ID".into()),
         LikeTarget::Mix { .. } => Err(tr(
             "un mix ne peut pas être enregistré pour plus tard",
             "a mix cannot be saved for later",

@@ -241,7 +241,7 @@
   {/if}
   <div class="actions">
     {#if !actions}
-      <!-- seulement le menu -->
+      <!-- menu only -->
     {:else if onRemove}
       <button onclick={onRemove} title={t.menu.removeFromQueue}>
         <Icon name="close" size={16} />

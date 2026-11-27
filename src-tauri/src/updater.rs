@@ -166,7 +166,7 @@ async fn check(
     let _checking = state.checking.lock().await;
     let url = endpoint
         .parse()
-        .map_err(|e| format!("adresse du manifeste invalide : {e}"))?;
+        .map_err(|e| format!("invalid manifest address: {e}"))?;
     let builder = app
         .updater_builder()
         .endpoints(vec![url])

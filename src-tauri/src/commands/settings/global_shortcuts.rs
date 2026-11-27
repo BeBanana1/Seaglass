@@ -1,7 +1,7 @@
 //! Global keyboard shortcuts (#413): combinations chosen by the user, active even
 //! when the window does not have focus. This module only keeps the setting and its reading
 //! (pure logic, tested); the registration with the system is in
-//! `integrations::hotkeys` (bureau).
+//! `integrations::hotkeys` (desktop).
 //!
 //! A combination is written as the UI builds it from `KeyboardEvent.code`:
 //! modifiers then key, separated by `+` (`Ctrl+Alt+Space`, `Ctrl+Shift+KeyL`). It is the

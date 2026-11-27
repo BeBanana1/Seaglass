@@ -426,7 +426,7 @@ mod tests {
                 "playlist-002-Mix.csv",
             ]
         );
-        let json: serde_json::Value = serde_json::from_str(&files[0].content).expect("valide");
+        let json: serde_json::Value = serde_json::from_str(&files[0].content).expect("valid");
         assert_eq!(json["format"], 1);
         assert_eq!(json["exportedAt"], "1970-01-01T00:00:00Z");
         assert_eq!(json["likedTracks"]["items"][0]["isrc"], "USAB12345678");

@@ -40,7 +40,7 @@ pub struct SyncPlay {
     pub album_id: Option<u64>,
     #[serde(default)]
     pub source: Option<PlaySource>,
-    /// Millisecondes depuis l'epoch Unix.
+    /// Milliseconds since the Unix epoch.
     pub played_at: i64,
     #[serde(default)]
     pub artist_id: Option<u64>,
@@ -112,7 +112,7 @@ pub enum Outgoing<'a> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Outbox {
     pub batch: PlayBatch,
-    /// Dernier `plays.id` parcouru : prochain `after`.
+    /// Last `plays.id` covered: next `after`.
     pub cursor: i64,
     /// More are left after this batch.
     pub more: bool,

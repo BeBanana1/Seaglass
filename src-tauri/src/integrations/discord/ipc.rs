@@ -171,7 +171,7 @@ async fn read_frame<R: AsyncRead + Unpin>(read: &mut R) -> std::io::Result<Frame
     let op = u32::from_le_bytes([header[0], header[1], header[2], header[3]]);
     let len = u32::from_le_bytes([header[4], header[5], header[6], header[7]]) as usize;
     if len > MAX_FRAME {
-        return Err(std::io::Error::other("trame trop longue"));
+        return Err(std::io::Error::other("frame too long"));
     }
     let mut body = vec![0u8; len];
     read.read_exact(&mut body).await?;
@@ -236,7 +236,7 @@ mod tests {
         });
         match Connection::handshake(client, "0").await {
             Err(IpcError::Refused(m)) => assert_eq!(m, "Invalid Client ID"),
-            _ => panic!("refus attendu"),
+            _ => panic!("refusal expected"),
         }
     }
 

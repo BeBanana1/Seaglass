@@ -442,7 +442,7 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
     #[cfg(desktop)]
     match tray::create(app.handle(), player.clone()) {
         Ok(handle) => observers.tray = Some(handle),
-        Err(e) => tracing::warn!("zone de notification indisponible : {e}"),
+        Err(e) => tracing::warn!("notification area unavailable: {e}"),
     }
     #[cfg(desktop)]
     if let Some(id) = integrations::discord::client_id() {
@@ -459,7 +459,7 @@ fn attach_integrations(app: &tauri::App, player: &tokio::sync::mpsc::Sender<play
             .and_then(|h| integrations::smtc::start(h.0 as isize, player.clone()))
         {
             Ok(smtc) => observers.smtc = Some(smtc),
-            Err(e) => tracing::warn!("SMTC indisponible : {e}"),
+            Err(e) => tracing::warn!("SMTC unavailable: {e}"),
         }
         // Buttons under the thumbnail (#333): `setup` runs on the window's thread.
         match hwnd

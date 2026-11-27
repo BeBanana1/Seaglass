@@ -31,7 +31,7 @@
     if (color) document.documentElement.style.setProperty("--album", color);
   });
 
-  // Boucle d'images seulement pendant la lecture (#88).
+  // Frame loop only while playing (#88).
   $effect(() => {
     const duration = player.state.duration;
     return followPosition((p) => (ratio = duration ? Math.min(p / duration, 1) : 0));

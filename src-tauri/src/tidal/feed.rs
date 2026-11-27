@@ -1,7 +1,7 @@
 //! Activity feed: new releases from followed artists and monthly mixes.
 //!
 //! Endpoint checked (2026-10-30): v2 `feed/activities?userId=…` →
-//! `{ activities: [{ followableActivity: { activityType, occurredAt, <objet> }, seen }],
+//! `{ activities: [{ followableActivity: { activityType, occurredAt, <object> }, seen }],
 //! stats: { totalNotSeenActivities } }`. Types seen: `NEW_ALBUM_RELEASE` (with `album`,
 //! same format as `albums/{id}`) and `NEW_HISTORY_MIX` (with `historyMix`, mix
 //! `HISTORY_MONTHLY_MIX` in the format of `favorites/mixes`, read by `RawMix`). No
