@@ -5,7 +5,7 @@
 #
 # - app: anything that the `linux` / `windows` jobs check (Rust, frontend, its tests and mock
 #   backend, dependencies). Conservative: a file is "app" unless it is in the list below.
-# - site: `site/`. relay: `relay/`.
+# - site: `site/`. relay: `relay/`, and the Jam guest page it embeds (`src-tauri/src/jam/page/`).
 # - The CI itself (this script, the workflow, the version check) runs everything.
 set -euo pipefail
 
@@ -34,4 +34,4 @@ has() { grep -qE "$1" <<<"$files" && echo true || echo false; }
 not_app='^(site/|relay/|docs/|spike/|scripts/|\.claude/|\.github/)|\.md$|^(LICENSE|\.env\.example|\.mcp\.json|\.gitignore|\.gitattributes|\.git-blame-ignore-revs|\.editorconfig)$'
 if grep -qvE "$not_app" <<<"$files"; then app=true; else app=false; fi
 
-printf 'app=%s\nsite=%s\nrelay=%s\n' "$app" "$(has '^site/')" "$(has '^relay/')"
+printf 'app=%s\nsite=%s\nrelay=%s\n' "$app" "$(has '^site/')" "$(has '^(relay/|src-tauri/src/jam/page/)')"

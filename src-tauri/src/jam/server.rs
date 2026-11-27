@@ -34,7 +34,8 @@ pub(super) const PUSH_INTERVAL: Duration = Duration::from_secs(1);
 const KEEPALIVE: Duration = Duration::from_secs(20);
 
 const PAGE: &str = include_str!("page/index.html");
-const SCRIPT: &str = include_str!("page/jam.js");
+/// `jam.js`, assembled from the page's files by `page/script.rs` (#45).
+const SCRIPT: &str = include!("page/script.rs");
 pub(super) const STYLE: &str = include_str!("page/jam.css");
 
 /// What a local server serves: the Jam guest page, or the remote control one (#336). The

@@ -39,7 +39,14 @@ async fn serves_the_page_without_code() {
     let (status, body) = call(addr, "GET", "/", "", "").await;
     assert_eq!(status, 200);
     assert!(body.contains("jam.js"));
-    assert_eq!(call(addr, "GET", "/jam.js", "", "").await.0, 200);
+    let (status, script) = call(addr, "GET", "/jam.js", "", "").await;
+    assert_eq!(status, 200);
+    // Assembled from every area file (#45): the dictionary first, the startup last.
+    assert!(script.contains("\"use strict\";"));
+    let text = script.find("const TEXT = {").unwrap_or(usize::MAX);
+    let startup = script.find("// --- Startup").unwrap_or(0);
+    assert!(text < startup);
+    assert!(script.trim_end().ends_with("else showJoin();"));
     assert_eq!(call(addr, "GET", "/secret", "", "").await.0, 404);
 }
 
