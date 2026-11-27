@@ -1,6 +1,6 @@
-<!-- Raccourcis globaux (#413, Réglages › Application) : une ligne par action, avec sa
-     combinaison. Un clic sur la combinaison attend la suivante au clavier ; le backend
-     l'enregistre auprès du système et dit celles qu'une autre app a déjà prises. -->
+<!-- Global shortcuts (#413, Settings › Application): one row per action, with its
+     combination. A click on the combination waits for the next one on the keyboard; the backend
+     registers it with the system and reports those another app has already taken. -->
 <script lang="ts">
   import { onMount } from "svelte";
   import { commands, type GlobalAction } from "../lib/ipc";
@@ -49,7 +49,7 @@
 
   function onKeydown(e: KeyboardEvent, action: GlobalAction) {
     if (recording !== action) return;
-    // Rien ne part aux raccourcis de l'app pendant l'enregistrement.
+    // Nothing reaches the app's shortcuts while recording.
     e.preventDefault();
     e.stopPropagation();
     const plain = !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey;

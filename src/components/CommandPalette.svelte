@@ -1,6 +1,6 @@
-<!-- Palette de commandes (#412, bureau) : un champ, ouvert par Ctrl+K, pour aller à une page,
-     lancer une action du registre (`lib/actions.ts`) ou chercher un titre, un album, un
-     artiste ou une playlist (commande `search`, comme la page Recherche). -->
+<!-- Command palette (#412, desktop): a field, opened with Ctrl+K, to go to a page,
+     run an action from the registry (`lib/actions.ts`) or search for a track, an album, an
+     artist or a playlist (`search` command, like the Search page). -->
 <script lang="ts">
   import { tick, untrack } from "svelte";
   import { commands, type SearchResults } from "../lib/ipc";
@@ -17,12 +17,12 @@
   import { pushToast } from "../lib/stores/toasts.svelte";
   import { t } from "../lib/i18n.svelte";
 
-  /** Délai après la dernière frappe avant de chercher le contenu. */
+  /** Delay after the last keystroke before searching for content. */
   const SEARCH_DELAY_MS = 300;
   const MIN_SEARCH_LENGTH = 2;
-  /** Résultats de contenu par type. */
+  /** Content results by type. */
   const PER_KIND = 3;
-  /** Actions affichées quand une requête est tapée. */
+  /** Actions shown when a query is typed. */
   const MAX_ACTIONS = 8;
 
   type Section = ActionGroup | "tracks" | "albums" | "artists" | "playlists";
@@ -42,7 +42,7 @@
   let active = $state(0);
   let input = $state<HTMLInputElement>();
   let list = $state<HTMLUListElement>();
-  /** Actions proposées, relues à chaque ouverture (leurs libellés suivent l'état du lecteur). */
+  /** Suggested actions, re-read on each open (their labels follow the player state). */
   let actions = $state.raw<{ action: Action; label: string; keywords?: string[] }[]>([]);
   let results = $state.raw<SearchResults | null>(null);
   let searching = $state(false);
@@ -66,8 +66,8 @@
     return () => previousFocus?.focus?.();
   });
 
-  // Contenu : la commande `search` 300 ms après la dernière frappe ; une réponse arrivée
-  // après une requête plus récente est écartée.
+  // Content: the `search` command 300 ms after the last keystroke; a response that arrives
+  // after a more recent request is discarded.
   $effect(() => {
     const q = query.trim();
     const id = ++request;
@@ -95,7 +95,7 @@
     const ranked = q === "" ? actions : rank(actions, q).slice(0, MAX_ACTIONS);
     const out: Row[] = ranked.map(({ action, label }) => ({
       key: action.id,
-      // Sans requête : rangées par groupe ; avec une requête, dans l'ordre du classement.
+      // Without a query: arranged by group; with a query, in ranking order.
       section: q === "" ? action.group : null,
       label,
       detail: q === "" ? undefined : t.palette.groups[action.group],
@@ -146,7 +146,7 @@
     return out;
   });
 
-  // La liste change sous la sélection : on repart de la première ligne.
+  // The list changes under the selection: start again from the first row.
   $effect(() => {
     void rows;
     active = 0;
@@ -190,7 +190,7 @@
         if (rows[active]) choose(rows[active]);
         break;
       case "Tab":
-        // Le focus reste dans le champ : la liste se parcourt aux flèches.
+        // Focus stays in the field: the list is navigated with the arrow keys.
         e.preventDefault();
         break;
     }

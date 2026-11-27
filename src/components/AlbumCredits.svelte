@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Crédits de l'album entier (#206), sous la liste des titres. Demandés au premier clic
-  // seulement (une requête par page de 100 titres), puis repliables.
+  // Credits of the whole album (#206), below the track list. Requested on the first click
+  // only (one request per page of 100 tracks), then collapsible.
   import { commands, type AlbumCreditGroup, type Track } from "../lib/ipc";
   import { creditRole } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
@@ -13,11 +13,11 @@
   let error = $state<string | null>(null);
   let loading = $state(false);
 
-  // Positions affichées par la page (`numbering="index"`), à partir de 1.
+  // Positions shown by the page (`numbering="index"`), starting at 1.
   const positions = $derived(new Map(tracks.map((track, i) => [track.id, i + 1])));
 
   $effect(() => {
-    // Autre album : tout est oublié.
+    // Another album: everything is forgotten.
     void albumId;
     open = false;
     credits = null;
@@ -34,13 +34,13 @@
       .albumCredits(target)
       .then((c) => target === albumId && (credits = c))
       .catch((e) => {
-        console.warn("crédits de l'album :", e);
+        console.warn("album credits:", e);
         if (target === albumId) error = t.views.album.creditsError;
       })
       .finally(() => (loading = false));
   }
 
-  /** « 1–3, 5 » ; titres absents de la page ignorés. */
+  /** "1–3, 5"; tracks missing from the page are ignored. */
   function trackList(ids: number[]): string | null {
     if (ids.length === 0) return null;
     const nums = ids

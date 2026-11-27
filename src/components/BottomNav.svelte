@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Navigation du bas sur Android (#24) : remplace la barre latérale du bureau.
-  // Les titres likés y ont leur onglet (#143), les réglages sont dans l'en-tête.
+  // Bottom navigation on Android (#24): replaces the desktop sidebar.
+  // Liked tracks have their own tab (#143), the settings are in the header.
   import { current, replace, type Route } from "../lib/stores/nav.svelte";
   import { t } from "../lib/i18n.svelte";
   import { feed } from "../lib/stores/feed.svelte";
@@ -16,11 +16,11 @@
     { key: "feed", icon: "feed", route: { name: "feed" } },
   ];
 
-  // Les pages ouvertes depuis un onglet (album, artiste…) n'en allument aucun.
-  // Bibliothèque › Titres est l'onglet Likes, les autres onglets de la bibliothèque l'onglet Bibliothèque.
+  // Pages opened from a tab (album, artist…) light none of them.
+  // Library › Tracks is the Likes tab, the other library tabs are the Library tab.
   function isActive(route: Route): boolean {
     const here = current();
-    // Statistiques (#326), playlists intelligentes (#383) et dossiers (#331) : pages de la bibliothèque.
+    // Statistics (#326), smart playlists (#383) and folders (#331): library pages.
     if (
       here.name === "stats" ||
       here.name === "recap" ||
@@ -81,7 +81,7 @@
     display: flex;
   }
 
-  /* Nouveautés du fil pas encore vues (#415). */
+  /* Feed news not seen yet (#415). */
   .tab-dot {
     position: absolute;
     top: -1px;

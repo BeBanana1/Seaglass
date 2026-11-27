@@ -1,6 +1,6 @@
-<!-- Titres et artistes bloqués (#334), dans Réglages › Lecture : lus chez le service à la
-     demande (pas à chaque ouverture des réglages), avec « Débloquer ». Classes `.setting-row`
-     et `.update-check` reprises de Réglages : les thèmes les habillent déjà. -->
+<!-- Blocked tracks and artists (#334), in Settings › Playback: read from the service on
+     demand (not each time the settings open), with "Unblock". `.setting-row` and
+     `.update-check` classes reused from Settings: the themes already style them. -->
 <script lang="ts">
   import { commands, type BlockTarget, type Blocked } from "../lib/ipc";
   import { fullTitle } from "../lib/format";
@@ -9,7 +9,7 @@
 
   let list = $state<Blocked | null>(null);
   let loading = $state(false);
-  /** Déblocages en cours, par `kind:id`. */
+  /** Unblocks in progress, by `kind:id`. */
   let pending = $state(new Set<string>());
 
   const empty = $derived(list !== null && list.tracks.length === 0 && list.artists.length === 0);

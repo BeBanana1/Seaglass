@@ -1,7 +1,7 @@
-<!-- Envoi des écoutes à ListenBrainz (#431) : coller le jeton (vérifié par le backend), voir
-     le compte connecté et les écoutes en attente, retirer. Le jeton n'est jamais relu par
-     l'UI. Classes `.setting-row` et `.update-check` reprises de Réglages : les thèmes les
-     habillent déjà. -->
+<!-- Sending listens to ListenBrainz (#431): paste the token (verified by the backend), see
+     the connected account and the pending listens, remove. The token is never read back by
+     the UI. `.setting-row` and `.update-check` classes reused from Settings: the themes
+     already style them. -->
 <script lang="ts">
   import { commands, type ListenBrainzStatus } from "../lib/ipc";
   import { pushToast } from "../lib/stores/toasts.svelte";
@@ -36,7 +36,7 @@
   const connect = () =>
     run(() => commands.listenbrainzConnect(token), t.settings.listenbrainz.done);
   const disconnect = () => run(() => commands.listenbrainzDisconnect());
-  // Un compte au jeton refusé garde le champ, pour en coller un nouveau.
+  // An account whose token was refused keeps the field, to paste a new one.
   const askToken = $derived(!!status && (status.user === null || status.refused));
 </script>
 
@@ -164,7 +164,7 @@
     cursor: default;
   }
 
-  /* Studio : angles vifs. */
+  /* Studio: sharp corners. */
   :global([data-theme="studio"]) .setting-row,
   :global([data-theme="studio"]) .update-check {
     border-radius: 0;

@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Réglages › Lecture › Égaliseur (#428) : interrupteur, profil choisi, import AutoEQ,
-  // édition des filtres et courbe de réponse. Les règles (bornes, analyse du fichier
-  // AutoEQ) sont côté Rust (`player::eq`, `player::autoeq`) ; ici, l'affichage et la saisie.
+  // Settings › Playback › Equalizer (#428): switch, chosen profile, AutoEQ import,
+  // filter editing and response curve. The rules (bounds, parsing of the AutoEQ
+  // file) are on the Rust side (`player::eq`, `player::autoeq`); here, display and input.
   import {
     commands,
     type EqFilter,
@@ -21,11 +21,11 @@
   }: {
     settings: EqSettings;
     disabled?: boolean;
-    /** Enregistre les nouveaux réglages (le backend les valide et les applique à chaud). */
+    /** Saves the new settings (the backend validates them and applies them live). */
     onchange: (next: EqSettings) => void;
   } = $props();
 
-  /** Mêmes bornes que `player::eq`, pour guider la saisie ; le backend les revérifie. */
+  /** Same bounds as `player::eq`, to guide input; the backend checks them again. */
   const MAX_PROFILES = 32;
   const MAX_FILTERS = 20;
   const MAX_FILE = 16 * 1024;
@@ -71,7 +71,7 @@
     });
   }
 
-  /** Modifie le profil choisi. */
+  /** Edits the chosen profile. */
   function updateActive(change: Partial<EqProfile>) {
     if (!active) return;
     save({
@@ -86,7 +86,7 @@
     });
   }
 
-  /** Valeur saisie ramenée dans ses bornes ; `null` si le champ n'est pas un nombre. */
+  /** Entered value clamped to its bounds; `null` if the field is not a number. */
   function clampInput(e: Event, [min, max]: readonly [number, number]): number | null {
     const value = (e.currentTarget as HTMLInputElement).valueAsNumber;
     return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : null;
@@ -142,7 +142,7 @@
     }
   }
 
-  // Courbe : 600 × 160, de +15 à −15 dB.
+  // Curve: 600 × 160, from +15 to −15 dB.
   const W = 600;
   const H = 160;
   const DB = 15;
@@ -430,7 +430,7 @@
     min-width: 0;
   }
 
-  /* Seul sur sa ligne quand la place manque (téléphone). */
+  /* Alone on its row when space runs out (phone). */
   .grow {
     flex: 1 1 220px;
   }
@@ -548,8 +548,8 @@
     vector-effect: non-scaling-stroke;
   }
 
-  /* Téléphone (#467) : le tableau défile seul plutôt que d'élargir la page. Sans
-     `min-width: 0`, un enfant de flex prend la largeur de son contenu et tout déborde. */
+  /* Phone (#467): the table scrolls on its own rather than widening the page. Without
+     `min-width: 0`, a flex child takes the width of its content and everything overflows. */
   .eq-profile > *,
   .eq-import > * {
     min-width: 0;
@@ -602,7 +602,7 @@
     clip: rect(0 0 0 0);
   }
 
-  /* Interrupteur repris de Réglages : les thèmes l'habillent déjà par son nom de classe. */
+  /* Switch reused from Settings: the themes already style it by its class name. */
   .setting-switch {
     position: relative;
     flex-shrink: 0;

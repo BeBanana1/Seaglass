@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Cœur d'un titre (#4) : l'état vient du backend (lib/stores/likes.svelte.ts).
+  // Heart of a track (#4): the state comes from the backend (lib/stores/likes.svelte.ts).
   import type { Track } from "../lib/ipc";
   import { isLiked, isPending, toggleLike } from "../lib/stores/likes.svelte";
   import { t } from "../lib/i18n.svelte";

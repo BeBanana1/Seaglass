@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  // Tracés 24×24, remplis avec `currentColor`.
+  // 24×24 paths, filled with `currentColor`.
   const speaker =
     "M4 9h3.2l4.2-3.5A1 1 0 0 1 13 6.3v11.4a1 1 0 0 1-1.6.8L7.2 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z";
   const waveSmall =
@@ -45,12 +45,12 @@
     // "Now playing" card as an image (#518).
     image:
       "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v9.6l3.3-3.3a1 1 0 0 1 1.4 0l5.3 5.3 1.3-1.3a1 1 0 0 1 1.4 0l1.3 1.3V5zm11 2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z",
-    // Transfert de la lecture (#414) : écran et téléphone.
+    // Playback handoff (#414): screen and phone.
     devices:
       "M3 4h13a1 1 0 0 1 1 1v3h-2V6H4v8h9v2h-3v1h3v2H7v-2h1v-1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm13 5h5a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm1 2v7h3v-7z",
-    // Jam (#25) : deux personnes.
+    // Jam (#25): two people.
     jam: "M9 4a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zm0 9c3.9 0 7 2 7 4.5V19a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-1.5C2 15 5.1 13 9 13zm8-6.5a2.75 2.75 0 1 1 0 5.5 2.75 2.75 0 0 1 0-5.5zm.5 7.1c2.6.4 4.5 1.9 4.5 3.9V19a1 1 0 0 1-1 1h-2.6c.06-.32.1-.65.1-1v-1.5c0-1.5-.37-2.9-1-3.9z",
-    // « Plus tard » (#196) : marque-page.
+    // "Later" (#196): bookmark.
     bookmark:
       "M7 3h10a2 2 0 0 1 2 2v15.2a.8.8 0 0 1-1.3.6L12 17.1l-5.7 3.7A.8.8 0 0 1 5 20.2V5a2 2 0 0 1 2-2zm0 2v13.2l5-3.4 5 3.4V5z",
     bookmarkFilled:
@@ -59,27 +59,27 @@
       "M12 20.6l-1.3-1.2C5.8 15 3 12.4 3 9.2 3 6.6 5 4.6 7.6 4.6c1.6 0 3.2.8 4.4 2 1.2-1.2 2.8-2 4.4-2 2.6 0 4.6 2 4.6 4.6 0 3.2-2.8 5.8-7.7 10.2z",
     heart:
       "M12 20.6l-1.3-1.2C5.8 15 3 12.4 3 9.2 3 6.6 5 4.6 7.6 4.6c1.6 0 3.2.8 4.4 2 1.2-1.2 2.8-2 4.4-2 2.6 0 4.6 2 4.6 4.6 0 3.2-2.8 5.8-7.7 10.2zM12 17.9c4.4-4 7-6.4 7-8.7 0-1.5-1.1-2.6-2.6-2.6-1.2 0-2.3.7-2.8 1.8h-3.2c-.5-1.1-1.6-1.8-2.8-1.8C6.1 6.6 5 7.7 5 9.2c0 2.3 2.6 4.7 7 8.7z",
-    // Thèmes favoris (#390).
+    // Favorite themes (#390).
     star: "M12 2.6a1 1 0 0 1 .9.56l2.5 5.06 5.58.81a1 1 0 0 1 .56 1.7l-4.04 3.94.95 5.56a1 1 0 0 1-1.45 1.05L12 18.66l-5 2.62a1 1 0 0 1-1.45-1.05l.95-5.56-4.04-3.94a1 1 0 0 1 .56-1.7l5.58-.81 2.5-5.06A1 1 0 0 1 12 2.6zm0 3.26-1.84 3.73a1 1 0 0 1-.75.55l-4.12.6 2.98 2.9a1 1 0 0 1 .29.89l-.7 4.1 3.68-1.94a1 1 0 0 1 .93 0l3.68 1.94-.7-4.1a1 1 0 0 1 .29-.89l2.98-2.9-4.12-.6a1 1 0 0 1-.75-.55z",
     starFilled:
       "M12 2.6a1 1 0 0 1 .9.56l2.5 5.06 5.58.81a1 1 0 0 1 .56 1.7l-4.04 3.94.95 5.56a1 1 0 0 1-1.45 1.05L12 18.66l-5 2.62a1 1 0 0 1-1.45-1.05l.95-5.56-4.04-3.94a1 1 0 0 1 .56-1.7l5.58-.81 2.5-5.06A1 1 0 0 1 12 2.6z",
     playlistAdd:
       "M4 6h12a1 1 0 1 1 0 2H4a1 1 0 0 1 0-2zm0 5h12a1 1 0 1 1 0 2H4a1 1 0 1 1 0-2zm0 5h7a1 1 0 1 1 0 2H4a1 1 0 1 1 0-2zm14-2v-2a1 1 0 1 1 2 0v2h2a1 1 0 1 1 0 2h-2v2a1 1 0 1 1-2 0v-2h-2a1 1 0 1 1 0-2z",
     remove: "M5 11h14a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2z",
-    // Croissant : disque de rayon 9 moins un disque de rayon 7 décalé en haut à droite.
+    // Crescent: a disc of radius 9 minus a disc of radius 7 shifted to the top right.
     moon: "M11.1 3.05A9 9 0 1 0 20.96 12.9 7 7 0 0 1 11.1 3.05z",
     info: "M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 6a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-6a1 1 0 0 1 1-1zm0-3.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z",
-    // Blocage (#334) : anneau et barre en diagonale, de même sens (union en `nonzero`).
+    // Block (#334): ring and diagonal bar, same direction (union under `nonzero`).
     block:
       "M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM8.46 7.05l8.49 8.49-1.41 1.41-8.49-8.49z",
     close:
       "M6.3 6.3a1 1 0 0 1 1.4 0L12 10.6l4.3-4.3a1 1 0 1 1 1.4 1.4L13.4 12l4.3 4.3a1 1 0 0 1-1.4 1.4L12 13.4l-4.3 4.3a1 1 0 0 1-1.4-1.4l4.3-4.3-4.3-4.3a1 1 0 0 1 0-1.4z",
-    // Plein écran de la fenêtre (#131) : coins vers l'extérieur, puis vers l'intérieur.
+    // Window fullscreen (#131): corners pointing outward, then inward.
     fullscreen:
       "M5 4h4a1 1 0 0 1 0 2H6v3a1 1 0 0 1-2 0V5a1 1 0 0 1 1-1zm10 0h4a1 1 0 0 1 1 1v4a1 1 0 1 1-2 0V6h-3a1 1 0 1 1 0-2zM5 14a1 1 0 0 1 1 1v3h3a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zm14 0a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4a1 1 0 1 1 0-2h3v-3a1 1 0 0 1 1-1z",
     fullscreenExit:
       "M9 4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 1 1 0-2h3V5a1 1 0 0 1 1-1zm6 0a1 1 0 0 1 1 1v3h3a1 1 0 1 1 0 2h-4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM5 14h4a1 1 0 0 1 1 1v4a1 1 0 1 1-2 0v-3H5a1 1 0 1 1 0-2zm10 0h4a1 1 0 1 1 0 2h-3v3a1 1 0 1 1-2 0v-4a1 1 0 0 1 1-1z",
-    // Navigation du bas sur Android (#24).
+    // Bottom navigation on Android (#24).
     home: "M11.3 3.3a1 1 0 0 1 1.4 0l8.5 8a1 1 0 0 1-.7 1.7H19v6a2 2 0 0 1-2 2h-3v-6h-4v6H7a2 2 0 0 1-2-2v-6H3.5a1 1 0 0 1-.7-1.7z",
     feed: "M12 3a6 6 0 0 1 6 6v4l1.7 2.6A1 1 0 0 1 18.9 17H5.1a1 1 0 0 1-.8-1.4L6 13V9a6 6 0 0 1 6-6zm-2.8 15h5.6a2.8 2.8 0 0 1-5.6 0z",
     search:
@@ -88,17 +88,17 @@
       "M4 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm5 0h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm5.4 1.3l1.9-.6a1 1 0 0 1 1.3.6l4.3 13.3a1 1 0 0 1-.6 1.3l-1.9.6a1 1 0 0 1-1.3-.6L13.8 6.6a1 1 0 0 1 .6-1.3z",
     settings:
       "M4 6h16a1 1 0 0 1 0 2H4a1 1 0 0 1 0-2zm11.5-1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM4 16h16a1 1 0 0 1 0 2H4a1 1 0 0 1 0-2zm4.5-1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z",
-    // Filtre et tri des listes sur Android (#182).
+    // List filter and sort on Android (#182).
     check: "M9.5 16.2 5.3 12a1 1 0 0 0-1.4 1.4l4.9 4.9a1 1 0 0 0 1.4 0l10-10a1 1 0 0 0-1.4-1.4z",
     sort: "M3 6h10a1 1 0 1 1 0 2H3a1 1 0 0 1 0-2zm0 5h7a1 1 0 1 1 0 2H3a1 1 0 1 1 0-2zm0 5h4a1 1 0 1 1 0 2H3a1 1 0 1 1 0-2zM18 5a1 1 0 0 1 1 1v9.6l1.3-1.3a1 1 0 0 1 1.4 1.4l-3 3a1 1 0 0 1-1.4 0l-3-3a1 1 0 0 1 1.4-1.4l1.3 1.3V6a1 1 0 0 1 1-1z",
     chevronRight:
       "M9.3 5.3a1 1 0 0 1 1.4 0l6 6a1 1 0 0 1 0 1.4l-6 6a1 1 0 0 1-1.4-1.4l5.3-5.3-5.3-5.3a1 1 0 0 1 0-1.4z",
-    // Mode conduite (#193) : vitre et roues en creux (sens inverse de la carrosserie).
+    // Driving mode (#193): window and wheels cut out (opposite direction to the body).
     car: "M6.6 5.7A2 2 0 0 1 8.5 4.5h7a2 2 0 0 1 1.9 1.2L19 9.6h.5A1.5 1.5 0 0 1 21 11.1V17a1 1 0 0 1-1 1h-1v1a1 1 0 0 1-2 0v-1H7v1a1 1 0 0 1-2 0v-1H4a1 1 0 0 1-1-1v-5.9a1.5 1.5 0 0 1 1.5-1.5H5zM8.5 6.5 7.2 9.6h9.6l-1.3-3.1zM7 12.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z",
-    // Dossier de playlists (#331).
+    // Playlist folder (#331).
     folder:
       "M3 6.5A2.5 2.5 0 0 1 5.5 4h3.7a2 2 0 0 1 1.4.6L12 6h6.5A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z",
-    // Mini-lecteur (#384) : cadre avec une petite fenêtre pleine en bas à droite.
+    // Mini player (#384): frame with a small filled window at the bottom right.
     miniPlayer:
       "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v12h16V6zm8 6h6v4h-6z",
     volume: speaker + waveSmall + waveLarge,

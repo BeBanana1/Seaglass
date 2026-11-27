@@ -1,7 +1,7 @@
 <script lang="ts">
-  // « Nettoyer » une liste (#382) : votre playlist ou vos titres likés. Le backend propose
-  // les changements (doublons, titres indisponibles et leurs remplaçants) avec l'opération de
-  // chacun ; on coche, on applique, et un toast propose « Annuler ».
+  // "Clean up" a list (#382): your playlist or your liked tracks. The backend proposes
+  // the changes (duplicates, unavailable tracks and their replacements) with each one's
+  // operation; you check, you apply, and a toast offers "Undo".
   import { onMount } from "svelte";
   import type { CleanupItem, CleanupReport, ListOp, ListOpsResult } from "../lib/ipc";
   import { artistNames, fullTitle } from "../lib/format";
@@ -19,21 +19,21 @@
     onChanged,
   }: {
     title: string;
-    /** Afficher les positions (playlist) ; pas pour les favoris. */
+    /** Show the positions (playlist); not for favorites. */
     positions: boolean;
     load: () => Promise<CleanupReport>;
     apply: (ops: ListOp[]) => Promise<ListOpsResult>;
     undo: (ops: ListOp[]) => Promise<ListOpsResult>;
     onClose: () => void;
-    /** La liste a (peut-être) changé : à relire. */
+    /** The list (may have) changed: to be read again. */
     onChanged: () => void;
   } = $props();
 
   const c = t.views.cleanup;
-  // Jamais modifié : `raw`, ses opérations repartent en objets simples.
+  // Never modified: `raw`, its operations go back out as plain objects.
   let report = $state.raw<CleanupReport | null>(null);
   let error = $state<string | null>(null);
-  // Cases cochées, par position dans la liste lue.
+  // Checked boxes, by position in the list read.
   let chosen = $state<Record<number, boolean>>({});
   let busy = $state(false);
   let dialog = $state<HTMLElement>();
@@ -64,12 +64,12 @@
     } catch (e) {
       pushToast({ level: "error", message: String(e) });
     }
-    // Relue même en cas d'échec : un refus signifie que la liste a changé.
+    // Read again even on failure: a refusal means the list changed.
     onChanged();
     onClose();
   }
 
-  // Le dialogue est déjà fermé : `undo` et `onChanged` viennent du parent.
+  // The dialog is already closed: `undo` and `onChanged` come from the parent.
   async function revert(ops: ListOp[]) {
     try {
       const result = await undo(ops);

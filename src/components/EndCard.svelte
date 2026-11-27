@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Clin d'œil (#399), thème Séance : quand la file s'arrête d'elle-même, un carton « Fin »
-  // s'affiche quelques secondes, comme à la dernière image d'un film. Il ne bloque rien
-  // (aucun clic capté) ; animations réduites : il apparaît et disparaît sans fondu.
+  // Easter egg (#399), Séance theme: when the queue stops by itself, an "End" card
+  // appears for a few seconds, like the last frame of a film. It blocks nothing
+  // (no click captured); reduced motion: it appears and disappears without a fade.
   import { player } from "../lib/stores/player.svelte";
   import { ui } from "../lib/stores/ui.svelte";
   import { t } from "../lib/i18n.svelte";

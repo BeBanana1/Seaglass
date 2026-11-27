@@ -11,7 +11,7 @@
   let cardEl = $state<HTMLButtonElement>();
   const menuOpen = $derived(!!cardEl && menu.open?.owner === cardEl);
 
-  // Clic droit, touche Menu ou Maj+F10 (#81) : ouvrir, favori, liens.
+  // Right click, Menu key or Shift+F10 (#81): open, favorite, links.
   function onContextmenu(e: MouseEvent) {
     e.preventDefault();
     const card = e.currentTarget as HTMLButtonElement;

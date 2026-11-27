@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Cartes des dossiers de playlists (#331), en tête de Bibliothèque › Playlists. Rien n'est
-  // rendu sans dossier. Même grille et mêmes classes que les cartes (`.card`) : les thèmes
-  // les habillent pareil ; `.folder-card` en plus.
+  // Playlist folder cards (#331), at the top of Library › Playlists. Nothing is
+  // rendered without a folder. Same grid and classes as the cards (`.card`): the themes
+  // style them the same; `.folder-card` in addition.
   import type { PlaylistFolder, PlaylistSummary } from "../lib/ipc";
   import { folderPlaylists } from "../lib/stores/folders.svelte";
   import { go } from "../lib/stores/nav.svelte";
@@ -17,7 +17,7 @@
       {@const inside = folderPlaylists(folder, playlists)}
       <button class="card folder-card" onclick={() => go({ name: "folder", id: folder.id })}>
         <div class="image">
-          <!-- Jusqu'à quatre pochettes du dossier en mosaïque, sinon l'icône. -->
+          <!-- Up to four covers of the folder as a mosaic, otherwise the icon. -->
           {#if inside.some((p) => p.imageUrl)}
             <div class="mosaic" class:single={inside.filter((p) => p.imageUrl).length < 4}>
               {#each inside.filter((p) => p.imageUrl).slice(0, 4) as p (p.uuid)}
@@ -95,8 +95,8 @@
     object-fit: cover;
   }
 
-  /* Avec des pochettes : petite pastille en bas à gauche, pour distinguer un dossier
-     d'une playlist. */
+  /* With covers: small badge at the bottom left, to tell a folder
+     from a playlist. */
   .mosaic + .badge-icon {
     position: absolute;
     left: 8px;

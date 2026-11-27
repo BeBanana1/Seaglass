@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Bouton « Blind test » des en-têtes (#434) : retient la liste et ouvre la page de la
-  // partie. Caché sous `BLIND_MIN_TRACKS` titres.
+  // "Blind test" button of the headers (#434): remembers the list and opens the game
+  // page. Hidden below `BLIND_MIN_TRACKS` tracks.
   import type { TrackId } from "../lib/ipc";
   import { t } from "../lib/i18n.svelte";
   import { open } from "../lib/actions";
@@ -44,7 +44,7 @@
     background: var(--bg-hover);
   }
 
-  /* Android : cible tactile de 44 px, comme les autres boutons de l'en-tête. */
+  /* Android: 44 px touch target, like the other header buttons. */
   :global(:root[data-platform="android"]) button {
     width: 44px;
     height: 44px;

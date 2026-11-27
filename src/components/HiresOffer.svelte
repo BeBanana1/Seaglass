@@ -1,5 +1,5 @@
-<!-- Bandeau non bloquant du réglage « Demander » (#59) : le backend propose une édition
-     hi-res du titre courant dans `player-state` ; la réponse vaut pour tout l'album. -->
+<!-- Non-blocking banner of the "Ask" setting (#59): the backend offers a hi-res edition
+     of the current track in `player-state`; the answer applies to the whole album. -->
 <script lang="ts">
   import { commands } from "../lib/ipc";
   import { khz } from "../lib/format";

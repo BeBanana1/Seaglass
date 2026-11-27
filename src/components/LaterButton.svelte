@@ -1,6 +1,6 @@
 <script lang="ts">
-  // « Plus tard » dans l'en-tête d'une page (album, #227). L'état vient du backend
-  // (lib/stores/later.svelte.ts) et change à sa confirmation, comme le cœur voisin.
+  // "Later" in a page header (album, #227). The state comes from the backend
+  // (lib/stores/later.svelte.ts) and changes once confirmed, like the neighboring heart.
   import type { LikeTarget } from "../lib/ipc";
   import { isLaterPending, isSavedForLater, toggleLater } from "../lib/stores/later.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -26,7 +26,7 @@
 </button>
 
 <style>
-  /* Même forme que le cœur (FavoriteButton) : les thèmes habillent `.info .actions button`. */
+  /* Same shape as the heart (FavoriteButton): the themes style `.info .actions button`. */
   button {
     display: flex;
     align-items: center;

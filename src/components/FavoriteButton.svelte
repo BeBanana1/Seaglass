@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Favori d'un album, d'une playlist ou d'un mix (cœur), « Suivre » pour un artiste (#81, #204).
-  // L'état vient du backend (lib/stores/likes.svelte.ts) et change à sa confirmation.
+  // Favorite of an album, a playlist or a mix (heart), "Follow" for an artist (#81, #204).
+  // The state comes from the backend (lib/stores/likes.svelte.ts), changes once confirmed.
   import type { LikeTarget } from "../lib/ipc";
   import { isFavorite, isPending, toggleFavorite } from "../lib/stores/likes.svelte";
   import { t } from "../lib/i18n.svelte";

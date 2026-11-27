@@ -1,5 +1,5 @@
-<!-- Couleur d'accent (section Apparence des réglages) : celle du thème, une couleur proposée
-     ou une couleur libre. Gardée pour le thème courant seulement (#250) : chaque thème a la sienne. -->
+<!-- Accent color (Appearance section of the settings): the theme's own, a suggested color
+     or a free color. Kept for the current theme only (#250): each theme has its own. -->
 <script lang="ts">
   import { ACCENT_PRESETS, currentAccent, setAccent } from "../lib/stores/ui.svelte";
   import { pushToast } from "../lib/stores/toasts.svelte";
@@ -17,7 +17,7 @@
     }
   }
 
-  // `change` (pas `input`) : une seule écriture quand le sélecteur se ferme.
+  // `change` (not `input`): a single write when the picker closes.
   function onPick(e: Event) {
     choose((e.currentTarget as HTMLInputElement).value.toLowerCase());
   }

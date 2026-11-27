@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Bandeau « À la une » de l'accueil : un album mis en avant, teinté de sa propre couleur.
+  // "Featured" banner of the home page: a highlighted album, tinted with its own color.
   import type { AlbumSummary } from "../lib/ipc";
   import { albumKind, coverLarge, year } from "../lib/format";
   import { go } from "../lib/stores/nav.svelte";
@@ -13,14 +13,14 @@
   }: {
     album: AlbumSummary;
     context: string;
-    /** Passer à un autre album (#185) ; absent s'il n'y en a pas d'autre. */
+    /** Skip to another album (#185); absent if there is no other. */
     onskip?: () => void;
   } = $props();
 
   const large = $derived(coverLarge(album));
 </script>
 
-<!-- Le bouton Passer est à côté du bandeau, pas dedans : un bouton ne peut pas en contenir un autre. -->
+<!-- The Skip button sits next to the banner, not inside it: a button cannot contain another. -->
 <div class="hero-wrap">
   <button
     class="hero"
@@ -53,8 +53,8 @@
     position: relative;
   }
 
-  /* Par-dessus le bandeau, quel que soit le thème : texte clair sur voile sombre. Visible au
-     survol ou au focus sur le bureau, toujours sur Android (pas de survol). */
+  /* Over the banner, whatever the theme: light text on a dark veil. Visible on
+     hover or focus on desktop, always on Android (no hover). */
   .hero-skip {
     position: absolute;
     top: 10px;
@@ -171,7 +171,7 @@
     transform: none;
   }
 
-  /* Atelier : couverture de magazine, sans flou, couleur en aplat. */
+  /* Atelier: magazine cover, no blur, flat color. */
   :global([data-theme="atelier"]) .hero {
     border-radius: 0;
     color: var(--text);
@@ -192,8 +192,8 @@
     transform: none;
   }
 
-  /* Android (#24, #184) : bandeau bas, pochette à droite du texte, pour voir aussi la première
-     ligne de l'accueil en entier. Titre limité à deux lignes. */
+  /* Android (#24, #184): low banner, cover to the right of the text, to also see the first
+     row of the home page in full. Title limited to two lines. */
   :global(:root[data-platform="android"]) .hero {
     gap: 14px;
     min-height: 0;
